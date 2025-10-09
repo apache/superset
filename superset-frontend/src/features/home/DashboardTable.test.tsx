@@ -29,6 +29,17 @@ import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
 import DashboardTable from './DashboardTable';
+import handleResourceExport from 'src/utils/export';
+
+// Mock the export module
+jest.mock('src/utils/export', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockExport = handleResourceExport as jest.MockedFunction<
+  typeof handleResourceExport
+>;
 
 jest.mock('src/views/CRUD/utils', () => ({
   ...jest.requireActual('src/views/CRUD/utils'),
@@ -255,11 +266,16 @@ describe('DashboardTable', () => {
   });
 
   test('handles bulk dashboard export with correct ID and shows spinner', async () => {
-    const mockExport = jest.fn().mockResolvedValue({});
-    jest.mock('src/utils/export', () => ({
-      __esModule: true,
-      default: mockExport,
-    }));
+    // Mock export to take some time before calling the done callback
+    mockExport.mockImplementation(
+      (resource: string, ids: number[], done: () => void) =>
+        new Promise(resolve => {
+          setTimeout(() => {
+            done();
+            resolve();
+          }, 100);
+        }),
+    );
 
     const props = {
       ...defaultProps,
@@ -302,12 +318,24 @@ describe('DashboardTable', () => {
     await userEvent.click(exportOption);
 
     // Verify spinner shows up during export
-    expect(screen.getByRole('status')).toBeInTheDocument();
-
-    // Wait for export to complete
     await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toBeInTheDocument();
     });
+
+    // Verify the export was called with correct parameters
+    expect(mockExport).toHaveBeenCalledWith(
+      'dashboard',
+      [1],
+      expect.any(Function),
+    );
+
+    // Wait for export to complete and spinner to disappear
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   test('handles dashboard deletion confirmation', async () => {
