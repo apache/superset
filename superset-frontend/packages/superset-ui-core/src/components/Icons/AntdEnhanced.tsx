@@ -146,6 +146,7 @@ import {
   ExportOutlined,
   CompressOutlined,
   HistoryOutlined,
+  SlackOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -281,6 +282,7 @@ const AntdIcons = {
   ExportOutlined,
   CompressOutlined,
   HistoryOutlined,
+  SlackOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;
