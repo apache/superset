@@ -357,7 +357,28 @@ class CSVReader(BaseDataReader):
         kwargs["low_memory"] = False
 
         try:
-            types = kwargs.pop("dtype", None)
+            # Only pop types that are not str or object
+            original_types = kwargs.get("dtype", None)
+            types = None
+            if original_types:
+                # keep str/object in kwargs, extract others for custom casting
+                pandas_types = {}
+                custom_types = {}
+                for col, dtype in original_types.items():
+                    if dtype in ("str", "object", "string"):
+                        pandas_types[col] = dtype
+                    else:
+                        custom_types[col] = dtype
+
+                # Update kwargs with only str/object types for pandas to handle
+                if pandas_types:
+                    kwargs["dtype"] = pandas_types
+                else:
+                    kwargs.pop("dtype", None)
+
+                # Custom types for our manual casting
+                types = custom_types if custom_types else None
+
             if "chunksize" in kwargs:
                 chunks = []
                 total_rows = 0
