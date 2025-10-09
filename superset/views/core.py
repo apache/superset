@@ -79,6 +79,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import FlaskResponse
+from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -765,19 +766,19 @@ class Superset(BaseSupersetView):
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
-            if g.user is None or g.user.is_anonymous:
+            if not get_current_user():
                 return redirect_to_login()
             abort(404)
 
         # Redirect anonymous users to login for unpublished dashboards,
         # in the edge case where a dataset has been shared with public
-        if (g.user is None or g.user.is_anonymous) and not dashboard.published:
+        if not get_current_user() and not dashboard.published:
             return redirect_to_login()
 
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException:
-            if g.user is None or g.user.is_anonymous:
+            if not get_current_user():
                 return redirect_to_login()
             abort(404)
         add_extra_log_payload(
