@@ -327,6 +327,26 @@ class CSVReader(BaseDataReader):
         return df
 
     @staticmethod
+    def _split_types(types: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Split column data types into custom and pandas-native types.
+
+        :param types: Dictionary mapping column names to data types
+        :return: Tuple of (custom_types, pandas_types) dictionaries
+        """
+        pandas_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype in ("str", "object", "string")
+        }
+        custom_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype not in ("str", "object", "string")
+        }
+        return custom_types, pandas_types
+
+    @staticmethod
     def _read_csv(  # noqa: C901
         file: FileStorage,
         kwargs: dict[str, Any],
@@ -357,20 +377,9 @@ class CSVReader(BaseDataReader):
         kwargs["low_memory"] = False
 
         try:
-            # Only pop types that are not str or object
-            original_types = kwargs.get("dtype", None)
             types = None
-            if original_types:
-                # keep str/object in kwargs, extract others for custom casting
-                pandas_types = {}
-                custom_types = {}
-                for col, dtype in original_types.items():
-                    if dtype in ("str", "object", "string"):
-                        pandas_types[col] = dtype
-                    else:
-                        custom_types[col] = dtype
-
-                # Update kwargs with only str/object types for pandas to handle
+            if "dtype" in kwargs and kwargs["dtype"]:
+                custom_types, pandas_types = CSVReader._split_types(kwargs["dtype"])
                 if pandas_types:
                     kwargs["dtype"] = pandas_types
                 else:
