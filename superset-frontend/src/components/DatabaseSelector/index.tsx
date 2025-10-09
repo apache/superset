@@ -127,6 +127,7 @@ export function DatabaseSelector({
   catalog,
   onSchemaChange,
   schema,
+  schemaSelectMode = 'single',
   readOnly = false,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
@@ -138,8 +139,14 @@ export function DatabaseSelector({
   >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
   const catalogRef = useRef(catalog);
   catalogRef.current = catalog;
-  const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
-    schema ? { label: schema, value: schema, title: schema } : undefined,
+  const [currentSchema, setCurrentSchema] = useState<
+    SchemaOption | SchemaOption[] | undefined
+  >(
+    schema
+      ? Array.isArray(schema)
+        ? schema.map(s => ({ label: s, value: s, title: s }))
+        : { label: schema, value: schema, title: schema }
+      : undefined,
   );
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -231,10 +238,37 @@ export function DatabaseSelector({
     );
   }, [db]);
 
-  function changeSchema(schema: SchemaOption | undefined) {
+  function changeSchema(schema: SchemaOption | SchemaOption[] | undefined) {
     setCurrentSchema(schema);
-    if (onSchemaChange && schema?.value !== schemaRef.current) {
-      onSchemaChange(schema?.value);
+    if (onSchemaChange) {
+      const currentValue = Array.isArray(schemaRef.current)
+        ? schemaRef.current
+        : schemaRef.current
+          ? [schemaRef.current]
+          : [];
+
+      const newValue = Array.isArray(schema)
+        ? schema.map(s => s.value)
+        : schema?.value;
+
+      if (schemaSelectMode === 'multiple') {
+        const newValueArray = Array.isArray(newValue)
+          ? newValue
+          : newValue
+            ? [newValue]
+            : [];
+        if (
+          JSON.stringify(currentValue.sort()) !==
+          JSON.stringify(newValueArray.sort())
+        ) {
+          onSchemaChange(newValueArray);
+        }
+      } else {
+        const newSingleValue = Array.isArray(newValue) ? newValue[0] : newValue;
+        if (newSingleValue !== schemaRef.current) {
+          onSchemaChange(newSingleValue);
+        }
+      }
     }
   }
 
@@ -247,12 +281,31 @@ export function DatabaseSelector({
     catalog: currentCatalog?.value,
     onSuccess: (schemas, isFetched) => {
       setErrorPayload(null);
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        changeSchema(undefined);
+      if (schemaSelectMode === 'single') {
+        if (schemas.length === 1) {
+          changeSchema(schemas[0]);
+        } else if (
+          !schemas.find(
+            schemaOption => schemaRef.current === schemaOption.value,
+          )
+        ) {
+          changeSchema(undefined);
+        }
+      } else {
+        // For multiple mode, check if current selection is still valid
+        const currentSchemas = Array.isArray(schemaRef.current)
+          ? schemaRef.current
+          : schemaRef.current
+            ? [schemaRef.current]
+            : [];
+
+        const validSchemas = schemas.filter(schema =>
+          currentSchemas.includes(schema.value),
+        );
+
+        if (validSchemas.length !== currentSchemas.length) {
+          changeSchema(validSchemas.length > 0 ? validSchemas : undefined);
+        }
       }
 
       if (isFetched) {
@@ -406,10 +459,11 @@ export function DatabaseSelector({
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         loading={loadingSchemas}
+        mode={schemaSelectMode === 'multiple' ? 'multiple' : undefined}
         name="select-schema"
         notFoundContent={t('No compatible schema found')}
         placeholder={t('Select schema or type to search schemas')}
-        onChange={item => changeSchema(item as SchemaOption)}
+        onChange={item => changeSchema(item as SchemaOption | SchemaOption[])}
         options={schemaOptions}
         showSearch
         value={currentSchema}

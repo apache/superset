@@ -271,6 +271,7 @@ export const exportChart = async ({
       parseMethod,
     });
   }
+  console.log('exportChart payload', payload, ownState);
 
   SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
