@@ -445,7 +445,6 @@ const Chart = props => {
         onStartStreamingExport: shouldUseStreaming
           ? exportParams => {
               setIsStreamingModalVisible(true);
-              resetExport();
               startExport({
                 ...exportParams,
                 filename,
@@ -626,6 +625,7 @@ const Chart = props => {
             cancelExport();
           }
           setIsStreamingModalVisible(false);
+          resetExport();
         }}
         onRetry={retryExport}
         progress={progress}

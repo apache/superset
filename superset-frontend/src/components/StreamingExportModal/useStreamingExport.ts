@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
 
@@ -114,10 +114,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
     elapsedTime: 0,
     status: ExportStatus.STREAMING,
   });
-  const [isExporting, setIsExporting] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastExportParamsRef = useRef<StreamingExportParams | null>(null);
+  const currentBlobUrlRef = useRef<string | null>(null);
+  const isExportingRef = useRef(false);
 
   const updateProgress = useCallback((updates: Partial<StreamingProgress>) => {
     setProgress(prev => ({ ...prev, ...updates }));
@@ -203,7 +204,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
               totalSize: receivedLength,
             });
 
-            setIsExporting(false);
+            isExportingRef.current = false;
             options.onError?.(errorMsg);
             hasError = true;
             break;
@@ -232,7 +233,13 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         }
 
         const blob = createBlob(chunks, receivedLength, exportType);
+
+        if (currentBlobUrlRef.current) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+        }
+
         const downloadUrl = URL.createObjectURL(blob);
+        currentBlobUrlRef.current = downloadUrl;
 
         updateProgress({
           status: ExportStatus.COMPLETED,
@@ -240,6 +247,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           filename: finalFilename,
         });
 
+        isExportingRef.current = false;
         options.onComplete?.(downloadUrl, finalFilename);
       } catch (error) {
         const errorMessage =
@@ -252,14 +260,14 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           updateProgress({
             status: ExportStatus.CANCELLED,
           });
-          setIsExporting(false);
+          isExportingRef.current = false;
         } else {
           updateProgress({
             status: ExportStatus.ERROR,
             error: errorMessage,
           });
           options.onError?.(errorMessage);
-          setIsExporting(false);
+          isExportingRef.current = false;
         }
       } finally {
         abortControllerRef.current = null;
@@ -270,11 +278,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
   const startExport = useCallback(
     async (params: StreamingExportParams) => {
-      if (isExporting) {
+      if (isExportingRef.current) {
         return;
       }
 
-      setIsExporting(true);
+      isExportingRef.current = true;
       setRetryCount(0);
       lastExportParamsRef.current = params;
 
@@ -291,7 +299,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
       executeExport(params);
     },
-    [isExporting, updateProgress, executeExport],
+    [updateProgress, executeExport],
   );
 
   const retryExport = useCallback(() => {
@@ -299,7 +307,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       return;
     }
 
-    setIsExporting(true);
+    if (isExportingRef.current) {
+      return;
+    }
+
+    isExportingRef.current = true;
     setRetryCount(0);
     executeExport(lastExportParamsRef.current);
   }, [executeExport]);
@@ -314,7 +326,12 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
   }, [updateProgress]);
 
   const resetExport = useCallback(() => {
-    setIsExporting(false);
+    if (currentBlobUrlRef.current) {
+      URL.revokeObjectURL(currentBlobUrlRef.current);
+      currentBlobUrlRef.current = null;
+    }
+
+    isExportingRef.current = false;
     abortControllerRef.current = null;
     setProgress({
       rowsProcessed: 0,
@@ -327,9 +344,19 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
     });
   }, []);
 
+  // Cleanup blob URL on unmount to prevent memory leak
+  useEffect(
+    () => () => {
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+      }
+    },
+    [],
+  );
+
   return {
     progress,
-    isExporting,
+    isExporting: isExportingRef.current,
     retryCount,
     startExport,
     cancelExport,
