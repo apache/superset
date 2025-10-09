@@ -419,7 +419,19 @@ class BaseReportState:
             logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
         except SoftTimeLimitExceeded as ex:
-            raise ReportScheduleCsvTimeout() from ex
+            chart_id = self._report_schedule.chart_id
+            chart_name = self._report_schedule.chart.slice_name
+            timeout = self._report_schedule.working_timeout or app.config.get(
+                "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
+            )
+            error_msg = (
+                f"Timeout fetching CSV data for chart '{chart_name}' "
+                f"(ID: {chart_id}). The chart query exceeded the {timeout} "
+                f"second timeout limit. Consider optimizing the chart query "
+                f"or increasing the working timeout."
+            )
+            logger.error(error_msg)
+            raise ReportScheduleCsvTimeout(error_msg) from ex
         except Exception as ex:
             raise ReportScheduleCsvFailedError(
                 f"Failed generating csv {str(ex)}"
@@ -449,7 +461,19 @@ class BaseReportState:
             logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
-            raise ReportScheduleDataFrameTimeout() from ex
+            chart_id = self._report_schedule.chart_id
+            chart_name = self._report_schedule.chart.slice_name
+            timeout = self._report_schedule.working_timeout or app.config.get(
+                "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
+            )
+            error_msg = (
+                f"Timeout fetching data for chart '{chart_name}' "
+                f"(ID: {chart_id}). The chart query exceeded the {timeout} "
+                f"second timeout limit. Consider optimizing the chart query "
+                f"or increasing the working timeout."
+            )
+            logger.error(error_msg)
+            raise ReportScheduleDataFrameTimeout(error_msg) from ex
         except Exception as ex:
             raise ReportScheduleDataFrameFailedError(
                 f"Failed generating dataframe {str(ex)}"

@@ -255,17 +255,29 @@ class AlertQueryTimeout(CommandException):
 
 class ReportScheduleScreenshotTimeout(CommandException):
     status = 408
-    message = _("A timeout occurred while taking a screenshot.")
+
+    def __init__(
+        self, message: str = "A timeout occurred while taking a screenshot."
+    ) -> None:
+        super().__init__(message)
 
 
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
-    message = _("A timeout occurred while generating a csv.")
+
+    def __init__(
+        self, message: str = "A timeout occurred while generating a csv."
+    ) -> None:
+        super().__init__(message)
 
 
 class ReportScheduleDataFrameTimeout(CommandException):
     status = 408
-    message = _("A timeout occurred while generating a dataframe.")
+
+    def __init__(
+        self, message: str = "A timeout occurred while generating a dataframe."
+    ) -> None:
+        super().__init__(message)
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):
