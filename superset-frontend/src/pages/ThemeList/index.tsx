@@ -221,14 +221,19 @@ function ThemesList({
     setAppliedThemeId(null);
   }
 
-  const handleBulkThemeExport = (themesToExport: ThemeObject[]) => {
+  const handleBulkThemeExport = async (themesToExport: ThemeObject[]) => {
     const ids = themesToExport
       .map(({ id }) => id)
       .filter((id): id is number => id !== undefined);
-    handleResourceExport('theme', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('theme', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected themes'));
+    }
   };
 
   const openThemeImportModal = () => {
