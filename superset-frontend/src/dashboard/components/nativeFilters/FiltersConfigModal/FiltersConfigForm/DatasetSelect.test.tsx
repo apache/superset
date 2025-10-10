@@ -179,7 +179,7 @@ test('calls onChange when a dataset is selected', async () => {
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalled();
     const callArg = mockOnChange.mock.calls[0][0];
-    expect(callArg).toHaveValue(1);
+    expect(callArg).toBe(1);
   });
 });
 
