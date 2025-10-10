@@ -48,7 +48,7 @@ function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
     const hasDisable = node.leadingComments.some(
       comment =>
         (comment.value.includes('eslint-disable-next-line') ||
-         comment.value.includes('eslint-disable')) &&
+          comment.value.includes('eslint-disable')) &&
         comment.value.includes(ruleName),
     );
     if (hasDisable) return true;
@@ -59,7 +59,7 @@ function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
     const hasDisable = parent.leadingComments.some(
       comment =>
         (comment.value.includes('eslint-disable-next-line') ||
-         comment.value.includes('eslint-disable')) &&
+          comment.value.includes('eslint-disable')) &&
         comment.value.includes(ruleName),
     );
     if (hasDisable) return true;
@@ -73,7 +73,7 @@ function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
       const hasDisable = current.node.leadingComments.some(
         comment =>
           (comment.value.includes('eslint-disable-next-line') ||
-           comment.value.includes('eslint-disable')) &&
+            comment.value.includes('eslint-disable')) &&
           comment.value.includes(ruleName),
       );
       if (hasDisable) return true;
