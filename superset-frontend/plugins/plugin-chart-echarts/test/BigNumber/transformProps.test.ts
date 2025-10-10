@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  supersetTheme,
-  TimeGranularity,
-  VizType,
-} from '@superset-ui/core';
+import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,

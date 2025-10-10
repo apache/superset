@@ -27,7 +27,8 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
-import { css, logging, SupersetClient, t } from '@superset-ui/core';
+import { logging, SupersetClient, t } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';

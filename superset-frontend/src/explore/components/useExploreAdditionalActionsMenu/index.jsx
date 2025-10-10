@@ -19,15 +19,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import {
-  css,
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-  VizType,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, VizType } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
   Icons,
   ModalTrigger,

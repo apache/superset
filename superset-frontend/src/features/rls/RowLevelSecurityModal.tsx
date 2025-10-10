@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { css, styled, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {

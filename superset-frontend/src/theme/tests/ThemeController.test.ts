@@ -17,13 +17,14 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
+import {} from '@superset-ui/core';
 import {
   type AnyThemeConfig,
   type SupersetThemeConfig,
   Theme,
   ThemeAlgorithm,
   ThemeMode,
-} from '@superset-ui/core';
+} from '@apache-superset/core/ui';
 import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,

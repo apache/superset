@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from '.';
-import type { AlertProps } from './types';
+import { Alert, type AlertProps } from '.';
 
 type AlertType = Required<Pick<AlertProps, 'type'>>;
 type AlertTypeValue = AlertType['type'];
@@ -54,25 +53,10 @@ export const AlertGallery = () => (
   </>
 );
 
-export const InteractiveAlert = (args: AlertProps) => (
-  <>
-    <Alert {...args} />
-    <div
-      style={{
-        marginTop: args.roomBelow ? '40px' : '0px',
-        border: '1px dashed gray',
-        padding: '10px',
-        textAlign: 'center',
-      }}
-    >
-      Content below the Alert to test the `roomBelow` property
-    </div>
-  </>
-);
+export const InteractiveAlert = (args: AlertProps) => <Alert {...args} />;
 
 InteractiveAlert.args = {
   closable: true,
-  roomBelow: false,
   type: 'info',
   message: 'This is a sample alert message.',
   description: 'Sample description for additional context.',
@@ -93,9 +77,5 @@ InteractiveAlert.argTypes = {
   showIcon: {
     control: { type: 'boolean' },
     description: 'Whether to display an icon in the Alert.',
-  },
-  roomBelow: {
-    control: { type: 'boolean' },
-    description: 'Adds margin below the Alert for layout spacing.',
   },
 };

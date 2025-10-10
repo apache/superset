@@ -18,13 +18,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import {
-  JsonObject,
-  seed,
-  SuperChart,
-  SequentialD3,
-  useTheme,
-} from '@superset-ui/core';
+import { JsonObject, seed, SuperChart, SequentialD3 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import CountryMapChartPlugin, {
   countries,
 } from '@superset-ui/legacy-plugin-chart-country-map';

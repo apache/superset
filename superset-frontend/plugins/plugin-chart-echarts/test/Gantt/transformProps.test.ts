@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps, supersetTheme } from '@superset-ui/core';
+import { AxisType, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
   LegendType,

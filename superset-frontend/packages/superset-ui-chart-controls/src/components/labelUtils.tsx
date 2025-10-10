@@ -18,7 +18,8 @@
  */
 import { ReactNode, RefObject } from 'react';
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 
 const TooltipSectionWrapper = styled.div`

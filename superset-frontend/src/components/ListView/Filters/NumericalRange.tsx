@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, forwardRef, useImperativeHandle, RefObject } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import { FormLabel } from '@superset-ui/core/components/Form';
 import type { BaseFilter, FilterHandler } from './types';

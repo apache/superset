@@ -22,9 +22,9 @@ import {
   t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import {
   Input,
   Checkbox,

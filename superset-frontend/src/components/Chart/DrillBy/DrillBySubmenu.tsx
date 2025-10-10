@@ -31,12 +31,11 @@ import {
   Behavior,
   Column,
   ContextMenuFilters,
-  css,
   ensureIsArray,
   getChartMetadataRegistry,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import {
   Constants,
   Input,

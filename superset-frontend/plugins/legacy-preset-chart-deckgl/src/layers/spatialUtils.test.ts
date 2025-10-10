@@ -20,8 +20,8 @@ import {
   ChartProps,
   DatasourceType,
   QueryObjectFilterClause,
-  SupersetTheme,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { decode } from 'ngeohash';
 
 import {

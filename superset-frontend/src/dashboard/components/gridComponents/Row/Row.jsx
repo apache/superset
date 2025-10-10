@@ -27,13 +27,8 @@ import {
 } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import {
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Icons, Constants } from '@superset-ui/core/components';
 
 import {

@@ -87,3 +87,4 @@ export type {
 
 // Export theme utility functions
 export * from './utils/themeUtils';
+export * from './utils';

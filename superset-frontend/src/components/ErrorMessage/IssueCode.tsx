@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components';
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 
 interface IssueCodeProps {
   code: number;

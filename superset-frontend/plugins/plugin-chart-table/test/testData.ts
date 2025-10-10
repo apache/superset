@@ -21,10 +21,10 @@ import {
   ChartProps,
   DatasourceType,
   QueryMode,
-  supersetTheme,
   ComparisonType,
   VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
 

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
 import { Icons } from '@superset-ui/core/components/Icons';

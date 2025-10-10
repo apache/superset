@@ -18,7 +18,7 @@
  */
 import { Tag } from '@superset-ui/core/components/Tag';
 import { css } from '@emotion/react';
-import { useTheme, getColorVariants } from '@superset-ui/core';
+import { useTheme, getColorVariants } from '@apache-superset/core/ui';
 import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
 import { PublishedLabel } from './reusable/PublishedLabel';
 import type { LabelProps } from './types';

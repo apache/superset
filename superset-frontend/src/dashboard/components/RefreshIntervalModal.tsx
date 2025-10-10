@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Alert, Form } from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
+import { Form } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import {
   RefreshFrequencySelect,

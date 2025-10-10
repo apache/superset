@@ -19,7 +19,8 @@
 import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
 import { useSelector } from 'react-redux';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { List, Popover } from '@superset-ui/core/components';
 import {
   FiltersContainer,

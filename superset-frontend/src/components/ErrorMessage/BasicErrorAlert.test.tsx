@@ -18,7 +18,8 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import { ErrorLevel, supersetTheme } from '@superset-ui/core';
+import { ErrorLevel } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(

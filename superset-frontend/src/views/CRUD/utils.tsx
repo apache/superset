@@ -19,13 +19,13 @@
 
 import {
   logging,
-  styled,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
   t,
   lruCache,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';

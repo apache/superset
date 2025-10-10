@@ -30,7 +30,8 @@ import {
 } from 'react';
 
 import { Global } from '@emotion/react';
-import { css, t, useTheme, usePrevious } from '@superset-ui/core';
+import { t, usePrevious } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { useResizeDetector } from 'react-resize-detector';
 import { Badge, Icons, Button, Tooltip, Popover } from '..';
 import { DropdownContainerProps, DropdownItem, DropdownRef } from './types';

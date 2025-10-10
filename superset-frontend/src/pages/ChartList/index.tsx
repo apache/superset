@@ -21,10 +21,10 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';

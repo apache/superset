@@ -20,7 +20,8 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { ensureIsArray, styled } from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
 
 const propTypes = {

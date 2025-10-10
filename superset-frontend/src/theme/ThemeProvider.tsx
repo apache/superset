@@ -24,12 +24,13 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {} from '@superset-ui/core';
 import {
   type AnyThemeConfig,
   type ThemeContextType,
   Theme,
   ThemeMode,
-} from '@superset-ui/core';
+} from '@apache-superset/core/ui';
 import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);

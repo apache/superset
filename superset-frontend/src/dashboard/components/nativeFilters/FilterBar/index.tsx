@@ -36,8 +36,8 @@ import {
   DataMask,
   isNativeFilter,
   usePrevious,
-  styled,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask } from 'src/dataMask/actions';

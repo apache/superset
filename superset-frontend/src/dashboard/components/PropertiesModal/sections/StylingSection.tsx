@@ -19,12 +19,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   t,
-  styled,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { CssEditor, Select, Alert } from '@superset-ui/core/components';
+import { styled, Alert } from '@apache-superset/core/ui';
+import { CssEditor, Select } from '@superset-ui/core/components';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';

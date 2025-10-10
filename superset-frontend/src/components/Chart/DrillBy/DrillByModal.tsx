@@ -23,19 +23,17 @@ import {
   BaseFormData,
   Column,
   QueryData,
-  css,
   ensureIsArray,
   isDefined,
   t,
-  useTheme,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
+import { css, useTheme, Alert } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Button,
-  Alert,
   Modal,
   Loading,
   Breadcrumb,

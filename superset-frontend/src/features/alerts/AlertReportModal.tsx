@@ -27,16 +27,13 @@ import {
 } from 'react';
 
 import {
-  css,
   isFeatureEnabled,
   FeatureFlag,
-  styled,
   SupersetClient,
-  SupersetTheme,
   t,
   VizType,
-  useTheme,
 } from '@superset-ui/core';
+import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';

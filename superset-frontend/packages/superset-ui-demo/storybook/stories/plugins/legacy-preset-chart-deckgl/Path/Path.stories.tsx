@@ -19,7 +19,8 @@
 
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
-import { SuperChart, useTheme } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { payload } from './payload';
 import dummyDatasource from '../../../../shared/dummyDatasource';

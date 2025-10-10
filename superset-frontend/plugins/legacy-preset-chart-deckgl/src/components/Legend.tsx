@@ -20,7 +20,8 @@
  * under the License.
  */
 import { memo } from 'react';
-import { formatNumber, styled } from '@superset-ui/core';
+import { formatNumber } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Color } from '@deck.gl/core';
 
 const StyledLegend = styled.div`

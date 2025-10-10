@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
 import type { CertifiedBadgeProps } from './types';

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';

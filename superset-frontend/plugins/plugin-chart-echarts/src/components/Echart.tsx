@@ -29,7 +29,8 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme, mergeReplaceArrays } from '@superset-ui/core';
+import { mergeReplaceArrays } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,

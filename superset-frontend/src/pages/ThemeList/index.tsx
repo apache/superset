@@ -18,13 +18,13 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Tag,
   DeleteModal,
   ConfirmStatusChange,
   Loading,
-  Alert,
   Tooltip,
   Space,
   Modal,

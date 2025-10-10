@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 export type FormLabelProps = {
   children: ReactNode;

@@ -18,10 +18,10 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { SupersetTheme, Alert } from '@apache-superset/core/ui';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { Alert } from '@superset-ui/core/components';
 import { antdWarningAlertStyles } from './styles';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();

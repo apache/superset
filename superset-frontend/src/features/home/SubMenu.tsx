@@ -19,7 +19,8 @@
 import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
 import { Link, useHistory } from 'react-router-dom';
-import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, SupersetTheme, css, useTheme } from '@apache-superset/core/ui';
 import cx from 'classnames';
 import { debounce } from 'lodash';
 import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';

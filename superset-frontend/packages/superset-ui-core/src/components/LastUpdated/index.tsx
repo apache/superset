@@ -18,7 +18,8 @@
  */
 import { useEffect, useState, FunctionComponent } from 'react';
 
-import { t, styled, css, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { Dayjs } from 'dayjs';
 import { extendedDayjs } from '../../utils/dates';
 import 'dayjs/plugin/updateLocale';

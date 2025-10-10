@@ -19,6 +19,7 @@
 
 import { RefObject } from 'react';
 import { createSelector, lruMemoize } from 'reselect';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   AppSection,
   Behavior,
@@ -34,7 +35,6 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { supersetTheme, SupersetTheme } from '../../theme';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;

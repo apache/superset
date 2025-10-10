@@ -18,13 +18,8 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import {
-  t,
-  logging,
-  SupersetClient,
-  withTheme,
-  ensureIsArray,
-} from '@superset-ui/core';
+import { t, logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';

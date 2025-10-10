@@ -19,7 +19,8 @@
 import { Fragment, useCallback, useState, useMemo, memo } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';

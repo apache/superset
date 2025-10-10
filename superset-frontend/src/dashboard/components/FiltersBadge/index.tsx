@@ -33,10 +33,10 @@ import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  styled,
   t,
   usePrevious,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';

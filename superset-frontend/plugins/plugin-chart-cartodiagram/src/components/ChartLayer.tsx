@@ -20,7 +20,7 @@ import Layer from 'ol/layer/Layer';
 import { FrameState } from 'ol/Map';
 import { apply as applyTransform } from 'ol/transform';
 import ReactDOM from 'react-dom';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { ChartConfig, ChartLayerOptions, ChartSizeValues } from '../types';
 import { createChartComponent } from '../util/chartUtil';
 import { getProjectedCoordinateFromPointGeoJson } from '../util/geometryUtil';

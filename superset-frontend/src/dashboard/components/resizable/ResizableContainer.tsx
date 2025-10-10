@@ -19,7 +19,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import {
   RightResizeHandle,

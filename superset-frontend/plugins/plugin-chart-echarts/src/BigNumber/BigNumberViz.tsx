@@ -24,10 +24,9 @@ import {
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
-  styled,
   BinaryQueryObjectFilterClause,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
