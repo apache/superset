@@ -190,18 +190,27 @@ const DependencyList = ({
   const hasDependencies = dependencies.length > 0;
 
   const onCheckChanged = (value: boolean) => {
-    const newDependencies: string[] = [];
-    if (value && !hasDependencies && hasAvailableFilters) {
-      newDependencies.push(getDependencySuggestion());
+    if (value) {
+      // When enabling dependencies, add a suggestion if no dependencies exist
+      if (!hasDependencies && hasAvailableFilters) {
+        const suggestion = getDependencySuggestion();
+        if (suggestion) {
+          onDependenciesChange([suggestion]);
+        }
+      }
+      // If no available filters or suggestion, keep the checkbox checked but with empty dependencies
+      // This prevents the checkbox from immediately closing due to lack of available filters
+    } else {
+      // When disabling dependencies, clear all dependencies
+      onDependenciesChange([]);
     }
-    onDependenciesChange(newDependencies);
   };
 
   return (
     <MainPanel>
       <CollapsibleControl
         title={t('Values are dependent on other filters')}
-        initialValue={hasDependencies}
+        checked={hasDependencies}
         onChange={onCheckChanged}
         tooltip={t(
           'Values selected in other filters will affect the filter options to only show relevant values',

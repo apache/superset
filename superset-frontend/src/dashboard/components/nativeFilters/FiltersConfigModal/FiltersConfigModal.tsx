@@ -361,16 +361,49 @@ function FiltersConfigModal({
   );
 
   const getAvailableFilters = useCallback(
-    (filterId: string) =>
-      filterIds
+    (filterId: string) => {
+      // Build current dependency map
+      const dependencyMap = new Map<string, string[]>();
+      const filters = form.getFieldValue('filters');
+      if (filters) {
+        Object.keys(filters).forEach(key => {
+          const formItem = filters[key];
+          const configItem = filterConfigMap[key];
+          let array: string[] = [];
+          if (formItem && 'dependencies' in formItem) {
+            array = [...formItem.dependencies];
+          } else if (configItem?.cascadeParentIds) {
+            array = [...configItem.cascadeParentIds];
+          }
+          dependencyMap.set(key, array);
+        });
+      }
+
+      return filterIds
         .filter(id => id !== filterId)
         .filter(id => canBeUsedAsDependency(id))
+        .filter(id => {
+          // Check if adding this dependency would create a circular dependency
+          const currentDependencies = dependencyMap.get(filterId) || [];
+          const testDependencies = [...currentDependencies, id];
+          const testMap = new Map(dependencyMap);
+          testMap.set(filterId, testDependencies);
+          return !hasCircularDependency(testMap, filterId);
+        })
         .map(id => ({
           label: getFilterTitle(id),
           value: id,
           type: filterConfigMap[id]?.filterType,
-        })),
-    [canBeUsedAsDependency, filterConfigMap, filterIds, getFilterTitle],
+        }));
+    },
+    [
+      canBeUsedAsDependency,
+      filterConfigMap,
+      filterIds,
+      getFilterTitle,
+      form,
+      form.getFieldValue('filters'),
+    ],
   );
 
   /**
