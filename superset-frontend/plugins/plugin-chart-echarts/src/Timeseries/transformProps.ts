@@ -39,7 +39,6 @@ import {
   t,
   TimeseriesChartDataResponseResult,
   NumberFormats,
-  convertKeysToCamelCase,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
@@ -204,7 +203,6 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = {
     ...DEFAULT_FORM_DATA,
     ...formData,
-    ...convertKeysToCamelCase(formData.extraFormData),
   };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -485,11 +483,17 @@ export default function transformProps(
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat, timeGrainSqla)
+      ? getTooltipTimeFormatter(
+          tooltipTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(
+          xAxisTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
