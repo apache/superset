@@ -27,6 +27,8 @@ import sys
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 
+TALISMAN_ENABLED = False
+
 LANGUAGES = {
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'en': {'flag': 'us', 'name': 'English'}
