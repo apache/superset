@@ -35,96 +35,94 @@ global.URL.revokeObjectURL = jest.fn();
 // Mock fetch
 global.fetch = jest.fn();
 
-describe('useStreamingExport', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('useStreamingExport initializes with default progress state', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  expect(result.current.progress).toEqual({
+    rowsProcessed: 0,
+    totalRows: undefined,
+    totalSize: 0,
+    speed: 0,
+    mbPerSecond: 0,
+    elapsedTime: 0,
+    status: ExportStatus.STREAMING,
+  });
+});
+
+test('useStreamingExport provides startExport function', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  expect(typeof result.current.startExport).toBe('function');
+});
+
+test('useStreamingExport provides resetExport function', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  expect(typeof result.current.resetExport).toBe('function');
+});
+
+test('useStreamingExport provides retryExport function', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  expect(typeof result.current.retryExport).toBe('function');
+});
+
+test('useStreamingExport provides cancelExport function', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  expect(typeof result.current.cancelExport).toBe('function');
+});
+
+test('useStreamingExport resetExport resets progress to initial state', () => {
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.resetExport();
   });
 
-  test('initializes with default progress state', () => {
-    const { result } = renderHook(() => useStreamingExport());
+  expect(result.current.progress.status).toBe(ExportStatus.STREAMING);
+  expect(result.current.progress.rowsProcessed).toBe(0);
+  expect(result.current.progress.totalSize).toBe(0);
+});
 
-    expect(result.current.progress).toEqual({
-      rowsProcessed: 0,
-      totalRows: undefined,
-      totalSize: 0,
-      speed: 0,
-      mbPerSecond: 0,
-      elapsedTime: 0,
-      status: ExportStatus.STREAMING,
-    });
-  });
+test('useStreamingExport accepts onComplete callback option', () => {
+  const onComplete = jest.fn();
+  const { result } = renderHook(() => useStreamingExport({ onComplete }));
 
-  test('provides startExport function', () => {
-    const { result } = renderHook(() => useStreamingExport());
+  expect(result.current).toBeDefined();
+});
 
-    expect(typeof result.current.startExport).toBe('function');
-  });
+test('useStreamingExport accepts onError callback option', () => {
+  const onError = jest.fn();
+  const { result } = renderHook(() => useStreamingExport({ onError }));
 
-  test('provides resetExport function', () => {
-    const { result } = renderHook(() => useStreamingExport());
+  expect(result.current).toBeDefined();
+});
 
-    expect(typeof result.current.resetExport).toBe('function');
-  });
+test('useStreamingExport progress includes all required fields', () => {
+  const { result } = renderHook(() => useStreamingExport());
 
-  test('provides retryExport function', () => {
-    const { result } = renderHook(() => useStreamingExport());
+  expect(result.current.progress).toHaveProperty('rowsProcessed');
+  expect(result.current.progress).toHaveProperty('totalRows');
+  expect(result.current.progress).toHaveProperty('totalSize');
+  expect(result.current.progress).toHaveProperty('status');
+  expect(result.current.progress).toHaveProperty('speed');
+  expect(result.current.progress).toHaveProperty('mbPerSecond');
+  expect(result.current.progress).toHaveProperty('elapsedTime');
+});
 
-    expect(typeof result.current.retryExport).toBe('function');
-  });
+test('useStreamingExport cleans up on unmount', () => {
+  const revokeObjectURL = jest.fn();
+  global.URL.revokeObjectURL = revokeObjectURL;
 
-  test('provides cancelExport function', () => {
-    const { result } = renderHook(() => useStreamingExport());
+  const { unmount } = renderHook(() => useStreamingExport());
 
-    expect(typeof result.current.cancelExport).toBe('function');
-  });
+  unmount();
 
-  test('resetExport resets progress to initial state', () => {
-    const { result } = renderHook(() => useStreamingExport());
-
-    act(() => {
-      result.current.resetExport();
-    });
-
-    expect(result.current.progress.status).toBe(ExportStatus.STREAMING);
-    expect(result.current.progress.rowsProcessed).toBe(0);
-    expect(result.current.progress.totalSize).toBe(0);
-  });
-
-  test('accepts onComplete callback option', () => {
-    const onComplete = jest.fn();
-    const { result } = renderHook(() => useStreamingExport({ onComplete }));
-
-    expect(result.current).toBeDefined();
-  });
-
-  test('accepts onError callback option', () => {
-    const onError = jest.fn();
-    const { result } = renderHook(() => useStreamingExport({ onError }));
-
-    expect(result.current).toBeDefined();
-  });
-
-  test('progress includes all required fields', () => {
-    const { result } = renderHook(() => useStreamingExport());
-
-    expect(result.current.progress).toHaveProperty('rowsProcessed');
-    expect(result.current.progress).toHaveProperty('totalRows');
-    expect(result.current.progress).toHaveProperty('totalSize');
-    expect(result.current.progress).toHaveProperty('status');
-    expect(result.current.progress).toHaveProperty('speed');
-    expect(result.current.progress).toHaveProperty('mbPerSecond');
-    expect(result.current.progress).toHaveProperty('elapsedTime');
-  });
-
-  test('cleans up on unmount', () => {
-    const revokeObjectURL = jest.fn();
-    global.URL.revokeObjectURL = revokeObjectURL;
-
-    const { unmount } = renderHook(() => useStreamingExport());
-
-    unmount();
-
-    // Cleanup should not throw errors
-    expect(true).toBe(true);
-  });
+  // Cleanup should not throw errors
+  expect(true).toBe(true);
 });
