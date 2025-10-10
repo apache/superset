@@ -33,7 +33,6 @@ const useChildElementTruncation = () => {
   const elementRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
 
-  // oxlint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const onResize = () => {
       const currentElement = elementRef.current;
@@ -87,7 +86,7 @@ const useChildElementTruncation = () => {
     return () => {
       obs.disconnect();
     };
-  }, []); // plus is rendered dynamically - the component rerenders the hook when plus appears, this makes sure that useLayoutEffect is rerun
+  }, [plusRef.current]); // oxlint-disable-line react-hooks/exhaustive-deps plus is rendered dynamically - the component rerenders the hook when plus appears, this makes sure that useLayoutEffect is rerun
 
   return [elementRef, plusRef, elementsTruncated, hasHiddenElements] as const;
 };
