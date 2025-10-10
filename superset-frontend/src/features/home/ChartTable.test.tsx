@@ -25,7 +25,18 @@ import {
 import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
+import handleResourceExport from 'src/utils/export';
 import ChartTable from './ChartTable';
+
+// Mock the export module
+jest.mock('src/utils/export', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockExport = handleResourceExport as jest.MockedFunction<
+  typeof handleResourceExport
+>;
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
@@ -117,16 +128,16 @@ test('renders mine tab on click', async () => {
 });
 
 test('handles chart export with correct ID and shows spinner', async () => {
-  const mockExport = jest
-    .fn()
-    .mockImplementation(() =>
-      new Promise(resolve => setTimeout(resolve, 100)),
-    );
-
-  jest.mock('src/utils/export', () => ({
-    __esModule: true,
-    default: mockExport,
-  }));
+  // Mock export to take some time before calling the done callback
+  mockExport.mockImplementation(
+    (resource: string, ids: number[], done: () => void) =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          done();
+          resolve();
+        }, 100);
+      }),
+  );
 
   await renderChartTable(mineTabProps);
 
@@ -153,6 +164,9 @@ test('handles chart export with correct ID and shows spinner', async () => {
   await waitFor(() => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
+
+  // Verify the export was called with correct parameters
+  expect(mockExport).toHaveBeenCalledWith('chart', [0], expect.any(Function));
 
   // Wait for export to complete and spinner to disappear
   await waitFor(
