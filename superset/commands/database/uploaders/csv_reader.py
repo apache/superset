@@ -264,9 +264,39 @@ class CSVReader(BaseDataReader):
         return df
 
     @staticmethod
+    def _split_types(types: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Split column data types into custom and pandas-native types.
+
+        :param types: Dictionary mapping column names to data types
+        :return: Tuple of (custom_types, pandas_types) dictionaries
+        """
+        pandas_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype in ("str", "object", "string")
+        }
+        custom_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype not in ("str", "object", "string")
+        }
+        return custom_types, pandas_types
+
+    @staticmethod
     def _read_csv(file: FileStorage, kwargs: dict[str, Any]) -> pd.DataFrame:
         try:
-            types = kwargs.pop("dtype", None)
+            types = None
+            if "dtype" in kwargs and kwargs["dtype"]:
+                custom_types, pandas_types = CSVReader._split_types(kwargs["dtype"])
+                if pandas_types:
+                    kwargs["dtype"] = pandas_types
+                else:
+                    kwargs.pop("dtype", None)
+
+                # Custom types for our manual casting
+                types = custom_types if custom_types else None
+
             if "chunksize" in kwargs:
                 df = pd.concat(
                     pd.read_csv(

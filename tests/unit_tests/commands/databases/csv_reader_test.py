@@ -806,6 +806,33 @@ def test_csv_reader_successful_numeric_conversion():
     assert df.iloc[0]["ID"] == 1001
 
 
+def test_csv_reader_successful_string_conversion_with_floats():
+    csv_data = [
+        ["id"],
+        [1439403621518935563],
+        [42286989],
+        [1413660691875593351],
+        [8.26839e17],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            column_data_types={
+                "id": "str",
+            }
+        )
+    )
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 1)
+    assert df["id"].dtype == "object"
+    assert df.iloc[0]["id"] == "1439403621518935563"
+    assert df.iloc[1]["id"] == "42286989"
+    assert df.iloc[2]["id"] == "1413660691875593351"
+    assert df.iloc[3]["id"] == "8.26839e+17"
+
+
 def test_csv_reader_error_detection_improvements_summary():
     csv_data_with_custom_header = [
         ["metadata_row", "skip", "this"],
