@@ -22,7 +22,32 @@ import { QueryParamProvider } from 'use-query-params';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { ListView } from './ListView';
+import { ReactNode } from 'react';
+import { ListView, type ListViewProps } from './ListView';
+import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
+
+// Test-specific type that properly represents mocked props
+type MockedListViewProps = Omit<
+  ListViewProps,
+  | 'fetchData'
+  | 'refreshData'
+  | 'addSuccessToast'
+  | 'addDangerToast'
+  | 'disableBulkSelect'
+  | 'bulkActions'
+> & {
+  fetchData: jest.Mock<unknown[], [ListViewFetchDataConfig]>;
+  refreshData: jest.Mock;
+  addSuccessToast: jest.Mock;
+  addDangerToast: jest.Mock;
+  disableBulkSelect: jest.Mock;
+  bulkActions: Array<{
+    key: string;
+    name: ReactNode;
+    onSelect: jest.Mock;
+    type?: 'primary' | 'secondary' | 'danger';
+  }>;
+};
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -37,9 +62,12 @@ function makeMockLocation(query?: string) {
   } as Location;
 }
 
-const fetchSelectsMock = jest.fn(() => []);
-const mockedPropsComprehensive = {
-  title: 'Data Table',
+const fetchSelectsMock = jest.fn(() =>
+  Promise.resolve({ data: [], totalCount: 0 }),
+);
+
+// Create a properly typed mock with all required fields and Jest mock types
+const mockedPropsComprehensive: MockedListViewProps = {
   columns: [
     {
       accessor: 'id',
@@ -70,14 +98,14 @@ const mockedPropsComprehensive = {
       id: 'id',
       input: 'select',
       selects: [{ label: 'foo', value: 'bar' }],
-      operator: 'eq',
+      operator: ListViewFilterOperator.Equals,
     },
     {
       key: 'name',
       Header: 'Name',
       id: 'name',
       input: 'search',
-      operator: 'ct',
+      operator: ListViewFilterOperator.Contains,
     },
     {
       key: 'age',
@@ -86,14 +114,14 @@ const mockedPropsComprehensive = {
       input: 'select',
       fetchSelects: fetchSelectsMock,
       paginate: true,
-      operator: 'eq',
+      operator: ListViewFilterOperator.Equals,
     },
     {
       key: 'time',
       Header: 'Time',
       id: 'time',
       input: 'datetime_range',
-      operator: 'between',
+      operator: ListViewFilterOperator.Between,
     },
   ],
   data: [
@@ -102,7 +130,7 @@ const mockedPropsComprehensive = {
   ],
   count: 2,
   pageSize: 1,
-  fetchData: jest.fn(() => []),
+  fetchData: jest.fn<unknown[], [ListViewFetchDataConfig]>(() => []),
   loading: false,
   refreshData: jest.fn(),
   addSuccessToast: jest.fn(),
@@ -113,7 +141,7 @@ const mockedPropsComprehensive = {
     {
       key: 'something',
       name: 'do something',
-      style: 'danger',
+      type: 'danger',
       onSelect: jest.fn(),
     },
   ],
@@ -128,7 +156,6 @@ const mockedPropsComprehensive = {
 };
 
 const mockedPropsSimple = {
-  title: 'Data Table',
   columns: [
     {
       accessor: 'id',
@@ -185,13 +212,15 @@ test('redirects to first page when page index is invalid', async () => {
 });
 
 // Comprehensive test suite from original JSX file
-const factory = (props = mockedPropsComprehensive) =>
-  render(
+const factory = (overrides?: Partial<ListViewProps>) => {
+  const props = { ...mockedPropsComprehensive, ...overrides };
+  return render(
     <QueryParamProvider location={makeMockLocation()}>
-      <ListView {...(props as any)} />
+      <ListView {...props} />
     </QueryParamProvider>,
     { store: mockStore() },
   );
+};
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
@@ -250,7 +279,7 @@ describe('ListView', () => {
     await waitFor(() => {
       const { calls } = mockedPropsComprehensive.fetchData.mock;
       const pageChangeCall = calls.find(
-        (call: any) =>
+        (call: [ListViewFetchDataConfig]) =>
           call?.[0]?.pageIndex === 1 &&
           call?.[0]?.filters?.length === 0 &&
           call?.[0]?.pageSize === 1,
@@ -317,10 +346,9 @@ describe('ListView', () => {
 
   test('calls fetchData on card view sort', async () => {
     factory({
-      ...mockedPropsComprehensive,
       renderCard: jest.fn(),
       initialSort: [{ id: 'something' }],
-    } as any);
+    });
 
     const sortSelect = screen.getByTestId('card-sort-select');
     await userEvent.click(sortSelect);
