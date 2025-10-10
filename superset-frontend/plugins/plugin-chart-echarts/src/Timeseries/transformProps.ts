@@ -200,10 +200,7 @@ export default function transformProps(
     yAxisTitlePosition,
     zoomable,
     stackDimension,
-  }: EchartsTimeseriesFormData = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
   const labelMap: { [key: string]: string[] } = Object.entries(
