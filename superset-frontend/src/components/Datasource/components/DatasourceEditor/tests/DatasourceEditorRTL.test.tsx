@@ -47,10 +47,10 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
     );
-    expect(certificationDetails.value).toEqual('foo');
+    expect(certificationDetails).toHaveValue('foo');
 
     const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
-    expect(warningMarkdown.value).toEqual('someone');
+    expect(warningMarkdown).toHaveValue('someone');
   });
 
   test('properly updates the metric information', async () => {
@@ -71,14 +71,14 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
       /certification details/i,
     );
     await waitFor(() => {
-      expect(certifiedBy.value).toEqual('I am typing a new name');
+      expect(certifiedBy).toHaveValue('I am typing a new name');
     });
 
     await userEvent.clear(certificationDetails);
     await userEvent.type(certificationDetails, 'I am typing something new');
 
     await waitFor(() => {
-      expect(certificationDetails.value).toEqual('I am typing something new');
+      expect(certificationDetails).toHaveValue('I am typing something new');
     });
   });
 });
