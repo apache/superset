@@ -16,37 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
-/* eslint-disable react/forbid-prop-types, react/require-default-props */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
-import MapGL from 'react-map-gl';
+import Map, { ViewStateChangeEvent } from 'react-map-gl/mapbox';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
-import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
+import ScatterPlotGlowOverlay, {
+  AggregationType,
+} from './ScatterPlotGlowOverlay';
 import './MapBox.css';
 
 const NOOP = () => {};
 export const DEFAULT_MAX_ZOOM = 16;
 export const DEFAULT_POINT_RADIUS = 60;
 
-const propTypes = {
-  width: PropTypes.number,
-  height: PropTypes.number,
-  aggregatorName: PropTypes.string,
-  clusterer: PropTypes.object,
-  globalOpacity: PropTypes.number,
-  hasCustomMetric: PropTypes.bool,
-  mapStyle: PropTypes.string,
-  mapboxApiKey: PropTypes.string.isRequired,
-  onViewportChange: PropTypes.func,
-  pointRadius: PropTypes.number,
-  pointRadiusUnit: PropTypes.string,
-  renderWhileDragging: PropTypes.bool,
-  rgb: PropTypes.array,
-  bounds: PropTypes.array,
-};
+interface Clusterer {
+  getClusters(bbox: number[], zoom: number): Location[];
+}
 
-const defaultProps = {
+interface Geometry {
+  coordinates: [number, number];
+  type: string;
+}
+
+interface Location {
+  geometry: Geometry;
+  properties: {
+    cluster?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface Viewport {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  isDragging?: boolean;
+}
+
+interface MapBoxProps {
+  aggregatorName?: AggregationType;
+  bounds: [[number, number], [number, number]];
+  clusterer: Clusterer;
+  globalOpacity?: number;
+  hasCustomMetric?: boolean;
+  height?: number;
+  mapStyle?: string;
+  mapboxApiKey: string;
+  onViewportChange?: (viewport: Viewport) => void;
+  pointRadius?: number;
+  pointRadiusUnit?: string;
+  renderWhileDragging?: boolean;
+  rgb?: [number, number, number, number];
+  width?: number;
+}
+
+interface MapBoxState {
+  viewport: Viewport;
+}
+
+const defaultProps: Partial<MapBoxProps> = {
   width: 400,
   height: 400,
   globalOpacity: 1,
@@ -55,8 +83,10 @@ const defaultProps = {
   pointRadiusUnit: 'Pixels',
 };
 
-class MapBox extends Component {
-  constructor(props) {
+class MapBox extends Component<MapBoxProps, MapBoxState> {
+  static defaultProps = defaultProps;
+
+  constructor(props: MapBoxProps) {
     super(props);
 
     const { width, height, bounds } = this.props;
@@ -64,8 +94,8 @@ class MapBox extends Component {
     // Derive lat, lon and zoom from this viewport. This is only done on initial
     // render as the bounds don't update as we pan/zoom in the current design.
     const mercator = new WebMercatorViewport({
-      width,
-      height,
+      width: width || 400,
+      height: height || 400,
     }).fitBounds(bounds);
     const { latitude, longitude, zoom } = mercator;
 
@@ -79,10 +109,14 @@ class MapBox extends Component {
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
 
-  handleViewportChange(viewport) {
+  handleViewportChange(evt: ViewStateChangeEvent) {
+    const { latitude, longitude, zoom } = evt.viewState;
+    const viewport: Viewport = { latitude, longitude, zoom };
     this.setState({ viewport });
     const { onViewportChange } = this.props;
-    onViewportChange(viewport);
+    if (onViewportChange) {
+      onViewportChange(viewport);
+    }
   }
 
   render() {
@@ -91,7 +125,6 @@ class MapBox extends Component {
       height,
       aggregatorName,
       clusterer,
-      globalOpacity,
       mapStyle,
       mapboxApiKey,
       pointRadius,
@@ -109,8 +142,8 @@ class MapBox extends Component {
     // to an area outside of the original bounds, no additional queries are made to the backend to
     // retrieve additional data.
     // add this variable to widen the visible area
-    const offsetHorizontal = (width * 0.5) / 100;
-    const offsetVertical = (height * 0.5) / 100;
+    const offsetHorizontal = ((width || 400) * 0.5) / 100;
+    const offsetVertical = ((height || 400) * 0.5) / 100;
     const bbox = [
       bounds[0][0] - offsetHorizontal,
       bounds[0][1] - offsetVertical,
@@ -120,38 +153,35 @@ class MapBox extends Component {
     const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
     return (
-      <MapGL
-        {...viewport}
-        mapStyle={mapStyle}
-        width={width}
-        height={height}
-        mapboxApiAccessToken={mapboxApiKey}
-        onViewportChange={this.handleViewportChange}
-        preserveDrawingBuffer
-      >
-        <ScatterPlotGlowOverlay
+      <div style={{ width, height }}>
+        <Map
           {...viewport}
-          isDragging={isDragging}
-          locations={clusters}
-          dotRadius={pointRadius}
-          pointRadiusUnit={pointRadiusUnit}
-          rgb={rgb}
-          globalOpacity={globalOpacity}
-          compositeOperation="screen"
-          renderWhileDragging={renderWhileDragging}
-          aggregation={hasCustomMetric ? aggregatorName : null}
-          lngLatAccessor={location => {
-            const { coordinates } = location.geometry;
+          mapStyle={mapStyle}
+          mapboxAccessToken={mapboxApiKey}
+          onMove={this.handleViewportChange}
+          preserveDrawingBuffer
+          style={{ width: '100%', height: '100%' }}
+        >
+          <ScatterPlotGlowOverlay
+            {...viewport}
+            isDragging={isDragging}
+            locations={clusters}
+            dotRadius={pointRadius}
+            pointRadiusUnit={pointRadiusUnit}
+            rgb={rgb}
+            compositeOperation="screen"
+            renderWhileDragging={renderWhileDragging}
+            aggregation={hasCustomMetric ? aggregatorName : undefined}
+            lngLatAccessor={location => {
+              const { coordinates } = location.geometry;
 
-            return [coordinates[0], coordinates[1]];
-          }}
-        />
-      </MapGL>
+              return [coordinates[0], coordinates[1]];
+            }}
+          />
+        </Map>
+      </div>
     );
   }
 }
-
-MapBox.propTypes = propTypes;
-MapBox.defaultProps = defaultProps;
 
 export default MapBox;
