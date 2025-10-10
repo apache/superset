@@ -28,8 +28,8 @@ import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
-import DashboardTable from './DashboardTable';
 import handleResourceExport from 'src/utils/export';
+import DashboardTable from './DashboardTable';
 
 // Mock the export module
 jest.mock('src/utils/export', () => ({

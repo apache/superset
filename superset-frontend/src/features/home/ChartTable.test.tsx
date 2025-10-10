@@ -117,10 +117,11 @@ test('renders mine tab on click', async () => {
 });
 
 test('handles chart export with correct ID and shows spinner', async () => {
-  const mockExport = jest.fn().mockImplementation(() => {
-    // Simulate async export that takes some time
-    return new Promise(resolve => setTimeout(resolve, 100));
-  });
+  const mockExport = jest
+    .fn()
+    .mockImplementation(() =>
+      new Promise(resolve => setTimeout(resolve, 100)),
+    );
 
   jest.mock('src/utils/export', () => ({
     __esModule: true,
