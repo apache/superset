@@ -23,7 +23,6 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
-  convertKeysToCamelCase,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
@@ -223,7 +222,6 @@ export default function transformProps(
   }: EchartsMixedTimeseriesFormData = {
     ...DEFAULT_FORM_DATA,
     ...formData,
-    ...convertKeysToCamelCase(formData.extraFormData),
   };
 
   const refs: Refs = {};
@@ -548,11 +546,17 @@ export default function transformProps(
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat, timeGrainSqla)
+      ? getTooltipTimeFormatter(
+          tooltipTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(
+          xAxisTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : String;
 
   const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
