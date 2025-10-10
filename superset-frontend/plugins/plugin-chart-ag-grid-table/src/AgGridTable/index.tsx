@@ -76,7 +76,7 @@ export interface AgGridTableProps {
   onSearchColChange: (searchCol: string) => void;
   onSearchChange: (searchText: string) => void;
   onSortChange: (sortBy: SortByItem[]) => void;
-  onAgGridColumnFiltersChange?: (filterModel: AgGridFilterModel) => void;
+  onAgGridColumnFiltersChange?: (filterModel: AgGridFilterModel, lastFilteredColumn?: string) => void;
   id: number;
   percentMetrics: string[];
   serverPageLength: number;
@@ -289,6 +289,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [serverPaginationData?.agGridFilterModel, serverPagination]);
 
+    // Calculate active filter columns from ownState filter model
+    const activeFilterColumns = useMemo(() => {
+      const filterModel = serverPaginationData?.agGridFilterModel || {};
+      return new Set(Object.keys(filterModel));
+    }, [serverPaginationData?.agGridFilterModel]);
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
@@ -315,6 +321,23 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         return;
       }
 
+      // Determine which column was just filtered by comparing models
+      const previousModel = serverPaginationData?.agGridFilterModel || {};
+      let lastFilteredColumn: string | undefined;
+
+      // Find the column that changed
+      const allColumns = new Set([
+        ...Object.keys(filterModel),
+        ...Object.keys(previousModel),
+      ]);
+
+      for (const colId of allColumns) {
+        if (!isEqual(filterModel[colId], previousModel[colId])) {
+          lastFilteredColumn = colId;
+          break; // Use the first changed column
+        }
+      }
+
       // Convert AG Grid filters to SQLAlchemy format
       const convertedFilters = convertAgGridFiltersToSQL(
         filterModel as AgGridFilterModel,
@@ -327,7 +350,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
 
       // Call the handler to update ownState if server pagination is enabled
       if (onAgGridColumnFiltersChange && serverPagination) {
-        onAgGridColumnFiltersChange(filterModel as AgGridFilterModel);
+        onAgGridColumnFiltersChange(filterModel as AgGridFilterModel, lastFilteredColumn);
       }
     }, [onAgGridColumnFiltersChange, serverPagination, serverPaginationData?.agGridFilterModel]);
 
@@ -480,6 +503,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               serverPaginationData?.sortBy || [],
             ),
             isActiveFilterValue,
+            lastFilteredColumn: serverPaginationData?.lastFilteredColumn, // Pass last filtered column for auto-opening popover
+            activeFilterColumns, // Pass active filter columns as reliable backup for isFilterActive
           }}
         />
         {serverPagination && (

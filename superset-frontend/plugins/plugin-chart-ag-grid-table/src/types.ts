@@ -147,6 +147,7 @@ export interface ServerPaginationData {
   agGridFilterModel?: Record<string, any>; // Raw AG Grid filter model for state restoration
   agGridSimpleFilters?: AgGridColumnFilter[];
   agGridComplexWhere?: string;
+  lastFilteredColumn?: string; // Track which column was last filtered to keep popover open
 }
 
 export interface AgGridTableChartTransformedProps<
@@ -200,6 +201,9 @@ export interface SortState {
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
+  lastFilteredColumn?: string; // Column that was last filtered (to keep popover open)
+  activeFilterColumns?: Set<string>; // Columns that have active filters (from ownState)
 }
 
 export interface CustomHeaderParams extends IHeaderParams {

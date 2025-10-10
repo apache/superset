@@ -196,10 +196,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: pageNumber,
         pageSize,
+        lastFilteredColumn: undefined, // Clear filter popover state on pagination
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask],
+    [setDataMask, serverPaginationData],
   );
 
   const handlePageSizeChange = useCallback(
@@ -208,10 +209,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: 0,
         pageSize,
+        lastFilteredColumn: undefined, // Clear filter popover state on page size change
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask],
+    [setDataMask, serverPaginationData],
   );
 
   const handleChangeSearchCol = (searchCol: string) => {
@@ -220,6 +222,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...(serverPaginationData || {}),
         searchColumn: searchCol,
         searchText: '',
+        lastFilteredColumn: undefined, // Clear filter popover state on search column change
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -233,10 +236,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
+        lastFilteredColumn: undefined, // Clear filter popover state on search
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, searchOptions],
+    [setDataMask, searchOptions, serverPaginationData],
   );
 
   const handleSortByChange = useCallback(
@@ -245,14 +249,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        lastFilteredColumn: undefined, // Clear filter popover state on sort
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, serverPagination],
+    [setDataMask, serverPagination, serverPaginationData],
   );
 
   const handleAgGridColumnFiltersChange = useCallback(
-    (filterModel: AgGridFilterModel) => {
+    (filterModel: AgGridFilterModel, lastFilteredColumn?: string) => {
       if (!serverPagination) return;
 
       // Convert AG Grid filters to SQLAlchemy format
@@ -263,6 +268,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         agGridFilterModel: filterModel, // Store raw filter model for state restoration
         agGridSimpleFilters: converted.simpleFilters,
         agGridComplexWhere: converted.complexWhere,
+        lastFilteredColumn, // Track which column was filtered to keep popover open
         currentPage: 0, // Reset to first page when filtering
       };
 
