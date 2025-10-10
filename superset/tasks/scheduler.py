@@ -22,6 +22,7 @@ from typing import Any
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
+from celery.signals import task_failure
 from flask import current_app
 
 from superset import is_feature_enabled
@@ -40,8 +41,18 @@ from superset.utils.log import get_logger_from_status
 
 logger = logging.getLogger(__name__)
 
+@task_failure.connect
+def log_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, traceback=None, einfo=None, **kw):
+    logger.exception(f"Celery task {sender.name} failed: {exception}", exc_info=einfo)
 
-@celery_app.task(name="reports.scheduler")
+
+@celery_app.task(
+    name="reports.scheduler",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_kwargs={"max_retries": 3, "countdown": 60},  # Retry up to 3 times, wait 60s between
+    retry_backoff=True,  # exponential backoff
+)
 def scheduler() -> None:
     """
     Celery beat main scheduler for reports
