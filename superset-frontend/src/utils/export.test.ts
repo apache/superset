@@ -118,6 +118,7 @@ test('creates blob and triggers download', async () => {
   const anchor = document.createElement('a');
   expect(anchor.href).toBe('blob:mock-url');
   expect(anchor.download).toBe('dashboard_export.zip');
+  // eslint-disable-next-line jest-dom/prefer-to-have-style -- toHaveStyle not available without React Testing Library
   expect(anchor.style.display).toBe('none');
 
   // Check that click was triggered
