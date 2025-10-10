@@ -42,15 +42,18 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     await userEvent.click(metricButton);
 
     const expandToggle = await screen.findAllByLabelText(/expand row/i);
-    await userEvent.click(expandToggle[0]);
+    // Metrics are sorted by ID descending, so metric with id=1 (which has certification)
+    // is at position 6 (last). Expand that one.
+    await userEvent.click(expandToggle[6]);
 
+    // Wait for fields to appear
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
     );
-    expect(certificationDetails).toHaveValue('foo');
+    const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
 
-    const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
-    expect(warningMarkdown).toHaveValue('someone');
+    expect(certificationDetails).toHaveValue('foo');
+    expect(certifiedBy).toHaveValue('someone');
   });
 
   test('properly updates the metric information', async () => {
