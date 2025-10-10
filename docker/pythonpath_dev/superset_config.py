@@ -118,6 +118,19 @@ class CeleryConfig:
 CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
+
+ENABLE_TEMPLATE_PROCESSING = True
+HTML_SANITIZATION = True
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "attributes": {
+        "*": ["style", "className", "src", "width", "height", "frameborder",
+              "marginwidth", "marginheight", "scrolling", "target", "onload", "method",
+          "action", "type", "name", "value", "onsubmit"],
+    },
+    "tagNames": ["style", "iframe", "body", "form", "input"],
+}
+
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/  # noqa: E501
 # The base URL for the email report hyperlinks.
