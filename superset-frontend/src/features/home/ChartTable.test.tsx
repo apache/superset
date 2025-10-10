@@ -129,14 +129,13 @@ test('renders mine tab on click', async () => {
 
 test('handles chart export with correct ID and shows spinner', async () => {
   // Mock export to take some time before calling the done callback
-  mockExport.mockImplementation(
-    (resource: string, ids: number[], done: () => void) =>
-      new Promise(resolve => {
-        setTimeout(() => {
-          done();
-          resolve();
-        }, 100);
-      }),
+  mockExport.mockImplementation((resource: string, ids: number[], done: () => void) =>
+    new Promise(resolve => {
+      setTimeout(() => {
+        done();
+        resolve();
+      }, 100);
+    }),
   );
 
   await renderChartTable(mineTabProps);
