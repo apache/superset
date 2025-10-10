@@ -219,10 +219,7 @@ export default function transformProps(
     showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
-  }: EchartsMixedTimeseriesFormData = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
