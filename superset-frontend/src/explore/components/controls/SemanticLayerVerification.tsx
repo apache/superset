@@ -257,7 +257,7 @@ export async function callValidationAPI(
   // Create a key for this specific control to prevent duplicate requests
   const controlKey = `${datasource.id}_${controlName || 'unknown'}`;
   const now = Date.now();
-  
+
   // Check if we already have a pending request for the same parameters
   if (apiCallCache.has(cacheKey)) {
     console.log(`[API] Reusing cached request for control: ${controlName}`);
@@ -266,27 +266,39 @@ export async function callValidationAPI(
 
   // Check if we have a pending request for this specific control
   if (pendingRequests.has(controlKey)) {
-    console.log(`[API] Request already pending for control: ${controlName}, waiting...`);
+    console.log(
+      `[API] Request already pending for control: ${controlName}, waiting...`,
+    );
     return pendingRequests.get(controlKey)!;
   }
 
   // Enhanced deduplication: check if we have an identical request in flight
   const requestSignature = `${datasource.id}_${selectedDimensions.join(',')}_${selectedMetrics.join(',')}`;
-  
+
   // If we have an identical request already cached, return it
   if (apiCallCache.has(requestSignature)) {
-    console.log(`[API] Identical request found for control: ${controlName}, reusing...`);
+    console.log(
+      `[API] Identical request found for control: ${controlName}, reusing...`,
+    );
     return apiCallCache.get(requestSignature)!;
   }
 
   // Time-based deduplication: if we just made a request for this control, wait a bit
   const lastTime = lastRequestTime.get(controlKey) || 0;
-  if (now - lastTime < 50) { // 50ms debounce
-    console.log(`[API] Request too soon for control: ${controlName}, debouncing...`);
+  if (now - lastTime < 50) {
+    // 50ms debounce
+    console.log(
+      `[API] Request too soon for control: ${controlName}, debouncing...`,
+    );
     return new Promise(resolve => {
       setTimeout(async () => {
         // Try again after debounce
-        const result = await callValidationAPI(datasource, selectedDimensions, selectedMetrics, controlName);
+        const result = await callValidationAPI(
+          datasource,
+          selectedDimensions,
+          selectedMetrics,
+          controlName,
+        );
         resolve(result);
       }, 50);
     });
@@ -314,10 +326,10 @@ export async function callValidationAPI(
 
     // Cache the promise for the exact same parameters
     apiCallCache.set(cacheKey, apiPromise);
-    
+
     // Cache by request signature for identical requests
     apiCallCache.set(requestSignature, apiPromise);
-    
+
     // Also track this request for this specific control
     pendingRequests.set(controlKey, apiPromise);
 
@@ -371,7 +383,50 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
 
     console.log(`[MetricsVerification] Query fields:`, queryFields);
     console.log(`[MetricsVerification] Form data:`, form_data);
-    console.log(`[MetricsVerification] Synthetic form data:`, syntheticFormData);
+    console.log(
+      `[MetricsVerification] Synthetic form data:`,
+      syntheticFormData,
+    );
+
+    // If no metrics or dimensions are selected, enable all options
+    if (
+      queryFields.dimensions.length === 0 &&
+      queryFields.metrics.length === 0
+    ) {
+      console.log(`[MetricsVerification] No selections, enabling all options`);
+      const dataset = datasource as Dataset;
+
+      // Enable all metrics
+      const updatedDatasourceMetrics = dataset.metrics?.map((metric: any) => ({
+        ...metric,
+        isDisabled: false,
+      }));
+
+      // Enable all columns
+      const updatedDatasourceColumns = dataset.columns?.map((column: any) => ({
+        ...column,
+        isDisabled: false,
+      }));
+
+      const updatedDatasource = {
+        ...dataset,
+        metrics: updatedDatasourceMetrics,
+        columns: updatedDatasourceColumns,
+      };
+
+      // Update Redux store
+      if (
+        props.actions &&
+        typeof props.actions.syncDatasourceMetadata === 'function'
+      ) {
+        props.actions.syncDatasourceMetadata(updatedDatasource);
+      }
+
+      return {
+        savedMetrics,
+        datasource: updatedDatasource,
+      };
+    }
 
     const validationResult = await callValidationAPI(
       datasource as Dataset,
@@ -406,13 +461,18 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     }
 
     // Handle initial verification for fresh charts
-    const triggerInitialVerification = (props as any).triggerInitialVerification;
+    const { triggerInitialVerification } = props as any;
     const datasourceControlKey = `${datasource?.id}_${controlName}`;
-    
-    if (triggerInitialVerification && !initialVerificationDone.has(datasourceControlKey)) {
-      console.log(`[ColumnsVerification] Triggering initial verification for control: ${controlName}`);
+
+    if (
+      triggerInitialVerification &&
+      !initialVerificationDone.has(datasourceControlKey)
+    ) {
+      console.log(
+        `[ColumnsVerification] Triggering initial verification for control: ${controlName}`,
+      );
       initialVerificationDone.add(datasourceControlKey);
-      
+
       // Trigger initial verification with empty form data
       const initialResult = await callValidationAPI(
         datasource as Dataset,
@@ -420,7 +480,7 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
         [],
         controlName,
       );
-      
+
       if (initialResult) {
         // Mark all options as enabled/disabled based on initial result
         const validDimensionNames = new Set(initialResult.dimensions);
@@ -463,7 +523,53 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
 
     console.log(`[ColumnsVerification] Query fields:`, queryFields);
     console.log(`[ColumnsVerification] Form data:`, form_data);
-    console.log(`[ColumnsVerification] Synthetic form data:`, syntheticFormData);
+    console.log(
+      `[ColumnsVerification] Synthetic form data:`,
+      syntheticFormData,
+    );
+
+    // If no metrics or dimensions are selected, enable all options
+    if (
+      queryFields.dimensions.length === 0 &&
+      queryFields.metrics.length === 0
+    ) {
+      console.log(`[ColumnsVerification] No selections, enabling all options`);
+      const dataset = datasource as Dataset;
+
+      // Enable all options
+      const updatedOptions = options.map((option: any) => ({
+        ...option,
+        isDisabled: false,
+      }));
+
+      // Enable all metrics
+      const updatedDatasourceMetrics = dataset.metrics?.map((metric: any) => ({
+        ...metric,
+        isDisabled: false,
+      }));
+
+      // Enable all columns
+      const updatedDatasourceColumns = dataset.columns?.map((column: any) => ({
+        ...column,
+        isDisabled: false,
+      }));
+
+      const updatedDatasource = {
+        ...dataset,
+        metrics: updatedDatasourceMetrics,
+        columns: updatedDatasourceColumns,
+      };
+
+      // Update Redux store
+      if (actions && typeof actions.syncDatasourceMetadata === 'function') {
+        actions.syncDatasourceMetadata(updatedDatasource);
+      }
+
+      return {
+        options: updatedOptions,
+        datasource: updatedDatasource,
+      };
+    }
 
     const validationResult = await callValidationAPI(
       datasource as Dataset,
@@ -508,17 +614,21 @@ export function createSemanticLayerOnChange(
   return (value: JsonValue, props: ControlPropsWithExtras) => {
     const { actions, form_data } = props;
 
-    // Trigger re-rendering of affected controls by updating their values
-    // This forces the verification to run again
-    affectedControls.forEach(controlField => {
-      if (
-        controlField !== controlName &&
-        form_data &&
-        form_data[controlField]
-      ) {
-        actions.setControlValue(controlField, form_data[controlField], []);
-      }
-    });
+    // Delay re-verification to allow Redux state to propagate first
+    // This prevents race conditions where other controls verify with stale form_data
+    setTimeout(() => {
+      // Trigger re-rendering of affected controls by updating their values
+      // This forces the verification to run again
+      affectedControls.forEach(controlField => {
+        if (
+          controlField !== controlName &&
+          form_data &&
+          form_data[controlField]
+        ) {
+          actions.setControlValue(controlField, form_data[controlField], []);
+        }
+      });
+    }, 0);
   };
 }
 
