@@ -118,7 +118,7 @@ test('creates blob and triggers download', async () => {
   const anchor = document.createElement('a');
   expect(anchor.href).toBe('blob:mock-url');
   expect(anchor.download).toBe('dashboard_export.zip');
-  expect(anchor).toHaveStyle({ display: 'none' });
+  expect(anchor.style.display).toBe('none');
 
   // Check that click was triggered
   expect(anchor.click).toHaveBeenCalled();
