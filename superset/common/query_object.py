@@ -193,7 +193,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
+            x if is_str_or_adhoc(x) else x["label"]  # type: ignore[misc,index]
             for x in metrics
         ]
 
@@ -285,6 +285,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
             self._sanitize_filters()
+            self._sanitize_sql_expressions()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
@@ -358,6 +359,104 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
+
+    def _sanitize_sql_expressions(self) -> None:
+        """
+        Sanitize SQL expressions in adhoc metrics and orderby for consistent cache keys.
+
+        This processes SQL expressions before cache key generation, preventing cache
+        mismatches due to later processing during query execution.
+        """
+        if not self.datasource or not hasattr(
+            self.datasource,
+            "_process_sql_expression",
+        ):
+            return
+
+        # Process adhoc metrics
+        if self.metrics:
+            self._sanitize_metrics_expressions()
+
+        # Process orderby - these may contain adhoc metrics
+        if self.orderby:
+            self._sanitize_orderby_expressions()
+
+    def _sanitize_metrics_expressions(self) -> None:
+        """
+        Process SQL expressions in adhoc metrics.
+        Creates new metric dictionaries to avoid mutating shared references.
+        """
+        # datasource is checked in parent method, assert for type checking
+        assert self.datasource is not None
+
+        if not self.metrics:
+            return
+
+        sanitized_metrics = []
+        for metric in self.metrics:
+            if not (is_adhoc_metric(metric) and isinstance(metric, dict)):
+                sanitized_metrics.append(metric)
+                continue
+            if sql_expr := metric.get("sqlExpression"):
+                try:
+                    processed = self.datasource._process_select_expression(
+                        expression=sql_expr,
+                        database_id=self.datasource.database_id,
+                        engine=self.datasource.database.backend,
+                        schema=self.datasource.schema,
+                        template_processor=None,
+                    )
+                    if processed and processed != sql_expr:
+                        # Create new dict to avoid mutating shared references
+                        sanitized_metrics.append({**metric, "sqlExpression": processed})
+                    else:
+                        sanitized_metrics.append(metric)
+                except Exception as ex:  # pylint: disable=broad-except
+                    # If processing fails, leave as-is and let execution handle it
+                    logger.debug("Failed to sanitize metric SQL expression: %s", ex)
+                    sanitized_metrics.append(metric)
+            else:
+                sanitized_metrics.append(metric)
+
+        self.metrics = sanitized_metrics
+
+    def _sanitize_orderby_expressions(self) -> None:
+        """
+        Process SQL expressions in orderby items.
+        Creates new tuples and dictionaries to avoid mutating shared references.
+        """
+        # datasource is checked in parent method, assert for type checking
+        assert self.datasource is not None
+
+        if not self.orderby:
+            return
+
+        sanitized_orderby = []
+        for col, ascending in self.orderby:
+            if not (isinstance(col, dict) and col.get("sqlExpression")):
+                sanitized_orderby.append((col, ascending))
+                continue
+            try:
+                processed = self.datasource._process_orderby_expression(
+                    expression=col["sqlExpression"],
+                    database_id=self.datasource.database_id,
+                    engine=self.datasource.database.backend,
+                    schema=self.datasource.schema,
+                    template_processor=None,
+                )
+                if processed and processed != col["sqlExpression"]:
+                    # Create new dict to avoid mutating shared references
+                    sanitized_orderby.append(
+                        ({**col, "sqlExpression": processed}, ascending)  # type: ignore[arg-type]
+                    )
+                else:
+                    sanitized_orderby.append((col, ascending))
+            except Exception as ex:  # pylint: disable=broad-except
+                # If processing fails, leave as-is
+                logger.debug("Failed to sanitize orderby SQL expression: %s", ex)
+                sanitized_orderby.append((col, ascending))
+
+        self.orderby = sanitized_orderby
 
     def _validate_there_are_no_missing_series(self) -> None:
         missing_series = [col for col in self.series_columns if col not in self.columns]
