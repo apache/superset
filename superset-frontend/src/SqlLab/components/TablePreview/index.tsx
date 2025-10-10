@@ -230,19 +230,21 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     <Flex
       align="center"
       css={css`
-        padding-left: ${theme.sizeUnit * 4}px;
+        padding-left: ${theme.sizeUnit * 2}px;
       `}
     >
       <ActionButton
         label="Refresh table schema"
         tooltip={t('Refresh table schema')}
         icon="SyncOutlined"
+        iconSize="m"
         onClick={refreshTableMetadata}
       />
       {tableData.selectStar && (
         <ActionButton
           label="Copy SELECT statement"
           icon="CopyOutlined"
+          iconSize="m"
           tooltip={t('Copy SELECT statement')}
           onClick={() => copyStatementActionRef.current?.click()}
         />
@@ -251,6 +253,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         <ActionButton
           label="Show CREATE VIEW statement"
           icon="EyeOutlined"
+          iconSize="m"
           tooltip={t('Show CREATE VIEW statement')}
           onClick={() => showViewStatementActionRef.current?.click()}
         />

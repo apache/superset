@@ -31,6 +31,7 @@ export interface ActionProps {
   tooltip?: string | ReactElement;
   placement?: TooltipPlacement;
   icon: string;
+  iconSize?: 's' | 'm' | 'l' | 'xl' | 'xs';
   onClick: () => void;
 }
 
@@ -39,6 +40,7 @@ export const ActionButton = ({
   tooltip,
   placement,
   icon,
+  iconSize,
   onClick,
 }: ActionProps) => {
   const theme = useTheme();
@@ -61,7 +63,7 @@ export const ActionButton = ({
       data-test={label}
       onClick={onClick}
     >
-      <ActionIcon iconSize="l" />
+      <ActionIcon iconSize={iconSize || 'l'} />
     </span>
   );
 
