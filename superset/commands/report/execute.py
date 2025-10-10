@@ -430,7 +430,6 @@ class BaseReportState:
                 f"second timeout limit. Consider optimizing the chart query "
                 f"or increasing the working timeout."
             )
-            logger.error(error_msg)
             raise ReportScheduleCsvTimeout(error_msg) from ex
         except Exception as ex:
             raise ReportScheduleCsvFailedError(
@@ -472,7 +471,6 @@ class BaseReportState:
                 f"second timeout limit. Consider optimizing the chart query "
                 f"or increasing the working timeout."
             )
-            logger.error(error_msg)
             raise ReportScheduleDataFrameTimeout(error_msg) from ex
         except Exception as ex:
             raise ReportScheduleDataFrameFailedError(
