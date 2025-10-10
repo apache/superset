@@ -21,7 +21,6 @@ import { omit } from 'lodash';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,
-  Modal,
   Collapse,
   CollapseLabelInModal,
   JsonEditor,
@@ -151,11 +150,7 @@ const PropertiesModal = ({
       }
     }
 
-    Modal.error({
-      title: t('Error'),
-      content: errorText,
-      okButtonProps: { danger: true, className: 'btn-danger' },
-    });
+    addDangerToast(errorText);
   };
 
   const handleDashboardData = useCallback(
@@ -267,11 +262,7 @@ const PropertiesModal = ({
 
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
-      Modal.error({
-        title: t('Error'),
-        content: t('A valid color scheme is required'),
-        okButtonProps: { danger: true, className: 'btn-danger' },
-      });
+      addDangerToast(t('A valid color scheme is required'));
       onHide();
       throw new Error('A valid color scheme is required');
     }
