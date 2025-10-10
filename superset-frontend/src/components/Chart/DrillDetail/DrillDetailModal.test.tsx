@@ -32,6 +32,14 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+jest.mock('src/explore/exploreUtils', () => ({
+  ...jest.requireActual('src/explore/exploreUtils'),
+  getExploreUrl: jest.fn(
+    ({ formData }) =>
+      `/explore/?dashboard_page_id=&slice_id=${formData.slice_id}`,
+  ),
+}));
+
 const { id: chartId, form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
 const store = getMockStoreWithNativeFilters();
@@ -43,7 +51,10 @@ const drillToDetailModalState = {
   },
 };
 
-const renderModal = async (overrideState: Record<string, any> = {}) => {
+const renderModal = async (
+  overrideState: Record<string, any> = {},
+  dataset?: any,
+) => {
   const DrillDetailModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
     return (
@@ -57,6 +68,7 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
           initialFilters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
+          dataset={dataset}
         />
       </>
     );
@@ -80,11 +92,21 @@ test('should render the title', async () => {
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
-test('should render the button', async () => {
+test('should not render Explore button when no drill-through chart is configured', async () => {
   await renderModal();
   expect(
-    screen.getByRole('button', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
+    screen.queryByRole('button', { name: 'Explore' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+});
+
+test('should render Explore button when drill-through chart is configured', async () => {
+  const datasetWithDrillThrough = {
+    drill_through_chart_id: 123,
+    id: 456, // Required for URL generation
+  };
+  await renderModal({}, datasetWithDrillThrough);
+  expect(screen.getByRole('button', { name: 'Explore' })).toBeInTheDocument();
   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
 });
 
@@ -95,20 +117,19 @@ test('should close the modal', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-test('should forward to Explore', async () => {
-  await renderModal();
-  userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
-  expect(mockHistoryPush).toHaveBeenCalledWith(
-    `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
-  );
-});
-
-test('should render "Edit chart" as disabled without can_explore permission', async () => {
-  await renderModal({
-    user: {
-      ...drillToDetailModalState.user,
-      roles: { Admin: [['invalid_permission', 'Superset']] },
+test('should render "Explore" as disabled without can_explore permission', async () => {
+  const datasetWithDrillThrough = {
+    drill_through_chart_id: 123,
+    id: 456, // Required for URL generation
+  };
+  await renderModal(
+    {
+      user: {
+        ...drillToDetailModalState.user,
+        roles: { Admin: [['invalid_permission', 'Superset']] },
+      },
     },
-  });
-  expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+    datasetWithDrillThrough,
+  );
+  expect(screen.getByRole('button', { name: 'Explore' })).toBeDisabled();
 });
