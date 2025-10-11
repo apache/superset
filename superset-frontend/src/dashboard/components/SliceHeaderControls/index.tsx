@@ -320,10 +320,10 @@ const SliceHeaderControls = (
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-    extendedDayjs.utc(itemCachedDttm).fromNow(),
+    (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
   const updatedWhen = updatedDttm
-    ? extendedDayjs.utc(updatedDttm).fromNow()
+    ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
@@ -366,8 +366,8 @@ const SliceHeaderControls = (
       ),
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
-      ...{ 'data-test': 'refresh-chart-menu-item' }, // Typescript hack to get around MenuItem type
-    },
+      'data-test': 'refresh-chart-menu-item', // Typescript hack to get around MenuItem type
+    } as any,
     {
       key: MenuKeys.Fullscreen,
       label: fullscreenLabel,
@@ -394,8 +394,8 @@ const SliceHeaderControls = (
           {t('Edit chart')}
         </Tooltip>
       ),
-      ...{ 'data-test-edit-chart-name': slice.slice_name },
-    });
+      'data-test-edit-chart-name': slice.slice_name,
+    } as any);
   }
 
   if (canEditCrossFilters) {
