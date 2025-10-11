@@ -59,6 +59,7 @@ class GuestUser(AnonymousUserMixin):
     """
 
     is_guest_user = True
+    active = True
 
     @property
     def is_authenticated(self) -> bool:
