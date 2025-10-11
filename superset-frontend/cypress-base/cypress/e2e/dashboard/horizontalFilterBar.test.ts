@@ -119,7 +119,7 @@ describe('Horizontal FilterBar', () => {
   });
 
   it('should show "more filters" on window resizing up and down', () => {
-    // Use 4 unique filters to ensure overflow testing while allowing all to fit at large viewport
+    // Use 4 filters with unique columns to ensure overflow testing while allowing all to fit at large viewport
     prepareDashboardFilters([
       { name: 'Country', column: 'country_name', datasetId: 2 },
       { name: 'Code', column: 'country_code', datasetId: 2 },
