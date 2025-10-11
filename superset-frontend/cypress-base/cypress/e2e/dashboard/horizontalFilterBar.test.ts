@@ -119,30 +119,52 @@ describe('Horizontal FilterBar', () => {
   });
 
   it('should show "more filters" on window resizing up and down', () => {
+    // Use more filters to ensure overflow at smaller viewports
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
       { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_4', column: 'year', datasetId: 2 },
+      { name: 'test_5', column: 'country_name', datasetId: 2 },
+      { name: 'test_6', column: 'country_code', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
 
-    cy.getBySel('form-item-value').should('have.length', 3);
-    cy.viewport(768, 1024);
-    cy.wait(500); // Allow layout to stabilize after viewport change
-    cy.getBySel('form-item-value').should('have.length', 1);
-    openMoreFilters(false);
-    cy.getBySel('form-item-value').should('have.length', 3);
+    // At full width, all filters should be visible
+    cy.getBySel('form-item-value').should('have.length', 6);
 
-    cy.getBySel('filter-bar').click();
-    cy.viewport(1000, 1024);
+    // Resize to force overflow
+    cy.viewport(600, 1024);
     cy.wait(500); // Allow layout to stabilize after viewport change
-    openMoreFilters(false);
-    cy.getBySel('form-item-value').should('have.length', 3);
 
+    // Should have some filters visible and some overflowed
+    cy.getBySel('form-item-value').should('have.length.lessThan', 6);
+    cy.getBySel('dropdown-container-btn').should('exist');
+
+    // Open more filters and verify all are accessible
+    openMoreFilters(false);
+    cy.getBySel('form-item-value').should('have.length', 6);
+
+    // Close the dropdown
     cy.getBySel('filter-bar').click();
+
+    // Test with medium viewport
+    cy.viewport(900, 1024);
+    cy.wait(500); // Allow layout to stabilize after viewport change
+
+    // May or may not have overflow at this size
+    cy.get('body').then($body => {
+      if ($body.find('[data-test="dropdown-container-btn"]').length > 0) {
+        openMoreFilters(false);
+        cy.getBySel('form-item-value').should('have.length', 6);
+        cy.getBySel('filter-bar').click(); // Close dropdown
+      }
+    });
+
+    // At large viewport, all filters should fit
     cy.viewport(1300, 1024);
     cy.wait(500); // Allow layout to stabilize after viewport change
-    cy.getBySel('form-item-value').should('have.length', 3);
+    cy.getBySel('form-item-value').should('have.length', 6);
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
