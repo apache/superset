@@ -36,7 +36,7 @@ import {
 
 function openMoreFilters(waitFilterState = true) {
   interceptFilterState();
-  cy.getBySel('dropdown-container-btn').click();
+  cy.getBySel('dropdown-container-btn').should('exist').click();
 
   if (waitFilterState) {
     cy.wait('@postFilterState');
