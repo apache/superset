@@ -257,8 +257,14 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
+        filename, expected_rows = self._extract_export_params_from_request()
+
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+            command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            filename=filename,
+            expected_rows=expected_rows,
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -348,6 +354,8 @@ class ChartDataRestApi(ChartRestApi):
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        filename: str | None = None,
+        expected_rows: int | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -367,6 +375,12 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
+
+            # Check if we should use streaming for large datasets
+            if is_csv_format and self._should_use_streaming(result, form_data):
+                return self._create_streaming_csv_response(
+                    result, form_data, filename=filename, expected_rows=expected_rows
+                )
 
             if len(result["queries"]) == 1:
                 # return single query results
@@ -417,6 +431,8 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        filename: str | None = None,
+        expected_rows: int | None = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -425,7 +441,25 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data, datasource)
+        return self._send_chart_response(
+            result, form_data, datasource, filename, expected_rows
+        )
+
+    def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
+        """Extract filename and expected_rows from request for streaming exports."""
+        filename = request.form.get("filename")
+        if filename:
+            logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
+
+        expected_rows = None
+        if expected_rows_str := request.form.get("expected_rows"):
+            try:
+                expected_rows = int(expected_rows_str)
+                logger.info("📊 FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
+            except (ValueError, TypeError):
+                logger.warning("⚠️ Invalid expected_rows value: %s", expected_rows_str)
+
+        return filename, expected_rows
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
@@ -462,3 +496,116 @@ class ChartDataRestApi(ChartRestApi):
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
+
+    def _should_use_streaming(
+        self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
+    ) -> bool:
+        """Determine if streaming should be used based on actual row count threshold."""
+        from flask import current_app as app
+
+        query_context = result["query_context"]
+        result_format = query_context.result_format
+
+        # Only support CSV streaming currently
+        if result_format.lower() != "csv":
+            return False
+
+        # Get streaming threshold from config
+        threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
+
+        # Extract actual row count (same logic as frontend)
+        actual_row_count = None
+        viz_type = form_data.get("viz_type") if form_data else None
+
+        # For table viz, try to get actual row count from query results
+        if viz_type == "table" and result.get("queries"):
+            # Check if we have rowcount in the second query result (like frontend does)
+            queries = result.get("queries", [])
+            if len(queries) > 1 and queries[1].get("data"):
+                data = queries[1]["data"]
+                if isinstance(data, list) and len(data) > 0:
+                    actual_row_count = data[0].get("rowcount")
+
+        # Fallback to row_limit if actual count not available
+        if actual_row_count is None:
+            if form_data and "row_limit" in form_data:
+                actual_row_count = form_data.get("row_limit", 0)
+            elif query_context.form_data and "row_limit" in query_context.form_data:
+                actual_row_count = query_context.form_data.get("row_limit", 0)
+
+        # Use streaming if row count meets or exceeds threshold
+        if actual_row_count is not None and actual_row_count >= threshold:
+            return True
+
+        return False
+
+    def _create_streaming_csv_response(
+        self,
+        result: dict[Any, Any],
+        form_data: dict[str, Any] | None = None,
+        filename: str | None = None,
+        expected_rows: int | None = None,
+    ) -> Response:
+        """Create a streaming CSV response for large datasets."""
+        from datetime import datetime
+
+        from flask import Response
+
+        from superset.commands.chart.data.streaming_export_command import (
+            StreamingCSVExportCommand,
+        )
+
+        query_context = result["query_context"]
+
+        # Use filename from frontend if provided, otherwise generate one
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_name = "export"
+
+            if form_data and form_data.get("slice_name"):
+                chart_name = form_data["slice_name"]
+            elif form_data and form_data.get("viz_type"):
+                chart_name = form_data["viz_type"]
+
+            # Sanitize chart name for filename
+            safe_chart_name = "".join(
+                c for c in chart_name if c.isalnum() or c in ("-", "_")
+            )
+            filename = f"superset_{safe_chart_name}_{timestamp}.csv"
+
+        logger.info(
+            "Creating streaming CSV response: %s (from frontend: %s)",
+            filename,
+            filename is not None,
+        )
+        if expected_rows:
+            logger.info("📊 Using expected_rows from frontend: %d", expected_rows)
+
+        # Execute streaming command
+        chunk_size = 1000
+        command = StreamingCSVExportCommand(query_context, chunk_size)
+        command.validate()
+
+        # Get the callable that returns the generator
+        csv_generator_callable = command.run()
+
+        # Get encoding from config
+        encoding = app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")
+
+        # Create response with streaming headers
+        response = Response(
+            csv_generator_callable(),  # Call the callable to get generator
+            mimetype=f"text/csv; charset={encoding}",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+                "X-Superset-Streaming": "true",  # Identify streaming responses
+            },
+            direct_passthrough=False,  # Flask must iterate generator
+        )
+
+        # Force chunked transfer encoding
+        response.implicit_sequence_conversion = False
+
+        return response
