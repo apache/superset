@@ -202,6 +202,23 @@ def test_column_datatype_to_string(original: TypeEngine, expected: str) -> None:
     assert actual == expected
 
 
+def test_force_column_alias_quotes() -> None:
+    """Test that MSSQL properly quotes column aliases with spaces."""
+    from sqlalchemy.sql.elements import quoted_name
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Verify that force_column_alias_quotes is enabled
+    assert MssqlEngineSpec.force_column_alias_quotes is True
+
+    # Test that labels with spaces get quoted
+    label = "Test Column"
+    result = MssqlEngineSpec.make_label_compatible(label)
+    assert isinstance(result, quoted_name)
+    assert result.quote is True
+    assert str(result) == "Test Column"
+
+
 @pytest.mark.parametrize(
     "original,expected",
     [

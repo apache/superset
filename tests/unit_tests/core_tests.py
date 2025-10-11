@@ -145,6 +145,73 @@ def test_get_column_name_adhoc():
     assert get_column_name(column) == "case when foo = 1 then 'foo' else 'bar' end"
 
 
+def test_get_column_name_with_as_clause():
+    # Test that we extract just the alias from expressions with AS clause
+    # This prevents double AS clauses when make_sqla_column_compatible adds .label()
+    
+    # MSSQL style with brackets
+    column = {"sqlExpression": "[Test Column] AS MyAlias"}
+    assert get_column_name(column) == "MyAlias"
+    
+    # Standard SQL with double quotes
+    column = {"sqlExpression": '"Test Column" AS MyAlias'}
+    assert get_column_name(column) == "MyAlias"
+    
+    # Simple column with AS
+    column = {"sqlExpression": "TestColumn AS MyAlias"}
+    assert get_column_name(column) == "MyAlias"
+    
+    # Column without AS clause should return the column name
+    column = {"sqlExpression": "[Test Column]"}
+    assert get_column_name(column) == "Test Column"
+    
+    # Simple column without AS
+    column = {"sqlExpression": "TestColumn"}
+    assert get_column_name(column) == "TestColumn"
+    
+    # Complex expression with AS
+    column = {"sqlExpression": "CASE WHEN foo = 1 THEN 'bar' END AS result"}
+    assert get_column_name(column) == "result"
+    
+    # If label is present, it takes precedence
+    column = {"label": "Custom Label", "sqlExpression": "TestColumn AS MyAlias"}
+    assert get_column_name(column) == "Custom Label"
+    
+    # Invalid SQL should fall back to returning the original expression
+    column = {"sqlExpression": "This is not valid SQL"}
+    assert get_column_name(column) == "This is not valid SQL"
+
+
+def test_space_column_names_comprehensive():
+    """Test comprehensive handling of column names with spaces across the system."""
+    from sqlalchemy.sql.elements import quoted_name
+    
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    # Test engine specs have force_column_alias_quotes enabled
+    assert MssqlEngineSpec.force_column_alias_quotes is True
+    assert SqliteEngineSpec.force_column_alias_quotes is True
+
+    # Test that labels with spaces get quoted
+    test_cases = [
+        "Test Column",
+        "My Test Column", 
+        "Column With Spaces",
+    ]
+    
+    for label in test_cases:
+        # MSSQL should use brackets
+        mssql_result = MssqlEngineSpec.make_label_compatible(label)
+        assert isinstance(mssql_result, quoted_name)
+        assert mssql_result.quote is True
+        
+        # SQLite should use double quotes  
+        sqlite_result = SqliteEngineSpec.make_label_compatible(label)
+        assert isinstance(sqlite_result, quoted_name)
+        assert sqlite_result.quote is True
+
+
 def test_get_column_names():
     assert get_column_names([STR_COLUMN, SQL_ADHOC_COLUMN]) == [
         "my_column",
