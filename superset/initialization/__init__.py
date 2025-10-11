@@ -178,9 +178,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
-        from superset.queries.saved_queries.api import SavedQueryRestApi
-        from superset.reports.api import ReportScheduleRestApi
-        from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import (
             RoleRestAPI,
@@ -208,7 +205,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.groups import GroupsListView
-        from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
@@ -265,14 +261,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
-        appbuilder.add_api(ReportScheduleRestApi)
-        appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
-        appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
-        appbuilder.add_api(LogRestApi)
+
+        if feature_flag_manager.is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+            from superset.queries.saved_queries.api import SavedQueryRestApi
+
+            appbuilder.add_api(SavedQueryRestApi)
+
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
+            from superset.reports.api import ReportScheduleRestApi
+            from superset.reports.logs.api import ReportExecutionLogRestApi
+
+            appbuilder.add_api(ReportScheduleRestApi)
+            appbuilder.add_api(ReportExecutionLogRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
@@ -472,7 +476,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
-        appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,
@@ -486,6 +489,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 and self.config["SUPERSET_LOG_VIEW"]
             ),
         )
+
+        if self.config["FAB_ADD_SECURITY_VIEWS"] and self.config["SUPERSET_LOG_VIEW"]:
+            from superset.views.log.api import LogRestApi
+
+            appbuilder.add_api(LogRestApi)
+
         appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views

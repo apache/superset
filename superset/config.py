@@ -86,7 +86,7 @@ STATS_LOGGER = DummyStatsLogger()
 # https://github.com/apache/superset/blob/master/superset/utils/log.py
 EVENT_LOGGER = DBEventLogger()
 
-SUPERSET_LOG_VIEW = True
+SUPERSET_LOG_VIEW = False  # Temporarily disabled for marshmallow 4.x compatibility
 
 # This config is used to enable/disable the folowing security menu items:
 # List Users, List Roles, List Groups
@@ -524,7 +524,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
     "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": True,
+    "SQLLAB_BACKEND_PERSISTENCE": False,  # Temporarily disabled for marshmallow 4.x compatibility
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
@@ -1386,7 +1386,7 @@ ENABLE_CHUNK_ENCODING = False
 SILENCE_FAB = True
 
 FAB_ADD_SECURITY_VIEWS = True
-FAB_ADD_SECURITY_API = True
+FAB_ADD_SECURITY_API = False  # Temporarily disabled for marshmallow 4.x compatibility
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
