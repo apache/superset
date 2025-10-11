@@ -801,6 +801,10 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  conditionalFormattingFlag: {
+                    toAllRowCheck: true,
+                    toColorTextCheck: true,
+                  },
                 };
               },
             },
