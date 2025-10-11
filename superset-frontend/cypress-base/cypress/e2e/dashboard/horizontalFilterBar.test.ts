@@ -37,7 +37,9 @@ import {
 function openMoreFilters(waitFilterState = true) {
   interceptFilterState();
   // Use a more robust approach to handle DOM detachment after viewport changes
-  cy.getBySel('dropdown-container-btn').should('be.visible').click({ force: true });
+  cy.getBySel('dropdown-container-btn')
+    .should('be.visible')
+    .click({ force: true });
 
   if (waitFilterState) {
     cy.wait('@postFilterState');
