@@ -275,10 +275,11 @@ export const exportChart = async ({
 
   // Check if streaming export handler is provided (from dashboard Chart.jsx)
   if (onStartStreamingExport) {
-    // Streaming is handled by the caller - just pass URL and payload
+    // Streaming is handled by the caller - pass URL, payload, and export type
     onStartStreamingExport({
       url,
       payload,
+      exportType: resultFormat,
     });
   } else {
     // Fallback to original behavior for non-streaming exports

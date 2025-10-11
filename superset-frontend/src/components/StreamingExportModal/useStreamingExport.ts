@@ -127,6 +127,10 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
   const executeExport = useCallback(
     async (params: StreamingExportParams) => {
       const { url, payload, filename, exportType, expectedRows } = params;
+      if (isExportingRef.current) {
+        return;
+      }
+      isExportingRef.current = true;
 
       abortControllerRef.current = new AbortController();
 
@@ -153,7 +157,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           expectedRows,
           abortControllerRef.current.signal,
         );
-
         const response = await fetch(url, fetchOptions);
 
         if (!response.ok) {
@@ -241,6 +244,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const downloadUrl = URL.createObjectURL(blob);
         currentBlobUrlRef.current = downloadUrl;
 
+
         updateProgress({
           status: ExportStatus.COMPLETED,
           downloadUrl,
@@ -282,7 +286,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         return;
       }
 
-      isExportingRef.current = true;
       setRetryCount(0);
       lastExportParamsRef.current = params;
 
@@ -311,7 +314,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       return;
     }
 
-    isExportingRef.current = true;
     setRetryCount(0);
     executeExport(lastExportParamsRef.current);
   }, [executeExport]);
