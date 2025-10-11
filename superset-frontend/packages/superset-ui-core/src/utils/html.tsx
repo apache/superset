@@ -17,6 +17,7 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
+import { DataRecordValue } from '../types';
 
 const xssFilter = new FilterXSS({
   whiteList: {
@@ -169,7 +170,10 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
 }
 
 export function removeHTMLTags(str: string): string {
-  return str.replace(/<[^>]*>/g, '');
+  const doc = new DOMParser().parseFromString(str, 'text/html');
+  const bodyText = doc.body?.textContent || '';
+  const headText = doc.head?.textContent || '';
+  return headText + bodyText;
 }
 
 export function isJsonString(str: string): boolean {
@@ -203,4 +207,11 @@ export function getParagraphContents(
   });
 
   return paragraphContents;
+}
+
+export function extractTextFromHTML(value: DataRecordValue): DataRecordValue {
+  if (typeof value === 'string' && isProbablyHTML(value)) {
+    return removeHTMLTags(value);
+  }
+  return value;
 }
