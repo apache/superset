@@ -36,8 +36,10 @@ import {
 
 function openMoreFilters(waitFilterState = true) {
   interceptFilterState();
-  // Use a more robust approach to handle DOM detachment after viewport changes
-  cy.getBySel('dropdown-container-btn')
+  // Wait for the dropdown button to appear when filters are overflowed
+  // The button only appears when there are overflowed filters
+  cy.getBySel('dropdown-container-btn', { timeout: 10000 })
+    .should('exist')
     .should('be.visible')
     .click({ force: true });
 
@@ -126,20 +128,20 @@ describe('Horizontal FilterBar', () => {
 
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
-    cy.wait(250); // Allow layout to stabilize after viewport change
+    cy.wait(500); // Allow layout to stabilize after viewport change
     cy.getBySel('form-item-value').should('have.length', 1);
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
     cy.viewport(1000, 1024);
-    cy.wait(250); // Allow layout to stabilize after viewport change
+    cy.wait(500); // Allow layout to stabilize after viewport change
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
     cy.viewport(1300, 1024);
-    cy.wait(250); // Allow layout to stabilize after viewport change
+    cy.wait(500); // Allow layout to stabilize after viewport change
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
