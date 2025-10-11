@@ -185,21 +185,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             return
 
         try:
-            # First, validate the SQL syntax and extract tables without checking
-            # for database-level access, which would cause an early return.
-            tables = security_manager.get_tables_from_sql(
+            # Validate SQL access by checking database permissions
+            security_manager.raise_for_access(
                 database=db,
-                sql=sql,
-                catalog=catalog,
                 schema=schema,
+                catalog=catalog,
             )
-
-            # Now, check if the user has permission for each table.
-            for table_ in tables:
-                security_manager.raise_for_access(
-                    database=db,
-                    table=table_,
-                )
 
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
