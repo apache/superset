@@ -748,6 +748,27 @@ export function setFullSizeChartId(chartId) {
   return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
+export const UPDATE_CHART_STATE = 'UPDATE_CHART_STATE';
+export function updateChartState(chartId, vizType, chartState) {
+  return {
+    type: UPDATE_CHART_STATE,
+    chartId,
+    vizType,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
+export const REMOVE_CHART_STATE = 'REMOVE_CHART_STATE';
+export function removeChartState(chartId) {
+  return { type: REMOVE_CHART_STATE, chartId };
+}
+
+export const RESTORE_CHART_STATES = 'RESTORE_CHART_STATES';
+export function restoreChartStates(chartStates) {
+  return { type: RESTORE_CHART_STATES, chartStates };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

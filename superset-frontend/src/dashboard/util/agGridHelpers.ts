@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NumberFormatter } from '../number-format';
-import { CurrencyFormatter } from '../currency-format';
 
-export * from '../query/types';
-export * from './AgGrid';
+/**
+ * Check if a dashboard contains any AG Grid table charts
+ * @param sliceEntities - The slice entities object from Redux state
+ * @returns true if at least one AG Grid table chart exists
+ */
+export function hasAgGridTables(
+  sliceEntities: Record<string, any> | null | undefined,
+): boolean {
+  if (!sliceEntities) {
+    return false;
+  }
 
-export type Maybe<T> = T | null;
-
-export type Optional<T> = T | undefined;
-
-export type ValueOf<T> = T[keyof T];
-
-export type ValueFormatter = NumberFormatter | CurrencyFormatter;
+  return Object.values(sliceEntities).some(
+    slice =>
+      slice &&
+      typeof slice === 'object' &&
+      'viz_type' in slice &&
+      slice.viz_type === 'ag-grid-table',
+  );
+}

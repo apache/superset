@@ -218,15 +218,79 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    // Note: In Superset, "columns" are dimensions and "metrics" are measures,
+    // but AG Grid treats them all as "columns" in the UI
+    let orderedColumns = columns;
+    let orderedMetrics = metrics;
+
+    if (
+      isDownloadQuery &&
+      ownState.columnOrder &&
+      Array.isArray(ownState.columnOrder)
+    ) {
+      const findMatchingItem = <T>(
+        items: T[],
+        colId: string,
+        matcher: (item: T, colId: string) => boolean,
+      ): T | undefined =>
+        items.find(item => {
+          if (typeof item === 'string') {
+            return item === colId;
+          }
+          return matcher(item, colId);
+        });
+
+      const reorderItems = <T>(
+        items: T[],
+        matcher: (item: T, colId: string) => boolean,
+      ): T[] => {
+        const ordered: T[] = [];
+        const itemSet = new Set(items);
+
+        ownState.columnOrder.forEach((colId: string) => {
+          const match = findMatchingItem(items, colId, matcher);
+          if (match && itemSet.has(match)) {
+            ordered.push(match);
+            itemSet.delete(match);
+          }
+        });
+
+        // Append remaining unordered items
+        itemSet.forEach(item => ordered.push(item));
+
+        return ordered;
+      };
+
+      orderedColumns = reorderItems(columns, (col, colId) => {
+        if (typeof col === 'string') return false;
+        return col?.sqlExpression === colId || col?.label === colId;
+      });
+
+      orderedMetrics = reorderItems(metrics || [], (met, colId) => {
+        if (typeof met === 'string') return false;
+        return getMetricLabel(met) === colId || met?.label === colId;
+      });
+    }
+
     let queryObject = {
       ...baseQueryObject,
-      columns,
-      extras,
+      columns: orderedColumns,
+      extras: {
+        ...extras,
+        // Flag to indicate AG Grid chart - enables metric column filtering
+        is_ag_grid_chart: true,
+        // Pass column order to enable mixed column+metric ordering
+        ...(isDownloadQuery &&
+        ownState.columnOrder &&
+        Array.isArray(ownState.columnOrder)
+          ? { column_order: ownState.columnOrder }
+          : {}),
+      },
       orderby:
-        formData.server_pagination && sortByFromOwnState
+        (formData.server_pagination || isDownloadQuery) && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
-      metrics,
+      metrics: orderedMetrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
       ...moreProps,
@@ -290,6 +354,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           ],
         };
       }
+    }
+
+    // Apply AG Grid filters from export (already in standard filter format)
+    if (
+      isDownloadQuery &&
+      Array.isArray(ownState.filters) &&
+      ownState.filters.length > 0
+    ) {
+      queryObject = {
+        ...queryObject,
+        filters: [...(queryObject.filters || []), ...ownState.filters],
+      };
     }
 
     // Now since row limit control is always visible even
