@@ -181,23 +181,35 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self._model = cast(SqlaTable, self._model)
 
         sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
-            try:
+        if not sql:
+            return
+
+        try:
+            # First, validate the SQL syntax and extract tables without checking
+            # for database-level access, which would cause an early return.
+            tables = security_manager.get_tables_from_sql(
+                database=db,
+                sql=sql,
+                catalog=catalog,
+                schema=schema,
+            )
+
+            # Now, check if the user has permission for each table.
+            for table_ in tables:
                 security_manager.raise_for_access(
                     database=db,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
+                    table=table_,
                 )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
-                    )
+
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(
+                    f"Invalid SQL: {ex.error.message}",
+                    field_name="sql",
                 )
+            )
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
