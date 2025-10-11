@@ -36,7 +36,8 @@ import {
 
 function openMoreFilters(waitFilterState = true) {
   interceptFilterState();
-  cy.getBySel('dropdown-container-btn').should('exist').click();
+  // Use a more robust approach to handle DOM detachment after viewport changes
+  cy.getBySel('dropdown-container-btn').should('be.visible').click({ force: true });
 
   if (waitFilterState) {
     cy.wait('@postFilterState');
@@ -123,17 +124,20 @@ describe('Horizontal FilterBar', () => {
 
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
+    cy.wait(250); // Allow layout to stabilize after viewport change
     cy.getBySel('form-item-value').should('have.length', 1);
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
     cy.viewport(1000, 1024);
+    cy.wait(250); // Allow layout to stabilize after viewport change
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 
     cy.getBySel('filter-bar').click();
     cy.viewport(1300, 1024);
+    cy.wait(250); // Allow layout to stabilize after viewport change
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
