@@ -44,6 +44,11 @@ if (process.env.WEBPACK_MODE === 'development') {
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();
 
+setupFormatters(
+  bootstrapData.common.d3_format,
+  bootstrapData.common.d3_time_format,
+);
+
 // Setup SupersetClient early so we can fetch language pack
 setupClient({ appRoot: applicationRoot() });
 
@@ -74,11 +79,6 @@ setupClient({ appRoot: applicationRoot() });
   setupColors(
     bootstrapData.common.extra_categorical_color_schemes,
     bootstrapData.common.extra_sequential_color_schemes,
-  );
-
-  setupFormatters(
-    bootstrapData.common.d3_format,
-    bootstrapData.common.d3_time_format,
   );
 
   setupDashboardComponents();
