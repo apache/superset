@@ -119,14 +119,12 @@ describe('Horizontal FilterBar', () => {
   });
 
   it('should show "more filters" on window resizing up and down', () => {
-    // Use 6 unique filters to ensure meaningful overflow testing
+    // Use 4 unique filters to ensure overflow testing while allowing all to fit at large viewport
     prepareDashboardFilters([
-      { name: 'Country Name Filter', column: 'country_name', datasetId: 2 },
-      { name: 'Country Code Filter', column: 'country_code', datasetId: 2 },
-      { name: 'Region Filter', column: 'region', datasetId: 2 },
-      { name: 'Year Filter', column: 'year', datasetId: 2 },
-      { name: 'Second Country Filter', column: 'country_name', datasetId: 2 },
-      { name: 'Second Region Filter', column: 'region', datasetId: 2 },
+      { name: 'Country', column: 'country_name', datasetId: 2 },
+      { name: 'Code', column: 'country_code', datasetId: 2 },
+      { name: 'Region', column: 'region', datasetId: 2 },
+      { name: 'Year', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
 
@@ -140,7 +138,7 @@ describe('Horizontal FilterBar', () => {
     cy.wait(500); // Allow layout to stabilize after viewport change
 
     // Should have some filters visible and dropdown button present
-    cy.get('.filter-item-wrapper').should('have.length.lessThan', 6);
+    cy.get('.filter-item-wrapper').should('have.length.lessThan', 4);
     cy.getBySel('dropdown-container-btn').should('exist');
 
     // Open more filters and verify all are accessible in the dropdown
