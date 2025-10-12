@@ -131,7 +131,7 @@ def load_chart_data_into_cache(
 
 
 @celery_app.task(
-    name="load_chart_data_into_cache",
+    name="load_explore_json_into_cache",
     soft_time_limit=query_timeout,
     bind=True,
     autoretry_for=RETRYABLE_EXCEPTIONS,
