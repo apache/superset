@@ -393,6 +393,7 @@ async def test_generate_chart_table_success(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "table"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -431,6 +432,7 @@ async def test_generate_chart_xy_line_success(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -466,6 +468,7 @@ async def test_generate_chart_xy_bar_success(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -504,6 +507,7 @@ async def test_generate_chart_xy_area_success(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_area"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -570,6 +574,7 @@ async def test_generate_chart_table_minimal(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "table"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -603,6 +608,7 @@ async def test_generate_chart_xy_minimal(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -639,6 +645,7 @@ async def test_generate_chart_with_simple_metrics(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -676,6 +683,7 @@ async def test_generate_chart_with_sql_aggregators(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -735,6 +743,7 @@ async def test_generate_chart_comprehensive_metrics(
             print(f"Full response: {resp.data}")
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
@@ -773,6 +782,7 @@ async def test_generate_chart_xy_scatter_success(
         )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_scatter"
+        assert resp.data["chart"]["form_data"] is not None
         assert resp.data["error"] is None
         mock_run.assert_called_once()
 
