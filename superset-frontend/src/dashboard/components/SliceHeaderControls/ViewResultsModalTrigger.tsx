@@ -18,7 +18,8 @@
  */
 import { ReactChild, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, ModalTrigger } from '@superset-ui/core/components';
 
 export const ViewResultsModalTrigger = ({

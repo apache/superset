@@ -17,7 +17,8 @@
  * under the License.
  */
 import { memo, useMemo } from 'react';
-import { t, useTruncation, css } from '@superset-ui/core';
+import { t, useTruncation } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { List } from '@superset-ui/core/components/List';
 import { useFilterScope } from './useFilterScope';
 import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';

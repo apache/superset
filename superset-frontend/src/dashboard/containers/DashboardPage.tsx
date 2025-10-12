@@ -19,7 +19,8 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

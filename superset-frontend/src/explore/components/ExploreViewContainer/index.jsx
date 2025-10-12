@@ -22,16 +22,14 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-  styled,
   t,
-  css,
-  useTheme,
   logging,
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { Tooltip } from '@superset-ui/core/components';

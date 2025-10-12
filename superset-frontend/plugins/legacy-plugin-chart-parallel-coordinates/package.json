@@ -35,6 +35,7 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@apache-superset/core": "*",
     "react": "^17.0.2"
   }
 }

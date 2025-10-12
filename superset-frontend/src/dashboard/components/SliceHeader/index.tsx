@@ -24,15 +24,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  css,
-  getExtensionsRegistry,
-  QueryData,
-  styled,
-  SupersetTheme,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, QueryData, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';

@@ -27,10 +27,10 @@ import {
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  supersetTheme,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { OrientationType } from '../../src';
 import {
   transformEventAnnotation,

@@ -19,7 +19,8 @@
 
 import { useCallback, useEffect, MouseEvent } from 'react';
 
-import { css, t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
 import type { FaveStarProps } from './types';

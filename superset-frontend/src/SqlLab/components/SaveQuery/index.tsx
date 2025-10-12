@@ -18,7 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   Input,
   Button,

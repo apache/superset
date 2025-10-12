@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';

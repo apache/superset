@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';

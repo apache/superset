@@ -18,7 +18,8 @@
  */
 
 import { FC, memo, useMemo } from 'react';
-import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
+import { DataMaskStateWithId, t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';

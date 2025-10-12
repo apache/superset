@@ -18,12 +18,8 @@
  */
 
 import { ReactNode, CSSProperties, useCallback } from 'react';
-import {
-  css,
-  truncationCSS,
-  useCSSTextTruncation,
-  useTheme,
-} from '@superset-ui/core';
+import { truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Menu, type ItemType } from '@superset-ui/core/components/Menu';
 import { Flex, Tooltip } from '@superset-ui/core/components';
 import { MenuItemProps } from 'antd';

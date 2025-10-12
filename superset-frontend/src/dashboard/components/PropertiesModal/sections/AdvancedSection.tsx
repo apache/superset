@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { JsonEditor } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';

@@ -18,7 +18,8 @@
  */
 import { FC } from 'react';
 import { FormItem, Input } from '@superset-ui/core/components';
-import { NativeFilterType, styled, t } from '@superset-ui/core';
+import { NativeFilterType, t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 interface Props {
   componentId: string;

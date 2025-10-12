@@ -30,10 +30,9 @@ import {
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
-  styled,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Input, Select } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';

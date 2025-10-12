@@ -18,7 +18,8 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Typography } from '@superset-ui/core/components/Typography';

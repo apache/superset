@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { supersetTheme, themeObject } from '@superset-ui/core';
+import { supersetTheme, themeObject } from '@apache-superset/core/ui';
 
 const colorTypes = [
   'primary',

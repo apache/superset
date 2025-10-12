@@ -18,7 +18,8 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import withToasts from 'src/components/MessageToasts/withToasts';

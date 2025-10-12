@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd';
 import { MenuProps as AntdMenuProps } from 'antd/es/menu';

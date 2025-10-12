@@ -21,11 +21,10 @@ import { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,
-  css,
   QueryFormData,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';

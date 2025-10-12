@@ -16,9 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { PropsWithChildren } from 'react';
-import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
-
-export type AlertProps = PropsWithChildren<
-  Omit<AntdAlertProps, 'children'> & { roomBelow?: boolean }
->;
+export * from './theme';
+export * from './components';

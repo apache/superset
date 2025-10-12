@@ -18,7 +18,7 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   Icons,
   Tooltip,

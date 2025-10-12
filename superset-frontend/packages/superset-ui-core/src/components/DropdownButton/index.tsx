@@ -18,7 +18,7 @@
  */
 import { Dropdown } from 'antd';
 import { kebabCase } from 'lodash';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '../Tooltip';
 import type { DropdownButtonProps } from './types';
 

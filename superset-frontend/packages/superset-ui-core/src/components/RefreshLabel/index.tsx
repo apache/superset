@@ -17,7 +17,7 @@
  * under the License.
  */
 import { MouseEventHandler, forwardRef } from 'react';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 import { Tooltip } from '../Tooltip';

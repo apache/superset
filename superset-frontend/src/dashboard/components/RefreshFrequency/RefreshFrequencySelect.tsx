@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Radio, Input } from '@superset-ui/core/components';
 
 // Minimum safe refresh interval to prevent server overload

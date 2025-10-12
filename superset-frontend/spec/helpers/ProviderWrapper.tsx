@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@apache-superset/core/ui';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 

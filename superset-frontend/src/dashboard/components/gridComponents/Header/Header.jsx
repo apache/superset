@@ -19,7 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
 import { EditableTitle } from '@superset-ui/core/components';

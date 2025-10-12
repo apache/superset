@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useTheme } from '@apache-superset/core/ui';
 import { now, fDuration } from '../../utils/dates';
-import { useTheme } from '../..';
 import { Label, Icons, type LabelType } from '..';
 
 export interface TimerProps {

@@ -18,15 +18,12 @@
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import {
-  css,
-  styled,
   t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
+import { css, styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Constants,

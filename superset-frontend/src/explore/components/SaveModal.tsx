@@ -24,7 +24,6 @@ import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import {
   InfoTooltip,
-  Alert,
   Button,
   AsyncSelect,
   Form,
@@ -35,14 +34,13 @@ import {
   Divider,
 } from '@superset-ui/core/components';
 import {
-  css,
   DatasourceType,
   isDefined,
   logging,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';

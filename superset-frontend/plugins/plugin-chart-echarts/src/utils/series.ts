@@ -28,10 +28,10 @@ import {
   normalizeTimestamp,
   NumberFormats,
   NumberFormatter,
-  SupersetTheme,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';

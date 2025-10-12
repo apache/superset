@@ -22,10 +22,10 @@ import { Color } from '@deck.gl/core';
 import {
   JsonObject,
   QueryFormData,
-  styled,
   CategoricalColorNamespace,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   COLOR_SCHEME_TYPES,
   ColorSchemeType,

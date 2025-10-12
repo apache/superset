@@ -22,11 +22,9 @@ import {
   getNumberFormatter,
   isEqualArray,
   NumberFormats,
-  styled,
-  useTheme,
   t,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';

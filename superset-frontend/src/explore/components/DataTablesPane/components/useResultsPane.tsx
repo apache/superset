@@ -20,11 +20,11 @@ import { useState, useEffect, ReactElement, useCallback } from 'react';
 
 import {
   ensureIsArray,
-  styled,
   t,
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';

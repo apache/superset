@@ -23,10 +23,9 @@ import {
   JsonObject,
   Payload,
   QueryFormData,
-  SupersetTheme,
   t,
-  withTheme,
 } from '@superset-ui/core';
+import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
 import {
   AsyncEsmComponent,
   List,

@@ -19,18 +19,15 @@
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import {
-  styled,
   SupersetClient,
   getClientErrorObject,
   t,
   SupersetError,
-  useTheme,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
 import {
   Icons,
-  Alert,
   Button,
   Checkbox,
   Modal,

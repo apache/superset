@@ -20,9 +20,9 @@ import {
   DatasourceType,
   ChartProps,
   Behavior,
-  supersetTheme,
   Metric,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { transformProps, TableChartProps } from './transformProps';
 
 interface ExtendedMetric extends Omit<Metric, 'uuid'> {

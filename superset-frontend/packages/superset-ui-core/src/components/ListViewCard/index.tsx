@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { styled, useTheme, css } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { Skeleton } from '../Skeleton';
 import { Card } from '../Card';
 import { CertifiedBadge } from '../CertifiedBadge';

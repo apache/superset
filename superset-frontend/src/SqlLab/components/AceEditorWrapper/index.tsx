@@ -19,7 +19,8 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { css, usePrevious, useTheme } from '@superset-ui/core';
+import { usePrevious } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';

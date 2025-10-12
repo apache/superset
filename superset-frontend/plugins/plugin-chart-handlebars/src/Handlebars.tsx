@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { createRef } from 'react';
 import { HandlebarsViewer } from './components/Handlebars/HandlebarsViewer';
 import { HandlebarsProps, HandlebarsStylesProps } from './types';

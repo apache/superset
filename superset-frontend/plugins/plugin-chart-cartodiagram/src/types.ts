@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataRecord,
-  SupersetTheme,
-  TimeseriesDataRecord,
-} from '@superset-ui/core';
+import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { RenderFunction } from 'ol/layer/Layer';
 import { Extent } from 'ol/extent';
 import Source from 'ol/source/Source';

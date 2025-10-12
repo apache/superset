@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { Card as AntdCard } from 'antd';
 import type { CardProps } from './types';
 

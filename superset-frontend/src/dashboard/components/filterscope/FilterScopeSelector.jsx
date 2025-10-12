@@ -20,7 +20,8 @@ import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { Button, Input } from '@superset-ui/core/components';
-import { css, t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import buildFilterScopeTreeEntry from 'src/dashboard/util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from 'src/dashboard/util/getFilterScopeNodesTree';
