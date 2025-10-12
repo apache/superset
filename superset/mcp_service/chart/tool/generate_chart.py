@@ -129,6 +129,79 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
         chart_id = None
         explore_url = None
         form_data_key = None
+        datasource_type = "table"
+
+        # Find the dataset to get its numeric ID and populate form_data datasource
+        from superset.daos.dataset import DatasetDAO
+
+        await ctx.debug("Looking up dataset: dataset_id=%s" % (request.dataset_id,))
+        dataset = None
+        if isinstance(request.dataset_id, int) or (
+            isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+        ):
+            dataset_id = (
+                int(request.dataset_id)
+                if isinstance(request.dataset_id, str)
+                else request.dataset_id
+            )
+            dataset = DatasetDAO.find_by_id(dataset_id)
+            # SECURITY FIX: Also validate permissions for numeric ID access
+            if dataset and not _has_dataset_access(dataset):
+                logger.warning(
+                    "User %s attempted to access dataset %s without permission",
+                    ctx.user.username if hasattr(ctx, "user") else "unknown",
+                    dataset_id,
+                )
+                dataset = None  # Treat as not found
+        else:
+            # SECURITY FIX: Try UUID lookup with permission validation
+            dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+            # Validate permissions for UUID-based access
+            if dataset and not _has_dataset_access(dataset):
+                logger.warning(
+                    "User %s attempted access dataset %s via UUID",
+                    ctx.user.username if hasattr(ctx, "user") else "unknown",
+                    request.dataset_id,
+                )
+                dataset = None  # Treat as not found
+
+        if not dataset:
+            await ctx.error("Dataset not found: dataset_id=%s" % (request.dataset_id,))
+            from superset.mcp_service.common.error_schemas import (
+                ChartGenerationError,
+            )
+
+            execution_time = int((time.time() - start_time) * 1000)
+            error = ChartGenerationError(
+                error_type="dataset_not_found",
+                message=f"Dataset not found: {request.dataset_id}",
+                details=(
+                    f"No dataset found with identifier '{request.dataset_id}'. "
+                    f"This could be an invalid ID/UUID or a permissions issue."
+                ),
+                suggestions=[
+                    "Verify the dataset ID or UUID is correct",
+                    "Check that you have access to this dataset",
+                    "Use the list_datasets tool to find available datasets",
+                    "If using UUID, ensure it's the correct format",
+                ],
+                error_code="DATASET_NOT_FOUND",
+            )
+            return {
+                "chart": None,
+                "error": error.model_dump(),
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+
+        # Add datasource identifier to form_data
+        form_data["datasource"] = f"{dataset.id}__{datasource_type}"
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -139,84 +212,13 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
             chart_name = generate_chart_name(request.config)
             await ctx.debug("Generated chart name: chart_name=%s" % (chart_name,))
 
-            # Find the dataset to get its numeric ID
-            from superset.daos.dataset import DatasetDAO
-
-            await ctx.debug("Looking up dataset: dataset_id=%s" % (request.dataset_id,))
-            dataset = None
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
-            ):
-                dataset_id = (
-                    int(request.dataset_id)
-                    if isinstance(request.dataset_id, str)
-                    else request.dataset_id
-                )
-                dataset = DatasetDAO.find_by_id(dataset_id)
-                # SECURITY FIX: Also validate permissions for numeric ID access
-                if dataset and not _has_dataset_access(dataset):
-                    logger.warning(
-                        "User %s attempted to access dataset %s without permission",
-                        ctx.user.username if hasattr(ctx, "user") else "unknown",
-                        dataset_id,
-                    )
-                    dataset = None  # Treat as not found
-            else:
-                # SECURITY FIX: Try UUID lookup with permission validation
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-                # Validate permissions for UUID-based access
-                if dataset and not _has_dataset_access(dataset):
-                    logger.warning(
-                        "User %s attempted access dataset %s via UUID",
-                        ctx.user.username if hasattr(ctx, "user") else "unknown",
-                        request.dataset_id,
-                    )
-                    dataset = None  # Treat as not found
-
-            if not dataset:
-                await ctx.error(
-                    "Dataset not found: dataset_id=%s" % (request.dataset_id,)
-                )
-                from superset.mcp_service.common.error_schemas import (
-                    ChartGenerationError,
-                )
-
-                execution_time = int((time.time() - start_time) * 1000)
-                error = ChartGenerationError(
-                    error_type="dataset_not_found",
-                    message=f"Dataset not found: {request.dataset_id}",
-                    details=(
-                        f"No dataset found with identifier '{request.dataset_id}'. "
-                        f"This could be an invalid ID/UUID or a permissions issue."
-                    ),
-                    suggestions=[
-                        "Verify the dataset ID or UUID is correct",
-                        "Check that you have access to this dataset",
-                        "Use the list_datasets tool to find available datasets",
-                        "If using UUID, ensure it's the correct format",
-                    ],
-                    error_code="DATASET_NOT_FOUND",
-                )
-                return {
-                    "chart": None,
-                    "error": error.model_dump(),
-                    "performance": {
-                        "query_duration_ms": execution_time,
-                        "cache_status": "error",
-                        "optimization_suggestions": [],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
-
             try:
                 command = CreateChartCommand(
                     {
                         "slice_name": chart_name,
                         "viz_type": form_data["viz_type"],
                         "datasource_id": dataset.id,
-                        "datasource_type": "table",
+                        "datasource_type": datasource_type,
                         "params": json.dumps(form_data),
                     }
                 )
@@ -370,6 +372,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                 if chart
                 else generate_chart_name(request.config),
                 "viz_type": chart.viz_type if chart else form_data.get("viz_type"),
+                "form_data": form_data,
                 "url": explore_url,
                 "uuid": str(chart.uuid) if chart and chart.uuid else None,
                 "saved": request.save_chart,
@@ -379,6 +382,7 @@ async def generate_chart(request: GenerateChartRequest, ctx: Context) -> Dict[st
                 "id": None,
                 "slice_name": generate_chart_name(request.config),
                 "viz_type": form_data.get("viz_type"),
+                "form_data": form_data,
                 "url": explore_url,
                 "uuid": None,
                 "saved": False,
