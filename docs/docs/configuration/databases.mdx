@@ -1259,88 +1259,17 @@ hive://hive@{hostname}:{port}/{database}
 
 #### Arc
 
-Arc is a high-performance time-series database built on DuckDB, Parquet, and MinIO. It provides exceptional write performance (1.89M records/sec) using MessagePack binary protocol and supports multi-database architecture for data isolation.
+The recommended connector library is [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/). Install with `pip install arc-superset-dialect`.
 
-The recommended connector library for Arc is [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/).
-
-##### Installation
-
-```bash
-pip install arc-superset-dialect
-```
-
-##### Connection String
-
-The connection string format for Arc is:
+The connection string looks like:
 
 ```
 arc://{api_key}@{hostname}:{port}/{database}
 ```
 
-**Parameters:**
-- `api_key`: Your Arc API token (generate using Arc's authentication system)
-- `hostname`: Arc server hostname or IP address
-- `port`: Arc API port (default: 8000)
-- `database`: Database namespace (e.g., "production", "staging", "default")
-
-##### Example Connection Strings
-
-**Basic connection:**
-```
-arc://AEzNL9-kBbsoRHYA74wLr_OHYU8H-ABEn1Gd1k3sNLA@localhost:8000/default
-```
-
-**Production environment:**
-```
-arc://your-api-token@arc-production.example.com:8000/production
-```
-
-##### Generating an API Key
-
-To generate an API key for Arc, use the Arc CLI or API:
-
-```bash
-# Using Arc CLI
-python3 cli.py auth create-token --name superset --permissions read,write
-
-# Or via API
-curl -X POST http://localhost:8000/auth/tokens \
-  -H "Authorization: Bearer ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "superset", "description": "Superset integration"}'
-```
-
 ##### Multi-Database Support
 
-Arc supports multiple databases (schemas) within a single instance. In Superset:
-- Each Arc database appears as a **schema** in the SQL Lab
-- You can query tables using `database.table` syntax
-- Cross-database queries are supported
-
-**Example query:**
-```sql
--- Query specific database
-SELECT * FROM production.cpu WHERE time > NOW() - INTERVAL 1 HOUR
-
--- Cross-database join
-SELECT p.time, p.usage as prod_usage, s.usage as staging_usage
-FROM production.cpu p
-JOIN staging.cpu s ON p.time = s.time
-```
-
-##### Features
-
-- **High Performance**: 1.89M records/sec write throughput
-- **DuckDB Query Engine**: Fast analytical queries with full SQL support
-- **Multi-Database Architecture**: Organize data by environment, tenant, or application
-- **Parquet Storage**: Columnar format with automatic compaction
-- **S3-Compatible Storage**: Works with MinIO, AWS S3, GCS
-
-##### Learn More
-
-- [Arc GitHub Repository](https://github.com/basekick-labs/arc)
-- [Arc Superset Dialect](https://github.com/basekick-labs/arc-superset-dialect)
-- [PyPI Package](https://pypi.org/project/arc-superset-dialect/)
+Arc supports multiple databases (schemas) within a single instance. In Superset, each Arc database appears as a schema in the SQL Lab, and cross-database queries are supported using `database.table` syntax.
 
 #### SQL Server
 
