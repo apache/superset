@@ -54,16 +54,17 @@ export function calculateTimeValue(
   } else {
     // Find the Nth actual data point, skipping null values
     let dataPointsFound = 0;
-    for (let searchIndex = 1; searchIndex < totalLag; searchIndex++) {
-      const searchValue = reversedEntries[searchIndex][valueField];
+    reversedEntries.slice(1, totalLag).some(entry => {
+      const searchValue = entry[valueField];
       if (typeof searchValue === 'number') {
         dataPointsFound += 1;
         if (dataPointsFound === timeLag) {
           laggedValue = searchValue;
-          break;
+          return true;
         }
       }
-    }
+      return false;
+    });
   }
 
   // For comparison operations, both values must be numbers
@@ -74,6 +75,11 @@ export function calculateTimeValue(
       return { value: recent / laggedValue };
     if (column.comparisonType === 'perc_change')
       return { value: recent / laggedValue - 1 };
+  }
+
+  // If recent is null, return null (can't do meaningful calculations)
+  if (recent === null) {
+    return { value: null };
   }
 
   return { value: laggedValue };
