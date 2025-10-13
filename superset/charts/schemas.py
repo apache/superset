@@ -24,6 +24,7 @@ from flask import current_app
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
+from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
@@ -268,7 +269,9 @@ class ChartPutSchema(Schema):
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     params = fields.String(
-        metadata={"description": params_description}, allow_none=True
+        metadata={"description": params_description},
+        allow_none=True,
+        validate=utils.validate_json,
     )
     query_context = fields.String(
         metadata={"description": query_context_description}, allow_none=True
@@ -1130,8 +1133,9 @@ class AnnotationLayerSchema(Schema):
 
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
-    id = fields.Integer(
-        metadata={"description": "Datasource id"},
+    id = Union(
+        [fields.Integer(), fields.UUID()],
+        metadata={"description": "Datasource id or uuid"},
         required=True,
     )
     type = fields.String(

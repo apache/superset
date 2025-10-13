@@ -64,6 +64,7 @@ const mockUser = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - List View Tests', () => {
   beforeEach(() => {
     mockHandleResourceExport.mockClear();
@@ -74,7 +75,7 @@ describe('ChartList - List View Tests', () => {
     fetchMock.restore();
   });
 
-  it('renders ChartList in list view', async () => {
+  test('renders ChartList in list view', async () => {
     renderChartList(mockUser);
 
     // Wait for component to load
@@ -93,7 +94,85 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('switches from list view to card view', async () => {
+  test('correctly displays dataset names with and without schema', async () => {
+    // Create custom mock data with different datasource_name_text formats
+    const customMockCharts = [
+      {
+        ...mockCharts[0],
+        id: 100,
+        slice_name: 'Chart with Schema',
+        datasource_name_text: 'public.test_dataset',
+      },
+      {
+        ...mockCharts[0],
+        id: 101,
+        slice_name: 'Chart without Schema',
+        datasource_name_text: 'Jinja 5', // Virtual dataset without schema
+      },
+      {
+        ...mockCharts[0],
+        id: 102,
+        slice_name: 'Chart with Dots in Name',
+        datasource_name_text: 'schema.table.with.dots', // Name contains dots
+      },
+    ];
+
+    // Setup mock with custom charts
+    fetchMock.reset();
+    setupMocks();
+    fetchMock.get(
+      'glob:*/api/v1/chart/?*',
+      {
+        result: customMockCharts,
+        chart_count: customMockCharts.length,
+      },
+      { overwriteRoutes: true },
+    );
+
+    renderChartList(mockUser);
+
+    // Wait for table to be rendered
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('Chart with Schema')).toBeInTheDocument();
+    });
+
+    // Find the specific dataset links by their parent row context
+    const schemaRow = screen.getByText('Chart with Schema').closest('tr');
+    const noSchemaRow = screen.getByText('Chart without Schema').closest('tr');
+    const dotsRow = screen.getByText('Chart with Dots in Name').closest('tr');
+
+    // Check dataset name displays correctly for each case
+    // For chart with schema (public.test_dataset)
+    expect(schemaRow).toBeInTheDocument();
+    const schemaLink = within(schemaRow!).getByRole('link', {
+      name: /test_dataset/i,
+    });
+    expect(schemaLink).toBeInTheDocument();
+    expect(schemaLink).toHaveTextContent('test_dataset');
+
+    // For chart without schema (Jinja 5)
+    expect(noSchemaRow).toBeInTheDocument();
+    const noSchemaLink = within(noSchemaRow!).getByRole('link', {
+      name: /Jinja 5/i,
+    });
+    expect(noSchemaLink).toBeInTheDocument();
+    expect(noSchemaLink).toHaveTextContent('Jinja 5');
+
+    // For chart with dots in name (schema.table.with.dots)
+    expect(dotsRow).toBeInTheDocument();
+    const dotsLink = within(dotsRow!).getByRole('link', {
+      name: /table\.with\.dots/i,
+    });
+    expect(dotsLink).toBeInTheDocument();
+    expect(dotsLink).toHaveTextContent('table.with.dots');
+  });
+
+  test('switches from list view to card view', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -114,7 +193,7 @@ describe('ChartList - List View Tests', () => {
     expect(cards).toHaveLength(mockCharts.length);
   });
 
-  it('renders all required column headers', async () => {
+  test('renders all required column headers', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -144,7 +223,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('sorts table when clicking column headers', async () => {
+  test('sorts table when clicking column headers', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -197,7 +276,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('displays chart data correctly', async () => {
+  test('displays chart data correctly', async () => {
     /**
      * @todo Implement test logic for tagging.
      * If TAGGING_SYSTEM is ever deprecated to always be on,
@@ -276,7 +355,7 @@ describe('ChartList - List View Tests', () => {
     expect(within(chartRow).getByTestId('edit-alt')).toBeInTheDocument();
   });
 
-  it('export chart api called when export button is clicked', async () => {
+  test('export chart api called when export button is clicked', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -303,7 +382,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('opens edit properties modal when edit button is clicked', async () => {
+  test('opens edit properties modal when edit button is clicked', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -327,7 +406,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('opens delete confirmation when delete button is clicked', async () => {
+  test('opens delete confirmation when delete button is clicked', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -351,7 +430,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('displays certified badge only for certified charts', async () => {
+  test('displays certified badge only for certified charts', async () => {
     // Test certified chart (mockCharts[1] has certification)
     const certifiedChart = mockCharts[1];
     // Test uncertified chart (mockCharts[0] has no certification)
@@ -391,7 +470,7 @@ describe('ChartList - List View Tests', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('displays info icon only for charts with descriptions', async () => {
+  test('displays info icon only for charts with descriptions', async () => {
     // Test chart with description (mockCharts[0] has description)
     const chartWithDesc = mockCharts[0];
     // Test chart without description (mockCharts[2] has description: null)
@@ -429,7 +508,7 @@ describe('ChartList - List View Tests', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('displays chart with empty dataset column', async () => {
+  test('displays chart with empty dataset column', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -470,7 +549,7 @@ describe('ChartList - List View Tests', () => {
     expect(datasetLink).toHaveAttribute('href', '');
   });
 
-  it('displays chart with empty on dashboards column', async () => {
+  test('displays chart with empty on dashboards column', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -509,7 +588,7 @@ describe('ChartList - List View Tests', () => {
     expect(within(dashboardCell).queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('shows tag info when TAGGING_SYSTEM is enabled', async () => {
+  test('shows tag info when TAGGING_SYSTEM is enabled', async () => {
     // Enable tagging system feature flag
     mockIsFeatureEnabled.mockImplementation(
       feature => feature === 'TAGGING_SYSTEM',
@@ -549,7 +628,7 @@ describe('ChartList - List View Tests', () => {
     expect(tagLink).toHaveAttribute('target', '_blank');
   });
 
-  it('can bulk select and deselect all charts', async () => {
+  test('can bulk select and deselect all charts', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -613,7 +692,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('can bulk export selected charts', async () => {
+  test('can bulk export selected charts', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -661,7 +740,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('can bulk delete selected charts', async () => {
+  test('can bulk delete selected charts', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -709,7 +788,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('can bulk add tags to selected charts', async () => {
+  test('can bulk add tags to selected charts', async () => {
     // Enable tagging system feature flag
     mockIsFeatureEnabled.mockImplementation(
       feature => feature === 'TAGGING_SYSTEM',
@@ -762,7 +841,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('exit bulk select by hitting x on bulk select bar', async () => {
+  test('exit bulk select by hitting x on bulk select bar', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -808,7 +887,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('exit bulk select by clicking bulk select button again', async () => {
+  test('exit bulk select by clicking bulk select button again', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -850,7 +929,7 @@ describe('ChartList - List View Tests', () => {
     });
   });
 
-  it('displays dataset name without schema prefix correctly', async () => {
+  test('displays dataset name without schema prefix correctly', async () => {
     // Test just name case - should display the full name when no schema prefix
     renderChartList(mockUser);
 

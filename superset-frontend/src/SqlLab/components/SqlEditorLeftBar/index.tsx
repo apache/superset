@@ -47,7 +47,6 @@ import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
-  height?: number;
   database?: DatabaseObject;
 }
 
@@ -72,7 +71,6 @@ const LeftBarStyles = styled.div`
 const SqlEditorLeftBar = ({
   database,
   queryEditorId,
-  height = 500,
 }: SqlEditorLeftBarProps) => {
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
@@ -84,6 +82,7 @@ const SqlEditorLeftBar = ({
     'dbId',
     'catalog',
     'schema',
+    'tabViewId',
   ]);
 
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
@@ -170,7 +169,6 @@ const SqlEditorLeftBar = ({
   };
 
   const shouldShowReset = window.location.search === '?reset=1';
-  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
   const handleCatalogChange = useCallback(
     (catalog: string | null) => {
@@ -227,22 +225,16 @@ const SqlEditorLeftBar = ({
       />
       <div className="divider" />
       <StyledScrollbarContainer>
-        <div
-          css={css`
-            height: ${tableMetaDataHeight}px;
-          `}
-        >
-          {tables.map(table => (
-            <TableElement
-              table={table}
-              key={table.id}
-              activeKey={tables
-                .filter(({ expanded }) => expanded)
-                .map(({ id }) => id)}
-              onChange={onToggleTable}
-            />
-          ))}
-        </div>
+        {tables.map(table => (
+          <TableElement
+            table={table}
+            key={table.id}
+            activeKey={tables
+              .filter(({ expanded }) => expanded)
+              .map(({ id }) => id)}
+            onChange={onToggleTable}
+          />
+        ))}
       </StyledScrollbarContainer>
       {shouldShowReset && (
         <Button

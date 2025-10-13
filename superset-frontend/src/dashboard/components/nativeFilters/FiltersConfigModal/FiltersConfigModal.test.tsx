@@ -58,6 +58,11 @@ class MainPreset extends Preset {
 const defaultState = () => ({
   datasources: { ...mockDatasource },
   charts: chartQueries,
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
 });
 
 const noTemporalColumnsState = () => {
@@ -178,6 +183,9 @@ beforeAll(() => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// Set timeout for all tests in this file to prevent CI timeouts
+jest.setTimeout(60000);
 
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
@@ -338,9 +346,9 @@ test('validates the pre-filter value', async () => {
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
 
-  await waitFor(() => {
-    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
+  ).toBeInTheDocument();
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests

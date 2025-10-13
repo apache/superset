@@ -500,6 +500,8 @@ class ImportV1DashboardSchema(Schema):
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
+    theme_uuid = fields.UUID(allow_none=True)
+    theme_id = fields.Integer(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

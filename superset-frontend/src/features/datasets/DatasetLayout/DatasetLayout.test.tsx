@@ -32,8 +32,9 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetLayout', () => {
-  it('renders nothing when no components are passed in', () => {
+  test('renders nothing when no components are passed in', () => {
     render(<DatasetLayout />, { useRouter: true });
     const layoutWrapper = screen.getByTestId('dataset-layout-wrapper');
 
@@ -45,13 +46,13 @@ describe('DatasetLayout', () => {
   const waitForRender = () =>
     waitFor(() => render(<Header setDataset={mockSetDataset} />));
 
-  it('renders a Header when passed in', async () => {
+  test('renders a Header when passed in', async () => {
     await waitForRender();
 
     expect(screen.getByText(/new dataset/i)).toBeVisible();
   });
 
-  it('renders a LeftPanel when passed in', async () => {
+  test('renders a LeftPanel when passed in', async () => {
     render(
       <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
       { useRedux: true, useRouter: true },
@@ -63,7 +64,7 @@ describe('DatasetLayout', () => {
     expect(LeftPanel).toBeTruthy();
   });
 
-  it('renders a DatasetPanel when passed in', () => {
+  test('renders a DatasetPanel when passed in', () => {
     render(<DatasetLayout datasetPanel={<DatasetPanel />} />, {
       useRouter: true,
     });
@@ -75,13 +76,13 @@ describe('DatasetLayout', () => {
     expect(blankDatasetTitle).toBeVisible();
   });
 
-  it('renders a RightPanel when passed in', () => {
+  test('renders a RightPanel when passed in', () => {
     render(<DatasetLayout rightPanel={RightPanel()} />, { useRouter: true });
 
     expect(screen.getByText(/right panel/i)).toBeVisible();
   });
 
-  it('renders a Footer when passed in', () => {
+  test('renders a Footer when passed in', () => {
     render(<DatasetLayout footer={<Footer url="" />} />, {
       useRedux: true,
       useRouter: true,

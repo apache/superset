@@ -137,6 +137,7 @@ fetchMock.post(
     sendAsJson: false,
   },
 );
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
@@ -373,6 +374,7 @@ describe('ExploreChartHeader', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Additional actions tests', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
@@ -505,6 +507,7 @@ describe('Additional actions tests', () => {
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(1);
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Download', () => {
     let spyDownloadAsImage = sinon.spy();
     let spyExportChart = sinon.spy();

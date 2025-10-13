@@ -29,7 +29,6 @@ import copyTextToClipboard from 'src/utils/copy';
 
 const SyntaxHighlighterWrapper = styled.div`
   position: relative;
-  margin-top: -24px;
 
   &:hover {
     .copy-button {

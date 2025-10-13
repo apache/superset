@@ -80,6 +80,7 @@ import DashboardWrapper from './DashboardWrapper';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
+  background-color: ${({ theme }) => theme.colorBgContainer};
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
@@ -275,6 +276,7 @@ const StyledDashboardContent = styled.div<{
   marginLeft: number;
 }>`
   ${({ theme, editMode, marginLeft }) => css`
+    background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -291,9 +293,7 @@ const StyledDashboardContent = styled.div<{
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.sizeUnit * 4}px;
-      margin-right: ${theme.sizeUnit * 8}px;
-      margin-bottom: ${theme.sizeUnit * 4}px;
+      margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
@@ -557,13 +557,9 @@ const DashboardBuilder = () => {
     ],
   );
 
-  const dashboardContentMarginLeft =
-    !dashboardFiltersOpen &&
-    !editMode &&
-    nativeFiltersEnabled &&
-    filterBarOrientation !== FilterBarOrientation.Horizontal
-      ? 0
-      : theme.sizeUnit * 8;
+  const dashboardContentMarginLeft = !editMode
+    ? theme.sizeUnit * 4
+    : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
     adjustedWidth => {

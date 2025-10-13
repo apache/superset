@@ -363,11 +363,13 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get(cls, id_or_uuid: str) -> Slice:
-        qry = db.session.query(Slice).filter_by(id_or_uuid_filter(id_or_uuid))
+        qry = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
         return qry.one_or_none()
 
 
-def id_or_uuid_filter(id_or_uuid: str) -> BinaryExpression:
+def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
+    if isinstance(id_or_uuid, int):
+        return Slice.id == id_or_uuid
     if id_or_uuid.isdigit():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid

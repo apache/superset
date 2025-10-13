@@ -122,7 +122,6 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   application_root: '/',
   static_assets_prefix: '',
-  flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
@@ -171,6 +170,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   d3_format: DEFAULT_D3_FORMAT,
   d3_time_format: DEFAULT_D3_TIME_FORMAT,
+  pdf_compression_level: 'MEDIUM',
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {

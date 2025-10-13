@@ -18,13 +18,11 @@
  */
 import { t, styled } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Alert, Image } from '@superset-ui/core/components';
+import { Alert, Loading } from '@superset-ui/core/components';
 import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
-// @ts-ignore
-import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
@@ -173,7 +171,6 @@ const StyledAlert = styled(Alert)`
 
 export const REFRESHING = t('Refreshing columns');
 export const COLUMN_TITLE = t('Table columns');
-export const ALT_LOADING = t('Loading');
 
 const pageSizeOptions = ['5', '10', '15', '25'];
 const DEFAULT_PAGE_SIZE = 25;
@@ -270,7 +267,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <Image preview={false} alt={ALT_LOADING} src={LOADING_GIF} />
+          <Loading position="inline-centered" />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>

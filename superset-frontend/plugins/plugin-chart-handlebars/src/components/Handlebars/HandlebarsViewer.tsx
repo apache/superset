@@ -18,8 +18,8 @@
  */
 import { styled, t } from '@superset-ui/core';
 import { SafeMarkdown } from '@superset-ui/core/components';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
-import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
@@ -76,7 +76,7 @@ export const HandlebarsViewer = ({
   return <p>{t('Loading...')}</p>;
 };
 
-//  usage: {{dateFormat my_date format="MMMM YYYY"}}
+//  usage: {{ dateFormat my_date format="MMMM YYYY" }}
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
   return dayjs(context).format(f);

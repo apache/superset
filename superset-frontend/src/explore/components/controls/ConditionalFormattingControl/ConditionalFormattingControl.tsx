@@ -53,6 +53,7 @@ export const FormatterContainer = styled(OptionControlContainer)`
 
 export const CloseButton = styled.button`
   ${({ theme }) => css`
+    background: ${theme.colorBgLayout};
     color: ${theme.colorIcon};
     height: 100%;
     width: ${theme.sizeUnit * 6}px;

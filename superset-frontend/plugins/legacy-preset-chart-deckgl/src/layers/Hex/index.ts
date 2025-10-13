@@ -18,8 +18,11 @@
  */
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
-import transformProps from '../../transformProps';
+import exampleDark from './images/example-dark.png';
+import buildQuery from './buildQuery';
+import transformProps from './transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -28,10 +31,10 @@ const metadata = new ChartMetadata({
   description: t(
     'Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('deck.gl 3D Hexagon'),
   thumbnail,
-  useLegacyApi: true,
+  thumbnailDark,
   tags: [t('deckGL'), t('3D'), t('Geo'), t('Comparison')],
   behaviors: [Behavior.InteractiveChart],
 });
@@ -39,6 +42,7 @@ const metadata = new ChartMetadata({
 export default class HexChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      buildQuery,
       loadChart: () => import('./Hex'),
       controlPanel,
       metadata,

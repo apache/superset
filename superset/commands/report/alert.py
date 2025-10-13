@@ -181,7 +181,7 @@ class AlertCommand(BaseCommand):
                 stop = default_timer()
                 logger.info(
                     "Query for %s took %.2f ms",
-                    self._report_schedule.name,
+                    self._execution_id,
                     (stop - start) * 1000.0,
                 )
                 return df

@@ -96,7 +96,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
         {!isInitialized ? (
-          <Loading position="inline-centered" />
+          <Loading position="inline-centered" size="s" muted />
         ) : (
           <>
             <FilterBarSettings />

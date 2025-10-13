@@ -67,7 +67,7 @@ are compatible with Superset.
 | [IBM Netezza Performance Server](/docs/configuration/databases#ibm-netezza-performance-server) | `pip install nzalchemy`                                                            | `netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                               |
 | [MySQL](/docs/configuration/databases#mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [OceanBase](/docs/configuration/databases#oceanbase)                    | `pip install oceanbase_py`                                                         | `oceanbase://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
-| [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://<username>:<password>@<hostname>:<port>`                                                                                                                                            |
+| [Oracle](/docs/configuration/databases#oracle)                          | `pip install oracledb`                                                            | `oracle://<username>:<password>@<hostname>:<port>`                                                                                                                                            |
 | [Parseable](/docs/configuration/databases#parseable)                    | `pip install sqlalchemy-parseable`                                                 | `parseable://<UserName>:<DBPassword>@<Database Host>/<Stream Name>`                                                                                    |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://{username}:{password}@{hostname}:{port}/{database}`                                                                                                                                            |
@@ -1769,6 +1769,48 @@ You can use the `Extra` field in the **Edit Databases** form to configure SSL:
      }
 }
 ```
+##### Custom Error Messages
+You can use the `CUSTOM_DATABASE_ERRORS` in the `superset/custom_database_errors.py` file or overwrite it in your config file to configure custom error messages for database exceptions.
+
+This feature lets you transform raw database errors into user-friendly messages, optionally including documentation links and hiding default error codes.
+
+Provide an empty string as the first value to keep the original error message. This way, you can add just a link to the documentation
+**Example usage:**
+```Python
+CUSTOM_DATABASE_ERRORS = {
+    "database_name": {
+        re.compile('permission denied for view'): (
+            __(
+                'Permission denied'
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {
+                "custom_doc_links": [
+                    {
+                        "url": "https://example.com/docs/1",
+                        "label": "Check documentation"
+                    },
+                ],
+                "show_issue_info": False,
+            }
+        )
+    },
+    "examples": {
+        re.compile(r'message="(?P<message>[^"]*)"'): (
+            __(
+                'Unexpected error: "%(message)s"'
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {}
+        )
+    }
+}
+```
+
+**Options:**
+
+- ``custom_doc_links``: List of documentation links to display with the error.
+- ``show_issue_info``: Set to ``False`` to hide default error codes.
 
 ## Misc
 

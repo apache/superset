@@ -282,6 +282,7 @@ export default function EchartsTimeseries({
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
+        vizType={formData.vizType}
       />
     </>
   );
