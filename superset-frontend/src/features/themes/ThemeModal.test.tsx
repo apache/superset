@@ -89,6 +89,24 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+// Helper to add valid JSON data to the theme
+// Uses direct DOM manipulation of the Ace editor since it's not easily testable otherwise
+const addValidJsonData = () => {
+  const validJson = JSON.stringify(
+    { token: { colorPrimary: '#1890ff' } },
+    null,
+    2,
+  );
+  // The JsonEditor renders an Ace editor which creates a .ace_editor element
+  const aceEditorElement = document.querySelector('.ace_editor');
+  if (aceEditorElement) {
+    const aceEditor = (aceEditorElement as any).env?.editor;
+    if (aceEditor) {
+      aceEditor.setValue(validJson, -1);
+    }
+  }
+};
+
 test('renders modal with add theme dialog when show is true', () => {
   render(
     <ThemeModal
@@ -283,6 +301,7 @@ test('enables save button when theme name is entered', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'My New Theme');
+  addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
@@ -304,6 +323,7 @@ test('validates JSON format and enables save button', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Test Theme');
+  addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
@@ -418,6 +438,7 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Modified Theme');
+  addValidJsonData();
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -483,6 +504,7 @@ test('creates new theme when saving', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
   await userEvent.click(saveButton);
@@ -536,6 +558,7 @@ test('handles API errors gracefully', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
   expect(saveButton).toBeEnabled();
