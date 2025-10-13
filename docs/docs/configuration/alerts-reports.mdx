@@ -65,6 +65,25 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 
 Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
 
+#### Large Slack Workspaces (10k+ channels)
+
+For workspaces with many channels, fetching the complete channel list can take several minutes and may encounter Slack API rate limits. Add the following to your `superset_config.py`:
+
+```python
+from datetime import timedelta
+
+# Increase cache timeout to reduce API calls (e.g., 7 days)
+SLACK_CACHE_TIMEOUT = int(timedelta(days=7).total_seconds())
+
+# Add delay between paginated API requests to avoid rate limits
+# Recommended: 1.0-2.0 seconds for workspaces with 10k+ channels (default: 0.5)
+SLACK_API_REQUEST_DELAY = 1.0
+
+# Increase retry count for rate limit errors
+# Recommended: 5-10 for large workspaces (default: 2)
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 10
+```
+
 ### Kubernetes-specific
 
 - You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
