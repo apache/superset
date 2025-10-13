@@ -28,7 +28,18 @@ import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import DashboardTable from './DashboardTable';
+
+// Mock the export module
+jest.mock('src/utils/export', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockExport = handleResourceExport as jest.MockedFunction<
+  typeof handleResourceExport
+>;
 
 jest.mock('src/views/CRUD/utils', () => ({
   ...jest.requireActual('src/views/CRUD/utils'),
@@ -254,11 +265,37 @@ describe('DashboardTable', () => {
     expect(otherTab).toHaveClass('active');
   });
 
-  test('handles bulk dashboard export', async () => {
+  test('handles bulk dashboard export with correct ID and shows spinner', async () => {
+    // Mock export to take some time before calling the done callback
+    mockExport.mockImplementation(
+      (resource: string, ids: number[], done: () => void) =>
+        new Promise(resolve => {
+          setTimeout(() => {
+            done();
+            resolve();
+          }, 100);
+        }),
+    );
+
     const props = {
       ...defaultProps,
       mine: mockDashboards,
     };
+
+    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+      state: {
+        loading: false,
+        resourceCollection: mockDashboards,
+        resourceCount: mockDashboards.length,
+        bulkSelectEnabled: false,
+        lastFetched: new Date().toISOString(),
+      },
+      setResourceCollection: jest.fn(),
+      hasPerm: jest.fn().mockReturnValue(true),
+      refreshData: jest.fn(),
+      fetchData: jest.fn(),
+      toggleBulkSelect: jest.fn(),
+    }));
 
     render(
       <Router history={history}>
@@ -280,7 +317,25 @@ describe('DashboardTable', () => {
     const exportOption = screen.getByText('Export');
     await userEvent.click(exportOption);
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // Verify spinner shows up during export
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toBeInTheDocument();
+    });
+
+    // Verify the export was called with correct parameters
+    expect(mockExport).toHaveBeenCalledWith(
+      'dashboard',
+      [1],
+      expect.any(Function),
+    );
+
+    // Wait for export to complete and spinner to disappear
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   test('handles dashboard deletion confirmation', async () => {
