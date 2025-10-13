@@ -67,8 +67,10 @@ export const ActionButton = ({
     </span>
   );
 
+  const tooltipId = `${label.replaceAll(' ', '-').toLowerCase()}-tooltip`;
+
   return tooltip ? (
-    <Tooltip id={`${label}-tooltip`} title={tooltip} placement={placement}>
+    <Tooltip id={tooltipId} title={tooltip} placement={placement}>
       {actionButton}
     </Tooltip>
   ) : (
