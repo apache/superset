@@ -33,10 +33,7 @@ def test_basic_md5_sha():
             "price_in_cents": 4000,
         }
 
-        serialized_obj = (
-            '{"company": "Gobias Industries", '
-            '"price_in_cents": 4000, "product": "Coffee"}'
-        )
+        serialized_obj = '{"company": "Gobias Industries", "price_in_cents": 4000, "product": "Coffee"}'  # noqa: E501
 
         assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
         assert md5_sha_from_str(serialized_obj) == "35f22273cd6a6798b04f8ddef51135e3"
@@ -51,10 +48,7 @@ def test_basic_sha256():
             "price_in_cents": 4000,
         }
 
-        serialized_obj = (
-            '{"company": "Gobias Industries",'
-            '"price_in_cents": 4000, "product": "Coffee"}'
-        )
+        serialized_obj = '{"company": "Gobias Industries", "price_in_cents": 4000, "product": "Coffee"}'  # noqa: E501
 
         assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
         # SHA-256 hash of the serialized object
