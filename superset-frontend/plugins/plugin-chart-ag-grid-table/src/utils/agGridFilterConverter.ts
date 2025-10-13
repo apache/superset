@@ -17,9 +17,6 @@
  * under the License.
  */
 
-/**
- * AG Grid Filter Model types
- */
 export type AgGridFilterType =
   | 'text'
   | 'number'
@@ -44,11 +41,44 @@ export type AgGridFilterOperator =
 
 export type AgGridLogicalOperator = 'AND' | 'OR';
 
+export const FILTER_OPERATORS = {
+  EQUALS: 'equals' as const,
+  NOT_EQUAL: 'notEqual' as const,
+  CONTAINS: 'contains' as const,
+  NOT_CONTAINS: 'notContains' as const,
+  STARTS_WITH: 'startsWith' as const,
+  ENDS_WITH: 'endsWith' as const,
+  LESS_THAN: 'lessThan' as const,
+  LESS_THAN_OR_EQUAL: 'lessThanOrEqual' as const,
+  GREATER_THAN: 'greaterThan' as const,
+  GREATER_THAN_OR_EQUAL: 'greaterThanOrEqual' as const,
+  IN_RANGE: 'inRange' as const,
+  BLANK: 'blank' as const,
+  NOT_BLANK: 'notBlank' as const,
+} as const;
+
+export const SQL_OPERATORS = {
+  EQUALS: '==',
+  NOT_EQUALS: '!=',
+  ILIKE: 'ILIKE',
+  NOT_ILIKE: 'NOT ILIKE',
+  LESS_THAN: '<',
+  LESS_THAN_OR_EQUAL: '<=',
+  GREATER_THAN: '>',
+  GREATER_THAN_OR_EQUAL: '>=',
+  BETWEEN: 'BETWEEN',
+  IS_NULL: 'IS NULL',
+  IS_NOT_NULL: 'IS NOT NULL',
+  IN: 'IN',
+} as const;
+
+export type FilterValue = string | number | boolean | Date | null;
+
 export interface AgGridSimpleFilter {
   filterType: AgGridFilterType;
   type: AgGridFilterOperator;
-  filter?: any;
-  filterTo?: any;
+  filter?: FilterValue;
+  filterTo?: FilterValue;
 }
 
 export interface AgGridCompoundFilter {
@@ -61,7 +91,7 @@ export interface AgGridCompoundFilter {
 
 export interface AgGridSetFilter {
   filterType: 'set';
-  values: string[];
+  values: FilterValue[];
 }
 
 export type AgGridFilterModel = Record<
@@ -69,91 +99,133 @@ export type AgGridFilterModel = Record<
   AgGridSimpleFilter | AgGridCompoundFilter | AgGridSetFilter
 >;
 
-/**
- * SQLAlchemy Filter Object (Superset format)
- */
 export interface SQLAlchemyFilter {
   col: string;
   op: string;
-  val: any;
+  val: FilterValue | FilterValue[];
 }
 
-/**
- * Converted Filter Result
- */
 export interface ConvertedFilter {
   simpleFilters: SQLAlchemyFilter[];
   complexWhere?: string;
 }
 
-/**
- * AG Grid to SQLAlchemy operator mapping
- */
 const AG_GRID_TO_SQLA_OPERATOR_MAP: Record<AgGridFilterOperator, string> = {
-  equals: '==',
-  notEqual: '!=',
-  contains: 'ILIKE',
-  notContains: 'NOT ILIKE',
-  startsWith: 'ILIKE',
-  endsWith: 'ILIKE',
-  lessThan: '<',
-  lessThanOrEqual: '<=',
-  greaterThan: '>',
-  greaterThanOrEqual: '>=',
-  inRange: 'BETWEEN',
-  blank: 'IS NULL',
-  notBlank: 'IS NOT NULL',
+  [FILTER_OPERATORS.EQUALS]: SQL_OPERATORS.EQUALS,
+  [FILTER_OPERATORS.NOT_EQUAL]: SQL_OPERATORS.NOT_EQUALS,
+  [FILTER_OPERATORS.CONTAINS]: SQL_OPERATORS.ILIKE,
+  [FILTER_OPERATORS.NOT_CONTAINS]: SQL_OPERATORS.NOT_ILIKE,
+  [FILTER_OPERATORS.STARTS_WITH]: SQL_OPERATORS.ILIKE,
+  [FILTER_OPERATORS.ENDS_WITH]: SQL_OPERATORS.ILIKE,
+  [FILTER_OPERATORS.LESS_THAN]: SQL_OPERATORS.LESS_THAN,
+  [FILTER_OPERATORS.LESS_THAN_OR_EQUAL]: SQL_OPERATORS.LESS_THAN_OR_EQUAL,
+  [FILTER_OPERATORS.GREATER_THAN]: SQL_OPERATORS.GREATER_THAN,
+  [FILTER_OPERATORS.GREATER_THAN_OR_EQUAL]: SQL_OPERATORS.GREATER_THAN_OR_EQUAL,
+  [FILTER_OPERATORS.IN_RANGE]: SQL_OPERATORS.BETWEEN,
+  [FILTER_OPERATORS.BLANK]: SQL_OPERATORS.IS_NULL,
+  [FILTER_OPERATORS.NOT_BLANK]: SQL_OPERATORS.IS_NOT_NULL,
 };
 
-/**
- * Format value for SQL based on operator
- */
+function validateColumnName(columnName: string): boolean {
+  if (!columnName || typeof columnName !== 'string') {
+    console.error('[AG Grid Filters] Column name must be a non-empty string');
+    return false;
+  }
+
+  if (columnName.length > 255) {
+    console.error(`[AG Grid Filters] Column name exceeds maximum length: ${columnName}`);
+    return false;
+  }
+
+  if (!/^[a-zA-Z0-9_. ]+$/.test(columnName)) {
+    console.error(`[AG Grid Filters] Invalid column name format: ${columnName}`);
+    return false;
+  }
+
+  return true;
+}
+
+function validateFilterValue(
+  value: FilterValue | undefined,
+  operator: AgGridFilterOperator,
+  columnName?: string,
+): boolean {
+  if (operator === FILTER_OPERATORS.BLANK || operator === FILTER_OPERATORS.NOT_BLANK) {
+    return true;
+  }
+
+  if (value === undefined) {
+    console.error(`[AG Grid Filters] Filter value required for operator: ${operator}${columnName ? ` (column: ${columnName})` : ''}`);
+    return false;
+  }
+
+  const valueType = typeof value;
+  if (
+    value !== null &&
+    valueType !== 'string' &&
+    valueType !== 'number' &&
+    valueType !== 'boolean' &&
+    !(value instanceof Date)
+  ) {
+    console.error(`[AG Grid Filters] Invalid filter value type: ${valueType}${columnName ? ` (column: ${columnName})` : ''}`);
+    return false;
+  }
+
+  return true;
+}
+
 function formatValueForOperator(
   operator: AgGridFilterOperator,
-  value: any,
-): any {
-  if (operator === 'contains' || operator === 'notContains') {
-    return `%${value}%`;
-  }
-  if (operator === 'startsWith') {
-    return `${value}%`;
-  }
-  if (operator === 'endsWith') {
-    return `%${value}`;
+  value: FilterValue,
+): FilterValue {
+  if (typeof value === 'string') {
+    if (operator === FILTER_OPERATORS.CONTAINS || operator === FILTER_OPERATORS.NOT_CONTAINS) {
+      return `%${value}%`;
+    }
+    if (operator === FILTER_OPERATORS.STARTS_WITH) {
+      return `${value}%`;
+    }
+    if (operator === FILTER_OPERATORS.ENDS_WITH) {
+      return `%${value}`;
+    }
   }
   return value;
 }
 
-/**
- * Convert a simple AG Grid filter condition to SQL WHERE clause string
- */
 function simpleFilterToWhereClause(
   columnName: string,
   filter: AgGridSimpleFilter,
 ): string {
   const { type, filter: value, filterTo } = filter;
+
   const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
-
-  if (type === 'blank') {
-    return `${columnName} IS NULL`;
+  if (!operator) {
+    console.error(`[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`);
+    return '';
   }
 
-  if (type === 'notBlank') {
-    return `${columnName} IS NOT NULL`;
+  if (!validateFilterValue(value, type, columnName)) {
+    return '';
   }
 
-  if (type === 'inRange' && filterTo !== undefined) {
-    return `${columnName} BETWEEN ${value} AND ${filterTo}`;
+  if (type === FILTER_OPERATORS.BLANK) {
+    return `${columnName} ${SQL_OPERATORS.IS_NULL}`;
   }
 
-  const formattedValue = formatValueForOperator(type, value);
+  if (type === FILTER_OPERATORS.NOT_BLANK) {
+    return `${columnName} ${SQL_OPERATORS.IS_NOT_NULL}`;
+  }
 
-  // For ILIKE operators, wrap value in quotes
-  if (operator === 'ILIKE' || operator === 'NOT ILIKE') {
+  if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+  }
+
+  const formattedValue = formatValueForOperator(type, value!);
+
+  if (operator === SQL_OPERATORS.ILIKE || operator === SQL_OPERATORS.NOT_ILIKE) {
     return `${columnName} ${operator} '${formattedValue}'`;
   }
 
-  // For string values, wrap in quotes
   if (typeof formattedValue === 'string') {
     return `${columnName} ${operator} '${formattedValue}'`;
   }
@@ -161,44 +233,43 @@ function simpleFilterToWhereClause(
   return `${columnName} ${operator} ${formattedValue}`;
 }
 
-/**
- * Check if filter is a compound filter (has operator AND/OR)
- */
 function isCompoundFilter(
   filter: AgGridSimpleFilter | AgGridCompoundFilter | AgGridSetFilter,
 ): filter is AgGridCompoundFilter {
   return 'operator' in filter && ('condition1' in filter || 'conditions' in filter);
 }
 
-/**
- * Check if filter is a set filter
- */
 function isSetFilter(
   filter: AgGridSimpleFilter | AgGridCompoundFilter | AgGridSetFilter,
 ): filter is AgGridSetFilter {
   return filter.filterType === 'set' && 'values' in filter;
 }
 
-/**
- * Convert compound AG Grid filter to SQL WHERE clause
- */
 function compoundFilterToWhereClause(
   columnName: string,
   filter: AgGridCompoundFilter,
 ): string {
   const { operator, condition1, condition2, conditions } = filter;
 
-  // Handle new multi-condition format
   if (conditions && conditions.length > 0) {
-    const clauses = conditions.map(cond =>
-      simpleFilterToWhereClause(columnName, cond),
-    );
+    const clauses = conditions
+      .map(cond => simpleFilterToWhereClause(columnName, cond))
+      .filter(clause => clause !== '');
+
+    if (clauses.length === 0) {
+      return '';
+    }
+
     return `(${clauses.join(` ${operator} `)})`;
   }
 
-  // Handle legacy two-condition format
   const clause1 = simpleFilterToWhereClause(columnName, condition1);
   const clause2 = simpleFilterToWhereClause(columnName, condition2);
+
+  if (!clause1 || !clause2) {
+    console.error(`[AG Grid Filters] Invalid compound filter for column: ${columnName}`);
+    return '';
+  }
 
   return `(${clause1} ${operator} ${clause2})`;
 }
@@ -206,64 +277,95 @@ function compoundFilterToWhereClause(
 /**
  * Convert AG Grid filter model to SQLAlchemy filters
  *
- * Simple filters (single condition) are converted to SQLAlchemy filter objects.
- * Complex filters (AND/OR conditions) are converted to SQL WHERE clause strings.
- *
  * @param filterModel - AG Grid filter model from onFilterChanged event
  * @returns Object containing simple filters and complex WHERE clause
  */
 export function convertAgGridFiltersToSQL(
   filterModel: AgGridFilterModel,
 ): ConvertedFilter {
+  if (!filterModel || typeof filterModel !== 'object') {
+    console.error('[AG Grid Filters] Invalid filter model: must be a non-null object');
+    return { simpleFilters: [], complexWhere: undefined };
+  }
+
   const simpleFilters: SQLAlchemyFilter[] = [];
   const complexWhereClauses: string[] = [];
 
   Object.entries(filterModel).forEach(([columnName, filter]) => {
-    // Handle Set Filter (multiple values)
+    if (!validateColumnName(columnName)) {
+      return;
+    }
+
+    if (!filter || typeof filter !== 'object') {
+      console.error(`[AG Grid Filters] Invalid filter for column: ${columnName}`);
+      return;
+    }
+
     if (isSetFilter(filter)) {
+      if (!Array.isArray(filter.values)) {
+        console.error(`[AG Grid Filters] Set filter values must be an array for column: ${columnName}`);
+        return;
+      }
+
+      if (filter.values.length === 0) {
+        console.warn(`[AG Grid Filters] Empty set filter for column: ${columnName}`);
+        return;
+      }
+
       simpleFilters.push({
         col: columnName,
-        op: 'IN',
+        op: SQL_OPERATORS.IN,
         val: filter.values,
       });
       return;
     }
 
-    // Handle Compound Filter (AND/OR)
     if (isCompoundFilter(filter)) {
       const whereClause = compoundFilterToWhereClause(columnName, filter);
-      complexWhereClauses.push(whereClause);
+      if (whereClause) {
+        complexWhereClauses.push(whereClause);
+      }
       return;
     }
 
-    // Handle Simple Filter
     const simpleFilter = filter as AgGridSimpleFilter;
     const { type, filter: value } = simpleFilter;
 
-    // For blank/notBlank, we can use simple filter format
-    if (type === 'blank') {
-      simpleFilters.push({
-        col: columnName,
-        op: 'IS NULL',
-        val: null,
-      });
+    if (!type) {
+      console.error(`[AG Grid Filters] Missing filter type for column: ${columnName}`);
       return;
     }
 
-    if (type === 'notBlank') {
-      simpleFilters.push({
-        col: columnName,
-        op: 'IS NOT NULL',
-        val: null,
-      });
-      return;
-    }
-
-    // For other operators, convert to simple filter objects
     const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
-    const formattedValue = formatValueForOperator(type, value);
+    if (!operator) {
+      console.error(`[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`);
+      return;
+    }
 
-    // ALL single-condition filters can be simple filter objects
+    if (type === FILTER_OPERATORS.BLANK) {
+      simpleFilters.push({
+        col: columnName,
+        op: SQL_OPERATORS.IS_NULL,
+        val: null,
+      });
+      return;
+    }
+
+    if (type === FILTER_OPERATORS.NOT_BLANK) {
+      simpleFilters.push({
+        col: columnName,
+        op: SQL_OPERATORS.IS_NOT_NULL,
+        val: null,
+      });
+      return;
+    }
+
+    if (!validateFilterValue(value, type, columnName)) {
+      return;
+    }
+
+    const formattedValue = formatValueForOperator(type, value!);
+
     simpleFilters.push({
       col: columnName,
       op: operator,
@@ -271,7 +373,6 @@ export function convertAgGridFiltersToSQL(
     });
   });
 
-  // Combine all complex WHERE clauses with AND
   const complexWhere =
     complexWhereClauses.length > 0
       ? `(${complexWhereClauses.join(' AND ')})`
@@ -281,19 +382,4 @@ export function convertAgGridFiltersToSQL(
     simpleFilters,
     complexWhere,
   };
-}
-
-/**
- * Log AG Grid filter conversion for debugging
- */
-export function logFilterConversion(
-  filterModel: AgGridFilterModel,
-  converted: ConvertedFilter,
-): void {
-  console.log('========== AG Grid Filter Conversion ==========');
-  console.log('Input Filter Model:', filterModel);
-  console.log('\nConverted Results:');
-  console.log('  Simple Filters:', converted.simpleFilters);
-  console.log('  Complex WHERE:', converted.complexWhere);
-  console.log('===============================================');
 }
