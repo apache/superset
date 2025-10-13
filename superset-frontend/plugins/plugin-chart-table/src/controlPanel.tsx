@@ -770,19 +770,22 @@ const config: ControlPanelConfig = {
                 const chartStatus = chart?.chartStatus;
                 const value = _?.value ?? [];
                 if (value && Array.isArray(value)) {
-                  value.forEach((item: ConditionalFormattingConfig) => {
-                    if (
-                      item.colorScheme &&
-                      !['Green', 'Red'].includes(item.colorScheme)
-                    ) {
-                      if (!item.toAllRow) {
-                        item.toAllRow = false;
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        !['Green', 'Red'].includes(item.colorScheme)
+                      ) {
+                        if (!item.toAllRow || !item.toTextColor) {
+                          array[index] = {
+                            ...item,
+                            toAllRow: item.toAllRow ?? false,
+                            toTextColor: item.toTextColor ?? false,
+                          };
+                        }
                       }
-                      if (!item.toTextColor) {
-                        item.toTextColor = false;
-                      }
-                    }
-                  });
+                    },
+                  );
                 }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
