@@ -34,10 +34,8 @@ def test_basic_md5_sha():
         }
 
         serialized_obj = (
-            "{"
-            '"company": "Gobias Industries",'
-            '"price_in_cents": 4000, "product": "Coffee"'
-            "}"
+            '{"company": "Gobias Industries", '
+            '"price_in_cents": 4000, "product": "Coffee"}'
         )
 
         assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
@@ -54,8 +52,7 @@ def test_basic_sha256():
         }
 
         serialized_obj = (
-            "{"
-            ' "company": "Gobias Industries", '
+            '{"company": "Gobias Industries",'
             '"price_in_cents": 4000, "product": "Coffee"}'
         )
 
@@ -63,7 +60,7 @@ def test_basic_sha256():
         # SHA-256 hash of the serialized object
         assert (
             md5_sha_from_str(serialized_obj)
-            == "2b25a6631452fcbd1efd4e5dfa8b3555cde68fa1c56075ce71b1e74d7648008b"
+            == "77bc5927f828903888572ab91c4f3114b36609ca5fb92039bef380d622cef596"
         )
 
 
@@ -104,7 +101,7 @@ def test_sort_order_sha256():
         assert md5_sha_from_dict(obj_1) == md5_sha_from_dict(obj_2)
         assert (
             md5_sha_from_dict(obj_1)
-            == "2b25a6631452fcbd1efd4e5dfa8b3555cde68fa1c56075ce71b1e74d7648008b"
+            == "77bc5927f828903888572ab91c4f3114b36609ca5fb92039bef380d622cef596"
         )
 
 

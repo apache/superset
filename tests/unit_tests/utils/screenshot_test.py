@@ -74,7 +74,7 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     assert screenshot_data == fake_bytes
 
 
-def test_get_cache_key(screenshot_obj):
+def test_get_cache_key(app_context, screenshot_obj):
     """Test get_cache_key method"""
     expected_cache_key = md5_sha_from_dict(
         {
