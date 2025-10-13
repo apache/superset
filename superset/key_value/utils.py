@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import hashlib
 from hashlib import md5
 from secrets import token_urlsafe
 from typing import Any
@@ -66,10 +67,34 @@ def decode_permalink_id(key: str, salt: str) -> int:
     raise KeyValueParseKeyError(_("Invalid permalink key"))
 
 
-def get_uuid_namespace(seed: str) -> UUID:
-    md5_obj = md5()  # noqa: S324
-    md5_obj.update(seed.encode("utf-8"))
-    return UUID(md5_obj.hexdigest())
+def get_uuid_namespace(seed: str, app: Any = None) -> UUID:
+    """
+    Generate a UUID namespace from a seed string using configured hash algorithm.
+
+    Args:
+        seed: Seed string for namespace generation
+        app: Flask app instance (optional, uses current_app if not provided)
+
+    Returns:
+        UUID namespace
+    """
+    if app is None:
+        from flask import current_app
+
+        app = current_app
+
+    algorithm = app.config["HASH_ALGORITHM"]
+
+    if algorithm == "sha256":
+        sha256_obj = hashlib.sha256()
+        sha256_obj.update(seed.encode("utf-8"))
+        # Use first 16 bytes of SHA-256 digest for UUID
+        return UUID(bytes=sha256_obj.digest()[:16])
+    else:
+        # Legacy MD5 path for backward compatibility
+        md5_obj = md5()  # noqa: S324
+        md5_obj.update(seed.encode("utf-8"))
+        return UUID(md5_obj.hexdigest())
 
 
 def get_deterministic_uuid(namespace: str, payload: Any) -> UUID:
