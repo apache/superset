@@ -92,7 +92,7 @@ const SectionHeader = styled.div`
     background: ${({ theme }) => theme.colorBgTextHover};
     margin: 0 -${({ theme }) => theme.sizeUnit * 2}px;
     padding: ${({ theme }) => theme.sizeUnit * 2}px;
-    border-radius: ${({ theme }) => theme.sizeUnit}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
   }
 `;
 

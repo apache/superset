@@ -39,7 +39,7 @@ const StyledTag = styled(Tag)`
     padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
     background: ${theme.colorBgContainer};
     border: 1px solid ${theme.colorBorder};
-    border-radius: 4px;
+    border-radius: ${theme.borderRadius}px;
     height: auto;
     min-height: 20px;
 

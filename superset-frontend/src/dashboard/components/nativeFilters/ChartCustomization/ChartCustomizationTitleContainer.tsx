@@ -41,7 +41,7 @@ const FilterTitle = styled.div<{ selected: boolean; errored: boolean }>`
     selected ? theme.colorPrimaryBg : theme.colorBgTextHover};
   border: 1px solid
     ${({ theme, selected }) => (selected ? theme.colorPrimary : 'transparent')};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   cursor: pointer;
 
   &:hover {

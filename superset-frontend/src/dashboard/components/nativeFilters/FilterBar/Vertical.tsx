@@ -46,6 +46,12 @@ import { ChartCustomizationItem } from '../ChartCustomization/types';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
 
+enum SectionType {
+  Filters = 'filters',
+  ChartCustomization = 'chartCustomization',
+  CrossFilters = 'crossFilters',
+}
+
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
 
@@ -186,18 +192,18 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
 
   // Determine available section types
   const availableSectionTypes = useMemo(() => {
-    const types = [];
+    const types: SectionType[] = [];
 
     if (filterValues.length > 0) {
-      types.push('filters');
+      types.push(SectionType.Filters);
     }
 
     if (chartCustomizationItems.length > 0) {
-      types.push('chartCustomization');
+      types.push(SectionType.ChartCustomization);
     }
 
     if (selectedCrossFilters.length > 0) {
-      types.push('crossFilters');
+      types.push(SectionType.CrossFilters);
     }
 
     return types;

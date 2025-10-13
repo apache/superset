@@ -57,7 +57,7 @@ const CrossFiltersVerticalCollapse = (props: {
         background: ${theme.colorBgTextHover};
         margin: 0 -${theme.sizeUnit * 2}px;
         padding: ${theme.sizeUnit * 2}px;
-        border-radius: ${theme.sizeUnit}px;
+        border-radius: ${theme.borderRadius}px;
       }
     `,
     [],
