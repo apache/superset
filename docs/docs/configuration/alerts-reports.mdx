@@ -72,15 +72,16 @@ For workspaces with many channels, fetching the complete channel list can take s
 ```python
 from datetime import timedelta
 
-# Increase cache timeout to reduce API calls (e.g., 7 days)
-SLACK_CACHE_TIMEOUT = int(timedelta(days=7).total_seconds())
+# Increase cache timeout to reduce API calls
+# Default: 1 day (86400 seconds)
+SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 
 # Add delay between paginated API requests to avoid rate limits
-# Recommended: 1.0-2.0 seconds for workspaces with 10k+ channels (default: 0.5)
+# Default: 0.5 seconds
 SLACK_API_REQUEST_DELAY = 1.0
 
 # Increase retry count for rate limit errors
-# Recommended: 5-10 for large workspaces (default: 2)
+# Default: 2
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 10
 ```
 
