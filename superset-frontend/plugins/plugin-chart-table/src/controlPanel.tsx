@@ -777,6 +777,7 @@ const config: ControlPanelConfig = {
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
                         if (!item.toAllRow || !item.toTextColor) {
+                          // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
                             toAllRow: item.toAllRow ?? false,
