@@ -26,6 +26,7 @@ import {
   isNativeFilter,
 } from '@superset-ui/core';
 import { Slice } from 'src/types/Chart';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 
 function isGlobalScope(scope: number[], slices: Record<string, Slice>) {
   return scope.length === Object.keys(slices).length;
@@ -110,4 +111,34 @@ export function getRelatedCharts(
   }
 
   return related;
+}
+
+export function getRelatedChartsForChartCustomization(
+  customizationItem: ChartCustomizationItem,
+  slices: Record<string, Slice>,
+): number[] {
+  const { customization, chartId } = customizationItem;
+  const { dataset } = customization;
+
+  if (chartId) {
+    return [chartId];
+  }
+
+  if (!dataset) {
+    return [];
+  }
+
+  const targetDatasetId = String(dataset);
+
+  return Object.values(slices)
+    .filter(slice => {
+      const sliceDataset = slice.datasource;
+      if (!sliceDataset) return false;
+
+      const sliceDatasetParts = String(sliceDataset).split('__');
+      const sliceDatasetId = sliceDatasetParts[0];
+
+      return sliceDatasetId === targetDatasetId;
+    })
+    .map(slice => slice.slice_id);
 }

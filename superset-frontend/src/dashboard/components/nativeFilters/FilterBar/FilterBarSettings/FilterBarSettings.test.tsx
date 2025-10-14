@@ -108,7 +108,12 @@ test('Popover shows cross-filtering option on by default', async () => {
 
 test('Can enable/disable cross-filtering', async () => {
   fetchMock.put('glob:*/api/v1/dashboard/1', {
-    result: {},
+    result: {
+      json_metadata: JSON.stringify({
+        ...initialState.dashboardInfo.metadata,
+        cross_filters_enabled: false,
+      }),
+    },
   });
   await setup();
   const settingsButton = screen.getByRole('button', {
@@ -133,8 +138,10 @@ test('Popover opens with "Vertical" selected', async () => {
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  const verticalItem = screen.getByText('Vertical (Left)');
   expect(
-    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -147,8 +154,10 @@ test('Popover opens with "Horizontal" selected', async () => {
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  const horizontalItem = screen.getByText('Horizontal (Top)');
   expect(
-    within(screen.getAllByRole('menuitem')[5]).getByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -210,7 +219,10 @@ test('On selection change, send request and update checked value', async () => {
 });
 
 test('On failed request, restore previous selection', async () => {
-  fetchMock.put('glob:*/api/v1/dashboard/1', 400);
+  fetchMock.put(
+    'glob:*/api/v1/dashboard/1',
+    () => new Response('', { status: 400, statusText: 'Bad Request' }),
+  );
 
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
 
