@@ -102,7 +102,8 @@ const copyAllComputedStyles = (
       styleCache.set(origNode, computed);
     }
 
-    for (const property of Array.from(CRITICAL_STYLE_PROPERTIES)) {
+    // eslint-disable-next-line unicorn/prefer-spread
+    for (const property of CRITICAL_STYLE_PROPERTIES) {
       const value = computed.getPropertyValue(property);
       if (value && value !== 'initial' && value !== 'inherit') {
         (cloneNode as HTMLElement).style.setProperty(
