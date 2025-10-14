@@ -21,15 +21,18 @@ import { css, styled, useTheme } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
+import type { SerializedStyles } from '@emotion/react';
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
+  contentStyle?: SerializedStyles;
 }
 
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
   tabBarStyle,
+  contentStyle,
   ...props
 }: TabsProps) => {
   const theme = useTheme();
@@ -46,6 +49,7 @@ const StyledTabs = ({
 
         .ant-tabs-content-holder {
           overflow: ${allowOverflow ? 'visible' : 'auto'};
+          ${contentStyle}
         }
         .ant-tabs-tab {
           flex: 1 1 auto;
@@ -85,9 +89,10 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  ${({ theme }) => `
+  ${({ theme, contentStyle }) => `
     .ant-tabs-content-holder {
       background: ${theme.colorBgContainer};
+      ${contentStyle}
     }
 
     & > .ant-tabs-nav {
