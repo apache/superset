@@ -178,14 +178,14 @@ class Operator(enum.Enum):
     IS_NOT_NULL = "IS NOT NULL"
 
 
-FilterTypes = str | int | float | bool | datetime | date | time | timedelta | None
+FilterValues = str | int | float | bool | datetime | date | time | timedelta | None
 
 
 @dataclass(frozen=True)
 class Filter:
     column: Dimension | Metric
     operator: Operator
-    value: FilterTypes | set[FilterTypes]
+    value: FilterValues | set[FilterValues]
 
 
 @dataclass(frozen=True)

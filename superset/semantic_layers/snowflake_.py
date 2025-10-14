@@ -24,6 +24,7 @@ from typing import Any, Literal, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from pandas import DataFrame
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -36,6 +37,7 @@ from snowflake.connector import connect, DictCursor
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
+from superset.common.query_object import QueryObject
 from superset.semantic_layers.types import (
     BINARY,
     BOOLEAN,
@@ -44,11 +46,13 @@ from superset.semantic_layers.types import (
     DECIMAL,
     Dimension,
     Filter,
+    FilterValues,
     INTEGER,
     Metric,
     NativeFilter,
     NUMBER,
     OBJECT,
+    Operator,
     STRING,
     TIME,
     Type,
@@ -437,44 +441,6 @@ class SnowflakeExplorable:
 
         return metrics
 
-    def get_values(
-        self,
-        dimension: Dimension,
-        filters: set[Filter | NativeFilter] | None = None,
-    ) -> set[Any]:
-        """
-        Return distinct values for a dimension.
-        """
-        native_filters = {
-            (
-                filter_
-                if isinstance(filter_, NativeFilter)
-                else self._build_native_filter(filter_)
-            )
-            for filter_ in (filters or set())
-        }
-        parenthesized = {f"({filter_.definition})" for filter_ in native_filters}
-        predicates = f"WHERE {' AND '.join(parenthesized)}" if parenthesized else ""
-
-        query = f"""
-            SELECT {self._quote(dimension.name)}
-            FROM
-                SEMANTIC_VIEW(
-                    {self.uid()}
-                    DIMENSIONS {self._quote(dimension.id)}
-                )
-            {predicates}
-        """  # noqa: S608
-        connection_parameters = get_connection_parameters(self.configuration)
-        with connect(**connection_parameters) as connection:
-            cursor = connection.cursor(DictCursor)
-            return {row[0] for row in cursor.execute(query)}
-
-    def _build_native_filter_(self, filter_: Filter) -> NativeFilter:
-        """
-        Convert a Filter to a NativeFilter.
-        """
-
     def _get_type(self, snowflake_type: str | None) -> type[Type]:
         """
         Return the semantic type corresponding to a Snowflake type.
@@ -501,6 +467,74 @@ class SnowflakeExplorable:
                 return semantic_type
 
         return STRING
+
+    def get_values(
+        self,
+        dimension: Dimension,
+        filters: set[Filter | NativeFilter] | None = None,
+    ) -> set[Any]:
+        """
+        Return distinct values for a dimension.
+        """
+        # convert filters predicate with associated parameters; native filters are
+        # already strings, so we keep them as-is
+        unary_operators = {Operator.IS_NULL, Operator.IS_NOT_NULL}
+        predicates: list[str] = []
+        parameters: list[FilterValues] = []
+        for filter_ in filters or set():
+            if isinstance(filter, NativeFilter):
+                predicates.append(f"({filter_.definition})")
+            else:
+                predicates.append(f"({self._build_predicate(filter_)})")
+                if filter_.operator not in unary_operators:
+                    parameters.extend(
+                        [filter_.value]
+                        if not isinstance(filter_.value, frozenset)
+                        else filter_.value
+                    )
+
+        query = f"""
+            SELECT {self._quote(dimension.name)}
+            FROM
+                SEMANTIC_VIEW(
+                    {self.uid()}
+                    DIMENSIONS {dimension.id}
+                )
+            {"WHERE " + " AND ".join(predicates) if predicates else ""}
+        """  # noqa: S608
+        connection_parameters = get_connection_parameters(self.configuration)
+        with connect(**connection_parameters) as connection:
+            cursor = connection.cursor()
+            return {row[0] for row in cursor.execute(query, tuple(parameters))}
+
+    def _build_predicate(self, filter_: Filter) -> str:
+        """
+        Convert a Filter to a NativeFilter.
+        """
+        column = filter_.column
+        operator = filter_.operator
+        value = filter_.value
+
+        column_name = self._quote(column.name)
+
+        # Handle IS NULL and IS NOT NULL operators (no value needed)
+        if operator in {Operator.IS_NULL, Operator.IS_NOT_NULL}:
+            return f"{column_name} {operator.value}"
+
+        # Handle IN and NOT IN operators (set values)
+        if operator in {Operator.IN, Operator.NOT_IN}:
+            if not isinstance(value, frozenset):
+                value = {value}
+            formatted_values = ", ".join("?" for _ in value)
+            return f"{column_name} {operator.value} ({formatted_values})"
+
+        return f"{column_name} {operator.value} ?"
+
+    def get_dataframe(self, query_object: QueryObject) -> DataFrame:
+        """
+        Execute a query and return the results as a Pandas DataFrame.
+        """
+        pass
 
     __repr__ = uid
 
@@ -546,3 +580,23 @@ if __name__ == "__main__":
     print("=======")
     for metric in explorable.get_metrics():
         print(metric)
+    print("VALUES")
+    print("======")
+    dimension = Dimension(
+        id="ITEM.CATEGORY",
+        name="CATEGORY",
+        type=STRING,
+        description=None,
+        definition="I_CATEGORY",
+        grain=None,
+    )
+    print(explorable.get_values(dimension))
+    filters = {
+        Filter(dimension, Operator.IS_NOT_NULL, None),
+        Filter(dimension, Operator.NOT_EQUALS, "Books"),
+    }
+    print(explorable.get_values(dimension, filters))
+    filters = {
+        Filter(dimension, Operator.IN, frozenset({"Children", "Electronics"})),
+    }
+    print(explorable.get_values(dimension, filters))
