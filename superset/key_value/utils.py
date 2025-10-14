@@ -23,6 +23,7 @@ from typing import Any
 from uuid import UUID, uuid3
 
 import hashids
+from flask import current_app
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
@@ -78,10 +79,7 @@ def get_uuid_namespace(seed: str, app: Any = None) -> UUID:
     Returns:
         UUID namespace
     """
-    if app is None:
-        from flask import current_app
-
-        app = current_app
+    app = app or current_app
 
     algorithm = app.config["HASH_ALGORITHM"]
 

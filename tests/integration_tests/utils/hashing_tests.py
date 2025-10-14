@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 import pytest  # noqa: F401
 
-from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.hashing import hash_from_dict, hash_from_str
 
 
 def test_basic_md5_sha():
@@ -35,8 +35,8 @@ def test_basic_md5_sha():
 
         serialized_obj = '{"company": "Gobias Industries", "price_in_cents": 4000, "product": "Coffee"}'  # noqa: E501
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
-        assert md5_sha_from_str(serialized_obj) == "35f22273cd6a6798b04f8ddef51135e3"
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj)
+        assert hash_from_str(serialized_obj) == "35f22273cd6a6798b04f8ddef51135e3"
 
 
 def test_basic_sha256():
@@ -50,10 +50,10 @@ def test_basic_sha256():
 
         serialized_obj = '{"company": "Gobias Industries", "price_in_cents": 4000, "product": "Coffee"}'  # noqa: E501
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj)
         # SHA-256 hash of the serialized object
         assert (
-            md5_sha_from_str(serialized_obj)
+            hash_from_str(serialized_obj)
             == "77bc5927f828903888572ab91c4f3114b36609ca5fb92039bef380d622cef596"
         )
 
@@ -73,8 +73,8 @@ def test_sort_order_md5_sha():
             "price_in_cents": 4000,
         }
 
-        assert md5_sha_from_dict(obj_1) == md5_sha_from_dict(obj_2)
-        assert md5_sha_from_dict(obj_1) == "35f22273cd6a6798b04f8ddef51135e3"
+        assert hash_from_dict(obj_1) == hash_from_dict(obj_2)
+        assert hash_from_dict(obj_1) == "35f22273cd6a6798b04f8ddef51135e3"
 
 
 def test_sort_order_sha256():
@@ -92,9 +92,9 @@ def test_sort_order_sha256():
             "price_in_cents": 4000,
         }
 
-        assert md5_sha_from_dict(obj_1) == md5_sha_from_dict(obj_2)
+        assert hash_from_dict(obj_1) == hash_from_dict(obj_2)
         assert (
-            md5_sha_from_dict(obj_1)
+            hash_from_dict(obj_1)
             == "77bc5927f828903888572ab91c4f3114b36609ca5fb92039bef380d622cef596"
         )
 
@@ -115,10 +115,10 @@ def test_custom_default_md5_sha():
 
         serialized_obj = '{"company": "Gobias Industries", "datetime": "<datetime>", "product": "Coffee"}'  # noqa: E501
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(
+        assert hash_from_str(serialized_obj) == hash_from_dict(
             obj, default=custom_datetime_serializer
         )
-        assert md5_sha_from_str(serialized_obj) == "dc280121213aabcaeb8087aef268fd0d"
+        assert hash_from_str(serialized_obj) == "dc280121213aabcaeb8087aef268fd0d"
 
 
 def test_custom_default_sha256():
@@ -137,11 +137,11 @@ def test_custom_default_sha256():
 
         serialized_obj = '{"company": "Gobias Industries", "datetime": "<datetime>", "product": "Coffee"}'  # noqa: E501
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(
+        assert hash_from_str(serialized_obj) == hash_from_dict(
             obj, default=custom_datetime_serializer
         )
         assert (
-            md5_sha_from_str(serialized_obj)
+            hash_from_str(serialized_obj)
             == "417b57b6f3979bdd0937286f2dc872089fcd5fdb7daad1d3dbcaae1e34cc564e"
         )
 
@@ -159,17 +159,15 @@ def test_ignore_nan_md5_sha():
             '{"company": "Gobias Industries", "price": NaN, "product": "Coffee"}'
         )
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
-        assert md5_sha_from_str(serialized_obj) == "5d129d1dffebc0bacc734366476d586d"
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj)
+        assert hash_from_str(serialized_obj) == "5d129d1dffebc0bacc734366476d586d"
 
         serialized_obj = (
             '{"company": "Gobias Industries", "price": null, "product": "Coffee"}'
         )
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(
-            obj, ignore_nan=True
-        )
-        assert md5_sha_from_str(serialized_obj) == "40e87d61f6add03816bccdeac5713b9f"
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj, ignore_nan=True)
+        assert hash_from_str(serialized_obj) == "40e87d61f6add03816bccdeac5713b9f"
 
 
 def test_ignore_nan_sha256():
@@ -185,9 +183,9 @@ def test_ignore_nan_sha256():
             '{"company": "Gobias Industries", "price": NaN, "product": "Coffee"}'
         )
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(obj)
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj)
         assert (
-            md5_sha_from_str(serialized_obj)
+            hash_from_str(serialized_obj)
             == "efff87146d137b2d0392eff94b74e7644c3a6b135b91563400029995b9236820"
         )
 
@@ -195,10 +193,8 @@ def test_ignore_nan_sha256():
             '{"company": "Gobias Industries", "price": null, "product": "Coffee"}'
         )
 
-        assert md5_sha_from_str(serialized_obj) == md5_sha_from_dict(
-            obj, ignore_nan=True
-        )
+        assert hash_from_str(serialized_obj) == hash_from_dict(obj, ignore_nan=True)
         assert (
-            md5_sha_from_str(serialized_obj)
+            hash_from_str(serialized_obj)
             == "9b66e0af1cb74aa58c3ab08654c086ebfdada14b1e6312b4002edc854d99d24d"
         )

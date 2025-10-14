@@ -20,7 +20,7 @@ import hashlib
 import logging
 from typing import Any, Callable, Literal, Optional
 
-from flask import current_app as app
+from flask import current_app
 
 from superset.utils import json
 
@@ -36,7 +36,7 @@ def get_hash_algorithm() -> HashAlgorithm:
     Returns:
         Hash algorithm name ('md5' or 'sha256')
     """
-    return app.config["HASH_ALGORITHM"]
+    return current_app.config["HASH_ALGORITHM"]
 
 
 def hash_from_str(val: str, algorithm: Optional[HashAlgorithm] = None) -> str:
@@ -91,29 +91,3 @@ def hash_from_dict(
     )
 
     return hash_from_str(json_data, algorithm=algorithm)
-
-
-# Backward compatibility aliases
-# These maintain the old function names but use the new generic implementation
-def md5_sha_from_str(val: str) -> str:
-    """
-    Legacy function name for backward compatibility.
-
-    DEPRECATED: Use hash_from_str() instead.
-    This function now uses the configured hash algorithm (not always MD5).
-    """
-    return hash_from_str(val)
-
-
-def md5_sha_from_dict(
-    obj: dict[Any, Any],
-    ignore_nan: bool = False,
-    default: Optional[Callable[[Any], Any]] = None,
-) -> str:
-    """
-    Legacy function name for backward compatibility.
-
-    DEPRECATED: Use hash_from_dict() instead.
-    This function now uses the configured hash algorithm (not always MD5).
-    """
-    return hash_from_dict(obj, ignore_nan=ignore_nan, default=default)

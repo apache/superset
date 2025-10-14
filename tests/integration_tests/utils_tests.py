@@ -60,7 +60,7 @@ from superset.utils.core import (
 from superset.utils import json
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 from superset.views.utils import build_extra_filters, get_form_data  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
@@ -266,7 +266,7 @@ class TestUtils(SupersetTestCase):
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
-        expected_filename = md5_sha_from_str(ssl_certificate)
+        expected_filename = hash_from_str(ssl_certificate)
         assert expected_filename in path
         assert os.path.exists(path)
 
