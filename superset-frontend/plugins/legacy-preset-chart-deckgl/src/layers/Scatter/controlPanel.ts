@@ -35,7 +35,6 @@ import {
   mapboxStyle,
   generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
-import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   onInit: controlState => ({
@@ -130,9 +129,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [legendPosition],
         [legendFormat],
-        ...generateDeckGLColorSchemeControls({
-          defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
-        }),
+        ...generateDeckGLColorSchemeControls({}),
       ],
     },
     {
