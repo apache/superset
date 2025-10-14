@@ -17,44 +17,41 @@
  * under the License.
  */
 import { useMemo, useState, useEffect } from 'react';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import type { JsonValidationAnnotation } from '@superset-ui/core/components/AsyncAceEditor';
 import type { AnyThemeConfig } from '@superset-ui/core/theme/types';
-import {
-  validateThemeTokens,
-  formatValidationErrors,
-} from '../utils/themeTokenValidation';
+import { validateTheme } from '../utils/themeStructureValidation';
 
 /**
- * Find the line number where a specific token appears in JSON string
- * Uses improved logic to handle nested objects and avoid false positives
+ * Find the line number where a specific token appears in JSON string.
+ * Uses improved logic to handle nested objects and avoid false positives.
  */
 function findTokenLineInJson(jsonString: string, tokenName: string): number {
   if (!jsonString || !tokenName) {
     return 0;
   }
 
+  // Handle special _root token for structural errors
+  if (tokenName === '_root') {
+    return 0;
+  }
+
   const lines = jsonString.split('\n');
 
   // Look for the token name as a JSON property key
-  const searchPattern = `"${tokenName}"`;
+  // Pattern: "tokenName" followed by : (with possible whitespace)
+  const propertyPattern = new RegExp(
+    `"${tokenName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:`,
+  );
 
   for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i].trim();
-
-    // Check if this line contains our token as a property key
-    // Pattern: "tokenName" followed by : (with possible whitespace)
-    const propertyPattern = new RegExp(
-      `"${tokenName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:`,
-    );
-
-    if (propertyPattern.test(line)) {
+    if (propertyPattern.test(lines[i].trim())) {
       return i; // Return 0-based line number for AceEditor
     }
   }
 
   // Fallback: simple string search for edge cases
+  const searchPattern = `"${tokenName}"`;
   for (let i = 0; i < lines.length; i += 1) {
     if (lines[i].includes(searchPattern)) {
       return i;
@@ -67,185 +64,92 @@ function findTokenLineInJson(jsonString: string, tokenName: string): number {
 
 export interface ThemeValidationResult {
   annotations: JsonValidationAnnotation[];
-  hasErrors: boolean;
-  hasWarnings: boolean;
-  validTokenCount: number;
-  invalidTokenCount: number;
-  errorMessages: string[];
+  hasErrors: boolean; // true if errors exist (blocks save)
+  hasWarnings: boolean; // true if warnings exist (non-blocking)
 }
 
 export interface UseThemeValidationOptions {
   /** Whether to enable validation. Default: true */
   enabled?: boolean;
-  /** Custom error message prefix for JSON syntax errors. Default: 'Invalid JSON syntax' */
-  jsonErrorPrefix?: string;
-  /** Custom error message prefix for theme token errors. Default: 'Invalid theme token' */
-  tokenErrorPrefix?: string;
-  /** Theme name for error messages */
-  themeName?: string;
   /** Debounce delay in milliseconds for validation. Default: 300 */
   debounceMs?: number;
 }
 
 /**
- * Enhanced theme validation hook that combines JSON syntax validation with theme token validation.
- * Uses feature flag to enable/disable enhanced token validation.
+ * Theme validation hook with live feedback.
+ * - Errors (JSON syntax, empty theme) block save/apply
+ * - Warnings (unknown tokens, null values) allow save/apply
  *
- * @param jsonValue - The JSON string to validate
- * @param options - Validation options
- * @returns Enhanced validation result with annotations and metadata
+ * This hook validates structure and token names only.
+ * Token values are validated by Ant Design at runtime.
  */
 export function useThemeValidation(
   jsonValue?: string,
   options: UseThemeValidationOptions = {},
 ): ThemeValidationResult {
-  const {
-    enabled = true,
-    jsonErrorPrefix = 'Invalid JSON syntax',
-    tokenErrorPrefix = 'Invalid theme token',
-    themeName,
-    debounceMs = 300,
-  } = options;
+  const { enabled = true, debounceMs = 300 } = options;
 
-  // Debounced JSON value for validation
-  const [debouncedJsonValue, setDebouncedJsonValue] = useState(jsonValue);
+  const [debouncedValue, setDebouncedValue] = useState(jsonValue);
 
-  // Debounce the JSON value to avoid excessive validation calls
+  // Debounce for performance
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedJsonValue(jsonValue);
-    }, debounceMs);
-
+    const timer = setTimeout(() => setDebouncedValue(jsonValue), debounceMs);
     return () => clearTimeout(timer);
   }, [jsonValue, debounceMs]);
 
-  // Get basic JSON validation annotations
-  const jsonAnnotations = useJsonValidation(jsonValue, {
+  // JSON syntax validation (ERRORS)
+  const jsonAnnotations = useJsonValidation(debouncedValue, {
     enabled,
-    errorPrefix: jsonErrorPrefix,
+    errorPrefix: 'Invalid JSON',
   });
 
-  // Enhanced theme token validation (feature flag controlled)
-  const enhancedValidation = useMemo(() => {
-    // Skip if basic validation is disabled or JSON has syntax errors
-    if (!enabled || jsonAnnotations.length > 0 || !debouncedJsonValue?.trim()) {
-      return {
-        annotations: [],
-        validTokenCount: 0,
-        invalidTokenCount: 0,
-        errorMessages: [],
-      };
-    }
-
-    // Only run enhanced validation if feature flag is enabled
-    try {
-      const isEnabled = isFeatureEnabled(FeatureFlag.EnhancedThemeValidation);
-      if (!isEnabled) {
-        return {
-          annotations: [],
-          validTokenCount: 0,
-          invalidTokenCount: 0,
-          errorMessages: [],
-        };
-      }
-    } catch (error) {
-      // Feature flag check failed - assume disabled
-      return {
-        annotations: [],
-        validTokenCount: 0,
-        invalidTokenCount: 0,
-        errorMessages: [],
-      };
+  // Theme structure validation (ERRORS + WARNINGS)
+  const themeAnnotations = useMemo(() => {
+    // Skip if disabled or JSON is invalid
+    if (!enabled || jsonAnnotations.length > 0 || !debouncedValue?.trim()) {
+      return [];
     }
 
     try {
-      const themeConfig: AnyThemeConfig = JSON.parse(debouncedJsonValue);
+      const config: AnyThemeConfig = JSON.parse(debouncedValue);
+      const result = validateTheme(config);
 
-      // Additional null safety check
-      if (!themeConfig || typeof themeConfig !== 'object') {
-        return {
-          annotations: [],
-          validTokenCount: 0,
-          invalidTokenCount: 0,
-          errorMessages: [],
-        };
-      }
+      const annotations: JsonValidationAnnotation[] = [];
 
-      const validationResult = validateThemeTokens(themeConfig);
-
-      const errorMessages = formatValidationErrors(
-        validationResult.errors,
-        themeName,
-      );
-
-      // Convert validation errors to AceEditor annotations with line mapping
-      const tokenAnnotations: JsonValidationAnnotation[] =
-        validationResult.errors.map(error => {
-          // Find the line where this token appears in the JSON
-          const tokenLine = findTokenLineInJson(
-            debouncedJsonValue,
-            error.tokenName,
-          );
-
-          return {
-            type: 'warning' as const, // Use warnings so users can still save
-            row: tokenLine,
-            column: 0,
-            text: `${tokenErrorPrefix}: ${error.message}`,
-          };
+      // Convert errors to annotations (blocks save)
+      result.errors.forEach(issue => {
+        annotations.push({
+          type: 'error',
+          row: findTokenLineInJson(debouncedValue, issue.tokenName),
+          column: 0,
+          text: issue.message,
         });
+      });
 
-      return {
-        annotations: tokenAnnotations,
-        validTokenCount: Object.keys(validationResult.validTokens || {}).length,
-        invalidTokenCount: Object.keys(validationResult.invalidTokens || {})
-          .length,
-        errorMessages,
-      };
-    } catch (error) {
-      // JSON parsing error should be caught by jsonAnnotations
-      return {
-        annotations: [],
-        validTokenCount: 0,
-        invalidTokenCount: 0,
-        errorMessages: [],
-      };
+      // Convert warnings to annotations (non-blocking)
+      result.warnings.forEach(issue => {
+        annotations.push({
+          type: 'warning',
+          row: findTokenLineInJson(debouncedValue, issue.tokenName),
+          column: 0,
+          text: issue.message,
+        });
+      });
+
+      return annotations;
+    } catch {
+      // JSON parsing error already caught by jsonAnnotations
+      return [];
     }
-  }, [
-    enabled,
-    debouncedJsonValue,
-    jsonAnnotations,
-    tokenErrorPrefix,
-    themeName,
-  ]);
+  }, [enabled, debouncedValue, jsonAnnotations]);
 
   return useMemo(() => {
-    const allAnnotations = [
-      ...jsonAnnotations,
-      ...enhancedValidation.annotations,
-    ];
+    const allAnnotations = [...jsonAnnotations, ...themeAnnotations];
 
     return {
       annotations: allAnnotations,
-      hasErrors: jsonAnnotations.some(ann => ann.type === 'error'),
-      hasWarnings: allAnnotations.some(ann => ann.type === 'warning'),
-      validTokenCount: enhancedValidation.validTokenCount,
-      invalidTokenCount: enhancedValidation.invalidTokenCount,
-      errorMessages: enhancedValidation.errorMessages,
+      hasErrors: allAnnotations.some(a => a.type === 'error'),
+      hasWarnings: allAnnotations.some(a => a.type === 'warning'),
     };
-  }, [jsonAnnotations, enhancedValidation]);
-}
-
-/**
- * Helper hook to check if enhanced theme validation is enabled
- */
-export function useIsEnhancedValidationEnabled(): boolean {
-  return useMemo(() => {
-    try {
-      return isFeatureEnabled(FeatureFlag.EnhancedThemeValidation);
-    } catch (error) {
-      // Feature flag check failed - assume disabled
-      return false;
-    }
-  }, []);
+  }, [jsonAnnotations, themeAnnotations]);
 }

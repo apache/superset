@@ -27,17 +27,12 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/ui';
-import { makeApi, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import {
-  validateThemeTokens,
-  getPartialThemeConfig,
-  formatValidationErrors,
-} from './utils/themeTokenValidation';
 
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
@@ -470,14 +465,6 @@ export class ThemeController {
    */
   public canDetectOSPreference(): boolean {
     return this.darkTheme !== null;
-  }
-
-  /**
-   * Checks if enhanced theme validation is enabled via feature flag.
-   * @returns True if enhanced validation is enabled, false otherwise
-   */
-  public isEnhancedValidationEnabled(): boolean {
-    return isFeatureEnabled(FeatureFlag.EnhancedThemeValidation);
   }
 
   /**
@@ -924,9 +911,9 @@ export class ThemeController {
   }
 
   /**
-   * Fetches a theme configuration from the CRUD API with optional enhanced validation and partial loading.
+   * Fetches a theme configuration from the CRUD API.
    * @param themeId - The ID of the theme to fetch
-   * @returns The theme configuration, optionally with only valid tokens if enhanced validation is enabled
+   * @returns The theme configuration or null if fetch fails
    */
   private async fetchCrudTheme(
     themeId: string,
@@ -942,45 +929,17 @@ export class ThemeController {
       });
 
       const { result } = await getTheme();
-      const rawThemeConfig = JSON.parse(result.json_data);
-      const themeName = result.theme_name || `Theme ${themeId}`;
+      const themeConfig = JSON.parse(result.json_data);
 
-      if (!rawThemeConfig || typeof rawThemeConfig !== 'object') {
-        console.error(`Invalid theme configuration for theme: ${themeName}`);
+      if (!themeConfig || typeof themeConfig !== 'object') {
+        console.error(`Invalid theme configuration for theme ${themeId}`);
         return null;
       }
 
-      // Enhanced validation is behind a feature flag
-      if (isFeatureEnabled(FeatureFlag.EnhancedThemeValidation)) {
-        const validationResult = validateThemeTokens(rawThemeConfig);
-
-        if (validationResult.errors.length > 0) {
-          const errorMessages = formatValidationErrors(
-            validationResult.errors,
-            themeName,
-          );
-          errorMessages.forEach(message => {
-            console.warn(message);
-          });
-        }
-
-        const partialThemeConfig = getPartialThemeConfig(rawThemeConfig);
-
-        if (
-          Object.keys(partialThemeConfig.token || {}).length === 0 &&
-          validationResult.errors.length > 0
-        ) {
-          console.warn(
-            `Theme "${themeName}" has no valid tokens, falling back to system default`,
-          );
-          return null;
-        }
-
-        return partialThemeConfig;
-      }
-
-      // Fallback to original behavior when feature flag is disabled
-      return rawThemeConfig;
+      // Return theme as-is
+      // Invalid tokens will be handled by Ant Design at runtime
+      // Runtime errors will be caught by applyThemeWithRecovery()
+      return themeConfig;
     } catch (error) {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
