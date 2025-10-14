@@ -244,7 +244,6 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         const downloadUrl = URL.createObjectURL(blob);
         currentBlobUrlRef.current = downloadUrl;
 
-
         updateProgress({
           status: ExportStatus.COMPLETED,
           downloadUrl,
