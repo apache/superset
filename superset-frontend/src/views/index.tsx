@@ -20,5 +20,8 @@ import 'src/public-path';
 
 import ReactDOM from 'react-dom';
 import App from './App';
+import { i18nLoadJob } from '../preamble';
+
+await i18nLoadJob;
 
 ReactDOM.render(<App />, document.getElementById('app'));

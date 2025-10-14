@@ -34,6 +34,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import * as SupersetCore from '@superset-ui/core';
 
 interface MenuProps {
   data: MenuData;
@@ -188,13 +189,13 @@ export function Menu({
     const path = location.pathname;
     switch (true) {
       case path.startsWith(Paths.Dashboard):
-        setActiveTabs(['Dashboards']);
+        setActiveTabs([SupersetCore.t('Dashboards')]);
         break;
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
-        setActiveTabs(['Charts']);
+        setActiveTabs([SupersetCore.t('Charts')]);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs(['Datasets']);
+        setActiveTabs([SupersetCore.t('Datasets')]);
         break;
       default:
         setActiveTabs(defaultTabSelection);
@@ -240,6 +241,7 @@ export function Menu({
         }
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+          child.label = SupersetCore.t(child.label);
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <MainNav.Divider key={`$${index1}`} />;
           }
@@ -341,6 +343,7 @@ export function Menu({
               const props = {
                 index,
                 ...item,
+                label: SupersetCore.t(item.label),
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
                   if (typeof c === 'string') {
@@ -395,14 +398,16 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     const children: (MenuObjectProps | string)[] = [];
     const newItem = {
       ...item,
+      label: SupersetCore.t(item.label),
     };
 
     // Filter childs
     if (item.childs) {
       item.childs.forEach((child: MenuObjectChildProps | string) => {
         if (typeof child === 'string') {
-          children.push(child);
+          children.push(SupersetCore.t(child));
         } else if ((child as MenuObjectChildProps).label) {
+          child.label = SupersetCore.t(child.label);
           children.push(child);
         }
       });
