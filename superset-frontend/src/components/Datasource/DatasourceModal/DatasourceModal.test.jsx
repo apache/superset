@@ -136,4 +136,44 @@ describe('DatasourceModal', () => {
       expect(errorTitle).toBeInTheDocument();
     });
   });
+
+  test('shows sync columns checkbox when SQL changes', async () => {
+    cleanup();
+    const datasourceWithSQL = {
+      ...mockedProps.datasource,
+      sql: 'SELECT * FROM original_table',
+    };
+    const modifiedDatasource = {
+      ...datasourceWithSQL,
+      sql: 'SELECT * FROM new_table', // Different SQL to trigger checkbox
+    };
+
+    const { rerender } = render(
+      <DatasourceModal {...mockedProps} datasource={datasourceWithSQL} />,
+      { store, useRouter: true },
+    );
+
+    // Update with modified SQL
+    rerender(
+      <DatasourceModal {...mockedProps} datasource={modifiedDatasource} />,
+    );
+
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText('Confirm save')).toBeInTheDocument();
+    });
+
+    // Checkbox should be present and checked by default when SQL changes
+    const checkbox = await screen.findByRole('checkbox');
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).toBeChecked();
+
+    // Should show the sync columns message
+    expect(screen.getByText('Automatically sync columns')).toBeInTheDocument();
+  });
 });
