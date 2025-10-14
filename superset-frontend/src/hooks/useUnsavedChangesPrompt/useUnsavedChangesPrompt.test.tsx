@@ -17,10 +17,9 @@
  * under the License.
  */
 import { renderHook, act } from '@testing-library/react-hooks';
-import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { act } from 'spec/helpers/testing-library';
+import { useUnsavedChangesPrompt } from '.';
 
 const history = createMemoryHistory({
   initialEntries: ['/dashboard'],
@@ -55,11 +54,9 @@ describe('useUnsavedChangesPrompt', () => {
     );
 
     // Simulate blocked navigation
-    act(() => {
-      const unblock = history.block((tx: any) => tx);
-      unblock();
-      history.push('/another-page');
-    });
+    const unblock = history.block((tx: any) => tx);
+    unblock();
+    history.push('/another-page');
 
     expect(result.current.showModal).toBe(true);
   });
@@ -76,9 +73,7 @@ describe('useUnsavedChangesPrompt', () => {
       { wrapper },
     );
 
-    await act(async () => {
-      await result.current.handleSaveAndCloseModal();
-    });
+    await result.current.handleSaveAndCloseModal();
 
     expect(onSave).toHaveBeenCalled();
     expect(result.current.showModal).toBe(false);
@@ -96,9 +91,7 @@ describe('useUnsavedChangesPrompt', () => {
       { wrapper },
     );
 
-    act(() => {
-      result.current.triggerManualSave();
-    });
+    result.current.triggerManualSave();
 
     expect(onSave).toHaveBeenCalled();
     expect(result.current.showModal).toBe(false);
@@ -117,18 +110,14 @@ describe('useUnsavedChangesPrompt', () => {
     );
 
     // First, trigger navigation to show the modal
-    act(() => {
-      const unblock = history.block((tx: any) => tx);
-      unblock();
-      history.push('/another-page');
-    });
+    const unblock = history.block((tx: any) => tx);
+    unblock();
+    history.push('/another-page');
 
     expect(result.current.showModal).toBe(true);
 
     // Then call handleConfirmNavigation to discard changes
-    act(() => {
-      result.current.handleConfirmNavigation();
-    });
+    result.current.handleConfirmNavigation();
 
     expect(result.current.showModal).toBe(false);
   });

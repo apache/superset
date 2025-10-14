@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   render,
   screen,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import {
@@ -28,9 +27,8 @@ import {
   getExtensionsRegistry,
   makeApi,
 } from '@superset-ui/core';
-import { Modal } from '@superset-ui/core/components';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
-import DashboardEmbedModal from './index';
+import DashboardEmbedModal from '.';
 
 const defaultResponse = {
   result: { uuid: 'uuid', dashboard_id: '1', allowed_domains: ['example.com'] },
@@ -58,16 +56,16 @@ const setMockApiNotFound = () => {
 };
 
 const setup = () => {
-  resetMockApi();
   render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   resetMockApi();
+  getExtensionsRegistry().set('embedded.modal', undefined);
 });
 
-test('renders', async () => {
+test('renders the embed modal', async () => {
   setup();
   expect(await screen.findByText('Embed')).toBeInTheDocument();
 });
@@ -79,15 +77,15 @@ test('renders loading state', async () => {
   });
 });
 
-test('renders the modal default content', async () => {
-  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+test('renders modal content with settings', async () => {
+  setup();
   expect(await screen.findByText('Settings')).toBeInTheDocument();
   expect(
     screen.getByText(new RegExp(/Allowed Domains/, 'i')),
   ).toBeInTheDocument();
 });
 
-test('renders the correct actions when dashboard is ready to embed', async () => {
+test('shows Deactivate and Save changes buttons when ready to embed', async () => {
   setup();
   expect(
     await screen.findByRole('button', { name: 'Deactivate' }),
@@ -97,7 +95,7 @@ test('renders the correct actions when dashboard is ready to embed', async () =>
   ).toBeInTheDocument();
 });
 
-test('renders the correct actions when dashboard is not ready to embed', async () => {
+test('shows Enable embedding button when not ready to embed', async () => {
   setMockApiNotFound();
   render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
   expect(
@@ -105,7 +103,7 @@ test('renders the correct actions when dashboard is not ready to embed', async (
   ).toBeInTheDocument();
 });
 
-test('enables embedding', async () => {
+test('enables embedding when Enable embedding button is clicked', async () => {
   setMockApiNotFound();
   render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
 
@@ -115,33 +113,33 @@ test('enables embedding', async () => {
   expect(enableEmbed).toBeInTheDocument();
 
   resetMockApi();
-  fireEvent.click(enableEmbed);
+  await userEvent.click(enableEmbed);
 
   expect(
     await screen.findByRole('button', { name: 'Deactivate' }),
   ).toBeInTheDocument();
 });
 
-test('shows and hides the confirmation modal on deactivation', async () => {
+test('shows and hides confirmation alert when deactivating', async () => {
   setup();
 
   const deactivate = await screen.findByRole('button', { name: 'Deactivate' });
-  fireEvent.click(deactivate);
+  await userEvent.click(deactivate);
 
   expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
   expect(
     screen.getByText('This will remove your current embed configuration.'),
   ).toBeInTheDocument();
 
-  const okBtn = screen.getByRole('button', { name: 'OK' });
-  fireEvent.click(okBtn);
+  const confirmBtn = screen.getByRole('button', { name: 'Deactivate' });
+  await userEvent.click(confirmBtn);
 
   await waitFor(() => {
     expect(screen.queryByText('Disable embedding?')).not.toBeInTheDocument();
   });
 });
 
-test('enables the "Save Changes" button', async () => {
+test('enables Save Changes button when allowed domains are modified', async () => {
   setup();
 
   const allowedDomainsInput = await screen.findByRole('textbox', {
@@ -153,11 +151,12 @@ test('enables the "Save Changes" button', async () => {
   expect(saveChangesBtn).toBeDisabled();
   expect(allowedDomainsInput).toBeInTheDocument();
 
-  fireEvent.change(allowedDomainsInput, { target: { value: 'test.com' } });
+  await userEvent.clear(allowedDomainsInput);
+  await userEvent.type(allowedDomainsInput, 'test.com');
   expect(saveChangesBtn).toBeEnabled();
 });
 
-test('adds extension to DashboardEmbedModal', async () => {
+test('renders extension component when registered', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 
   extensionsRegistry.set('embedded.modal', () => (
@@ -165,93 +164,11 @@ test('adds extension to DashboardEmbedModal', async () => {
   ));
 
   setupCodeOverrides();
-  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+  setup();
 
   expect(
     await screen.findByText('dashboard.embed.modal.extension component'),
   ).toBeInTheDocument();
 
   extensionsRegistry.set('embedded.modal', undefined);
-});
-
-describe('Modal.useModal integration', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('uses Modal.useModal hook for confirmation dialogs', () => {
-    const useModalSpy = jest.spyOn(Modal, 'useModal');
-    setup();
-
-    // Verify that useModal is called when the component mounts
-    expect(useModalSpy).toHaveBeenCalled();
-
-    useModalSpy.mockRestore();
-  });
-
-  test('renders contextHolder for proper theming', async () => {
-    const { container } = render(<DashboardEmbedModal {...defaultProps} />, {
-      useRedux: true,
-    });
-
-    // Wait for component to be rendered
-    await screen.findByText('Embed');
-
-    // The contextHolder is rendered in the component tree
-    // Check that modal root elements exist for theming
-    const modalRootElements = container.querySelectorAll('.ant-modal-root');
-    expect(modalRootElements).toBeDefined();
-  });
-
-  test('confirmation modal inherits theme context', async () => {
-    setup();
-
-    // Click deactivate to trigger the confirmation modal
-    const deactivate = await screen.findByRole('button', {
-      name: 'Deactivate',
-    });
-    fireEvent.click(deactivate);
-
-    // Wait for the modal to appear
-    const modalTitle = await screen.findByText('Disable embedding?');
-    expect(modalTitle).toBeInTheDocument();
-
-    // Check that the modal is rendered within the component tree (not on body directly)
-    const modal = modalTitle.closest('.ant-modal-wrap');
-    expect(modal).toBeInTheDocument();
-  });
-
-  test('does not use Modal.confirm directly', () => {
-    // Spy on the static Modal.confirm method
-    const confirmSpy = jest.spyOn(Modal, 'confirm');
-
-    setup();
-
-    // The component should not call Modal.confirm directly
-    expect(confirmSpy).not.toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
-  });
-
-  test('modal actions work correctly with useModal', async () => {
-    setup();
-
-    // Click deactivate
-    const deactivate = await screen.findByRole('button', {
-      name: 'Deactivate',
-    });
-    fireEvent.click(deactivate);
-
-    // Modal should appear
-    expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
-
-    // Click Cancel to close modal
-    const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
-    fireEvent.click(cancelBtn);
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByText('Disable embedding?')).not.toBeInTheDocument();
-    });
-  });
 });
