@@ -162,8 +162,10 @@ def assert_log(state: str, error_message: Optional[str] = None):
     assert state in log_states
     if error_message is not None:
         error_messages = [log.error_message for log in logs]
-        assert any(error_message in (msg or "") for msg in error_messages), (
-            f"Expected '{error_message}' in error messages: {error_messages}"
+        # Convert error_message to string in case it's a LazyString from lazy_gettext
+        error_message_str = str(error_message)
+        assert any(error_message_str in (msg or "") for msg in error_messages), (
+            f"Expected '{error_message_str}' in error messages: {error_messages}"
         )
 
     for log in logs:
