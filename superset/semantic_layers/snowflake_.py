@@ -43,8 +43,10 @@ from superset.semantic_layers.types import (
     DATETIME,
     DECIMAL,
     Dimension,
+    Filter,
     INTEGER,
     Metric,
+    NativeFilter,
     NUMBER,
     OBJECT,
     STRING,
@@ -207,7 +209,6 @@ def get_connection_parameters(configuration: SnowflakeConfiguration) -> dict[str
 
 
 class SnowflakeSemanticLayer:
-
     configuration_schema = SnowflakeConfiguration
 
     @classmethod
@@ -436,6 +437,44 @@ class SnowflakeExplorable:
 
         return metrics
 
+    def get_values(
+        self,
+        dimension: Dimension,
+        filters: set[Filter | NativeFilter] | None = None,
+    ) -> set[Any]:
+        """
+        Return distinct values for a dimension.
+        """
+        native_filters = {
+            (
+                filter_
+                if isinstance(filter_, NativeFilter)
+                else self._build_native_filter(filter_)
+            )
+            for filter_ in (filters or set())
+        }
+        parenthesized = {f"({filter_.definition})" for filter_ in native_filters}
+        predicates = f"WHERE {' AND '.join(parenthesized)}" if parenthesized else ""
+
+        query = f"""
+            SELECT {self._quote(dimension.name)}
+            FROM
+                SEMANTIC_VIEW(
+                    {self.uid()}
+                    DIMENSIONS {self._quote(dimension.id)}
+                )
+            {predicates}
+        """  # noqa: S608
+        connection_parameters = get_connection_parameters(self.configuration)
+        with connect(**connection_parameters) as connection:
+            cursor = connection.cursor(DictCursor)
+            return {row[0] for row in cursor.execute(query)}
+
+    def _build_native_filter_(self, filter_: Filter) -> NativeFilter:
+        """
+        Convert a Filter to a NativeFilter.
+        """
+
     def _get_type(self, snowflake_type: str | None) -> type[Type]:
         """
         Return the semantic type corresponding to a Snowflake type.
@@ -467,18 +506,19 @@ class SnowflakeExplorable:
 
 
 if __name__ == "__main__":
+    import os
 
     configuration = SnowflakeConfiguration.model_validate(
         {
-            "account_identifier": "KFTRUWN-VX32922",
+            "account_identifier": "hxjhxcj-oxc09268",
             "role": "ACCOUNTADMIN",
             "warehouse": "COMPUTE_WH",
             "database": "SAMPLE_DATA",
             "schema": "TPCDS_SF10TCL",
             "auth": {
                 "auth_type": "user_password",
-                "username": "vavila",
-                "password": "XXX",
+                "username": os.environ["SNOWFLAKE_USER"],
+                "password": os.environ["SNOWFLAKE_PASSWORD"],
             },
             "allow_changing_database": True,
             "allow_changing_schema": True,

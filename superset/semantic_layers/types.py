@@ -17,7 +17,7 @@
 
 import enum
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from functools import total_ordering
 
 __all__ = [
@@ -161,3 +161,33 @@ class Metric:
     definition: str
 
     description: str | None = None
+
+
+class Operator(enum.Enum):
+    EQUALS = "="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUAL = ">="
+    LESS_THAN_OR_EQUAL = "<="
+    IN = "IN"
+    NOT_IN = "NOT IN"
+    LIKE = "LIKE"
+    NOT_LIKE = "NOT LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+
+
+FilterTypes = str | int | float | bool | datetime | date | time | timedelta | None
+
+
+@dataclass(frozen=True)
+class Filter:
+    column: Dimension | Metric
+    operator: Operator
+    value: FilterTypes | set[FilterTypes]
+
+
+@dataclass(frozen=True)
+class NativeFilter:
+    definition: str
