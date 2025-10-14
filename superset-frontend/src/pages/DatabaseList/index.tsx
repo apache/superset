@@ -331,15 +331,20 @@ function DatabaseList({
     ];
   }
 
-  function handleDatabaseExport(database: DatabaseObject) {
+  async function handleDatabaseExport(database: DatabaseObject) {
     if (database.id === undefined) {
       return;
     }
 
-    handleResourceExport('database', [database.id], () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('database', [database.id], () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the database'));
+    }
   }
 
   function handleDatabasePermSync(database: DatabaseObject) {
