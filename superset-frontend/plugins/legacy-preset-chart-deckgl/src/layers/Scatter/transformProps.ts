@@ -95,7 +95,7 @@ function processScatterData(
 
 export default function transformProps(chartProps: ChartProps) {
   const { rawFormData: formData } = chartProps;
-  const { spatial, point_radius_fixed, category_name, js_columns } =
+  const { spatial, point_radius_fixed, dimension, js_columns } =
     formData as DeckScatterFormData;
 
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
@@ -104,7 +104,7 @@ export default function transformProps(chartProps: ChartProps) {
     records,
     spatial,
     radiusMetricLabel,
-    category_name,
+    dimension,
     js_columns,
   );
 
