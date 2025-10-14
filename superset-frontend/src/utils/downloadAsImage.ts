@@ -205,11 +205,29 @@ const processCloneForVisibility = (clone: HTMLElement) => {
     });
 };
 
+const preserveCanvasContent = (original: Element, clone: Element) => {
+  const originalCanvases = original.querySelectorAll('canvas');
+  const clonedCanvases = clone.querySelectorAll('canvas');
+
+  originalCanvases.forEach((originalCanvas, i) => {
+    if (originalCanvases[i] && clonedCanvases[i]) {
+      const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
+      const ctx = clonedCanvas.getContext('2d');
+      if (ctx) {
+        clonedCanvas.width = originalCanvas.width;
+        clonedCanvas.height = originalCanvas.height;
+        ctx.drawImage(originalCanvas, 0, 0);
+      }
+    }
+  });
+};
+
 const createEnhancedClone = (
   originalElement: Element,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
   copyAllComputedStyles(originalElement, clone);
+  preserveCanvasContent(originalElement, clone);
 
   const tempContainer = document.createElement('div');
   tempContainer.style.cssText = `
