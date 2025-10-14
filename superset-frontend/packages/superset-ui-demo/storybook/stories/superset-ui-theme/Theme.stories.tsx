@@ -19,6 +19,11 @@
 
 import { supersetTheme, themeObject } from '@superset-ui/core';
 
+// Legacy theme structure for storybook display
+interface LegacyThemeStructure {
+  colors: Record<string, Record<string, string>>;
+}
+
 const colorTypes = [
   'primary',
   'error',
@@ -91,7 +96,7 @@ const AntDFunctionalColors = () => {
 };
 
 export const ThemeColors = () => {
-  const { colors } = supersetTheme as any;
+  const { colors } = supersetTheme as unknown as LegacyThemeStructure;
 
   // Define tones to be displayed in columns
   const tones = [
