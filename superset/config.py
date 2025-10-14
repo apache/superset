@@ -625,10 +625,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Depends on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS.
     # @lifecycle: testing
     "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
-    # Enhanced theme validation in theme editor with real-time token validation
-    # and partial theme loading for invalid tokens
-    # @lifecycle: testing
-    "ENHANCED_THEME_VALIDATION": False,
     # Allows users to add a superset:// DB that can query across databases.
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.

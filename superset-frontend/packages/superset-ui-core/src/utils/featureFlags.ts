@@ -50,7 +50,6 @@ export enum FeatureFlag {
   /** @deprecated */
   EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
-  EnhancedThemeValidation = 'ENHANCED_THEME_VALIDATION',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
