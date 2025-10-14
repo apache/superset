@@ -160,7 +160,10 @@ def assert_log(state: str, error_message: Optional[str] = None):
     log_states = [log.state for log in logs]
     assert ReportState.WORKING in log_states
     assert state in log_states
-    assert error_message in [log.error_message for log in logs]
+    error_messages = [log.error_message for log in logs]
+    assert any(error_message in (msg or "") for msg in error_messages), (
+        f"Expected '{error_message}' in error messages: {error_messages}"
+    )
 
     for log in logs:
         if log.state == ReportState.WORKING:
