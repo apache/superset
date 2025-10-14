@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { logging } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, logging } from '@superset-ui/core';
 import {
   authentication,
   core,
@@ -75,14 +75,15 @@ const ExtensionsStartup = () => {
     };
 
     // Initialize extensions
-    try {
-      ExtensionsManager.getInstance().initializeExtensions();
-      logging.info('Extensions initialized successfully.');
-    } catch (error) {
-      logging.error('Error setting up extensions:', error);
-    } finally {
-      setInitialized(true);
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      try {
+        ExtensionsManager.getInstance().initializeExtensions();
+        logging.info('Extensions initialized successfully.');
+      } catch (error) {
+        logging.error('Error setting up extensions:', error);
+      }
     }
+    setInitialized(true);
   }, [initialized, userId]);
 
   return null;
