@@ -26,6 +26,7 @@ import {
 import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal, getTreeSwitcher } from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterScope TreeSelection', () => {
   let formRef: { current: FormInstance | null };
 
@@ -40,7 +41,7 @@ describe('FilterScope TreeSelection', () => {
     jest.useRealTimers();
   });
 
-  it('select tree values with 1 excluded', async () => {
+  test('select tree values with 1 excluded', async () => {
     const { MockModalComponent } = createMockModal({ formRef });
     const modal = render(<MockModalComponent />);
 
@@ -81,7 +82,7 @@ describe('FilterScope TreeSelection', () => {
     modal.unmount();
   });
 
-  it('select 1 value only', async () => {
+  test('select 1 value only', async () => {
     const { MockModalComponent } = createMockModal({ formRef });
     const modal = render(<MockModalComponent />);
 

@@ -77,15 +77,16 @@ const METRICS = [
   },
 ];
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('reducers', () => {
-  it('Does not set a control value if control does not exist', () => {
+  test('Does not set a control value if control does not exist', () => {
     const newState = exploreReducer(
       defaultState,
       actions.setControlValue('NEW_FIELD', 'x', []),
     );
     expect(newState.controls.NEW_FIELD).toBeUndefined();
   });
-  it('setControlValue works as expected with a Select control', () => {
+  test('setControlValue works as expected with a Select control', () => {
     const newState = exploreReducer(
       defaultState,
       actions.setControlValue('y_axis_format', '$,.2f', []),
@@ -93,7 +94,7 @@ describe('reducers', () => {
     expect(newState.controls.y_axis_format.value).toBe('$,.2f');
     expect(newState.form_data.y_axis_format).toBe('$,.2f');
   });
-  it('Keeps the column config when metric column positions are swapped', () => {
+  test('Keeps the column config when metric column positions are swapped', () => {
     const mockedState = {
       ...defaultState,
       controls: {
@@ -153,7 +154,7 @@ describe('reducers', () => {
     );
   });
 
-  it('Keeps the column config when metric column name is updated', () => {
+  test('Keeps the column config when metric column name is updated', () => {
     const mockedState = {
       ...defaultState,
       controls: {

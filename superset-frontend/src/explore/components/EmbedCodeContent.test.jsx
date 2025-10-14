@@ -24,12 +24,13 @@ import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 const url = 'http://localhost/explore/p/100';
 fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EmbedCodeButton', () => {
-  it('renders', () => {
+  test('renders', () => {
     expect(isValidElement(<EmbedCodeContent />)).toBe(true);
   });
 
-  it('returns correct embed code', async () => {
+  test('returns correct embed code', async () => {
     render(<EmbedCodeContent />, { useRedux: true });
     expect(await screen.findByText('iframe', { exact: false })).toBeVisible();
     expect(await screen.findByText('/iframe', { exact: false })).toBeVisible();

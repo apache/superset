@@ -32,7 +32,7 @@ const mockColorScale = jest.fn(
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
 
-  test('should use the colorScaleKey if timeShiftColor is enabled', () => {
+  it('should use the colorScaleKey if timeShiftColor is enabled', () => {
     const opts = {
       timeShiftColor: true,
       colorScaleKey: 'test-key',
@@ -44,7 +44,7 @@ describe('transformSeries', () => {
     expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
   });
 
-  test('should use seriesKey if timeShiftColor is not enabled', () => {
+  it('should use seriesKey if timeShiftColor is not enabled', () => {
     const opts = {
       timeShiftColor: false,
       seriesKey: 'series-key',
@@ -56,7 +56,7 @@ describe('transformSeries', () => {
     expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
   });
 
-  test('should apply border styles for bar series with connectNulls', () => {
+  it('should apply border styles for bar series with connectNulls', () => {
     const opts = {
       seriesType: EchartsTimeseriesSeriesType.Bar,
       connectNulls: true,
@@ -72,7 +72,7 @@ describe('transformSeries', () => {
     );
   });
 
-  test('should not apply border styles for non-bar series', () => {
+  it('should not apply border styles for non-bar series', () => {
     const opts = {
       seriesType: EchartsTimeseriesSeriesType.Line,
       connectNulls: true,
@@ -88,7 +88,7 @@ describe('transformSeries', () => {
 });
 
 describe('transformNegativeLabelsPosition', () => {
-  test('label position bottom of negative value no Horizontal', () => {
+  it('label position bottom of negative value no Horizontal', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -112,7 +112,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label).toBe(undefined);
   });
 
-  test('label position left of negative value is Horizontal', () => {
+  it('label position left of negative value is Horizontal', () => {
     const isHorizontal = true;
     const series: SeriesOption = {
       data: [
@@ -137,7 +137,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label.position).toBe('outside');
   });
 
-  test('label position to line type', () => {
+  it('label position to line type', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -165,7 +165,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label).toBe(undefined);
   });
 
-  test('label position to bar type and stack', () => {
+  it('label position to bar type and stack', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [

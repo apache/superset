@@ -23,10 +23,10 @@ import {
   DatasourceType,
   denormalizeTimestamp,
   ErrorTypeEnum,
-  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 

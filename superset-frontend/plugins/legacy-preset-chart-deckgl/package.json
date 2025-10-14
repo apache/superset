@@ -34,7 +34,7 @@
     "@luma.gl/engine": "^9.1.9",
     "@luma.gl/shadertools": "^9.1.9",
     "@luma.gl/webgl": "^9.1.9",
-    "@mapbox/tiny-sdf": "^2.0.6",
+    "@mapbox/tiny-sdf": "^2.0.7",
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^4.1.0",
     "@types/d3-array": "^2.0.0",

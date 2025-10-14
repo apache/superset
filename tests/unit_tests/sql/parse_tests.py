@@ -659,7 +659,6 @@ FROM (
     UNION ALL SELECT lets_go_deeper
     FROM f
     WHERE 1=1
-    WHERE 2=2
     GROUP BY last_col
     LIMIT 50000
 )
@@ -2594,9 +2593,17 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     [
         ("col = 1", "col = 1", "base"),
         ("1=\t\n1", "1 = 1", "base"),
-        ("(col = 1)", "(\n  col = 1\n)", "base"),
-        ("(col1 = 1) AND (col2 = 2)", "(\n  col1 = 1\n) AND (\n  col2 = 2\n)", "base"),
-        ("col = 'abc' -- comment", "col = 'abc' /* comment */", "base"),
+        ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
+        (
+            "(col1 = 1) AND (col2 = 2)",
+            "(col1 = 1) AND (col2 = 2)",
+            "base",
+        ),  # Compact format
+        (
+            "col = 'abc' -- comment",
+            "col = 'abc'",
+            "base",
+        ),  # Comments removed for compact format
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
