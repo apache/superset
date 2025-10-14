@@ -420,15 +420,12 @@ class BaseReportState:
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
         except SoftTimeLimitExceeded as ex:
             chart_id = self._report_schedule.chart_id
-            chart_name = self._report_schedule.chart.slice_name
             timeout = self._report_schedule.working_timeout or app.config.get(
                 "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
             )
             error_msg = (
-                f"Timeout fetching CSV data for chart '{chart_name}' "
-                f"(ID: {chart_id}). The chart query exceeded the {timeout} "
-                f"second timeout limit. Consider optimizing the chart query "
-                f"or increasing the working timeout."
+                f"CSV timeout: chart_id={chart_id}, "
+                f"execution_id={self._execution_id}, timeout={timeout}s"
             )
             raise ReportScheduleCsvTimeout(error_msg) from ex
         except Exception as ex:
@@ -461,15 +458,12 @@ class BaseReportState:
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             chart_id = self._report_schedule.chart_id
-            chart_name = self._report_schedule.chart.slice_name
             timeout = self._report_schedule.working_timeout or app.config.get(
                 "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
             )
             error_msg = (
-                f"Timeout fetching data for chart '{chart_name}' "
-                f"(ID: {chart_id}). The chart query exceeded the {timeout} "
-                f"second timeout limit. Consider optimizing the chart query "
-                f"or increasing the working timeout."
+                f"DataFrame timeout: chart_id={chart_id}, "
+                f"execution_id={self._execution_id}, timeout={timeout}s"
             )
             raise ReportScheduleDataFrameTimeout(error_msg) from ex
         except Exception as ex:
