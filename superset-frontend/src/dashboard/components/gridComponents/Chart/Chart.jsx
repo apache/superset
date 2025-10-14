@@ -617,7 +617,6 @@ const Chart = props => {
         />
       </ChartWrapper>
 
-      {/* Streaming Export Modal */}
       <StreamingExportModal
         visible={isStreamingModalVisible}
         onCancel={() => {

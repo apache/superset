@@ -449,15 +449,15 @@ class ChartDataRestApi(ChartRestApi):
         """Extract filename and expected_rows from request for streaming exports."""
         filename = request.form.get("filename")
         if filename:
-            logger.info("📁 FRONTEND PROVIDED FILENAME: %s", filename)
+            logger.info("FRONTEND PROVIDED FILENAME: %s", filename)
 
         expected_rows = None
         if expected_rows_str := request.form.get("expected_rows"):
             try:
                 expected_rows = int(expected_rows_str)
-                logger.info("📊 FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
+                logger.info("FRONTEND PROVIDED EXPECTED ROWS: %d", expected_rows)
             except (ValueError, TypeError):
-                logger.warning("⚠️ Invalid expected_rows value: %s", expected_rows_str)
+                logger.warning("Invalid expected_rows value: %s", expected_rows_str)
 
         return filename, expected_rows
 
@@ -579,7 +579,7 @@ class ChartDataRestApi(ChartRestApi):
             filename is not None,
         )
         if expected_rows:
-            logger.info("📊 Using expected_rows from frontend: %d", expected_rows)
+            logger.info("Using expected_rows from frontend: %d", expected_rows)
 
         # Execute streaming command
         chunk_size = 1000

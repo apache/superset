@@ -234,12 +234,9 @@ const ResultSet = ({
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
 
-  // Streaming export hook
   const { progress, startExport, resetExport, retryExport } =
     useStreamingExport({
-      onComplete: () => {
-        // Modal will show download button
-      },
+      onComplete: () => {},
       onError: error => {
         addDangerToast(t('Export failed: %s', error));
       },
@@ -318,23 +315,18 @@ const ResultSet = ({
   const getExportCsvUrl = (clientId: string) =>
     `/api/v1/sqllab/export/${clientId}/`;
 
-  const getStreamingExportUrl = () => `/api/v1/sqllab/export_streaming/`;
-
   const handleCloseStreamingModal = () => {
     setShowStreamingModal(false);
     resetExport();
   };
 
-  // Check if streaming export should be used
   const shouldUseStreamingExport = () => {
     const { rows, queryLimit, limitingFactor } = query;
     const limit = queryLimit || query.results?.query?.limit;
     const rowsCount = Math.min(rows || 0, query.results?.data?.length || 0);
 
-    // Determine actual row count
     let actualRowCount = rowsCount;
 
-    // If not limited by dropdown/query, use the full row count
     if (limitingFactor === LimitingFactor.NotLimited && rows) {
       actualRowCount = rows;
     } else if (limit) {
@@ -395,11 +387,9 @@ const ResultSet = ({
                 css={copyButtonStyles}
                 buttonSize="small"
                 buttonStyle="secondary"
-                href={
-                  !shouldUseStreamingExport()
-                    ? getExportCsvUrl(query.id)
-                    : undefined
-                }
+                {...(!shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
                 data-test="export-csv-button"
                 onClick={e => {
                   const useStreaming = shouldUseStreamingExport();
@@ -416,7 +406,7 @@ const ResultSet = ({
                     const filename = `sqllab_${query.id}_${timestamp}.csv`;
 
                     startExport({
-                      url: getStreamingExportUrl(),
+                      url: '/api/v1/sqllab/export_streaming/',
                       payload: { client_id: query.id },
                       filename,
                       exportType: 'csv',

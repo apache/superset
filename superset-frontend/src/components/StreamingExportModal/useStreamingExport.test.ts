@@ -28,11 +28,9 @@ jest.mock('@superset-ui/core', () => ({
   },
 }));
 
-// Mock URL APIs
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
 global.URL.revokeObjectURL = jest.fn();
 
-// Mock fetch
 global.fetch = jest.fn();
 
 beforeEach(() => {

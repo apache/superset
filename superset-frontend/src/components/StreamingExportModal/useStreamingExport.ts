@@ -26,7 +26,7 @@ interface UseStreamingExportOptions {
 }
 
 interface StreamingExportPayload {
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 interface StreamingExportParams {
