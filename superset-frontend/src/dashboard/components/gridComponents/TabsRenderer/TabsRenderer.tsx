@@ -22,6 +22,7 @@ import {
   ReactElement,
   RefObject,
   useCallback,
+  useState,
 } from 'react';
 import { styled } from '@superset-ui/core';
 import {
@@ -30,22 +31,21 @@ import {
 } from '@superset-ui/core/components/Tabs';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
-  closestCenter,
   DndContext,
   PointerSensor,
   useSensor,
+  closestCenter,
 } from '@dnd-kit/core';
 import {
   horizontalListSortingStrategy,
   SortableContext,
   useSortable,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
 
-const StyledTabsContainer = styled.div`
+const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
   background-color: ${({ theme }) => theme.colorBgContainer};
 
@@ -60,6 +60,14 @@ const StyledTabsContainer = styled.div`
   &.dragdroppable-row .dashboard-component-tabs-content {
     height: calc(100% - 47px);
   }
+
+  ${({ isDragging }) =>
+    isDragging &&
+    `
+    .ant-tabs-ink-bar {
+      visibility: hidden !important;
+    }
+  `}
 `;
 
 export interface TabItem {
@@ -86,33 +94,46 @@ export interface TabsRendererProps {
   handleEdit: AntdTabsProps['onEdit'];
   tabBarPaddingLeft?: number;
   onTabsReorder?: (oldIndex: number, newIndex: number) => void;
+  isEditingTabTitle?: boolean;
+  onTabTitleEditingChange?: (isEditing: boolean) => void;
 }
 
 interface DraggableTabNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   'data-node-key': string;
+  disabled?: boolean;
 }
 
 const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
   className,
+  disabled = false,
   ...props
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      id: props['data-node-key'],
-    });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: props['data-node-key'],
+    disabled,
+  });
 
   const style: React.CSSProperties = {
     ...props.style,
-    transform: CSS.Translate.toString(transform),
+    position: 'relative',
+    transform: transform ? `translate3d(${transform.x}px, 0, 0)` : undefined,
     transition,
-    cursor: 'move',
+    cursor: disabled ? 'default' : 'move',
+    zIndex: isDragging ? 1000 : 'auto',
   };
 
   return cloneElement(props.children as React.ReactElement, {
     ref: setNodeRef,
     style,
     ...attributes,
-    ...listeners,
+    ...(disabled ? {} : listeners),
   });
 };
 
@@ -134,10 +155,18 @@ const TabsRenderer = memo<TabsRendererProps>(
     handleEdit,
     tabBarPaddingLeft = 0,
     onTabsReorder,
+    isEditingTabTitle = false,
+    onTabTitleEditingChange,
   }) => {
+    const [activeId, setActiveId] = useState<string | null>(null);
+
     const sensor = useSensor(PointerSensor, {
       activationConstraint: { distance: 10 },
     });
+
+    const onDragStart = useCallback((event: any) => {
+      setActiveId(event.active.id);
+    }, []);
 
     const onDragEnd = useCallback(
       ({ active, over }: DragEndEvent) => {
@@ -146,14 +175,22 @@ const TabsRenderer = memo<TabsRendererProps>(
           const overIndex = tabIds.findIndex(id => id === over?.id);
           onTabsReorder(activeIndex, overIndex);
         }
+        setActiveId(null);
       },
       [onTabsReorder, tabIds],
     );
+
+    const onDragCancel = useCallback(() => {
+      setActiveId(null);
+    }, []);
+
+    const isDragging = activeId !== null;
 
     return (
       <StyledTabsContainer
         className="dashboard-component dashboard-component-tabs"
         data-test="dashboard-component-tabs"
+        isDragging={isDragging}
       >
         {editMode && renderHoverMenu && tabsDragSourceRef && (
           <HoverMenu innerRef={tabsDragSourceRef} position="left">
@@ -180,7 +217,9 @@ const TabsRenderer = memo<TabsRendererProps>(
             renderTabBar: (tabBarProps, DefaultTabBar) => (
               <DndContext
                 sensors={[sensor]}
+                onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
+                onDragCancel={onDragCancel}
                 collisionDetection={closestCenter}
               >
                 <SortableContext
@@ -194,6 +233,7 @@ const TabsRenderer = memo<TabsRendererProps>(
                           .props}
                         key={node.key}
                         data-node-key={node.key as string}
+                        disabled={isEditingTabTitle}
                       >
                         {node}
                       </DraggableTabNode>
