@@ -566,9 +566,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CACHE_QUERY_BY_USER": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
-    # Enhanced theme validation in theme editor with real-time token validation
-    # and partial theme loading for invalid tokens
-    "ENHANCED_THEME_VALIDATION": False,
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,

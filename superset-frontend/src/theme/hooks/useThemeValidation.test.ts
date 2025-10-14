@@ -17,39 +17,9 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react-hooks';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import {
-  useThemeValidation,
-  useIsEnhancedValidationEnabled,
-} from './useThemeValidation';
+import { useThemeValidation } from './useThemeValidation';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
-}));
-
-const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-
-beforeEach(() => {
-  mockIsFeatureEnabled.mockClear();
-});
-
-test('returns basic JSON validation when feature flag is disabled', () => {
-  mockIsFeatureEnabled.mockReturnValue(false);
-
-  // Test with valid JSON to ensure feature flag controls enhanced validation
-  const validJson = '{"token": {"colorPrimary": "#1890ff"}}';
-  const { result } = renderHook(() => useThemeValidation(validJson));
-
-  expect(result.current.hasErrors).toBe(false);
-  expect(result.current.hasWarnings).toBe(false);
-  expect(result.current.validTokenCount).toBe(0); // No enhanced validation
-  expect(result.current.invalidTokenCount).toBe(0); // No enhanced validation
-});
-
-test('returns enhanced validation when feature flag is enabled with valid JSON', () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
-
+test('useThemeValidation validates valid theme with standard tokens', () => {
   const validTheme = JSON.stringify({
     token: {
       colorPrimary: '#1890ff',
@@ -57,77 +27,107 @@ test('returns enhanced validation when feature flag is enabled with valid JSON',
     },
   });
 
-  const { result } = renderHook(() =>
-    useThemeValidation(validTheme, { themeName: 'Test Theme' }),
-  );
+  const { result } = renderHook(() => useThemeValidation(validTheme));
 
   expect(result.current.hasErrors).toBe(false);
-  expect(result.current.validTokenCount).toBe(2);
-  expect(result.current.invalidTokenCount).toBe(0);
+  expect(result.current.hasWarnings).toBe(false);
+  expect(result.current.annotations).toHaveLength(0);
 });
 
-test('returns enhanced validation warnings for invalid tokens when feature flag is enabled', () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
-
-  const invalidTheme = JSON.stringify({
+test('useThemeValidation shows warnings for unknown tokens', () => {
+  const themeWithUnknownToken = JSON.stringify({
     token: {
-      colorPrimary: '#1890ff', // valid
-      fontSize: 'invalid-size', // invalid
-      unknownToken: 'value', // unknown
+      colorPrimary: '#1890ff',
+      unknownToken: 'value',
     },
   });
 
   const { result } = renderHook(() =>
-    useThemeValidation(invalidTheme, { themeName: 'Test Theme' }),
+    useThemeValidation(themeWithUnknownToken),
   );
 
+  expect(result.current.hasErrors).toBe(false);
   expect(result.current.hasWarnings).toBe(true);
-  expect(result.current.validTokenCount).toBe(1);
-  expect(result.current.invalidTokenCount).toBe(2);
   expect(result.current.annotations.length).toBeGreaterThan(0);
+  expect(result.current.annotations[0].type).toBe('warning');
 });
 
-test('skips enhanced validation for empty JSON', () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
+test('useThemeValidation shows error for empty theme', () => {
+  const emptyTheme = JSON.stringify({});
 
+  const { result } = renderHook(() => useThemeValidation(emptyTheme));
+
+  expect(result.current.hasErrors).toBe(true);
+  expect(result.current.annotations.length).toBeGreaterThan(0);
+  expect(result.current.annotations[0].type).toBe('error');
+  expect(result.current.annotations[0].text).toContain('cannot be empty');
+});
+
+test('useThemeValidation shows error for invalid JSON syntax', () => {
+  const invalidJson = '{invalid json}';
+
+  const { result } = renderHook(() => useThemeValidation(invalidJson));
+
+  expect(result.current.hasErrors).toBe(true);
+  expect(result.current.annotations.length).toBeGreaterThan(0);
+  expect(result.current.annotations[0].type).toBe('error');
+});
+
+test('useThemeValidation skips validation for empty string', () => {
   const { result } = renderHook(() => useThemeValidation(''));
 
   expect(result.current.hasErrors).toBe(false);
   expect(result.current.hasWarnings).toBe(false);
-  expect(result.current.validTokenCount).toBe(0);
-  expect(result.current.invalidTokenCount).toBe(0);
+  expect(result.current.annotations).toHaveLength(0);
 });
 
-test('can be disabled via options', () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
+test('useThemeValidation validates Superset custom tokens', () => {
+  const themeWithCustomToken = JSON.stringify({
+    token: {
+      brandLogoUrl: '/static/logo.png',
+      brandSpinnerSvg: '<svg></svg>',
+    },
+  });
 
-  const { result } = renderHook(() =>
-    useThemeValidation('{"token": {"colorPrimary": "#fff"}}', {
-      enabled: false,
-    }),
-  );
+  const { result } = renderHook(() => useThemeValidation(themeWithCustomToken));
 
   expect(result.current.hasErrors).toBe(false);
   expect(result.current.hasWarnings).toBe(false);
-  expect(result.current.validTokenCount).toBe(0);
+  expect(result.current.annotations).toHaveLength(0);
 });
 
-// useIsEnhancedValidationEnabled tests
-test('returns feature flag status', () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
+test('useThemeValidation allows theme with only algorithm', () => {
+  const themeWithAlgorithm = JSON.stringify({
+    algorithm: 'dark',
+  });
 
-  const { result } = renderHook(() => useIsEnhancedValidationEnabled());
+  const { result } = renderHook(() => useThemeValidation(themeWithAlgorithm));
 
-  expect(result.current).toBe(true);
-  expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
-    FeatureFlag.EnhancedThemeValidation,
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.annotations).toHaveLength(0);
+});
+
+test('useThemeValidation shows warning for null token value', () => {
+  const themeWithNullValue = JSON.stringify({
+    token: {
+      colorPrimary: null,
+    },
+  });
+
+  const { result } = renderHook(() => useThemeValidation(themeWithNullValue));
+
+  expect(result.current.hasErrors).toBe(false);
+  expect(result.current.hasWarnings).toBe(true);
+  expect(result.current.annotations[0].type).toBe('warning');
+  expect(result.current.annotations[0].text).toContain('null/undefined');
+});
+
+test('useThemeValidation respects enabled option', () => {
+  const invalidJson = '{invalid}';
+
+  const { result } = renderHook(() =>
+    useThemeValidation(invalidJson, { enabled: false }),
   );
-});
 
-test('returns false when feature flag is disabled', () => {
-  mockIsFeatureEnabled.mockReturnValue(false);
-
-  const { result } = renderHook(() => useIsEnhancedValidationEnabled());
-
-  expect(result.current).toBe(false);
+  expect(result.current.annotations).toHaveLength(0);
 });
