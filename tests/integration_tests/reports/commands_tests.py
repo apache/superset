@@ -2128,7 +2128,7 @@ def test_soft_timeout_csv(
 
     assert_log(
         ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
+        error_message="CSV timeout: chart_id=",
     )
 
 
