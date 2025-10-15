@@ -252,9 +252,12 @@ class SnowflakeSemanticLayer:
                 options = cls._fetch_databases(connection)
                 properties["database"]["enum"] = list(options)
 
-            if all(
-                getattr(configuration, dependency)
-                for dependency in properties["schema"].get("x-dependsOn", [])
+            if (
+                all(
+                    getattr(configuration, dependency)
+                    for dependency in properties["schema"].get("x-dependsOn", [])
+                )
+                and configuration.database
             ):
                 options = cls._fetch_schemas(connection, configuration.database)
                 properties["schema"]["enum"] = list(options)
@@ -265,11 +268,20 @@ class SnowflakeSemanticLayer:
     def get_runtime_schema(
         cls,
         configuration: SnowflakeConfiguration,
+        runtime_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the runtime parameters needed to load explorables.
+
+        The schema can be enriched with actual values when `runtime_data` is provided,
+        enabling dynamic schema updates (e.g., populating schema dropdown after
+        database is selected).
         """
         fields: dict[str, tuple[type, Field]] = {}
+
+        # update configuration with runtime data, for example, to select a schema after
+        # the database has been selected
+        configuration = configuration.model_copy(update=runtime_data)
 
         connection_parameters = get_connection_parameters(configuration)
         with connect(**connection_parameters) as connection:
@@ -281,11 +293,38 @@ class SnowflakeSemanticLayer:
                 )
 
             if not configuration.schema_ or configuration.allow_changing_schema:
-                options = cls._fetch_schemas(connection, configuration.database)
-                fields["schema_"] = (
-                    Literal[*options],
-                    Field(description="The default schema to use.", alias="schema"),
-                )
+                if configuration.database:
+                    options = cls._fetch_schemas(connection, configuration.database)
+                    fields["schema_"] = (
+                        Literal[*options],
+                        Field(
+                            description="The default schema to use.",
+                            alias="schema",
+                            json_schema_extra=(
+                                {
+                                    "x-dynamic": True,
+                                    "x-dependsOn": ["database"],
+                                }
+                                if "database" in fields
+                                else {}
+                            ),
+                        ),
+                    )
+                else:
+                    # Database not provided yet, add schema as empty
+                    # (will be populated dynamically)
+                    fields["schema_"] = (
+                        str | None,
+                        Field(
+                            default=None,
+                            description="The default schema to use.",
+                            alias="schema",
+                            json_schema_extra={
+                                "x-dynamic": True,
+                                "x-dependsOn": ["database"],
+                            },
+                        ),
+                    )
 
         return create_model("RuntimeParameters", **fields).model_json_schema()
 
@@ -310,6 +349,8 @@ class SnowflakeSemanticLayer:
     ) -> set[str]:
         """
         Fetch the list of schemas available in a given database.
+
+        The connection should already have the database set in its context.
         """
         if not database:
             return set()

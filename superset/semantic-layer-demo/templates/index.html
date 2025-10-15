@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Schema Demo - Snowflake Configuration</title>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            color: #555;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1976D2;
+        }
+
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .json-output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .json-output pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group .description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .nested-form {
+            border-left: 3px solid #e0e0e0;
+            padding-left: 15px;
+            margin-left: 10px;
+        }
+
+        .discriminator-selector {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .dynamic-field {
+            position: relative;
+        }
+
+        .dynamic-field::after {
+            content: '⚡';
+            position: absolute;
+            right: 30px;
+            top: 32px;
+            font-size: 18px;
+            opacity: 0.5;
+        }
+
+        .dynamic-field.loading::after {
+            content: '⟳';
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .form-group select:disabled,
+        .form-group input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dynamic Schema Demo - Snowflake Configuration</h1>
+
+    <div class="info-box">
+        <h3>How it works</h3>
+        <p>
+            This demo shows dynamic form generation with Pydantic and JSON Schema.
+            As you fill in the form, fields marked with <code>x-dynamic: true</code>
+            will automatically populate with options when their dependencies (specified in
+            <code>x-dependsOn</code>) are satisfied.
+        </p>
+        <p>
+            <strong>Try it:</strong> Enter an account identifier (try <code>abc12345</code> or <code>xyz67890</code>),
+            fill in authentication, and watch the database dropdown populate (marked with ⚡). Then select a database
+            to see schema options.
+        </p>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <h2>Configuration Form</h2>
+            <div id="status-config" class="status info">
+                Fill in the configuration. Dynamic fields will update automatically.
+            </div>
+            <form id="configuration-form"></form>
+            <button id="validate-config">Validate Configuration</button>
+            <button id="get-runtime-schema">Get Runtime Schema</button>
+            <div id="config-data" class="json-output" style="display: none;">
+                <strong>Current Configuration Data:</strong>
+                <pre id="config-json"></pre>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Runtime Form</h2>
+            <div id="status-runtime" class="status info">
+                Complete the configuration first, then click "Get Runtime Schema". If database/schema weren't configured, you'll select them here (dynamically).
+            </div>
+            <form id="runtime-form"></form>
+            <div id="runtime-data" class="json-output" style="display: none;">
+                <strong>Runtime Parameters:</strong>
+                <pre id="runtime-json"></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top: 20px;">
+        <h2>Schema Details</h2>
+        <div id="schema-info" class="json-output">
+            <strong>Current Configuration Schema:</strong>
+            <pre id="schema-json"></pre>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let configSchema = null;
+        let configData = {};
+
+        let runtimeSchema = null;
+        let runtimeData = {};
+
+        // Helper function to resolve $ref in JSON Schema
+        function resolveRef(refPath, schema = configSchema) {
+            if (!refPath || !refPath.startsWith('#/')) return null;
+
+            // Remove the leading '#/' and split by '/'
+            const parts = refPath.substring(2).split('/');
+
+            // Navigate through the schema
+            let result = schema;
+            for (const part of parts) {
+                if (result && typeof result === 'object') {
+                    result = result[part];
+                } else {
+                    return null;
+                }
+            }
+
+            return result;
+        }
+
+        // Form rendering utilities
+        function renderForm(schema, data, formId, onDataChange) {
+            const form = document.getElementById(formId);
+            form.innerHTML = '';
+
+            if (!schema || !schema.properties) {
+                form.innerHTML = '<p>No schema available</p>';
+                return;
+            }
+
+            // Handle discriminated unions (like auth)
+            const properties = schema.properties;
+            const required = schema.required || [];
+
+            // Object.entries preserves insertion order (ES2015+), so field order from Pydantic is maintained
+            Object.entries(properties).forEach(([key, prop]) => {
+                const fieldName = prop.alias || key;
+                const isRequired = required.includes(key);
+                const isDynamic = prop['x-dynamic'] || false;
+
+                // Only treat as discriminated union if it has an actual discriminator
+                // Simple nullable fields with anyOf should be handled as regular fields
+                if (prop.discriminator) {
+                    renderDiscriminatedUnion(form, key, prop, data, onDataChange, isDynamic);
+                } else {
+                    renderField(form, key, fieldName, prop, data[key], isRequired, onDataChange, isDynamic);
+                }
+            });
+        }
+
+        function renderField(container, key, displayName, prop, value, required, onChange, isDynamic = false) {
+            const group = document.createElement('div');
+            group.className = 'form-group' + (isDynamic ? ' dynamic-field' : '');
+
+            const label = document.createElement('label');
+            label.textContent = displayName + (required ? ' *' : '');
+            label.htmlFor = key;
+            group.appendChild(label);
+
+            if (prop.description) {
+                const desc = document.createElement('div');
+                desc.className = 'description';
+                desc.textContent = prop.description;
+                group.appendChild(desc);
+            }
+
+            // Determine the actual type (handle anyOf pattern)
+            let actualType = prop.type;
+            if (!actualType && prop.anyOf) {
+                // Find the non-null type in anyOf
+                const nonNullType = prop.anyOf.find(t => t.type !== 'null');
+                actualType = nonNullType?.type;
+            }
+
+            // Handle different field types
+            if (prop.enum && prop.enum.length > 0) {
+                const select = document.createElement('select');
+                select.id = key;
+                select.name = key;
+
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '-- Select --';
+                select.appendChild(emptyOption);
+
+                prop.enum.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option;
+                    opt.textContent = option;
+                    if (value === option) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                select.addEventListener('change', (e) => onChange(key, e.target.value));
+                group.appendChild(select);
+            } else if (actualType === 'boolean') {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = key;
+                checkbox.name = key;
+                checkbox.checked = value || false;
+                checkbox.addEventListener('change', (e) => onChange(key, e.target.checked));
+                group.appendChild(checkbox);
+            } else if (actualType === 'string' || actualType === 'integer' || actualType === 'number' || !actualType) {
+                const input = document.createElement('input');
+                input.type = prop.format === 'password' ? 'password' : 'text';
+                input.id = key;
+                input.name = key;
+                input.value = value || '';
+                input.placeholder = prop.examples ? prop.examples[0] : '';
+                input.addEventListener('input', (e) => onChange(key, e.target.value));
+                group.appendChild(input);
+            }
+
+            container.appendChild(group);
+        }
+
+        function renderDiscriminatedUnion(container, key, prop, data, onDataChange, isDynamic = false) {
+            const group = document.createElement('div');
+            group.className = 'form-group' + (isDynamic ? ' dynamic-field' : '');
+
+            const label = document.createElement('label');
+            label.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' *';
+            group.appendChild(label);
+
+            if (prop.description) {
+                const desc = document.createElement('div');
+                desc.className = 'description';
+                desc.textContent = prop.description;
+                group.appendChild(desc);
+            }
+
+            // Get the discriminator field - it's an object with propertyName
+            const discriminatorObj = prop.discriminator || {};
+            const discriminatorField = discriminatorObj.propertyName || 'type';
+            const mapping = discriminatorObj.mapping || {};
+            const oneOf = prop.oneOf || prop.anyOf || [];
+
+            // If no mapping but we have oneOf, we can't render this properly
+            if (Object.keys(mapping).length === 0 && oneOf.length === 0) {
+                console.warn('Cannot render discriminated union without mapping or oneOf');
+                return;
+            }
+
+            // Create discriminator selector
+            const selectorDiv = document.createElement('div');
+            selectorDiv.className = 'discriminator-selector';
+
+            const select = document.createElement('select');
+            select.id = key + '_type';
+
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Select Type --';
+            select.appendChild(emptyOption);
+
+            // Build options from mapping
+            Object.entries(mapping).forEach(([typeValue, refPath]) => {
+                const opt = document.createElement('option');
+                opt.value = typeValue;
+
+                // Try to get title from the referenced schema
+                const schema = resolveRef(refPath);
+                opt.textContent = schema?.title || typeValue;
+
+                if (data[key] && data[key][discriminatorField] === typeValue) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+
+            selectorDiv.appendChild(select);
+            group.appendChild(selectorDiv);
+
+            // Create container for nested fields
+            const nestedContainer = document.createElement('div');
+            nestedContainer.className = 'nested-form';
+            nestedContainer.id = key + '_fields';
+            group.appendChild(nestedContainer);
+
+            // Render nested fields based on selected type
+            const renderNestedFields = (selectedType) => {
+                nestedContainer.innerHTML = '';
+                if (!selectedType) return;
+
+                // Get the schema for this type from mapping
+                const refPath = mapping[selectedType];
+                const selectedSchema = resolveRef(refPath);
+
+                if (selectedSchema && selectedSchema.properties) {
+                    const nestedData = data[key] || {};
+                    Object.entries(selectedSchema.properties).forEach(([nestedKey, nestedProp]) => {
+                        if (nestedKey === discriminatorField) return; // Skip discriminator field
+
+                        renderField(
+                            nestedContainer,
+                            key + '.' + nestedKey,
+                            nestedKey,
+                            nestedProp,
+                            nestedData[nestedKey],
+                            selectedSchema.required?.includes(nestedKey),
+                            (fullKey, value) => {
+                                const actualKey = fullKey.split('.')[1];
+                                if (!data[key]) data[key] = {};
+                                data[key][actualKey] = value;
+                                onDataChange(key, data[key]);
+                            }
+                        );
+                    });
+                }
+            };
+
+            // Initial render
+            if (data[key]) {
+                renderNestedFields(data[key][discriminatorField]);
+            }
+
+            // Handle type selection
+            select.addEventListener('change', (e) => {
+                const selectedType = e.target.value;
+                if (selectedType) {
+                    data[key] = { [discriminatorField]: selectedType };
+                    onDataChange(key, data[key]);
+                    renderNestedFields(selectedType);
+                } else {
+                    delete data[key];
+                    onDataChange(key, undefined);
+                    nestedContainer.innerHTML = '';
+                }
+            });
+
+            container.appendChild(group);
+        }
+
+        // Configuration form management
+        async function initConfigForm() {
+            try {
+                const response = await fetch('/api/schema/configuration');
+                configSchema = await response.json();
+                updateSchemaDisplay(configSchema);
+                renderConfigurationForm();
+                updateStatus('status-config', 'Fill in the configuration. Dynamic fields will update automatically.', 'info');
+            } catch (error) {
+                console.error('Error loading schema:', error);
+                updateStatus('status-config', 'Error loading schema: ' + error.message, 'error');
+            }
+        }
+
+        function renderConfigurationForm() {
+            renderForm(configSchema, configData, 'configuration-form', handleConfigChange);
+        }
+
+        let updateTimer = null;
+        function handleConfigChange(key, value) {
+            configData[key] = value;
+
+            // Update the JSON display
+            document.getElementById('config-data').style.display = 'block';
+            document.getElementById('config-json').textContent = JSON.stringify(configData, null, 2);
+
+            // Debounce the schema update request
+            clearTimeout(updateTimer);
+            updateTimer = setTimeout(async () => {
+                await updateConfigSchema(configData);
+            }, 500);
+        }
+
+        async function updateConfigSchema(data) {
+            try {
+                const dynamicFields = getDynamicFields(configSchema);
+                let shouldUpdate = false;
+                const fieldsToUpdate = [];
+
+                // Check if any dynamic field's dependencies are now satisfied
+                for (const [field, dependencies] of Object.entries(dynamicFields)) {
+                    if (areDependenciesSatisfied(dependencies, data)) {
+                        shouldUpdate = true;
+                        fieldsToUpdate.push(field);
+                    }
+                }
+
+                if (shouldUpdate) {
+                    // Add loading state to dynamic fields
+                    fieldsToUpdate.forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const formGroup = fieldElement?.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.classList.add('loading');
+                            if (fieldElement) {
+                                fieldElement.disabled = true;
+                            }
+                        }
+                    });
+
+                    const response = await fetch('/api/schema/configuration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        const newSchema = await response.json();
+
+                        // Update and re-render with the new schema
+                        configSchema = newSchema;
+                        updateSchemaDisplay(configSchema);
+                        renderConfigurationForm();
+                        updateStatus('status-config', 'Schema updated with new options!', 'success');
+                    }
+
+                    // Remove loading state (form will be re-rendered anyway, but this ensures cleanup)
+                    fieldsToUpdate.forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const formGroup = fieldElement?.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.classList.remove('loading');
+                            if (fieldElement) {
+                                fieldElement.disabled = false;
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating schema:', error);
+                // Remove loading state on error
+                document.querySelectorAll('.form-group.loading').forEach(el => {
+                    el.classList.remove('loading');
+                });
+            }
+        }
+
+        // Track dependencies for dynamic fields
+        function getDynamicFields(schema) {
+            const dynamicFields = {};
+            if (schema && schema.properties) {
+                Object.entries(schema.properties).forEach(([key, prop]) => {
+                    if (prop['x-dynamic']) {
+                        dynamicFields[key] = prop['x-dependsOn'] || [];
+                    }
+                });
+            }
+            return dynamicFields;
+        }
+
+        // Check if dependencies are satisfied
+        function areDependenciesSatisfied(dependencies, data) {
+            return dependencies.every(dep => {
+                const value = data[dep];
+                if (value === null || value === undefined || value === '') {
+                    return false;
+                }
+                if (typeof value === 'object' && Object.keys(value).length === 0) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Validate configuration
+        async function validateConfiguration() {
+            try {
+                const response = await fetch('/api/validate/configuration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configData)
+                });
+
+                if (response.ok) {
+                    updateStatus('status-config', 'Configuration is valid!', 'success');
+                } else {
+                    const error = await response.json();
+                    updateStatus('status-config', 'Validation errors: ' + JSON.stringify(error.errors, null, 2), 'error');
+                }
+            } catch (error) {
+                updateStatus('status-config', 'Error validating: ' + error.message, 'error');
+            }
+        }
+
+        // Runtime form management
+        async function getRuntimeSchema() {
+            try {
+                const response = await fetch('/api/schema/runtime', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        configuration: configData,
+                        runtime_data: null
+                    })
+                });
+
+                if (response.ok) {
+                    runtimeSchema = await response.json();
+                    runtimeData = {};
+                    renderRuntimeForm();
+                    updateStatus('status-runtime', 'Runtime schema loaded. Fill in runtime parameters.', 'info');
+                } else {
+                    const error = await response.json();
+                    updateStatus('status-runtime', 'Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                updateStatus('status-runtime', 'Error loading runtime schema: ' + error.message, 'error');
+            }
+        }
+
+        function renderRuntimeForm() {
+            renderForm(runtimeSchema, runtimeData, 'runtime-form', handleRuntimeChange);
+        }
+
+        let runtimeUpdateTimer = null;
+        function handleRuntimeChange(key, value) {
+            runtimeData[key] = value;
+            document.getElementById('runtime-data').style.display = 'block';
+            document.getElementById('runtime-json').textContent = JSON.stringify(runtimeData, null, 2);
+
+            // Debounce the schema update request
+            clearTimeout(runtimeUpdateTimer);
+            runtimeUpdateTimer = setTimeout(async () => {
+                await updateRuntimeSchema(runtimeData);
+            }, 500);
+        }
+
+        async function updateRuntimeSchema(data) {
+            try {
+                const dynamicFields = getDynamicFields(runtimeSchema);
+                let shouldUpdate = false;
+                const fieldsToUpdate = [];
+
+                // Check if any dynamic field's dependencies are now satisfied
+                for (const [field, dependencies] of Object.entries(dynamicFields)) {
+                    if (areDependenciesSatisfied(dependencies, data)) {
+                        shouldUpdate = true;
+                        fieldsToUpdate.push(field);
+                    }
+                }
+
+                if (shouldUpdate) {
+                    // Add loading state to dynamic fields
+                    fieldsToUpdate.forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const formGroup = fieldElement?.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.classList.add('loading');
+                            if (fieldElement) {
+                                fieldElement.disabled = true;
+                            }
+                        }
+                    });
+
+                    const response = await fetch('/api/schema/runtime', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            configuration: configData,
+                            runtime_data: data
+                        })
+                    });
+
+                    if (response.ok) {
+                        const newSchema = await response.json();
+
+                        // Update and re-render with the new schema
+                        runtimeSchema = newSchema;
+                        renderRuntimeForm();
+                        updateStatus('status-runtime', 'Runtime schema updated with new options!', 'success');
+                    }
+
+                    // Remove loading state
+                    fieldsToUpdate.forEach(field => {
+                        const fieldElement = document.getElementById(field);
+                        const formGroup = fieldElement?.closest('.form-group');
+                        if (formGroup) {
+                            formGroup.classList.remove('loading');
+                            if (fieldElement) {
+                                fieldElement.disabled = false;
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating runtime schema:', error);
+                // Remove loading state on error
+                document.querySelectorAll('#runtime-form .form-group.loading').forEach(el => {
+                    el.classList.remove('loading');
+                });
+            }
+        }
+
+        // Utility functions
+        function updateStatus(elementId, message, type) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+        }
+
+        function updateSchemaDisplay(schema) {
+            document.getElementById('schema-json').textContent = JSON.stringify(schema, null, 2);
+        }
+
+        // Event listeners
+        document.getElementById('validate-config').addEventListener('click', validateConfiguration);
+        document.getElementById('get-runtime-schema').addEventListener('click', getRuntimeSchema);
+
+        // Initialize on page load
+        initConfigForm();
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Flask==3.0.0
+flask-cors==4.0.0
+pydantic==2.5.0
+snowflake-connector-python==3.6.0
+cryptography==41.0.7
