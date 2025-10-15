@@ -63,8 +63,12 @@ Create chart name and version as used by the chart label.
 
 
 {{- define "superset-config" }}
+import logging
 import os
+import sys
 from flask_caching.backends.rediscache import RedisCache
+
+logger = logging.getLogger()
 
 def env(key, default=None):
     return os.getenv(key, default)
@@ -117,6 +121,39 @@ RESULTS_BACKEND = RedisCache(
       ssl_cert_reqs=env('REDIS_SSL_CERT_REQS'),
       {{- end }}
 )
+
+# MonexpertAPI Scheduler Integration
+# MonexpertAPI Scheduler Integration
+from superset.initialization import SupersetAppInitializer
+
+class CustomAppInitializer(SupersetAppInitializer):
+    """Custom initializer to add API Scheduler after AppBuilder menu is ready"""
+    
+    def init_views(self):
+        """Called after AppBuilder builds its menu tree"""
+        super().init_views()
+        
+        logger.info("Registering API Scheduler Blueprint...")
+        
+        try:
+            from superset.views.api_scheduler.views import api_scheduler_bp
+            self.superset_app.register_blueprint(api_scheduler_bp)
+            logger.info("✓ API Scheduler Blueprint registered")
+            
+            from superset import appbuilder
+            appbuilder.add_link(
+                name="API Scheduler",
+                href="/api-scheduler/dashboard",
+                icon="fa-clock",
+                category="Settings"
+            )
+            logger.info("✓ API Scheduler menu link added")
+            
+        except Exception as e:
+            logger.error(f"Failed to register API Scheduler: {str(e)}")
+            raise
+
+APP_INITIALIZER = CustomAppInitializer
 
 {{ if .Values.configOverrides }}
 # Overrides
