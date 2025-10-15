@@ -685,30 +685,10 @@ const transformProps = (
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;
   const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
-  // Resolve theme token names to actual colors in conditional formatting
-  const resolvedConditionalFormatting = conditionalFormatting?.map(
-    (config: ConditionalFormattingConfig) => {
-      if (
-        config.colorScheme &&
-        typeof config.colorScheme === 'string' &&
-        config.colorScheme.startsWith('color') &&
-        theme?.[config.colorScheme as keyof typeof theme]
-      ) {
-        return {
-          ...config,
-          colorScheme: theme[
-            config.colorScheme as keyof typeof theme
-          ] as string,
-        };
-      }
-      return config;
-    },
-  );
-
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(resolvedConditionalFormatting, passedData) ?? [];
+    getColorFormatters(conditionalFormatting, passedData, theme) ?? [];
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,
