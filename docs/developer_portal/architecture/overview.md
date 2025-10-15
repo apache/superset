@@ -1,348 +1,194 @@
 ---
-title: Architecture Overview
+title: Extension Architecture
 sidebar_position: 1
-hide_title: true
 ---
 
 <!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 -->
 
-# Extension Architecture Overview
+# Superset Extension Architecture
 
-The Superset extension architecture is designed to be modular, secure, and performant. This document provides a comprehensive overview of how extensions work and interact with the Superset host application.
+Apache Superset's extension architecture enables developers to enhance and customize the platform without modifying the core codebase. Inspired by the successful VS Code Extensions model, this architecture provides well-defined, versioned APIs and clear contribution points that allow the community to build upon and extend Superset's functionality.
 
-## Core Principles
+## Core Concepts
 
-### 1. Lean Core
-Superset's core remains minimal, with features delegated to extensions wherever possible. Built-in features use the same APIs as external extensions, ensuring API quality through dogfooding.
+### Extensions vs Plugins
 
-### 2. Explicit Contribution Points
-All extension points are clearly defined and documented. Extensions declare their capabilities in metadata files, enabling predictable lifecycle management.
+We use the term "extensions" rather than "plugins" to better convey the idea of enhancing and expanding Superset's core capabilities in a modular and integrated way. Extensions can add new features, modify existing behavior, and integrate deeply with the host application through well-defined APIs.
 
-### 3. Versioned APIs
-Public interfaces follow semantic versioning, ensuring backward compatibility and safe evolution of the platform.
+### Lean Core Philosophy
 
-### 4. Lazy Loading
-Extensions load only when needed, minimizing performance impact and resource consumption.
+Superset's core remains minimal, with many features delegated to extensions. Built-in features are implemented using the same APIs available to external extension authors, ensuring consistency and validating the extension architecture through real-world usage.
 
-### 5. Composability
-Architecture patterns and APIs are reusable across different Superset modules, promoting consistency.
+## Architecture Overview
 
-### 6. Community-Driven
-The system evolves based on real-world feedback, with new extension points added as needs emerge.
-
-## System Architecture
-
-```mermaid
-graph TB
-    subgraph "Superset Host Application"
-        Core[Core Application]
-        API[Extension APIs]
-        Loader[Extension Loader]
-        Manager[Extension Manager]
-    end
-
-    subgraph "Core Packages"
-        FrontendCore["@apache-superset/core<br/>(Frontend)"]
-        BackendCore["apache-superset-core<br/>(Backend)"]
-        CLI["apache-superset-extensions-cli"]
-    end
-
-    subgraph "Extension"
-        Metadata[extension.json]
-        Frontend[Frontend Code]
-        Backend[Backend Code]
-        Bundle[.supx Bundle]
-    end
-
-    Core --> API
-    API --> FrontendCore
-    API --> BackendCore
-    Loader --> Manager
-    Manager --> Bundle
-    Frontend --> FrontendCore
-    Backend --> BackendCore
-    CLI --> Bundle
-```
-
-## Key Components
-
-### Host Application
-
-The Superset host application provides:
-
-- **Extension APIs**: Well-defined interfaces for extensions to interact with Superset
-- **Extension Manager**: Handles lifecycle, activation, and deactivation
-- **Module Loader**: Dynamically loads extension code using Webpack Module Federation
-- **Security Context**: Manages permissions and sandboxing for extensions
+The extension architecture consists of several key components:
 
 ### Core Packages
 
 #### @apache-superset/core (Frontend)
-- Shared UI components and utilities
-- TypeScript type definitions
-- Frontend API implementations
-- Event system and command registry
+Provides essential building blocks for extensions:
+- Shared UI components
+- Utility functions
+- Type definitions
+- Frontend APIs for interacting with the host
 
 #### apache-superset-core (Backend)
-- Python base classes and utilities
+Exposes backend functionality:
 - Database access APIs
-- Security and permission helpers
-- REST API registration
+- Security models
+- REST API extensions
+- SQLAlchemy models and utilities
 
-#### apache-superset-extensions-cli
-- Project scaffolding
-- Build and bundling tools
-- Development server
-- Package management
+### Extension CLI
 
-### Extension Structure
+The `apache-superset-extensions-cli` package provides commands for:
+- Scaffolding new extension projects
+- Building and bundling extensions
+- Development workflows with hot-reload
+- Packaging extensions for distribution
 
-Each extension consists of:
+### Host Application
 
-- **Metadata** (`extension.json`): Declares capabilities and requirements
-- **Frontend**: React components and TypeScript code
-- **Backend**: Python modules and API endpoints
-- **Assets**: Styles, images, and other resources
-- **Bundle** (`.supx`): Packaged distribution format
+Superset acts as the host, providing:
+- Extension registration and management
+- Dynamic loading of extension assets
+- API implementation for extensions
+- Lifecycle management (activation/deactivation)
 
-## Module Federation
+## Extension Points
 
-Extensions use Webpack Module Federation for dynamic loading:
+Extensions can contribute to various parts of Superset:
 
-```javascript
-// Extension webpack.config.js
-new ModuleFederationPlugin({
-  name: 'my_extension',
-  filename: 'remoteEntry.[contenthash].js',
-  exposes: {
-    './index': './src/index.tsx',
-  },
-  externals: {
-    '@apache-superset/core': 'superset',
-  },
-  shared: {
-    react: { singleton: true },
-    'react-dom': { singleton: true },
-  }
-})
-```
+### SQL Lab Extensions
+- Custom panels (left, right, bottom)
+- Editor enhancements
+- Query processors
+- Autocomplete providers
+- Execution plan visualizers
 
-This allows:
-- **Independent builds**: Extensions compile separately from Superset
-- **Shared dependencies**: Common libraries like React aren't duplicated
-- **Dynamic loading**: Extensions load at runtime without rebuilding Superset
-- **Version compatibility**: Extensions declare compatible core versions
+### Dashboard Extensions (Future)
+- Custom widget types
+- Filter components
+- Interaction handlers
 
-## Extension Lifecycle
+### Chart Extensions (Future)
+- New visualization types
+- Data transformers
+- Export formats
 
-### 1. Registration
+## Technical Foundation
+
+### Module Federation
+
+Frontend extensions leverage Webpack Module Federation for dynamic loading:
+- Extensions are built independently
+- Dependencies are shared with the host
+- No rebuild of Superset required
+- Runtime loading of extension assets
+
+### API Versioning
+
+All public APIs follow semantic versioning:
+- Breaking changes require major version bumps
+- Extensions declare compatibility requirements
+- Backward compatibility maintained within major versions
+
+### Security Model
+
+- Extensions disabled by default (require `ENABLE_EXTENSIONS` flag)
+- Built-in extensions follow same security standards as core
+- External extensions run in same context as host (sandboxing planned)
+- Administrators responsible for vetting third-party extensions
+
+## Development Workflow
+
+1. **Initialize**: Use CLI to scaffold new extension
+2. **Develop**: Work with hot-reload in development mode
+3. **Build**: Bundle frontend and backend assets
+4. **Package**: Create `.supx` distribution file
+5. **Deploy**: Upload through API or management UI
+
+## Example: Dataset References Extension
+
+A practical example demonstrating the architecture:
+
 ```typescript
-// Extension registered with host
-extensionManager.register({
-  name: 'my-extension',
-  version: '1.0.0',
-  manifest: manifestData
-});
-```
-
-### 2. Activation
-```typescript
-// activate() called when extension loads
-export function activate(context: ExtensionContext) {
-  // Register contributions
-  const disposables = [];
-
-  // Add panel
-  disposables.push(
-    context.core.registerView('my-panel', MyPanel)
+// Frontend activation
+export function activate(context) {
+  // Register a new SQL Lab panel
+  const panel = core.registerView('dataset_references.main',
+    <DatasetReferencesPanel />
   );
 
-  // Register command
-  disposables.push(
-    context.commands.registerCommand('my-command', {
-      execute: () => { /* ... */ }
-    })
-  );
+  // Listen to query changes
+  const listener = sqlLab.onDidQueryRun(editor => {
+    // Analyze query and update panel
+  });
 
-  // Store for cleanup
-  context.subscriptions.push(...disposables);
+  // Cleanup on deactivation
+  context.subscriptions.push(panel, listener);
 }
 ```
-
-### 3. Runtime
-- Extension responds to events
-- Provides UI components when requested
-- Executes commands when triggered
-- Accesses APIs as needed
-
-### 4. Deactivation
-```typescript
-// Automatic cleanup of registered items
-export function deactivate() {
-  // context.subscriptions automatically disposed
-  // Additional cleanup if needed
-}
-```
-
-## Contribution Types
-
-### Views
-Extensions can add panels and UI components:
-
-```json
-{
-  "views": {
-    "sqllab.panels": [{
-      "id": "my-panel",
-      "name": "My Panel",
-      "icon": "ToolOutlined"
-    }]
-  }
-}
-```
-
-### Commands
-Define executable actions:
-
-```json
-{
-  "commands": [{
-    "command": "my-extension.run",
-    "title": "Run Analysis",
-    "icon": "PlayCircleOutlined"
-  }]
-}
-```
-
-### Menus
-Add items to existing menus:
-
-```json
-{
-  "menus": {
-    "sqllab.editor": {
-      "primary": [{
-        "command": "my-extension.run",
-        "when": "editorHasSelection"
-      }]
-    }
-  }
-}
-```
-
-### API Endpoints
-Register backend REST endpoints:
 
 ```python
+# Backend API extension
 from superset_core.api import rest_api
+from .api import DatasetReferencesAPI
 
-@rest_api.route('/my-endpoint')
-def my_endpoint():
-    return {'data': 'value'}
+# Register custom REST endpoints
+rest_api.add_extension_api(DatasetReferencesAPI)
 ```
-
-## Security Model
-
-### Permissions
-- Extensions run with user's permissions
-- No elevation of privileges
-- Access controlled by Superset's RBAC
-
-### Sandboxing
-- Frontend code runs in browser context
-- Backend code runs in Python process
-- Future: Optional sandboxed execution
-
-### Validation
-- Manifest validation on upload
-- Signature verification (future)
-- Dependency scanning
-
-## Performance Considerations
-
-### Lazy Loading
-- Extensions load only when features are accessed
-- Code splitting for large extensions
-- Cached after first load
-
-### Bundle Optimization
-- Tree shaking removes unused code
-- Minification reduces size
-- Compression for network transfer
-
-### Resource Management
-- Automatic cleanup on deactivation
-- Memory leak prevention
-- Event listener management
-
-## Development vs Production
-
-### Development Mode
-```python
-# superset_config.py
-ENABLE_EXTENSIONS = True
-LOCAL_EXTENSIONS = ['/path/to/extension']
-```
-- Hot reloading
-- Source maps
-- Debug logging
-
-### Production Mode
-- Optimized bundles
-- Cached assets
-- Performance monitoring
-
-## Future Enhancements
-
-### Planned Features
-- Enhanced sandboxing
-- Extension marketplace
-- Inter-extension communication
-- Theme contributions
-- Chart type extensions
-
-### API Expansion
-- Dashboard extensions
-- Database connector API
-- Security provider interface
-- Workflow automation
 
 ## Best Practices
 
-### Do's
-- ✅ Use TypeScript for type safety
-- ✅ Follow semantic versioning
-- ✅ Handle errors gracefully
-- ✅ Clean up resources properly
-- ✅ Document your extension
+### Extension Design
+- Keep extensions focused on specific functionality
+- Use versioned APIs for stability
+- Handle cleanup properly on deactivation
+- Follow Superset's coding standards
 
-### Don'ts
-- ❌ Access private APIs
-- ❌ Modify global state directly
-- ❌ Block the main thread
-- ❌ Store sensitive data insecurely
-- ❌ Assume API stability in 0.x versions
+### Performance
+- Lazy load assets when possible
+- Minimize bundle sizes
+- Share dependencies with host
+- Cache expensive operations
 
-## Learn More
+### Compatibility
+- Declare API version requirements
+- Test across Superset versions
+- Provide migration guides for breaking changes
+- Document compatibility clearly
 
-- [API Reference](../api/frontend)
-- [Development Guide](../getting-started)
-- [Security Guidelines](./security)
-- [Performance Optimization](./performance)
+## Future Roadmap
+
+Planned enhancements include:
+- JavaScript sandboxing for untrusted extensions
+- Extension marketplace and registry
+- Inter-extension communication
+- Advanced theming capabilities
+- Backend hot-reload without restart
+
+## Getting Started
+
+Ready to build your first extension? Check out:
+- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
+- [API Reference](/developer_portal/api/frontend)
+- [CLI Documentation](/developer_portal/cli/overview)
+- [Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)

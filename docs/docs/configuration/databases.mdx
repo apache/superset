@@ -49,6 +49,7 @@ are compatible with Superset.
 | [Apache Pinot](/docs/configuration/databases#apache-pinot)                     | `pip install pinotdb`                                                              | `pinot://BROKER:5436/query?server=http://CONTROLLER:5983/`                                                                                             |
 | [Apache Solr](/docs/configuration/databases#apache-solr)                       | `pip install sqlalchemy-solr`                                                      | `solr://{username}:{password}@{hostname}:{port}/{server_path}/{collection}`                                                                            |
 | [Apache Spark SQL](/docs/configuration/databases#apache-spark-sql)             | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                                                             |
+| [Arc (Basekick Labs)](/docs/configuration/databases#arc)                       | `pip install arc-superset-dialect`                                                | `arc://{api_key}@{hostname}:{port}/{database}`                                                                                                         |
 | [Ascend.io](/docs/configuration/databases#ascendio)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                        |
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
@@ -1255,6 +1256,20 @@ The expected connection string is formatted as follows:
 ```
 hive://hive@{hostname}:{port}/{database}
 ```
+
+#### Arc
+
+The recommended connector library is [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/). Install with `pip install arc-superset-dialect`.
+
+The connection string looks like:
+
+```
+arc://{api_key}@{hostname}:{port}/{database}
+```
+
+##### Multi-Database Support
+
+Arc supports multiple databases (schemas) within a single instance. In Superset, each Arc database appears as a schema in the SQL Lab, and cross-database queries are supported using `database.table` syntax.
 
 #### SQL Server
 

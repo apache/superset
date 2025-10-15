@@ -17,9 +17,20 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import { logging } from '@superset-ui/core';
+import { logging, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsManager from './ExtensionsManager';
+
+// Mock the isFeatureEnabled function
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
 
 const mockInitialState = {
   user: { userId: 1 },
@@ -36,12 +47,26 @@ beforeEach(() => {
 
   // Clear any existing ExtensionsManager instance
   (ExtensionsManager as any).instance = undefined;
+
+  // Reset feature flag mock to enabled by default
+  mockIsFeatureEnabled.mockReset();
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  // Setup fetch mocks for API calls
+  fetchMock.restore();
+  fetchMock.get('glob:*/api/v1/extensions/', {
+    result: [],
+  });
 });
 
 afterEach(() => {
   // Clean up after each test
   delete (window as any).superset;
   (ExtensionsManager as any).instance = undefined;
+
+  // Reset mocks
+  mockIsFeatureEnabled.mockReset();
+  fetchMock.restore();
 });
 
 test('renders without crashing', () => {
@@ -55,6 +80,12 @@ test('renders without crashing', () => {
 });
 
 test('sets up global superset object when user is logged in', async () => {
+  // Mock initializeExtensions to avoid API calls in this test
+  const manager = ExtensionsManager.getInstance();
+  const initializeSpy = jest
+    .spyOn(manager, 'initializeExtensions')
+    .mockImplementation(() => Promise.resolve());
+
   render(<ExtensionsStartup />, {
     useRedux: true,
     initialState: mockInitialState,
@@ -70,6 +101,8 @@ test('sets up global superset object when user is logged in', async () => {
     expect((window as any).superset.extensions).toBeDefined();
     expect((window as any).superset.sqlLab).toBeDefined();
   });
+
+  initializeSpy.mockRestore();
 });
 
 test('does not set up global superset object when user is not logged in', async () => {
@@ -85,18 +118,26 @@ test('does not set up global superset object when user is not logged in', async 
 });
 
 test('initializes ExtensionsManager when user is logged in', async () => {
+  // Mock initializeExtensions to avoid API calls, but track that it was called
+  const manager = ExtensionsManager.getInstance();
+  const initializeSpy = jest
+    .spyOn(manager, 'initializeExtensions')
+    .mockImplementation(() => Promise.resolve());
+
   render(<ExtensionsStartup />, {
     useRedux: true,
     initialState: mockInitialState,
   });
 
   await waitFor(() => {
-    // Verify ExtensionsManager has been initialized by checking if it has extensions loaded
-    const manager = ExtensionsManager.getInstance();
+    // Verify ExtensionsManager initialization was called
+    expect(initializeSpy).toHaveBeenCalledTimes(1);
     // The manager should exist and be ready to use
     expect(manager).toBeDefined();
     expect(manager.getExtensions).toBeDefined();
   });
+
+  initializeSpy.mockRestore();
 });
 
 test('does not initialize ExtensionsManager when user is not logged in', async () => {
@@ -112,61 +153,6 @@ test('does not initialize ExtensionsManager when user is not logged in', async (
     // Since no initialization happened, there should be no extensions loaded initially
     expect(manager.getExtensions()).toEqual([]);
   });
-});
-
-test('handles ExtensionsManager initialization errors gracefully', async () => {
-  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
-
-  // Mock the initializeExtensions method to throw an error
-  const originalInitialize = ExtensionsManager.prototype.initializeExtensions;
-  ExtensionsManager.prototype.initializeExtensions = jest
-    .fn()
-    .mockImplementation(() => {
-      throw new Error('Test initialization error');
-    });
-
-  render(<ExtensionsStartup />, {
-    useRedux: true,
-    initialState: mockInitialState,
-  });
-
-  await waitFor(() => {
-    // Verify error was logged
-    expect(errorSpy).toHaveBeenCalledWith(
-      'Error setting up extensions:',
-      expect.any(Error),
-    );
-  });
-
-  // Restore original method
-  ExtensionsManager.prototype.initializeExtensions = originalInitialize;
-  errorSpy.mockRestore();
-});
-
-test('logs success message when ExtensionsManager initializes successfully', async () => {
-  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
-
-  // Mock the initializeExtensions method to succeed
-  const originalInitialize = ExtensionsManager.prototype.initializeExtensions;
-  ExtensionsManager.prototype.initializeExtensions = jest
-    .fn()
-    .mockImplementation(() => Promise.resolve());
-
-  render(<ExtensionsStartup />, {
-    useRedux: true,
-    initialState: mockInitialState,
-  });
-
-  await waitFor(() => {
-    // Verify success message was logged
-    expect(infoSpy).toHaveBeenCalledWith(
-      'Extensions initialized successfully.',
-    );
-  });
-
-  // Restore original method
-  ExtensionsManager.prototype.initializeExtensions = originalInitialize;
-  infoSpy.mockRestore();
 });
 
 test('only initializes once even with multiple renders', async () => {
@@ -202,4 +188,107 @@ test('only initializes once even with multiple renders', async () => {
 
   // Restore original method
   manager.initializeExtensions = originalInitialize;
+});
+
+test('initializes ExtensionsManager and logs success when EnableExtensions feature flag is enabled', async () => {
+  // Ensure feature flag is enabled
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.EnableExtensions,
+  );
+
+  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
+
+  // Mock the initializeExtensions method to succeed
+  const originalInitialize = ExtensionsManager.prototype.initializeExtensions;
+  ExtensionsManager.prototype.initializeExtensions = jest
+    .fn()
+    .mockImplementation(() => Promise.resolve());
+
+  render(<ExtensionsStartup />, {
+    useRedux: true,
+    initialState: mockInitialState,
+  });
+
+  await waitFor(() => {
+    // Verify feature flag was checked
+    expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
+      FeatureFlag.EnableExtensions,
+    );
+    // Verify initialization was called
+    expect(
+      ExtensionsManager.prototype.initializeExtensions,
+    ).toHaveBeenCalledTimes(1);
+    // Verify success message was logged
+    expect(infoSpy).toHaveBeenCalledWith(
+      'Extensions initialized successfully.',
+    );
+  });
+
+  // Restore original method
+  ExtensionsManager.prototype.initializeExtensions = originalInitialize;
+  infoSpy.mockRestore();
+});
+
+test('does not initialize ExtensionsManager when EnableExtensions feature flag is disabled', async () => {
+  // Disable the feature flag
+  mockIsFeatureEnabled.mockReturnValue(false);
+
+  const manager = ExtensionsManager.getInstance();
+  const initializeSpy = jest
+    .spyOn(manager, 'initializeExtensions')
+    .mockImplementation();
+
+  render(<ExtensionsStartup />, {
+    useRedux: true,
+    initialState: mockInitialState,
+  });
+
+  await waitFor(() => {
+    // Verify feature flag was checked
+    expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
+      FeatureFlag.EnableExtensions,
+    );
+    // Verify the global superset object is still set up
+    expect((window as any).superset).toBeDefined();
+    // But extensions should not be initialized
+    expect(initializeSpy).not.toHaveBeenCalled();
+  });
+
+  initializeSpy.mockRestore();
+});
+
+test('logs error when ExtensionsManager initialization fails', async () => {
+  // Ensure feature flag is enabled
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+
+  // Mock the initializeExtensions method to throw an error
+  const originalInitialize = ExtensionsManager.prototype.initializeExtensions;
+  ExtensionsManager.prototype.initializeExtensions = jest
+    .fn()
+    .mockImplementation(() => {
+      throw new Error('Test initialization error');
+    });
+
+  render(<ExtensionsStartup />, {
+    useRedux: true,
+    initialState: mockInitialState,
+  });
+
+  await waitFor(() => {
+    // Verify feature flag was checked
+    expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
+      FeatureFlag.EnableExtensions,
+    );
+    // Verify error was logged
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error setting up extensions:',
+      expect.any(Error),
+    );
+  });
+
+  // Restore original method
+  ExtensionsManager.prototype.initializeExtensions = originalInitialize;
+  errorSpy.mockRestore();
 });

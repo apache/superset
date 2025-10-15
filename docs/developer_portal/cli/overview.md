@@ -1,466 +1,578 @@
-<!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
--->
 ---
-title: CLI Documentation
+title: Extension CLI
 sidebar_position: 1
-hide_title: true
 ---
 
-# Superset Extensions CLI
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-The `apache-superset-extensions-cli` provides command-line tools for creating, developing, and packaging Superset extensions.
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Superset Extension CLI
+
+The `apache-superset-extensions-cli` package provides command-line tools for creating, developing, and packaging Apache Superset extensions. It streamlines the entire extension development workflow from initialization to deployment.
 
 ## Installation
+
+Install the CLI globally using pip:
 
 ```bash
 pip install apache-superset-extensions-cli
 ```
 
-## Commands
+Or install locally in your project:
+
+```bash
+pip install --user apache-superset-extensions-cli
+```
+
+Verify installation:
+
+```bash
+superset-extensions --version
+# Output: apache-superset-extensions-cli version 1.0.0
+```
+
+## Commands Overview
+
+| Command | Description |
+|---------|-------------|
+| `init` | Create a new extension project |
+| `dev` | Start development mode with hot reload |
+| `build` | Build extension assets for production |
+| `bundle` | Package extension into a .supx file |
+| `validate` | Validate extension metadata and structure |
+| `publish` | Publish extension to registry (future) |
+
+## Command Reference
 
 ### init
 
-Creates a new extension project with the standard folder structure.
+Creates a new extension project with the standard structure and boilerplate code.
 
 ```bash
-superset-extensions init <extension-name> [options]
+superset-extensions init [options] <extension-name>
 ```
 
-**Options:**
-- `--template <template>`: Use a specific template (default: basic)
-- `--author <name>`: Set the author name
-- `--description <text>`: Set the extension description
-- `--with-backend`: Include backend code structure
+#### Options
 
-**Example:**
+- `--type, -t <type>` - Extension type: `full` (default), `frontend-only`, `backend-only`
+- `--template <template>` - Project template: `default`, `sql-lab`, `dashboard`, `chart`
+- `--author <name>` - Extension author name
+- `--description <desc>` - Extension description
+- `--license <license>` - License identifier (default: Apache-2.0)
+- `--superset-version <version>` - Minimum Superset version (default: 4.0.0)
+- `--skip-install` - Skip installing dependencies
+- `--use-typescript` - Use TypeScript for frontend (default: true)
+- `--use-npm` - Use npm instead of yarn
+
+#### Examples
+
 ```bash
-superset-extensions init my-extension \
-  --author "John Doe" \
-  --description "Adds custom analytics to SQL Lab" \
-  --with-backend
+# Create a basic extension
+superset-extensions init my-extension
+
+# Create a SQL Lab focused extension
+superset-extensions init query-optimizer --template sql-lab
+
+# Create frontend-only extension
+superset-extensions init custom-viz --type frontend-only
+
+# Create with metadata
+superset-extensions init data-quality \
+  --author "Jane Doe" \
+  --description "Data quality monitoring for SQL Lab"
 ```
 
-**Generated Structure:**
+#### Generated Structure
+
 ```
 my-extension/
-├── extension.json
-├── frontend/
+├── extension.json          # Extension metadata
+├── frontend/              # Frontend source code
 │   ├── src/
-│   │   └── index.tsx
+│   │   ├── index.tsx     # Main entry point
+│   │   └── components/   # React components
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── webpack.config.js
-├── backend/
+├── backend/               # Backend source code
 │   ├── src/
 │   │   └── my_extension/
 │   │       ├── __init__.py
-│   │       └── entrypoint.py
+│   │       └── api.py
 │   ├── tests/
-│   ├── pyproject.toml
 │   └── requirements.txt
-└── README.md
+├── README.md
+└── .gitignore
 ```
 
 ### dev
 
-Starts the development server with hot reloading.
+Starts development mode with automatic rebuilding and hot reload.
 
 ```bash
 superset-extensions dev [options]
 ```
 
-**Options:**
-- `--port <port>`: Development server port (default: 9001)
-- `--host <host>`: Development server host (default: localhost)
-- `--no-watch`: Disable file watching
-- `--verbose`: Show detailed output
+#### Options
 
-**Example:**
+- `--port, -p <port>` - Development server port (default: 9001)
+- `--host <host>` - Development server host (default: localhost)
+- `--watch-backend` - Also watch backend files (default: true)
+- `--watch-frontend` - Also watch frontend files (default: true)
+- `--no-open` - Don't open browser automatically
+- `--superset-url <url>` - Superset instance URL (default: http://localhost:8088)
+- `--verbose` - Enable verbose logging
+
+#### Examples
+
 ```bash
-# Start development server
+# Start development mode
 superset-extensions dev
 
-# Output:
-⚙️  Building frontend assets...
-✅ Frontend rebuilt
-✅ Backend files synced
-✅ Manifest updated
-👀 Watching for changes...
+# Use custom port
+superset-extensions dev --port 9002
+
+# Connect to remote Superset
+superset-extensions dev --superset-url https://superset.example.com
 ```
+
+#### Development Workflow
+
+1. **Start the dev server:**
+```bash
+superset-extensions dev
+```
+
+2. **Configure Superset** (`superset_config.py`):
+```python
+LOCAL_EXTENSIONS = [
+    "/path/to/your/extension"
+]
+ENABLE_EXTENSIONS = True
+```
+
+3. **Start Superset:**
+```bash
+superset run -p 8088 --with-threads --reload
+```
+
+The extension will automatically reload when you make changes.
 
 ### build
 
-Builds the extension for production.
+Builds extension assets for production deployment.
 
 ```bash
 superset-extensions build [options]
 ```
 
-**Options:**
-- `--mode <mode>`: Build mode (development | production)
-- `--analyze`: Generate bundle analysis
-- `--source-maps`: Include source maps
+#### Options
 
-**Example:**
+- `--mode <mode>` - Build mode: `production` (default), `development`
+- `--analyze` - Generate bundle analysis report
+- `--source-maps` - Generate source maps
+- `--minify` - Minify output (default: true in production)
+- `--output, -o <dir>` - Output directory (default: dist)
+- `--clean` - Clean output directory before build
+- `--parallel` - Build frontend and backend in parallel
+
+#### Examples
+
 ```bash
 # Production build
-superset-extensions build --mode production
+superset-extensions build
 
-# With analysis
+# Development build with source maps
+superset-extensions build --mode development --source-maps
+
+# Analyze bundle size
 superset-extensions build --analyze
+
+# Custom output directory
+superset-extensions build --output build
+```
+
+#### Build Output
+
+```
+dist/
+├── manifest.json          # Build manifest
+├── frontend/
+│   ├── remoteEntry.[hash].js
+│   ├── [name].[hash].js
+│   └── assets/
+└── backend/
+    └── my_extension/
+        ├── __init__.py
+        └── *.py
 ```
 
 ### bundle
 
-Creates a `.supx` package for distribution.
+Packages the built extension into a distributable `.supx` file.
 
 ```bash
 superset-extensions bundle [options]
 ```
 
-**Options:**
-- `--output <path>`: Output directory (default: current)
-- `--sign`: Sign the package (requires certificate)
-- `--compress`: Compression level (0-9, default: 6)
+#### Options
 
-**Example:**
+- `--output, -o <file>` - Output filename (default: `{name}-{version}.supx`)
+- `--sign` - Sign the bundle (requires configured keys)
+- `--compression <level>` - Compression level 0-9 (default: 6)
+- `--exclude <patterns>` - Files to exclude (comma-separated)
+- `--include-dev-deps` - Include development dependencies
+
+#### Examples
+
 ```bash
 # Create bundle
 superset-extensions bundle
 
-# Creates: my-extension-1.0.0.supx
+# Custom output name
+superset-extensions bundle --output my-extension-latest.supx
+
+# Signed bundle
+superset-extensions bundle --sign
+
+# Exclude test files
+superset-extensions bundle --exclude "**/*.test.js,**/*.spec.ts"
+```
+
+#### Bundle Structure
+
+The `.supx` file is a ZIP archive containing:
+
+```
+my-extension-1.0.0.supx
+├── manifest.json
+├── extension.json
+├── frontend/
+│   └── dist/
+└── backend/
+    └── src/
 ```
 
 ### validate
 
-Validates extension configuration and structure.
+Validates extension structure, metadata, and compatibility.
 
 ```bash
 superset-extensions validate [options]
 ```
 
-**Options:**
-- `--fix`: Auto-fix common issues
-- `--strict`: Enable strict validation
+#### Options
 
-**Checks:**
-- Valid extension.json syntax
-- Required files present
-- Dependency versions
-- Module exports
-- TypeScript configuration
+- `--strict` - Enable strict validation
+- `--fix` - Auto-fix correctable issues
+- `--check-deps` - Validate dependencies
+- `--check-security` - Run security checks
 
-**Example:**
-```bash
-superset-extensions validate --strict
-
-# Output:
-✅ extension.json valid
-✅ Frontend structure valid
-✅ Backend structure valid
-⚠️  Warning: Missing LICENSE file
-✅ Validation passed with warnings
-```
-
-### test
-
-Runs extension tests.
+#### Examples
 
 ```bash
-superset-extensions test [options]
+# Basic validation
+superset-extensions validate
+
+# Strict mode with auto-fix
+superset-extensions validate --strict --fix
+
+# Full validation
+superset-extensions validate --check-deps --check-security
 ```
 
-**Options:**
-- `--coverage`: Generate coverage report
-- `--watch`: Run in watch mode
-- `--frontend-only`: Run only frontend tests
-- `--backend-only`: Run only backend tests
+#### Validation Checks
 
-**Example:**
-```bash
-# Run all tests
-superset-extensions test --coverage
+- Extension metadata completeness
+- File structure conformity
+- API version compatibility
+- Dependency security vulnerabilities
+- Code quality standards
+- Bundle size limits
 
-# Watch mode for frontend
-superset-extensions test --frontend-only --watch
-```
+## Configuration File
 
-### publish
-
-Publishes extension to a registry (future feature).
-
-```bash
-superset-extensions publish [options]
-```
-
-**Options:**
-- `--registry <url>`: Registry URL
-- `--token <token>`: Authentication token
-- `--dry-run`: Simulate publish
-
-## Configuration
-
-### Project Configuration
-
-The CLI reads configuration from multiple sources:
-
-1. **extension.json** - Extension metadata
-2. **package.json** - Frontend dependencies
-3. **pyproject.toml** - Backend configuration
-4. **.extensionrc** - CLI-specific settings
-
-### .extensionrc Example
+Create `.superset-extension.json` for project-specific settings:
 
 ```json
 {
+  "build": {
+    "mode": "production",
+    "sourceMaps": true,
+    "analyze": false,
+    "parallel": true
+  },
   "dev": {
     "port": 9001,
     "host": "localhost",
-    "autoReload": true
+    "autoOpen": true
   },
-  "build": {
-    "mode": "production",
-    "sourceMaps": false,
-    "optimization": true
+  "bundle": {
+    "compression": 6,
+    "sign": false,
+    "exclude": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/tests/**"
+    ]
   },
-  "test": {
-    "coverage": true,
-    "threshold": {
-      "statements": 80,
-      "branches": 70,
-      "functions": 80,
-      "lines": 80
-    }
+  "validation": {
+    "strict": true,
+    "autoFix": true
   }
 }
 ```
 
-## Templates
-
-### Available Templates
-
-- **basic**: Simple extension with frontend only
-- **full-stack**: Frontend and backend components
-- **sql-panel**: SQL Lab panel extension
-- **api-only**: Backend API extension
-- **chart-plugin**: Custom chart visualization
-
-### Using Templates
-
-```bash
-# Use specific template
-superset-extensions init my-chart --template chart-plugin
-
-# List available templates
-superset-extensions init --list-templates
-```
-
-### Custom Templates
-
-Create custom templates in `~/.superset-extensions/templates/`:
-
-```
-~/.superset-extensions/templates/
-└── my-template/
-    ├── template.json
-    └── files/
-        └── ... template files ...
-```
-
-## Development Workflow
-
-### 1. Create Extension
-
-```bash
-superset-extensions init awesome-feature
-cd awesome-feature
-```
-
-### 2. Install Dependencies
-
-```bash
-# Frontend
-cd frontend && npm install
-
-# Backend (if applicable)
-cd ../backend && pip install -r requirements.txt
-```
-
-### 3. Configure Superset
-
-```python
-# superset_config.py
-ENABLE_EXTENSIONS = True
-LOCAL_EXTENSIONS = [
-    "/path/to/awesome-feature"
-]
-```
-
-### 4. Start Development
-
-```bash
-# Terminal 1: Extension dev server
-superset-extensions dev
-
-# Terminal 2: Superset
-superset run -p 8088 --reload
-```
-
-### 5. Test Changes
-
-Make changes to your code and see them reflected immediately in Superset.
-
-### 6. Build and Package
-
-```bash
-# Validate
-superset-extensions validate
-
-# Test
-superset-extensions test
-
-# Build
-superset-extensions build --mode production
-
-# Bundle
-superset-extensions bundle
-```
-
-### 7. Deploy
-
-Upload the `.supx` file to your Superset instance.
-
 ## Environment Variables
 
-The CLI respects these environment variables:
-
-- `SUPERSET_EXTENSIONS_DEV_PORT`: Development server port
-- `SUPERSET_EXTENSIONS_DEV_HOST`: Development server host
-- `SUPERSET_BASE_URL`: Superset instance URL
-- `NODE_ENV`: Node environment (development/production)
-- `PYTHONPATH`: Python module search path
-
-## Troubleshooting
-
-### Common Issues
-
-#### Port Already in Use
+Configure CLI behavior using environment variables:
 
 ```bash
-# Use different port
-superset-extensions dev --port 9002
+# Superset connection
+export SUPERSET_URL=http://localhost:8088
+export SUPERSET_USERNAME=admin
+export SUPERSET_PASSWORD=admin
+
+# Development settings
+export EXTENSION_DEV_PORT=9001
+export EXTENSION_DEV_HOST=localhost
+
+# Build settings
+export EXTENSION_BUILD_MODE=production
+export EXTENSION_SOURCE_MAPS=true
+
+# Registry settings (future)
+export EXTENSION_REGISTRY_URL=https://registry.superset.apache.org
+export EXTENSION_REGISTRY_TOKEN=your-token
 ```
-
-#### Module Federation Errors
-
-```bash
-# Rebuild with clean cache
-rm -rf dist/ node_modules/.cache
-superset-extensions build
-```
-
-#### Python Import Errors
-
-```bash
-# Ensure virtual environment is activated
-source venv/bin/activate
-superset-extensions dev
-```
-
-### Debug Mode
-
-Enable verbose output for troubleshooting:
-
-```bash
-# Verbose output
-superset-extensions dev --verbose
-
-# Debug webpack
-DEBUG=webpack:* superset-extensions build
-```
-
-## Best Practices
-
-1. **Version Control**: Commit `extension.json` but not `dist/`
-2. **Dependencies**: Pin versions in package.json
-3. **Testing**: Write tests for critical functionality
-4. **Documentation**: Keep README.md updated
-5. **Validation**: Run validate before bundling
-6. **Semantic Versioning**: Follow semver for releases
 
 ## Advanced Usage
 
-### Custom Webpack Configuration
+### Custom Templates
 
-Extend the default webpack config:
+Create custom project templates:
 
-```javascript
-// webpack.config.js
-const baseConfig = require('./webpack.base.config');
+```bash
+# Use custom template
+superset-extensions init my-ext --template https://github.com/user/template
 
-module.exports = {
-  ...baseConfig,
-  // Custom modifications
-  resolve: {
-    ...baseConfig.resolve,
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
-  },
-};
+# Use local template
+superset-extensions init my-ext --template ./my-template
 ```
 
 ### CI/CD Integration
 
+#### GitHub Actions
+
 ```yaml
-# .github/workflows/extension.yml
-name: Extension CI
+name: Build Extension
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - uses: actions/setup-python@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
 
       - name: Install CLI
         run: pip install apache-superset-extensions-cli
 
+      - name: Install dependencies
+        run: |
+          npm install --prefix frontend
+          pip install -r backend/requirements.txt
+
       - name: Validate
         run: superset-extensions validate --strict
-
-      - name: Test
-        run: superset-extensions test --coverage
 
       - name: Build
         run: superset-extensions build --mode production
 
       - name: Bundle
         run: superset-extensions bundle
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: extension-bundle
+          path: '*.supx'
 ```
 
-## Getting Help
+### Automated Deployment
 
-- **Documentation**: [Developer Portal](../)
-- **Examples**: [GitHub Repository](https://github.com/apache/superset/tree/master/extensions)
-- **Issues**: [GitHub Issues](https://github.com/apache/superset/issues)
-- **Community**: [Slack Channel](https://apache-superset.slack.com)
+Deploy extensions automatically:
+
+```bash
+#!/bin/bash
+# deploy.sh
+
+# Build and bundle
+superset-extensions build --mode production
+superset-extensions bundle --sign
+
+# Upload to Superset instance
+BUNDLE=$(ls *.supx | head -1)
+curl -X POST "$SUPERSET_URL/api/v1/extensions/import/" \
+  -H "Authorization: Bearer $SUPERSET_TOKEN" \
+  -F "bundle=@$BUNDLE"
+
+# Verify deployment
+curl "$SUPERSET_URL/api/v1/extensions/" \
+  -H "Authorization: Bearer $SUPERSET_TOKEN"
+```
+
+### Multi-Extension Projects
+
+Manage multiple extensions in one repository:
+
+```bash
+# Initialize multiple extensions
+superset-extensions init extensions/viz-plugin --type frontend-only
+superset-extensions init extensions/sql-optimizer --template sql-lab
+superset-extensions init extensions/auth-provider --type backend-only
+
+# Build all extensions
+for dir in extensions/*/; do
+  (cd "$dir" && superset-extensions build)
+done
+
+# Bundle all extensions
+for dir in extensions/*/; do
+  (cd "$dir" && superset-extensions bundle)
+done
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Port already in use
+
+```bash
+# Error: Port 9001 is already in use
+
+# Solution: Use a different port
+superset-extensions dev --port 9002
+```
+
+#### Module not found
+
+```bash
+# Error: Cannot find module '@apache-superset/core'
+
+# Solution: Ensure dependencies are installed
+npm install --prefix frontend
+```
+
+#### Build failures
+
+```bash
+# Check Node and Python versions
+node --version  # Should be 16+
+python --version  # Should be 3.9+
+
+# Clear cache and rebuild
+rm -rf dist node_modules frontend/node_modules
+npm install --prefix frontend
+superset-extensions build --clean
+```
+
+#### Bundle too large
+
+```bash
+# Warning: Bundle size exceeds recommended limit
+
+# Solution: Analyze and optimize
+superset-extensions build --analyze
+
+# Exclude unnecessary files
+superset-extensions bundle --exclude "**/*.map,**/*.test.*"
+```
+
+### Debug Mode
+
+Enable debug logging:
+
+```bash
+# Set debug environment variable
+export DEBUG=superset-extensions:*
+
+# Or use verbose flag
+superset-extensions dev --verbose
+superset-extensions build --verbose
+```
+
+### Getting Help
+
+```bash
+# General help
+superset-extensions --help
+
+# Command-specific help
+superset-extensions init --help
+superset-extensions dev --help
+
+# Version information
+superset-extensions --version
+```
+
+## Best Practices
+
+### Development
+
+1. **Use TypeScript** for type safety
+2. **Follow the style guide** for consistency
+3. **Write tests** for critical functionality
+4. **Document your code** with JSDoc/docstrings
+5. **Use development mode** for rapid iteration
+
+### Building
+
+1. **Optimize bundle size** - analyze and tree-shake
+2. **Generate source maps** for debugging
+3. **Validate before building** to catch issues early
+4. **Use production mode** for final builds
+5. **Clean build directory** to avoid stale files
+
+### Deployment
+
+1. **Sign your bundles** for security
+2. **Version properly** using semantic versioning
+3. **Test in staging** before production deployment
+4. **Document breaking changes** in CHANGELOG
+5. **Provide migration guides** for major updates
+
+## Resources
+
+- [Extension Architecture](/developer_portal/architecture/overview)
+- [API Reference](/developer_portal/api/frontend)
+- [Frontend Contribution Types](/developer_portal/extensions/frontend-contribution-types)
+- [GitHub Repository](https://github.com/apache/superset)
+- [Community Forum](https://github.com/apache/superset/discussions)
