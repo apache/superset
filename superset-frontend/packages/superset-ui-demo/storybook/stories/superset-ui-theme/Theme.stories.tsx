@@ -19,6 +19,11 @@
 
 import { supersetTheme, themeObject } from '@superset-ui/core';
 
+// Legacy theme structure for storybook display
+interface LegacyThemeStructure {
+  colors: Record<string, Record<string, string>>;
+}
+
 const colorTypes = [
   'primary',
   'error',
@@ -66,7 +71,9 @@ const AntDFunctionalColors = () => {
               <strong>{type}</strong>
             </td>
             {variants.map(variant => {
-              const color = themeObject.getColorVariants(type)[variant];
+              const color = (themeObject as any).getColorVariants?.(type)?.[
+                variant
+              ];
               return (
                 <td
                   key={variant}
@@ -89,7 +96,7 @@ const AntDFunctionalColors = () => {
 };
 
 export const ThemeColors = () => {
-  const { colors } = supersetTheme;
+  const { colors } = supersetTheme as unknown as LegacyThemeStructure;
 
   // Define tones to be displayed in columns
   const tones = [
@@ -140,7 +147,7 @@ export const ThemeColors = () => {
                     style={{
                       border: '1px solid #ddd',
                       padding: '8px',
-                      backgroundColor: color || '#fff',
+                      backgroundColor: color || 'transparent',
                     }}
                   >
                     {color ? <code>{color}</code> : '-'}

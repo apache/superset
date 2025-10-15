@@ -64,7 +64,7 @@ const SelectAsyncControl = ({
   ...props
 }: SelectAsyncControlProps) => {
   const [options, setOptions] = useState<SelectOptionsType>([]);
-  const [loaded, setLoaded] = useState<Boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;

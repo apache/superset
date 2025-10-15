@@ -240,7 +240,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
       const modifiedOwnState = {
-        ...(options?.ownState || {}),
+        ...options?.ownState,
         currentPage: 0,
         pageSize: queryObject.row_limit ?? 0,
       };

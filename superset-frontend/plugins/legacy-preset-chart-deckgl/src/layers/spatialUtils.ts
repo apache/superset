@@ -214,7 +214,7 @@ export function addJsColumnsToExtraProps<
     return feature;
   }
 
-  const extraProps: Record<string, unknown> = { ...(feature.extraProps ?? {}) };
+  const extraProps: Record<string, unknown> = { ...feature.extraProps };
 
   jsColumns.forEach(col => {
     if (record[col] !== undefined) {

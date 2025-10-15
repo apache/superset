@@ -97,7 +97,7 @@ const Actions = styled.div`
   }
 `;
 
-function BooleanDisplay({ value }: { value: Boolean }) {
+function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
     <Icons.CheckOutlined iconSize="s" />
   ) : (

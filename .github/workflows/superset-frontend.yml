@@ -135,15 +135,15 @@ jobs:
         run: |
           docker load < docker-image.tar.gz
 
-      - name: eslint
+      - name: lint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run eslint -- . --quiet"
+          "npm i && npm run lint"
 
       - name: tsc
         run: |
           docker run --rm $TAG bash -c \
-          "npm run plugins:build && npm run type"
+          "npm i && npm run plugins:build && npm run type"
 
   validate-frontend:
     needs: frontend-build
