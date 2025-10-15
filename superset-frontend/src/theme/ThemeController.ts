@@ -303,7 +303,12 @@ export class ThemeController {
   public setThemeMode(mode: ThemeMode): void {
     this.validateModeUpdatePermission(mode);
 
-    if (this.currentMode === mode) return;
+    if (
+      this.currentMode === mode &&
+      !this.devThemeOverride &&
+      !this.crudThemeId
+    )
+      return;
 
     // Clear any local overrides when explicitly selecting a theme mode
     // This ensures the selected mode takes effect and provides clear UX

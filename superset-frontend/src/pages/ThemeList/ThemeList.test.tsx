@@ -201,62 +201,109 @@ describe('ThemesList', () => {
     expect(addButton).toBeInTheDocument();
   });
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('Modal.useModal integration', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
+  test('uses Modal.useModal hook instead of Modal.confirm', () => {
+    const useModalSpy = jest.spyOn(Modal, 'useModal');
+    renderThemesList();
+
+    // Verify that useModal is called when the component mounts
+    expect(useModalSpy).toHaveBeenCalled();
+
+    useModalSpy.mockRestore();
+  });
+
+  test('renders contextHolder for modal theming', async () => {
+    const { container } = renderThemesList();
+
+    // Wait for component to be rendered
+    await screen.findByText('Themes');
+
+    // The contextHolder is rendered but invisible, so we check for its presence in the DOM
+    // Modal.useModal returns elements that get rendered in the component tree
+    const contextHolderExists = container.querySelector('.ant-modal-root');
+    expect(contextHolderExists).toBeDefined();
+  });
+
+  test('sets up modal context for system theme confirmations', async () => {
+    fetchMock.post('glob:*/api/v1/theme/*/set_system_default', {});
+
+    renderThemesList();
+
+    // Wait for list to load
+    await screen.findByTestId('themes-list-view');
+
+    // Verify the component renders without errors when modal context is available
+    // The actual modal functionality is tested through the Modal.useModal hook test
+    expect(screen.getByTestId('themes-list-view')).toBeInTheDocument();
+  });
+
+  test('does not use deprecated Modal.confirm directly', () => {
+    // Create a spy on the static Modal.confirm method
+    const confirmSpy = jest.spyOn(Modal, 'confirm');
+
+    renderThemesList();
+
+    // The component should not call Modal.confirm directly
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
+  test('applying a local theme stores theme ID in localStorage', async () => {
+    // Clear localStorage before test
+    localStorage.clear();
+
+    renderThemesList();
+
+    // Wait for list to load
+    await screen.findByTestId('themes-list-view');
+
+    // Find and click the apply button for the first theme
+    const applyButtons = await screen.findAllByTestId('apply-action');
+    fireEvent.click(applyButtons[0]);
+
+    // Check that localStorage was updated
+    await waitFor(() => {
+      expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
     });
 
-    test('uses Modal.useModal hook instead of Modal.confirm', () => {
-      const useModalSpy = jest.spyOn(Modal, 'useModal');
-      renderThemesList();
+    // Cleanup
+    localStorage.clear();
+  });
 
-      // Verify that useModal is called when the component mounts
-      expect(useModalSpy).toHaveBeenCalled();
+  test('component loads successfully with localStorage theme ID set', async () => {
+    // This test verifies that having a stored theme ID doesn't break the component
+    localStorage.setItem('superset-applied-theme-id', '1');
+    localStorage.setItem(
+      'superset-dev-theme-override',
+      JSON.stringify({ token: { colorPrimary: '#1890ff' } }),
+    );
 
-      useModalSpy.mockRestore();
-    });
+    renderThemesList();
 
-    test('renders contextHolder for modal theming', async () => {
-      const { container } = renderThemesList();
+    // Wait for list to load and verify it renders successfully
+    const listView = await screen.findByTestId('themes-list-view');
+    expect(listView).toBeInTheDocument();
 
-      // Wait for component to be rendered
-      await screen.findByText('Themes');
+    // Verify the component can read localStorage without errors
+    expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
 
-      // The contextHolder is rendered but invisible, so we check for its presence in the DOM
-      // Modal.useModal returns elements that get rendered in the component tree
-      const contextHolderExists = container.querySelector('.ant-modal-root');
-      expect(contextHolderExists).toBeDefined();
-    });
+    // Cleanup
+    localStorage.clear();
+  });
 
-    test('confirms system theme changes using themed modal', async () => {
-      const mockSetSystemDefault = jest.fn().mockResolvedValue({});
-      fetchMock.post(
-        'glob:*/api/v1/theme/*/set_system_default',
-        mockSetSystemDefault,
-      );
+  test('component loads successfully and preserves localStorage state', async () => {
+    // Set initial state to verify localStorage isn't corrupted
+    localStorage.setItem('superset-applied-theme-id', '1');
 
-      renderThemesList();
+    renderThemesList();
 
-      // Wait for list to load
-      await screen.findByTestId('themes-list-view');
+    // Wait for list to load
+    await screen.findByTestId('themes-list-view');
 
-      // Since the test data doesn't render actual action buttons, we'll verify
-      // that the modal system is properly set up by checking the hook was called
-      // This is validated in the "uses Modal.useModal hook" test
-      expect(true).toBe(true);
-    });
+    // Verify localStorage is preserved during component mount
+    expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
 
-    test('does not use deprecated Modal.confirm directly', () => {
-      // Create a spy on the static Modal.confirm method
-      const confirmSpy = jest.spyOn(Modal, 'confirm');
-
-      renderThemesList();
-
-      // The component should not call Modal.confirm directly
-      expect(confirmSpy).not.toHaveBeenCalled();
-
-      confirmSpy.mockRestore();
-    });
+    // Cleanup
+    localStorage.clear();
   });
 });

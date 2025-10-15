@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Tag,
@@ -110,7 +110,7 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, getCurrentCrudThemeId } = useThemeContext();
+  const { setTemporaryTheme, hasDevOverride } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -119,6 +119,30 @@ function ThemesList({
 
   // Use Modal.useModal hook to ensure proper theming
   const [modal, contextHolder] = Modal.useModal();
+
+  const clearAppliedTheme = useCallback(() => {
+    setAppliedThemeId(null);
+    try {
+      localStorage.removeItem('superset-applied-theme-id');
+    } catch (error) {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasDevOverride()) {
+      try {
+        const storedThemeId = localStorage.getItem('superset-applied-theme-id');
+        if (storedThemeId) {
+          setAppliedThemeId(parseInt(storedThemeId, 10));
+        }
+      } catch (error) {
+        clearAppliedTheme();
+      }
+    } else {
+      clearAppliedTheme();
+    }
+  }, [clearAppliedTheme, hasDevOverride]);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -202,8 +226,19 @@ function ThemesList({
       if (themeObj.json_data) {
         try {
           const themeConfig = JSON.parse(themeObj.json_data);
+          const themeId = themeObj.id || null;
+
           setTemporaryTheme(themeConfig);
-          setAppliedThemeId(themeObj.id || null);
+          setAppliedThemeId(themeId);
+
+          if (themeId) {
+            localStorage.setItem(
+              'superset-applied-theme-id',
+              themeId.toString(),
+            );
+          } else {
+            localStorage.removeItem('superset-applied-theme-id');
+          }
           addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
         } catch (error) {
           addDangerToast(
@@ -219,22 +254,26 @@ function ThemesList({
     // Clear any previously applied theme ID when applying from modal
     // since the modal theme might not have an ID yet (unsaved theme)
     setAppliedThemeId(null);
+    localStorage.removeItem('superset-applied-theme-id');
   }
 
-  const handleBulkThemeExport = async (themesToExport: ThemeObject[]) => {
-    const ids = themesToExport
-      .map(({ id }) => id)
-      .filter((id): id is number => id !== undefined);
-    setPreparingExport(true);
-    try {
-      await handleResourceExport('theme', ids, () => {
+  const handleBulkThemeExport = useCallback(
+    async (themesToExport: ThemeObject[]) => {
+      const ids = themesToExport
+        .map(({ id }) => id)
+        .filter((id): id is number => id !== undefined);
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('theme', ids, () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
         setPreparingExport(false);
-      });
-    } catch (error) {
-      setPreparingExport(false);
-      addDangerToast(t('There was an issue exporting the selected themes'));
-    }
-  };
+        addDangerToast(t('There was an issue exporting the selected themes'));
+      }
+    },
+    [addDangerToast],
+  );
 
   const openThemeImportModal = () => {
     showImportModal(true);
@@ -251,60 +290,72 @@ function ThemesList({
   };
 
   // Generic confirmation modal utility to reduce code duplication
-  const showThemeConfirmation = (config: {
-    title: string;
-    content: string;
-    onConfirm: () => Promise<any>;
-    successMessage: string;
-    errorMessage: string;
-  }) => {
-    modal.confirm({
-      title: config.title,
-      content: config.content,
-      onOk: () => {
-        config
-          .onConfirm()
-          .then(() => {
-            refreshData();
-            addSuccessToast(config.successMessage);
-          })
-          .catch(err => {
-            addDangerToast(t(config.errorMessage, err.message));
-          });
-      },
-    });
-  };
+  const showThemeConfirmation = useCallback(
+    (config: {
+      title: string;
+      content: string;
+      onConfirm: () => Promise<any>;
+      successMessage: string;
+      errorMessage: string;
+    }) => {
+      modal.confirm({
+        title: config.title,
+        content: config.content,
+        onOk: () => {
+          config
+            .onConfirm()
+            .then(() => {
+              refreshData();
+              addSuccessToast(config.successMessage);
+            })
+            .catch(err => {
+              addDangerToast(t(config.errorMessage, err.message));
+            });
+        },
+      });
+    },
+    [modal, refreshData, addSuccessToast, addDangerToast],
+  );
 
-  const handleSetSystemDefault = (theme: ThemeObject) => {
-    showThemeConfirmation({
-      title: t('Set System Default Theme'),
-      content: t(
-        'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
-        theme.theme_name,
-      ),
-      onConfirm: () => setSystemDefaultTheme(theme.id!),
-      successMessage: t(
-        '"%s" is now the system default theme',
-        theme.theme_name,
-      ),
-      errorMessage: 'Failed to set system default theme: %s',
-    });
-  };
+  const handleSetSystemDefault = useCallback(
+    (theme: ThemeObject) => {
+      showThemeConfirmation({
+        title: t('Set System Default Theme'),
+        content: t(
+          'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
+          theme.theme_name,
+        ),
+        onConfirm: () => setSystemDefaultTheme(theme.id!),
+        successMessage: t(
+          '"%s" is now the system default theme',
+          theme.theme_name,
+        ),
+        errorMessage: 'Failed to set system default theme: %s',
+      });
+    },
+    [showThemeConfirmation],
+  );
 
-  const handleSetSystemDark = (theme: ThemeObject) => {
-    showThemeConfirmation({
-      title: t('Set System Dark Theme'),
-      content: t(
-        'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
-        theme.theme_name,
-      ),
-      onConfirm: () => setSystemDarkTheme(theme.id!),
-      successMessage: t('"%s" is now the system dark theme', theme.theme_name),
-      errorMessage: 'Failed to set system dark theme: %s',
-    });
-  };
+  const handleSetSystemDark = useCallback(
+    (theme: ThemeObject) => {
+      showThemeConfirmation({
+        title: t('Set System Dark Theme'),
+        content: t(
+          'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
+          theme.theme_name,
+        ),
+        onConfirm: () => setSystemDarkTheme(theme.id!),
+        successMessage: t(
+          '"%s" is now the system dark theme',
+          theme.theme_name,
+        ),
+        errorMessage: 'Failed to set system dark theme: %s',
+      });
+    },
+    [showThemeConfirmation],
+  );
 
-  const handleUnsetSystemDefault = () => {
+  const handleUnsetSystemDefault = useCallback(() => {
     showThemeConfirmation({
       title: t('Remove System Default Theme'),
       content: t(
@@ -314,9 +365,9 @@ function ThemesList({
       successMessage: t('System default theme removed'),
       errorMessage: 'Failed to remove system default theme: %s',
     });
-  };
+  }, [showThemeConfirmation]);
 
-  const handleUnsetSystemDark = () => {
+  const handleUnsetSystemDark = useCallback(() => {
     showThemeConfirmation({
       title: t('Remove System Dark Theme'),
       content: t(
@@ -326,18 +377,17 @@ function ThemesList({
       successMessage: t('System dark theme removed'),
       errorMessage: 'Failed to remove system dark theme: %s',
     });
-  };
+  }, [showThemeConfirmation]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
     () => [
       {
         Cell: ({ row: { original } }: any) => {
-          const currentCrudThemeId = getCurrentCrudThemeId();
           const isCurrentTheme =
-            (currentCrudThemeId &&
-              original.id?.toString() === currentCrudThemeId) ||
-            (appliedThemeId && original.id === appliedThemeId);
+            hasDevOverride() &&
+            appliedThemeId &&
+            original.id === appliedThemeId;
 
           return (
             <FlexRowContainer>
@@ -507,11 +557,12 @@ function ThemesList({
       canDelete,
       canApply,
       canExport,
-      getCurrentCrudThemeId,
+      hasDevOverride,
       appliedThemeId,
       canSetSystemThemes,
       addDangerToast,
       handleThemeApply,
+      handleBulkThemeExport,
       handleSetSystemDefault,
       handleUnsetSystemDefault,
       handleSetSystemDark,

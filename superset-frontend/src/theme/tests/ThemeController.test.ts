@@ -1137,4 +1137,175 @@ describe('ThemeController', () => {
       );
     });
   });
+
+  test('setThemeMode clears dev override and crud theme from storage', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    // Simulate having overrides after initialization using Reflect to access private properties
+    Reflect.set(controller, 'devThemeOverride', {
+      token: { colorPrimary: '#ff0000' },
+    });
+    Reflect.set(controller, 'crudThemeId', '123');
+
+    jest.clearAllMocks();
+
+    // Change theme mode - should clear the overrides
+    controller.setThemeMode(ThemeMode.DARK);
+
+    // Verify both storage keys were removed
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-dev-theme-override',
+    );
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-crud-theme-id',
+    );
+  });
+
+  test('setThemeMode can be called with same mode when overrides exist', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    jest.clearAllMocks();
+
+    // Simulate having dev override after initialization using Reflect
+    Reflect.set(controller, 'devThemeOverride', {
+      token: { colorPrimary: '#ff0000' },
+    });
+
+    // Call setThemeMode with DEFAULT mode - should clear override
+    controller.setThemeMode(ThemeMode.DEFAULT);
+
+    // Verify override was removed even though mode is the same
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-dev-theme-override',
+    );
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-crud-theme-id',
+    );
+
+    // Theme should still be updated to clear the override
+    expect(mockSetConfig).toHaveBeenCalled();
+  });
+
+  test('setThemeMode with no override and same mode does not trigger update', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    // Set mode to DEFAULT
+    controller.setThemeMode(ThemeMode.DEFAULT);
+
+    jest.clearAllMocks();
+
+    // Call again with same mode and no override - should skip
+    controller.setThemeMode(ThemeMode.DEFAULT);
+
+    // Should not trigger any updates
+    expect(mockSetConfig).not.toHaveBeenCalled();
+    expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+  });
+
+  test('hasDevOverride returns true when dev override is set', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    // Simulate dev override after initialization using Reflect
+    Reflect.set(controller, 'devThemeOverride', {
+      token: { colorPrimary: '#ff0000' },
+    });
+
+    expect(controller.hasDevOverride()).toBe(true);
+  });
+
+  test('hasDevOverride returns false when no dev override in storage', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    expect(controller.hasDevOverride()).toBe(false);
+  });
+
+  test('clearLocalOverrides removes both dev override and crud theme', () => {
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+      }),
+    );
+
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    jest.clearAllMocks();
+
+    // Clear overrides
+    controller.clearLocalOverrides();
+
+    // Verify both storage keys are removed
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-dev-theme-override',
+    );
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-crud-theme-id',
+    );
+
+    // Should reset to default theme
+    expect(mockSetConfig).toHaveBeenCalled();
+  });
 });
