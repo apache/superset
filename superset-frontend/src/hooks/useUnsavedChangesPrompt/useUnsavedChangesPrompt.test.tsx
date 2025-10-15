@@ -17,10 +17,9 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react-hooks';
-import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { act } from 'spec/helpers/testing-library';
+import { useUnsavedChangesPrompt } from '.';
 
 let history = createMemoryHistory({
   initialEntries: ['/dashboard'],
@@ -58,11 +57,9 @@ test('should block navigation and show modal if there are unsaved changes', () =
   );
 
   // Simulate blocked navigation
-  act(() => {
-    const unblock = history.block((tx: any) => tx);
-    unblock();
-    history.push('/another-page');
-  });
+  const unblock = history.block((tx: any) => tx);
+  unblock();
+  history.push('/another-page');
 
   expect(result.current.showModal).toBe(true);
 });
@@ -79,9 +76,7 @@ test('should trigger onSave and hide modal on handleSaveAndCloseModal', async ()
     { wrapper },
   );
 
-  await act(async () => {
-    await result.current.handleSaveAndCloseModal();
-  });
+  await result.current.handleSaveAndCloseModal();
 
   expect(onSave).toHaveBeenCalled();
   expect(result.current.showModal).toBe(false);
@@ -99,9 +94,7 @@ test('should trigger manual save and not show modal again', async () => {
     { wrapper },
   );
 
-  act(() => {
-    result.current.triggerManualSave();
-  });
+  result.current.triggerManualSave();
 
   expect(onSave).toHaveBeenCalled();
   expect(result.current.showModal).toBe(false);
@@ -120,18 +113,14 @@ test('should close modal when handleConfirmNavigation is called', () => {
   );
 
   // First, trigger navigation to show the modal
-  act(() => {
-    const unblock = history.block((tx: any) => tx);
-    unblock();
-    history.push('/another-page');
-  });
+  const unblock = history.block((tx: any) => tx);
+  unblock();
+  history.push('/another-page');
 
   expect(result.current.showModal).toBe(true);
 
   // Then call handleConfirmNavigation to discard changes
-  act(() => {
-    result.current.handleConfirmNavigation();
-  });
+  result.current.handleConfirmNavigation();
 
   expect(result.current.showModal).toBe(false);
 });

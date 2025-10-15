@@ -80,6 +80,7 @@ export default function transformProps(
     rawFormData,
     hooks,
     inContextMenu,
+    theme,
     datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
@@ -280,7 +281,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: 'transparent',
+                  color: theme.colorBgContainer,
                 },
               ]),
             },

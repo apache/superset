@@ -19,11 +19,11 @@
   "dependencies": {
     "cookie": "^1.0.2",
     "hot-shots": "^11.2.0",
-    "ioredis": "^5.8.0",
+    "ioredis": "^5.8.1",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^11.1.0",
-    "winston": "^3.17.0",
+    "winston": "^3.18.3",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -33,22 +33,22 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^24.2.0",
+    "@types/node": "^24.7.2",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
-    "@typescript-eslint/parser": "^8.42.0",
-    "eslint": "^9.36.0",
+    "@typescript-eslint/parser": "^8.46.1",
+    "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^16.4.0",
     "jest": "^29.7.0",
     "prettier": "^3.6.2",
-    "ts-jest": "^29.4.1",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.45.0"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
   },
   "engines": {
     "node": "^20.19.4",

@@ -66,6 +66,7 @@ export {
   type CheckboxProps,
   type CheckboxChangeEvent,
 } from './Checkbox';
+export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
 export {
   ColorPicker,
   type ColorPickerProps,

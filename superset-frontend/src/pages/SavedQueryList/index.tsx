@@ -291,14 +291,19 @@ function SavedQueryList({
     );
   };
 
-  const handleBulkSavedQueryExport = (
+  const handleBulkSavedQueryExport = async (
     savedQueriesToExport: SavedQueryObject[],
   ) => {
     const ids = savedQueriesToExport.map(({ id }) => id);
-    handleResourceExport('saved_query', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('saved_query', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected queries'));
+    }
   };
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {

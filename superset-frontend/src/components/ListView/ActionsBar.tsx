@@ -86,7 +86,7 @@ export function ActionsBar({ actions }: ActionsBarProps) {
             onClick={action.onClick}
             key={action.tooltip ? undefined : index}
           >
-            <ActionIcon />
+            <ActionIcon iconSize="l" />
           </span>
         );
         return action.tooltip ? (

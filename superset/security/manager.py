@@ -623,7 +623,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and form_data.get("slice_id") == 0
             and (chart_id := form_data.get("chart_id"))
             and (
-                slc := self.get_session.query(Slice)
+                slc := self.session.query(Slice)
                 .filter(Slice.id == chart_id)
                 .one_or_none()
             )
@@ -633,7 +633,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and (
                 drillable_columns := {
                     row[0]
-                    for row in self.get_session.query(TableColumn.column_name)
+                    for row in self.session.query(TableColumn.column_name)
                     .filter(TableColumn.table_id == datasource.id)
                     .filter(TableColumn.groupby)
                     .all()

@@ -30,6 +30,20 @@
 
     {% block head_meta %}{% endblock %}
 
+    <style>
+      body {
+        background: #fff;
+        color: #000;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #000;
+          color: #fff;
+        }
+      }
+    </style>
+
     {% block head_css %}
       {% for favicon in favicons %}
         <link
@@ -85,14 +99,10 @@
           <!-- Custom URL from theme -->
           <img
             src="{{ tokens.brandSpinnerUrl }}"
-            alt="Loading..."
+            alt=""
+            aria-label="Loading"
             style="{{ spinner_style }}"
           />
-        {% else %}
-          <!-- Fallback: This should rarely happen with new logic -->
-          <div style="{{ spinner_style }}">
-            Loading...
-          </div>
         {% endif %}
       </div>
     {% endblock %}

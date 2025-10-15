@@ -37,6 +37,7 @@ from superset.commands.utils import get_datasource_by_id, update_tags, validate_
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
 from superset.utils.decorators import on_error, transaction
@@ -70,6 +71,28 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             self._properties["last_saved_by"] = g.user
 
         return ChartDAO.update(self._model, self._properties)
+
+    def _validate_new_dashboard_access(
+        self, requested_dashboards: list[Dashboard], exceptions: list[Exception]
+    ) -> None:
+        """
+        Validate user has access to any NEW dashboard relationships.
+        Existing relationships are preserved to maintain chart ownership rights.
+        """
+        if not self._model:
+            return
+
+        existing_dashboard_ids = {d.id for d in self._model.dashboards}
+        requested_dashboard_ids = {d.id for d in requested_dashboards}
+
+        if new_dashboard_ids := requested_dashboard_ids - existing_dashboard_ids:
+            # For NEW dashboard relationships, verify user has access
+            accessible_dashboards = DashboardDAO.find_by_ids(list(new_dashboard_ids))
+            accessible_dashboard_ids = {d.id for d in accessible_dashboards}
+            unauthorized_dashboard_ids = new_dashboard_ids - accessible_dashboard_ids
+
+            if unauthorized_dashboard_ids:
+                exceptions.append(DashboardsNotFoundValidationError())
 
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
@@ -120,12 +143,16 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate/Populate dashboards only if it's a list
         if dashboard_ids is not None:
+            # First, verify all requested dashboards exist
             dashboards = DashboardDAO.find_by_ids(
                 dashboard_ids,
                 skip_base_filter=True,
             )
             if len(dashboards) != len(dashboard_ids):
                 exceptions.append(DashboardsNotFoundValidationError())
+            else:
+                # Then, validate user has access to any NEW dashboard relationships
+                self._validate_new_dashboard_access(dashboards, exceptions)
             self._properties["dashboards"] = dashboards
 
         if exceptions:

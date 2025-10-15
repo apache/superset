@@ -27,7 +27,6 @@ import {
   Alert,
   Tooltip,
   Space,
-  Modal,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -53,6 +52,7 @@ import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -82,15 +82,6 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'Overwriting might cause you to lose some of your work. Are you ' +
     'sure you want to overwrite?',
 );
-
-interface ConfirmModalConfig {
-  visible: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => Promise<any>;
-  successMessage: string;
-  errorMessage: string;
-}
 
 interface ThemesListProps {
   addDangerToast: (msg: string) => void;
@@ -126,9 +117,7 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
-  // State for confirmation modal
-  const [confirmModalConfig, setConfirmModalConfig] =
-    useState<ConfirmModalConfig | null>(null);
+  const { showConfirm, ConfirmModal } = useConfirmModal();
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -231,14 +220,19 @@ function ThemesList({
     setAppliedThemeId(null);
   }
 
-  const handleBulkThemeExport = (themesToExport: ThemeObject[]) => {
+  const handleBulkThemeExport = async (themesToExport: ThemeObject[]) => {
     const ids = themesToExport
       .map(({ id }) => id)
       .filter((id): id is number => id !== undefined);
-    handleResourceExport('theme', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('theme', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected themes'));
+    }
   };
 
   const openThemeImportModal = () => {
@@ -255,106 +249,97 @@ function ThemesList({
     addSuccessToast(t('Theme imported'));
   };
 
-  // Generic confirmation modal utility to reduce code duplication
-  const showThemeConfirmation = useCallback(
-    (config: {
-      title: string;
-      content: string;
-      onConfirm: () => Promise<any>;
-      successMessage: string;
-      errorMessage: string;
-    }) => {
-      setConfirmModalConfig({
-        visible: true,
-        title: config.title,
-        message: config.content,
-        onConfirm: config.onConfirm,
-        successMessage: config.successMessage,
-        errorMessage: config.errorMessage,
-      });
-    },
-    [],
-  );
-
-  const handleConfirmModalOk = async () => {
-    if (!confirmModalConfig) return;
-
-    try {
-      await confirmModalConfig.onConfirm();
-      refreshData();
-      addSuccessToast(confirmModalConfig.successMessage);
-      setConfirmModalConfig(null);
-    } catch (err: any) {
-      addDangerToast(t(confirmModalConfig.errorMessage, err.message));
-    }
-  };
-
-  const handleConfirmModalCancel = () => {
-    setConfirmModalConfig(null);
-  };
-
   const handleSetSystemDefault = useCallback(
     (theme: ThemeObject) => {
-      showThemeConfirmation({
+      showConfirm({
         title: t('Set System Default Theme'),
-        content: t(
+        body: t(
           'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
           theme.theme_name,
         ),
-        onConfirm: () => setSystemDefaultTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system default theme',
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system default theme: %s',
+        onConfirm: async () => {
+          try {
+            await setSystemDefaultTheme(theme.id!);
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system default theme', theme.theme_name),
+            );
+          } catch (err: any) {
+            addDangerToast(
+              t('Failed to set system default theme: %s', err.message),
+            );
+          }
+        },
       });
     },
-    [showThemeConfirmation],
+    [showConfirm, refreshData, addSuccessToast, addDangerToast],
   );
 
   const handleSetSystemDark = useCallback(
     (theme: ThemeObject) => {
-      showThemeConfirmation({
+      showConfirm({
         title: t('Set System Dark Theme'),
-        content: t(
+        body: t(
           'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
           theme.theme_name,
         ),
-        onConfirm: () => setSystemDarkTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system dark theme',
-          theme.theme_name,
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system dark theme: %s',
+        onConfirm: async () => {
+          try {
+            await setSystemDarkTheme(theme.id!);
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system dark theme', theme.theme_name),
+            );
+          } catch (err: any) {
+            addDangerToast(
+              t('Failed to set system dark theme: %s', err.message),
+            );
+          }
+        },
       });
     },
-    [showThemeConfirmation],
+    [showConfirm, refreshData, addSuccessToast, addDangerToast],
   );
 
   const handleUnsetSystemDefault = useCallback(() => {
-    showThemeConfirmation({
+    showConfirm({
       title: t('Remove System Default Theme'),
-      content: t(
+      body: t(
         'Are you sure you want to remove the system default theme? The application will fall back to the configuration file default.',
       ),
-      onConfirm: () => unsetSystemDefaultTheme(),
-      successMessage: t('System default theme removed'),
-      errorMessage: 'Failed to remove system default theme: %s',
+      onConfirm: async () => {
+        try {
+          await unsetSystemDefaultTheme();
+          refreshData();
+          addSuccessToast(t('System default theme removed'));
+        } catch (err: any) {
+          addDangerToast(
+            t('Failed to remove system default theme: %s', err.message),
+          );
+        }
+      },
     });
-  }, [showThemeConfirmation]);
+  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
 
   const handleUnsetSystemDark = useCallback(() => {
-    showThemeConfirmation({
+    showConfirm({
       title: t('Remove System Dark Theme'),
-      content: t(
+      body: t(
         'Are you sure you want to remove the system dark theme? The application will fall back to the configuration file dark theme.',
       ),
-      onConfirm: () => unsetSystemDarkTheme(),
-      successMessage: t('System dark theme removed'),
-      errorMessage: 'Failed to remove system dark theme: %s',
+      onConfirm: async () => {
+        try {
+          await unsetSystemDarkTheme();
+          refreshData();
+          addSuccessToast(t('System dark theme removed'));
+        } catch (err: any) {
+          addDangerToast(
+            t('Failed to remove system dark theme: %s', err.message),
+          );
+        }
+      },
     });
-  }, [showThemeConfirmation]);
+  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
@@ -732,17 +717,7 @@ function ThemesList({
         }}
       </ConfirmStatusChange>
       {preparingExport && <Loading />}
-      {confirmModalConfig?.visible && (
-        <Modal
-          title={confirmModalConfig.title}
-          show={confirmModalConfig.visible}
-          onHide={handleConfirmModalCancel}
-          onHandledPrimaryAction={handleConfirmModalOk}
-          primaryButtonName={t('Yes')}
-        >
-          {confirmModalConfig.message}
-        </Modal>
-      )}
+      {ConfirmModal}
     </>
   );
 }

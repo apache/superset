@@ -441,24 +441,42 @@ def init() -> None:
     (target_dir / "extension.json").write_text(extension_json)
     click.secho("✅ Created extension.json", fg="green")
 
-    # Copy frontend template
+    # Initialize frontend files
     if include_frontend:
         frontend_dir = target_dir / "frontend"
         frontend_dir.mkdir()
+        frontend_src_dir = frontend_dir / "src"
+        frontend_src_dir.mkdir()
 
-        # package.json
+        # frontend files
         package_json = env.get_template("frontend/package.json.j2").render(ctx)
         (frontend_dir / "package.json").write_text(package_json)
+        webpack_config = env.get_template("frontend/webpack.config.js.j2").render(ctx)
+        (frontend_dir / "webpack.config.js").write_text(webpack_config)
+        tsconfig_json = env.get_template("frontend/tsconfig.json.j2").render(ctx)
+        (frontend_dir / "tsconfig.json").write_text(tsconfig_json)
+        index_tsx = env.get_template("frontend/src/index.tsx.j2").render(ctx)
+        (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Copy backend template
+    # Initialize backend files
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
+        backend_src_dir = backend_dir / "src"
+        backend_src_dir.mkdir()
+        backend_src_package_dir = backend_src_dir / id_
+        backend_src_package_dir.mkdir()
 
-        # pyproject.toml
+        # backend files
         pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
         (backend_dir / "pyproject.toml").write_text(pyproject_toml)
+        init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
+        (backend_src_package_dir / "__init__.py").write_text(init_py)
+        entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
+            ctx
+        )
+        (backend_src_package_dir / "entrypoint.py").write_text(entrypoint_py)
 
         click.secho("✅ Created backend folder structure", fg="green")
 

@@ -24,6 +24,7 @@ import {
   useMemo,
   useState,
   useCallback,
+  useRef,
   ClipboardEvent,
   Ref,
   ReactElement,
@@ -142,6 +143,32 @@ const Select = forwardRef(
         ? 0
         : 1
       : (propsMaxTagCount ?? MAX_TAG_COUNT);
+
+    // Prevent maxTagCount change during click events to avoid click target disappearing
+    const [stableMaxTagCount, setStableMaxTagCount] = useState(maxTagCount);
+    const isOpeningRef = useRef(false);
+
+    useEffect(() => {
+      if (oneLine) {
+        if (isDropdownVisible && !isOpeningRef.current) {
+          // Mark that we're in the opening process
+          isOpeningRef.current = true;
+          // Use requestAnimationFrame to ensure DOM has settled after the click
+          requestAnimationFrame(() => {
+            setStableMaxTagCount(0);
+            isOpeningRef.current = false;
+          });
+          return;
+        }
+        if (!isDropdownVisible) {
+          // When closing, immediately show the first tag
+          setStableMaxTagCount(1);
+          isOpeningRef.current = false;
+        }
+        return;
+      }
+      setStableMaxTagCount(maxTagCount);
+    }, [maxTagCount, isDropdownVisible, oneLine]);
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
@@ -599,16 +626,16 @@ const Select = forwardRef(
 
     const omittedCount = useMemo(() => {
       const num_selected = ensureIsArray(selectValue).length;
-      const num_shown = maxTagCount as number;
+      const num_shown = stableMaxTagCount as number;
       return num_selected - num_shown - (selectAllMode ? 1 : 0);
-    }, [maxTagCount, selectAllMode, selectValue]);
+    }, [stableMaxTagCount, selectAllMode, selectValue]);
 
     const customMaxTagPlaceholder = () =>
       `+ ${omittedCount > 0 ? omittedCount : 1} ...`;
 
     // We can't remove the + tag so when Select All
     // is the only item omitted, we subtract one from maxTagCount
-    let actualMaxTagCount = maxTagCount;
+    let actualMaxTagCount = stableMaxTagCount;
     if (
       actualMaxTagCount !== 'responsive' &&
       omittedCount === 0 &&
