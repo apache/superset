@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, useMemo } from 'react';
 import { styled, t, sanitizeHtml } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
@@ -57,15 +57,17 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
       }
     }, [templateSource, data]);
 
+    const htmlContent = useMemo(
+      () =>
+        htmlSanitization ? sanitizeHtml(renderedTemplate) : renderedTemplate,
+      [renderedTemplate, htmlSanitization],
+    );
+
     if (error) {
       return <ErrorContainer>{error}</ErrorContainer>;
     }
 
     if (renderedTemplate || renderedTemplate === '') {
-      const htmlContent = htmlSanitization
-        ? sanitizeHtml(renderedTemplate)
-        : renderedTemplate;
-
       return (
         <div
           style={{
