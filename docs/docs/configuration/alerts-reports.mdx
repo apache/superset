@@ -76,12 +76,8 @@ from datetime import timedelta
 # Default: 1 day (86400 seconds)
 SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 
-# Add delay between paginated API requests to avoid rate limits
-# Default: 0.5 seconds
-SLACK_API_REQUEST_DELAY = 1.0
-
 # Increase retry count for rate limit errors
-# Default: 2
+# Default: 5
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 10
 ```
 

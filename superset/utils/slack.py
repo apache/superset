@@ -17,7 +17,6 @@
 
 
 import logging
-import time
 from typing import Callable, Optional
 
 from flask import current_app as app
@@ -51,7 +50,7 @@ def get_slack_client() -> WebClient:
         token = token()
     client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
 
-    max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
+    max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 5)
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
     client.retry_handlers.append(rate_limit_handler)
 
@@ -78,25 +77,12 @@ def get_channels() -> list[SlackChannelSchema]:
     extra_params = {"types": ",".join(SlackChannelTypes)}
     cursor = None
     page_count = 0
-    request_delay = app.config.get("SLACK_API_REQUEST_DELAY", 0.5)
 
-    logger.info(
-        "Starting Slack channels fetch with request delay of %.1fs",
-        request_delay,
-    )
+    logger.info("Starting Slack channels fetch")
 
     try:
         while True:
             page_count += 1
-
-            # Add delay between requests to avoid rate limiting (skip first)
-            if page_count > 1:
-                logger.debug(
-                    "Throttling: sleeping %.1fs before fetching page %d",
-                    request_delay,
-                    page_count,
-                )
-                time.sleep(request_delay)
 
             response = client.conversations_list(
                 limit=999, cursor=cursor, exclude_archived=True, **extra_params
@@ -152,10 +138,9 @@ def get_channels_with_search(
         if ex.response and ex.response.status_code == 429:
             raise SupersetException(
                 f"Slack API rate limit exceeded: {ex}. "
-                "For large workspaces (10k+ channels), please configure: "
-                "SLACK_API_RATE_LIMIT_RETRY_COUNT (recommended: 5-10), "
-                "SLACK_API_REQUEST_DELAY (recommended: 1.0), and "
-                "SLACK_CACHE_TIMEOUT (recommended: 7 days). "
+                "For large workspaces (10k+ channels), consider increasing "
+                "SLACK_API_RATE_LIMIT_RETRY_COUNT (current default: 5, try 10) "
+                "and SLACK_CACHE_TIMEOUT (recommended: 7 days). "
                 "Consider using the slack.cache_channels Celery task "
                 "to warm up the cache."
             ) from ex

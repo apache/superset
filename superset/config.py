@@ -1735,15 +1735,10 @@ SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
-# Delay between paginated Slack API requests (in seconds) to avoid rate limiting
-# Default: 0.5 for small workspaces
-# Recommended: 1.0-2.0 for workspaces with 10k+ channels
-SLACK_API_REQUEST_DELAY = 0.5
-
 # Maximum number of retries when Slack API returns rate limit errors
-# Default: 2 (suitable for small workspaces)
-# Recommended: 5-10 for workspaces with 10k+ channels
-SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+# Default: 5
+# For workspaces with 10k+ channels, consider increasing to 10
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
