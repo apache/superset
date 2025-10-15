@@ -24,6 +24,24 @@ from superset.commands.chart.data.streaming_export_command import (
 )
 
 
+def _setup_chart_mocks(
+    mocker: MockerFixture, sql: str = "SELECT * FROM test"
+) -> tuple[MockerFixture, MockerFixture, MockerFixture]:
+    """Set up common mocks for chart streaming export tests."""
+    mock_db = mocker.patch("superset.commands.streaming_export.base.db")
+    mock_session = mocker.MagicMock()
+    mock_db.session.return_value.__enter__.return_value = mock_session
+
+    query_context = mocker.MagicMock()
+    datasource = mocker.MagicMock()
+    datasource.get_query_str.return_value = sql
+    query_context.datasource = datasource
+    query_context.queries = [mocker.MagicMock()]
+    mock_session.merge.return_value = datasource
+
+    return mock_db, query_context, datasource
+
+
 def test_streaming_csv_export_command_init(mocker: MockerFixture) -> None:
     """Test command initialization."""
     query_context = mocker.MagicMock()
@@ -66,16 +84,7 @@ def test_validate_raises_exception_on_access_denied(mocker: MockerFixture) -> No
 
 def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
     """Test CSV generation with a small dataset."""
-    mock_db = mocker.patch("superset.db")
-    mock_session = mocker.MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-
-    query_context = mocker.MagicMock()
-    datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = "SELECT * FROM test"
-    query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
     mock_result_proxy = mocker.MagicMock()
     mock_result_proxy.keys.return_value = ["col1", "col2", "col3"]
@@ -116,16 +125,7 @@ def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
 
 def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     """Test CSV generation properly escapes special characters."""
-    mock_db = mocker.patch("superset.db")
-    mock_session = mocker.MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-
-    query_context = mocker.MagicMock()
-    datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = "SELECT * FROM test"
-    query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
     mock_result = mocker.MagicMock()
     mock_result.keys.return_value = ["name", "description"]
@@ -155,16 +155,7 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
 
 def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     """Test CSV generation handles NULL values correctly."""
-    mock_db = mocker.patch("superset.db")
-    mock_session = mocker.MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-
-    query_context = mocker.MagicMock()
-    datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = "SELECT * FROM test"
-    query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
     mock_result = mocker.MagicMock()
     mock_result.keys.return_value = ["col1", "col2", "col3"]
@@ -194,16 +185,7 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
 
 def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     """Test that streaming execution options are enabled."""
-    mock_db = mocker.patch("superset.db")
-    mock_session = mocker.MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-
-    query_context = mocker.MagicMock()
-    datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = "SELECT * FROM test"
-    query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
     mock_result_proxy = mocker.MagicMock()
     mock_result_proxy.keys.return_value = ["col1", "col2", "col3"]
@@ -237,16 +219,7 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
 
 def test_empty_result_set(mocker: MockerFixture) -> None:
     """Test CSV generation with empty result set."""
-    mock_db = mocker.patch("superset.db")
-    mock_session = mocker.MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-
-    query_context = mocker.MagicMock()
-    datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = "SELECT * FROM test"
-    query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
 
     mock_result = mocker.MagicMock()
     mock_result.keys.return_value = ["col1", "col2"]

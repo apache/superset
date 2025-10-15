@@ -19,6 +19,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.streaming_export_command import (
     StreamingSqlResultExportCommand,
@@ -26,6 +27,17 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.sqllab.limiting_factor import LimitingFactor
+
+
+def _setup_sqllab_mocks(
+    mocker: MockerFixture, mock_query: MagicMock
+) -> tuple[MagicMock, MagicMock]:
+    """Set up common mocks for SQL Lab streaming export tests."""
+    mock_db = mocker.patch("superset.commands.streaming_export.base.db")
+    mock_session = MagicMock()
+    mock_db.session.return_value.__enter__.return_value = mock_session
+    mock_session.merge.return_value = mock_query.database
+    return mock_db, mock_session
 
 
 @pytest.fixture
@@ -121,15 +133,12 @@ def test_validate_success(mock_db, mock_query):
     mock_query.raise_for_access.assert_called_once()
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_csv_generation_with_select_sql(mock_db, mock_query, mock_result_proxy):
+def test_csv_generation_with_select_sql(mocker, mock_query, mock_result_proxy):
     """Test CSV generation when query has select_sql."""
     mock_query.select_sql = "SELECT * FROM test WHERE id > 0"
     mock_query.executed_sql = None
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = (
@@ -160,10 +169,9 @@ def test_csv_generation_with_select_sql(mock_db, mock_query, mock_result_proxy):
     assert "3,test3,300" in csv_data
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
 @patch("superset.commands.sql_lab.streaming_export_command.SQLScript")
 def test_csv_generation_with_executed_sql_and_limit(
-    mock_sqlscript, mock_db, mock_query, mock_result_proxy
+    mock_sqlscript, mocker, mock_query, mock_result_proxy
 ):
     """Test CSV generation with executed_sql and applies limit."""
     mock_query.select_sql = None
@@ -176,9 +184,7 @@ def test_csv_generation_with_executed_sql_and_limit(
     mock_script_instance.statements = [mock_statement]
     mock_sqlscript.return_value = mock_script_instance
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_result = MagicMock()
     mock_result.keys.return_value = ["id", "name"]
@@ -208,8 +214,7 @@ def test_csv_generation_with_executed_sql_and_limit(
     assert len(lines) == 3  # header + 2 rows (limit - 1)
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_csv_generation_with_special_characters(mock_db, mock_query):
+def test_csv_generation_with_special_characters(mocker, mock_query):
     """Test CSV generation properly escapes special characters."""
     mock_query.select_sql = "SELECT * FROM test"
 
@@ -220,9 +225,7 @@ def test_csv_generation_with_special_characters(mock_db, mock_query):
         [],
     ]
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
@@ -247,8 +250,7 @@ def test_csv_generation_with_special_characters(mock_db, mock_query):
     assert "Tab\tchar" in csv_data
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_limiting_factor_dropdown(mock_db, mock_query):
+def test_limiting_factor_dropdown(mocker, mock_query):
     """Test limit adjustment for DROPDOWN limiting factor."""
     mock_query.select_sql = None
     mock_query.executed_sql = "SELECT * FROM test LIMIT 101"
@@ -267,9 +269,7 @@ def test_limiting_factor_dropdown(mock_db, mock_query):
         mock_result.keys.return_value = ["id"]
         mock_result.fetchmany.side_effect = [[(i,) for i in range(101)], []]
 
-        mock_session = MagicMock()
-        mock_db.session.return_value.__enter__.return_value = mock_session
-        mock_session.merge.return_value = mock_query.database
+        mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
         mock_connection = MagicMock()
         mock_connection.execution_options.return_value.execute.return_value = (
@@ -294,8 +294,7 @@ def test_limiting_factor_dropdown(mock_db, mock_query):
         assert len(lines) == 101
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_limiting_factor_query_and_dropdown(mock_db, mock_query):
+def test_limiting_factor_query_and_dropdown(mocker, mock_query):
     """Test limit adjustment for QUERY_AND_DROPDOWN limiting factor."""
     mock_query.select_sql = None
     mock_query.executed_sql = "SELECT * FROM test LIMIT 51"
@@ -314,9 +313,7 @@ def test_limiting_factor_query_and_dropdown(mock_db, mock_query):
         mock_result.keys.return_value = ["id"]
         mock_result.fetchmany.side_effect = [[(i,) for i in range(51)], []]
 
-        mock_session = MagicMock()
-        mock_db.session.return_value.__enter__.return_value = mock_session
-        mock_session.merge.return_value = mock_query.database
+        mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
         mock_connection = MagicMock()
         mock_connection.execution_options.return_value.execute.return_value = (
@@ -341,8 +338,7 @@ def test_limiting_factor_query_and_dropdown(mock_db, mock_query):
         assert len(lines) == 51
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_empty_result_set(mock_db, mock_query):
+def test_empty_result_set(mocker, mock_query):
     """Test CSV generation with empty result set."""
     mock_query.select_sql = "SELECT * FROM empty_table"
 
@@ -350,9 +346,7 @@ def test_empty_result_set(mock_db, mock_query):
     mock_result.keys.return_value = ["col1", "col2"]
     mock_result.fetchmany.side_effect = [[]]
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
@@ -376,11 +370,11 @@ def test_empty_result_set(mock_db, mock_query):
     assert lines[0] == "col1,col2"
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_error_handling_yields_error_marker(mock_db, mock_query):
+def test_error_handling_yields_error_marker(mocker, mock_query):
     """Test that exceptions are caught and error marker is yielded."""
     mock_query.select_sql = "SELECT * FROM test"
 
+    mock_db = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
     mock_db.session.return_value.__enter__.return_value = mock_session
     mock_session.merge.side_effect = Exception("Database connection failed")
@@ -399,14 +393,11 @@ def test_error_handling_yields_error_marker(mock_db, mock_query):
     assert "Export failed" in error_output
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_connection_is_closed_after_streaming(mock_db, mock_query, mock_result_proxy):
+def test_connection_is_closed_after_streaming(mocker, mock_query, mock_result_proxy):
     """Test that database connection is properly closed."""
     mock_query.select_sql = "SELECT * FROM test"
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = (
@@ -430,14 +421,11 @@ def test_connection_is_closed_after_streaming(mock_db, mock_query, mock_result_p
     mock_connection.close.assert_called_once()
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_streaming_execution_options_enabled(mock_db, mock_query, mock_result_proxy):
+def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_proxy):
     """Test that streaming execution options are enabled."""
     mock_query.select_sql = "SELECT * FROM test"
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_execution_options = Mock()
@@ -462,15 +450,12 @@ def test_streaming_execution_options_enabled(mock_db, mock_query, mock_result_pr
     mock_connection.execution_options.assert_called_once_with(stream_results=True)
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-@patch("superset.commands.sql_lab.streaming_export_command.logger")
-def test_completion_logging(mock_logger, mock_db, mock_query, mock_result_proxy):
+@patch("superset.commands.streaming_export.base.logger")
+def test_completion_logging(mock_logger, mocker, mock_query, mock_result_proxy):
     """Test that completion is logged with metrics."""
     mock_query.select_sql = "SELECT * FROM test"
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = (
@@ -493,12 +478,11 @@ def test_completion_logging(mock_logger, mock_db, mock_query, mock_result_proxy)
 
     assert mock_logger.info.called
     log_message = str(mock_logger.info.call_args)
-    assert "SQL Lab streaming CSV completed" in log_message
+    assert "Streaming CSV completed" in log_message
     assert "rows" in log_message
 
 
-@patch("superset.commands.sql_lab.streaming_export_command.db")
-def test_null_values_handling(mock_db, mock_query):
+def test_null_values_handling(mocker, mock_query):
     """Test CSV generation handles NULL values correctly."""
     mock_query.select_sql = "SELECT * FROM test"
 
@@ -509,9 +493,7 @@ def test_null_values_handling(mock_db, mock_query):
         [],
     ]
 
-    mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
-    mock_session.merge.return_value = mock_query.database
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
