@@ -35,9 +35,10 @@ def _setup_chart_mocks(
     query_context = mocker.MagicMock()
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
+    datasource.database = mocker.MagicMock()
     query_context.datasource = datasource
     query_context.queries = [mocker.MagicMock()]
-    mock_session.merge.return_value = datasource
+    mock_session.merge.return_value = datasource.database
 
     return mock_db, query_context, datasource
 

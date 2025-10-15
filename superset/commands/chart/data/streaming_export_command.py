@@ -62,20 +62,13 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         Returns:
             Tuple of (sql_query, database_object)
         """
-        from superset import db
-        from superset.connectors.sqla.models import SqlaTable
+        # Get datasource and generate SQL query
+        # Note: datasource should already be attached to a session from query_context
+        datasource = self._query_context.datasource
+        query_obj = self._query_context.queries[0]
+        sql_query = datasource.get_query_str(query_obj.to_dict())
 
-        with db.session() as session:
-            # Prepare datasource
-            datasource = self._query_context.datasource
-            if isinstance(datasource, SqlaTable):
-                datasource = session.merge(datasource)
-
-            # Generate SQL query
-            query_obj = self._query_context.queries[0]
-            sql_query = datasource.get_query_str(query_obj.to_dict())
-
-            return sql_query, datasource.database
+        return sql_query, datasource.database
 
     def _get_row_limit(self) -> int | None:
         """

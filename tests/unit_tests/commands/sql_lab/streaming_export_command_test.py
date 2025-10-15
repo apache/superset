@@ -33,11 +33,18 @@ def _setup_sqllab_mocks(
     mocker: MockerFixture, mock_query: MagicMock
 ) -> tuple[MagicMock, MagicMock]:
     """Set up common mocks for SQL Lab streaming export tests."""
-    mock_db = mocker.patch("superset.commands.streaming_export.base.db")
+    mock_db_base = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
+    mock_db_base.session.return_value.__enter__.return_value = mock_session
     mock_session.merge.return_value = mock_query.database
-    return mock_db, mock_session
+
+    mock_db_sqllab = mocker.patch(
+        "superset.commands.sql_lab.streaming_export_command.db"
+    )
+    mock_query_result = mock_db_sqllab.session.query.return_value.filter_by.return_value
+    mock_query_result.one_or_none.return_value = mock_query
+
+    return mock_db_base, mock_session
 
 
 @pytest.fixture
@@ -150,8 +157,6 @@ def test_csv_generation_with_select_sql(mocker, mock_query, mock_result_proxy):
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123", chunk_size=2)
     command.validate()
 
@@ -201,8 +206,6 @@ def test_csv_generation_with_executed_sql_and_limit(
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123", chunk_size=10)
     command.validate()
 
@@ -235,8 +238,6 @@ def test_csv_generation_with_special_characters(mocker, mock_query):
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -281,8 +282,6 @@ def test_limiting_factor_dropdown(mocker, mock_query):
             mock_engine
         )
 
-        mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-        mock_query_result.one_or_none.return_value = mock_query
         command = StreamingSqlResultExportCommand("test_client_123", chunk_size=200)
         command.validate()
 
@@ -325,8 +324,6 @@ def test_limiting_factor_query_and_dropdown(mocker, mock_query):
             mock_engine
         )
 
-        mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-        mock_query_result.one_or_none.return_value = mock_query
         command = StreamingSqlResultExportCommand("test_client_123", chunk_size=100)
         command.validate()
 
@@ -356,8 +353,6 @@ def test_empty_result_set(mocker, mock_query):
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -374,13 +369,17 @@ def test_error_handling_yields_error_marker(mocker, mock_query):
     """Test that exceptions are caught and error marker is yielded."""
     mock_query.select_sql = "SELECT * FROM test"
 
-    mock_db = mocker.patch("superset.commands.streaming_export.base.db")
+    mock_db_base = mocker.patch("superset.commands.streaming_export.base.db")
     mock_session = MagicMock()
-    mock_db.session.return_value.__enter__.return_value = mock_session
+    mock_db_base.session.return_value.__enter__.return_value = mock_session
     mock_session.merge.side_effect = Exception("Database connection failed")
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
+    mock_db_sqllab = mocker.patch(
+        "superset.commands.sql_lab.streaming_export_command.db"
+    )
+    mock_query_result = mock_db_sqllab.session.query.return_value.filter_by.return_value
     mock_query_result.one_or_none.return_value = mock_query
+
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -409,8 +408,6 @@ def test_connection_is_closed_after_streaming(mocker, mock_query, mock_result_pr
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -438,8 +435,6 @@ def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_pro
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -467,8 +462,6 @@ def test_completion_logging(mock_logger, mocker, mock_query, mock_result_proxy):
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
@@ -503,8 +496,6 @@ def test_null_values_handling(mocker, mock_query):
         mock_engine
     )
 
-    mock_query_result = mock_db.session.query.return_value.filter_by.return_value
-    mock_query_result.one_or_none.return_value = mock_query
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
