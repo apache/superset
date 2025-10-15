@@ -165,10 +165,11 @@ module.exports = newManifest => {
         if (isHTML(response)) {
           processHTML(proxyResponse, response);
         } else {
-          const isStreaming =
-            proxyResponse.headers['transfer-encoding'] === 'chunked';
+          const isCSV = (proxyResponse.headers['content-type'] || '').includes(
+            'text/csv',
+          );
 
-          if (isStreaming) {
+          if (isCSV) {
             proxyResponse.on('data', chunk => {
               response.write(chunk);
               if (response.flush) {

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable theme-colors/no-literal-colors */
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { Modal, Button, Typography, Progress } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -68,7 +67,7 @@ const ProgressWrapper = styled.div`
 `;
 
 const SuccessIcon = styled(Icons.CheckCircleFilled)`
-  color: #52c41a;
+  color: ${({ theme }) => theme.colorSuccess};
   font-size: 24px;
   flex-shrink: 0;
 `;
@@ -79,13 +78,13 @@ const ErrorIconWrapper = styled.div`
   justify-content: center;
   width: 16px;
   height: 16px;
-  background-color: #ff4d4f;
+  background-color: ${({ theme }) => theme.colorError};
   border-radius: 50%;
   flex-shrink: 0;
 `;
 
 const ErrorIconStyled = styled(Icons.CloseOutlined)`
-  color: white;
+  color: ${({ theme }) => theme.colorWhite};
   font-size: 10px;
 `;
 
@@ -108,45 +107,45 @@ const ErrorText = styled(Text)`
 `;
 
 const CancelButton = styled(Button)`
-  background-color: #f0fff8;
-  color: #1c997a;
-  border-color: #f0fff8;
+  background-color: ${({ theme }) => theme.colorSuccessBg};
+  color: ${({ theme }) => theme.colorSuccess};
+  border-color: ${({ theme }) => theme.colorSuccessBg};
 
   &:hover {
-    background-color: #f0fff8;
-    color: #1c997a;
-    border-color: #1c997a;
+    background-color: ${({ theme }) => theme.colorSuccessBg};
+    color: ${({ theme }) => theme.colorSuccess};
+    border-color: ${({ theme }) => theme.colorSuccess};
   }
 
   &:focus {
-    background-color: #f0fff8;
-    color: #1c997a;
-    border-color: #1c997a;
+    background-color: ${({ theme }) => theme.colorSuccessBg};
+    color: ${({ theme }) => theme.colorSuccess};
+    border-color: ${({ theme }) => theme.colorSuccess};
   }
 `;
 
 const DownloadButton = styled(Button)`
   &.ant-btn-primary {
-    background-color: #2ec196;
-    border-color: #2ec196;
-    color: #ffffff;
+    background-color: ${({ theme }) => theme.colorSuccess};
+    border-color: ${({ theme }) => theme.colorSuccess};
+    color: ${({ theme }) => theme.colorWhite};
 
     &:hover:not(:disabled) {
-      background-color: #26a880;
-      border-color: #26a880;
-      color: #ffffff;
+      background-color: ${({ theme }) => theme.colorSuccessActive};
+      border-color: ${({ theme }) => theme.colorSuccessActive};
+      color: ${({ theme }) => theme.colorWhite};
     }
 
     &:focus:not(:disabled) {
-      background-color: #2ec196;
-      border-color: #2ec196;
-      color: #ffffff;
+      background-color: ${({ theme }) => theme.colorSuccess};
+      border-color: ${({ theme }) => theme.colorSuccess};
+      color: ${({ theme }) => theme.colorWhite};
     }
 
     &:disabled {
-      background-color: #f2f2f2;
-      border-color: #f2f2f2;
-      color: #b5b5b5;
+      background-color: ${({ theme }) => theme.colorBgContainerDisabled};
+      border-color: ${({ theme }) => theme.colorBgContainerDisabled};
+      color: ${({ theme }) => theme.colorTextDisabled};
     }
   }
 `;
@@ -273,30 +272,33 @@ const StreamingContent = ({
   filename?: string;
   getProgressPercentage: () => number;
   onCancel: () => void;
-}) => (
-  <ModalContent>
-    <ProgressSection>
-      <Progress
-        percent={getProgressPercentage()}
-        status="normal"
-        strokeColor="#52c41a"
-        showInfo
-        format={percent => `${Math.round(percent || 0)}%`}
-      />
-      <ProgressText>
-        {filename
-          ? t('Processing export for %s', filename)
-          : t('Processing export...')}
-      </ProgressText>
-    </ProgressSection>
-    <ActionButtons>
-      <CancelButton onClick={onCancel}>{t('Cancel')}</CancelButton>
-      <DownloadButton type="primary" disabled>
-        {t('Download')}
-      </DownloadButton>
-    </ActionButtons>
-  </ModalContent>
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <ModalContent>
+      <ProgressSection>
+        <Progress
+          percent={getProgressPercentage()}
+          status="normal"
+          strokeColor={theme.colorSuccess}
+          showInfo
+          format={percent => `${Math.round(percent || 0)}%`}
+        />
+        <ProgressText>
+          {filename
+            ? t('Processing export for %s', filename)
+            : t('Processing export...')}
+        </ProgressText>
+      </ProgressSection>
+      <ActionButtons>
+        <CancelButton onClick={onCancel}>{t('Cancel')}</CancelButton>
+        <DownloadButton type="primary" disabled>
+          {t('Download')}
+        </DownloadButton>
+      </ActionButtons>
+    </ModalContent>
+  );
+};
 
 const ModalStateContent = ({
   status,
