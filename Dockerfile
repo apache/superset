@@ -196,8 +196,6 @@ RUN /app/docker/apt-install.sh \
       libecpg-dev \
       libldap2-dev
 
-RUN /app/.venv/bin/pip install --no-cache-dir apscheduler
-
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
