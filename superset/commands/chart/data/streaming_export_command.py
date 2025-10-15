@@ -22,9 +22,10 @@ import csv
 import io
 import logging
 import time
-from typing import Callable, Generator, TYPE_CHECKING
+from typing import Any, Callable, Generator, TYPE_CHECKING
 
 from flask import current_app as app
+from sqlalchemy import text
 
 from superset.commands.base import BaseCommand
 
@@ -65,7 +66,119 @@ class StreamingCSVExportCommand(BaseCommand):
         """Validate permissions and query context."""
         self._query_context.raise_for_access()
 
-    def run(self) -> Callable[[], Generator[str, None, None]]:  # noqa: C901
+    def _prepare_datasource(self, session: Any) -> Any:
+        """Prepare and merge datasource with session."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        datasource = self._query_context.datasource
+        if isinstance(datasource, SqlaTable):
+            datasource = session.merge(datasource)
+        return datasource
+
+    def _get_sql_query(self, datasource: Any) -> str:
+        """Generate SQL query from datasource and query context."""
+        query_obj = self._query_context.queries[0]
+        return datasource.get_query_str(query_obj.to_dict())
+
+    def _write_csv_header(
+        self, columns: list[str], csv_writer: Any, buffer: io.StringIO
+    ) -> tuple[str, int]:
+        """Write CSV header and return header data with byte count."""
+        csv_writer.writerow(columns)
+        header_data = buffer.getvalue()
+        total_bytes = len(header_data.encode("utf-8"))
+        buffer.seek(0)
+        buffer.truncate()
+        return header_data, total_bytes
+
+    def _process_rows(
+        self,
+        result_proxy: Any,
+        csv_writer: Any,
+        buffer: io.StringIO,
+    ) -> Generator[tuple[str, int, int], None, None]:
+        """
+        Process database rows and yield CSV data chunks.
+
+        Yields tuples of (data_chunk, row_count, byte_count).
+        """
+        row_count = 0
+        flush_threshold = 65536  # 64KB
+
+        while rows := result_proxy.fetchmany(self._chunk_size):
+            for row in rows:
+                csv_writer.writerow(row)
+                row_count += 1
+
+                # Check buffer size and flush if needed
+                current_size = buffer.tell()
+                if current_size >= flush_threshold:
+                    data = buffer.getvalue()
+                    data_bytes = len(data.encode("utf-8"))
+                    yield data, row_count, data_bytes
+                    buffer.seek(0)
+                    buffer.truncate()
+
+        # Flush remaining buffer
+        if remaining_data := buffer.getvalue():
+            data_bytes = len(remaining_data.encode("utf-8"))
+            yield remaining_data, row_count, data_bytes
+
+    def _execute_query_and_stream(self) -> Generator[str, None, None]:
+        """Execute query with streaming and yield CSV chunks."""
+        from superset import db
+
+        start_time = time.time()
+        total_bytes = 0
+
+        with db.session() as session:
+            datasource = self._prepare_datasource(session)
+            sql_query = self._get_sql_query(datasource)
+
+            with datasource.database.get_sqla_engine() as engine:
+                connection = engine.connect()
+
+                try:
+                    result_proxy = connection.execution_options(
+                        stream_results=True
+                    ).execute(text(sql_query))
+
+                    columns = list(result_proxy.keys())
+
+                    # Use StringIO with csv.writer for proper escaping
+                    buffer = io.StringIO()
+                    csv_writer = csv.writer(buffer, quoting=csv.QUOTE_MINIMAL)
+
+                    # Write CSV header
+                    header_data, header_bytes = self._write_csv_header(
+                        columns, csv_writer, buffer
+                    )
+                    total_bytes += header_bytes
+                    yield header_data
+
+                    # Process rows and yield chunks
+                    row_count = 0
+                    for data_chunk, rows_processed, chunk_bytes in self._process_rows(
+                        result_proxy, csv_writer, buffer
+                    ):
+                        total_bytes += chunk_bytes
+                        row_count = rows_processed
+                        yield data_chunk
+
+                    # Log completion
+                    total_time = time.time() - start_time
+                    total_mb = total_bytes / (1024 * 1024)
+                    logger.info(
+                        "Streaming CSV completed: %s rows, %.1fMB in %.2fs",
+                        f"{row_count:,}",
+                        total_mb,
+                        total_time,
+                    )
+
+                finally:
+                    connection.close()
+
+    def run(self) -> Callable[[], Generator[str, None, None]]:
         """
         Execute the streaming CSV export.
 
@@ -74,92 +187,11 @@ class StreamingCSVExportCommand(BaseCommand):
             The callable is needed to maintain Flask app context during streaming.
         """
 
-        def csv_generator() -> Generator[str, None, None]:  # noqa: C901
+        def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data from database query."""
             with self._current_app.app_context():
-                start_time = time.time()
-                total_bytes = 0
-
                 try:
-                    from superset import db
-                    from superset.connectors.sqla.models import SqlaTable
-
-                    datasource = self._query_context.datasource
-
-                    with db.session() as session:
-                        if isinstance(datasource, SqlaTable):
-                            datasource = session.merge(datasource)
-
-                        query_obj = self._query_context.queries[0]
-                        sql_query = datasource.get_query_str(query_obj.to_dict())
-
-                        with datasource.database.get_sqla_engine() as engine:
-                            connection = engine.connect()
-
-                            try:
-                                from sqlalchemy import text
-
-                                result_proxy = connection.execution_options(
-                                    stream_results=True
-                                ).execute(text(sql_query))
-
-                                columns = list(result_proxy.keys())
-
-                                # Use StringIO with csv.writer for proper escaping
-                                buffer = io.StringIO()
-                                csv_writer = csv.writer(
-                                    buffer, quoting=csv.QUOTE_MINIMAL
-                                )
-
-                                # Write CSV header
-                                csv_writer.writerow(columns)
-                                header_data = buffer.getvalue()
-                                total_bytes += len(header_data.encode("utf-8"))
-                                yield header_data
-                                buffer.seek(0)
-                                buffer.truncate()
-
-                                row_count = 0
-                                flush_threshold = 65536  # 64KB
-
-                                while True:
-                                    rows = result_proxy.fetchmany(self._chunk_size)
-                                    if not rows:
-                                        break
-
-                                    for row in rows:
-                                        csv_writer.writerow(row)
-                                        row_count += 1
-
-                                        # Check buffer size and flush if needed
-                                        current_size = buffer.tell()
-                                        if current_size >= flush_threshold:
-                                            data = buffer.getvalue()
-                                            data_bytes = len(data.encode("utf-8"))
-                                            total_bytes += data_bytes
-                                            yield data
-                                            buffer.seek(0)
-                                            buffer.truncate()
-
-                                # Flush remaining buffer
-                                remaining_data = buffer.getvalue()
-                                if remaining_data:
-                                    total_bytes += len(remaining_data.encode("utf-8"))
-                                    yield remaining_data
-
-                                # Log completion
-                                total_time = time.time() - start_time
-                                total_mb = total_bytes / (1024 * 1024)
-                                logger.info(
-                                    "Streaming CSV completed: %s rows, %.1fMB in %.2fs",
-                                    f"{row_count:,}",
-                                    total_mb,
-                                    total_time,
-                                )
-
-                            finally:
-                                connection.close()
-
+                    yield from self._execute_query_and_stream()
                 except Exception as e:
                     logger.error("Error in streaming CSV generator: %s", e)
                     import traceback

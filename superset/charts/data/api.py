@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
@@ -35,6 +37,9 @@ from superset.commands.chart.data.create_async_job_command import (
     CreateAsyncChartDataJobCommand,
 )
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.data.streaming_export_command import (
+    StreamingCSVExportCommand,
+)
 from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
@@ -501,8 +506,6 @@ class ChartDataRestApi(ChartRestApi):
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
     ) -> bool:
         """Determine if streaming should be used based on actual row count threshold."""
-        from flask import current_app as app
-
         query_context = result["query_context"]
         result_format = query_context.result_format
 
@@ -514,7 +517,7 @@ class ChartDataRestApi(ChartRestApi):
         threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
 
         # Extract actual row count (same logic as frontend)
-        actual_row_count = None
+        actual_row_count: int | None = None
         viz_type = form_data.get("viz_type") if form_data else None
 
         # For table viz, try to get actual row count from query results
@@ -547,14 +550,6 @@ class ChartDataRestApi(ChartRestApi):
         expected_rows: int | None = None,
     ) -> Response:
         """Create a streaming CSV response for large datasets."""
-        from datetime import datetime
-
-        from flask import Response
-
-        from superset.commands.chart.data.streaming_export_command import (
-            StreamingCSVExportCommand,
-        )
-
         query_context = result["query_context"]
 
         # Use filename from frontend if provided, otherwise generate one
@@ -568,10 +563,7 @@ class ChartDataRestApi(ChartRestApi):
                 chart_name = form_data["viz_type"]
 
             # Sanitize chart name for filename
-            safe_chart_name = "".join(
-                c for c in chart_name if c.isalnum() or c in ("-", "_")
-            )
-            filename = f"superset_{safe_chart_name}_{timestamp}.csv"
+            filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
 
         logger.info(
             "Creating streaming CSV response: %s (from frontend: %s)",
@@ -600,7 +592,6 @@ class ChartDataRestApi(ChartRestApi):
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",  # Disable nginx buffering
-                "X-Superset-Streaming": "true",  # Identify streaming responses
             },
             direct_passthrough=False,  # Flask must iterate generator
         )

@@ -166,7 +166,7 @@ module.exports = newManifest => {
           processHTML(proxyResponse, response);
         } else {
           const isStreaming =
-            proxyResponse.headers['x-superset-streaming'] === 'true';
+            proxyResponse.headers['transfer-encoding'] === 'chunked';
 
           if (isStreaming) {
             proxyResponse.on('data', chunk => {

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, cast, Optional
 from urllib import parse
 
@@ -23,12 +24,16 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
 from superset.commands.sql_lab.results import SqlExecutionResultsCommand
+from superset.commands.sql_lab.streaming_export_command import (
+    StreamingSqlResultExportCommand,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -367,12 +372,6 @@ class SqlLabRestApi(BaseSupersetApi):
         expected_rows: int | None = None,
     ) -> Response:
         """Create a streaming CSV response for large SQL Lab result sets."""
-        from datetime import datetime
-
-        from superset.commands.sql_lab.streaming_export_command import (
-            StreamingSqlResultExportCommand,
-        )
-
         # Execute streaming command
         chunk_size = 1000
         command = StreamingSqlResultExportCommand(client_id, chunk_size)
@@ -383,10 +382,8 @@ class SqlLabRestApi(BaseSupersetApi):
             query = command._query
             assert query is not None
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_name = "".join(
-                c for c in (query.name or "query") if c.isalnum() or c in ("-", "_")
-            )
-            filename = f"sqllab_{safe_name}_{timestamp}.csv"
+            query_name = query.name or "query"
+            filename = secure_filename(f"sqllab_{query_name}_{timestamp}.csv")
 
         # Get the callable that returns the generator
         csv_generator_callable = command.run()
@@ -402,7 +399,6 @@ class SqlLabRestApi(BaseSupersetApi):
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",  # Disable nginx buffering
-                "X-Superset-Streaming": "true",  # Identify streaming responses
             },
             direct_passthrough=False,  # Flask must iterate generator
         )

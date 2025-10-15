@@ -22,10 +22,11 @@ import csv
 import io
 import logging
 import time
-from typing import Callable, Generator, TYPE_CHECKING
+from typing import Any, Callable, Generator, TYPE_CHECKING
 
 from flask import current_app as app
 from flask_babel import gettext as __
+from sqlalchemy import text
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -99,16 +100,8 @@ class StreamingSqlResultExportCommand(BaseCommand):
                 status=403,
             ) from ex
 
-    def run(self) -> Callable[[], Generator[str, None, None]]:  # noqa: C901
-        """
-        Execute the streaming CSV export.
-
-        Returns:
-            A callable that returns a generator yielding CSV data chunks as strings.
-            The callable is needed to maintain Flask app context during streaming.
-        """
-        # Load all Query attributes while session is still active
-        # to avoid DetachedInstanceError
+    def _get_sql_and_limit(self) -> tuple[str, int | None]:
+        """Get the SQL query and limit from the query object."""
         assert self._query is not None
 
         select_sql = self._query.select_sql
@@ -134,95 +127,136 @@ class StreamingSqlResultExportCommand(BaseCommand):
             # remove extra row from `increased_limit`
             limit -= 1
 
-        def csv_generator() -> Generator[str, None, None]:  # noqa: C901
-            """Generator that yields CSV data from SQL Lab query results."""
-            with self._current_app.app_context():
-                start_time = time.time()
-                total_bytes = 0
+        return sql, limit
+
+    def _write_csv_header(
+        self, columns: list[str], csv_writer: Any, buffer: io.StringIO
+    ) -> tuple[str, int]:
+        """Write CSV header and return header data with byte count."""
+        csv_writer.writerow(columns)
+        header_data = buffer.getvalue()
+        total_bytes = len(header_data.encode("utf-8"))
+        buffer.seek(0)
+        buffer.truncate()
+        return header_data, total_bytes
+
+    def _process_rows(
+        self,
+        result_proxy: Any,
+        csv_writer: Any,
+        buffer: io.StringIO,
+        limit: int | None,
+    ) -> Generator[tuple[str, int, int], None, None]:
+        """
+        Process database rows and yield CSV data chunks.
+
+        Yields tuples of (data_chunk, row_count, byte_count).
+        """
+        row_count = 0
+        flush_threshold = 65536  # 64KB
+
+        while rows := result_proxy.fetchmany(self._chunk_size):
+            for row in rows:
+                # Apply limit if specified
+                if limit is not None and row_count >= limit:
+                    break
+
+                csv_writer.writerow(row)
+                row_count += 1
+
+                # Check buffer size and flush if needed
+                current_size = buffer.tell()
+                if current_size >= flush_threshold:
+                    data = buffer.getvalue()
+                    data_bytes = len(data.encode("utf-8"))
+                    yield data, row_count, data_bytes
+                    buffer.seek(0)
+                    buffer.truncate()
+
+            # Break outer loop if limit reached
+            if limit is not None and row_count >= limit:
+                break
+
+        # Flush remaining buffer
+        if remaining_data := buffer.getvalue():
+            data_bytes = len(remaining_data.encode("utf-8"))
+            yield remaining_data, row_count, data_bytes
+
+    def _execute_query_and_stream(
+        self, sql: str, database: Any
+    ) -> Generator[str, None, None]:
+        """Execute query with streaming and yield CSV chunks."""
+        _, limit = self._get_sql_and_limit()
+        start_time = time.time()
+        total_bytes = 0
+
+        with db.session() as session:
+            # Merge database to prevent DetachedInstanceError
+            merged_database = session.merge(database)
+
+            # Execute query with streaming
+            with merged_database.get_sqla_engine() as engine:
+                connection = engine.connect()
 
                 try:
-                    # Create a new session to keep database object attached
-                    with db.session() as session:
-                        # Merge database to prevent DetachedInstanceError
-                        merged_database = session.merge(database)
+                    result_proxy = connection.execution_options(
+                        stream_results=True
+                    ).execute(text(sql))
 
-                        # Execute query with streaming
-                        with merged_database.get_sqla_engine() as engine:
-                            connection = engine.connect()
+                    columns = list(result_proxy.keys())
 
-                            try:
-                                from sqlalchemy import text
+                    # Use StringIO with csv.writer for proper escaping
+                    buffer = io.StringIO()
+                    csv_writer = csv.writer(buffer, quoting=csv.QUOTE_MINIMAL)
 
-                                result_proxy = connection.execution_options(
-                                    stream_results=True
-                                ).execute(text(sql))
+                    # Write CSV header
+                    header_data, header_bytes = self._write_csv_header(
+                        columns, csv_writer, buffer
+                    )
+                    total_bytes += header_bytes
+                    yield header_data
 
-                                columns = list(result_proxy.keys())
+                    # Process rows and yield chunks
+                    row_count = 0
+                    for data_chunk, rows_processed, chunk_bytes in self._process_rows(
+                        result_proxy, csv_writer, buffer, limit
+                    ):
+                        total_bytes += chunk_bytes
+                        row_count = rows_processed
+                        yield data_chunk
 
-                                # Use StringIO with csv.writer for proper escaping
-                                buffer = io.StringIO()
-                                csv_writer = csv.writer(
-                                    buffer, quoting=csv.QUOTE_MINIMAL
-                                )
+                    # Log completion
+                    total_time = time.time() - start_time
+                    total_mb = total_bytes / (1024 * 1024)
+                    logger.info(
+                        "SQL Lab streaming CSV completed: %s rows, %.1fMB in %.2fs",
+                        f"{row_count:,}",
+                        total_mb,
+                        total_time,
+                    )
 
-                                # Write CSV header
-                                csv_writer.writerow(columns)
-                                header_data = buffer.getvalue()
-                                total_bytes += len(header_data.encode("utf-8"))
-                                yield header_data
-                                buffer.seek(0)
-                                buffer.truncate()
+                finally:
+                    connection.close()
 
-                                row_count = 0
-                                flush_threshold = 65536  # 64KB
+    def run(self) -> Callable[[], Generator[str, None, None]]:
+        """
+        Execute the streaming CSV export.
 
-                                while True:
-                                    rows = result_proxy.fetchmany(self._chunk_size)
-                                    if not rows:
-                                        break
+        Returns:
+            A callable that returns a generator yielding CSV data chunks as strings.
+            The callable is needed to maintain Flask app context during streaming.
+        """
+        # Load all Query attributes while session is still active
+        # to avoid DetachedInstanceError
+        assert self._query is not None
+        sql, _ = self._get_sql_and_limit()
+        database = self._query.database
 
-                                    for row in rows:
-                                        # Apply limit if specified
-                                        if limit is not None and row_count >= limit:
-                                            break
-
-                                        csv_writer.writerow(row)
-                                        row_count += 1
-
-                                        # Check buffer size and flush if needed
-                                        current_size = buffer.tell()
-                                        if current_size >= flush_threshold:
-                                            data = buffer.getvalue()
-                                            data_bytes = len(data.encode("utf-8"))
-                                            total_bytes += data_bytes
-                                            yield data
-                                            buffer.seek(0)
-                                            buffer.truncate()
-
-                                    # Break outer loop if limit reached
-                                    if limit is not None and row_count >= limit:
-                                        break
-
-                                # Flush remaining buffer
-                                remaining_data = buffer.getvalue()
-                                if remaining_data:
-                                    total_bytes += len(remaining_data.encode("utf-8"))
-                                    yield remaining_data
-
-                                # Log completion
-                                total_time = time.time() - start_time
-                                total_mb = total_bytes / (1024 * 1024)
-                                logger.info(
-                                    "SQL Lab streaming CSV completed: %s rows, "
-                                    "%.1fMB in %.2fs",
-                                    f"{row_count:,}",
-                                    total_mb,
-                                    total_time,
-                                )
-
-                            finally:
-                                connection.close()
-
+        def csv_generator() -> Generator[str, None, None]:
+            """Generator that yields CSV data from SQL Lab query results."""
+            with self._current_app.app_context():
+                try:
+                    yield from self._execute_query_and_stream(sql, database)
                 except Exception as e:
                     logger.error("Error in SQL Lab streaming CSV generator: %s", e)
                     import traceback
