@@ -577,6 +577,7 @@ class WebDriverSelenium(WebDriverProxy):
         driver.set_window_size(*self._window)
         driver.get(url)
         img: bytes | None = None
+        element = None
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
@@ -591,8 +592,21 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
-                logger.exception("Selenium timed out requesting url %s", url)
-                raise
+                logger.warning(
+                    "Selenium timed out locating element %s at url %s - will "
+                    "attempt to capture current page state",
+                    element_name,
+                    url,
+                )
+                # Try to find element anyway for screenshot
+                try:
+                    element = driver.find_element(By.CLASS_NAME, element_name)
+                except Exception:
+                    # If element doesn't exist, capture full page
+                    logger.warning(
+                        "Element %s not found, capturing full page screenshot",
+                        element_name,
+                    )
 
             try:
                 # chart containers didn't render
@@ -603,7 +617,9 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
-                logger.info("Timeout Exception caught")
+                logger.info(
+                    "Timeout waiting for chart containers - will capture current state"
+                )
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
@@ -611,12 +627,10 @@ class WebDriverSelenium(WebDriverProxy):
                             (By.CLASS_NAME, "grid-container")
                         )
                     )
-                except:
-                    logger.exception(
-                        "Selenium timed out waiting for dashboard to draw at url %s",
-                        url,
+                except Exception:
+                    logger.info(
+                        "Grid container not visible - capturing current state anyway"
                     )
-                    raise
 
             try:
                 # charts took too long to load
@@ -627,10 +641,11 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for charts to load at url %s", url
+                logger.warning(
+                    "Selenium timed out waiting for charts to load at url %s - "
+                    "will capture current state with loading indicators",
+                    url,
                 )
-                raise
 
             selenium_animation_wait = app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
@@ -651,13 +666,12 @@ class WebDriverSelenium(WebDriverProxy):
                         unexpected_errors,
                     )
 
-            img = element.screenshot_as_png
-        except Exception as ex:
-            logger.warning("exception in webdriver", exc_info=ex)
-            raise
-        except TimeoutException:
-            # raise again for the finally block, but handled above
-            raise
+            # Attempt to capture screenshot of element or full page
+            if element:
+                img = element.screenshot_as_png
+            else:
+                # Fall back to full page screenshot if element not found
+                img = driver.get_screenshot_as_png()
         except StaleElementReferenceException:
             logger.exception(
                 "Selenium got a stale element while requesting url %s",
@@ -668,6 +682,9 @@ class WebDriverSelenium(WebDriverProxy):
             logger.exception(
                 "Encountered an unexpected error when requesting url %s", url
             )
+            raise
+        except Exception as ex:
+            logger.warning("Unexpected exception in webdriver", exc_info=ex)
             raise
         finally:
             self.destroy(driver, app.config["SCREENSHOT_SELENIUM_RETRIES"])
