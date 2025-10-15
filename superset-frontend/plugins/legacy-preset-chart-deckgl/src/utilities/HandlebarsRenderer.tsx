@@ -17,9 +17,8 @@
  * under the License.
  */
 import { useEffect, useState, memo } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, sanitizeHtml } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
 import { isPlainObject } from 'lodash';
 
@@ -45,8 +44,6 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
     const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
-    const htmlSchemaOverrides =
-      common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
     useEffect(() => {
       try {
@@ -65,6 +62,10 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
     }
 
     if (renderedTemplate || renderedTemplate === '') {
+      const htmlContent = htmlSanitization
+        ? sanitizeHtml(renderedTemplate)
+        : renderedTemplate;
+
       return (
         <div
           style={{
@@ -73,13 +74,9 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
             fontSize: '12px',
             lineHeight: '1.4',
           }}
-        >
-          <SafeMarkdown
-            source={renderedTemplate || ''}
-            htmlSanitization={htmlSanitization}
-            htmlSchemaOverrides={htmlSchemaOverrides}
-          />
-        </div>
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
       );
     }
 
