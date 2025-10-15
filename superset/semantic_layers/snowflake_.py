@@ -20,6 +20,7 @@ from __future__ import annotations
 import itertools
 import re
 from collections import defaultdict
+from textwrap import dedent
 from typing import Any, Literal, Union
 
 from cryptography.hazmat.backends import default_backend
@@ -37,7 +38,6 @@ from snowflake.connector import connect, DictCursor
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
-from superset.common.query_object import QueryObject
 from superset.semantic_layers.types import (
     BINARY,
     BOOLEAN,
@@ -356,11 +356,13 @@ class SnowflakeSemanticLayer:
             return set()
 
         cursor = connection.cursor()
-        query = """
+        query = dedent(
+            """
             SELECT SCHEMA_NAME
             FROM INFORMATION_SCHEMA.SCHEMATA
             WHERE CATALOG_NAME = ?
-        """
+            """
+        )
         return {row[0] for row in cursor.execute(query, (database,))}
 
     def __init__(self, configuration: SnowflakeConfiguration):
@@ -381,10 +383,12 @@ class SnowflakeSemanticLayer:
         connection_parameters = get_connection_parameters(configuration)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor()
-            query = """
+            query = dedent(
+                """
                 SHOW SEMANTIC VIEWS
                     ->> SELECT "name" FROM $1;
-            """
+                """
+            )
             return {
                 SnowflakeExplorable(configuration, row[0])
                 for row in cursor.execute(query)
@@ -418,14 +422,16 @@ class SnowflakeExplorable:
         """
         dimensions: set[Dimension] = set()
 
-        query = f"""
+        query = dedent(
+            f"""
             DESC SEMANTIC VIEW {self.uid()}
                 ->> SELECT "object_name", "property", "property_value"
                     FROM $1
                     WHERE
                         "object_kind" = 'DIMENSION' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
-        """  # noqa: S608
+            """  # noqa: S608
+        )
 
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
@@ -453,14 +459,16 @@ class SnowflakeExplorable:
         """
         metrics: set[Metric] = set()
 
-        query = f"""
+        query = dedent(
+            f"""
             DESC SEMANTIC VIEW {self.uid()}
                 ->> SELECT "object_name", "property", "property_value"
                     FROM $1
                     WHERE
                         "object_kind" = 'METRIC' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
-        """  # noqa: S608
+            """  # noqa: S608
+        )
 
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
@@ -509,21 +517,23 @@ class SnowflakeExplorable:
 
         return STRING
 
-    def get_values(
+    def _build_where_clause(
         self,
-        dimension: Dimension,
-        filters: set[Filter | NativeFilter] | None = None,
-    ) -> set[Any]:
+        filters: set[Filter | NativeFilter] | None,
+    ) -> tuple[str, tuple[FilterValues]]:
         """
-        Return distinct values for a dimension.
+        Convert a set of filters to a SQL WHERE clause.
         """
+        if not filters:
+            return "", ()
+
         # convert filters predicate with associated parameters; native filters are
         # already strings, so we keep them as-is
         unary_operators = {Operator.IS_NULL, Operator.IS_NOT_NULL}
         predicates: list[str] = []
         parameters: list[FilterValues] = []
         for filter_ in filters or set():
-            if isinstance(filter, NativeFilter):
+            if isinstance(filter_, NativeFilter):
                 predicates.append(f"({filter_.definition})")
             else:
                 predicates.append(f"({self._build_predicate(filter_)})")
@@ -534,19 +544,32 @@ class SnowflakeExplorable:
                         else filter_.value
                     )
 
-        query = f"""
+        return "WHERE " + " AND ".join(predicates), tuple(parameters)
+
+    def get_values(
+        self,
+        dimension: Dimension,
+        filters: set[Filter | NativeFilter] | None = None,
+    ) -> set[Any]:
+        """
+        Return distinct values for a dimension.
+        """
+        where_clause, parameters = self._build_where_clause(filters)
+        query = dedent(
+            f"""
             SELECT {self._quote(dimension.name)}
-            FROM
-                SEMANTIC_VIEW(
-                    {self.uid()}
-                    DIMENSIONS {dimension.id}
-                )
-            {"WHERE " + " AND ".join(predicates) if predicates else ""}
-        """  # noqa: S608
+            FROM SEMANTIC_VIEW(
+                {self.uid()}
+                DIMENSIONS {dimension.id}
+                {where_clause}
+            )
+            """  # noqa: S608
+        )
+        print(query)
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor()
-            return {row[0] for row in cursor.execute(query, tuple(parameters))}
+            return {row[0] for row in cursor.execute(query, parameters)}
 
     def _build_predicate(self, filter_: Filter) -> str:
         """
@@ -571,13 +594,63 @@ class SnowflakeExplorable:
 
         return f"{column_name} {operator.value} ?"
 
-    def get_dataframe(self, query_object: QueryObject) -> DataFrame:
+    # TODO (betodealmeida): create a class to manage the explorable request and pass it
+    # here, instead of individual parameters
+    def get_dataframe(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        filters: set[Filter | NativeFilter] | None = None,
+    ) -> DataFrame:
         """
         Execute a query and return the results as a Pandas DataFrame.
         """
-        pass
+        dimension_arguments = ", ".join(
+            f"{dimension.id} AS {self._quote(dimension.id)}" for dimension in dimensions
+        )
+        metric_arguments = ", ".join(
+            f"{metric.id} AS {self._quote(metric.id)}"
+            for metric in metrics
+            for metric in metrics
+        )
+
+        where_clause, parameters = self._build_where_clause(filters)
+        query = dedent(
+            f"""
+            SELECT * FROM SEMANTIC_VIEW(
+                {self.uid()}
+                DIMENSIONS
+                    {dimension_arguments}
+                METRICS
+                    {metric_arguments}
+                {where_clause}
+            )
+            """  # noqa: S608
+        )
+        print(query)
 
     __repr__ = uid
+
+
+"""
+  query_object = QueryObject(
+      columns=["I_BRAND"],
+      metrics=["TOTALSALESPRICE"],
+      row_limit=10
+  )
+
+  Generated SQL
+
+  SELECT * FROM SEMANTIC_VIEW(
+    TPCDS_SEMANTIC_VIEW_SM
+    DIMENSIONS
+      ITEM.BRAND
+    METRICS
+      STORESALES.TOTALSALESPRICE
+  )
+  ORDER BY TOTALSALESPRICE DESC
+  LIMIT 10
+"""
 
 
 if __name__ == "__main__":
@@ -641,3 +714,30 @@ if __name__ == "__main__":
         Filter(dimension, Operator.IN, frozenset({"Children", "Electronics"})),
     }
     print(explorable.get_values(dimension, filters))
+    print(
+        explorable.get_dataframe(
+            [
+                Metric(
+                    "STORESALES.TOTALSALESPRICE",
+                    "TOTALSALESPRICE",
+                    NUMBER,
+                    None,
+                    None,
+                )
+            ],
+            [
+                Dimension(
+                    id="ITEM.CATEGORY",
+                    name="CATEGORY",
+                    type=STRING,
+                    description=None,
+                    definition="I_CATEGORY",
+                    grain=None,
+                )
+            ],
+            {
+                NativeFilter("Year = '2002'"),
+                NativeFilter("Month = '12'"),
+            },
+        )
+    )
