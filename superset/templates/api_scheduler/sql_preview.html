@@ -1,0 +1,103 @@
+{% extends "api_scheduler/base.html" %}
+
+{% block title %}SQL Preview - {{ config.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>SQL Preview: {{ config.name }}</h2>
+            <p class="text-muted">Target Table: <code>{{ config.target_table }}</code></p>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <i class="fa fa-database"></i> CREATE TABLE Statement
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <div class="alert alert-info">
+                        <strong><i class="fa fa-info-circle"></i> Note:</strong> 
+                        You can edit the SQL below to add constraints (UNIQUE, NOT NULL, DEFAULT, CHECK). 
+                        Security validation will ensure only safe CREATE TABLE statements are executed.
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('api_scheduler.execute_sql', config_id=config.id) }}" id="sql-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    
+                        <div class="form-group">
+                            <label for="sql">SQL Statement:</label>
+                            <textarea class="form-control" id="custom_sql" name="custom_sql" rows="15" required>{{ sql }}</textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <strong><i class="fa fa-exclamation-triangle"></i> Security Requirements:</strong>
+                            <ul class="mb-0">
+                                <li>Must be a CREATE TABLE statement</li>
+                                <li>Must include <code>id SERIAL PRIMARY KEY</code> or <code>id INTEGER GENERATED ... AS IDENTITY</code></li>
+                                <li>Must include <code>fetched_at TIMESTAMP DEFAULT ...</code></li>
+                                <li>Table name must match: <code>{{ config.target_table }}</code></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-play"></i> Execute SQL & Create Table
+                            </button>
+                            <a href="{{ url_for('api_scheduler.edit_mappings', config_id=config.id) }}" class="btn btn-default">
+                                <i class="fa fa-arrow-left"></i> Back to Field Mappings
+                            </a>
+                            <a href="{{ url_for('api_scheduler.dashboard') }}" class="btn btn-default">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="panel panel-success">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-lightbulb-o"></i> Example Customizations</h3>
+                </div>
+                <div class="panel-body">
+                    <h4>Adding Constraints:</h4>
+                    <pre><code>CREATE TABLE IF NOT EXISTS {{ config.target_table }} (
+    id SERIAL PRIMARY KEY,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    email VARCHAR(255) UNIQUE NOT NULL,  -- Add UNIQUE and NOT NULL
+    age INTEGER CHECK (age >= 0),         -- Add CHECK constraint
+    status VARCHAR(50) DEFAULT 'active'   -- Add DEFAULT value
+);</code></pre>
+                    
+                    <h4>Using JSONB for Complex Data:</h4>
+                    <pre><code>    metadata JSONB,  -- Store complex JSON objects (max 256KB)</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// SQL syntax highlighting (basic)
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('sql');
+    textarea.addEventListener('input', function() {
+        // Basic validation feedback
+        const sql = this.value.toUpperCase();
+        if (!sql.includes('CREATE TABLE')) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+
+// Form confirmation
+document.getElementById('sql-form').addEventListener('submit', function(e) {
+    if (!confirm('Execute this SQL statement? This will create the table in the database.')) {
+        e.preventDefault();
+    }
+});
+</script>
+
+{% endblock %}

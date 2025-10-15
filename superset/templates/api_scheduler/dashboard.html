@@ -1,0 +1,194 @@
+{% extends "api_scheduler/base.html" %}
+
+{% block title %}APIs Scheduler Dashboard{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for JavaScript -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>API Scheduler Dashboard</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <a href="{{ url_for('api_scheduler.new_config') }}" class="btn btn-primary">
+                    <i class="fa fa-plus"></i> New Configuration
+                </a>
+            </div>
+            
+            {% if configs %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th width="15%">Name</th>
+                            <th width="25%">API URL</th>
+                            <th width="8%">Status</th>
+                            <th width="15%">Last Execution</th>
+                            <th width="10%">Schedule</th>
+                            <th width="27%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for config in configs %}
+                        <tr>
+                            <td><strong>{{ config.name }}</strong></td>
+                            <td><small>{{ config.api_url[:50] }}{% if config.api_url|length > 50 %}...{% endif %}</small></td>
+                            <td>
+                                {% if config.is_active %}
+                                <span class="label label-success">Active</span>
+                                {% else %}
+                                <span class="label label-default">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if config.last_execution %}
+                                <small>
+                                    {{ config.last_execution.executed_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                                    {% if config.last_execution.status == 'success' %}
+                                    <span class="label label-success">Success</span>
+                                    {% else %}
+                                    <span class="label label-danger">Error</span>
+                                    {% endif %}
+                                </small>
+                                {% else %}
+                                <span class="text-muted">Never executed</span>
+                                {% endif %}
+                                <!-- Next Run -->
+                                {% if config.next_run_time %}
+                                    <br><small class="text-info">Next: {{ config.next_run_time.strftime('%H:%M:%S') }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>Every {{ config.schedule_interval }}s</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('api_scheduler.edit_config', config_id=config.id) }}" 
+                                       class="btn btn-xs btn-default" title="Edit">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('api_scheduler.edit_mappings', config_id=config.id) }}" 
+                                       class="btn btn-xs btn-info" title="Mappings">
+                                        <i class="fa fa-link"></i>
+                                    </a>
+                                    <a href="{{ url_for('api_scheduler.sql_preview', config_id=config.id) }}" 
+                                       class="btn btn-xs btn-primary" title="SQL Preview">
+                                        <i class="fa fa-database"></i>
+                                    </a>
+                                    <a href="{{ url_for('api_scheduler.view_logs', config_id=config.id) }}" 
+                                       class="btn btn-xs btn-warning" title="View Logs">
+                                        <i class="fa fa-list"></i>
+                                    </a>
+                                    <button onclick="testAPI({{ config.id }})" 
+                                            class="btn btn-xs btn-success" title="Test API">
+                                        <i class="fa fa-flask"></i>
+                                    </button>
+                                    <button onclick="toggleActive({{ config.id }}, {{ config.is_active|lower }})" 
+                                            class="btn btn-xs {% if config.is_active %}btn-warning{% else %}btn-success{% endif %}" 
+                                            title="{{ 'Deactivate' if config.is_active else 'Activate' }}" 
+                                            id="toggle-btn-{{ config.id }}">
+                                        <i class="fa fa-power-off"></i>
+                                    </button>
+                                    <button onclick="deleteConfig({{ config.id }}, {{ config.name|tojson }})" 
+                                            class="btn btn-xs btn-danger" title="Delete">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fa fa-info-circle"></i> No configurations found. Create your first API configuration to get started!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function testAPI(configId) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    fetch('/api-scheduler/config/' + configId + '/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ API test successful!\n\nStatus: ' + data.status_code + '\nResponse received.');
+        } else {
+            alert('✗ API test failed:\n\n' + data.error);
+        }
+    })
+    .catch(err => {
+        alert('✗ Error: ' + err.message);
+    });
+}
+
+function toggleActive(configId, currentStatus) {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    if (!confirm('Are you sure you want to ' + action + ' this configuration?')) {
+        return;
+    }
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    fetch('/api-scheduler/config/' + configId + '/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        alert('Error: ' + err.message);
+    });
+}
+
+function deleteConfig(configId, configName) {
+    if (!confirm('Are you sure you want to DELETE configuration "' + configName + '"?\n\nThis will also drop the database table and cannot be undone!')) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api-scheduler/config/' + configId + '/delete';
+    
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrf_token';
+    csrfToken.value = '{{ csrf_token() }}';
+    form.appendChild(csrfToken);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+<style>
+    .table-responsive {
+        margin-top: 20px;
+    }
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+    .table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+
+{% endblock %}

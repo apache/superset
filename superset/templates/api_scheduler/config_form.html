@@ -1,0 +1,138 @@
+{% extends "api_scheduler/base.html" %}
+
+{% block title %}{{ 'Edit' if config else 'New' }} API Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>{{ 'Edit' if config else 'New' }} API Configuration</h2>
+            
+           {% if config %}
+<form method="POST" action="{{ url_for('api_scheduler.edit_config', config_id=config.id) }}">
+{% else %}
+<form method="POST" action="{{ url_for('api_scheduler.new_config') }}">
+{% endif %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Basic Information</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label for="name">Configuration Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ config.name if config else '' }}" required>
+                            <small class="form-text text-muted">A descriptive name for this API configuration</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="target_table">Target Table Name *</label>
+                            <input type="text" class="form-control" id="target_table" name="target_table" 
+                                   value="{{ config.target_table if config else '' }}" 
+                                   pattern="[a-z_][a-z0-9_]*" required>
+                            <small class="form-text text-muted">Table name (lowercase, underscores only, e.g., user_data)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">API Configuration</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label for="api_url">API URL *</label>
+                            <input type="url" class="form-control" id="api_url" name="api_url" 
+                                   value="{{ config.api_url if config else '' }}" required>
+                            <small class="form-text text-muted">Full API endpoint URL</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="api_method">HTTP Method</label>
+                            <select class="form-control" id="api_method" name="api_method">
+                                <option value="GET" {{ 'selected' if config and config.api_method == 'GET' else '' }}>GET</option>
+                                <option value="POST" {{ 'selected' if config and config.api_method == 'POST' else '' }}>POST</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="api_headers">Headers (JSON format, optional)</label>
+                            <textarea class="form-control" id="api_headers" name="api_headers" rows="3" 
+                                      placeholder='{"Content-Type": "application/json"}'>{{ config.api_headers if config else '' }}</textarea>
+                            <small class="form-text text-muted">Leave empty if no custom headers needed</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="api_key">API Key / Bearer Token (optional)</label>
+                            <input type="text" class="form-control" id="api_key" name="api_key" 
+                                   value="{{ config.api_key if config else '' }}" placeholder="your-api-key-here">
+                            <small class="form-text text-muted">Will be sent as Authorization: Bearer {key}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Scheduling</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label for="schedule_interval">Fetch Interval (seconds)</label>
+                            <input type="number" class="form-control" id="schedule_interval" name="schedule_interval" 
+                                   value="{{ config.schedule_interval if config else 300 }}" min="30" required>
+                            <small class="form-text text-muted">Minimum: 30 seconds</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" name="is_active" value="1" 
+                                           {{ 'checked' if config and config.is_active else '' }}>
+                                    Activate immediately after creation
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-save"></i> Save Configuration
+                    </button>
+                    <a href="{{ url_for('api_scheduler.dashboard') }}" class="btn btn-default">
+                        <i class="fa fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-info-circle"></i> Quick Guide</h3>
+                </div>
+                <div class="panel-body">
+                    <h4>Steps:</h4>
+                    <ol>
+                        <li>Fill in configuration details</li>
+                        <li>Click "Save Configuration"</li>
+                        <li>Configure field mappings on next page</li>
+                        <li>Review and execute SQL</li>
+                        <li>Activate to start fetching</li>
+                    </ol>
+                    
+                    <h4>Security Notes:</h4>
+                    <ul>
+                        <li>Private IPs are blocked (SSRF protection)</li>
+                        <li>SQL injection prevention enabled</li>
+                        <li>API headers validated as JSON</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

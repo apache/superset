@@ -1,0 +1,210 @@
+{% extends "api_scheduler/base.html" %}
+
+{% block title %}Field Mappings - {{ config.name }}{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for JavaScript -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Field Mappings: {{ config.name }}</h2>
+            <p class="text-muted">API URL: {{ config.api_url }}</p>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3 class="panel-title">Configure Field Mappings</h3>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button type="button" class="btn btn-sm btn-info" onclick="testAPI()">
+                                <i class="fa fa-flask"></i> Test API
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="api-test-result" class="alert" style="display:none;"></div>
+                    
+                    <form method="POST" action="{{ url_for('api_scheduler.edit_mappings', config_id=config.id) }}" id="mappings-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th width="35%">API Field Path</th>
+                                    <th width="30%">Database Column Name</th>
+                                    <th width="25%">Data Type</th>
+                                    <th width="10%">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappings-tbody">
+                                {% if config.field_mappings %}
+                                    {% for mapping in config.field_mappings %}
+                                    <tr>
+                                        <td>
+                                            <input type="text" class="form-control" 
+                                                   name="api_field_path[]" 
+                                                   value="{{ mapping.api_field_path }}" 
+                                                   placeholder="e.g., data.user.name or items.0.id" required>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" 
+                                                   name="db_column_name[]" 
+                                                   value="{{ mapping.db_column_name }}" 
+                                                   pattern="[a-z_][a-z0-9_]*" 
+                                                   placeholder="e.g., user_name" required>
+                                        </td>
+                                        <td>
+                                            <select class="form-control" name="db_column_type[]" required>
+                                                <option value="VARCHAR(255)" {{ 'selected' if mapping.db_column_type == 'VARCHAR(255)' else '' }}>VARCHAR(255)</option>
+                                                <option value="TEXT" {{ 'selected' if mapping.db_column_type == 'TEXT' else '' }}>TEXT</option>
+                                                <option value="INTEGER" {{ 'selected' if mapping.db_column_type == 'INTEGER' else '' }}>INTEGER</option>
+                                                <option value="DECIMAL(10,2)" {{ 'selected' if mapping.db_column_type == 'DECIMAL(10,2)' else '' }}>DECIMAL(10,2)</option>
+                                                <option value="BOOLEAN" {{ 'selected' if mapping.db_column_type == 'BOOLEAN' else '' }}>BOOLEAN</option>
+                                                <option value="TIMESTAMP" {{ 'selected' if mapping.db_column_type == 'TIMESTAMP' else '' }}>TIMESTAMP</option>
+                                                <option value="JSONB" {{ 'selected' if mapping.db_column_type == 'JSONB' else '' }}>JSONB</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td>
+                                        <input type="text" class="form-control" name="api_field_path[]" 
+                                               placeholder="e.g., id or data.user.email" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control" name="db_column_name[]" 
+                                               pattern="[a-z_][a-z0-9_]*" placeholder="e.g., user_id" required>
+                                    </td>
+                                    <td>
+                                        <select class="form-control" name="db_column_type[]" required>
+                                            <option value="VARCHAR(255)">VARCHAR(255)</option>
+                                            <option value="TEXT">TEXT</option>
+                                            <option value="INTEGER" selected>INTEGER</option>
+                                            <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+                                            <option value="BOOLEAN">BOOLEAN</option>
+                                            <option value="TIMESTAMP">TIMESTAMP</option>
+                                            <option value="JSONB">JSONB</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        
+                        <button type="button" class="btn btn-success" onclick="addRow()">
+                            <i class="fa fa-plus"></i> Add Field Mapping
+                        </button>
+                        
+                        <hr>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-arrow-right"></i> Continue to SQL Preview
+                            </button>
+                            <a href="{{ url_for('api_scheduler.dashboard') }}" class="btn btn-default">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addRow() {
+    const tbody = document.getElementById('mappings-tbody');
+    const newRow = `
+        <tr>
+            <td>
+                <input type="text" class="form-control" name="api_field_path[]" 
+                       placeholder="e.g., data.items.0.value" required>
+            </td>
+            <td>
+                <input type="text" class="form-control" name="db_column_name[]" 
+                       pattern="[a-z_][a-z0-9_]*" placeholder="e.g., item_value" required>
+            </td>
+            <td>
+                <select class="form-control" name="db_column_type[]" required>
+                    <option value="VARCHAR(255)">VARCHAR(255)</option>
+                    <option value="TEXT">TEXT</option>
+                    <option value="INTEGER">INTEGER</option>
+                    <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+                    <option value="BOOLEAN">BOOLEAN</option>
+                    <option value="TIMESTAMP">TIMESTAMP</option>
+                    <option value="JSONB">JSONB</option>
+                </select>
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', newRow);
+}
+
+function removeRow(btn) {
+    const row = btn.closest('tr');
+    if (document.querySelectorAll('#mappings-tbody tr').length > 1) {
+        row.remove();
+    } else {
+        alert('At least one field mapping is required');
+    }
+}
+
+function testAPI() {
+    const resultDiv = document.getElementById('api-test-result');
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'alert alert-info';
+    resultDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Testing API...';
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch('{{ url_for("api_scheduler.test_api", config_id=config.id) }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.className = 'alert alert-success';
+            resultDiv.innerHTML = `
+                <strong>API Test Successful!</strong><br>
+                Status Code: ${data.status_code}<br>
+                <details>
+                    <summary>View Response Data</summary>
+                    <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                </details>
+            `;
+        } else {
+            resultDiv.className = 'alert alert-danger';
+            resultDiv.innerHTML = `<strong>API Test Failed:</strong> ${data.error}`;
+        }
+    })
+    .catch(error => {
+        resultDiv.className = 'alert alert-danger';
+        resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+    });
+}
+</script>
+
+{% endblock %}

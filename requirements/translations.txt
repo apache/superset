@@ -2,3 +2,5 @@
 #    uv pip compile requirements/translations.in -o requirements/translations.txt
 babel==2.17.0
     # via -r requirements/translations.in
+#Api Scheduler Paketi
+APScheduler==3.11.0

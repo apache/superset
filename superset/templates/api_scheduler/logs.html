@@ -1,0 +1,115 @@
+{% extends "api_scheduler/base.html" %}
+
+{% block title %}API Scheduler Logs{% endblock %}
+
+{% block content %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>API Scheduler Execution Logs</h2>
+                {% if logs %}
+                <button onclick="clearAllLogs()" class="btn btn-danger">
+                    <i class="fa fa-trash"></i> Clear All Logs
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Recent Executions (Last 100)</h3>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Configuration</th>
+                                <th>Status</th>
+                                <th>Message</th>
+                                <th>Records</th>
+                                <th width="80">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr id="log-row-{{ log.id }}">
+                                <td>{{ log.executed_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ log.config.name if log.config else 'N/A' }}</td>
+                                <td>
+                                    {% if log.status == 'success' %}
+                                    <span class="label label-success">Success</span>
+                                    {% else %}
+                                    <span class="label label-danger">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ log.message }}</small></td>
+                                <td>{{ log.records_inserted or 0 }}</td>
+                                <td>
+                                    <button onclick="deleteLog({{ log.id }})" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteLog(logId) {
+    if (!confirm('Are you sure you want to delete this log?')) return;
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch('/api-scheduler/logs/' + logId + '/delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('log-row-' + logId).remove();
+            if (document.querySelectorAll('tbody tr').length === 0) {
+                location.reload();
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+
+function clearAllLogs() {
+    if (!confirm('Are you sure you want to DELETE ALL LOGS?\n\nThis action cannot be undone!')) return;
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch('/api-scheduler/logs/clear-all', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+</script>
+{% endblock %}
