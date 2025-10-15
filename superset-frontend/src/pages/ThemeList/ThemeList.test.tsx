@@ -16,26 +16,80 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Modal } from '@superset-ui/core/components';
+import fetchMock from 'fetch-mock';
+import * as hooks from 'src/views/CRUD/hooks';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 import ThemesList from './index';
 
-const themesInfoEndpoint = 'glob:*/api/v1/theme/_info*';
-const themesEndpoint = 'glob:*/api/v1/theme/?*';
-const themeEndpoint = 'glob:*/api/v1/theme/*';
+// Mock the getBootstrapData function
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({
+    common: {
+      theme: {
+        enableUiThemeAdministration: true,
+      },
+    },
+    user: {
+      userId: 1,
+      username: 'admin',
+      roles: {
+        Admin: [['can_write', 'Theme']],
+      },
+    },
+  }),
+}));
+
+// Mock theme API functions
+jest.mock('src/features/themes/api', () => ({
+  setSystemDefaultTheme: jest.fn(() => Promise.resolve()),
+  setSystemDarkTheme: jest.fn(() => Promise.resolve()),
+  unsetSystemDefaultTheme: jest.fn(() => Promise.resolve()),
+  unsetSystemDarkTheme: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock the CRUD hooks
+jest.mock('src/views/CRUD/hooks', () => ({
+  ...jest.requireActual('src/views/CRUD/hooks'),
+  useListViewResource: jest.fn(),
+}));
+
+// Mock the useThemeContext hook
+const mockSetTemporaryTheme = jest.fn();
+jest.mock('src/theme/ThemeProvider', () => ({
+  ...jest.requireActual('src/theme/ThemeProvider'),
+  useThemeContext: jest.fn(),
+}));
 
 const mockThemes = [
   {
     id: 1,
-    theme_name: 'Dark Theme',
-    json_data: '{"colors": {"primary": "#1890ff"}}',
+    theme_name: 'Light Theme',
+    is_system_default: true,
+    is_system_dark: false,
     is_system: false,
+    json_data: '{"colors": {"primary": "#ffffff"}}',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    changed_on_delta_humanized: '1 day ago',
+    changed_by: {
+      first_name: 'Admin',
+      last_name: 'User',
+    },
+  },
+  {
+    id: 2,
+    theme_name: 'Dark Theme',
+    is_system_default: false,
+    is_system_dark: true,
+    is_system: true,
+    json_data: '{"colors": {"primary": "#1890ff"}}',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
     changed_on_delta_humanized: '2 days ago',
     changed_by: {
       first_name: 'John',
@@ -43,24 +97,16 @@ const mockThemes = [
     },
   },
   {
-    id: 2,
-    theme_name: 'Light Theme',
-    json_data: '{"colors": {"primary": "#ffffff"}}',
-    is_system: true,
-    changed_on_delta_humanized: '1 week ago',
-    changed_by: {
-      first_name: 'Jane',
-      last_name: 'Smith',
-    },
-  },
-  {
     id: 3,
     theme_name: 'Custom Theme',
-    json_data: '{"colors": {"primary": "#52c41a"}}',
+    is_system_default: false,
+    is_system_dark: false,
     is_system: false,
-    changed_on_delta_humanized: '1 day ago',
+    json_data: '{"colors": {"primary": "#52c41a"}}',
+    created_by: { id: 2, first_name: 'Test', last_name: 'User' },
+    changed_on_delta_humanized: '3 days ago',
     changed_by: {
-      first_name: 'Admin',
+      first_name: 'Test',
       last_name: 'User',
     },
   },
@@ -72,25 +118,59 @@ const mockUser = {
   lastName: 'User',
 };
 
-fetchMock.get(themesInfoEndpoint, {
-  permissions: ['can_read', 'can_write', 'can_export'],
+const themesInfoEndpoint = 'glob:*/api/v1/theme/_info*';
+const themesEndpoint = 'glob:*/api/v1/theme/?*';
+const themeEndpoint = 'glob:*/api/v1/theme/*';
+
+const mockRefreshData = jest.fn();
+
+beforeEach(() => {
+  // Mock the useListViewResource hook
+  (hooks.useListViewResource as jest.Mock).mockReturnValue({
+    state: {
+      loading: false,
+      resourceCollection: mockThemes,
+      resourceCount: 3,
+      bulkSelectEnabled: false,
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData: mockRefreshData,
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  });
+
+  // Mock useThemeContext
+  (useThemeContext as jest.Mock).mockReturnValue({
+    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+    appliedTheme: { theme_name: 'Light Theme', id: 1 },
+    setTemporaryTheme: mockSetTemporaryTheme,
+    hasDevOverride: jest.fn().mockReturnValue(false),
+  });
+
+  fetchMock.reset();
+  fetchMock.get(themesInfoEndpoint, {
+    permissions: ['can_read', 'can_write', 'can_export'],
+  });
+  fetchMock.get(themesEndpoint, {
+    ids: [1, 2, 3],
+    count: 3,
+    result: mockThemes,
+  });
+  fetchMock.delete(themeEndpoint, {});
 });
 
-fetchMock.get(themesEndpoint, {
-  ids: [1, 2, 3],
-  result: mockThemes,
-  count: mockThemes.length,
+afterEach(() => {
+  fetchMock.restore();
+  jest.clearAllMocks();
 });
 
-fetchMock.delete(themeEndpoint, {});
-
-const renderThemesList = (props = {}) =>
+test('renders themes list with all theme names', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={() => {}}
-      addSuccessToast={() => {}}
-      {...props}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
     />,
     {
       useRedux: true,
@@ -100,210 +180,421 @@ const renderThemesList = (props = {}) =>
     },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('ThemesList', () => {
-  beforeEach(() => {
-    fetchMock.resetHistory();
+  await waitFor(() => {
+    expect(screen.getByText('Light Theme')).toBeInTheDocument();
+    expect(screen.getByText('Dark Theme')).toBeInTheDocument();
+    expect(screen.getByText('Custom Theme')).toBeInTheDocument();
   });
+});
 
-  test('renders', async () => {
-    renderThemesList();
-    expect(await screen.findByText('Themes')).toBeInTheDocument();
-  });
+test('shows system tag for system themes', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
 
-  test('renders a ListView', async () => {
-    renderThemesList();
-    expect(await screen.findByTestId('themes-list-view')).toBeInTheDocument();
-  });
+  await screen.findByText('Dark Theme');
 
-  test('renders theme information', async () => {
-    renderThemesList();
+  expect(screen.getByText('System')).toBeInTheDocument();
+});
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+test('shows default tag for system default theme', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
 
-    // Wait for data to load
-    await waitFor(() => {
-      mockThemes.forEach(theme => {
-        expect(screen.getByText(theme.theme_name)).toBeInTheDocument();
-      });
+  await screen.findByText('Light Theme');
+
+  expect(screen.getByText('Default')).toBeInTheDocument();
+});
+
+test('shows dark tag for system dark theme', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Dark Theme');
+
+  expect(screen.getByText('Dark')).toBeInTheDocument();
+});
+
+test('shows apply action button for all themes', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const applyButtons = await screen.findAllByTestId('apply-action');
+  expect(applyButtons.length).toBe(3);
+});
+
+test('shows delete button only for non-system themes', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  // Should have delete buttons for Light Theme and Custom Theme (not Dark Theme which is system)
+  expect(deleteButtons.length).toBe(2);
+});
+
+test('shows set default action for non-default themes', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const setDefaultButtons = await screen.findAllByTestId('set-default-action');
+  // Should have set default buttons for Dark Theme and Custom Theme (not Light Theme which is already default)
+  expect(setDefaultButtons.length).toBe(2);
+});
+
+test('shows unset default action for system default theme', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Light Theme');
+
+  const unsetDefaultButtons = await screen.findAllByTestId(
+    'unset-default-action',
+  );
+  expect(unsetDefaultButtons.length).toBe(1);
+});
+
+test('shows set dark action for non-dark themes', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const setDarkButtons = await screen.findAllByTestId('set-dark-action');
+  // Should have set dark buttons for Light Theme and Custom Theme (not Dark Theme which is already dark)
+  expect(setDarkButtons.length).toBe(2);
+});
+
+test('shows unset dark action for system dark theme', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Dark Theme');
+
+  const unsetDarkButtons = await screen.findAllByTestId('unset-dark-action');
+  expect(unsetDarkButtons.length).toBe(1);
+});
+
+test('shows export action for all themes when user has permission', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const exportButtons = await screen.findAllByTestId('export-action');
+  expect(exportButtons.length).toBe(3);
+});
+
+test('shows edit action for all themes when user has permission', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const editButtons = await screen.findAllByTestId('edit-action');
+  expect(editButtons.length).toBe(3);
+});
+
+test('shows bulk select button when user has permissions', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Themes');
+
+  expect(screen.getByText('Bulk select')).toBeInTheDocument();
+});
+
+test('shows create theme button when user has permissions', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Themes');
+
+  const addButton = screen.getByLabelText('plus');
+  expect(addButton).toBeInTheDocument();
+});
+
+test('clicking apply button calls setTemporaryTheme with parsed theme data', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const applyButtons = await screen.findAllByTestId('apply-action');
+
+  // Click the first apply button (Light Theme)
+  await userEvent.click(applyButtons[0]);
+
+  await waitFor(() => {
+    expect(mockSetTemporaryTheme).toHaveBeenCalledWith({
+      colors: { primary: '#ffffff' },
     });
   });
+});
 
-  test('shows system theme tags correctly', async () => {
-    renderThemesList();
+test('applying a local theme stores theme ID in localStorage', async () => {
+  // Clear localStorage before test
+  localStorage.clear();
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
 
-    // System theme should have a "System" tag
-    await waitFor(() => {
-      expect(screen.getByText('System')).toBeInTheDocument();
-    });
-  });
+  await screen.findByText('Custom Theme');
 
-  test('handles theme deletion for non-system themes', async () => {
-    renderThemesList();
+  // Find and click the apply button for the first theme
+  const applyButtons = await screen.findAllByTestId('apply-action');
+  await userEvent.click(applyButtons[0]);
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
-
-    // Find delete buttons (should only exist for non-system themes)
-    const deleteButtons = await screen.findAllByTestId('delete-action');
-    expect(deleteButtons.length).toBeGreaterThan(0);
-
-    fireEvent.click(deleteButtons[0]);
-
-    // Confirm deletion modal should appear
-    await waitFor(() => {
-      expect(screen.getByText('Delete Theme?')).toBeInTheDocument();
-    });
-  });
-
-  test('shows apply action for themes', async () => {
-    renderThemesList();
-
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
-
-    // Find apply buttons
-    const applyButtons = await screen.findAllByTestId('apply-action');
-    expect(applyButtons.length).toBe(mockThemes.length);
-  });
-
-  test('fetches themes data on load', async () => {
-    renderThemesList();
-
-    await waitFor(() => {
-      const calls = fetchMock.calls(/api\/v1\/theme\/\?/);
-      expect(calls.length).toBeGreaterThan(0);
-    });
-  });
-
-  test('shows bulk select when user has permissions', async () => {
-    renderThemesList();
-
-    // Wait for list to load
-    await screen.findByText('Themes');
-
-    // Should show bulk select button
-    expect(screen.getByText('Bulk select')).toBeInTheDocument();
-  });
-
-  test('shows create theme button when user has permissions', async () => {
-    renderThemesList();
-
-    // Wait for list to load
-    await screen.findByText('Themes');
-
-    // Should show theme creation button
-    const addButton = screen.getByLabelText('plus');
-    expect(addButton).toBeInTheDocument();
-  });
-
-  test('uses Modal.useModal hook instead of Modal.confirm', () => {
-    const useModalSpy = jest.spyOn(Modal, 'useModal');
-    renderThemesList();
-
-    // Verify that useModal is called when the component mounts
-    expect(useModalSpy).toHaveBeenCalled();
-
-    useModalSpy.mockRestore();
-  });
-
-  test('renders contextHolder for modal theming', async () => {
-    const { container } = renderThemesList();
-
-    // Wait for component to be rendered
-    await screen.findByText('Themes');
-
-    // The contextHolder is rendered but invisible, so we check for its presence in the DOM
-    // Modal.useModal returns elements that get rendered in the component tree
-    const contextHolderExists = container.querySelector('.ant-modal-root');
-    expect(contextHolderExists).toBeDefined();
-  });
-
-  test('sets up modal context for system theme confirmations', async () => {
-    fetchMock.post('glob:*/api/v1/theme/*/set_system_default', {});
-
-    renderThemesList();
-
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
-
-    // Verify the component renders without errors when modal context is available
-    // The actual modal functionality is tested through the Modal.useModal hook test
-    expect(screen.getByTestId('themes-list-view')).toBeInTheDocument();
-  });
-
-  test('does not use deprecated Modal.confirm directly', () => {
-    // Create a spy on the static Modal.confirm method
-    const confirmSpy = jest.spyOn(Modal, 'confirm');
-
-    renderThemesList();
-
-    // The component should not call Modal.confirm directly
-    expect(confirmSpy).not.toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
-  });
-
-  test('applying a local theme stores theme ID in localStorage', async () => {
-    // Clear localStorage before test
-    localStorage.clear();
-
-    renderThemesList();
-
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
-
-    // Find and click the apply button for the first theme
-    const applyButtons = await screen.findAllByTestId('apply-action');
-    fireEvent.click(applyButtons[0]);
-
-    // Check that localStorage was updated
-    await waitFor(() => {
-      expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
-    });
-
-    // Cleanup
-    localStorage.clear();
-  });
-
-  test('component loads successfully with localStorage theme ID set', async () => {
-    // This test verifies that having a stored theme ID doesn't break the component
-    localStorage.setItem('superset-applied-theme-id', '1');
-    localStorage.setItem(
-      'superset-dev-theme-override',
-      JSON.stringify({ token: { colorPrimary: '#1890ff' } }),
-    );
-
-    renderThemesList();
-
-    // Wait for list to load and verify it renders successfully
-    const listView = await screen.findByTestId('themes-list-view');
-    expect(listView).toBeInTheDocument();
-
-    // Verify the component can read localStorage without errors
+  // Check that localStorage was updated
+  await waitFor(() => {
     expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
-
-    // Cleanup
-    localStorage.clear();
   });
 
-  test('component loads successfully and preserves localStorage state', async () => {
-    // Set initial state to verify localStorage isn't corrupted
-    localStorage.setItem('superset-applied-theme-id', '1');
+  // Cleanup
+  localStorage.clear();
+});
 
-    renderThemesList();
+test('component loads successfully with localStorage theme ID set', async () => {
+  // This test verifies that having a stored theme ID doesn't break the component
+  localStorage.setItem('superset-applied-theme-id', '1');
+  localStorage.setItem(
+    'superset-dev-theme-override',
+    JSON.stringify({ token: { colorPrimary: '#1890ff' } }),
+  );
 
-    // Wait for list to load
-    await screen.findByTestId('themes-list-view');
-
-    // Verify localStorage is preserved during component mount
-    expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
-
-    // Cleanup
-    localStorage.clear();
+  // Mock hasDevOverride to return true since we have a dev override set
+  (useThemeContext as jest.Mock).mockReturnValue({
+    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+    appliedTheme: { theme_name: 'Light Theme', id: 1 },
+    setTemporaryTheme: mockSetTemporaryTheme,
+    hasDevOverride: jest.fn().mockReturnValue(true),
   });
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // Wait for list to load and verify it renders successfully
+  await screen.findByText('Custom Theme');
+
+  // Verify the component can read localStorage without errors
+  expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
+
+  // Cleanup
+  localStorage.clear();
+});
+
+test('component loads successfully and preserves localStorage state', async () => {
+  // Set initial state to verify localStorage isn't corrupted
+  localStorage.setItem('superset-applied-theme-id', '1');
+
+  // Mock hasDevOverride to return true to preserve localStorage
+  (useThemeContext as jest.Mock).mockReturnValue({
+    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+    appliedTheme: { theme_name: 'Light Theme', id: 1 },
+    setTemporaryTheme: mockSetTemporaryTheme,
+    hasDevOverride: jest.fn().mockReturnValue(true),
+  });
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // Wait for list to load
+  await screen.findByText('Custom Theme');
+
+  // Verify localStorage is preserved during component mount
+  expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
+
+  // Cleanup
+  localStorage.clear();
 });

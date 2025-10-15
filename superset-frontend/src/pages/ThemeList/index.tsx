@@ -27,7 +27,6 @@ import {
   Alert,
   Tooltip,
   Space,
-  Modal,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -53,6 +52,7 @@ import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -117,8 +117,7 @@ function ThemesList({
   const [importingTheme, showImportModal] = useState<boolean>(false);
   const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
-  // Use Modal.useModal hook to ensure proper theming
-  const [modal, contextHolder] = Modal.useModal();
+  const { showConfirm, ConfirmModal } = useConfirmModal();
 
   const clearAppliedTheme = useCallback(() => {
     setAppliedThemeId(null);
@@ -289,95 +288,97 @@ function ThemesList({
     addSuccessToast(t('Theme imported'));
   };
 
-  // Generic confirmation modal utility to reduce code duplication
-  const showThemeConfirmation = useCallback(
-    (config: {
-      title: string;
-      content: string;
-      onConfirm: () => Promise<any>;
-      successMessage: string;
-      errorMessage: string;
-    }) => {
-      modal.confirm({
-        title: config.title,
-        content: config.content,
-        onOk: () => {
-          config
-            .onConfirm()
-            .then(() => {
-              refreshData();
-              addSuccessToast(config.successMessage);
-            })
-            .catch(err => {
-              addDangerToast(t(config.errorMessage, err.message));
-            });
-        },
-      });
-    },
-    [modal, refreshData, addSuccessToast, addDangerToast],
-  );
-
   const handleSetSystemDefault = useCallback(
     (theme: ThemeObject) => {
-      showThemeConfirmation({
+      showConfirm({
         title: t('Set System Default Theme'),
-        content: t(
+        body: t(
           'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
           theme.theme_name,
         ),
-        onConfirm: () => setSystemDefaultTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system default theme',
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system default theme: %s',
+        onConfirm: async () => {
+          try {
+            await setSystemDefaultTheme(theme.id!);
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system default theme', theme.theme_name),
+            );
+          } catch (err: any) {
+            addDangerToast(
+              t('Failed to set system default theme: %s', err.message),
+            );
+          }
+        },
       });
     },
-    [showThemeConfirmation],
+    [showConfirm, refreshData, addSuccessToast, addDangerToast],
   );
 
   const handleSetSystemDark = useCallback(
     (theme: ThemeObject) => {
-      showThemeConfirmation({
+      showConfirm({
         title: t('Set System Dark Theme'),
-        content: t(
+        body: t(
           'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
           theme.theme_name,
         ),
-        onConfirm: () => setSystemDarkTheme(theme.id!),
-        successMessage: t(
-          '"%s" is now the system dark theme',
-          theme.theme_name,
-        ),
-        errorMessage: 'Failed to set system dark theme: %s',
+        onConfirm: async () => {
+          try {
+            await setSystemDarkTheme(theme.id!);
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system dark theme', theme.theme_name),
+            );
+          } catch (err: any) {
+            addDangerToast(
+              t('Failed to set system dark theme: %s', err.message),
+            );
+          }
+        },
       });
     },
-    [showThemeConfirmation],
+    [showConfirm, refreshData, addSuccessToast, addDangerToast],
   );
 
   const handleUnsetSystemDefault = useCallback(() => {
-    showThemeConfirmation({
+    showConfirm({
       title: t('Remove System Default Theme'),
-      content: t(
+      body: t(
         'Are you sure you want to remove the system default theme? The application will fall back to the configuration file default.',
       ),
-      onConfirm: () => unsetSystemDefaultTheme(),
-      successMessage: t('System default theme removed'),
-      errorMessage: 'Failed to remove system default theme: %s',
+      onConfirm: async () => {
+        try {
+          await unsetSystemDefaultTheme();
+          refreshData();
+          addSuccessToast(t('System default theme removed'));
+        } catch (err: any) {
+          addDangerToast(
+            t('Failed to remove system default theme: %s', err.message),
+          );
+        }
+      },
     });
-  }, [showThemeConfirmation]);
+  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
 
   const handleUnsetSystemDark = useCallback(() => {
-    showThemeConfirmation({
+    showConfirm({
       title: t('Remove System Dark Theme'),
-      content: t(
+      body: t(
         'Are you sure you want to remove the system dark theme? The application will fall back to the configuration file dark theme.',
       ),
-      onConfirm: () => unsetSystemDarkTheme(),
-      successMessage: t('System dark theme removed'),
-      errorMessage: 'Failed to remove system dark theme: %s',
+      onConfirm: async () => {
+        try {
+          await unsetSystemDarkTheme();
+          refreshData();
+          addSuccessToast(t('System dark theme removed'));
+        } catch (err: any) {
+          addDangerToast(
+            t('Failed to remove system dark theme: %s', err.message),
+          );
+        }
+      },
     });
-  }, [showThemeConfirmation]);
+  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
@@ -649,7 +650,6 @@ function ThemesList({
 
   return (
     <>
-      {contextHolder}
       <SubMenu {...menuData} />
       <ThemeModal
         addDangerToast={addDangerToast}
@@ -756,6 +756,7 @@ function ThemesList({
         }}
       </ConfirmStatusChange>
       {preparingExport && <Loading />}
+      {ConfirmModal}
     </>
   );
 }
