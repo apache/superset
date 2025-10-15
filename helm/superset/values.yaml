@@ -51,9 +51,15 @@ serviceAccount:
 # -- Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
 # @default -- see `values.yaml`
+
 bootstrapScript: |
   #!/bin/bash
-  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
+  if [ ! -f ~/bootstrap ]; then
+    echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap
+
+    echo "Installing missing Python modules..."
+    pip install --no-cache-dir apscheduler
+  fi
 
 # -- The name of the secret which we will use to generate a superset_config.py file
 # Note: this secret must have the key superset_config.py in it and can include other files as well
