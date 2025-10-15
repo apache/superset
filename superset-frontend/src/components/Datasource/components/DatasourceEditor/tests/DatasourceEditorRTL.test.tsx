@@ -41,15 +41,18 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
     await userEvent.click(metricButton);
 
     const expandToggle = await screen.findAllByLabelText(/expand row/i);
-    await userEvent.click(expandToggle[0]);
+    // Metrics are sorted by ID descending, so metric with id=1 (which has certification)
+    // is at position 6 (last). Expand that one.
+    await userEvent.click(expandToggle[6]);
 
+    // Wait for fields to appear
     const certificationDetails = await screen.findByPlaceholderText(
       /certification details/i,
     );
-    expect(certificationDetails.value).toEqual('foo');
+    const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
 
-    const warningMarkdown = await screen.findByPlaceholderText(/certified by/i);
-    expect(warningMarkdown.value).toEqual('someone');
+    expect(certificationDetails).toHaveValue('foo');
+    expect(certifiedBy).toHaveValue('someone');
   });
 
   it('properly updates the metric information', async () => {
@@ -70,14 +73,14 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
       /certification details/i,
     );
     await waitFor(() => {
-      expect(certifiedBy.value).toEqual('I am typing a new name');
+      expect(certifiedBy).toHaveValue('I am typing a new name');
     });
 
     await userEvent.clear(certificationDetails);
     await userEvent.type(certificationDetails, 'I am typing something new');
 
     await waitFor(() => {
-      expect(certificationDetails.value).toEqual('I am typing something new');
+      expect(certificationDetails).toHaveValue('I am typing something new');
     });
   });
 });

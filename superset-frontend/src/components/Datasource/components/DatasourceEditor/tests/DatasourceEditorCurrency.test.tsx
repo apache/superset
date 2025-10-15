@@ -19,13 +19,16 @@
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
 import { props, DATASOURCE_ENDPOINT } from './DatasourceEditor.test';
 
+type MetricType = DatasetObject['metrics'][number];
+
 // Optimized render function that doesn't use waitFor initially
 // This helps prevent one source of the timeout
-const fastRender = props =>
-  render(<DatasourceEditor {...props} />, {
+const fastRender = (renderProps: typeof props) =>
+  render(<DatasourceEditor {...renderProps} />, {
     useRedux: true,
     initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
   });
@@ -65,13 +68,15 @@ describe('DatasourceEditor Currency Tests', () => {
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     await userEvent.click(metricButton);
 
-    // Find and expand the first metric row
+    // Find and expand the metric row with currency
+    // Metrics are sorted by ID descending, so metric with id=1 (which has currency)
+    // is at position 6 (last). Expand that one.
     const expandToggles = await screen.findAllByLabelText(
       /expand row/i,
       {},
       { timeout: 5000 },
     );
-    await userEvent.click(expandToggles[0]);
+    await userEvent.click(expandToggles[6]);
 
     // Check for currency section header
     const currencyHeader = await screen.findByText(
@@ -90,7 +95,7 @@ describe('DatasourceEditor Currency Tests', () => {
     expect(positionSelector).toBeInTheDocument();
 
     // Open the dropdown
-    userEvent.click(positionSelector);
+    await userEvent.click(positionSelector);
 
     // Wait for dropdown to open and find the suffix option
     const suffixOption = await waitFor(
@@ -98,7 +103,7 @@ describe('DatasourceEditor Currency Tests', () => {
         // Look for 'suffix' option in the dropdown
         const options = document.querySelectorAll('.ant-select-item-option');
         const suffixOpt = Array.from(options).find(opt =>
-          opt.textContent.toLowerCase().includes('suffix'),
+          opt.textContent?.toLowerCase().includes('suffix'),
         );
 
         if (!suffixOpt) throw new Error('Suffix option not found');
@@ -111,7 +116,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the suffix option
-    userEvent.click(suffixOption);
+    await userEvent.click(suffixOption);
 
     // Check if onChange was called with the expected parameters
     await waitFor(
@@ -122,11 +127,12 @@ describe('DatasourceEditor Currency Tests', () => {
         // More robust check for the metrics array
         const metrics = callArg.metrics || [];
         const updatedMetric = metrics.find(
-          m => m.currency && m.currency.symbolPosition === 'suffix',
+          (m: MetricType) =>
+            m.currency && m.currency.symbolPosition === 'suffix',
         );
 
         expect(updatedMetric).toBeDefined();
-        expect(updatedMetric.currency.symbol).toBe('USD');
+        expect(updatedMetric?.currency?.symbol).toBe('USD');
       },
       { timeout: 5000 },
     );
@@ -141,7 +147,7 @@ describe('DatasourceEditor Currency Tests', () => {
     );
 
     // Open the currency dropdown
-    userEvent.click(currencySymbol);
+    await userEvent.click(currencySymbol);
 
     // Wait for dropdown to open and find the GBP option
     const gbpOption = await waitFor(
@@ -149,7 +155,7 @@ describe('DatasourceEditor Currency Tests', () => {
         // Look for 'GBP' option in the dropdown
         const options = document.querySelectorAll('.ant-select-item-option');
         const gbpOpt = Array.from(options).find(opt =>
-          opt.textContent.includes('GBP'),
+          opt.textContent?.includes('GBP'),
         );
 
         if (!gbpOpt) throw new Error('GBP option not found');
@@ -162,7 +168,7 @@ describe('DatasourceEditor Currency Tests', () => {
     propsWithCurrency.onChange.mockClear();
 
     // Click the GBP option
-    userEvent.click(gbpOption);
+    await userEvent.click(gbpOption);
 
     // Verify the onChange with GBP was called
     await waitFor(
@@ -173,11 +179,11 @@ describe('DatasourceEditor Currency Tests', () => {
         // More robust check
         const metrics = callArg.metrics || [];
         const updatedMetric = metrics.find(
-          m => m.currency && m.currency.symbol === 'GBP',
+          (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
         );
 
         expect(updatedMetric).toBeDefined();
-        expect(updatedMetric.currency.symbolPosition).toBe('suffix');
+        expect(updatedMetric?.currency?.symbolPosition).toBe('suffix');
       },
       { timeout: 5000 },
     );
