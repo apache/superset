@@ -110,8 +110,8 @@ if (!versionsConfig.components.disabled) {
   });
 }
 
-// Add Developer Portal navbar item if not disabled
-if (!versionsConfig.developer_portal.disabled) {
+// Add Developer Portal navbar item if not hidden from nav
+if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_portal.hideFromNav) {
   dynamicNavbarItems.push({
     label: 'Developer Portal',
     position: 'left',
@@ -120,13 +120,31 @@ if (!versionsConfig.developer_portal.disabled) {
         type: 'doc',
         docsPluginId: 'developer_portal',
         docId: 'index',
-        label: 'Introduction',
+        label: 'Overview',
       },
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'getting-started/index',
-        label: 'Getting Started',
+        docId: 'extensions/architectural-principles',
+        label: 'Extensions',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'testing/overview',
+        label: 'Testing',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'guidelines/design-guidelines',
+        label: 'Guidelines',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'contributing/overview',
+        label: 'Contributing',
       },
     ],
   });
