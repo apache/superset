@@ -664,8 +664,35 @@ class BaseReportState:
             header_data,
             self._execution_id,
         )
+
+        # Try to capture screenshot even on failure - best effort
+        screenshot_data = []
+        try:
+            screenshot_data = self._get_screenshots()
+            logger.info(
+                "Successfully captured screenshot for error notification: %s",
+                self._execution_id,
+            )
+        except (
+            ReportScheduleScreenshotTimeout,
+            ReportScheduleScreenshotFailedError,
+        ) as ex:
+            logger.warning(
+                "Could not capture screenshot for error notification: %s", str(ex)
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "Unexpected error while capturing screenshot for error "
+                "notification: %s",
+                str(ex),
+            )
+
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=name,
+            text=message,
+            header_data=header_data,
+            url=url,
+            screenshots=screenshot_data,
         )
 
         # filter recipients to recipients who are also owners

@@ -98,3 +98,81 @@ def test_email_subject_with_datetime() -> None:
     )._get_subject()
     assert datetime_pattern not in subject
     assert now.strftime(datetime_pattern) in subject
+
+
+def test_error_email_with_screenshot() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    # Create mock screenshot data
+    screenshot_data = [b"fake_screenshot_data_1", b"fake_screenshot_data_2"]
+
+    content = NotificationContent(
+        name="test alert",
+        text="Error occurred while generating report",
+        url="http://localhost:8088/superset/dashboard/1",
+        screenshots=screenshot_data,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+        },
+    )
+    email_content = EmailNotification(
+        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+    )._get_content()
+
+    # Check that error message is in the body
+    assert "Error occurred while generating report" in email_content.body
+    assert "unable to be generated" in email_content.body
+
+    # Check that images are included
+    assert email_content.images is not None
+    assert len(email_content.images) == 2
+
+    # Check that image tags are in the body
+    assert '<img width="1000" src="cid:' in email_content.body
+    assert 'class="image"' in email_content.body
+
+
+def test_error_email_without_screenshot() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Error occurred while generating report",
+        url="http://localhost:8088/superset/dashboard/1",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+        },
+    )
+    email_content = EmailNotification(
+        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+    )._get_content()
+
+    # Check that error message is in the body
+    assert "Error occurred while generating report" in email_content.body
+    assert "unable to be generated" in email_content.body
+
+    # Check that no images are included
+    assert email_content.images == {}
+
+    # Check that no image tags are in the body
+    assert "<img" not in email_content.body

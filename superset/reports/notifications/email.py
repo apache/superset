@@ -97,22 +97,41 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    def _error_template(self, text: str) -> str:
+    def _error_template(self, text: str, img_tag: str = "") -> str:
         call_to_action = self._get_call_to_action()
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+            %(screenshots)s
             """,  # noqa: E501
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,
+            screenshots=img_tag,
         )
 
     def _get_content(self) -> EmailContent:
         if self._content.text:
-            return EmailContent(body=self._error_template(self._content.text))
+            # Error case - include screenshots if available
+            images = {}
+            img_tag_str = ""
+            if self._content.screenshots:
+                domain = self._get_smtp_domain()
+                images = {
+                    make_msgid(domain)[1:-1]: screenshot
+                    for screenshot in self._content.screenshots
+                }
+                for msgid in images.keys():
+                    img_tag_str += (
+                        f'<div class="image"><img width="1000" src="cid:{msgid}"></div>'
+                    )
+
+            return EmailContent(
+                body=self._error_template(self._content.text, img_tag_str),
+                images=images,
+            )
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
 
@@ -147,7 +166,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        img_tags = []
+        img_tags: list[str] = []
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
