@@ -211,11 +211,65 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_offset = currentPage * pageSize;
     }
 
-    // getting sort by in case of server pagination from own state
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
-    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
-      const sortByItem = ownState?.sortBy[0];
-      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
+
+    const sortSource =
+      isDownloadQuery && ownState?.sortModel
+        ? ownState.sortModel
+        : ownState?.sortBy;
+
+    if (Array.isArray(sortSource) && sortSource.length > 0) {
+      const mapColIdToIdentifier = (colId: string): string | undefined => {
+        const matchingColumn = columns.find((col: any) => {
+          if (typeof col === 'string') return col === colId;
+          return col?.sqlExpression === colId || col?.label === colId;
+        });
+
+        if (matchingColumn) {
+          return typeof matchingColumn === 'string'
+            ? matchingColumn
+            : matchingColumn.sqlExpression || matchingColumn.label;
+        }
+
+        const matchingMetric = (metrics || []).find((met: any) => {
+          if (typeof met === 'string')
+            return met === colId || `%${met}` === colId;
+          const metLabel = getMetricLabel(met);
+          return (
+            metLabel === colId ||
+            met?.label === colId ||
+            `%${metLabel}` === colId
+          );
+        });
+
+        if (matchingMetric) {
+          return typeof matchingMetric === 'string'
+            ? matchingMetric
+            : getMetricLabel(matchingMetric);
+        }
+
+        return colId;
+      };
+
+      sortByFromOwnState = sortSource
+        .map((sortItem: any) => {
+          const colId = sortItem?.colId || sortItem?.key;
+          const sortKey = mapColIdToIdentifier(colId);
+          if (!sortKey) return null;
+          const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
+          return [sortKey, !isDesc] as QueryFormOrderBy;
+        })
+        .filter((item): item is QueryFormOrderBy => item !== null);
+
+      // Add secondary sort for stable ordering (matches AG Grid's stable sort behavior)
+      if (sortByFromOwnState.length === 1 && isDownloadQuery && orderby) {
+        const primarySort = sortByFromOwnState[0][0];
+        orderby.forEach(orderItem => {
+          if (orderItem[0] !== primarySort) {
+            sortByFromOwnState!.push(orderItem);
+          }
+        });
+      }
     }
 
     // Note: In Superset, "columns" are dimensions and "metrics" are measures,
