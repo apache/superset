@@ -227,6 +227,10 @@ class ImportV1MetricSchema(Schema):
     warning_text = fields.String(allow_none=True)
 
 
+class ImportV1RoleSchema(Schema):
+    name = fields.String(required=True)
+
+
 class ImportV1DatasetSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
@@ -260,6 +264,7 @@ class ImportV1DatasetSchema(Schema):
     uuid = fields.UUID(required=True)
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
+    roles = fields.List(fields.Nested(ImportV1RoleSchema))
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()

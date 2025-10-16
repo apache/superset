@@ -54,6 +54,9 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     db.session.add(database)
+
+    db.session.add(Role(name="Import role"))
+
     db.session.flush()
 
     dataset_uuid = uuid.uuid4()
@@ -108,6 +111,7 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
                 },
             }
         ],
+        "roles": [{"name": "Import role"}],
         "database_uuid": database.uuid,
         "database_id": database.id,
     }
@@ -151,6 +155,7 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     assert sqla_table.columns[0].description is None
     assert sqla_table.columns[0].python_date_format is None
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
+    assert sqla_table.roles[0].name == "Import role"
     assert sqla_table.database.uuid == database.uuid
     assert sqla_table.database.id == database.id
 

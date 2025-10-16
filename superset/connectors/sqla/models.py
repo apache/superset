@@ -414,6 +414,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
             "owners": [owner.id for owner in self.owners],
+            "roles": [role.id for role in self.roles],
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
         }

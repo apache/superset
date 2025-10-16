@@ -1607,12 +1607,19 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    @patch("superset.security.SupersetSecurityManager.has_role_access")
     def test_raise_for_access_datasource(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+        mock_has_role_access,
     ):
         datasource = self.get_datasource_mock()
 
         mock_can_access_schema.return_value = True
+        mock_has_role_access.return_value = False
+
         security_manager.raise_for_access(datasource=datasource)
 
         mock_can_access.return_value = False
@@ -1663,12 +1670,18 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    @patch("superset.security.SupersetSecurityManager.has_role_access")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+        mock_has_role_access,
     ):
         query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
+        mock_has_role_access.return_value = False
         security_manager.raise_for_access(query_context=query_context)
 
         mock_can_access.return_value = False
@@ -1694,12 +1707,18 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    @patch("superset.security.SupersetSecurityManager.has_role_access")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+        mock_has_role_access,
     ):
         test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
+        mock_has_role_access.return_value = False
         security_manager.raise_for_access(viz=test_viz)
 
         mock_can_access.return_value = False

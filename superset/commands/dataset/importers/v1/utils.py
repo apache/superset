@@ -130,6 +130,9 @@ def import_dataset(  # noqa: C901
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
 
+    # Keep original config for keep roles definitions
+    original_config = config.copy()
+
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
     for key in JSON_KEYS:
@@ -188,6 +191,13 @@ def import_dataset(  # noqa: C901
 
     if (user := get_user()) and user not in dataset.owners:
         dataset.owners.append(user)
+
+    # Authorized roles to dataset
+    dataset.roles.clear()
+    if "roles" in original_config:
+        for role_item in original_config["roles"]:
+            role = security_manager.find_role(role_item["name"])
+            dataset.roles.append(role)
 
     return dataset
 
