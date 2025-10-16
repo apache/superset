@@ -87,6 +87,7 @@ export function prepareDashboardFilters(
     if (dashboardId) {
       const jsonMetadata = {
         native_filter_configuration: allFilters,
+        chart_customization_config: [],
         timed_refresh_immune_slices: [],
         expanded_slices: {},
         refresh_frequency: 0,

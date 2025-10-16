@@ -550,15 +550,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
         overwrite = request.form.get("overwrite") == "true"
 
-        try:
-            ImportThemesCommand(contents, overwrite=overwrite).run()
-            return self.response(200, message="Theme imported successfully")
-        except ValidationError as err:
-            logger.exception("Import themes validation error")
-            return self.response_400(message=str(err))
-        except Exception as ex:
-            logger.exception("Unexpected error importing themes")
-            return self.response_422(message=str(ex))
+        command = ImportThemesCommand(contents, overwrite=overwrite)
+        command.run()
+        return self.response(200, message="Theme imported successfully")
 
     @expose("/<int:pk>/set_system_default", methods=("PUT",))
     @protect()
