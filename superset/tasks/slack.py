@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 @celery_app.task(name="slack.cache_channels")
 def cache_channels() -> None:
     cache_timeout = current_app.config["SLACK_CACHE_TIMEOUT"]
-    retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 5)
+    retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
 
     logger.info(
         "Starting Slack channels cache warm-up task "
@@ -40,9 +40,9 @@ def cache_channels() -> None:
         get_channels(force=True, cache_timeout=cache_timeout)
     except Exception as ex:
         logger.exception(
-            "Failed to cache Slack channels. This may be due to rate limiting. "
-            "Consider increasing SLACK_API_RATE_LIMIT_RETRY_COUNT (current: %d): %s",
-            retry_count,
-            ex,
+            "Failed to cache Slack channels: %s. "
+            "If this is due to rate limiting, consider increasing "
+            "SLACK_API_RATE_LIMIT_RETRY_COUNT.",
+            str(ex),
         )
         raise

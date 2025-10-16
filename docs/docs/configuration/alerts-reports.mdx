@@ -77,8 +77,8 @@ from datetime import timedelta
 SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 
 # Increase retry count for rate limit errors
-# Default: 5
-SLACK_API_RATE_LIMIT_RETRY_COUNT = 10
+# Default: 2
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
 
 ### Kubernetes-specific

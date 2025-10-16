@@ -50,7 +50,7 @@ def get_slack_client() -> WebClient:
         token = token()
     client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
 
-    max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 5)
+    max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
     client.retry_handlers.append(rate_limit_handler)
 
@@ -90,7 +90,7 @@ def get_channels() -> list[SlackChannelSchema]:
             page_channels = response.data["channels"]
             channels.extend(channel_schema.load(channel) for channel in page_channels)
 
-            logger.info(
+            logger.debug(
                 "Fetched page %d: %d channels (total: %d)",
                 page_count,
                 len(page_channels),
@@ -138,11 +138,8 @@ def get_channels_with_search(
         if ex.response and ex.response.status_code == 429:
             raise SupersetException(
                 f"Slack API rate limit exceeded: {ex}. "
-                "For large workspaces (10k+ channels), consider increasing "
-                "SLACK_API_RATE_LIMIT_RETRY_COUNT (current default: 5, try 10) "
-                "and SLACK_CACHE_TIMEOUT (recommended: 7 days). "
-                "Consider using the slack.cache_channels Celery task "
-                "to warm up the cache."
+                "For large workspaces, consider increasing "
+                "SLACK_API_RATE_LIMIT_RETRY_COUNT"
             ) from ex
         raise SupersetException(f"Failed to list channels: {ex}") from ex
     except SlackClientError as ex:
