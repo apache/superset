@@ -104,22 +104,14 @@ export const useThemeMenuItems = ({
       : []),
   ];
 
-  const children: MenuItem[] = [
-    {
-      type: 'group' as const,
-      label: t('Theme'),
-      key: 'theme-group',
-      children: themeOptions,
-    },
-  ];
-
-  // Add clear settings option only when there's a local theme active
+  // Add clear settings option to theme options if there's a local theme active
+  const themeGroupOptions = [...themeOptions];
   if (onClearLocalSettings && hasLocalOverride) {
-    children.push({
+    themeGroupOptions.push({
       type: 'divider' as const,
       key: 'theme-divider',
     });
-    children.push({
+    themeGroupOptions.push({
       key: 'clear-local',
       label: (
         <>
@@ -129,6 +121,15 @@ export const useThemeMenuItems = ({
       onClick: onClearLocalSettings,
     });
   }
+
+  const children: MenuItem[] = [
+    {
+      type: 'group' as const,
+      label: t('Theme'),
+      key: 'theme-group',
+      children: themeGroupOptions,
+    },
+  ];
 
   return {
     key: 'theme-sub-menu',
