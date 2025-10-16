@@ -573,11 +573,14 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
+        from superset.commands.report.exceptions import ReportScheduleScreenshotTimeout
+
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
         img: bytes | None = None
         element = None
+        had_timeout = False  # Track if any timeout occurred
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
@@ -592,6 +595,7 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
+                had_timeout = True
                 logger.warning(
                     "Selenium timed out locating element %s at url %s - will "
                     "attempt to capture current page state",
@@ -617,6 +621,7 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
+                had_timeout = True
                 logger.info(
                     "Timeout waiting for chart containers - will capture current state"
                 )
@@ -641,6 +646,7 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
+                had_timeout = True
                 logger.warning(
                     "Selenium timed out waiting for charts to load at url %s - "
                     "will capture current state with loading indicators",
@@ -672,11 +678,21 @@ class WebDriverSelenium(WebDriverProxy):
             else:
                 # Fall back to full page screenshot if element not found
                 img = driver.get_screenshot_as_png()
+
+            # If a timeout occurred but we managed to capture a screenshot,
+            # raise an exception with the screenshot attached so error notification
+            # is sent with the partial screenshot
+            if had_timeout and img:
+                raise ReportScheduleScreenshotTimeout(screenshots=[img])
+
         except StaleElementReferenceException:
             logger.exception(
                 "Selenium got a stale element while requesting url %s",
                 url,
             )
+            raise
+        except ReportScheduleScreenshotTimeout:
+            # Re-raise timeout exceptions that already have screenshots attached
             raise
         except WebDriverException:
             logger.exception(

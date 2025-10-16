@@ -381,6 +381,14 @@ class BaseReportState:
             for screenshot in screenshots:
                 if imge := screenshot.get_screenshot(user=user):
                     imges.append(imge)
+        except ReportScheduleScreenshotTimeout as ex:
+            # Timeout occurred - check if we got partial screenshots
+            if ex.screenshots:
+                # Re-raise with screenshots so error email includes them
+                raise
+            # No screenshots captured during timeout
+            logger.warning("A timeout occurred while taking a screenshot.")
+            raise
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout() from ex
@@ -651,7 +659,9 @@ class BaseReportState:
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
 
-    def send_error(self, name: str, message: str) -> None:
+    def send_error(
+        self, name: str, message: str, screenshots: list[bytes] | None = None
+    ) -> None:
         """
         Creates and sends a notification for an error, to all recipients
 
@@ -670,6 +680,7 @@ class BaseReportState:
             text=message,
             header_data=header_data,
             url=url,
+            screenshots=screenshots or [],
         )
 
         # filter recipients to recipients who are also owners
@@ -769,10 +780,16 @@ class ReportNotTriggeredErrorState(BaseReportState):
             if not self.is_in_error_grace_period():
                 second_error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
                 try:
+                    # Extract screenshots from timeout exception if available
+                    screenshots = None
+                    if isinstance(first_ex, ReportScheduleScreenshotTimeout):
+                        screenshots = first_ex.screenshots
+
                     self.send_error(
                         f"Error occurred for {self._report_schedule.type}:"
                         f" {self._report_schedule.name}",
                         str(first_ex),
+                        screenshots=screenshots,
                     )
 
                 except SupersetErrorsException as second_ex:
@@ -839,10 +856,16 @@ class ReportSuccessState(BaseReportState):
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             except Exception as ex:
+                # Extract screenshots from timeout exception if available
+                screenshots = None
+                if isinstance(ex, ReportScheduleScreenshotTimeout):
+                    screenshots = ex.screenshots
+
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"
                     f" {self._report_schedule.name}",
                     str(ex),
+                    screenshots=screenshots,
                 )
                 self.update_report_schedule_and_log(
                     ReportState.ERROR,

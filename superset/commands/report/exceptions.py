@@ -257,6 +257,10 @@ class ReportScheduleScreenshotTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while taking a screenshot.")
 
+    def __init__(self, screenshots: list[bytes] | None = None) -> None:
+        super().__init__()
+        self.screenshots = screenshots or []
+
 
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
