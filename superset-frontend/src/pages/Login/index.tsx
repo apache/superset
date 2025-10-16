@@ -27,7 +27,7 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { capitalize } from 'lodash/fp';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -79,6 +79,26 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const bootstrapData = getBootstrapData();
+  const nextUrl = useMemo(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('next') || '';
+    } catch (_error) {
+      return '';
+    }
+  }, []);
+
+  const loginEndpoint = useMemo(
+    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    [nextUrl],
+  );
+
+  const buildProviderLoginUrl = (providerName: string) => {
+    const base = `/login/${providerName}`;
+    return nextUrl
+      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
+      : base;
+  };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
   const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
@@ -87,7 +107,7 @@ export default function Login() {
 
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').finally(() => {
+    SupersetClient.postForm(loginEndpoint, values, '').finally(() => {
       setLoading(false);
     });
   };
@@ -126,7 +146,7 @@ export default function Login() {
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={buildProviderLoginUrl(provider.name)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -144,7 +164,7 @@ export default function Login() {
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={buildProviderLoginUrl(provider.name)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}

@@ -190,6 +190,8 @@ def delete_all_inserted_objects() -> None:
 
 def delete_all_inserted_dashboards():
     try:
+        # Expire all objects to ensure fresh state after potential rollbacks
+        db.session.expire_all()
         dashboards_to_delete: list[Dashboard] = (
             db.session.query(Dashboard)
             .filter(Dashboard.id.in_(inserted_dashboards_ids))

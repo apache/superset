@@ -108,7 +108,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
-        assert response.status_code == 302
+        assert response.status_code == 404  # Authenticated users without access get 404
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -129,7 +129,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        assert response.status_code == 302
+        assert response.status_code == 404
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)  # noqa: F405
@@ -149,7 +149,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert redirect on regular rbac access denied
         response = self.get_dashboard_view_response(dashboard)
-        assert response.status_code == 302
+        assert response.status_code == 404
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -221,6 +221,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
+        # Anonymous users are redirected to login instead of getting 404
         assert response.status_code == 302
 
     @pytest.mark.usefixtures("public_role_like_gamma")
@@ -234,6 +235,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
+        # Anonymous users are redirected to login for unpublished dashboards
         assert response.status_code == 302
 
         # post
