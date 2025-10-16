@@ -22,6 +22,8 @@ import {
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
+  QueryFormColumn,
+  QueryFormMetric,
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
@@ -282,48 +284,47 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ownState.columnOrder &&
       Array.isArray(ownState.columnOrder)
     ) {
-      const findMatchingItem = <T>(
-        items: T[],
-        colId: string,
-        matcher: (item: T, colId: string) => boolean,
-      ): T | undefined =>
-        items.find(item => {
-          if (typeof item === 'string') {
-            return item === colId;
-          }
-          return matcher(item, colId);
-        });
+      type ColumnOrMetric = QueryFormColumn | QueryFormMetric;
 
-      const reorderItems = <T>(
-        items: T[],
-        matcher: (item: T, colId: string) => boolean,
-      ): T[] => {
-        const ordered: T[] = [];
-        const itemSet = new Set(items);
+      const matchesColId = (item: ColumnOrMetric, colId: string): boolean => {
+        if (typeof item === 'string') {
+          return item === colId;
+        }
+
+        // Check AdhocColumn properties
+        if ('sqlExpression' in item || 'columnName' in item) {
+          return (
+            (item as AdhocColumn).sqlExpression === colId ||
+            item.label === colId
+          );
+        }
+
+        // Check metric properties
+        return getMetricLabel(item) === colId || item.label === colId;
+      };
+
+      const reorderByColumnOrder = (
+        items: ColumnOrMetric[],
+      ): ColumnOrMetric[] => {
+        const ordered: ColumnOrMetric[] = [];
+        const remaining = new Set(items);
 
         ownState.columnOrder.forEach((colId: string) => {
-          const match = findMatchingItem(items, colId, matcher);
-          if (match && itemSet.has(match)) {
+          const match = items.find(
+            item => remaining.has(item) && matchesColId(item, colId),
+          );
+          if (match) {
             ordered.push(match);
-            itemSet.delete(match);
+            remaining.delete(match);
           }
         });
 
-        // Append remaining unordered items
-        itemSet.forEach(item => ordered.push(item));
-
+        remaining.forEach(item => ordered.push(item));
         return ordered;
       };
 
-      orderedColumns = reorderItems(columns, (col, colId) => {
-        if (typeof col === 'string') return false;
-        return col?.sqlExpression === colId || col?.label === colId;
-      });
-
-      orderedMetrics = reorderItems(metrics || [], (met, colId) => {
-        if (typeof met === 'string') return false;
-        return getMetricLabel(met) === colId || met?.label === colId;
-      });
+      orderedColumns = reorderByColumnOrder(columns) as typeof columns;
+      orderedMetrics = reorderByColumnOrder(metrics || []) as typeof metrics;
     }
 
     let queryObject = {
