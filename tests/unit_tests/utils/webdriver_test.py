@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from selenium.common.exceptions import TimeoutException
 
 from superset.utils.webdriver import (
     check_playwright_availability,
@@ -272,6 +273,115 @@ class TestWebDriverSelenium:
 
         # Should create driver without errors
         mock_driver_class.assert_called_once()
+
+    def test_get_screenshot_logs_chart_timeout_details(self):
+        """Test Selenium logging when chart containers fail to render in time."""
+
+        def make_chart_element(identifier: str) -> MagicMock:
+            chart_element = MagicMock()
+
+            def get_attribute(name: str) -> str | None:
+                values = {
+                    "data-test-chart-id": f"chart-{identifier}",
+                    "data-chart-id": None,
+                    "id": f"chart-id-{identifier}",
+                }
+                return values.get(name)
+
+            chart_element.get_attribute.side_effect = get_attribute
+            return chart_element
+
+        with (
+            patch("superset.utils.webdriver.app") as mock_app,
+            patch("superset.utils.webdriver.logger") as mock_logger,
+            patch("superset.utils.webdriver.WebDriverWait") as mock_wait,
+            patch.object(WebDriverSelenium, "auth") as mock_auth,
+            patch.object(WebDriverSelenium, "destroy") as mock_destroy,
+            patch("superset.utils.webdriver.sleep") as mock_sleep,
+        ):
+            mock_app.config = {
+                "SCREENSHOT_SELENIUM_HEADSTART": 0,
+                "SCREENSHOT_LOCATE_WAIT": 5,
+                "SCREENSHOT_LOAD_WAIT": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_SELENIUM_RETRIES": 1,
+            }
+
+            chart_elements = [make_chart_element("1"), make_chart_element("2")]
+            grid_elements = [MagicMock()]
+            loading_elements = [MagicMock(), MagicMock()]
+
+            mock_driver = MagicMock()
+            mock_driver.find_elements.side_effect = lambda by, value: {
+                "chart-container": chart_elements,
+                "grid-container": grid_elements,
+                "loading": loading_elements,
+            }.get(value, [])
+            mock_driver.page_source = "X" * 2100
+            mock_auth.return_value = mock_driver
+
+            element = MagicMock()
+            element.screenshot_as_png = b"fake-screenshot"
+
+            wait_presence = MagicMock()
+            wait_presence.until.return_value = element
+
+            wait_chart = MagicMock()
+            wait_chart.until.side_effect = TimeoutException()
+
+            wait_fallback = MagicMock()
+            wait_fallback.until.return_value = [MagicMock()]
+
+            wait_loading = MagicMock()
+            wait_loading.until_not.return_value = True
+
+            mock_wait.side_effect = [
+                wait_presence,
+                wait_chart,
+                wait_fallback,
+                wait_loading,
+            ]
+
+            driver = WebDriverSelenium("chrome")
+
+            mock_user = MagicMock()
+            mock_user.username = "test_user"
+
+            result = driver.get_screenshot(
+                "http://example.com", "dashboard-component", mock_user
+            )
+
+            assert result == b"fake-screenshot"
+            mock_sleep.assert_any_call(0)
+            mock_destroy.assert_called_once_with(mock_driver, 1)
+
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 2
+
+            timeout_args = warning_calls[0].args
+            assert timeout_args[1] == "http://example.com"
+            assert timeout_args[2] == len(chart_elements)
+            assert timeout_args[3] == len(grid_elements)
+            assert timeout_args[4] == len(loading_elements)
+            assert timeout_args[5] == ["chart-1", "chart-2"]
+            actual_timeout_message = timeout_args[0] % timeout_args[1:]
+            expected_timeout_message = (
+                "Timeout waiting for chart containers at url http://example.com; "
+                "2 chart containers found, 1 grid containers present, "
+                "2 loading elements still visible; sample chart identifiers: "
+                "['chart-1', 'chart-2']"
+            )
+            assert actual_timeout_message == expected_timeout_message
+
+            dom_preview_args = warning_calls[1].args
+            assert dom_preview_args[1] == mock_driver.page_source[:2000]
+            actual_dom_preview_message = dom_preview_args[0] % dom_preview_args[1:]
+            expected_dom_preview_message = (
+                "Dashboard DOM preview (first 2000 chars): "
+                f"{mock_driver.page_source[:2000]}"
+            )
+            assert actual_dom_preview_message == expected_dom_preview_message
 
 
 class TestPlaywrightAvailabilityCheck:

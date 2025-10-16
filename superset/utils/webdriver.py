@@ -603,7 +603,34 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
-                logger.info("Timeout Exception caught")
+                chart_elements = driver.find_elements(By.CLASS_NAME, "chart-container")
+                grid_elements = driver.find_elements(By.CLASS_NAME, "grid-container")
+                loading_elements = driver.find_elements(By.CLASS_NAME, "loading")
+                chart_identifiers = [
+                    (
+                        element.get_attribute("data-test-chart-id")
+                        or element.get_attribute("data-chart-id")
+                        or element.get_attribute("id")
+                    )
+                    for element in chart_elements[:5]
+                ]
+                logger.warning(
+                    (
+                        "Timeout waiting for chart containers at url %s; "
+                        "%i chart containers found, %i grid containers present, "
+                        "%i loading elements still visible; sample chart "
+                        "identifiers: %s"
+                    ),
+                    url,
+                    len(chart_elements),
+                    len(grid_elements),
+                    len(loading_elements),
+                    chart_identifiers,
+                )
+                logger.warning(
+                    "Dashboard DOM preview (first 2000 chars): %s",
+                    driver.page_source[:2000],
+                )
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
