@@ -427,3 +427,48 @@ test('does not scroll on initial mount, only on page change', async () => {
   // Scroll should not have been called on mount
   expect(scrollToMock).not.toHaveBeenCalled();
 });
+
+test('cleans up animation frame on unmount during loading', async () => {
+  const cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
+
+  let resolvePromise: (value: any) => void;
+  const delayedPromise = new Promise(resolve => {
+    resolvePromise = resolve;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+
+  const { unmount } = setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Resolve promise to trigger scroll effect
+  resolvePromise!({
+    charts: mockChartsResponse.result,
+    count: 100,
+    ids: [1, 2],
+  });
+
+  // Wait for loading to complete (which queues requestAnimationFrame)
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+
+  // Unmount before animation frame fires
+  unmount();
+
+  // Cleanup should have cancelled the animation frame
+  expect(cancelAnimationFrameSpy).toHaveBeenCalled();
+
+  cancelAnimationFrameSpy.mockRestore();
+});
