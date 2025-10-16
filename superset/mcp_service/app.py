@@ -204,6 +204,8 @@ def create_mcp_app(
 # Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app()
 
+from superset.mcp_service.system.tool import health_check  # noqa: F401, E402
+
 
 def init_fastmcp_server(
     name: str = "Superset MCP Server",

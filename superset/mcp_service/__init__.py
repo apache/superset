@@ -36,11 +36,8 @@ superset mcp run --port 5009
 
 __version__ = "1.0.0"
 
-# Import tools to register them with the MCP service
-try:
-    from superset.mcp_service.system.tool import health_check  # noqa: F401
-except ImportError:
-    pass  # Tool import is optional
+# Tools are auto-registered when imported by the MCP service
+# Do not import them here to avoid test pollution
 
 __all__ = [
     "__version__",
