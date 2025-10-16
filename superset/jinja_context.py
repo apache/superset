@@ -982,14 +982,15 @@ def get_template_processor(
 
 
 def dataset_macro(
-    dataset_id: int,
+    dataset_id: Union[int, str],
     include_metrics: bool = False,
     columns: list[str] | None = None,
     from_dttm: datetime | None = None,
     to_dttm: datetime | None = None,
+    alias: str | None = None,
 ) -> str:
     """
-    Given a dataset ID, return the SQL that represents it.
+    Given a dataset ID or name, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
@@ -997,11 +998,18 @@ def dataset_macro(
     The from_dttm and to_dttm parameters are filled in from filter values in explore
     views, and we take them to make those properties available to jinja templates in
     the underlying dataset.
+
+    The alias parameter allows the user to specify an explicit alias for the returned
+    subquery.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
 
-    dataset = DatasetDAO.find_by_id(dataset_id)
+    if isinstance(dataset_id, str):
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column='table_name')
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id)
+
     if not dataset:
         raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
 
@@ -1017,7 +1025,7 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS dataset_{dataset_id}"
+    return f"(\n{sql}\n) AS {alias or f'dataset_{dataset.id}'}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:
