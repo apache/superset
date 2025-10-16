@@ -32,6 +32,7 @@ import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 type OAuthProvider = {
   name: string;
@@ -108,8 +109,11 @@ export default function Login() {
     // Mark that we're attempting login (for error detection after redirect)
     sessionStorage.setItem('login_attempted', 'true');
 
-    // Use standard form submission for Flask-AppBuilder compatibility
-    SupersetClient.postForm('/login/', values, '');
+    // Note: SupersetClient.postForm already adds appRoot internally via getUrl()
+    // so we don't use ensureAppRoot() here to avoid double-prefixing
+    SupersetClient.postForm('/login/', values, '').finally(() => {
+      setLoading(false);
+    });
   };
 
   const getAuthIconElement = (
@@ -146,7 +150,7 @@ export default function Login() {
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={ensureAppRoot(`/login/${provider.name}`)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -164,7 +168,7 @@ export default function Login() {
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={ensureAppRoot(`/login/${provider.name}`)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -232,7 +236,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}
