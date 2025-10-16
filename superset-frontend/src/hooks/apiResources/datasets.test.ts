@@ -45,77 +45,71 @@ jest.mock('@superset-ui/core', () => ({
 const mockedCachedSupersetGet = jest.mocked(cachedSupersetGet);
 const mockedSupersetGetCacheDelete = jest.mocked(supersetGetCache.delete);
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('getDatasetId', () => {
-  test('extracts numeric ID from string datasource ID', () => {
-    expect(getDatasetId('123__table')).toBe(123);
-    expect(getDatasetId('456__another_table')).toBe(456);
-  });
+test('getDatasetId extracts numeric ID from string datasource ID', () => {
+  expect(getDatasetId('123__table')).toBe(123);
+  expect(getDatasetId('456__another_table')).toBe(456);
+});
 
-  test('handles numeric datasource ID', () => {
-    expect(getDatasetId(789)).toBe(789);
-    expect(getDatasetId(0)).toBe(0);
+test('getDatasetId handles numeric datasource ID', () => {
+  expect(getDatasetId(789)).toBe(789);
+  expect(getDatasetId(0)).toBe(0);
+});
+
+test('createVerboseMap creates verbose_map from columns', () => {
+  const dataset = {
+    columns: [
+      { column_name: 'col1', verbose_name: 'Column 1' },
+      { column_name: 'col2', verbose_name: 'Column 2' },
+      { column_name: 'col3' }, // no verbose_name
+    ],
+    metrics: [],
+  } as Dataset;
+
+  const verboseMap = createVerboseMap(dataset);
+
+  expect(verboseMap).toEqual({
+    col1: 'Column 1',
+    col2: 'Column 2',
+    col3: 'col3', // falls back to column_name
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('createVerboseMap', () => {
-  test('creates verbose_map from columns', () => {
-    const dataset = {
-      columns: [
-        { column_name: 'col1', verbose_name: 'Column 1' },
-        { column_name: 'col2', verbose_name: 'Column 2' },
-        { column_name: 'col3' }, // no verbose_name
-      ],
-      metrics: [],
-    } as Dataset;
+test('createVerboseMap creates verbose_map from metrics', () => {
+  const dataset = {
+    columns: [],
+    metrics: [
+      { metric_name: 'metric1', verbose_name: 'Metric 1' },
+      { metric_name: 'metric2', verbose_name: 'Metric 2' },
+      { metric_name: 'metric3' }, // no verbose_name
+    ],
+  } as any;
 
-    const verboseMap = createVerboseMap(dataset);
+  const verboseMap = createVerboseMap(dataset);
 
-    expect(verboseMap).toEqual({
-      col1: 'Column 1',
-      col2: 'Column 2',
-      col3: 'col3', // falls back to column_name
-    });
+  expect(verboseMap).toEqual({
+    metric1: 'Metric 1',
+    metric2: 'Metric 2',
+    metric3: 'metric3', // falls back to metric_name
   });
+});
 
-  test('creates verbose_map from metrics', () => {
-    const dataset = {
-      columns: [],
-      metrics: [
-        { metric_name: 'metric1', verbose_name: 'Metric 1' },
-        { metric_name: 'metric2', verbose_name: 'Metric 2' },
-        { metric_name: 'metric3' }, // no verbose_name
-      ],
-    } as any;
+test('createVerboseMap creates verbose_map from both columns and metrics', () => {
+  const dataset = {
+    columns: [{ column_name: 'col1', verbose_name: 'Column 1' }],
+    metrics: [{ metric_name: 'metric1', verbose_name: 'Metric 1' }],
+  } as Dataset;
 
-    const verboseMap = createVerboseMap(dataset);
+  const verboseMap = createVerboseMap(dataset);
 
-    expect(verboseMap).toEqual({
-      metric1: 'Metric 1',
-      metric2: 'Metric 2',
-      metric3: 'metric3', // falls back to metric_name
-    });
+  expect(verboseMap).toEqual({
+    col1: 'Column 1',
+    metric1: 'Metric 1',
   });
+});
 
-  test('creates verbose_map from both columns and metrics', () => {
-    const dataset = {
-      columns: [{ column_name: 'col1', verbose_name: 'Column 1' }],
-      metrics: [{ metric_name: 'metric1', verbose_name: 'Metric 1' }],
-    } as Dataset;
-
-    const verboseMap = createVerboseMap(dataset);
-
-    expect(verboseMap).toEqual({
-      col1: 'Column 1',
-      metric1: 'Metric 1',
-    });
-  });
-
-  test('handles undefined dataset', () => {
-    const verboseMap = createVerboseMap(undefined);
-    expect(verboseMap).toEqual({});
-  });
+test('createVerboseMap handles undefined dataset', () => {
+  const verboseMap = createVerboseMap(undefined);
+  expect(verboseMap).toEqual({});
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
