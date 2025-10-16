@@ -241,11 +241,11 @@ export function Menu({
         }
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          child.label = SupersetCore.t(child.label);
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <MainNav.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {
+            Object.assign(child, { label: SupersetCore.t(child.label) });
             return (
               <MainNav.Item key={`${child.label}`}>
                 {child.isFrontendRoute ? (
@@ -407,7 +407,7 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
         if (typeof child === 'string') {
           children.push(SupersetCore.t(child));
         } else if ((child as MenuObjectChildProps).label) {
-          child.label = SupersetCore.t(child.label);
+          Object.assign(child, { label: SupersetCore.t(child.label) });
           children.push(child);
         }
       });
