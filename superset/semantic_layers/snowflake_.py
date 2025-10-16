@@ -53,6 +53,7 @@ from superset.semantic_layers.types import (
     NUMBER,
     OBJECT,
     Operator,
+    PredicateType,
     STRING,
     TIME,
     Type,
@@ -277,7 +278,7 @@ class SnowflakeSemanticLayer:
         enabling dynamic schema updates (e.g., populating schema dropdown after
         database is selected).
         """
-        fields: dict[str, tuple[type, Field]] = {}
+        fields: dict[str, tuple[Any, Field]] = {}
 
         # update configuration with runtime data, for example, to select a schema after
         # the database has been selected
@@ -517,12 +518,15 @@ class SnowflakeExplorable:
 
         return STRING
 
-    def _build_where_clause(
+    def _build_predicates(
         self,
-        filters: set[Filter | NativeFilter] | None,
+        filters: set[Filter | NativeFilter],
     ) -> tuple[str, tuple[FilterValues]]:
         """
-        Convert a set of filters to a SQL WHERE clause.
+        Convert a set of filters to a single `AND`ed predicate.
+
+        Caller should check the types of filters beforehand, as this method does not
+        differentiate between `WHERE` and `HAVING` predicates.
         """
         if not filters:
             return "", ()
@@ -536,7 +540,7 @@ class SnowflakeExplorable:
             if isinstance(filter_, NativeFilter):
                 predicates.append(f"({filter_.definition})")
             else:
-                predicates.append(f"({self._build_predicate(filter_)})")
+                predicates.append(f"({self._build_native_filter(filter_)})")
                 if filter_.operator not in unary_operators:
                     parameters.extend(
                         [filter_.value]
@@ -544,7 +548,7 @@ class SnowflakeExplorable:
                         else filter_.value
                     )
 
-        return "WHERE " + " AND ".join(predicates), tuple(parameters)
+        return " AND ".join(predicates), tuple(parameters)
 
     def get_values(
         self,
@@ -554,24 +558,29 @@ class SnowflakeExplorable:
         """
         Return distinct values for a dimension.
         """
-        where_clause, parameters = self._build_where_clause(filters)
+        where_clause, parameters = self._build_predicates(
+            {
+                filter_
+                for filter_ in (filters or [])
+                if filter_.type == PredicateType.WHERE
+            }
+        )
         query = dedent(
             f"""
             SELECT {self._quote(dimension.name)}
             FROM SEMANTIC_VIEW(
                 {self.uid()}
                 DIMENSIONS {dimension.id}
-                {where_clause}
+                {"WHERE " + where_clause if where_clause else ""}
             )
             """  # noqa: S608
         )
-        print(query)
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor()
             return {row[0] for row in cursor.execute(query, parameters)}
 
-    def _build_predicate(self, filter_: Filter) -> str:
+    def _build_native_filter(self, filter_: Filter) -> str:
         """
         Convert a Filter to a NativeFilter.
         """
@@ -594,63 +603,75 @@ class SnowflakeExplorable:
 
         return f"{column_name} {operator.value} ?"
 
-    # TODO (betodealmeida): create a class to manage the explorable request and pass it
-    # here, instead of individual parameters
     def get_dataframe(
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> DataFrame:
         """
         Execute a query and return the results as a Pandas DataFrame.
         """
-        dimension_arguments = ", ".join(
-            f"{dimension.id} AS {self._quote(dimension.id)}" for dimension in dimensions
+        if not metrics and not dimensions:
+            return DataFrame()
+
+        query, parameters = self._get_query(metrics, dimensions, filters, limit, offset)
+        connection_parameters = get_connection_parameters(self.configuration)
+        with connect(**connection_parameters) as connection:
+            return connection.cursor().execute(query, parameters).fetch_pandas_all()
+
+    def _get_query(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        filters: set[Filter | NativeFilter] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> tuple[str, tuple[FilterValues]]:
+        """
+        Build a query to fetch data from the explorable.
+
+        This also returns the parameters need to run `cursor.execute()`, passed
+        separately to prevent SQL injection.
+        """
+
+        def alias(element: Metric | Dimension) -> str:
+            """
+            Alias a metric or dimension.
+            """
+            return f"{element.id} AS {self._quote(element.id)}"
+
+        dimension_arguments = ", ".join(alias(dimension) for dimension in dimensions)
+        metric_arguments = ", ".join(alias(metric) for metric in metrics)
+
+        filters = filters or set()
+        where_clause, where_parameters = self._build_predicates(
+            {filter_ for filter_ in filters if filter_.type == PredicateType.WHERE}
         )
-        metric_arguments = ", ".join(
-            f"{metric.id} AS {self._quote(metric.id)}"
-            for metric in metrics
-            for metric in metrics
+        having_clause, having_parameters = self._build_predicates(
+            {filter_ for filter_ in filters if filter_.type == PredicateType.HAVING}
         )
 
-        where_clause, parameters = self._build_where_clause(filters)
         query = dedent(
             f"""
             SELECT * FROM SEMANTIC_VIEW(
                 {self.uid()}
-                DIMENSIONS
-                    {dimension_arguments}
-                METRICS
-                    {metric_arguments}
-                {where_clause}
+                {"DIMENSIONS " + dimension_arguments if dimension_arguments else ""}
+                {"METRICS " + metric_arguments if metric_arguments else ""}
+                {"WHERE " + where_clause if where_clause else ""}
             )
+            {"HAVING " + having_clause if having_clause else ""}
+            {"LIMIT " + str(limit) if limit is not None else ""}
+            {"OFFSET " + str(offset) if offset is not None else ""}
             """  # noqa: S608
         )
-        print(query)
+        parameters = where_parameters + having_parameters
+
+        return query, parameters
 
     __repr__ = uid
-
-
-"""
-  query_object = QueryObject(
-      columns=["I_BRAND"],
-      metrics=["TOTALSALESPRICE"],
-      row_limit=10
-  )
-
-  Generated SQL
-
-  SELECT * FROM SEMANTIC_VIEW(
-    TPCDS_SEMANTIC_VIEW_SM
-    DIMENSIONS
-      ITEM.BRAND
-    METRICS
-      STORESALES.TOTALSALESPRICE
-  )
-  ORDER BY TOTALSALESPRICE DESC
-  LIMIT 10
-"""
 
 
 if __name__ == "__main__":
@@ -706,12 +727,17 @@ if __name__ == "__main__":
     )
     print(explorable.get_values(dimension))
     filters = {
-        Filter(dimension, Operator.IS_NOT_NULL, None),
-        Filter(dimension, Operator.NOT_EQUALS, "Books"),
+        Filter(PredicateType.WHERE, dimension, Operator.IS_NOT_NULL, None),
+        Filter(PredicateType.WHERE, dimension, Operator.NOT_EQUALS, "Books"),
     }
     print(explorable.get_values(dimension, filters))
     filters = {
-        Filter(dimension, Operator.IN, frozenset({"Children", "Electronics"})),
+        Filter(
+            PredicateType.WHERE,
+            dimension,
+            Operator.IN,
+            frozenset({"Children", "Electronics"}),
+        ),
     }
     print(explorable.get_values(dimension, filters))
     print(
@@ -723,9 +749,17 @@ if __name__ == "__main__":
                     NUMBER,
                     None,
                     None,
-                )
+                ),
             ],
             [
+                Dimension(
+                    id="DATE.YEAR",
+                    name="YEAR",
+                    type=INTEGER,
+                    description=None,
+                    definition=None,
+                    grain=None,
+                ),
                 Dimension(
                     id="ITEM.CATEGORY",
                     name="CATEGORY",
@@ -733,11 +767,11 @@ if __name__ == "__main__":
                     description=None,
                     definition="I_CATEGORY",
                     grain=None,
-                )
+                ),
             ],
             {
-                NativeFilter("Year = '2002'"),
-                NativeFilter("Month = '12'"),
+                NativeFilter(PredicateType.WHERE, "Year = '2002'"),
+                NativeFilter(PredicateType.WHERE, "Month = '12'"),
             },
         )
     )

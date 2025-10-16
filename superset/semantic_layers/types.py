@@ -122,7 +122,7 @@ class ComparableEnum(enum.Enum):
             return self.value < other.value
         return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.__class__, self.name))
 
 
@@ -158,7 +158,7 @@ class Metric:
     type: type[Type]
 
     # Metric definitions could be SQL expressions, SQL queries, or even a DSL
-    definition: str
+    definition: str | None
 
     description: str | None = None
 
@@ -181,8 +181,14 @@ class Operator(enum.Enum):
 FilterValues = str | int | float | bool | datetime | date | time | timedelta | None
 
 
+class PredicateType(enum.Enum):
+    WHERE = "WHERE"
+    HAVING = "HAVING"
+
+
 @dataclass(frozen=True)
 class Filter:
+    type: PredicateType
     column: Dimension | Metric
     operator: Operator
     value: FilterValues | set[FilterValues]
@@ -190,4 +196,5 @@ class Filter:
 
 @dataclass(frozen=True)
 class NativeFilter:
+    type: PredicateType
     definition: str
