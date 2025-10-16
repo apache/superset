@@ -273,7 +273,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         const storedFilterModel = serverPaginationData?.agGridFilterModel;
 
         if (storedFilterModel && Object.keys(storedFilterModel).length > 0) {
-          // Only restore if the current filter model is different
           const currentFilterModel = gridRef.current.api.getFilterModel();
 
           if (!isEqual(currentFilterModel, storedFilterModel)) {
@@ -361,11 +360,60 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           }
         }
 
-        setColumnFilters(filterModel);
+        const preservedFilterModel = { ...filterModel };
+
+        Object.keys(filterModel).forEach(colId => {
+          const currentFilter = filterModel[colId];
+          const previousFilter = previousModel[colId];
+
+          const wasCompound =
+            previousFilter?.operator && previousFilter?.conditions;
+          const isNowSimple = currentFilter?.type && !currentFilter?.operator;
+
+          if (wasCompound && isNowSimple) {
+            const condition1 = previousFilter.conditions[0];
+            const condition2 = previousFilter.conditions[1];
+
+            const matchesCondition1 =
+              condition1?.filter === currentFilter.filter;
+            const matchesCondition2 =
+              condition2?.filter === currentFilter.filter;
+
+            if (matchesCondition2) {
+              preservedFilterModel[colId] = {
+                filterType: currentFilter.filterType,
+                operator: previousFilter.operator,
+                conditions: [
+                  {
+                    filterType: currentFilter.filterType,
+                    type: condition1?.type || 'contains',
+                    filter: null, 
+                  },
+                  currentFilter,
+                ],
+              };
+            } else if (matchesCondition1) {
+              preservedFilterModel[colId] = {
+                filterType: currentFilter.filterType,
+                operator: previousFilter.operator,
+                conditions: [
+                  currentFilter, 
+                  {
+                    filterType: currentFilter.filterType,
+                    type: condition2?.type || 'contains',
+                    filter: null,
+                  },
+                ],
+              };
+            }
+          }
+        });
+
+        setColumnFilters(preservedFilterModel);
 
         if (onAgGridColumnFiltersChange && serverPagination) {
           onAgGridColumnFiltersChange(
-            filterModel as AgGridFilterModel,
+            preservedFilterModel as AgGridFilterModel,
             lastFilteredColumn,
             lastFilteredInputPosition,
           );
