@@ -148,6 +148,7 @@ export interface ServerPaginationData {
   agGridSimpleFilters?: AgGridColumnFilter[];
   agGridComplexWhere?: string;
   lastFilteredColumn?: string; // Track which column was last filtered to keep popover open
+  lastFilteredInputPosition?: 'first' | 'second'; // Track which input was focused for focus restoration
 }
 
 export interface AgGridTableChartTransformedProps<
@@ -203,6 +204,7 @@ export interface CustomContext {
   onColumnHeaderClicked: (args: { column: SortState }) => void;
   isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
   lastFilteredColumn?: string; // Column that was last filtered (to keep popover open)
+  lastFilteredInputPosition?: 'first' | 'second'; // Position of input that was focused (first or second)
   activeFilterColumns?: Set<string>; // Columns that have active filters (from ownState)
 }
 

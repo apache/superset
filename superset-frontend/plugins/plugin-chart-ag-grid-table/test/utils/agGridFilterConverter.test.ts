@@ -417,7 +417,9 @@ test('converts compound filter with OR operator to complex WHERE clause', () => 
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe("((status == 'active' OR status == 'pending'))");
+  expect(result.complexWhere).toBe(
+    "((status == 'active' OR status == 'pending'))",
+  );
 });
 
 // Test: Compound filter with multiple conditions (using conditions array)
@@ -459,7 +461,9 @@ test('converts compound filter with multiple conditions array', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe('((priority == 1 OR priority == 2 OR priority == 3))');
+  expect(result.complexWhere).toBe(
+    '((priority == 1 OR priority == 2 OR priority == 3))',
+  );
 });
 
 // Test: Multiple simple filters combined
@@ -625,7 +629,9 @@ test('converts compound filter with inRange operator in WHERE clause', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe('((price BETWEEN 50 AND 100 AND price != 75))');
+  expect(result.complexWhere).toBe(
+    '((price BETWEEN 50 AND 100 AND price != 75))',
+  );
 });
 
 // Test: Empty filter model
@@ -707,7 +713,9 @@ test('skips filter with column name exceeding maximum length', () => {
 
   expect(result.simpleFilters).toEqual([]);
   expect(consoleErrorSpy).toHaveBeenCalledWith(
-    expect.stringContaining('[AG Grid Filters] Column name exceeds maximum length'),
+    expect.stringContaining(
+      '[AG Grid Filters] Column name exceeds maximum length',
+    ),
   );
 
   consoleErrorSpy.mockRestore();
@@ -751,7 +759,9 @@ test('skips filter with missing value and logs error', () => {
 
   expect(result.simpleFilters).toEqual([]);
   expect(consoleErrorSpy).toHaveBeenCalledWith(
-    expect.stringContaining('[AG Grid Filters] Filter value required for operator'),
+    expect.stringContaining(
+      '[AG Grid Filters] Filter value required for operator',
+    ),
   );
 
   consoleErrorSpy.mockRestore();

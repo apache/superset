@@ -42,7 +42,10 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
-import { convertAgGridFiltersToSQL, type AgGridFilterModel } from './utils/agGridFilterConverter';
+import {
+  convertAgGridFiltersToSQL,
+  type AgGridFilterModel,
+} from './utils/agGridFilterConverter';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -257,7 +260,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const handleAgGridColumnFiltersChange = useCallback(
-    (filterModel: AgGridFilterModel, lastFilteredColumn?: string) => {
+    (
+      filterModel: AgGridFilterModel,
+      lastFilteredColumn?: string,
+      lastFilteredInputPosition?: 'first' | 'second',
+    ) => {
       if (!serverPagination) return;
 
       // Convert AG Grid filters to SQLAlchemy format
@@ -269,6 +276,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         agGridSimpleFilters: converted.simpleFilters,
         agGridComplexWhere: converted.complexWhere,
         lastFilteredColumn, // Track which column was filtered to keep popover open
+        lastFilteredInputPosition, // Track which input was focused (first or second)
         currentPage: 0, // Reset to first page when filtering
       };
 

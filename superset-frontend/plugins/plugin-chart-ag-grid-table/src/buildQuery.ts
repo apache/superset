@@ -299,7 +299,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
 
       // Add AG Grid column filters from ownState
-      if (ownState.agGridSimpleFilters && ownState.agGridSimpleFilters.length > 0) {
+      if (
+        ownState.agGridSimpleFilters &&
+        ownState.agGridSimpleFilters.length > 0
+      ) {
         queryObject = {
           ...queryObject,
           filters: [

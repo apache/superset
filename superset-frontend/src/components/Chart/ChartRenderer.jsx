@@ -364,7 +364,8 @@ class ChartRenderer extends Component {
       (ownState?.agGridComplexWhere?.length || 0) > 0;
 
     const bypassNoResult = !(
-      formData?.server_pagination && (hasSearchQuery || hasAgGridFilters)
+      formData?.server_pagination &&
+      (hasSearchQuery || hasAgGridFilters)
     );
 
     return (

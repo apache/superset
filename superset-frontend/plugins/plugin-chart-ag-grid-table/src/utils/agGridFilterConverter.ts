@@ -17,12 +17,7 @@
  * under the License.
  */
 
-export type AgGridFilterType =
-  | 'text'
-  | 'number'
-  | 'date'
-  | 'set'
-  | 'boolean';
+export type AgGridFilterType = 'text' | 'number' | 'date' | 'set' | 'boolean';
 
 export type AgGridFilterOperator =
   | 'equals'
@@ -133,12 +128,16 @@ function validateColumnName(columnName: string): boolean {
   }
 
   if (columnName.length > 255) {
-    console.error(`[AG Grid Filters] Column name exceeds maximum length: ${columnName}`);
+    console.error(
+      `[AG Grid Filters] Column name exceeds maximum length: ${columnName}`,
+    );
     return false;
   }
 
   if (!/^[a-zA-Z0-9_. ]+$/.test(columnName)) {
-    console.error(`[AG Grid Filters] Invalid column name format: ${columnName}`);
+    console.error(
+      `[AG Grid Filters] Invalid column name format: ${columnName}`,
+    );
     return false;
   }
 
@@ -150,12 +149,17 @@ function validateFilterValue(
   operator: AgGridFilterOperator,
   columnName?: string,
 ): boolean {
-  if (operator === FILTER_OPERATORS.BLANK || operator === FILTER_OPERATORS.NOT_BLANK) {
+  if (
+    operator === FILTER_OPERATORS.BLANK ||
+    operator === FILTER_OPERATORS.NOT_BLANK
+  ) {
     return true;
   }
 
   if (value === undefined) {
-    console.error(`[AG Grid Filters] Filter value required for operator: ${operator}${columnName ? ` (column: ${columnName})` : ''}`);
+    console.error(
+      `[AG Grid Filters] Filter value required for operator: ${operator}${columnName ? ` (column: ${columnName})` : ''}`,
+    );
     return false;
   }
 
@@ -167,7 +171,9 @@ function validateFilterValue(
     valueType !== 'boolean' &&
     !(value instanceof Date)
   ) {
-    console.error(`[AG Grid Filters] Invalid filter value type: ${valueType}${columnName ? ` (column: ${columnName})` : ''}`);
+    console.error(
+      `[AG Grid Filters] Invalid filter value type: ${valueType}${columnName ? ` (column: ${columnName})` : ''}`,
+    );
     return false;
   }
 
@@ -179,7 +185,10 @@ function formatValueForOperator(
   value: FilterValue,
 ): FilterValue {
   if (typeof value === 'string') {
-    if (operator === FILTER_OPERATORS.CONTAINS || operator === FILTER_OPERATORS.NOT_CONTAINS) {
+    if (
+      operator === FILTER_OPERATORS.CONTAINS ||
+      operator === FILTER_OPERATORS.NOT_CONTAINS
+    ) {
       return `%${value}%`;
     }
     if (operator === FILTER_OPERATORS.STARTS_WITH) {
@@ -200,7 +209,9 @@ function simpleFilterToWhereClause(
 
   const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
   if (!operator) {
-    console.error(`[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`);
+    console.error(
+      `[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`,
+    );
     return '';
   }
 
@@ -222,7 +233,10 @@ function simpleFilterToWhereClause(
 
   const formattedValue = formatValueForOperator(type, value!);
 
-  if (operator === SQL_OPERATORS.ILIKE || operator === SQL_OPERATORS.NOT_ILIKE) {
+  if (
+    operator === SQL_OPERATORS.ILIKE ||
+    operator === SQL_OPERATORS.NOT_ILIKE
+  ) {
     return `${columnName} ${operator} '${formattedValue}'`;
   }
 
@@ -236,7 +250,9 @@ function simpleFilterToWhereClause(
 function isCompoundFilter(
   filter: AgGridSimpleFilter | AgGridCompoundFilter | AgGridSetFilter,
 ): filter is AgGridCompoundFilter {
-  return 'operator' in filter && ('condition1' in filter || 'conditions' in filter);
+  return (
+    'operator' in filter && ('condition1' in filter || 'conditions' in filter)
+  );
 }
 
 function isSetFilter(
@@ -267,7 +283,9 @@ function compoundFilterToWhereClause(
   const clause2 = simpleFilterToWhereClause(columnName, condition2);
 
   if (!clause1 || !clause2) {
-    console.error(`[AG Grid Filters] Invalid compound filter for column: ${columnName}`);
+    console.error(
+      `[AG Grid Filters] Invalid compound filter for column: ${columnName}`,
+    );
     return '';
   }
 
@@ -284,7 +302,9 @@ export function convertAgGridFiltersToSQL(
   filterModel: AgGridFilterModel,
 ): ConvertedFilter {
   if (!filterModel || typeof filterModel !== 'object') {
-    console.error('[AG Grid Filters] Invalid filter model: must be a non-null object');
+    console.error(
+      '[AG Grid Filters] Invalid filter model: must be a non-null object',
+    );
     return { simpleFilters: [], complexWhere: undefined };
   }
 
@@ -297,18 +317,24 @@ export function convertAgGridFiltersToSQL(
     }
 
     if (!filter || typeof filter !== 'object') {
-      console.error(`[AG Grid Filters] Invalid filter for column: ${columnName}`);
+      console.error(
+        `[AG Grid Filters] Invalid filter for column: ${columnName}`,
+      );
       return;
     }
 
     if (isSetFilter(filter)) {
       if (!Array.isArray(filter.values)) {
-        console.error(`[AG Grid Filters] Set filter values must be an array for column: ${columnName}`);
+        console.error(
+          `[AG Grid Filters] Set filter values must be an array for column: ${columnName}`,
+        );
         return;
       }
 
       if (filter.values.length === 0) {
-        console.warn(`[AG Grid Filters] Empty set filter for column: ${columnName}`);
+        console.warn(
+          `[AG Grid Filters] Empty set filter for column: ${columnName}`,
+        );
         return;
       }
 
@@ -332,13 +358,17 @@ export function convertAgGridFiltersToSQL(
     const { type, filter: value } = simpleFilter;
 
     if (!type) {
-      console.error(`[AG Grid Filters] Missing filter type for column: ${columnName}`);
+      console.error(
+        `[AG Grid Filters] Missing filter type for column: ${columnName}`,
+      );
       return;
     }
 
     const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
     if (!operator) {
-      console.error(`[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`);
+      console.error(
+        `[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`,
+      );
       return;
     }
 

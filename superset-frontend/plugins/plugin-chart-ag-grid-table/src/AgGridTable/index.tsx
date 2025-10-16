@@ -72,7 +72,11 @@ export interface AgGridTableProps {
   onSearchColChange: (searchCol: string) => void;
   onSearchChange: (searchText: string) => void;
   onSortChange: (sortBy: SortByItem[]) => void;
-  onAgGridColumnFiltersChange?: (filterModel: AgGridFilterModel, lastFilteredColumn?: string) => void;
+  onAgGridColumnFiltersChange?: (
+    filterModel: AgGridFilterModel,
+    lastFilteredColumn?: string,
+    lastFilteredInputPosition?: 'first' | 'second',
+  ) => void;
   id: number;
   percentMetrics: string[];
   serverPageLength: number;
@@ -302,39 +306,77 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     // Handler for column filter changes
-    const onFilterChanged = useCallback((event: FilterChangedEvent) => {
-      const filterModel = event.api.getFilterModel();
-
-      // Only trigger API call if filters actually changed (deep comparison)
-      // This prevents infinite loops when restoring filters from ownState
-      if (isEqual(filterModel, serverPaginationData?.agGridFilterModel)) {
-        return;
-      }
-
-      // Determine which column was just filtered by comparing models
-      const previousModel = serverPaginationData?.agGridFilterModel || {};
-      let lastFilteredColumn: string | undefined;
-
-      // Find the column that changed
-      const allColumns = new Set([
-        ...Object.keys(filterModel),
-        ...Object.keys(previousModel),
-      ]);
-
-      for (const colId of allColumns) {
-        if (!isEqual(filterModel[colId], previousModel[colId])) {
-          lastFilteredColumn = colId;
-          break; // Use the first changed column
+    const onFilterChanged = useCallback(
+      (event: FilterChangedEvent) => {
+        const filterModel = event.api.getFilterModel();
+        if (isEqual(filterModel, serverPaginationData?.agGridFilterModel)) {
+          return;
         }
-      }
 
-      setColumnFilters(filterModel);
+        const activeElement = document.activeElement as HTMLElement;
+        let lastFilteredInputPosition: 'first' | 'second' | undefined;
 
-      // Call the handler to update ownState if server pagination is enabled
-      if (onAgGridColumnFiltersChange && serverPagination) {
-        onAgGridColumnFiltersChange(filterModel as AgGridFilterModel, lastFilteredColumn);
-      }
-    }, [onAgGridColumnFiltersChange, serverPagination, serverPaginationData?.agGridFilterModel]);
+        const previousModel = serverPaginationData?.agGridFilterModel || {};
+        let lastFilteredColumn: string | undefined;
+
+        const allColumns = new Set([
+          ...Object.keys(filterModel),
+          ...Object.keys(previousModel),
+        ]);
+
+        for (const colId of allColumns) {
+          if (!isEqual(filterModel[colId], previousModel[colId])) {
+            lastFilteredColumn = colId;
+
+            const isInputOrTextarea =
+              activeElement?.tagName === 'INPUT' ||
+              activeElement?.tagName === 'TEXTAREA';
+
+            if (isInputOrTextarea) {
+              const filterBody = activeElement.closest('.ag-filter-body');
+
+              if (filterBody) {
+                const nextSibling = filterBody.nextElementSibling;
+                const prevSibling =
+                  filterBody?.previousElementSibling?.previousElementSibling;
+
+                if (
+                  prevSibling &&
+                  prevSibling.classList.contains('ag-filter-condition')
+                ) {
+                  lastFilteredInputPosition = 'second';
+                  break;
+                }
+
+                if (
+                  !nextSibling ||
+                  nextSibling.classList.contains('ag-filter-condition')
+                ) {
+                  lastFilteredInputPosition = 'first';
+                }
+              }
+            }
+
+            break;
+          }
+        }
+
+        setColumnFilters(filterModel);
+
+        if (onAgGridColumnFiltersChange && serverPagination) {
+          onAgGridColumnFiltersChange(
+            filterModel as AgGridFilterModel,
+            lastFilteredColumn,
+            lastFilteredInputPosition,
+          );
+        }
+      },
+      [
+        onAgGridColumnFiltersChange,
+        serverPagination,
+        serverPaginationData?.agGridFilterModel,
+      ],
+    );
 
     return (
       <div style={containerStyles} ref={containerRef}>
@@ -480,8 +522,10 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               serverPaginationData?.sortBy || [],
             ),
             isActiveFilterValue,
-            lastFilteredColumn: serverPaginationData?.lastFilteredColumn, // Pass last filtered column for auto-opening popover
-            activeFilterColumns, // Pass active filter columns as reliable backup for isFilterActive
+            lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
+            lastFilteredInputPosition:
+              serverPaginationData?.lastFilteredInputPosition,
+            activeFilterColumns,
           }}
         />
         {serverPagination && (
