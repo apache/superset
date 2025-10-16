@@ -19,9 +19,14 @@
 
 import pytest
 import prison
+import uuid
+import yaml
 from datetime import datetime
 from freezegun import freeze_time
+from io import BytesIO
 from sqlalchemy.sql import func
+from typing import Any
+from zipfile import ZipFile
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db
@@ -399,3 +404,120 @@ class TestThemeApi(SupersetTestCase):
         uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
+
+    def create_theme_import_zip(self, theme_config: dict[str, Any]) -> BytesIO:
+        """Helper method to create a theme import ZIP file"""
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            # Use a root folder like the export does
+            root = "theme_import"
+
+            # Add metadata.yaml
+            metadata = {
+                "version": "1.0.0",
+                "type": "Theme",
+                "timestamp": datetime.now().isoformat(),
+            }
+            with bundle.open(f"{root}/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(metadata).encode())
+
+            # Add theme YAML file
+            theme_yaml = yaml.safe_dump(theme_config)
+            with bundle.open(
+                f"{root}/themes/{theme_config['theme_name']}.yaml", "w"
+            ) as fp:
+                fp.write(theme_yaml.encode())
+        buf.seek(0)
+        return buf
+
+    def test_import_theme(self):
+        """
+        Theme API: Test import theme
+        """
+        theme_config = {
+            "theme_name": "imported_theme",
+            "uuid": str(uuid.uuid4()),
+            "version": "1.0.0",
+            "json_data": {"colors": {"primary": "#007bff"}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/theme/import/"
+
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        theme = db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).one()
+        assert theme.theme_name == "imported_theme"
+
+        # Cleanup
+        db.session.delete(theme)
+        db.session.commit()
+
+    def test_import_theme_overwrite(self):
+        """
+        Theme API: Test import existing theme without and with overwrite
+        """
+        theme_config = {
+            "theme_name": "overwrite_theme",
+            "uuid": str(uuid.uuid4()),
+            "version": "1.0.0",
+            "json_data": {"colors": {"primary": "#007bff"}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/theme/import/"
+
+        # First import
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        # Import again without overwrite flag - should fail with structured error
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing theme")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert f"themes/{theme_config['theme_name']}.yaml" in str(error["extra"])
+        assert "Theme already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+
+        # Import with overwrite flag - should succeed
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+            "overwrite": "true",
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        # Cleanup
+        theme = db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).one()
+        db.session.delete(theme)
+        db.session.commit()
