@@ -21,23 +21,10 @@ import datetime
 import logging
 import platform
 
-from pydantic import BaseModel
-
 from superset.mcp_service.app import mcp
+from superset.mcp_service.common.schemas import HealthCheckResponse
 
 logger = logging.getLogger(__name__)
-
-
-class HealthCheckResponse(BaseModel):
-    """Response model for health check."""
-
-    status: str
-    timestamp: str
-    service: str
-    version: str
-    python_version: str
-    platform: str
-    uptime_seconds: float
 
 
 @mcp.tool
