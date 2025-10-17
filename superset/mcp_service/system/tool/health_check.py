@@ -20,6 +20,7 @@
 import datetime
 import logging
 import platform
+import time
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.common.schemas import HealthCheckResponse
@@ -39,14 +40,9 @@ async def health_check() -> HealthCheckResponse:
         HealthCheckResponse: Health status and system information
     """
     try:
-        import time
-
-        # Get basic system information
-        now = datetime.datetime.now()
-
         response = HealthCheckResponse(
             status="healthy",
-            timestamp=now.isoformat(),
+            timestamp=datetime.datetime.now().isoformat(),
             service="Superset MCP Service",
             version="1.0.0",
             python_version=platform.python_version(),
