@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from selenium.common.exceptions import TimeoutException
 
 from superset.utils.webdriver import (
     check_playwright_availability,
@@ -272,6 +273,109 @@ class TestWebDriverSelenium:
 
         # Should create driver without errors
         mock_driver_class.assert_called_once()
+
+    @patch("superset.utils.webdriver.time")
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver.chrome")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.WebDriverWait")
+    def test_get_screenshot_logs_chart_timeout_details(
+        self, mock_wait, mock_logger, mock_chrome, mock_app_patch, mock_time, mock_app
+    ):
+        """Test that chart timeout logs detailed diagnostic information."""
+        # Mock time to return consistent values for elapsed time calculation
+        mock_time.return_value = 100.0  # Start time
+        mock_app_patch.config = {
+            "WEBDRIVER_TYPE": "chrome",
+            "WEBDRIVER_OPTION_ARGS": [],
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+            "WEBDRIVER_CONFIGURATION": {},
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_SELENIUM_RETRIES": 2,
+        }
+
+        # Setup mocks
+        mock_driver = MagicMock()
+        mock_driver_class = MagicMock(return_value=mock_driver)
+        mock_chrome.webdriver.WebDriver = mock_driver_class
+        mock_chrome.service.Service = MagicMock()
+        mock_options = MagicMock()
+        mock_chrome.options.Options = MagicMock(return_value=mock_options)
+
+        # Mock chart elements with identifiers
+        mock_chart1 = MagicMock()
+        mock_chart1.get_attribute.side_effect = (
+            lambda attr: "chart-123" if attr == "data-test-chart-id" else None
+        )
+        mock_chart2 = MagicMock()
+        mock_chart2.get_attribute.side_effect = (
+            lambda attr: "chart-456" if attr == "data-chart-id" else None
+        )
+
+        # Mock element that will be found after timeout
+        mock_element = MagicMock()
+        mock_element.screenshot_as_png = b"screenshot_data"
+        mock_driver.find_element.return_value = mock_element
+
+        mock_driver.find_elements.side_effect = lambda by, value: {
+            "chart-container": [mock_chart1, mock_chart2],
+            "grid-container": [MagicMock()],
+            "loading": [MagicMock()],
+        }.get(value, [])
+
+        mock_driver.page_source = "<html><body>Test DOM content</body></html>"
+        mock_driver.get_screenshot_as_png.return_value = b"screenshot_data"
+
+        # Setup WebDriverWait to raise TimeoutException
+        mock_wait_instance = MagicMock()
+        mock_wait_instance.until.side_effect = TimeoutException()
+        mock_wait.return_value = mock_wait_instance
+
+        # Mock user and auth
+        mock_user = MagicMock()
+        driver = WebDriverSelenium(driver_type="chrome")
+
+        with patch.object(driver, "auth", return_value=mock_driver):
+            # Should raise ReportScheduleScreenshotTimeout with screenshot
+            from superset.commands.report.exceptions import (
+                ReportScheduleScreenshotTimeout,
+            )
+
+            with pytest.raises(ReportScheduleScreenshotTimeout) as exc_info:
+                driver.get_screenshot(
+                    "http://example.com/dashboard/1", "dashboard", mock_user
+                )
+
+            # Verify screenshot was captured despite timeout
+            assert exc_info.value.screenshots == [b"screenshot_data"]
+            # Verify elapsed_seconds was captured
+            assert exc_info.value.elapsed_seconds is not None
+
+        # Verify diagnostic logging
+        # Check that we logged chart timeout with details
+        chart_timeout_logged = any(
+            "Timeout waiting for chart containers" in str(call[0])
+            for call in mock_logger.warning.call_args_list
+        )
+        assert chart_timeout_logged, "Should log chart timeout details"
+
+        # Check that chart identifiers were logged (they're passed as arguments)
+        chart_ids_logged = any(
+            "chart-123" in str(call) or "chart-456" in str(call)
+            for call in mock_logger.warning.call_args_list
+        )
+        assert chart_ids_logged, "Should log chart identifiers"
+
+        # Check that DOM preview was logged
+        dom_preview_logged = any(
+            "Dashboard DOM preview" in str(call[0])
+            for call in mock_logger.warning.call_args_list
+        )
+        assert dom_preview_logged, "Should log DOM preview"
 
 
 class TestPlaywrightAvailabilityCheck:

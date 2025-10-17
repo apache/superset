@@ -196,6 +196,10 @@ class ReportSchedulePreviousWorkingError(CommandException):
     status = 429
     message = _("Report Schedule is still working, refusing to re-compute.")
 
+    def __init__(self, working_timeout: int | None = None) -> None:
+        super().__init__()
+        self.working_timeout = working_timeout
+
 
 class ReportScheduleWorkingTimeoutError(CommandException):
     status = 408
@@ -256,6 +260,15 @@ class AlertQueryTimeout(CommandException):
 class ReportScheduleScreenshotTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while taking a screenshot.")
+
+    def __init__(
+        self,
+        screenshots: list[bytes] | None = None,
+        elapsed_seconds: float | None = None,
+    ) -> None:
+        super().__init__()
+        self.screenshots = screenshots or []
+        self.elapsed_seconds = elapsed_seconds
 
 
 class ReportScheduleCsvTimeout(CommandException):

@@ -97,22 +97,78 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    def _error_template(self, text: str) -> str:
+    def _error_template(self, text: str, img_tag: str = "") -> str:
         call_to_action = self._get_call_to_action()
+
+        # Build timing and optimization guidance if available
+        timing_info = ""
+        optimization_guidance = ""
+        if self._content.elapsed_seconds is not None:
+            timing_info = __(
+                "<p><strong>Loading Time:</strong> The page was loading for %(seconds)d seconds before timing out.</p>",  # noqa: E501
+                seconds=int(self._content.elapsed_seconds),
+            )
+            if img_tag:
+                optimization_guidance = __(
+                    """
+                    <p><strong>Screenshot:</strong> Below is a screenshot of how much
+                    was loaded when the timeout occurred. This partial rendering
+                    indicates that your dashboard/chart queries may be too slow.</p>
+                    <p><strong>Performance Recommendations:</strong></p>
+                    <ul>
+                        <li>Optimize your queries to run faster (add indexes,
+                        reduce data volume, simplify calculations)</li>
+                        <li>Enable and utilize
+                        <a href="https://superset.apache.org/docs/configuration/cache/">
+                        cached data</a>
+                        to avoid re-running expensive queries</li>
+                        <li>Consider breaking complex dashboards into smaller,
+                        focused views</li>
+                        <li>Review your database performance and query execution
+                        plans</li>
+                    </ul>
+                    """
+                )
+
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+            %(timing_info)s
+            %(optimization_guidance)s
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+            %(screenshots)s
             """,  # noqa: E501
             text=text,
+            timing_info=timing_info,
+            optimization_guidance=optimization_guidance,
             url=self._content.url,
             call_to_action=call_to_action,
+            screenshots=img_tag,
         )
 
     def _get_content(self) -> EmailContent:
         if self._content.text:
-            return EmailContent(body=self._error_template(self._content.text))
+            # Error case - include screenshots if available
+            images = {}
+            img_tag_str = ""
+            if self._content.screenshots:
+                domain = self._get_smtp_domain()
+                images = {
+                    make_msgid(domain)[1:-1]: screenshot
+                    for screenshot in self._content.screenshots
+                }
+                img_tag_parts = []
+                for msgid in images.keys():
+                    img_tag_parts.append(
+                        f'<div class="image"><img width="1000" src="cid:{msgid}"></div>'
+                    )
+                img_tag_str = "".join(img_tag_parts)
+
+            return EmailContent(
+                body=self._error_template(self._content.text, img_tag_str),
+                images=images,
+            )
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
 
@@ -147,7 +203,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        img_tags = []
+        img_tags: list[str] = []
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
