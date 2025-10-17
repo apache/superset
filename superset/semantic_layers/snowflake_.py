@@ -674,7 +674,6 @@ class SnowflakeExplorable:
         order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        *,
         group_limit: GroupLimit | None = None,
     ) -> tuple[str, tuple[FilterValues]]:
         """
@@ -683,16 +682,6 @@ class SnowflakeExplorable:
         This also returns the parameters need to run `cursor.execute()`, passed
         separately to prevent SQL injection.
         """
-
-        def alias(element: Metric | Dimension) -> str:
-            """
-            Alias a metric or dimension.
-            """
-            return f"{element.id} AS {self._quote(element.id)}"
-
-        dimension_arguments = ", ".join(alias(dimension) for dimension in dimensions)
-        metric_arguments = ", ".join(alias(metric) for metric in metrics)
-
         filters = filters or set()
         where_clause, where_parameters = self._build_predicates(
             {filter_ for filter_ in filters if filter_.type == PredicateType.WHERE}
@@ -700,11 +689,71 @@ class SnowflakeExplorable:
         having_clause, having_parameters = self._build_predicates(
             {filter_ for filter_ in filters if filter_.type == PredicateType.HAVING}
         )
-        order_clause = ", ".join(
-            f"{element.id} {direction.value}" for element, direction in (order or [])
+
+        if group_limit:
+            query = self._build_query_with_group_limit(
+                metrics,
+                dimensions,
+                where_clause,
+                having_clause,
+                order,
+                limit,
+                offset,
+                group_limit,
+            )
+        else:
+            query = self._build_simple_query(
+                metrics,
+                dimensions,
+                where_clause,
+                having_clause,
+                order,
+                limit,
+                offset,
+            )
+
+        return query, where_parameters + having_parameters
+
+    def _alias_element(self, element: Metric | Dimension) -> str:
+        """
+        Generate an aliased column expression for a metric or dimension.
+        """
+        return f"{element.id} AS {self._quote(element.id)}"
+
+    def _build_order_clause(
+        self,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+    ) -> str:
+        """
+        Build the ORDER BY clause from a list of (element, direction) tuples.
+        """
+        if not order:
+            return ""
+        return ", ".join(
+            f"{self._quote(element.id)} {direction.value}"
+            for element, direction in order
         )
 
-        query = dedent(
+    def _build_simple_query(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        where_clause: str,
+        having_clause: str,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        limit: int | None,
+        offset: int | None,
+    ) -> str:
+        """
+        Build a query without group limiting.
+        """
+        dimension_arguments = ", ".join(
+            self._alias_element(dimension) for dimension in dimensions
+        )
+        metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
+        order_clause = self._build_order_clause(order)
+
+        return dedent(
             f"""
             SELECT * FROM SEMANTIC_VIEW(
                 {self.uid()}
@@ -719,7 +768,251 @@ class SnowflakeExplorable:
             """  # noqa: S608
         )
 
-        return query, where_parameters + having_parameters
+    def _build_top_groups_cte(
+        self,
+        group_limit: GroupLimit,
+        where_clause: str,
+        having_clause: str,
+    ) -> str:
+        """
+        Build a CTE that finds the top N combinations of limited dimensions.
+        """
+        limited_dimension_arguments = ", ".join(
+            self._alias_element(dimension) for dimension in group_limit.dimensions
+        )
+        limited_dimension_names = ", ".join(
+            self._quote(dimension.id) for dimension in group_limit.dimensions
+        )
+
+        return dedent(
+            f"""
+            WITH top_groups AS (
+                SELECT {limited_dimension_names}
+                FROM SEMANTIC_VIEW(
+                    {self.uid()}
+                    DIMENSIONS {limited_dimension_arguments}
+                    METRICS {group_limit.metric.id}
+                        AS {self._quote(group_limit.metric.id)}
+                    {"WHERE " + where_clause if where_clause else ""}
+                )
+                {"HAVING " + having_clause if having_clause else ""}
+                ORDER BY
+                    {self._quote(group_limit.metric.id)} {group_limit.direction.value}
+                LIMIT {group_limit.top}
+            )
+            """  # noqa: S608
+        )
+
+    def _build_group_filter(self, group_limit: GroupLimit) -> str:
+        """
+        Build a WHERE filter that restricts results to top N groups.
+        """
+        if len(group_limit.dimensions) == 1:
+            dimension_id = self._quote(group_limit.dimensions[0].id)
+            return f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"  # noqa: S608
+
+        # Multi-column IN clause
+        dimension_tuple = ", ".join(
+            self._quote(dim.id) for dim in group_limit.dimensions
+        )
+        return f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"  # noqa: S608
+
+    def _build_case_expression(
+        self,
+        dimension: Dimension,
+        group_condition: str,
+    ) -> str:
+        """
+        Build a CASE expression that replaces non-top values with 'Other'.
+
+        Args:
+            dimension: The dimension to build the CASE for
+            group_condition: The condition to check if value is in top groups
+                            (e.g., "staff_id IN (SELECT staff_id FROM top_groups)")
+
+        Returns:
+            SQL CASE expression
+        """
+        dimension_id = self._quote(dimension.id)
+        return f"""CASE
+            WHEN {group_condition} THEN {dimension_id}
+            ELSE CAST('Other' AS VARCHAR)
+        END"""
+
+    def _build_query_with_others(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        where_clause: str,
+        having_clause: str,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        limit: int | None,
+        offset: int | None,
+        group_limit: GroupLimit,
+    ) -> str:
+        """
+        Build a query that groups non-top N values as 'Other'.
+
+        This uses a two-stage approach:
+        1. CTE to find top N groups
+        2. Subquery with CASE expressions to replace non-top values with 'Other'
+        3. Outer query to re-aggregate with the new grouping
+        """
+        top_groups_cte = self._build_top_groups_cte(
+            group_limit,
+            where_clause,
+            having_clause,
+        )
+
+        # Determine which dimensions are limited vs non-limited
+        limited_dimension_ids = {dim.id for dim in group_limit.dimensions}
+        non_limited_dimensions = [
+            dim for dim in dimensions if dim.id not in limited_dimension_ids
+        ]
+
+        # Build the group condition for CASE expressions
+        if len(group_limit.dimensions) == 1:
+            dimension_id = self._quote(group_limit.dimensions[0].id)
+            group_condition = f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"  # noqa: S608
+        else:
+            dimension_tuple = ", ".join(
+                self._quote(dim.id) for dim in group_limit.dimensions
+            )
+            group_condition = f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"  # noqa: S608
+
+        # Build CASE expressions for limited dimensions
+        case_expressions = []
+        case_expressions_for_groupby = []
+        for dim in group_limit.dimensions:
+            case_expr = self._build_case_expression(dim, group_condition)
+            alias = self._quote(dim.id)
+            case_expressions.append(f"{case_expr} AS {alias}")
+            # Store the full CASE expression for GROUP BY (not just alias)
+            case_expressions_for_groupby.append(case_expr)
+
+        # Build SELECT for non-limited dimensions (pass through)
+        non_limited_selects = [
+            f"{self._quote(dim.id)} AS {self._quote(dim.id)}"
+            for dim in non_limited_dimensions
+        ]
+
+        # Build metric aggregations
+        metric_aggregations = [
+            f"SUM({self._quote(metric.id)}) AS {self._quote(metric.id)}"
+            for metric in metrics
+        ]
+
+        # Build the subquery that gets raw data from SEMANTIC_VIEW
+        dimension_arguments = ", ".join(
+            self._alias_element(dimension) for dimension in dimensions
+        )
+        metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
+
+        subquery = dedent(
+            f"""
+            raw_data AS (
+                SELECT * FROM SEMANTIC_VIEW(
+                    {self.uid()}
+                    DIMENSIONS {dimension_arguments}
+                    METRICS {metric_arguments}
+                    {"WHERE " + where_clause if where_clause else ""}
+                )
+                {"HAVING " + having_clause if having_clause else ""}
+            )
+            """  # noqa: S608
+        )
+
+        # Build GROUP BY clause (full CASE expressions + non-limited dimensions)
+        # We need to repeat the full CASE expressions, not use aliases, because
+        # Snowflake may interpret the alias as the original column reference
+        group_by_columns = case_expressions_for_groupby + [
+            self._quote(dim.id) for dim in non_limited_dimensions
+        ]
+        group_by_clause = ", ".join(group_by_columns)
+
+        # Build final SELECT columns
+        select_columns = case_expressions + non_limited_selects + metric_aggregations
+        select_clause = ",\n    ".join(select_columns)
+
+        # Build ORDER BY clause (need to reference the aliased columns)
+        order_clause = self._build_order_clause(order)
+
+        return dedent(
+            f"""
+            {top_groups_cte},
+            {subquery}
+            SELECT
+                {select_clause}
+            FROM raw_data
+            GROUP BY {group_by_clause}
+            {"ORDER BY " + order_clause if order_clause else ""}
+            {"LIMIT " + str(limit) if limit is not None else ""}
+            {"OFFSET " + str(offset) if offset is not None else ""}
+            """  # noqa: S608
+        )
+
+    def _build_query_with_group_limit(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        where_clause: str,
+        having_clause: str,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        limit: int | None,
+        offset: int | None,
+        group_limit: GroupLimit,
+    ) -> str:
+        """
+        Build a query with group limiting (top N groups).
+
+        If group_others is True, groups non-top values as 'Other'.
+        Otherwise, filters to show only top N groups.
+        """
+        if group_limit.group_others:
+            return self._build_query_with_others(
+                metrics,
+                dimensions,
+                where_clause,
+                having_clause,
+                order,
+                limit,
+                offset,
+                group_limit,
+            )
+
+        # Standard group limiting: just filter to top N groups
+        # We can't use CTE references inside SEMANTIC_VIEW(), so we wrap it
+        dimension_arguments = ", ".join(
+            self._alias_element(dimension) for dimension in dimensions
+        )
+        metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
+        order_clause = self._build_order_clause(order)
+
+        top_groups_cte = self._build_top_groups_cte(
+            group_limit,
+            where_clause,
+            having_clause,
+        )
+        group_filter = self._build_group_filter(group_limit)
+
+        return dedent(
+            f"""
+            {top_groups_cte}
+            SELECT * FROM (
+                SELECT * FROM SEMANTIC_VIEW(
+                    {self.uid()}
+                    {"DIMENSIONS " + dimension_arguments if dimension_arguments else ""}
+                    {"METRICS " + metric_arguments if metric_arguments else ""}
+                    {"WHERE " + where_clause if where_clause else ""}
+                )
+                {"HAVING " + having_clause if having_clause else ""}
+            ) AS subquery
+            WHERE {group_filter}
+            {"ORDER BY " + order_clause if order_clause else ""}
+            {"LIMIT " + str(limit) if limit is not None else ""}
+            {"OFFSET " + str(offset) if offset is not None else ""}
+            """  # noqa: S608
+        )
 
     __repr__ = uid
 
@@ -825,3 +1118,73 @@ if __name__ == "__main__":
             },
         )
     )
+
+    # Example 1: Group limiting without group_others
+    print("\n" + "=" * 80)
+    print("EXAMPLE 1: Group Limiting (group_others=False)")
+    print("Top 3 categories by total sales price")
+    print("=" * 80)
+
+    year_dim = Dimension(
+        id="DATE.YEAR",
+        name="YEAR",
+        type=INTEGER,
+        description=None,
+        definition=None,
+        grain=None,
+    )
+    category_dim = Dimension(
+        id="ITEM.CATEGORY",
+        name="CATEGORY",
+        type=STRING,
+        description=None,
+        definition="I_CATEGORY",
+        grain=None,
+    )
+    sales_metric = Metric(
+        "STORESALES.TOTALSALESPRICE",
+        "TOTALSALESPRICE",
+        NUMBER,
+        None,
+        None,
+    )
+
+    query_without_others, _ = explorable._get_query(
+        metrics=[sales_metric],
+        dimensions=[year_dim, category_dim],
+        filters={
+            NativeFilter(PredicateType.WHERE, "Year = '2002'"),
+            NativeFilter(PredicateType.WHERE, "Month = '12'"),
+        },
+        group_limit=GroupLimit(
+            dimensions=[category_dim],
+            top=3,
+            metric=sales_metric,
+            direction=OrderDirection.DESC,
+            group_others=False,
+        ),
+    )
+    print(query_without_others)
+
+    # Example 2: Group limiting with group_others
+    print("\n" + "=" * 80)
+    print("EXAMPLE 2: Group Limiting (group_others=True)")
+    print("Top 3 categories by total sales price + 'Other'")
+    print("=" * 80)
+
+    query_with_others, _ = explorable._get_query(
+        metrics=[sales_metric],
+        dimensions=[year_dim, category_dim],
+        filters={
+            NativeFilter(PredicateType.WHERE, "Year = '2002'"),
+            NativeFilter(PredicateType.WHERE, "Month = '12'"),
+        },
+        group_limit=GroupLimit(
+            dimensions=[category_dim],
+            top=3,
+            metric=sales_metric,
+            direction=OrderDirection.DESC,
+            group_others=True,
+        ),
+    )
+    print(query_with_others)
