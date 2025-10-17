@@ -37,6 +37,27 @@ jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: jest.fn(() => true),
 }));
 
+// Mock JsonEditor to avoid direct DOM manipulation in tests
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
+  JsonEditor: ({
+    onChange,
+    value,
+    readOnly,
+  }: {
+    onChange: (value: string) => void;
+    value: string;
+    readOnly?: boolean;
+  }) => (
+    <textarea
+      data-test="json-editor"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      readOnly={readOnly}
+    />
+  ),
+}));
+
 const mockTheme: ThemeObject = {
   id: 1,
   theme_name: 'Test Theme',
@@ -77,6 +98,18 @@ afterEach(() => {
   fetchMock.restore();
   jest.clearAllMocks();
 });
+
+// Helper to add valid JSON data to the theme
+// Uses the mocked JsonEditor textarea for testing
+const addValidJsonData = async () => {
+  const validJson = JSON.stringify(
+    { token: { colorPrimary: '#1890ff' } },
+    null,
+    2,
+  );
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.type(jsonEditor, validJson);
+};
 
 test('renders modal with add theme dialog when show is true', () => {
   render(
@@ -272,6 +305,7 @@ test('enables save button when theme name is entered', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'My New Theme');
+  await addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
@@ -293,6 +327,7 @@ test('validates JSON format and enables save button', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Test Theme');
+  await addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
@@ -407,6 +442,7 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'Modified Theme');
+  await addValidJsonData();
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -472,6 +508,7 @@ test('creates new theme when saving', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  await addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
   await userEvent.click(saveButton);
@@ -525,6 +562,7 @@ test('handles API errors gracefully', async () => {
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
   await userEvent.type(nameInput, 'New Theme');
+  await addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
   expect(saveButton).toBeEnabled();
