@@ -599,11 +599,13 @@ class WebDriverSelenium(WebDriverProxy):
                 )
             except TimeoutException:
                 had_timeout = True
+                elapsed = time() - start_time
                 logger.warning(
-                    "Selenium timed out locating element %s at url %s - will "
-                    "attempt to capture current page state",
+                    "Selenium timed out locating element %s at url %s after %.2f "
+                    "seconds - will attempt to capture current page state",
                     element_name,
                     url,
+                    elapsed,
                 )
                 # Try to find element anyway for screenshot
                 try:
@@ -625,6 +627,7 @@ class WebDriverSelenium(WebDriverProxy):
                 )
             except TimeoutException:
                 had_timeout = True
+                elapsed = time() - start_time
 
                 # Collect diagnostic information about the timeout
                 chart_elements = driver.find_elements(By.CLASS_NAME, "chart-container")
@@ -643,10 +646,11 @@ class WebDriverSelenium(WebDriverProxy):
                         chart_ids.append(chart_id)
 
                 logger.warning(
-                    "Timeout waiting for chart containers at url %s; "
-                    "%d chart containers found, %d grid containers present, "
+                    "Timeout waiting for chart containers at url %s after %.2f "
+                    "seconds; %d chart containers found, %d grid containers present, "
                     "%d loading elements still visible; sample chart identifiers: %s",
                     url,
+                    elapsed,
                     len(chart_elements),
                     len(grid_elements),
                     len(loading_elements),
@@ -682,10 +686,12 @@ class WebDriverSelenium(WebDriverProxy):
                 )
             except TimeoutException:
                 had_timeout = True
+                elapsed = time() - start_time
                 logger.warning(
-                    "Selenium timed out waiting for charts to load at url %s - "
-                    "will capture current state with loading indicators",
+                    "Selenium timed out waiting for charts to load at url %s after "
+                    "%.2f seconds - will capture current state with loading indicators",
                     url,
+                    elapsed,
                 )
 
             selenium_animation_wait = app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
