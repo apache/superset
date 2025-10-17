@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from time import sleep
+from time import sleep, time
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
@@ -573,8 +573,6 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
-        from time import time
-
         from superset.commands.report.exceptions import ReportScheduleScreenshotTimeout
 
         start_time = time()

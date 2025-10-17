@@ -316,6 +316,11 @@ class TestWebDriverSelenium:
             lambda attr: "chart-456" if attr == "data-chart-id" else None
         )
 
+        # Mock element that will be found after timeout
+        mock_element = MagicMock()
+        mock_element.screenshot_as_png = b"screenshot_data"
+        mock_driver.find_element.return_value = mock_element
+
         mock_driver.find_elements.side_effect = lambda by, value: {
             "chart-container": [mock_chart1, mock_chart2],
             "grid-container": [MagicMock()],
@@ -347,26 +352,28 @@ class TestWebDriverSelenium:
 
             # Verify screenshot was captured despite timeout
             assert exc_info.value.screenshots == [b"screenshot_data"]
+            # Verify elapsed_seconds was captured
+            assert exc_info.value.elapsed_seconds is not None
 
         # Verify diagnostic logging
-        warning_calls = [call[0][0] for call in mock_logger.warning.call_args_list]
-
         # Check that we logged chart timeout with details
         chart_timeout_logged = any(
-            "Timeout waiting for chart containers" in call for call in warning_calls
+            "Timeout waiting for chart containers" in str(call[0])
+            for call in mock_logger.warning.call_args_list
         )
         assert chart_timeout_logged, "Should log chart timeout details"
 
-        # Check that chart identifiers were logged
+        # Check that chart identifiers were logged (they're passed as arguments)
         chart_ids_logged = any(
             "chart-123" in str(call) or "chart-456" in str(call)
-            for call in warning_calls
+            for call in mock_logger.warning.call_args_list
         )
         assert chart_ids_logged, "Should log chart identifiers"
 
         # Check that DOM preview was logged
         dom_preview_logged = any(
-            "Dashboard DOM preview" in call for call in warning_calls
+            "Dashboard DOM preview" in str(call[0])
+            for call in mock_logger.warning.call_args_list
         )
         assert dom_preview_logged, "Should log DOM preview"
 

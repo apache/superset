@@ -831,7 +831,9 @@ class ReportWorkingState(BaseReportState):
                 error_message=str(exception_timeout),
             )
             raise exception_timeout
-        exception_working = ReportSchedulePreviousWorkingError()
+        exception_working = ReportSchedulePreviousWorkingError(
+            working_timeout=self._report_schedule.working_timeout
+        )
         self.update_report_schedule_and_log(
             ReportState.WORKING,
             error_message=str(exception_working),
