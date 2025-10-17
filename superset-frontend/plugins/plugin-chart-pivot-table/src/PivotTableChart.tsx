@@ -55,9 +55,38 @@ const Styles = styled.div<PivotTableStylesProps>`
 `;
 
 const PivotTableWrapper = styled.div`
-  height: 100%;
-  max-width: inherit;
-  overflow: auto;
+  ${({ theme }) => `
+    height: 100%;
+    max-width: inherit;
+    overflow: auto;
+
+    /* Chrome/Safari/Edge webkit scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
+  `}
 `;
 
 const METRIC_KEY = t('Metric');

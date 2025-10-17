@@ -1,0 +1,13 @@
+import React from "react";
+import { core } from "@apache-superset/core";
+
+export const activate = (context: core.ExtensionContext) => {
+  context.disposables.push(
+    core.registerViewProvider("{{ id }}.example", () => <p>{{ name }}</p>)
+  );
+  console.log("{{ name }} extension activated");
+};
+
+export const deactivate = () => {
+  console.log("{{ name }} extension deactivated");
+};
