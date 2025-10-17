@@ -40,6 +40,19 @@ const ICONS = {
   [WelcomeTable.SavedQueries]: 'empty.svg',
 } as const;
 
+const LABELS = {
+  create: {
+    [WelcomeTable.Charts]: t('Chart'),
+    [WelcomeTable.Dashboards]: t('Dashboard'),
+    [WelcomeTable.SavedQueries]: t('SQL query'),
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: t('charts'),
+    [WelcomeTable.Dashboards]: t('dashboards'),
+    [WelcomeTable.SavedQueries]: t('SQL Lab queries'),
+  },
+} as const;
+
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
@@ -66,14 +79,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     }
 
     const isFavorite = tab === TableTab.Favorite;
-    const buttonText =
-      tableName === WelcomeTable.SavedQueries
-        ? isFavorite
-          ? t('SQL Lab queries')
-          : t('SQL query')
-        : isFavorite
-          ? t(tableName.toLowerCase())
-          : tableName.slice(0, -1);
+    const buttonText = isFavorite
+      ? LABELS.viewAll[tableName]
+      : LABELS.create[tableName];
 
     const url = isFavorite
       ? REDIRECTS.viewAll[tableName]
