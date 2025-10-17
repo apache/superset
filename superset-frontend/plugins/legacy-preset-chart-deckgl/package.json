@@ -29,7 +29,7 @@
     "@deck.gl/geo-layers": "^9.1.13",
     "@deck.gl/layers": "^9.1.13",
     "@deck.gl/react": "^9.1.14",
-    "@luma.gl/constants": "^9.1.9",
+    "@luma.gl/constants": "^9.2.2",
     "@luma.gl/core": "^9.1.9",
     "@luma.gl/engine": "^9.1.9",
     "@luma.gl/shadertools": "^9.1.9",
