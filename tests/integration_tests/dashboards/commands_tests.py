@@ -507,6 +507,29 @@ class TestExportDashboardsCommand(SupersetTestCase):
         }
         assert expected_paths == set(contents.keys())
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_unicode_chars(self, mock_g1, mock_g2):
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+        db.session.query(Dashboard).filter_by(slug="world_health").update(
+            {"dashboard_title": "中文"},
+        )
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(dashboard_title="中文").one()
+        )
+
+        command = ExportDashboardsCommand([example_dashboard.id])
+        contents = dict(command.run())
+
+        path = f"dashboards/{example_dashboard.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        metadata = yaml.safe_load(yaml_content)
+        assert metadata["dashboard_title"] == "中文"
+        assert "dashboard_title: 中文" in yaml_content
+
 
 class TestImportDashboardsCommand(SupersetTestCase):
     def test_import_v0_dashboard_cli_export(self):
