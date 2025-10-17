@@ -109,17 +109,23 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 seconds=int(self._content.elapsed_seconds),
             )
             if img_tag:
-                # ruff: noqa: E501
                 optimization_guidance = __(
                     """
-                    <p><strong>Screenshot:</strong> Below is a screenshot of how much was loaded when the timeout occurred.
-                    This partial rendering indicates that your dashboard/chart queries may be too slow.</p>
+                    <p><strong>Screenshot:</strong> Below is a screenshot of how much
+                    was loaded when the timeout occurred. This partial rendering
+                    indicates that your dashboard/chart queries may be too slow.</p>
                     <p><strong>Performance Recommendations:</strong></p>
                     <ul>
-                        <li>Optimize your queries to run faster (add indexes, reduce data volume, simplify calculations)</li>
-                        <li>Enable and utilize <a href="https://superset.apache.org/docs/configuration/cache/">cached data</a> to avoid re-running expensive queries</li>
-                        <li>Consider breaking complex dashboards into smaller, focused views</li>
-                        <li>Review your database performance and query execution plans</li>
+                        <li>Optimize your queries to run faster (add indexes,
+                        reduce data volume, simplify calculations)</li>
+                        <li>Enable and utilize
+                        <a href="https://superset.apache.org/docs/configuration/cache/">
+                        cached data</a>
+                        to avoid re-running expensive queries</li>
+                        <li>Consider breaking complex dashboards into smaller,
+                        focused views</li>
+                        <li>Review your database performance and query execution
+                        plans</li>
                     </ul>
                     """
                 )
