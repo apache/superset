@@ -21,6 +21,7 @@ import pytest
 from pandas import DataFrame
 from sqlalchemy import column
 
+from superset import db
 from superset.connectors.sqla.models import TableColumn
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
@@ -307,7 +308,7 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by(self):
         table = self.get_table(name="birth_names")
-        TableColumn(
+        column = TableColumn(
             column_name="gender_cc",
             type="VARCHAR(255)",
             table=table,
@@ -318,6 +319,8 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
             end
             """,
         )
+        db.session.add(column)  # SQLAlchemy 2.x: Must explicitly add to session
+        db.session.commit()
 
         table.database.sqlalchemy_uri = "bigquery://"
         query_obj = {
@@ -328,3 +331,7 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
         }
         sql = table.get_query_str(query_obj)
         assert "ORDER BY `gender_cc` ASC" in sql
+
+        # Cleanup
+        db.session.delete(column)
+        db.session.commit()

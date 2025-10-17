@@ -73,7 +73,17 @@ def insert_report_schedule(
     logs = logs or []
     last_state = last_state or ReportState.NOOP
 
-    with override_user(owners[0]):
+    # SQLAlchemy 2.x: Merge objects to current session to avoid session
+    # attachment errors.
+    # Use merge with load=False to avoid loading the object from DB
+    merged_owners = [
+        db.session.merge(owner, load=False) if owner else None for owner in owners
+    ]
+    merged_chart = db.session.merge(chart, load=False) if chart else None
+    merged_dashboard = db.session.merge(dashboard, load=False) if dashboard else None
+    merged_database = db.session.merge(database, load=False) if database else None
+
+    with override_user(merged_owners[0] if merged_owners else None):
         report_schedule = ReportSchedule(
             type=type,
             name=name,
@@ -81,10 +91,10 @@ def insert_report_schedule(
             timezone=timezone,
             sql=sql,
             description=description,
-            chart=chart,
-            dashboard=dashboard,
-            database=database,
-            owners=owners,
+            chart=merged_chart,
+            dashboard=merged_dashboard,
+            database=merged_database,
+            owners=merged_owners,
             validator_type=validator_type,
             validator_config_json=validator_config_json,
             log_retention=log_retention,

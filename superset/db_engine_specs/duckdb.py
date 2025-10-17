@@ -27,7 +27,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -125,7 +125,9 @@ class DuckDBParametersMixin:
         ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        return str(URL(drivername=cls.engine, database=database, query=query))
+        return URL.create(
+            drivername=cls.engine, database=database, query=query
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -361,9 +363,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
                 f"Need MotherDuck token to connect to database '{database}'."
             )
 
-        return str(
-            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
-        )
+        return URL.create(
+            drivername=DuckDBEngineSpec.engine, database=database, query=query
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def adjust_engine_params(
@@ -388,9 +390,10 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
-            )
-        }
+        with inspector.bind.connect() as connection:
+            return {
+                catalog
+                for (catalog,) in connection.execute(
+                    text("SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;")
+                )
+            }

@@ -44,7 +44,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, Mapped, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
@@ -74,6 +74,8 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
+    from superset.models.core import Database
+    from superset.tags.models import Tag
 
 
 logger = logging.getLogger(__name__)
@@ -106,59 +108,65 @@ class Query(
 
     __tablename__ = "query"
     type = "query"
-    id = Column(Integer, primary_key=True)
-    client_id = Column(String(11), unique=True, nullable=False)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    client_id: Mapped[str] = Column(String(11), unique=True, nullable=False)
     query_language = "sql"
-    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database_id: Mapped[int] = Column(Integer, ForeignKey("dbs.id"), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
-    tmp_table_name = Column(String(256))
-    tmp_schema_name = Column(String(256))
-    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
-    status = Column(String(16), default=QueryStatus.PENDING)
-    tab_name = Column(String(256))
-    sql_editor_id = Column(String(256), index=True)
-    schema = Column(String(256))
-    catalog = Column(String(256), nullable=True, default=None)
-    sql = Column(LongText())
+    tmp_table_name: Mapped[str | None] = Column(String(256))
+    tmp_schema_name: Mapped[str | None] = Column(String(256))
+    user_id: Mapped[int | None] = Column(
+        Integer, ForeignKey("ab_user.id"), nullable=True
+    )
+    status: Mapped[str] = Column(String(16), default=QueryStatus.PENDING)
+    tab_name: Mapped[str | None] = Column(String(256))
+    sql_editor_id: Mapped[str | None] = Column(String(256), index=True)
+    schema: Mapped[str | None] = Column(String(256))
+    catalog: Mapped[str | None] = Column(String(256), nullable=True, default=None)
+    sql: Mapped[str | None] = Column(LongText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(LongText())
-    executed_sql = Column(LongText())
+    select_sql: Mapped[str | None] = Column(LongText())
+    executed_sql: Mapped[str | None] = Column(LongText())
     # Could be configured in the superset config.
-    limit = Column(Integer)
-    limiting_factor = Column(
+    limit: Mapped[int | None] = Column(Integer)
+    limiting_factor: Mapped[LimitingFactor] = Column(
         Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN
     )
-    select_as_cta = Column(Boolean)
-    select_as_cta_used = Column(Boolean, default=False)
-    ctas_method = Column(String(16), default=CTASMethod.TABLE.name)
+    select_as_cta: Mapped[bool | None] = Column(Boolean)
+    select_as_cta_used: Mapped[bool | None] = Column(Boolean, default=False)
+    ctas_method: Mapped[str] = Column(String(16), default=CTASMethod.TABLE.name)
 
-    progress = Column(Integer, default=0)  # 1..100
+    progress: Mapped[int | None] = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.
-    rows = Column(Integer)
-    error_message = Column(Text)
+    rows: Mapped[int | None] = Column(Integer)
+    error_message: Mapped[str | None] = Column(Text)
     # key used to store the results in the results backend
-    results_key = Column(String(64), index=True)
+    results_key: Mapped[str | None] = Column(String(64), index=True)
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
-    start_time = Column(Numeric(precision=20, scale=6))
-    start_running_time = Column(Numeric(precision=20, scale=6))
-    end_time = Column(Numeric(precision=20, scale=6))
-    end_result_backend_time = Column(Numeric(precision=20, scale=6))
-    tracking_url_raw = Column(Text, name="tracking_url")
+    start_time: Mapped[float | None] = Column(Numeric(precision=20, scale=6))
+    start_running_time: Mapped[float | None] = Column(Numeric(precision=20, scale=6))
+    end_time: Mapped[float | None] = Column(Numeric(precision=20, scale=6))
+    end_result_backend_time: Mapped[float | None] = Column(
+        Numeric(precision=20, scale=6)
+    )
+    tracking_url_raw: Mapped[str | None] = Column(Text, name="tracking_url")
 
-    changed_on = Column(
+    changed_on: Mapped[datetime | None] = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
     )
 
-    database = relationship(
+    database: Mapped["Database"] = relationship(
         "Database",
         foreign_keys=[database_id],
         backref=backref("queries", cascade="all, delete-orphan"),
     )
-    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    user: Mapped[Any] = relationship(
+        security_manager.user_model, foreign_keys=[user_id]
+    )
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
@@ -396,28 +404,30 @@ class SavedQuery(
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
-    db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
-    schema = Column(String(128))
-    catalog = Column(String(256), nullable=True, default=None)
-    label = Column(String(256))
-    description = Column(Text)
-    sql = Column(MediumText())
-    template_parameters = Column(Text)
-    user = relationship(
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = Column(
+        Integer, ForeignKey("ab_user.id"), nullable=True
+    )
+    db_id: Mapped[int | None] = Column(Integer, ForeignKey("dbs.id"), nullable=True)
+    schema: Mapped[str | None] = Column(String(128))
+    catalog: Mapped[str | None] = Column(String(256), nullable=True, default=None)
+    label: Mapped[str | None] = Column(String(256))
+    description: Mapped[str | None] = Column(Text)
+    sql: Mapped[str | None] = Column(MediumText())
+    template_parameters: Mapped[str | None] = Column(Text)
+    user: Mapped[Any] = relationship(
         security_manager.user_model,
         backref=backref("saved_queries", cascade="all, delete-orphan"),
         foreign_keys=[user_id],
     )
-    database = relationship(
+    database: Mapped["Database"] = relationship(
         "Database",
         foreign_keys=[db_id],
         backref=backref("saved_queries", cascade="all, delete-orphan"),
     )
-    rows = Column(Integer, nullable=True)
-    last_run = Column(DateTime, nullable=True)
-    tags = relationship(
+    rows: Mapped[int | None] = Column(Integer, nullable=True)
+    last_run: Mapped[datetime | None] = Column(DateTime, nullable=True)
+    tags: Mapped[list["Tag"]] = relationship(
         "Tag",
         secondary="tagged_object",
         overlaps="objects,tag,tags",
@@ -482,19 +492,21 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "tab_state"
 
     # basic info
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("ab_user.id"))
-    label = Column(String(256))
-    active = Column(Boolean, default=False)
+    id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int | None] = Column(Integer, ForeignKey("ab_user.id"))
+    label: Mapped[str | None] = Column(String(256))
+    active: Mapped[bool | None] = Column(Boolean, default=False)
 
     # selected DB and schema
-    database_id = Column(Integer, ForeignKey("dbs.id", ondelete="CASCADE"))
-    database = relationship("Database", foreign_keys=[database_id])
-    schema = Column(String(256))
-    catalog = Column(String(256), nullable=True, default=None)
+    database_id: Mapped[int | None] = Column(
+        Integer, ForeignKey("dbs.id", ondelete="CASCADE")
+    )
+    database: Mapped["Database"] = relationship("Database", foreign_keys=[database_id])
+    schema: Mapped[str | None] = Column(String(256))
+    catalog: Mapped[str | None] = Column(String(256), nullable=True, default=None)
 
     # tables that are open in the schema browser and their data previews
-    table_schemas = relationship(
+    table_schemas: Mapped[list["TableSchema"]] = relationship(
         "TableSchema",
         cascade="all, delete-orphan",
         backref="tab_state",
@@ -502,25 +514,27 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     )
 
     # the query in the textarea, and results (if any)
-    sql = Column(MediumText())
-    query_limit = Column(Integer)
+    sql: Mapped[str | None] = Column(MediumText())
+    query_limit: Mapped[int | None] = Column(Integer)
 
     # latest query that was run
-    latest_query_id = Column(
+    latest_query_id: Mapped[int | None] = Column(
         Integer, ForeignKey("query.client_id", ondelete="SET NULL")
     )
-    latest_query = relationship("Query")
+    latest_query: Mapped["Query"] = relationship("Query")
 
     # other properties
-    autorun = Column(Boolean, default=False)
-    template_params = Column(Text)
-    hide_left_bar = Column(Boolean, default=False)
+    autorun: Mapped[bool | None] = Column(Boolean, default=False)
+    template_params: Mapped[str | None] = Column(Text)
+    hide_left_bar: Mapped[bool | None] = Column(Boolean, default=False)
 
     # any saved queries that are associated with the Tab State
-    saved_query_id = Column(
+    saved_query_id: Mapped[int | None] = Column(
         Integer, ForeignKey("saved_query.id", ondelete="SET NULL"), nullable=True
     )
-    saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
+    saved_query: Mapped["SavedQuery"] = relationship(
+        "SavedQuery", foreign_keys=[saved_query_id]
+    )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -546,21 +560,23 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "table_schema"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
+    id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    tab_state_id: Mapped[int] = Column(
+        Integer, ForeignKey("tab_state.id", ondelete="CASCADE")
+    )
 
-    database_id = Column(
+    database_id: Mapped[int] = Column(
         Integer, ForeignKey("dbs.id", ondelete="CASCADE"), nullable=False
     )
-    database = relationship("Database", foreign_keys=[database_id])
-    schema = Column(String(256))
-    catalog = Column(String(256), nullable=True, default=None)
-    table = Column(String(256))
+    database: Mapped["Database"] = relationship("Database", foreign_keys=[database_id])
+    schema: Mapped[str | None] = Column(String(256))
+    catalog: Mapped[str | None] = Column(String(256), nullable=True, default=None)
+    table: Mapped[str | None] = Column(String(256))
 
     # JSON describing the schema, partitions, latest partition, etc.
-    description = Column(Text)
+    description: Mapped[str | None] = Column(Text)
 
-    expanded = Column(Boolean, default=False)
+    expanded: Mapped[bool | None] = Column(Boolean, default=False)
 
     def to_dict(self) -> dict[str, Any]:
         try:
