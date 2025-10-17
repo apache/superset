@@ -123,10 +123,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     make_msgid(domain)[1:-1]: screenshot
                     for screenshot in self._content.screenshots
                 }
+                img_tag_parts = []
                 for msgid in images.keys():
-                    img_tag_str += (
+                    img_tag_parts.append(
                         f'<div class="image"><img width="1000" src="cid:{msgid}"></div>'
                     )
+                img_tag_str = "".join(img_tag_parts)
 
             return EmailContent(
                 body=self._error_template(self._content.text, img_tag_str),
