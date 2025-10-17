@@ -274,14 +274,17 @@ class TestWebDriverSelenium:
         # Should create driver without errors
         mock_driver_class.assert_called_once()
 
+    @patch("superset.utils.webdriver.time")
     @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
     @patch("superset.utils.webdriver.logger")
     @patch("superset.utils.webdriver.WebDriverWait")
     def test_get_screenshot_logs_chart_timeout_details(
-        self, mock_wait, mock_chrome, mock_logger, mock_app_patch, mock_app
+        self, mock_wait, mock_logger, mock_chrome, mock_app_patch, mock_time, mock_app
     ):
         """Test that chart timeout logs detailed diagnostic information."""
+        # Mock time to return consistent values for elapsed time calculation
+        mock_time.return_value = 100.0  # Start time
         mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
@@ -289,6 +292,10 @@ class TestWebDriverSelenium:
             "SCREENSHOT_LOAD_WAIT": 10,
             "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
             "WEBDRIVER_CONFIGURATION": {},
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_SELENIUM_RETRIES": 2,
         }
 
         # Setup mocks
