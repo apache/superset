@@ -40,7 +40,7 @@ class HealthCheckResponse(BaseModel):
     uptime_seconds: float
 
 
-@mcp.tool()
+@mcp.tool
 def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
