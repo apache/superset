@@ -276,3 +276,123 @@ test('handles various resource types', async () => {
 
   expect(doneMock).toHaveBeenCalledTimes(5);
 });
+
+test('handles network errors and logs them', async () => {
+  const networkError = new Error('Network request failed');
+  (SupersetClient.get as jest.Mock).mockRejectedValue(networkError);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [1], doneMock),
+  ).rejects.toThrow('Network request failed');
+
+  expect(logging.error).toHaveBeenCalledWith(
+    'Resource export failed:',
+    networkError,
+  );
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles 404 errors when resource not found', async () => {
+  const notFoundError = new Error('Not found');
+  (SupersetClient.get as jest.Mock).mockRejectedValue(notFoundError);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [999], doneMock),
+  ).rejects.toThrow('Not found');
+
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles empty response from server', async () => {
+  const emptyBlob = new Blob([], { type: 'application/zip' });
+  mockResponse = {
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="empty.zip"',
+    }),
+    blob: jest.fn().mockResolvedValue(emptyBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  const doneMock = jest.fn();
+  await handleResourceExport('dashboard', [1], doneMock);
+
+  expect(window.URL.createObjectURL).toHaveBeenCalledWith(emptyBlob);
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('cleans up blob URL even when download fails', async () => {
+  const mockAnchor = document.createElement('a');
+  mockAnchor.click = jest.fn().mockImplementation(() => {
+    throw new Error('Click failed');
+  });
+
+  createElementSpy.mockRestore();
+  createElementSpy = jest
+    .spyOn(document, 'createElement')
+    .mockReturnValue(mockAnchor);
+
+  const doneMock = jest.fn();
+
+  await expect(
+    handleResourceExport('dashboard', [1], doneMock),
+  ).rejects.toThrow('Click failed');
+
+  // Verify cleanup still happens
+  expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles malformed Content-Disposition header', async () => {
+  mockResponse = {
+    headers: new Headers({
+      'Content-Disposition': 'not-a-valid-header',
+    }),
+    blob: jest.fn().mockResolvedValue(mockBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+    throw new Error('Parse error');
+  });
+
+  const doneMock = jest.fn();
+  await handleResourceExport('dataset', [5], doneMock);
+
+  // Should fall back to default filename
+  const anchor = document.createElement('a');
+  expect(anchor.download).toBe('dataset_export.zip');
+  expect(logging.warn).toHaveBeenCalledWith(
+    'Failed to parse Content-Disposition header:',
+    expect.any(Error),
+  );
+});
+
+test('handles missing headers object', async () => {
+  mockResponse = {
+    headers: new Headers(),
+    blob: jest.fn().mockResolvedValue(mockBlob),
+  } as unknown as Response;
+  (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
+
+  const doneMock = jest.fn();
+  await handleResourceExport('chart', [7], doneMock);
+
+  const anchor = document.createElement('a');
+  expect(anchor.download).toBe('chart_export.zip');
+  expect(doneMock).toHaveBeenCalled();
+});
+
+test('handles export with empty IDs array', async () => {
+  const doneMock = jest.fn();
+  await handleResourceExport('dashboard', [], doneMock);
+
+  expect(SupersetClient.get).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: '/api/v1/dashboard/export/?q=!()',
+    }),
+  );
+});
