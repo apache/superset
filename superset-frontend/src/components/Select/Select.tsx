@@ -110,7 +110,7 @@ const Select = forwardRef(
       onDeselect,
       onSearch,
       onSelect,
-      optionFilterProps = ['label', 'value'],
+      optionFilterProps = ['label', 'value', 'verbose_name'],
       options,
       placeholder = t('Select ...'),
       showSearch = true,

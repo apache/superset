@@ -294,6 +294,23 @@ test('searches for label or value', async () => {
   expect(options[0]).toHaveTextContent(option.label);
 });
 
+test('searches for verbose name', async () => {
+  const options = [{ label: 'John', value: 1, verbose_name: 'Joe' }];
+  const option = options[0];
+
+  const props = {
+    ...defaultProps,
+    options,
+  };
+
+  render(<Select {...props} />);
+  const search = 'Joe';
+  await type(search.toString());
+  const optionsFiltered = await findAllSelectOptions();
+  expect(optionsFiltered.length).toBe(1);
+  expect(optionsFiltered[0]).toHaveTextContent(option.label);
+});
+
 test('search order exact and startWith match first', async () => {
   render(<Select {...defaultProps} />);
   await type('Her');
