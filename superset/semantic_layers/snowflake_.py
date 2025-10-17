@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# ruff: noqa: S608
+
 from __future__ import annotations
 
 import itertools
@@ -433,7 +435,7 @@ class SnowflakeExplorable:
                     WHERE
                         "object_kind" = 'DIMENSION' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
-            """  # noqa: S608
+            """
         )
 
         connection_parameters = get_connection_parameters(self.configuration)
@@ -470,7 +472,7 @@ class SnowflakeExplorable:
                     WHERE
                         "object_kind" = 'METRIC' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
-            """  # noqa: S608
+            """
         )
 
         connection_parameters = get_connection_parameters(self.configuration)
@@ -575,7 +577,7 @@ class SnowflakeExplorable:
                 DIMENSIONS {dimension.id}
                 {"WHERE " + where_clause if where_clause else ""}
             )
-            """  # noqa: S608
+            """
         )
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
@@ -661,7 +663,7 @@ class SnowflakeExplorable:
             offset,
             group_limit,
         )
-        query = f"SELECT COUNT(*) FROM ({query}) AS subquery"  # noqa: S608
+        query = f"SELECT COUNT(*) FROM ({query}) AS subquery"
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             return connection.cursor().execute(query, parameters).fechone()[0]
@@ -765,7 +767,7 @@ class SnowflakeExplorable:
             {"ORDER BY " + order_clause if order_clause else ""}
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
-            """  # noqa: S608
+            """
         )
 
     def _build_top_groups_cte(
@@ -800,7 +802,7 @@ class SnowflakeExplorable:
                     {self._quote(group_limit.metric.id)} {group_limit.direction.value}
                 LIMIT {group_limit.top}
             )
-            """  # noqa: S608
+            """
         )
 
     def _build_group_filter(self, group_limit: GroupLimit) -> str:
@@ -809,13 +811,13 @@ class SnowflakeExplorable:
         """
         if len(group_limit.dimensions) == 1:
             dimension_id = self._quote(group_limit.dimensions[0].id)
-            return f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"  # noqa: S608
+            return f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"
 
         # Multi-column IN clause
         dimension_tuple = ", ".join(
             self._quote(dim.id) for dim in group_limit.dimensions
         )
-        return f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"  # noqa: S608
+        return f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"
 
     def _build_case_expression(
         self,
@@ -873,12 +875,16 @@ class SnowflakeExplorable:
         # Build the group condition for CASE expressions
         if len(group_limit.dimensions) == 1:
             dimension_id = self._quote(group_limit.dimensions[0].id)
-            group_condition = f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"  # noqa: S608
+            group_condition = (
+                f"{dimension_id} IN (SELECT {dimension_id} FROM top_groups)"
+            )
         else:
             dimension_tuple = ", ".join(
                 self._quote(dim.id) for dim in group_limit.dimensions
             )
-            group_condition = f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"  # noqa: S608
+            group_condition = (
+                f"({dimension_tuple}) IN (SELECT {dimension_tuple} FROM top_groups)"
+            )
 
         # Build CASE expressions for limited dimensions
         case_expressions = []
@@ -919,7 +925,7 @@ class SnowflakeExplorable:
                 )
                 {"HAVING " + having_clause if having_clause else ""}
             )
-            """  # noqa: S608
+            """
         )
 
         # Build GROUP BY clause (full CASE expressions + non-limited dimensions)
@@ -948,7 +954,7 @@ class SnowflakeExplorable:
             {"ORDER BY " + order_clause if order_clause else ""}
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
-            """  # noqa: S608
+            """
         )
 
     def _build_query_with_group_limit(
@@ -1011,7 +1017,7 @@ class SnowflakeExplorable:
             {"ORDER BY " + order_clause if order_clause else ""}
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
-            """  # noqa: S608
+            """
         )
 
     __repr__ = uid
