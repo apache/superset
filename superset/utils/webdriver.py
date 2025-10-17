@@ -573,8 +573,11 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
+        from time import time
+
         from superset.commands.report.exceptions import ReportScheduleScreenshotTimeout
 
+        start_time = time()
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
@@ -715,7 +718,10 @@ class WebDriverSelenium(WebDriverProxy):
             # raise an exception with the screenshot attached so error notification
             # is sent with the partial screenshot
             if had_timeout and img:
-                raise ReportScheduleScreenshotTimeout(screenshots=[img])
+                elapsed_seconds = time() - start_time
+                raise ReportScheduleScreenshotTimeout(
+                    screenshots=[img], elapsed_seconds=elapsed_seconds
+                )
 
         except StaleElementReferenceException:
             logger.exception(
