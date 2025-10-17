@@ -99,6 +99,7 @@ const DatasetSelect = ({
       value={value}
       options={loadDatasetOptions}
       onChange={onChange}
+      optionFilterProps={['table_name']}
       notFoundContent={t('No compatible datasets found')}
       placeholder={t('Select a dataset')}
     />
