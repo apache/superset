@@ -97,15 +97,15 @@ class ChartRenderer extends Component {
 
     // Load legend state from localStorage (per-chart)
     const legendStateKey = `chart_legend_state_${props.chartId}`;
+    const legendIndexKey = `chart_legend_index_${props.chartId}`;
     let savedLegendState;
-
+    let savedLegendIndex = 0;
     try {
       const savedState = getItem(legendStateKey);
       if (savedState) savedLegendState = JSON.parse(savedState);
       const savedIndex = getItem(legendIndexKey);
       if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
     } catch (e) {
-      // console.log(e);
     }
 
     this.state = {
@@ -115,7 +115,7 @@ class ChartRenderer extends Component {
         isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: savedLegendState,
-      legendIndex: 0,
+      legendIndex: savedLegendIndex,
     };
     this.hasQueryResponseChange = false;
 
@@ -286,7 +286,6 @@ class ChartRenderer extends Component {
         JSON.stringify(legendState),
       );
     } catch (e) {
-      // console.log(e);
     }
   }
 
@@ -301,6 +300,13 @@ class ChartRenderer extends Component {
 
   handleLegendScroll(legendIndex) {
     this.setState({ legendIndex });
+    try {
+      setItem(
+        `chart_legend_index_${this.props.chartId}`,
+        JSON.stringify(legendIndex),
+      );
+    } catch (e) {
+    }
   }
 
   render() {
