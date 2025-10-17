@@ -212,7 +212,7 @@
   },
   "devDependencies": {
     "@applitools/eyes-storybook": "^3.60.0",
-    "@babel/cli": "^7.27.2",
+    "@babel/cli": "^7.28.3",
     "@babel/compat-data": "^7.28.0",
     "@babel/core": "^7.28.3",
     "@babel/eslint-parser": "^7.25.9",
