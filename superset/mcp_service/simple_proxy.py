@@ -22,7 +22,7 @@ Simple MCP proxy server that connects to FastMCP server on localhost:5008
 import logging
 import signal
 import sys
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import FastMCP
 
@@ -33,7 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global proxy instance for cleanup
-proxy: Optional[FastMCP] = None
+proxy: FastMCP | None = None
 
 
 def signal_handler(signum: int, frame: Any) -> None:

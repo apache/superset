@@ -23,7 +23,7 @@ mcp from here and use @mcp.tool decorators.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Set
 
 from fastmcp import FastMCP
 
@@ -92,11 +92,11 @@ or use the superset_quickstart prompt for an interactive guide.
 def _build_mcp_kwargs(
     name: str,
     instructions: str,
-    auth: Optional[Any],
-    lifespan: Optional[Callable[..., Any]],
-    tools: Optional[List[Any]],
-    include_tags: Optional[Set[str]],
-    exclude_tags: Optional[Set[str]],
+    auth: Any | None,
+    lifespan: Callable[..., Any] | None,
+    tools: List[Any] | None,
+    include_tags: Set[str] | None,
+    exclude_tags: Set[str] | None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Build FastMCP constructor arguments."""
@@ -122,7 +122,7 @@ def _build_mcp_kwargs(
     return mcp_kwargs
 
 
-def _apply_config(mcp_instance: FastMCP, config: Optional[Dict[str, Any]]) -> None:
+def _apply_config(mcp_instance: FastMCP, config: Dict[str, Any] | None) -> None:
     """Apply additional configuration to FastMCP instance."""
     if config:
         for key, value in config.items():
@@ -131,9 +131,9 @@ def _apply_config(mcp_instance: FastMCP, config: Optional[Dict[str, Any]]) -> No
 
 def _log_instance_creation(
     name: str,
-    auth: Optional[Any],
-    include_tags: Optional[Set[str]],
-    exclude_tags: Optional[Set[str]],
+    auth: Any | None,
+    include_tags: Set[str] | None,
+    exclude_tags: Set[str] | None,
 ) -> None:
     """Log FastMCP instance creation details."""
     logger.info("Created FastMCP instance: %s", name)
@@ -149,13 +149,13 @@ def _log_instance_creation(
 
 def create_mcp_app(
     name: str = "Superset MCP Server",
-    instructions: Optional[str] = None,
-    auth: Optional[Any] = None,
-    lifespan: Optional[Callable[..., Any]] = None,
-    tools: Optional[List[Any]] = None,
-    include_tags: Optional[Set[str]] = None,
-    exclude_tags: Optional[Set[str]] = None,
-    config: Optional[Dict[str, Any]] = None,
+    instructions: str | None = None,
+    auth: Any | None = None,
+    lifespan: Callable[..., Any] | None = None,
+    tools: List[Any] | None = None,
+    include_tags: Set[str] | None = None,
+    exclude_tags: Set[str] | None = None,
+    config: Dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -209,13 +209,13 @@ from superset.mcp_service.system.tool import health_check  # noqa: F401, E402
 
 def init_fastmcp_server(
     name: str = "Superset MCP Server",
-    instructions: Optional[str] = None,
-    auth: Optional[Any] = None,
-    lifespan: Optional[Callable[..., Any]] = None,
-    tools: Optional[List[Any]] = None,
-    include_tags: Optional[Set[str]] = None,
-    exclude_tags: Optional[Set[str]] = None,
-    config: Optional[Dict[str, Any]] = None,
+    instructions: str | None = None,
+    auth: Any | None = None,
+    lifespan: Callable[..., Any] | None = None,
+    tools: List[Any] | None = None,
+    include_tags: Set[str] | None = None,
+    exclude_tags: Set[str] | None = None,
+    config: Dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
