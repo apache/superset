@@ -40,6 +40,7 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
+    force_column_alias_quotes = True
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True

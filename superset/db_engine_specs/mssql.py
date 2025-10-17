@@ -52,6 +52,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
+    force_column_alias_quotes = True
     max_column_name_length = 128
     allows_cte_in_subquery = False
     supports_multivalues_insert = True

@@ -886,6 +886,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         be properly parsed and validated.
         """
         if expression:
+            # Quote column names with spaces to prevent parsing issues
+            # For example, "Test column" should not be parsed as "Test AS column"
+            if " " in expression and not any(
+                keyword in expression.upper()
+                for keyword in ["SELECT", "CASE", "WHEN", "AS", "FROM", "WHERE"]
+            ):
+                # This looks like a column name with spaces, quote it
+                expression = f'"{expression}"'
+
             expression = f"SELECT {expression}"
 
         if processed := self._process_sql_expression(

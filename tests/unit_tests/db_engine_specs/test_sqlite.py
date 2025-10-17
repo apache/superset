@@ -129,3 +129,9 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  
     sql = f"SELECT {expression} FROM t"  # noqa: S608
     result = connection.execute(sql).scalar()
     assert result == expected
+
+
+def test_force_column_alias_quotes() -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    assert SqliteEngineSpec.force_column_alias_quotes is True
