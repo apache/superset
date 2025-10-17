@@ -41,7 +41,7 @@ class HealthCheckResponse(BaseModel):
 
 
 @mcp.tool
-def health_check() -> HealthCheckResponse:
+async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 
