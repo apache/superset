@@ -689,10 +689,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "MARGEN DEL TÍTULO DEL EJE"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "POSICIÓN DEL TÍTULO DEL EJE"
 
 msgid "About"
@@ -12368,7 +12368,7 @@ msgstr "Escribe una descripción para tu consulta"
 msgid "Write a handlebars template to render the data"
 msgstr "Elabora una plantilla de Handlebars para renderizar los datos"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "MARGEN DEL TÍTULO DEL EJE X"
 
 msgid "X Axis"
@@ -12416,7 +12416,7 @@ msgstr "XYZ"
 msgid "Y 2 bounds"
 msgstr "Límites de Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "MARGEN DEL TÍTULO DEL EJE Y"
 
 msgid "Y Axis"

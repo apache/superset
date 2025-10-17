@@ -796,11 +796,11 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "SIE"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "MARGINES TYTUŁU OSI"
 
 #, fuzzy
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "POZYCJA TYTUŁU OSI"
 
 msgid "About"
@@ -14280,7 +14280,7 @@ msgstr "Napisz opis swojego zapytania"
 msgid "Write a handlebars template to render the data"
 msgstr "Napisz szablon handlebars do renderowania danych"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "MARGINES TYTUŁU OSI X"
 
 msgid "X Axis"
@@ -14335,7 +14335,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Granice osi Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "MARGINES TYTUŁU OSI Y"
 
 msgid "Y Axis"

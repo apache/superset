@@ -730,11 +730,11 @@ msgstr "异步执行查询"
 msgid "AUG"
 msgstr "八月"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "轴标题边距"
 
 #, fuzzy
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "轴标题的位置"
 
 msgid "About"
@@ -13364,7 +13364,7 @@ msgstr "为您的查询写一段描述"
 msgid "Write a handlebars template to render the data"
 msgstr ""
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "X 轴标题边距"
 
 msgid "X Axis"
@@ -13416,7 +13416,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Y 界限"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "Y 轴标题边距"
 
 msgid "Y Axis"

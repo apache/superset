@@ -725,10 +725,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "8月"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "軸のタイトルの余白"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "軸タイトルの位置"
 
 msgid "About"
@@ -12622,7 +12622,7 @@ msgstr "クエリの説明を書いてください"
 msgid "Write a handlebars template to render the data"
 msgstr "データをレンダリングするハンドルバー テンプレートを作成する"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "X 軸のタイトルマージン"
 
 msgid "X Axis"
@@ -12670,7 +12670,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Y 2 バウンド"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "Y 軸のタイトルマージン"
 
 msgid "Y Axis"

@@ -780,10 +780,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "MARGE DEL TÍTOL DE L'EIX"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "POSICIÓ DEL TÍTOL DE L'EIX"
 
 msgid "About"
@@ -13231,7 +13231,7 @@ msgstr "Escriu una descripció per la teva consulta"
 msgid "Write a handlebars template to render the data"
 msgstr "Escriu una plantilla handlebars per renderitzar les dades"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "MARGE DEL TÍTOL DE L'EIX X"
 
 msgid "X Axis"
@@ -13279,7 +13279,7 @@ msgstr "XYZ"
 msgid "Y 2 bounds"
 msgstr "Límits Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "MARGE DEL TÍTOL DE L'EIX Y"
 
 msgid "Y Axis"

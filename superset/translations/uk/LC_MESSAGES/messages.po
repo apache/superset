@@ -759,10 +759,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "Серпень"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "ЗАВДАННЯ ВІСІВ"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "Позиція заголовка вісь"
 
 msgid "About"
@@ -13662,7 +13662,7 @@ msgstr "Напишіть опис свого запиту"
 msgid "Write a handlebars template to render the data"
 msgstr "Напишіть шаблон ручки для надання даних"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr ""
 
 msgid "X Axis"
@@ -13712,7 +13712,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Y 2 межі"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "Y Exis title Margin"
 
 msgid "Y Axis"
