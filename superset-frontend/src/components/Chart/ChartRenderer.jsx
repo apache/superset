@@ -33,6 +33,11 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
+import {
+  LocalStorageKeys,
+  setItem,
+  getItem,
+} from 'src/utils/localStorageHelpers';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -89,13 +94,27 @@ class ChartRenderer extends Component {
     const suppressContextMenu = getChartMetadataRegistry().get(
       props.formData.viz_type ?? props.vizType,
     )?.suppressContextMenu;
+
+    // Load legend state from localStorage (per-chart)
+    const legendStateKey = `chart_legend_state_${props.chartId}`;
+    let savedLegendState;
+
+    try {
+      const savedState = getItem(legendStateKey);
+      if (savedState) savedLegendState = JSON.parse(savedState);
+      const savedIndex = getItem(legendIndexKey);
+      if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
+    } catch (e) {
+      // console.log(e);
+    }
+
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
         !suppressContextMenu &&
         isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
-      legendState: undefined,
+      legendState: savedLegendState,
       legendIndex: 0,
     };
     this.hasQueryResponseChange = false;
@@ -261,6 +280,14 @@ class ChartRenderer extends Component {
 
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
+    try {
+      setItem(
+        `chart_legend_state_${this.props.chartId}`,
+        JSON.stringify(legendState),
+      );
+    } catch (e) {
+      // console.log(e);
+    }
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
