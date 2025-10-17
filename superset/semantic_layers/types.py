@@ -198,3 +198,21 @@ class Filter:
 class NativeFilter:
     type: PredicateType
     definition: str
+
+
+class OrderDirection(enum.Enum):
+    ASC = "ASC"
+    DESC = "DESC"
+
+
+@dataclass(frozen=True)
+class GroupLimit:
+    """
+    Limit query to top/bottom N combinations of specified dimensions.
+    """
+
+    dimensions: list[Dimension]
+    top: int
+    metric: Metric | None
+    direction: OrderDirection = OrderDirection.DESC
+    group_others: bool = False

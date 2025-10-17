@@ -47,12 +47,14 @@ from superset.semantic_layers.types import (
     Dimension,
     Filter,
     FilterValues,
+    GroupLimit,
     INTEGER,
     Metric,
     NativeFilter,
     NUMBER,
     OBJECT,
     Operator,
+    OrderDirection,
     PredicateType,
     STRING,
     TIME,
@@ -608,8 +610,11 @@ class SnowflakeExplorable:
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        *,
+        group_limit: GroupLimit | None = None,
     ) -> DataFrame:
         """
         Execute a query and return the results as a Pandas DataFrame.
@@ -617,18 +622,60 @@ class SnowflakeExplorable:
         if not metrics and not dimensions:
             return DataFrame()
 
-        query, parameters = self._get_query(metrics, dimensions, filters, limit, offset)
+        query, parameters = self._get_query(
+            metrics,
+            dimensions,
+            filters,
+            order,
+            limit,
+            offset,
+            group_limit,
+        )
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             return connection.cursor().execute(query, parameters).fetch_pandas_all()
+
+    def get_row_count(
+        self,
+        metrics: list[Metric],
+        dimensions: list[Dimension],
+        filters: set[Filter | NativeFilter] | None = None,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        *,
+        group_limit: GroupLimit | None = None,
+    ) -> int:
+        """
+        Execute a query and return the number of rows the result would have.
+        """
+        if not metrics and not dimensions:
+            return 0
+
+        query, parameters = self._get_query(
+            metrics,
+            dimensions,
+            filters,
+            order,
+            limit,
+            offset,
+            group_limit,
+        )
+        query = f"SELECT COUNT(*) FROM ({query}) AS subquery"  # noqa: S608
+        connection_parameters = get_connection_parameters(self.configuration)
+        with connect(**connection_parameters) as connection:
+            return connection.cursor().execute(query, parameters).fechone()[0]
 
     def _get_query(
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
+        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        *,
+        group_limit: GroupLimit | None = None,
     ) -> tuple[str, tuple[FilterValues]]:
         """
         Build a query to fetch data from the explorable.
@@ -653,6 +700,9 @@ class SnowflakeExplorable:
         having_clause, having_parameters = self._build_predicates(
             {filter_ for filter_ in filters if filter_.type == PredicateType.HAVING}
         )
+        order_clause = ", ".join(
+            f"{element.id} {direction.value}" for element, direction in (order or [])
+        )
 
         query = dedent(
             f"""
@@ -663,13 +713,13 @@ class SnowflakeExplorable:
                 {"WHERE " + where_clause if where_clause else ""}
             )
             {"HAVING " + having_clause if having_clause else ""}
+            {"ORDER BY " + order_clause if order_clause else ""}
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
             """  # noqa: S608
         )
-        parameters = where_parameters + having_parameters
 
-        return query, parameters
+        return query, where_parameters + having_parameters
 
     __repr__ = uid
 
