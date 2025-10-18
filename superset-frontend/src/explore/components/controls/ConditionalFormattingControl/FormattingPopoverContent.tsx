@@ -264,15 +264,14 @@ export const FormattingPopoverContent = ({
   const useConditionalFormattingFlag = (
     flagKey: 'toAllRowCheck' | 'toColorTextCheck',
     configKey: 'toAllRow' | 'toTextColor',
-  ) => {
-    return useMemo(
+  ) =>
+    useMemo(
       () =>
         conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
           ? config?.[configKey] === undefined
           : config?.[configKey] !== undefined,
       [conditionalFormattingFlag, config],
     );
-  };
 
   const showToAllRow = useConditionalFormattingFlag(
     'toAllRowCheck',
