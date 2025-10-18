@@ -835,17 +835,15 @@ test('delete action shows error toast on 403 forbidden', async () => {
 
   await userEvent.click(deleteButton);
 
-  // Wait for error toast to be called with longer timeout
+  // Wait for error toast with combined assertion
   await waitFor(
     () => {
-      expect(addDangerToast).toHaveBeenCalled();
+      expect(addDangerToast).toHaveBeenCalledWith(
+        expect.stringMatching(/error occurred while fetching dataset/i),
+      );
     },
     { timeout: 5000 },
   );
-
-  // Verify error message contains dataset-related error text
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
-  expect(toastMessage).toMatch(/error occurred while fetching dataset/i);
 
   // Verify modal did NOT open (error prevented it)
   const modal = screen.queryByRole('dialog');
@@ -881,13 +879,12 @@ test('delete action shows error toast on 500 internal server error', async () =>
 
   await userEvent.click(deleteButton);
 
-  // Wait for error toast
+  // Wait for error toast with combined assertion
   await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalled();
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/error occurred while fetching dataset/i),
+    );
   });
-
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
-  expect(toastMessage).toMatch(/error occurred while fetching dataset/i);
 
   // Verify modal did NOT open
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -940,13 +937,12 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast
+  // Wait for error toast with combined assertion
   await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalled();
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/issue duplicating.*selected datasets/i),
+    );
   });
-
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
-  expect(toastMessage).toMatch(/issue duplicating.*selected datasets/i);
 
   // Verify table state unchanged (no new dataset added)
   const allDatasetRows = screen.getAllByRole('row');
@@ -997,13 +993,12 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast
+  // Wait for error toast with combined assertion
   await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalled();
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/issue duplicating.*selected datasets/i),
+    );
   });
-
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
-  expect(toastMessage).toMatch(/issue duplicating.*selected datasets/i);
 
   // Verify table state unchanged
   expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
