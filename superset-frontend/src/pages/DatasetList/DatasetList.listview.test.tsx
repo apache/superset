@@ -72,6 +72,50 @@ const buildSupersetClientError = ({
   },
 });
 
+/**
+ * Helper to set up error test scenarios with SupersetClient spy
+ * Reduces boilerplate for error toast tests
+ */
+const setupErrorTestScenario = ({
+  dataset,
+  method,
+  endpoint,
+  errorStatus,
+  errorMessage,
+}: {
+  dataset: (typeof mockDatasets)[0];
+  method: 'get' | 'post';
+  endpoint: string;
+  errorStatus: number;
+  errorMessage: string;
+}) => {
+  // Spy on SupersetClient method and throw error for specific endpoint
+  const originalMethod =
+    method === 'get'
+      ? SupersetClient.get.bind(SupersetClient)
+      : SupersetClient.post.bind(SupersetClient);
+
+  jest.spyOn(SupersetClient, method).mockImplementation(async request => {
+    if (request.endpoint?.includes(endpoint)) {
+      throw buildSupersetClientError({
+        status: errorStatus,
+        message: errorMessage,
+      });
+    }
+    return originalMethod(request);
+  });
+
+  // Configure fetchMock to return single dataset
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  // Render component
+  renderDatasetList(mockAdminUser);
+};
+
 beforeEach(() => {
   setupMocks();
   jest.clearAllMocks();
@@ -520,6 +564,8 @@ test('bulk delete opens confirmation modal', async () => {
   expect(modal).toBeInTheDocument();
 });
 
+// TODO: Fix flaky test - close button doesn't have accessible text matching /close|exit/i
+// Need to update component or use data-testid query instead
 test('exit bulk select via close button returns to normal view', async () => {
   renderDatasetList(mockAdminUser);
 
@@ -539,10 +585,9 @@ test('exit bulk select via close button returns to normal view', async () => {
   // Note: Not verifying export/delete buttons here as they only appear after selection
   // This test focuses on the close button functionality
 
-  // Find close/exit button (available in bulk mode toolbar)
-  const closeButton = await screen.findByRole('button', {
-    name: /close|exit/i,
-  });
+  // Find close button via aria-label (Alert closable button)
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+  const closeButton = within(bulkSelectControls).getByLabelText(/close/i);
   await userEvent.click(closeButton);
 
   // Checkboxes should disappear
@@ -850,25 +895,13 @@ test('all action buttons are clickable and enabled for admin user', async () => 
 test('delete action shows error toast on 403 forbidden', async () => {
   const dataset = mockDatasets[0];
 
-  // Spy on SupersetClient.get and throw error for related_objects endpoint
-  const originalGet = SupersetClient.get.bind(SupersetClient);
-  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
-    if (request.endpoint?.includes('/related_objects')) {
-      throw buildSupersetClientError({
-        status: 403,
-        message: 'Failed to fetch related objects',
-      });
-    }
-    return originalGet(request);
+  setupErrorTestScenario({
+    dataset,
+    method: 'get',
+    endpoint: '/related_objects',
+    errorStatus: 403,
+    errorMessage: 'Failed to fetch related objects',
   });
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
-
-  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -897,25 +930,13 @@ test('delete action shows error toast on 403 forbidden', async () => {
 test('delete action shows error toast on 500 internal server error', async () => {
   const dataset = mockDatasets[0];
 
-  // Spy on SupersetClient.get and throw error for related_objects endpoint
-  const originalGet = SupersetClient.get.bind(SupersetClient);
-  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
-    if (request.endpoint?.includes('/related_objects')) {
-      throw buildSupersetClientError({
-        status: 500,
-        message: 'Internal Server Error',
-      });
-    }
-    return originalGet(request);
+  setupErrorTestScenario({
+    dataset,
+    method: 'get',
+    endpoint: '/related_objects',
+    errorStatus: 500,
+    errorMessage: 'Internal Server Error',
   });
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
-
-  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -943,28 +964,22 @@ test('delete action shows error toast on 500 internal server error', async () =>
 test('duplicate action shows error toast on 403 forbidden', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    owners: [
+      {
+        first_name: mockAdminUser.firstName,
+        last_name: mockAdminUser.lastName,
+        id: mockAdminUser.userId as number,
+      },
+    ],
   };
 
-  // Spy on SupersetClient.post and throw error for duplicate endpoint
-  const originalPost = SupersetClient.post.bind(SupersetClient);
-  jest.spyOn(SupersetClient, 'post').mockImplementation(async request => {
-    if (request.endpoint?.includes('/duplicate')) {
-      throw buildSupersetClientError({
-        status: 403,
-        message: 'Failed to duplicate dataset',
-      });
-    }
-    return originalPost(request);
+  setupErrorTestScenario({
+    dataset: virtualDataset,
+    method: 'post',
+    endpoint: '/duplicate',
+    errorStatus: 403,
+    errorMessage: 'Failed to duplicate dataset',
   });
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [virtualDataset], count: 1 },
-    { overwriteRoutes: true },
-  );
-
-  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
@@ -1006,28 +1021,22 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
 test('duplicate action shows error toast on 500 internal server error', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    owners: [
+      {
+        first_name: mockAdminUser.firstName,
+        last_name: mockAdminUser.lastName,
+        id: mockAdminUser.userId as number,
+      },
+    ],
   };
 
-  // Spy on SupersetClient.post and throw error for duplicate endpoint
-  const originalPost = SupersetClient.post.bind(SupersetClient);
-  jest.spyOn(SupersetClient, 'post').mockImplementation(async request => {
-    if (request.endpoint?.includes('/duplicate')) {
-      throw buildSupersetClientError({
-        status: 500,
-        message: 'Internal Server Error',
-      });
-    }
-    return originalPost(request);
+  setupErrorTestScenario({
+    dataset: virtualDataset,
+    method: 'post',
+    endpoint: '/duplicate',
+    errorStatus: 500,
+    errorMessage: 'Internal Server Error',
   });
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [virtualDataset], count: 1 },
-    { overwriteRoutes: true },
-  );
-
-  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
