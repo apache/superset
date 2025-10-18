@@ -110,38 +110,26 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, hasDevOverride } = useThemeContext();
+  const { setTemporaryTheme, hasDevOverride, getAppliedThemeId } =
+    useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [importingTheme, showImportModal] = useState<boolean>(false);
-  const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
+  const [appliedThemeId, setLocalAppliedThemeId] = useState<number | null>(
+    null,
+  );
 
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
-  const clearAppliedTheme = useCallback(() => {
-    setAppliedThemeId(null);
-    try {
-      localStorage.removeItem('superset-applied-theme-id');
-    } catch (error) {
-      // Ignore localStorage errors
-    }
-  }, []);
-
   useEffect(() => {
     if (hasDevOverride()) {
-      try {
-        const storedThemeId = localStorage.getItem('superset-applied-theme-id');
-        if (storedThemeId) {
-          setAppliedThemeId(parseInt(storedThemeId, 10));
-        }
-      } catch (error) {
-        clearAppliedTheme();
-      }
+      const storedThemeId = getAppliedThemeId();
+      setLocalAppliedThemeId(storedThemeId);
     } else {
-      clearAppliedTheme();
+      setLocalAppliedThemeId(null);
     }
-  }, [clearAppliedTheme, hasDevOverride]);
+  }, [hasDevOverride, getAppliedThemeId]);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -227,17 +215,9 @@ function ThemesList({
           const themeConfig = JSON.parse(themeObj.json_data);
           const themeId = themeObj.id || null;
 
-          setTemporaryTheme(themeConfig);
-          setAppliedThemeId(themeId);
+          setTemporaryTheme(themeConfig, themeId);
+          setLocalAppliedThemeId(themeId);
 
-          if (themeId) {
-            localStorage.setItem(
-              'superset-applied-theme-id',
-              themeId.toString(),
-            );
-          } else {
-            localStorage.removeItem('superset-applied-theme-id');
-          }
           addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
         } catch (error) {
           addDangerToast(
@@ -252,8 +232,7 @@ function ThemesList({
   function handleThemeModalApply() {
     // Clear any previously applied theme ID when applying from modal
     // since the modal theme might not have an ID yet (unsaved theme)
-    setAppliedThemeId(null);
-    localStorage.removeItem('superset-applied-theme-id');
+    setLocalAppliedThemeId(null);
   }
 
   const handleBulkThemeExport = useCallback(

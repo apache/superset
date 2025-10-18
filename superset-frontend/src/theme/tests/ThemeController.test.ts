@@ -1277,7 +1277,7 @@ describe('ThemeController', () => {
     expect(controller.hasDevOverride()).toBe(false);
   });
 
-  test('clearLocalOverrides removes both dev override and crud theme', () => {
+  test('clearLocalOverrides removes dev override, crud theme, and applied theme ID', () => {
     mockGetBootstrapData.mockReturnValue(
       createMockBootstrapData({
         default: DEFAULT_THEME,
@@ -1297,15 +1297,76 @@ describe('ThemeController', () => {
     // Clear overrides
     controller.clearLocalOverrides();
 
-    // Verify both storage keys are removed
+    // Verify all storage keys are removed
     expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
       'superset-dev-theme-override',
     );
     expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
       'superset-crud-theme-id',
     );
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-applied-theme-id',
+    );
 
     // Should reset to default theme
     expect(mockSetConfig).toHaveBeenCalled();
+  });
+
+  test('getAppliedThemeId returns stored theme ID', () => {
+    mockLocalStorage.getItem.mockImplementation((key: string) => {
+      if (key === 'superset-applied-theme-id') {
+        return '42';
+      }
+      return null;
+    });
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    expect(controller.getAppliedThemeId()).toBe(42);
+  });
+
+  test('getAppliedThemeId returns null when no theme ID is stored', () => {
+    mockLocalStorage.getItem.mockReturnValue(null);
+
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    expect(controller.getAppliedThemeId()).toBeNull();
+  });
+
+  test('setAppliedThemeId stores theme ID in storage', () => {
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    jest.clearAllMocks();
+
+    controller.setAppliedThemeId(123);
+
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+      'superset-applied-theme-id',
+      '123',
+    );
+  });
+
+  test('setAppliedThemeId removes theme ID when null is passed', () => {
+    const controller = new ThemeController({
+      storage: mockLocalStorage,
+      themeObject: mockThemeObject,
+    });
+
+    jest.clearAllMocks();
+
+    controller.setAppliedThemeId(null);
+
+    expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+      'superset-applied-theme-id',
+    );
   });
 });

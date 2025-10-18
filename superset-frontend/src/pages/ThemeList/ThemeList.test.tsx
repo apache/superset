@@ -62,6 +62,7 @@ jest.mock('src/views/CRUD/hooks', () => ({
 
 // Mock the useThemeContext hook
 const mockSetTemporaryTheme = jest.fn();
+const mockGetAppliedThemeId = jest.fn();
 jest.mock('src/theme/ThemeProvider', () => ({
   ...jest.requireActual('src/theme/ThemeProvider'),
   useThemeContext: jest.fn(),
@@ -141,11 +142,13 @@ beforeEach(() => {
   });
 
   // Mock useThemeContext
+  mockGetAppliedThemeId.mockReturnValue(null);
   (useThemeContext as jest.Mock).mockReturnValue({
     getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
     hasDevOverride: jest.fn().mockReturnValue(false),
+    getAppliedThemeId: mockGetAppliedThemeId,
   });
 
   fetchMock.reset();
@@ -461,7 +464,7 @@ test('shows create theme button when user has permissions', async () => {
   expect(addButton).toBeInTheDocument();
 });
 
-test('clicking apply button calls setTemporaryTheme with parsed theme data', async () => {
+test('clicking apply button calls setTemporaryTheme with parsed theme data and ID', async () => {
   render(
     <ThemesList
       user={mockUser}
@@ -484,16 +487,16 @@ test('clicking apply button calls setTemporaryTheme with parsed theme data', asy
   await userEvent.click(applyButtons[0]);
 
   await waitFor(() => {
-    expect(mockSetTemporaryTheme).toHaveBeenCalledWith({
-      colors: { primary: '#ffffff' },
-    });
+    expect(mockSetTemporaryTheme).toHaveBeenCalledWith(
+      {
+        colors: { primary: '#ffffff' },
+      },
+      1, // theme ID
+    );
   });
 });
 
-test('applying a local theme stores theme ID in localStorage', async () => {
-  // Clear localStorage before test
-  localStorage.clear();
-
+test('applying a local theme calls setTemporaryTheme with theme ID', async () => {
   render(
     <ThemesList
       user={mockUser}
@@ -514,29 +517,25 @@ test('applying a local theme stores theme ID in localStorage', async () => {
   const applyButtons = await screen.findAllByTestId('apply-action');
   await userEvent.click(applyButtons[0]);
 
-  // Check that localStorage was updated
+  // Check that setTemporaryTheme was called with both theme config and ID
   await waitFor(() => {
-    expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
+    expect(mockSetTemporaryTheme).toHaveBeenCalledWith(
+      { colors: { primary: '#ffffff' } },
+      1, // theme ID
+    );
   });
-
-  // Cleanup
-  localStorage.clear();
 });
 
-test('component loads successfully with localStorage theme ID set', async () => {
+test('component loads successfully with applied theme ID set', async () => {
   // This test verifies that having a stored theme ID doesn't break the component
-  localStorage.setItem('superset-applied-theme-id', '1');
-  localStorage.setItem(
-    'superset-dev-theme-override',
-    JSON.stringify({ token: { colorPrimary: '#1890ff' } }),
-  );
-
   // Mock hasDevOverride to return true since we have a dev override set
+  mockGetAppliedThemeId.mockReturnValue(1);
   (useThemeContext as jest.Mock).mockReturnValue({
     getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
     hasDevOverride: jest.fn().mockReturnValue(true),
+    getAppliedThemeId: mockGetAppliedThemeId,
   });
 
   render(
@@ -556,23 +555,19 @@ test('component loads successfully with localStorage theme ID set', async () => 
   // Wait for list to load and verify it renders successfully
   await screen.findByText('Custom Theme');
 
-  // Verify the component can read localStorage without errors
-  expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
-
-  // Cleanup
-  localStorage.clear();
+  // Verify the component called getAppliedThemeId
+  expect(mockGetAppliedThemeId).toHaveBeenCalled();
 });
 
-test('component loads successfully and preserves localStorage state', async () => {
-  // Set initial state to verify localStorage isn't corrupted
-  localStorage.setItem('superset-applied-theme-id', '1');
-
-  // Mock hasDevOverride to return true to preserve localStorage
+test('component loads successfully and preserves applied theme state', async () => {
+  // Mock hasDevOverride to return true and getAppliedThemeId to return a theme
+  mockGetAppliedThemeId.mockReturnValue(1);
   (useThemeContext as jest.Mock).mockReturnValue({
     getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
     hasDevOverride: jest.fn().mockReturnValue(true),
+    getAppliedThemeId: mockGetAppliedThemeId,
   });
 
   render(
@@ -592,9 +587,6 @@ test('component loads successfully and preserves localStorage state', async () =
   // Wait for list to load
   await screen.findByText('Custom Theme');
 
-  // Verify localStorage is preserved during component mount
-  expect(localStorage.getItem('superset-applied-theme-id')).toBe('1');
-
-  // Cleanup
-  localStorage.clear();
+  // Verify getAppliedThemeId is called during component mount
+  expect(mockGetAppliedThemeId).toHaveBeenCalled();
 });

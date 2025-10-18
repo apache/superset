@@ -37,6 +37,7 @@ const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
   CRUD_THEME_ID: 'superset-crud-theme-id',
   DEV_THEME_OVERRIDE: 'superset-dev-theme-override',
+  APPLIED_THEME_ID: 'superset-applied-theme-id',
 } as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
@@ -372,8 +373,12 @@ export class ThemeController {
    * Sets a temporary theme override for development purposes.
    * This does not persist the theme but allows live preview.
    * @param theme - The theme configuration to apply temporarily
+   * @param themeId - Optional theme ID to track which theme was applied (for UI display)
    */
-  public setTemporaryTheme(theme: AnyThemeConfig): void {
+  public setTemporaryTheme(
+    theme: AnyThemeConfig,
+    themeId?: number | null,
+  ): void {
     this.validateThemeUpdatePermission();
 
     this.devThemeOverride = theme;
@@ -381,6 +386,11 @@ export class ThemeController {
       STORAGE_KEYS.DEV_THEME_OVERRIDE,
       JSON.stringify(theme),
     );
+
+    // Store the theme ID if provided
+    if (themeId !== undefined) {
+      this.setAppliedThemeId(themeId);
+    }
 
     const mergedTheme = this.getThemeForMode(this.currentMode);
     if (mergedTheme) this.updateTheme(mergedTheme);
@@ -397,6 +407,7 @@ export class ThemeController {
 
     this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
     this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+    this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
 
     // Clear dashboard themes cache
     this.dashboardThemes.clear();
@@ -416,6 +427,34 @@ export class ThemeController {
    */
   public hasDevOverride(): boolean {
     return this.devThemeOverride !== null;
+  }
+
+  /**
+   * Gets the applied theme ID (for UI display purposes).
+   */
+  public getAppliedThemeId(): number | null {
+    try {
+      const storedId = this.storage.getItem(STORAGE_KEYS.APPLIED_THEME_ID);
+      return storedId ? parseInt(storedId, 10) : null;
+    } catch (error) {
+      console.warn('Failed to get applied theme ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Sets the applied theme ID (for UI display purposes).
+   */
+  public setAppliedThemeId(themeId: number | null): void {
+    try {
+      if (themeId !== null) {
+        this.storage.setItem(STORAGE_KEYS.APPLIED_THEME_ID, themeId.toString());
+      } else {
+        this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+      }
+    } catch (error) {
+      console.warn('Failed to set applied theme ID:', error);
+    }
   }
 
   /**
