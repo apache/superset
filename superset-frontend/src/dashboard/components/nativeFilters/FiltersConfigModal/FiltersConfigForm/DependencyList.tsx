@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Select } from '@superset-ui/core/components';
@@ -188,6 +188,19 @@ const DependencyList = ({
 }: DependencyListProps) => {
   const hasAvailableFilters = availableFilters.length > 0;
   const hasDependencies = dependencies.length > 0;
+
+  // Clean up invalid dependencies when available filters change
+  useEffect(() => {
+    if (dependencies.length > 0) {
+      const availableFilterIds = new Set(availableFilters.map(f => f.value));
+      const validDependencies = dependencies.filter(dep => availableFilterIds.has(dep));
+      
+      // If some dependencies are no longer valid, update the list
+      if (validDependencies.length !== dependencies.length) {
+        onDependenciesChange(validDependencies);
+      }
+    }
+  }, [availableFilters, dependencies, onDependenciesChange]);
 
   const onCheckChanged = (value: boolean) => {
     if (value) {
