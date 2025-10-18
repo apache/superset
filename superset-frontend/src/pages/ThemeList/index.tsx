@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Tag,
@@ -110,14 +110,26 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, getCurrentCrudThemeId } = useThemeContext();
+  const { setTemporaryTheme, hasDevOverride, getAppliedThemeId } =
+    useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [importingTheme, showImportModal] = useState<boolean>(false);
-  const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
+  const [appliedThemeId, setLocalAppliedThemeId] = useState<number | null>(
+    null,
+  );
 
   const { showConfirm, ConfirmModal } = useConfirmModal();
+
+  useEffect(() => {
+    if (hasDevOverride()) {
+      const storedThemeId = getAppliedThemeId();
+      setLocalAppliedThemeId(storedThemeId);
+    } else {
+      setLocalAppliedThemeId(null);
+    }
+  }, [hasDevOverride, getAppliedThemeId]);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -201,8 +213,11 @@ function ThemesList({
       if (themeObj.json_data) {
         try {
           const themeConfig = JSON.parse(themeObj.json_data);
-          setTemporaryTheme(themeConfig);
-          setAppliedThemeId(themeObj.id || null);
+          const themeId = themeObj.id || null;
+
+          setTemporaryTheme(themeConfig, themeId);
+          setLocalAppliedThemeId(themeId);
+
           addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
         } catch (error) {
           addDangerToast(
@@ -217,23 +232,26 @@ function ThemesList({
   function handleThemeModalApply() {
     // Clear any previously applied theme ID when applying from modal
     // since the modal theme might not have an ID yet (unsaved theme)
-    setAppliedThemeId(null);
+    setLocalAppliedThemeId(null);
   }
 
-  const handleBulkThemeExport = async (themesToExport: ThemeObject[]) => {
-    const ids = themesToExport
-      .map(({ id }) => id)
-      .filter((id): id is number => id !== undefined);
-    setPreparingExport(true);
-    try {
-      await handleResourceExport('theme', ids, () => {
+  const handleBulkThemeExport = useCallback(
+    async (themesToExport: ThemeObject[]) => {
+      const ids = themesToExport
+        .map(({ id }) => id)
+        .filter((id): id is number => id !== undefined);
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('theme', ids, () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
         setPreparingExport(false);
-      });
-    } catch (error) {
-      setPreparingExport(false);
-      addDangerToast(t('There was an issue exporting the selected themes'));
-    }
-  };
+        addDangerToast(t('There was an issue exporting the selected themes'));
+      }
+    },
+    [addDangerToast],
+  );
 
   const openThemeImportModal = () => {
     showImportModal(true);
@@ -346,11 +364,10 @@ function ThemesList({
     () => [
       {
         Cell: ({ row: { original } }: any) => {
-          const currentCrudThemeId = getCurrentCrudThemeId();
           const isCurrentTheme =
-            (currentCrudThemeId &&
-              original.id?.toString() === currentCrudThemeId) ||
-            (appliedThemeId && original.id === appliedThemeId);
+            hasDevOverride() &&
+            appliedThemeId &&
+            original.id === appliedThemeId;
 
           return (
             <FlexRowContainer>
@@ -520,11 +537,12 @@ function ThemesList({
       canDelete,
       canApply,
       canExport,
-      getCurrentCrudThemeId,
+      hasDevOverride,
       appliedThemeId,
       canSetSystemThemes,
       addDangerToast,
       handleThemeApply,
+      handleBulkThemeExport,
       handleSetSystemDefault,
       handleUnsetSystemDefault,
       handleSetSystemDark,
