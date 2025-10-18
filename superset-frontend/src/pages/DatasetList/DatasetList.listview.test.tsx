@@ -19,6 +19,7 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { SupersetClient } from '@superset-ui/core';
 import {
   setupMocks,
   renderDatasetList,
@@ -26,14 +27,50 @@ import {
   mockDatasets,
   setupDeleteMocks,
   setupBulkDeleteMocks,
-  setupDeleteErrorMocks,
-  setupDuplicateErrorMocks,
   mockHandleResourceExport,
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
+const mockAddDangerToast = jest.fn();
+const mockAddSuccessToast = jest.fn();
+
+jest.mock('src/components/MessageToasts/actions', () => ({
+  addDangerToast: (msg: string) => {
+    mockAddDangerToast(msg);
+    return () => ({ type: '@@toast/danger' });
+  },
+  addSuccessToast: (msg: string) => {
+    mockAddSuccessToast(msg);
+    return () => ({ type: '@@toast/success' });
+  },
+}));
+
 jest.mock('src/utils/export');
+
+const buildSupersetClientError = ({
+  status,
+  message,
+}: {
+  status: number;
+  message: string;
+}) => ({
+  message,
+  error: message,
+  status,
+  response: {
+    status,
+    json: async () => ({ message }),
+    text: async () => message,
+    clone() {
+      return {
+        ...this,
+        json: async () => ({ message }),
+        text: async () => message,
+      };
+    },
+  },
+});
 
 beforeEach(() => {
   setupMocks();
@@ -43,6 +80,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   fetchMock.reset();
+  jest.restoreAllMocks();
 });
 
 test('only expected API endpoints are called on initial render', async () => {
@@ -811,9 +849,18 @@ test('all action buttons are clickable and enabled for admin user', async () => 
 
 test('delete action shows error toast on 403 forbidden', async () => {
   const dataset = mockDatasets[0];
-  const addDangerToast = jest.fn();
 
-  setupDeleteErrorMocks(dataset.id, 403);
+  // Spy on SupersetClient.get and throw error for related_objects endpoint
+  const originalGet = SupersetClient.get.bind(SupersetClient);
+  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
+    if (request.endpoint?.includes('/related_objects')) {
+      throw buildSupersetClientError({
+        status: 403,
+        message: 'Failed to fetch related objects',
+      });
+    }
+    return originalGet(request);
+  });
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
@@ -821,10 +868,7 @@ test('delete action shows error toast on 403 forbidden', async () => {
     { overwriteRoutes: true },
   );
 
-  renderDatasetList(mockAdminUser, {
-    addDangerToast,
-    addSuccessToast: jest.fn(),
-  });
+  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -836,13 +880,10 @@ test('delete action shows error toast on 403 forbidden', async () => {
   await userEvent.click(deleteButton);
 
   // Wait for error toast with combined assertion
-  await waitFor(
-    () => {
-      expect(addDangerToast).toHaveBeenCalledWith(
-        expect.stringMatching(/error occurred while fetching dataset/i),
-      );
-    },
-    { timeout: 5000 },
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringMatching(/error occurred while fetching dataset/i),
+    ),
   );
 
   // Verify modal did NOT open (error prevented it)
@@ -855,9 +896,18 @@ test('delete action shows error toast on 403 forbidden', async () => {
 
 test('delete action shows error toast on 500 internal server error', async () => {
   const dataset = mockDatasets[0];
-  const addDangerToast = jest.fn();
 
-  setupDeleteErrorMocks(dataset.id, 500);
+  // Spy on SupersetClient.get and throw error for related_objects endpoint
+  const originalGet = SupersetClient.get.bind(SupersetClient);
+  jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
+    if (request.endpoint?.includes('/related_objects')) {
+      throw buildSupersetClientError({
+        status: 500,
+        message: 'Internal Server Error',
+      });
+    }
+    return originalGet(request);
+  });
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
@@ -865,10 +915,7 @@ test('delete action shows error toast on 500 internal server error', async () =>
     { overwriteRoutes: true },
   );
 
-  renderDatasetList(mockAdminUser, {
-    addDangerToast,
-    addSuccessToast: jest.fn(),
-  });
+  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -880,11 +927,11 @@ test('delete action shows error toast on 500 internal server error', async () =>
   await userEvent.click(deleteButton);
 
   // Wait for error toast with combined assertion
-  await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalledWith(
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/error occurred while fetching dataset/i),
-    );
-  });
+    ),
+  );
 
   // Verify modal did NOT open
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -898,9 +945,18 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
     ...mockDatasets[1],
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
-  const addDangerToast = jest.fn();
 
-  setupDuplicateErrorMocks(403);
+  // Spy on SupersetClient.post and throw error for duplicate endpoint
+  const originalPost = SupersetClient.post.bind(SupersetClient);
+  jest.spyOn(SupersetClient, 'post').mockImplementation(async request => {
+    if (request.endpoint?.includes('/duplicate')) {
+      throw buildSupersetClientError({
+        status: 403,
+        message: 'Failed to duplicate dataset',
+      });
+    }
+    return originalPost(request);
+  });
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
@@ -908,10 +964,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
     { overwriteRoutes: true },
   );
 
-  renderDatasetList(mockAdminUser, {
-    addDangerToast,
-    addSuccessToast: jest.fn(),
-  });
+  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
@@ -938,11 +991,11 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   await userEvent.click(submitButton);
 
   // Wait for error toast with combined assertion
-  await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalledWith(
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
-    );
-  });
+    ),
+  );
 
   // Verify table state unchanged (no new dataset added)
   const allDatasetRows = screen.getAllByRole('row');
@@ -955,9 +1008,18 @@ test('duplicate action shows error toast on 500 internal server error', async ()
     ...mockDatasets[1],
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
-  const addDangerToast = jest.fn();
 
-  setupDuplicateErrorMocks(500);
+  // Spy on SupersetClient.post and throw error for duplicate endpoint
+  const originalPost = SupersetClient.post.bind(SupersetClient);
+  jest.spyOn(SupersetClient, 'post').mockImplementation(async request => {
+    if (request.endpoint?.includes('/duplicate')) {
+      throw buildSupersetClientError({
+        status: 500,
+        message: 'Internal Server Error',
+      });
+    }
+    return originalPost(request);
+  });
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
@@ -965,10 +1027,7 @@ test('duplicate action shows error toast on 500 internal server error', async ()
     { overwriteRoutes: true },
   );
 
-  renderDatasetList(mockAdminUser, {
-    addDangerToast,
-    addSuccessToast: jest.fn(),
-  });
+  renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
     expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
@@ -994,11 +1053,11 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   await userEvent.click(submitButton);
 
   // Wait for error toast with combined assertion
-  await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalledWith(
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
-    );
-  });
+    ),
+  );
 
   // Verify table state unchanged
   expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
