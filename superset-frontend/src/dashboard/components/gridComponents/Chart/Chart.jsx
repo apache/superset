@@ -49,6 +49,7 @@ import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
+  updateChartState,
 } from '../../../actions/dashboardState';
 import { changeFilter } from '../../../actions/dashboardFilters';
 import { refreshChart } from '../../../../components/Chart/chartAction';
@@ -200,6 +201,16 @@ const Chart = props => {
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
   );
 
+  // Chart state handler for AG Grid tables
+  const handleChartStateChange = useCallback(
+    chartState => {
+      if (slice?.viz_type === 'ag-grid-table') {
+        dispatch(updateChartState(props.id, slice.viz_type, chartState));
+      }
+    },
+    [dispatch, props.id, slice?.viz_type],
+  );
+
   useEffect(() => {
     if (isExpanded) {
       const descriptionHeight =
@@ -280,6 +291,9 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
+  const chartStates = useSelector(
+    state => state.dashboardState.chartStates || EMPTY_OBJECT,
+  );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
   );
@@ -383,20 +397,132 @@ const Chart = props => {
         slice_id: slice.slice_id,
         is_cached: isCached,
       });
+
+      let ownState = dataMask[props.id]?.ownState || {};
+
+      // For AG Grid tables, convert AG Grid state to backend-compatible format
+      if (slice.viz_type === 'ag-grid-table' && chartStates[props.id]?.state) {
+        const agGridState = chartStates[props.id].state;
+
+        // Convert AG Grid sortModel to backend sortBy format
+        if (agGridState.sortModel && agGridState.sortModel.length > 0) {
+          const sortItem = agGridState.sortModel[0];
+          ownState = {
+            ...ownState,
+            sortBy: [
+              {
+                id: sortItem.colId,
+                key: sortItem.colId,
+                desc: sortItem.sort === 'desc',
+              },
+            ],
+          };
+        }
+
+        // Store column order for backend processing
+        if (agGridState.columnState && agGridState.columnState.length > 0) {
+          ownState = {
+            ...ownState,
+            columnOrder: agGridState.columnState.map(col => col.colId),
+          };
+        }
+
+        if (
+          agGridState.filterModel &&
+          Object.keys(agGridState.filterModel).length > 0
+        ) {
+          // Map AG Grid filter operators to backend operators
+          const TEXT_FILTER_OPERATORS = {
+            equals: '==',
+            notEqual: '!=',
+            contains: 'ILIKE',
+            notContains: 'NOT ILIKE',
+            startsWith: 'ILIKE',
+            endsWith: 'ILIKE',
+          };
+
+          const NUMBER_FILTER_OPERATORS = {
+            equals: '==',
+            notEqual: '!=',
+            lessThan: '<',
+            lessThanOrEqual: '<=',
+            greaterThan: '>',
+            greaterThanOrEqual: '>=',
+          };
+
+          const getTextComparator = (type, value) => {
+            if (type === 'contains' || type === 'notContains') {
+              return `%${value}%`;
+            }
+            if (type === 'startsWith') {
+              return `${value}%`;
+            }
+            if (type === 'endsWith') {
+              return `%${value}`;
+            }
+            return value;
+          };
+
+          const filters = [];
+
+          Object.keys(agGridState.filterModel).forEach(colId => {
+            const filter = agGridState.filterModel[colId];
+
+            // Text filter
+            if (filter.filterType === 'text' && filter.filter) {
+              filters.push({
+                col: colId,
+                op: TEXT_FILTER_OPERATORS[filter.type] || 'ILIKE',
+                val: getTextComparator(filter.type, filter.filter),
+              });
+            } else if (
+              filter.filterType === 'number' &&
+              filter.filter !== undefined
+            ) {
+              filters.push({
+                col: colId,
+                op: NUMBER_FILTER_OPERATORS[filter.type] || '==',
+                val: filter.filter,
+              });
+            } else if (
+              filter.filterType === 'set' &&
+              Array.isArray(filter.values) &&
+              filter.values.length > 0
+            ) {
+              filters.push({
+                col: colId,
+                op: 'IN',
+                val: filter.values,
+              });
+            }
+          });
+
+          if (filters.length > 0) {
+            ownState = {
+              ...ownState,
+              filters,
+            };
+          }
+        }
+      }
+
       exportChart({
         formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
-        ownState: dataMask[props.id]?.ownState,
+        ownState,
       });
     },
     [
       slice.slice_id,
+      slice.viz_type,
       isCached,
       formData,
-      props.maxRows,
+      maxRows,
       dataMask[props.id]?.ownState,
+      chartStates,
+      props.id,
       boundActionCreators.logEvent,
     ],
   );
@@ -537,7 +663,13 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={dataMask[props.id]?.ownState}
+          ownState={{
+            ...dataMask[props.id]?.ownState,
+            ...(slice.viz_type === 'ag-grid-table' &&
+            chartStates[props.id]?.state
+              ? { savedAgGridState: chartStates[props.id].state }
+              : {}),
+          }}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}
@@ -547,6 +679,7 @@ const Chart = props => {
           datasetsStatus={datasetsStatus}
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
     </SliceContainer>

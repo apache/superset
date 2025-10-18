@@ -22,6 +22,8 @@ import {
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
+  QueryFormColumn,
+  QueryFormMetric,
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
@@ -211,22 +213,139 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_offset = currentPage * pageSize;
     }
 
-    // getting sort by in case of server pagination from own state
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
-    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
-      const sortByItem = ownState?.sortBy[0];
-      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
+
+    const sortSource =
+      isDownloadQuery && ownState?.sortModel
+        ? ownState.sortModel
+        : ownState?.sortBy;
+
+    if (Array.isArray(sortSource) && sortSource.length > 0) {
+      const mapColIdToIdentifier = (colId: string): string | undefined => {
+        const matchingColumn = columns.find((col: any) => {
+          if (typeof col === 'string') return col === colId;
+          return col?.sqlExpression === colId || col?.label === colId;
+        });
+
+        if (matchingColumn) {
+          return typeof matchingColumn === 'string'
+            ? matchingColumn
+            : matchingColumn.sqlExpression || matchingColumn.label;
+        }
+
+        const matchingMetric = (metrics || []).find((met: any) => {
+          if (typeof met === 'string')
+            return met === colId || `%${met}` === colId;
+          const metLabel = getMetricLabel(met);
+          return (
+            metLabel === colId ||
+            met?.label === colId ||
+            `%${metLabel}` === colId
+          );
+        });
+
+        if (matchingMetric) {
+          return typeof matchingMetric === 'string'
+            ? matchingMetric
+            : getMetricLabel(matchingMetric);
+        }
+
+        return colId;
+      };
+
+      sortByFromOwnState = sortSource
+        .map((sortItem: any) => {
+          const colId = sortItem?.colId || sortItem?.key;
+          const sortKey = mapColIdToIdentifier(colId);
+          if (!sortKey) return null;
+          const isDesc = sortItem?.sort === 'desc' || sortItem?.desc;
+          return [sortKey, !isDesc] as QueryFormOrderBy;
+        })
+        .filter((item): item is QueryFormOrderBy => item !== null);
+
+      // Add secondary sort for stable ordering (matches AG Grid's stable sort behavior)
+      if (sortByFromOwnState.length === 1 && isDownloadQuery && orderby) {
+        const primarySort = sortByFromOwnState[0][0];
+        orderby.forEach(orderItem => {
+          if (orderItem[0] !== primarySort) {
+            sortByFromOwnState!.push(orderItem);
+          }
+        });
+      }
+    }
+
+    // Note: In Superset, "columns" are dimensions and "metrics" are measures,
+    // but AG Grid treats them all as "columns" in the UI
+    let orderedColumns = columns;
+    let orderedMetrics = metrics;
+
+    if (
+      isDownloadQuery &&
+      ownState.columnOrder &&
+      Array.isArray(ownState.columnOrder)
+    ) {
+      type ColumnOrMetric = QueryFormColumn | QueryFormMetric;
+
+      const matchesColId = (item: ColumnOrMetric, colId: string): boolean => {
+        if (typeof item === 'string') {
+          return item === colId;
+        }
+
+        // Check AdhocColumn properties
+        if ('sqlExpression' in item || 'columnName' in item) {
+          return (
+            (item as AdhocColumn).sqlExpression === colId ||
+            item.label === colId
+          );
+        }
+
+        // Check metric properties
+        return getMetricLabel(item) === colId || item.label === colId;
+      };
+
+      const reorderByColumnOrder = (
+        items: ColumnOrMetric[],
+      ): ColumnOrMetric[] => {
+        const ordered: ColumnOrMetric[] = [];
+        const remaining = new Set(items);
+
+        ownState.columnOrder.forEach((colId: string) => {
+          const match = items.find(
+            item => remaining.has(item) && matchesColId(item, colId),
+          );
+          if (match) {
+            ordered.push(match);
+            remaining.delete(match);
+          }
+        });
+
+        remaining.forEach(item => ordered.push(item));
+        return ordered;
+      };
+
+      orderedColumns = reorderByColumnOrder(columns) as typeof columns;
+      orderedMetrics = reorderByColumnOrder(metrics || []) as typeof metrics;
     }
 
     let queryObject = {
       ...baseQueryObject,
-      columns,
-      extras,
+      columns: orderedColumns,
+      extras: {
+        ...extras,
+        // Flag to indicate AG Grid chart - enables metric column filtering
+        is_ag_grid_chart: true,
+        // Pass column order to enable mixed column+metric ordering
+        ...(isDownloadQuery &&
+        ownState.columnOrder &&
+        Array.isArray(ownState.columnOrder)
+          ? { column_order: ownState.columnOrder }
+          : {}),
+      },
       orderby:
-        formData.server_pagination && sortByFromOwnState
+        (formData.server_pagination || isDownloadQuery) && sortByFromOwnState
           ? sortByFromOwnState
           : orderby,
-      metrics,
+      metrics: orderedMetrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
       ...moreProps,
@@ -290,6 +409,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           ],
         };
       }
+    }
+
+    // Apply AG Grid filters from export (already in standard filter format)
+    if (
+      isDownloadQuery &&
+      Array.isArray(ownState.filters) &&
+      ownState.filters.length > 0
+    ) {
+      queryObject = {
+        ...queryObject,
+        filters: [...(queryObject.filters || []), ...ownState.filters],
+      };
     }
 
     // Now since row limit control is always visible even

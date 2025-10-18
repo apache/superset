@@ -22,24 +22,26 @@ import {
   useMemo,
   useRef,
   memo,
+  FunctionComponent,
   useState,
   ChangeEvent,
   useEffect,
+  type RefObject,
 } from 'react';
 
-import { ThemedAgGridReact } from '@superset-ui/core/components';
+import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
 import {
   AgGridReact,
   AllCommunityModule,
   ClientSideRowModelModule,
   type ColDef,
+  type ColumnState,
   ModuleRegistry,
   GridReadyEvent,
   GridState,
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { type FunctionComponent } from 'react';
 import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
@@ -48,6 +50,11 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+
+export interface AgGridState extends Partial<GridState> {
+  timestamp?: number;
+  hasChanges?: boolean;
+}
 
 export interface AgGridTableProps {
   gridTheme?: string;
@@ -80,6 +87,9 @@ export interface AgGridTableProps {
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
+  onColumnStateChange?: (state: AgGridState) => void;
+  gridRef?: RefObject<AgGridReact>;
+  savedAgGridState?: JsonObject;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -114,11 +124,14 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     cleanedTotals,
     showTotals,
     width,
+    onColumnStateChange,
+    savedAgGridState,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const rowData = useMemo(() => data, [data]);
     const containerRef = useRef<HTMLDivElement>(null);
+    const lastCapturedStateRef = useRef<string | null>(null);
 
     const searchId = `search-${id}`;
     const gridInitialState: GridState = {
@@ -234,6 +247,55 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
 
+    const handleGridStateChange = useCallback(
+      debounce(() => {
+        if (onColumnStateChange && gridRef.current?.api) {
+          try {
+            const { api } = gridRef.current;
+
+            const columnState = api.getColumnState ? api.getColumnState() : [];
+
+            const filterModel = api.getFilterModel ? api.getFilterModel() : {};
+
+            const sortModel = columnState
+              .filter(col => col.sort)
+              .map(col => ({
+                colId: col.colId,
+                sort: col.sort,
+                sortIndex: col.sortIndex || 0,
+              }))
+              .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+
+            const stateToSave = {
+              columnState,
+              sortModel,
+              filterModel,
+              timestamp: Date.now(),
+            };
+
+            const stateHash = JSON.stringify({
+              columnOrder: columnState.map(c => c.colId),
+              sorts: sortModel,
+              filters: filterModel,
+            });
+
+            if (stateHash !== lastCapturedStateRef.current) {
+              lastCapturedStateRef.current = stateHash;
+
+              onColumnStateChange(stateToSave);
+            }
+          } catch (error) {
+            console.warn('Error capturing AG Grid state:', error);
+            onColumnStateChange({
+              timestamp: Date.now(),
+              hasChanges: true,
+            });
+          }
+        }
+      }, Constants.SLOW_DEBOUNCE),
+      [onColumnStateChange],
+    );
+
     useEffect(() => {
       if (
         hasServerPageLengthChanged &&
@@ -257,6 +319,24 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
+
+      // Restore saved AG Grid state from permalink if available
+      if (savedAgGridState && params.api) {
+        try {
+          if (savedAgGridState.columnState) {
+            params.api.applyColumnState?.({
+              state: savedAgGridState.columnState as ColumnState[],
+              applyOrder: true,
+            });
+          }
+
+          if (savedAgGridState.filterModel) {
+            params.api.setFilterModel?.(savedAgGridState.filterModel);
+          }
+        } catch {
+          // Silently fail if state restoration fails
+        }
+      }
     };
 
     return (
@@ -313,7 +393,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCrossFilter}
+          onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
+          maintainColumnOrder
           suppressAggFuncInHeader
           enableCellTextSelection
           quickFilterText={serverPagination ? '' : quickFilterText}
