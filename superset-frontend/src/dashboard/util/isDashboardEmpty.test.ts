@@ -19,6 +19,7 @@
 import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isDashboardEmpty', () => {
   const emptyLayout = getEmptyLayout();
   const testLayout: object = {
@@ -32,11 +33,11 @@ describe('isDashboardEmpty', () => {
     },
   };
 
-  it('should return true for empty dashboard', () => {
+  test('should return true for empty dashboard', () => {
     expect(isDashboardEmpty(emptyLayout)).toBe(true);
   });
 
-  it('should return false for non-empty dashboard', () => {
+  test('should return false for non-empty dashboard', () => {
     expect(isDashboardEmpty(testLayout)).toBe(false);
   });
 });

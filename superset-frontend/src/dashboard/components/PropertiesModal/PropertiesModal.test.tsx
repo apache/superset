@@ -180,6 +180,7 @@ afterAll(() => {
   fetchMock.restore();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('PropertiesModal', () => {
   jest.setTimeout(60000); // Increased timeout for complex modal rendering
 

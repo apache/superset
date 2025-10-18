@@ -66,6 +66,7 @@ const createProps = (overrides = {}) => ({
   ...overrides,
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartContainer', () => {
   jest.setTimeout(10000);
 
@@ -162,7 +163,7 @@ describe('ChartContainer', () => {
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
   });
 
-  it('hides gutter when collapsing data panel', async () => {
+  test('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.IsDatapanelOpen, true);
     const { container } = render(<ChartContainer {...props} />, {

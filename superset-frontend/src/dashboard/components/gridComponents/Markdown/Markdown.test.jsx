@@ -17,11 +17,18 @@
  * under the License.
  */
 import { Provider } from 'react-redux';
-import { act, render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Markdown', () => {
   const props = {
     id: 'id',
@@ -44,6 +51,7 @@ describe('Markdown', () => {
   };
 
   beforeAll(() => {
+    const originalError = console.error;
     jest.spyOn(console, 'error').mockImplementation(msg => {
       if (
         typeof msg === 'string' &&
@@ -52,7 +60,7 @@ describe('Markdown', () => {
         !msg.includes('Warning: React does not recognize') &&
         !msg.includes("Warning: Can't perform a React state update")
       ) {
-        console.error(msg);
+        originalError.call(console, msg);
       }
     });
   });
@@ -81,12 +89,12 @@ describe('Markdown', () => {
     jest.clearAllMocks();
   });
 
-  it('should render the markdown component', async () => {
+  test('should render the markdown component', async () => {
     await setup();
     expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
   });
 
-  it('should render the markdown content in preview mode by default', async () => {
+  test('should render the markdown content in preview mode by default', async () => {
     await setup();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
@@ -94,7 +102,7 @@ describe('Markdown', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render editor when in edit mode and clicked', async () => {
+  test('should render editor when in edit mode and clicked', async () => {
     await setup({ editMode: true });
     const container = screen.getByTestId('dashboard-component-chart-holder');
     await act(async () => {
@@ -104,7 +112,7 @@ describe('Markdown', () => {
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
   });
 
-  it('should switch between edit and preview modes', async () => {
+  test('should switch between edit and preview modes', async () => {
     await setup({ editMode: true });
     const container = screen.getByTestId('dashboard-component-chart-holder');
 
@@ -129,7 +137,7 @@ describe('Markdown', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('should call updateComponents when switching from edit to preview with changes', async () => {
+  test('should call updateComponents when switching from edit to preview with changes', async () => {
     const updateComponents = jest.fn();
     const mockCode = 'new markdown!';
 
@@ -201,7 +209,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should show placeholder text when markdown is empty', async () => {
+  test('should show placeholder text when markdown is empty', async () => {
     await setup({
       component: {
         ...mockLayout.present.MARKDOWN_ID,
@@ -214,7 +222,7 @@ describe('Markdown', () => {
     ).toBeInTheDocument();
   });
 
-  it('should handle markdown errors gracefully', async () => {
+  test('should handle markdown errors gracefully', async () => {
     const addDangerToast = jest.fn();
     const { container } = await setup({
       addDangerToast,
@@ -250,7 +258,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should resize editor when width changes', async () => {
+  test('should resize editor when width changes', async () => {
     const { rerender } = await setup({ editMode: true });
 
     await act(async () => {
@@ -278,7 +286,7 @@ describe('Markdown', () => {
     });
   });
 
-  it('should update content when undo/redo changes occur', async () => {
+  test('should update content when undo/redo changes occur', async () => {
     const { rerender } = await setup({
       editMode: true,
       component: {
@@ -305,7 +313,7 @@ describe('Markdown', () => {
     expect(screen.getByText('updated')).toBeInTheDocument();
   });
 
-  it('should adjust width based on parent type', async () => {
+  test('should adjust width based on parent type', async () => {
     const { rerender } = await setup();
 
     // Check ROW_TYPE width
@@ -333,5 +341,76 @@ describe('Markdown', () => {
     const updatedParent = updatedContainer.parentElement;
     // Check that width is no longer 248px
     expect(updatedParent).not.toHaveStyle('width: 248px');
+  });
+
+  test('shouldFocusMarkdown returns true when clicking inside markdown container', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    userEvent.click(markdownContainer);
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+  });
+
+  test('shouldFocusMarkdown returns false when clicking outside markdown container', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    userEvent.click(markdownContainer);
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    userEvent.click(document.body);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    userEvent.click(markdownContainer);
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    const editButton = screen.getByText('Edit');
+
+    userEvent.click(editButton);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(screen.queryByRole('textbox')).toBeInTheDocument();
+  });
+
+  test('should exit edit mode when clicking outside in same row', async () => {
+    await setup({ editMode: true });
+
+    const markdownContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+
+    userEvent.click(markdownContainer);
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    const outsideElement = document.createElement('div');
+    outsideElement.className = 'grid-row';
+    document.body.appendChild(outsideElement);
+
+    userEvent.click(outsideElement);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+    document.body.removeChild(outsideElement);
   });
 });

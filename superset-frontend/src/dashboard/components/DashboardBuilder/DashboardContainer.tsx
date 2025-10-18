@@ -152,7 +152,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+      if (
+        filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        filterScope.id.startsWith('chart_customization_')
+      ) {
         return {
           filterId: filterScope.id,
           tabsInScope: [],
@@ -163,6 +166,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const chartLayoutItems = Object.values(dashboardLayout).filter(
         item => item?.type === CHART_TYPE,
       );
+
+      if (!filterScope.scope || !Array.isArray(filterScope.scope.excluded)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
 
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
