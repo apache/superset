@@ -135,7 +135,8 @@ def get_channels_with_search(
         )
     except SlackApiError as ex:
         # Check if it's a rate limit error
-        if ex.response and ex.response.status_code == 429:
+        status_code = getattr(ex.response, "status_code", None)
+        if status_code == 429:
             raise SupersetException(
                 f"Slack API rate limit exceeded: {ex}. "
                 "For large workspaces, consider increasing "
