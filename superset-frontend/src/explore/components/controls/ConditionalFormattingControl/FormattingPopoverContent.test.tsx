@@ -157,8 +157,8 @@ test('displays the toAllRow and toTextColor flags based on the selected numeric 
     />,
   );
 
-  expect(screen.getByTitle('Apply to entire row')).toBeInTheDocument();
-  expect(screen.getByTitle('Apply to text color')).toBeInTheDocument();
+  expect(screen.getByText('To entire row')).toBeInTheDocument();
+  expect(screen.getByText('To text color')).toBeInTheDocument();
 });
 
 test('displays the toAllRow and toTextColor flags based on the selected string type operator', () => {
@@ -170,8 +170,8 @@ test('displays the toAllRow and toTextColor flags based on the selected string t
     />,
   );
 
-  expect(screen.getByTitle('Apply to entire row')).toBeInTheDocument();
-  expect(screen.getByTitle('Apply to text color')).toBeInTheDocument();
+  expect(screen.getByText('To entire row')).toBeInTheDocument();
+  expect(screen.getByText('To text color')).toBeInTheDocument();
 });
 
 test('Not displays the toAllRow and toTextColor flags', () => {
@@ -179,6 +179,6 @@ test('Not displays the toAllRow and toTextColor flags', () => {
     <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
   );
 
-  expect(screen.queryByTitle('Apply to entire row')).not.toBeInTheDocument();
-  expect(screen.queryByTitle('Apply to text color')).not.toBeInTheDocument();
+  expect(screen.queryByText('To entire row')).not.toBeInTheDocument();
+  expect(screen.queryByText('To text color')).not.toBeInTheDocument();
 });
