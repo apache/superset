@@ -19,7 +19,7 @@
  * under the License.
  */
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import FilterIcon from './Filter';
@@ -61,7 +61,13 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   column,
   api,
 }) => {
-  const { initialSortState, onColumnHeaderClicked } = context;
+  const {
+    initialSortState,
+    onColumnHeaderClicked,
+    lastFilteredColumn,
+    lastFilteredInputPosition,
+    activeFilterColumns,
+  } = context;
   const colId = column?.getColId();
   const colDef = column?.getColDef() as CustomColDef;
   const userColDef = column.getUserProvidedColDef() as UserProvidedColDef;
@@ -70,7 +76,52 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
-  const isFilterActive = column?.isFilterActive();
+  const filterButtonRef = useRef<HTMLDivElement>(null);
+  // Use activeFilterColumns from context as reliable backup for AG Grid's isFilterActive
+  const isFilterActive =
+    column?.isFilterActive() ||
+    (colId ? activeFilterColumns?.has(colId) : false);
+
+  const focusFilterInput = (position?: 'first' | 'second') => {
+    setTimeout(() => {
+      if (!filterRef.current) return;
+
+      const filterBodies =
+        filterRef.current.querySelectorAll<HTMLElement>('.ag-filter-body');
+
+      if (filterBodies.length === 0) return;
+
+      let targetFilterBody: HTMLElement | null = null;
+
+      if (position === 'second' && filterBodies?.length > 1) {
+        targetFilterBody = filterBodies[1];
+      } else if (position === 'first' && filterBodies?.length > 0) {
+        targetFilterBody = filterBodies[0];
+      }
+
+      if (!targetFilterBody) return;
+
+      const input = targetFilterBody.querySelector<HTMLInputElement>(
+        'input:not([type="checkbox"]):not([type="radio"]), textarea',
+      );
+
+      if (input) {
+        input.focus();
+        const length = input.value?.length || 0;
+        input.setSelectionRange?.(length, length);
+      }
+    }, 100);
+  };
+
+  // Auto-open filter popover if this column was last filtered
+  useEffect(() => {
+    setTimeout(() => {
+      if (lastFilteredColumn === colId && !isFilterVisible) {
+        handleFilterClick();
+        focusFilterInput(lastFilteredInputPosition);
+      }
+    }, 200);
+  }, [lastFilteredColumn, colId]);
 
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
@@ -102,8 +153,10 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     else clearSort();
   };
 
-  const handleFilterClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFilterClick = async (e?: React.MouseEvent | undefined) => {
+    if (e) {
+      e?.stopPropagation();
+    }
     setFilterVisible(!isFilterVisible);
 
     const filterInstance = await api.getColumnFilterInstance<any>(column);
@@ -161,6 +214,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         onClose={() => setFilterVisible(false)}
       >
         <FilterIconWrapper
+          ref={filterButtonRef}
           className="header-filter"
           onClick={handleFilterClick}
           isFilterActive={isFilterActive}

@@ -42,6 +42,10 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
+import {
+  convertAgGridFiltersToSQL,
+  type AgGridFilterModel,
+} from './utils/agGridFilterConverter';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -195,10 +199,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: pageNumber,
         pageSize,
+        lastFilteredColumn: undefined, // Clear filter popover state on pagination
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask],
+    [setDataMask, serverPaginationData],
   );
 
   const handlePageSizeChange = useCallback(
@@ -207,10 +212,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: 0,
         pageSize,
+        lastFilteredColumn: undefined, // Clear filter popover state on page size change
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask],
+    [setDataMask, serverPaginationData],
   );
 
   const handleChangeSearchCol = (searchCol: string) => {
@@ -219,6 +225,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...(serverPaginationData || {}),
         searchColumn: searchCol,
         searchText: '',
+        lastFilteredColumn: undefined, // Clear filter popover state on search column change
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -232,10 +239,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
+        lastFilteredColumn: undefined, // Clear filter popover state on search
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, searchOptions],
+    [setDataMask, searchOptions, serverPaginationData],
   );
 
   const handleSortByChange = useCallback(
@@ -244,10 +252,37 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        lastFilteredColumn: undefined, // Clear filter popover state on sort
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, serverPagination],
+    [setDataMask, serverPagination, serverPaginationData],
+  );
+
+  const handleAgGridColumnFiltersChange = useCallback(
+    (
+      filterModel: AgGridFilterModel,
+      lastFilteredColumn?: string,
+      lastFilteredInputPosition?: 'first' | 'second',
+    ) => {
+      if (!serverPagination) return;
+
+      // Convert AG Grid filters to SQLAlchemy format
+      const converted = convertAgGridFiltersToSQL(filterModel);
+
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        agGridFilterModel: filterModel, // Store raw filter model for state restoration
+        agGridSimpleFilters: converted.simpleFilters,
+        agGridComplexWhere: converted.complexWhere,
+        lastFilteredColumn, // Track which column was filtered to keep popover open
+        lastFilteredInputPosition, // Track which input was focused (first or second)
+        currentPage: 0, // Reset to first page when filtering
+      };
+
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask, serverPagination, serverPaginationData],
   );
 
   const renderTimeComparisonVisibility = (): JSX.Element => (
@@ -277,6 +312,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
+        onAgGridColumnFiltersChange={handleAgGridColumnFiltersChange}
         id={slice_id}
         handleCrossFilter={toggleFilter}
         percentMetrics={percentMetrics}
