@@ -190,7 +190,7 @@ describe('Native filters', () => {
         },
       );
       addParentFilterWithValue(0, testItems.topTenChart.filterColumn);
-      
+
       // Now select region filter and try to add dependency
       selectFilter(0);
       cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(

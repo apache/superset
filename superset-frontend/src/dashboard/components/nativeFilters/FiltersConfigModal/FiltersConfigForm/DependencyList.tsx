@@ -193,8 +193,10 @@ const DependencyList = ({
   useEffect(() => {
     if (dependencies.length > 0) {
       const availableFilterIds = new Set(availableFilters.map(f => f.value));
-      const validDependencies = dependencies.filter(dep => availableFilterIds.has(dep));
-      
+      const validDependencies = dependencies.filter(dep =>
+        availableFilterIds.has(dep),
+      );
+
       // If some dependencies are no longer valid, update the list
       if (validDependencies.length !== dependencies.length) {
         onDependenciesChange(validDependencies);
