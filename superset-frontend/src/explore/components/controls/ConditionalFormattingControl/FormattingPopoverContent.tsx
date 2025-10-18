@@ -261,20 +261,26 @@ export const FormattingPopoverContent = ({
     Boolean(config?.toTextColor),
   );
 
-  const showToAllRow = useMemo(
-    () =>
-      conditionalFormattingFlag && conditionalFormattingFlag.toAllRowCheck
-        ? config?.toAllRow === undefined
-        : config?.toAllRow !== undefined,
-    [conditionalFormattingFlag, config],
-  );
+  const useConditionalFormattingFlag = (
+    flagKey: 'toAllRowCheck' | 'toColorTextCheck',
+    configKey: 'toAllRow' | 'toTextColor',
+  ) => {
+    return useMemo(
+      () =>
+        conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
+          ? config?.[configKey] === undefined
+          : config?.[configKey] !== undefined,
+      [conditionalFormattingFlag, config],
+    );
+  };
 
-  const showToColorText = useMemo(
-    () =>
-      conditionalFormattingFlag && conditionalFormattingFlag.toColorTextCheck
-        ? config?.toTextColor === undefined
-        : config?.toTextColor !== undefined,
-    [conditionalFormattingFlag, config],
+  const showToAllRow = useConditionalFormattingFlag(
+    'toAllRowCheck',
+    'toAllRow',
+  );
+  const showToColorText = useConditionalFormattingFlag(
+    'toColorTextCheck',
+    'toTextColor',
   );
 
   const handleChange = (event: any) => {
@@ -370,9 +376,9 @@ export const FormattingPopoverContent = ({
           </Row>
         )}
       </FormItem>
-      <Row style={{ display: 'flex', height: '40px' }}>
+      <Row>
         {showOperatorFields && showToAllRow && (
-          <>
+          <Row gutter={20}>
             <Col span={1}>
               <FormItem
                 name="toAllRow"
@@ -385,13 +391,13 @@ export const FormattingPopoverContent = ({
                 />
               </FormItem>
             </Col>
-            <Col style={{ padding: '5px' }}>
-              <FormItem required label={t('Apply to entire row')} />
+            <Col>
+              <FormItem required>{t('To entire row')}</FormItem>
             </Col>
-          </>
+          </Row>
         )}
         {showOperatorFields && showToColorText && (
-          <>
+          <Row gutter={20}>
             <Col span={1}>
               <FormItem
                 name="toTextColor"
@@ -404,10 +410,10 @@ export const FormattingPopoverContent = ({
                 />
               </FormItem>
             </Col>
-            <Col style={{ padding: '5px' }}>
-              <FormItem required label={t('Apply to text color')} />
+            <Col>
+              <FormItem required>{t('To text color')}</FormItem>
             </Col>
-          </>
+          </Row>
         )}
       </Row>
 
