@@ -204,9 +204,22 @@ def create_mcp_app(
 # Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app()
 
+# Import all MCP tools to register them with the mcp instance
+# NOTE: Always add new tool imports here when creating new MCP tools.
+# Tools use @mcp.tool decorators and register automatically on import.
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_info,
     list_charts,
+)
+from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
+    get_dashboard_available_filters,
+    get_dashboard_info,
+    list_dashboards,
+)
+from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    get_dataset_available_filters,
+    get_dataset_info,
+    list_datasets,
 )
 from superset.mcp_service.system.tool import health_check  # noqa: F401, E402
 
