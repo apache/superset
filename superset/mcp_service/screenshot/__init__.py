@@ -15,22 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .generate_chart import generate_chart
-from .get_chart_available_filters import get_chart_available_filters
-from .get_chart_data import get_chart_data
-from .get_chart_info import get_chart_info
-from .get_chart_preview import get_chart_preview
-from .list_charts import list_charts
-from .update_chart import update_chart
-from .update_chart_preview import update_chart_preview
+"""Screenshot and WebDriver infrastructure for MCP service."""
+
+from .pooled_screenshot import (
+    PooledBaseScreenshot,
+    PooledChartScreenshot,
+    PooledDashboardScreenshot,
+    PooledExploreScreenshot,
+)
+from .webdriver_pool import get_webdriver_pool, WebDriverPool
 
 __all__ = [
-    "list_charts",
-    "get_chart_info",
-    "get_chart_available_filters",
-    "generate_chart",
-    "update_chart",
-    "update_chart_preview",
-    "get_chart_preview",
-    "get_chart_data",
+    "PooledBaseScreenshot",
+    "PooledChartScreenshot",
+    "PooledDashboardScreenshot",
+    "PooledExploreScreenshot",
+    "WebDriverPool",
+    "get_webdriver_pool",
 ]

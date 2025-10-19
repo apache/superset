@@ -28,10 +28,13 @@ Future enhancements (to be added in separate PRs):
 """
 
 import logging
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
 from flask_appbuilder.security.sqla.models import User
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -68,6 +71,39 @@ def get_user_from_request() -> User:
         raise ValueError(f"User '{username}' not found")
 
     return user
+
+
+def has_dataset_access(dataset: "SqlaTable") -> bool:
+    """
+    Validate user has access to the dataset.
+
+    This function checks if the current user (from Flask g.user context)
+    has permission to access the given dataset using Superset's security manager.
+
+    Args:
+        dataset: The SqlaTable dataset to check access for
+
+    Returns:
+        True if user has access, False otherwise
+
+    Security Note:
+        This should be called after mcp_auth_hook has set g.user.
+        Returns False on any error to fail securely.
+    """
+    try:
+        from superset import security_manager
+
+        # Check if user has read access to the dataset
+        if hasattr(g, "user") and g.user:
+            # Use Superset's security manager to check dataset access
+            return security_manager.can_access_datasource(datasource=dataset)
+
+        # If no user context, deny access
+        return False
+
+    except Exception as e:
+        logger.warning("Error checking dataset access: %s", e)
+        return False  # Deny access on error
 
 
 def mcp_auth_hook(tool_func: F) -> F:
