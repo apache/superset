@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from functools import total_ordering
 
+from pandas import DataFrame
+
 __all__ = [
     "BINARY",
     "BOOLEAN",
@@ -216,3 +218,28 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
+
+
+@dataclass(frozen=True)
+class SemanticRequest:
+    """
+    Represents a request made to obtain semantic results.
+
+    This could be a SQL query, an HTTP request, etc.
+    """
+
+    type: str
+    definition: str
+
+
+@dataclass(frozen=True)
+class SemanticResult:
+    """
+    Represents the results of a semantic query.
+
+    This includes any requests (SQL queries, HTTP requests) that were performed in order
+    to obtain the results, in order to help troubleshooting.
+    """
+
+    requests: list[SemanticRequest]
+    results: DataFrame

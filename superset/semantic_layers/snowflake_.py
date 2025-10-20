@@ -23,7 +23,7 @@ import itertools
 import re
 from collections import defaultdict
 from textwrap import dedent
-from typing import Any, Literal, Union
+from typing import Any, Literal, Sequence, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -58,10 +58,37 @@ from superset.semantic_layers.types import (
     Operator,
     OrderDirection,
     PredicateType,
+    SemanticRequest,
+    SemanticResult,
     STRING,
     TIME,
     Type,
 )
+
+REQUEST_TYPE = "snowflake"
+
+
+def substitute_parameters(query: str, parameters: Sequence[Any] | None) -> str:
+    """Substitute parametereters for logging only - NOT for execution"""
+    if not parameters:
+        return query
+
+    result = query
+    for parameter in parameters:
+        if parameter is None:
+            replacement = "NULL"
+        elif isinstance(parameter, (int, float)):
+            replacement = str(parameter)
+        elif isinstance(parameter, bool):
+            replacement = str(parameter).upper()
+        else:
+            # String - escape single quotes
+            quoted = str(parameter).replace("'", "''")
+            replacement = f"'{quoted}'"
+
+        result = result.replace("?", replacement, 1)
+
+    return result
 
 
 class UserPasswordAuth(BaseModel):
@@ -376,7 +403,7 @@ class SnowflakeSemanticLayer:
     def get_explorables(
         self,
         runtime_configuration: BaseModel,
-    ) -> set[SnowflakeExplorable]:
+    ) -> set[SnowflakeSemanticView]:
         """
         Get a list of available explorables (databases/schemas).
         """
@@ -395,12 +422,12 @@ class SnowflakeSemanticLayer:
                 """
             )
             return {
-                SnowflakeExplorable(configuration, row[0])
+                SnowflakeSemanticView(configuration, row[0])
                 for row in cursor.execute(query)
             }
 
 
-class SnowflakeExplorable:
+class SnowflakeSemanticView:
     def __init__(self, configuration: SnowflakeConfiguration, name: str):
         self.configuration = configuration
         self.name = name
@@ -558,7 +585,7 @@ class SnowflakeExplorable:
         self,
         dimension: Dimension,
         filters: set[Filter | NativeFilter] | None = None,
-    ) -> set[Any]:
+    ) -> SemanticResult:
         """
         Return distinct values for a dimension.
         """
@@ -581,8 +608,17 @@ class SnowflakeExplorable:
         )
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
-            cursor = connection.cursor()
-            return {row[0] for row in cursor.execute(query, parameters)}
+            df = connection.cursor().execute(query, parameters).fetch_pandas_all()
+
+        return SemanticResult(
+            requests=[
+                SemanticRequest(
+                    REQUEST_TYPE,
+                    substitute_parameters(query, parameters),
+                )
+            ],
+            results=df,
+        )
 
     def _build_native_filter(self, filter_: Filter) -> str:
         """
@@ -617,7 +653,7 @@ class SnowflakeExplorable:
         offset: int | None = None,
         *,
         group_limit: GroupLimit | None = None,
-    ) -> DataFrame:
+    ) -> SemanticResult:
         """
         Execute a query and return the results as a Pandas DataFrame.
         """
@@ -635,7 +671,17 @@ class SnowflakeExplorable:
         )
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
-            return connection.cursor().execute(query, parameters).fetch_pandas_all()
+            df = connection.cursor().execute(query, parameters).fetch_pandas_all()
+
+        return SemanticResult(
+            requests=[
+                SemanticRequest(
+                    REQUEST_TYPE,
+                    substitute_parameters(query, parameters),
+                )
+            ],
+            results=df,
+        )
 
     def get_row_count(
         self,
@@ -666,7 +712,17 @@ class SnowflakeExplorable:
         query = f"SELECT COUNT(*) FROM ({query}) AS subquery"
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
-            return connection.cursor().execute(query, parameters).fechone()[0]
+            df = connection.cursor().execute(query, parameters).fechone()[0]
+
+        return SemanticResult(
+            requests=[
+                SemanticRequest(
+                    REQUEST_TYPE,
+                    substitute_parameters(query, parameters),
+                )
+            ],
+            results=df,
+        )
 
     def _get_query(
         self,
@@ -1080,6 +1136,9 @@ if __name__ == "__main__":
         Filter(PredicateType.WHERE, dimension, Operator.NOT_EQUALS, "Books"),
     }
     print(explorable.get_values(dimension, filters))
+    import sys
+
+    sys.exit()
     filters = {
         Filter(
             PredicateType.WHERE,
