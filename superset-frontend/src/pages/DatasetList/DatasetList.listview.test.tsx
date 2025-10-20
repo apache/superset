@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
@@ -564,8 +570,6 @@ test('bulk delete opens confirmation modal', async () => {
   expect(modal).toBeInTheDocument();
 });
 
-// TODO: Fix flaky test - close button doesn't have accessible text matching /close|exit/i
-// Need to update component or use data-testid query instead
 test('exit bulk select via close button returns to normal view', async () => {
   renderDatasetList(mockAdminUser);
 
@@ -585,10 +589,13 @@ test('exit bulk select via close button returns to normal view', async () => {
   // Note: Not verifying export/delete buttons here as they only appear after selection
   // This test focuses on the close button functionality
 
-  // Find close button via aria-label (Alert closable button)
-  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
-  const closeButton = within(bulkSelectControls).getByLabelText(/close/i);
-  await userEvent.click(closeButton);
+  // Find close button within the bulk select container using Ant Design's class
+  // Scoping to container prevents selecting close buttons from other components
+  const bulkSelectControls = screen.getByTestId('bulk-select-controls');
+  const closeButton = bulkSelectControls.querySelector(
+    '.ant-alert-close-icon',
+  ) as HTMLElement;
+  fireEvent.click(closeButton);
 
   // Checkboxes should disappear
   await waitFor(() => {
@@ -599,7 +606,7 @@ test('exit bulk select via close button returns to normal view', async () => {
   // Bulk action toolbar should be hidden, normal toolbar should return
   await waitFor(() => {
     expect(
-      screen.queryByRole('button', { name: /close|exit/i }),
+      screen.queryByTestId('bulk-select-controls'),
     ).not.toBeInTheDocument();
     // Bulk select button should be back
     expect(
