@@ -161,11 +161,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       serverPaginationData?.searchText || '',
     );
 
-    // State to store column-level filters - initialize from ownState if available
-    const [columnFilters, setColumnFilters] = useState<AgGridFilterModel>(
-      serverPaginationData?.agGridFilterModel || {},
-    );
-
     const debouncedSearch = useMemo(
       () =>
         debounce((value: string) => {
@@ -276,8 +271,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       gridRef,
       serverPagination,
       serverPaginationData,
-      columnFilters,
-      setColumnFilters,
       onAgGridColumnFiltersChange,
     });
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, type RefObject } from 'react';
-import { isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 import type { FilterChangedEvent, GridApi } from 'ag-grid-community';
 import {
   type AgGridFilterModel,
@@ -25,14 +25,13 @@ import {
   type AgGridCompoundFilter,
 } from './agGridFilterConverter';
 
+const FILTER_DEBOUNCE_DURATION = 500;
+
 interface FilterInputPosition {
   lastFilteredColumn?: string;
   lastFilteredInputPosition?: 'first' | 'second';
 }
 
-/**
- * Detects which column was last modified and the input position
- */
 const detectLastFilteredColumn = (
   filterModel: AgGridFilterModel,
   previousModel: AgGridFilterModel,
@@ -85,9 +84,6 @@ const detectLastFilteredColumn = (
   return {};
 };
 
-/**
- * Preserves compound filter structure when one condition is cleared
- */
 const preserveCompoundFilterStructure = (
   filterModel: AgGridFilterModel,
   previousModel: AgGridFilterModel,
@@ -98,7 +94,6 @@ const preserveCompoundFilterStructure = (
     const currentFilter = filterModel[colId];
     const previousFilter = previousModel[colId];
 
-    // Check if previous was compound and current is simple
     const wasCompound =
       previousFilter &&
       'operator' in previousFilter &&
@@ -168,8 +163,6 @@ interface UseAgGridFiltersProps {
   serverPaginationData?: {
     agGridFilterModel?: AgGridFilterModel;
   };
-  columnFilters: AgGridFilterModel;
-  setColumnFilters: (filters: AgGridFilterModel) => void;
   onAgGridColumnFiltersChange?: (
     filterModel: AgGridFilterModel,
     lastFilteredColumn?: string,
@@ -177,97 +170,84 @@ interface UseAgGridFiltersProps {
   ) => void;
 }
 
-/**
- * Custom hook to handle AG Grid filter management including:
- * - Filter change detection and state updates
- * - Filter state restoration from server pagination data
- * - Active filter column tracking
- * - Grid initialization with filters
- */
 export const useAgGridFilters = ({
   gridRef,
   serverPagination,
   serverPaginationData,
-  columnFilters,
-  setColumnFilters,
   onAgGridColumnFiltersChange,
 }: UseAgGridFiltersProps) => {
-  // Calculate active filter columns from ownState filter model
   const activeFilterColumns = useMemo(() => {
     const filterModel = serverPaginationData?.agGridFilterModel || {};
     return new Set(Object.keys(filterModel));
   }, [serverPaginationData?.agGridFilterModel]);
 
-  // Restore AG Grid filter state from ownState (similar to search box pattern)
+  const debouncedNotifyParent = useMemo(
+    () =>
+      debounce(
+        (
+          filterModel: AgGridFilterModel,
+          column?: string,
+          position?: 'first' | 'second',
+        ) => {
+          if (onAgGridColumnFiltersChange && serverPagination) {
+            onAgGridColumnFiltersChange(filterModel, column, position);
+          }
+        },
+        FILTER_DEBOUNCE_DURATION,
+      ),
+    [onAgGridColumnFiltersChange, serverPagination],
+  );
+
+  useEffect(
+    () => () => {
+      debouncedNotifyParent.cancel();
+    },
+    [debouncedNotifyParent],
+  );
+
   useEffect(() => {
     if (gridRef.current?.api && serverPagination) {
       const storedFilterModel = serverPaginationData?.agGridFilterModel;
+      const currentFilterModel = gridRef.current.api.getFilterModel();
 
       if (storedFilterModel && Object.keys(storedFilterModel).length > 0) {
-        const currentFilterModel = gridRef.current.api.getFilterModel();
-
         if (!isEqual(currentFilterModel, storedFilterModel)) {
           gridRef.current.api.setFilterModel(storedFilterModel);
         }
-      } else if (Object.keys(columnFilters).length > 0) {
+      } else {
         gridRef.current.api.setFilterModel(null);
-        setColumnFilters({});
       }
     }
-  }, [
-    serverPaginationData?.agGridFilterModel,
-    serverPagination,
-    gridRef,
-    columnFilters,
-    setColumnFilters,
-  ]);
+  }, [serverPaginationData?.agGridFilterModel, serverPagination, gridRef]);
 
-  // Handler for filter changes
   const onFilterChanged = useCallback(
     (event: FilterChangedEvent) => {
       const filterModel = event.api.getFilterModel() as AgGridFilterModel;
       const previousModel =
         serverPaginationData?.agGridFilterModel || ({} as AgGridFilterModel);
 
-      // Skip if no changes
       if (isEqual(filterModel, previousModel)) {
         return;
       }
 
-      // Detect which column was modified and input position
       const { lastFilteredColumn, lastFilteredInputPosition } =
         detectLastFilteredColumn(filterModel, previousModel);
 
-      // Preserve compound filter structure ONLY if user is typing in an input (not changing operators)
-      // If lastFilteredInputPosition is undefined, the change came from dropdown/operator change,
-      // so we should NOT preserve the compound structure
       const shouldPreserveCompound = lastFilteredInputPosition !== undefined;
 
       const preservedFilterModel = shouldPreserveCompound
         ? preserveCompoundFilterStructure(filterModel, previousModel)
         : filterModel;
 
-      // Update local state
-      setColumnFilters(preservedFilterModel);
-
-      // Notify parent component
-      if (onAgGridColumnFiltersChange && serverPagination) {
-        onAgGridColumnFiltersChange(
-          preservedFilterModel,
-          lastFilteredColumn,
-          lastFilteredInputPosition,
-        );
-      }
+      debouncedNotifyParent(
+        preservedFilterModel,
+        lastFilteredColumn,
+        lastFilteredInputPosition,
+      );
     },
-    [
-      onAgGridColumnFiltersChange,
-      serverPagination,
-      serverPaginationData?.agGridFilterModel,
-      setColumnFilters,
-    ],
+    [serverPaginationData?.agGridFilterModel, debouncedNotifyParent],
   );
 
-  // Initialize filters on grid ready
   const initializeFiltersOnGridReady = useCallback(
     (api: GridApi) => {
       if (serverPagination && serverPaginationData?.agGridFilterModel) {

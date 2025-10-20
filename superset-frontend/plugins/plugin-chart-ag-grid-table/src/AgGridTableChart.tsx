@@ -267,17 +267,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ) => {
       if (!serverPagination) return;
 
-      // Convert AG Grid filters to SQLAlchemy format
       const converted = convertAgGridFiltersToSQL(filterModel);
 
       const modifiedOwnState = {
         ...serverPaginationData,
-        agGridFilterModel: filterModel, // Store raw filter model for state restoration
+        agGridFilterModel: filterModel,
         agGridSimpleFilters: converted.simpleFilters,
         agGridComplexWhere: converted.complexWhere,
-        lastFilteredColumn, // Track which column was filtered to keep popover open
-        lastFilteredInputPosition, // Track which input was focused (first or second)
-        currentPage: 0, // Reset to first page when filtering
+        lastFilteredColumn,
+        lastFilteredInputPosition,
+        currentPage: 0,
       };
 
       updateTableOwnState(setDataMask, modifiedOwnState);
