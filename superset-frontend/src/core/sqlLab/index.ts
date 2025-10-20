@@ -30,7 +30,6 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
-import memoizeOne from 'memoize-one';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { Disposable } from '../models';
 import { createActionListener } from '../utils';
@@ -198,13 +197,10 @@ const getActiveEditorImmutableId = () => {
   return activeEditor?.immutableId;
 };
 
-// Memoized version to avoid repeated store lookups when active editor hasn't changed
-const getActiveEditorId = memoizeOne(getActiveEditorImmutableId);
-
 const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
   // Capture the immutable ID of the active editor at the time the listener is created
   // This ID never changes for a tab, ensuring stable event routing
-  const registrationImmutableId = getActiveEditorId();
+  const registrationImmutableId = getActiveEditorImmutableId();
 
   return action => {
     if (action.type !== actionType) return false;
