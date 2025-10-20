@@ -103,6 +103,7 @@ export interface SQLAlchemyFilter {
 export interface ConvertedFilter {
   simpleFilters: SQLAlchemyFilter[];
   complexWhere?: string;
+  havingClause?: string;
 }
 
 const AG_GRID_TO_SQLA_OPERATOR_MAP: Record<AgGridFilterOperator, string> = {
@@ -134,7 +135,10 @@ function validateColumnName(columnName: string): boolean {
     return false;
   }
 
-  if (!/^[a-zA-Z0-9_. ]+$/.test(columnName)) {
+  // Allow alphanumeric, underscore, dot, space, parentheses, and common metric characters
+  // This supports both regular columns (e.g., "user_id", "first.name") and
+  // metric columns (e.g., "COUNT(*)", "SUM(revenue)", "AVG(price)")
+  if (!/^[a-zA-Z0-9_. ()%*+\-/]+$/.test(columnName)) {
     console.error(
       `[AG Grid Filters] Invalid column name format: ${columnName}`,
     );
@@ -313,20 +317,28 @@ function compoundFilterToWhereClause(
  * Convert AG Grid filter model to SQLAlchemy filters
  *
  * @param filterModel - AG Grid filter model from onFilterChanged event
- * @returns Object containing simple filters and complex WHERE clause
+ * @param metricColumns - Array of metric column names (for HAVING clause)
+ * @returns Object containing simple filters, WHERE clause, and HAVING clause
  */
 export function convertAgGridFiltersToSQL(
   filterModel: AgGridFilterModel,
+  metricColumns: string[] = [],
 ): ConvertedFilter {
   if (!filterModel || typeof filterModel !== 'object') {
     console.error(
       '[AG Grid Filters] Invalid filter model: must be a non-null object',
     );
-    return { simpleFilters: [], complexWhere: undefined };
+    return {
+      simpleFilters: [],
+      complexWhere: undefined,
+      havingClause: undefined,
+    };
   }
 
+  const metricColumnsSet = new Set(metricColumns);
   const simpleFilters: SQLAlchemyFilter[] = [];
   const complexWhereClauses: string[] = [];
+  const complexHavingClauses: string[] = [];
 
   Object.entries(filterModel).forEach(([columnName, filter]) => {
     if (!validateColumnName(columnName)) {
@@ -339,6 +351,8 @@ export function convertAgGridFiltersToSQL(
       );
       return;
     }
+
+    const isMetric = metricColumnsSet.has(columnName);
 
     if (isSetFilter(filter)) {
       if (!Array.isArray(filter.values)) {
@@ -355,18 +369,31 @@ export function convertAgGridFiltersToSQL(
         return;
       }
 
-      simpleFilters.push({
-        col: columnName,
-        op: SQL_OPERATORS.IN,
-        val: filter.values,
-      });
+      // Set filters on metrics should go to HAVING clause as SQL
+      if (isMetric) {
+        const values = filter.values
+          .map(v => (typeof v === 'string' ? `'${v}'` : v))
+          .join(', ');
+        complexHavingClauses.push(`${columnName} IN (${values})`);
+      } else {
+        simpleFilters.push({
+          col: columnName,
+          op: SQL_OPERATORS.IN,
+          val: filter.values,
+        });
+      }
       return;
     }
 
     if (isCompoundFilter(filter)) {
       const whereClause = compoundFilterToWhereClause(columnName, filter);
       if (whereClause) {
-        complexWhereClauses.push(whereClause);
+        // Compound filters on metrics go to HAVING clause
+        if (isMetric) {
+          complexHavingClauses.push(whereClause);
+        } else {
+          complexWhereClauses.push(whereClause);
+        }
       }
       return;
     }
@@ -389,21 +416,30 @@ export function convertAgGridFiltersToSQL(
       return;
     }
 
+    // Handle BLANK and NOT_BLANK operators
     if (type === FILTER_OPERATORS.BLANK) {
-      simpleFilters.push({
-        col: columnName,
-        op: SQL_OPERATORS.IS_NULL,
-        val: null,
-      });
+      if (isMetric) {
+        complexHavingClauses.push(`${columnName} ${SQL_OPERATORS.IS_NULL}`);
+      } else {
+        simpleFilters.push({
+          col: columnName,
+          op: SQL_OPERATORS.IS_NULL,
+          val: null,
+        });
+      }
       return;
     }
 
     if (type === FILTER_OPERATORS.NOT_BLANK) {
-      simpleFilters.push({
-        col: columnName,
-        op: SQL_OPERATORS.IS_NOT_NULL,
-        val: null,
-      });
+      if (isMetric) {
+        complexHavingClauses.push(`${columnName} ${SQL_OPERATORS.IS_NOT_NULL}`);
+      } else {
+        simpleFilters.push({
+          col: columnName,
+          op: SQL_OPERATORS.IS_NOT_NULL,
+          val: null,
+        });
+      }
       return;
     }
 
@@ -413,11 +449,19 @@ export function convertAgGridFiltersToSQL(
 
     const formattedValue = formatValueForOperator(type, value!);
 
-    simpleFilters.push({
-      col: columnName,
-      op: operator,
-      val: formattedValue,
-    });
+    // Simple filters on metrics go to HAVING clause as SQL
+    if (isMetric) {
+      const sqlClause = simpleFilterToWhereClause(columnName, simpleFilter);
+      if (sqlClause) {
+        complexHavingClauses.push(sqlClause);
+      }
+    } else {
+      simpleFilters.push({
+        col: columnName,
+        op: operator,
+        val: formattedValue,
+      });
+    }
   });
 
   const complexWhere =
@@ -425,8 +469,14 @@ export function convertAgGridFiltersToSQL(
       ? `(${complexWhereClauses.join(' AND ')})`
       : undefined;
 
+  const havingClause =
+    complexHavingClauses.length > 0
+      ? `(${complexHavingClauses.join(' AND ')})`
+      : undefined;
+
   return {
     simpleFilters,
     complexWhere,
+    havingClause,
   };
 }

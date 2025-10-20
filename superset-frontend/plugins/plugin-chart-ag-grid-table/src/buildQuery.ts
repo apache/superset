@@ -298,7 +298,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
 
-      // Add AG Grid column filters from ownState
+      // Add AG Grid column filters from ownState (non-metric filters only)
       if (
         ownState.agGridSimpleFilters &&
         ownState.agGridSimpleFilters.length > 0
@@ -312,13 +312,29 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
 
-      // Add AG Grid complex WHERE clause from ownState
+      // Add AG Grid complex WHERE clause from ownState (non-metric filters)
       if (ownState.agGridComplexWhere) {
         queryObject = {
           ...queryObject,
           extras: {
             ...(queryObject.extras || {}),
             where: ownState.agGridComplexWhere,
+          },
+        };
+      }
+
+      // Add AG Grid HAVING clause from ownState (metric filters only)
+      if (ownState.agGridHavingClause) {
+        const existingHaving = queryObject.extras?.having;
+        const combinedHaving = existingHaving
+          ? `${existingHaving} AND ${ownState.agGridHavingClause}`
+          : ownState.agGridHavingClause;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            having: combinedHaving,
           },
         };
       }

@@ -267,13 +267,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ) => {
       if (!serverPagination) return;
 
-      const converted = convertAgGridFiltersToSQL(filterModel);
+      // Extract metric column names from columns prop
+      const metricColumns = columns
+        .filter(col => col.isMetric || col.isPercentMetric)
+        .map(col => col.key);
+
+      const converted = convertAgGridFiltersToSQL(filterModel, metricColumns);
 
       const modifiedOwnState = {
         ...serverPaginationData,
         agGridFilterModel: filterModel,
         agGridSimpleFilters: converted.simpleFilters,
         agGridComplexWhere: converted.complexWhere,
+        agGridHavingClause: converted.havingClause,
         lastFilteredColumn,
         lastFilteredInputPosition,
         currentPage: 0,
@@ -281,7 +287,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, serverPagination, serverPaginationData],
+    [setDataMask, serverPagination, serverPaginationData, columns],
   );
 
   const renderTimeComparisonVisibility = (): JSX.Element => (
