@@ -70,7 +70,7 @@ export default function buildQuery(formData: DeckPolygonFormData) {
 
     columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
-    const metrics = [];
+    const metrics: string[] = [];
     if (metric) {
       metrics.push(metric);
     }
