@@ -315,22 +315,18 @@ const FilterControls: FC<FilterControlsProps> = ({
       </>
     ),
     [
-      filtersInScope,
-      renderer,
-      showCollapsePanel,
-      filtersOutOfScope,
-      hasRequiredFirst,
-      chartCustomizationItems,
-      sectionsOpen,
-      toggleSection,
-      SectionContainer,
-      SectionHeader,
-      SectionContent,
-      StyledDivider,
-      StyledIcon,
-      ChartCustomizationContent,
-      hideHeader,
-    ],
+	filtersInScope,
+	renderer,
+	showCollapsePanel,
+	filtersOutOfScope,
+	hasRequiredFirst,
+	chartCustomizationItems,
+	sectionsOpen,
+	toggleSection,
+	SectionHeader,
+	SectionContent,
+	hideHeader
+],
   );
 
   const overflowedFiltersInScope = useMemo(

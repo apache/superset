@@ -376,7 +376,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getCrossFilterDataMask = useCallback(
     (key: string, value: DataRecordValue) => {
-      let updatedFilters = { ...(filters || {}) };
+      let updatedFilters = { ...filters };
       if (filters && isActiveFilterValue(key, value)) {
         updatedFilters = {};
       } else {
