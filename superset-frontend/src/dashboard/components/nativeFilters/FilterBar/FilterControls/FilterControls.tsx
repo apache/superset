@@ -323,8 +323,6 @@ const FilterControls: FC<FilterControlsProps> = ({
 	chartCustomizationItems,
 	sectionsOpen,
 	toggleSection,
-	SectionHeader,
-	SectionContent,
 	hideHeader
 ],
   );
