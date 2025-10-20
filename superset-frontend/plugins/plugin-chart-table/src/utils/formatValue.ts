@@ -19,11 +19,11 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 

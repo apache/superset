@@ -42,7 +42,6 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
-  GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
@@ -53,7 +52,7 @@ import {
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
-
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
@@ -111,8 +110,8 @@ const allColumnsControl: typeof sharedControls.groupby = {
   freeForm: true,
   allowAll: true,
   commaChoosesOption: false,
-  optionRenderer: c => <ColumnOption showType column={c} />,
-  valueRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption showType column={c as ColumnMeta} />,
+  valueRenderer: c => <ColumnOption column={c as ColumnMeta} />,
   valueKey: 'column_name',
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     options: datasource?.columns || [],
@@ -817,6 +816,9 @@ const config: ControlPanelConfig = {
       }),
       visibility: isAggMode,
     },
+    sections.matrixifyRowSection,
+    sections.matrixifyColumnSection,
+    sections.matrixifySection,
   ],
   formDataOverrides: formData => ({
     ...formData,

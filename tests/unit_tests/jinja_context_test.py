@@ -1252,6 +1252,79 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
+def test_metric_macro_regular_user_uses_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` uses base filter for regular users.
+
+    Regular users should have standard RBAC/RLS filters applied when accessing datasets.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called without skip_base_filter
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_regular_user_raises_no_access(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` raises for regular user without dataset access.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = None
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError) as excinfo:
+        assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    assert str(excinfo.value) == "Dataset ID 1 not found."
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` skips base filter for embedded users.
+
+    Embedded users have dashboard-level access control via their embedding token,
+    so we bypass the regular dataset DAO filters for them.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = True
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called with skip_base_filter=True
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=True)
+
+
 @pytest.mark.parametrize(
     "description,args,kwargs,sqlalchemy_uri,queries,time_filter,removed_filters,applied_filters",
     [
@@ -1435,3 +1508,134 @@ def test_get_time_filter(
         assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters
+
+
+def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:
+    """Test TemplateSyntaxError handling with proper error message and 422 status"""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+
+    # Test with invalid Jinja2 syntax
+    template = "SELECT * WHERE column = {{ variable such as 'default' }}"
+
+    with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert len(exception.errors) == 1
+    error = exception.errors[0]
+
+    # Verify error message contains helpful guidance
+    assert "Jinja2 template error" in error.message
+    assert "TemplateSyntaxError" in error.message
+    assert "expected token" in error.message
+
+    # Verify error type and status
+    assert error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    assert exception.status == 422
+
+    # Verify extra data includes template snippet
+    assert "template" in error.extra
+    assert error.extra["template"][:50] == template[:50]
+
+
+def test_jinja2_undefined_error_handling(mocker: MockerFixture) -> None:
+    """Test that UndefinedError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import UndefinedError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise UndefinedError
+    with patch.object(
+        processor.env, "from_string", side_effect=UndefinedError("Variable not defined")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message (422)
+        assert "Jinja2 template error" in error.message
+        assert "UndefinedError" in error.message
+        assert "Variable not defined" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_security_error_handling(mocker: MockerFixture) -> None:
+    """Test that SecurityError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import SecurityError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise SecurityError
+    with patch.object(
+        processor.env, "from_string", side_effect=SecurityError("Access denied")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message with SecurityError type
+        assert "Jinja2 template error" in error.message
+        assert "SecurityError" in error.message
+        assert "Access denied" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_server_error_handling(mocker: MockerFixture) -> None:
+    """Test that server errors (like MemoryError) are handled with 500 status"""
+    from unittest.mock import patch
+
+    from superset.exceptions import SupersetTemplateException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise MemoryError (server error)
+    with patch.object(
+        processor.env, "from_string", side_effect=MemoryError("Out of memory")
+    ):
+        with pytest.raises(SupersetTemplateException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+
+        # Should get server error message (500)
+        assert "Internal Jinja2 template error" in str(exception)
+        assert "MemoryError" in str(exception)
+        assert "Out of memory" in str(exception)

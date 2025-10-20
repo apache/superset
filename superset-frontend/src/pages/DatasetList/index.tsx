@@ -275,12 +275,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDuplicating(dataset);
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+  const handleBulkDatasetExport = async (datasetsToExport: Dataset[]) => {
     const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dataset', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected datasets'));
+    }
   };
 
   const columns = useMemo(
@@ -348,7 +353,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxl',
         id: 'table_name',
       },
       {

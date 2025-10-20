@@ -58,9 +58,14 @@ CSV_FILE_WITH_NULLS = [
 
 
 def _setup_csv_upload(allowed_schemas: list[str] | None = None):
-    upload_db = get_or_create_db(
-        CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
-    )
+    # Use main database URI for schema-related tests (PostgreSQL-specific)
+    # Use examples URI for general upload tests
+    if allowed_schemas:
+        db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+    else:
+        db_uri = app.config["SQLALCHEMY_EXAMPLES_URI"]
+
+    upload_db = get_or_create_db(CSV_UPLOAD_DATABASE, db_uri)
     upload_db.allow_file_upload = True
     extra = upload_db.get_extra()
     allowed_schemas = allowed_schemas or []

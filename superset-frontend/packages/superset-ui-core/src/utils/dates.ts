@@ -43,6 +43,7 @@ dayjs.updateLocale('en', {
 });
 
 export const extendedDayjs = dayjs;
+export type { Dayjs };
 
 export const fDuration = function (
   t1: number,

@@ -188,7 +188,7 @@ class NullValueException(SupersetException):
 
 
 class SupersetTemplateException(SupersetException):
-    pass
+    status = 422
 
 
 class SpatialException(SupersetException):
@@ -486,3 +486,7 @@ class SupersetResultsBackendNotConfigureException(SupersetErrorException):
             level=ErrorLevel.ERROR,
         )
         super().__init__(error)
+
+
+class ScreenshotImageNotAvailableException(SupersetException):
+    status = 404

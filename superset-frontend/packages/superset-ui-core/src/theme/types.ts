@@ -78,6 +78,7 @@ export type SerializableThemeConfig = {
   algorithm?: ThemeAlgorithmOption;
   hashed?: boolean;
   inherit?: boolean;
+  cssVar?: boolean | { key?: string; prefix?: string };
 };
 
 /**
@@ -123,6 +124,19 @@ export interface SupersetSpecificTokens {
   brandLogoMargin: string;
   brandLogoHref: string;
   brandLogoHeight: string;
+
+  // Spinner-related
+  brandSpinnerUrl?: string;
+  brandSpinnerSvg?: string;
+
+  // ECharts-related
+  /** Global ECharts configuration overrides applied to all chart types */
+  echartsOptionsOverrides?: any;
+
+  /** Chart-specific ECharts configuration overrides keyed by viz_type */
+  echartsOptionsOverridesByChartType?: {
+    [chartType: string]: any;
+  };
 }
 
 /**

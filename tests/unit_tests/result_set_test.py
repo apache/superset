@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
+from superset.superset_typing import DbapiResult
 
 
 def test_column_names_as_bytes() -> None:
@@ -163,4 +164,24 @@ def test_timezone_series(mocker: MockerFixture) -> None:
     assert result_set.to_pandas_df().values.tolist() == [
         [pd.Timestamp("2023-01-01 00:00:00+0000", tz="UTC")]
     ]
+    logger.exception.assert_not_called()
+
+
+def test_get_column_description_from_empty_data_using_cursor_description(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that we can handle get_column_decription from the cursor description
+    when data is empty
+    """
+    logger = mocker.patch("superset.result_set.logger")
+
+    data: DbapiResult = []
+    description = [(b"__time", "datetime", None, None, None, None, 1, 0, 255)]
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+    assert any(col.get("column_name") == "__time" for col in result_set.columns)
     logger.exception.assert_not_called()

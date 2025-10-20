@@ -20,6 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -49,13 +51,22 @@ const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort = 9000,
+  devserverPort: cliPort,
+  devserverHost: cliHost,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
 
+// Precedence: CLI args > env vars > defaults
+const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
+const devserverHost =
+  cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
+
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
+
+// TypeScript checker memory limit (in MB)
+const TYPESCRIPT_MEMORY_LIMIT = 4096;
 
 const output = {
   path: BUILD_DIR,
@@ -141,6 +152,27 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies['react-dom'],
+      },
+      antd: {
+        singleton: true,
+        requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+    },
+  }),
 ];
 
 if (!process.env.CI) {
@@ -155,21 +187,64 @@ if (!isDevMode) {
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
+}
 
-  // Runs type checking on a separate process to speed up the build
+// Type checking for both dev and production
+// In dev mode, this provides real-time type checking and builds .d.ts files for plugins
+// Can be disabled with DISABLE_TYPE_CHECK=true npm run dev
+if (isDevMode) {
+  if (process.env.DISABLE_TYPE_CHECK) {
+    console.log('⚡ Type checking disabled (DISABLE_TYPE_CHECK=true)');
+  } else {
+    console.log(
+      '✅ Type checking enabled (disable with DISABLE_TYPE_CHECK=true npm run dev)',
+    );
+    // Optimized configuration for development - much faster type checking
+    plugins.push(
+      new ForkTsCheckerWebpackPlugin({
+        typescript: {
+          memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
+          build: true, // Generate .d.ts files
+          mode: 'write-references', // Handle project references properly
+          // Use main tsconfig but with safe performance optimizations
+          configOverwrite: {
+            compilerOptions: {
+              // Only safe optimizations that won't cause errors
+              skipLibCheck: true, // Skip checking .d.ts files - safe and huge perf boost
+              incremental: true, // Enable incremental compilation
+            },
+          },
+        },
+        // Logger configuration
+        logger: 'webpack-infrastructure',
+        async: true, // Non-blocking type checking
+        // Only check files that webpack is actually processing
+        // This dramatically reduces the scope of type checking
+        issue: {
+          scope: 'webpack', // Only check files in webpack's module graph, not entire project
+          include: [
+            { file: 'src/**/*.{ts,tsx}' },
+            { file: 'packages/*/src/**/*.{ts,tsx}' },
+            { file: 'plugins/*/src/**/*.{ts,tsx}' },
+          ],
+          exclude: [{ file: '**/node_modules/**' }],
+        },
+      }),
+    );
+  }
+} else {
+  // Production mode - full type checking
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       typescript: {
-        memoryLimit: 4096,
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         build: true,
-        exclude: [
-          '**/node_modules/**',
-          '**/dist/**',
-          '**/coverage/**',
-          '**/storybook/**',
-          '**/*.stories.{ts,tsx,js,jsx}',
-          '**/*.{test,spec}.{ts,tsx,js,jsx}',
-        ],
+        mode: 'write-references',
+      },
+      // Logger configuration
+      logger: 'webpack-infrastructure',
+      issue: {
+        exclude: [{ file: '**/node_modules/**' }],
       },
     }),
   );
@@ -315,7 +390,12 @@ const config = {
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
-    modules: ['node_modules', APP_DIR],
+    modules: [
+      'node_modules',
+      APP_DIR,
+      path.resolve(APP_DIR, 'packages'),
+      path.resolve(APP_DIR, 'plugins'),
+    ],
     alias: {
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
@@ -509,6 +589,16 @@ const config = {
   },
   plugins,
   devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
+  watchOptions: isDevMode
+    ? {
+        // Watch all plugin and package source directories
+        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
+        // Poll less frequently to reduce file handles
+        poll: 2000,
+        // Aggregate changes for 500ms before rebuilding
+        aggregateTimeout: 500,
+      }
+    : undefined,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -516,7 +606,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
@@ -542,7 +635,9 @@ if (isDevMode) {
     },
     historyApiFallback: true,
     hot: true,
+    host: devserverHost,
     port: devserverPort,
+    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
     proxy: [() => proxyConfig],
     client: {
       overlay: {

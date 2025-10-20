@@ -1,24 +1,17 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "declarationDir": "lib",
+    // Path Resolution: Override baseUrl to maintain correct path mappings from parent config
+    // (e.g., "@apache-superset/core" -> "./packages/superset-core/src")
+    "baseUrl": "../..",
+
+    // Directory Overrides: Parent config paths are relative to frontend root,
+    // but packages need paths relative to their own directory
     "outDir": "lib",
     "rootDir": "src",
-    "baseUrl": ".",
-    "paths": {
-      "src/*": ["./src/*"],
-      "@superset-ui/core": ["src"],
-      "@superset-ui/core/*": ["src/*"]
-    }
+    "declarationDir": "lib"
   },
-  "exclude": [
-    "lib",
-    "test"
-  ],
-  "include": [
-    "src/**/*",
-    "spec/**/*",
-    "types/**/*"
-  ],
-  "references": []
+  "include": ["src/**/*", "types/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"],
+  "references": [{ "path": "../superset-core" }]
 }

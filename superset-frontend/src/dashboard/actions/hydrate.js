@@ -244,6 +244,8 @@ export const hydrateDashboard =
       metadata.cross_filters_enabled,
     );
 
+    const chartCustomizationItems = metadata?.chart_customization_config || [];
+
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {
@@ -274,7 +276,6 @@ export const hydrateDashboard =
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
-            flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
           filterBarOrientation:
@@ -309,6 +310,7 @@ export const hydrateDashboard =
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
+          chartCustomizationItems,
         },
         dashboardLayout,
       },

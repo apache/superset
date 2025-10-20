@@ -56,7 +56,7 @@ def test_sql_tables_mixin_sql_tables_exception(
     mocker: MockerFixture,
 ) -> None:
     mocker.patch(
-        "superset.models.sql_lab.extract_tables_from_jinja_sql",
+        "superset.models.sql_lab.process_jinja_sql",
         side_effect=exception,
     )
 
@@ -87,7 +87,7 @@ def test_sql_tables_mixin_invalid_sql_returns_empty_list(
 ) -> None:
     """Test that SqlTablesMixin returns empty list when SQL parsing fails."""
     mocker.patch(
-        "superset.models.sql_lab.extract_tables_from_jinja_sql",
+        "superset.models.sql_lab.process_jinja_sql",
         side_effect=SupersetParseError(
             sql=invalid_sql or "INVALID SQL",
             message=f"Failed to parse SQL: {invalid_sql}",

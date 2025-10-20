@@ -32,23 +32,24 @@ const defaultProps = {
 };
 const renderedCoordinate = '6° 51\' 8.50" | 31° 13\' 21.56"';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ViewportControl', () => {
   beforeEach(() => {
     render(<ViewportControl {...defaultProps} />);
   });
 
-  it('renders a OverlayTrigger if clicked', () => {
+  test('renders a OverlayTrigger if clicked', () => {
     expect(screen.getByTestId('foo-header')).toBeInTheDocument(); // Presence of ControlHeader
     userEvent.click(screen.getByText(renderedCoordinate));
     expect(screen.getByText('Viewport')).toBeInTheDocument(); // Presence of Popover
   });
 
-  it('renders a Popover with 5 TextControl if clicked', () => {
+  test('renders a Popover with 5 TextControl if clicked', () => {
     userEvent.click(screen.getByText(renderedCoordinate));
     expect(screen.queryAllByTestId('inline-name')).toHaveLength(5);
   });
 
-  it('renders a summary in the label', () => {
+  test('renders a summary in the label', () => {
     expect(screen.getByText(renderedCoordinate)).toBeInTheDocument();
   });
 });

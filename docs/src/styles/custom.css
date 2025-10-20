@@ -45,6 +45,60 @@ ul.dropdown__menu svg {
   display: none;
 }
 
+/* Consistent dropdown styling for navbar */
+.navbar__item.dropdown .dropdown__menu {
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar__item.dropdown .dropdown__link {
+  color: #1c1e21 !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  padding: 0.5rem 1rem !important;
+  display: block !important;
+}
+
+.navbar__item.dropdown .dropdown__link:hover {
+  background-color: #f5f5f5 !important;
+  color: #1c1e21 !important;
+  text-decoration: none !important;
+}
+
+/* Remove the blue box styling for doc links in dropdowns */
+.navbar__item.dropdown .dropdown__link--active {
+  background-color: transparent !important;
+  color: #1c1e21 !important;
+}
+
+.navbar__item.dropdown .dropdown__link--active:hover {
+  background-color: #f5f5f5 !important;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .navbar__item.dropdown .dropdown__menu {
+  background-color: #242526;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link {
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link:hover {
+  background-color: #3a3b3c !important;
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link--active {
+  color: #f5f6f7 !important;
+}
+
+[data-theme='dark'] .navbar__item.dropdown .dropdown__link--active:hover {
+  background-color: #3a3b3c !important;
+}
+
 :root {
   --ifm-color-primary: #20a7c9;
   --ifm-color-primary-dark: #1985a0;
