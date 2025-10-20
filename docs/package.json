@@ -30,7 +30,7 @@
     "@ant-design/icons": "^6.1.0",
     "@docusaurus/core": "3.9.2",
     "@docusaurus/plugin-client-redirects": "3.9.2",
-    "@docusaurus/preset-classic": "3.9.1",
+    "@docusaurus/preset-classic": "3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@emotion/core": "^10.0.27",
     "@emotion/react": "^11.13.3",
