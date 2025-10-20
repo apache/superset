@@ -107,8 +107,11 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 
       if (input) {
         input.focus();
-        const length = input.value?.length || 0;
-        input.setSelectionRange?.(length, length);
+        // setSelectionRange doesn't work on number inputs
+        if (input.type !== 'number') {
+          const length = input.value?.length || 0;
+          input.setSelectionRange?.(length, length);
+        }
       }
     }, 100);
   };
