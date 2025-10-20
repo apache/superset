@@ -227,6 +227,11 @@ function simpleFilterToWhereClause(
     return `${columnName} ${SQL_OPERATORS.IS_NOT_NULL}`;
   }
 
+  // For non-blank operators, skip conditions with null values (cleared compound filters)
+  if (value === null || value === undefined) {
+    return '';
+  }
+
   if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
     return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
   }
@@ -276,17 +281,29 @@ function compoundFilterToWhereClause(
       return '';
     }
 
+    // If only one valid clause remains, return it without wrapping in parentheses
+    if (clauses.length === 1) {
+      return clauses[0];
+    }
+
     return `(${clauses.join(` ${operator} `)})`;
   }
 
   const clause1 = simpleFilterToWhereClause(columnName, condition1);
   const clause2 = simpleFilterToWhereClause(columnName, condition2);
 
-  if (!clause1 || !clause2) {
-    console.error(
-      `[AG Grid Filters] Invalid compound filter for column: ${columnName}`,
-    );
+  // Handle cases where one or both conditions are cleared
+  if (!clause1 && !clause2) {
     return '';
+  }
+
+  // If only one condition is valid, return it without operator
+  if (!clause1) {
+    return clause2;
+  }
+
+  if (!clause2) {
+    return clause1;
   }
 
   return `(${clause1} ${operator} ${clause2})`;
