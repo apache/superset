@@ -2026,10 +2026,10 @@
     fs-extra "^11.1.1"
     tslib "^2.6.0"
 
-"@docusaurus/tsconfig@^3.9.1":
-  version "3.9.1"
-  resolved "https://registry.yarnpkg.com/@docusaurus/tsconfig/-/tsconfig-3.9.1.tgz#a39cb74021f16dd4794db9182de812303817528e"
-  integrity sha512-stdzM1dNDgRO0OvxeznXlE3N1igUoeHPNJjiKqyffLizgpVgNXJBAWeG6fuoYiCH4udGUBqy2dyM+1+kG2/UPQ==
+"@docusaurus/tsconfig@^3.9.2":
+  version "3.9.2"
+  resolved "https://registry.yarnpkg.com/@docusaurus/tsconfig/-/tsconfig-3.9.2.tgz#7f440e0ae665b841e1d487749037f26a0275f9c1"
+  integrity sha512-j6/Fp4Rlpxsc632cnRnl5HpOWeb6ZKssDj6/XzzAzVGXXfm9Eptx3rxCC+fDzySn9fHTS+CWJjPineCR1bB5WQ==
 
 "@docusaurus/types@3.9.1":
   version "3.9.1"
