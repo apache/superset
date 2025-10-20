@@ -58,6 +58,7 @@ export const getFormData = ({
   type,
   dashboardId,
   id,
+  columnValue = '',
 }: Partial<Filter> & {
   dashboardId: number;
   datasetId?: number;
@@ -70,6 +71,7 @@ export const getFormData = ({
     datasource?: string;
     groupby?: string[];
     sortMetric?: string;
+    columnValue?: string;
   } = {};
   if (datasetId) {
     otherProps.datasource = `${datasetId}__table`;
@@ -80,6 +82,11 @@ export const getFormData = ({
   if (sortMetric) {
     otherProps.sortMetric = sortMetric;
   }
+
+  if (columnValue) {
+    otherProps.columnValue = columnValue;
+  }
+
   return {
     ...controlValues,
     ...otherProps,

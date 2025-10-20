@@ -40,6 +40,7 @@ interface ColumnSelectProps {
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
+  helperText?: string;
 }
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
@@ -54,6 +55,7 @@ export function ColumnSelect({
   value,
   onChange,
   mode,
+  helperText,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
   const [loading, setLoading] = useState(false);
@@ -129,17 +131,20 @@ export function ColumnSelect({
   });
 
   return (
-    <Select
-      mode={mode}
-      value={mode === 'multiple' ? value || [] : value}
-      ariaLabel={t('Column select')}
-      loading={loading}
-      onChange={onChange}
-      options={options}
-      placeholder={t('Select a column')}
-      notFoundContent={t('No compatible columns found')}
-      showSearch
-      allowClear={allowClear}
-    />
+    <div>
+      <Select
+        mode={mode}
+        value={mode === 'multiple' ? value || [] : value}
+        ariaLabel={t('Column select')}
+        loading={loading}
+        onChange={onChange}
+        options={options}
+        placeholder={t('Select a column')}
+        notFoundContent={t('No compatible columns found')}
+        showSearch
+        allowClear={allowClear}
+      />
+      {helperText && <p className="help-block">{helperText}</p>}
+    </div>
   );
 }

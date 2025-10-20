@@ -199,6 +199,10 @@ export const StyledLabel = styled.span`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
+export const StyledLabelWithHelpText = styled.span`
+  margin-bottom: 4px;
+`;
+
 const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
@@ -959,6 +963,12 @@ const FiltersConfigForm = (
               )}
           </StyledRowContainer>
         )}
+        <StyledRowContainer>
+          {hasDataset &&
+            Object.keys(mainControlItems).map(
+              key => mainControlItems[key].elementColumnValue,
+            )}
+        </StyledRowContainer>
         <StyledCollapse
           defaultActiveKey={activeFilterPanelKeys}
           onChange={key => {

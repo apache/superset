@@ -29,14 +29,16 @@ import {
   finestTemporalGrainFormatter,
   t,
   tn,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { debounce } from 'lodash';
+import { debounce, cloneDeep } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -46,7 +48,11 @@ type DataMaskAction =
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
+      filterState: {
+        value: SelectValue;
+        label?: string;
+        columnValue?: string;
+      };
     };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
@@ -109,20 +115,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
   );
-  const [col] = groupby;
+  const [columnLabel] = groupby;
+  const { columnValue } = formData;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
   });
-  const datatype: GenericDataType = coltypeMap[col];
+  const datatype: GenericDataType = coltypeMap[columnLabel];
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
-        timeFormatter: finestTemporalGrainFormatter(data.map(el => el[col])),
+        timeFormatter: finestTemporalGrainFormatter(
+          data.map(el => el[columnLabel]),
+        ),
       }),
-    [data, col],
+    [data, columnLabel],
   );
 
   const updateDataMask = useCallback(
@@ -131,10 +140,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         enableEmptyFilter && !inverseSelection && !values?.length;
 
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
-      dispatchDataMask({
-        type: 'filterState',
+
+      const dataMask = {
         extraFormData: getSelectExtraFormData(
-          col,
+          columnLabel,
           values,
           emptyFilter,
           inverseSelection,
@@ -151,12 +160,56 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               ? undefined
               : values,
         },
-      });
+      };
+
+      // Filter by columnValue if its different than columnLabel,
+      // we make another http call to fetch datas filtered by columnValue
+      // otherwise we keep normal behavior when columnLabel = columnvalue
+      const filterByColumnValue = columnValue && !(columnLabel === columnValue);
+
+      if (filterByColumnValue) {
+        const fd = {
+          ...cloneDeep(formData),
+          groupby: [columnValue],
+        };
+
+        if (filterState?.value?.length > 0) {
+          fd.extra_form_data = {
+            filters: [{ col: columnLabel, op: 'IN', val: filterState.value }],
+          };
+        }
+
+        getChartDataRequest({
+          formData: fd,
+          force: true,
+        }).then(({ json }) => {
+          const datas: ChartDataResponseResult['data'] = json.result[0].data;
+          const columnValues = datas.map(
+            data => Object.values(data)[0],
+          ) as string[];
+
+          dispatchDataMask({
+            ...dataMask,
+            type: 'filterState',
+            extraFormData: getSelectExtraFormData(
+              columnValue,
+              columnValues,
+              emptyFilter,
+              inverseSelection,
+            ),
+          });
+        });
+      } else {
+        dispatchDataMask({
+          ...dataMask,
+          type: 'filterState',
+        });
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appSection,
-      col,
+      columnLabel,
       datatype,
       defaultToFirstItem,
       dispatchDataMask,
@@ -222,13 +275,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
+    const allOptions = new Set([...data.map(el => el[columnLabel])]);
     return [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
       isNewOption: false,
     }));
-  }, [data, datatype, col, labelFormatter]);
+  }, [data, datatype, columnLabel, labelFormatter]);
 
   const options = useMemo(() => {
     if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
@@ -271,7 +324,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       updateDataMask(filterState.value);
     }
   }, [
-    col,
+    columnLabel,
     isDisabled,
     defaultToFirstItem,
     enableEmptyFilter,

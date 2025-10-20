@@ -2600,6 +2600,15 @@ msgstr ""
 msgid "Column"
 msgstr ""
 
+msgid "Column for labels"
+msgstr ""
+
+msgid "Column for values"
+msgstr ""
+
+msgid "Column used for labels and values or only labels if a value is defined on 'Column for values'"
+msgstr ""
+
 #, python-format
 msgid ""
 "Column \"%(column)s\" is not numeric or does not exists in the query "
@@ -5338,6 +5347,9 @@ msgid "If Table Already Exists"
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
+msgstr ""
+
+msgid "If value is specified, filtering will be done based on this value. Default value will be column name."
 msgstr ""
 
 msgid ""

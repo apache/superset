@@ -141,6 +141,8 @@ const FILTER_TYPE_REGEX = /^filter type$/i;
 const FILTER_NAME_REGEX = /^filter name$/i;
 const DATASET_REGEX = /^dataset$/i;
 const COLUMN_REGEX = /^column$/i;
+const COLUMN_LABEL_REGEX = /^column for labels$/i;
+const COLUMN_VALUE_REGEX = /^column for values$/i;
 const VALUE_REGEX = /^value$/i;
 const NUMERICAL_RANGE_REGEX = /^numerical range$/i;
 const TIME_RANGE_REGEX = /^time range$/i;
@@ -203,7 +205,8 @@ test('renders a value filter type', () => {
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
-  expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(COLUMN_LABEL_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(COLUMN_VALUE_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(REQUIRED_REGEX)).not.toBeChecked();

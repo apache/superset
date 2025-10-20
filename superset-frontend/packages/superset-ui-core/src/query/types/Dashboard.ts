@@ -21,6 +21,7 @@ import { AdhocFilter, DataMask } from '@superset-ui/core';
 
 export interface NativeFilterColumn {
   name: string;
+  columnValue?: string;
   displayName?: string;
 }
 
@@ -78,6 +79,7 @@ export type Filter = {
   chartsInScope?: number[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  columnValue?: string;
 };
 
 export type AppliedFilter = {

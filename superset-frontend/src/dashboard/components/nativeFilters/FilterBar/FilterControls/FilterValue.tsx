@@ -145,6 +145,9 @@ const FilterValue: FC<FilterControlProps> = ({
     if (!inViewFirstTime) {
       return;
     }
+
+    const columnValue = filter?.targets?.[0].column?.columnValue;
+
     const newFormData = getFormData({
       ...filter,
       datasetId,
@@ -153,7 +156,17 @@ const FilterValue: FC<FilterControlProps> = ({
       adhoc_filters,
       time_range,
       dashboardId,
+      columnValue,
     });
+
+    const deleteColumnValueOverride = !columnValue && formData.columnValue;
+
+    if (deleteColumnValueOverride) {
+      delete newFormData.columnValue;
+
+      setFormData(newFormData);
+    }
+
     const filterOwnState = filter.dataMask?.ownState || {};
     // TODO: We should try to improve our useEffect hooks to depend more on
     // granular information instead of big objects that require deep comparison.
