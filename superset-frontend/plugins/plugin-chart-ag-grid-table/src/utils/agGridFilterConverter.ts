@@ -130,20 +130,14 @@ function escapeSQLString(value: string): string {
 
 function validateColumnName(columnName: string): boolean {
   if (!columnName || typeof columnName !== 'string') {
-    console.error('[AG Grid Filters] Column name must be a non-empty string');
     return false;
   }
 
   if (columnName.length > 255) {
-    console.error(
-      `[AG Grid Filters] Column name exceeds maximum length: ${columnName}`,
-    );
     return false;
   }
+
   if (!COLUMN_NAME_REGEX.test(columnName)) {
-    console.error(
-      `[AG Grid Filters] Invalid column name format: ${columnName}`,
-    );
     return false;
   }
 
@@ -153,7 +147,6 @@ function validateColumnName(columnName: string): boolean {
 function validateFilterValue(
   value: FilterValue | undefined,
   operator: AgGridFilterOperator,
-  columnName?: string,
 ): boolean {
   if (
     operator === FILTER_OPERATORS.BLANK ||
@@ -163,9 +156,6 @@ function validateFilterValue(
   }
 
   if (value === undefined) {
-    console.error(
-      `[AG Grid Filters] Filter value required for operator: ${operator}${columnName ? ` (column: ${columnName})` : ''}`,
-    );
     return false;
   }
 
@@ -177,9 +167,6 @@ function validateFilterValue(
     valueType !== 'boolean' &&
     !(value instanceof Date)
   ) {
-    console.error(
-      `[AG Grid Filters] Invalid filter value type: ${valueType}${columnName ? ` (column: ${columnName})` : ''}`,
-    );
     return false;
   }
 
@@ -215,13 +202,10 @@ function simpleFilterToWhereClause(
 
   const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
   if (!operator) {
-    console.error(
-      `[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`,
-    );
     return '';
   }
 
-  if (!validateFilterValue(value, type, columnName)) {
+  if (!validateFilterValue(value, type)) {
     return '';
   }
 
@@ -233,7 +217,6 @@ function simpleFilterToWhereClause(
     return `${columnName} ${SQL_OPERATORS.IS_NOT_NULL}`;
   }
 
-  // For non-blank operators, skip conditions with null values (cleared compound filters)
   if (value === null || value === undefined) {
     return '';
   }
@@ -287,7 +270,6 @@ function compoundFilterToWhereClause(
       return '';
     }
 
-    // If only one valid clause remains, return it without wrapping in parentheses
     if (clauses.length === 1) {
       return clauses[0];
     }
@@ -298,12 +280,10 @@ function compoundFilterToWhereClause(
   const clause1 = simpleFilterToWhereClause(columnName, condition1);
   const clause2 = simpleFilterToWhereClause(columnName, condition2);
 
-  // Handle cases where one or both conditions are cleared
   if (!clause1 && !clause2) {
     return '';
   }
 
-  // If only one condition is valid, return it without operator
   if (!clause1) {
     return clause2;
   }
@@ -327,9 +307,6 @@ export function convertAgGridFiltersToSQL(
   metricColumns: string[] = [],
 ): ConvertedFilter {
   if (!filterModel || typeof filterModel !== 'object') {
-    console.error(
-      '[AG Grid Filters] Invalid filter model: must be a non-null object',
-    );
     return {
       simpleFilters: [],
       complexWhere: undefined,
@@ -348,30 +325,16 @@ export function convertAgGridFiltersToSQL(
     }
 
     if (!filter || typeof filter !== 'object') {
-      console.error(
-        `[AG Grid Filters] Invalid filter for column: ${columnName}`,
-      );
       return;
     }
 
     const isMetric = metricColumnsSet.has(columnName);
 
     if (isSetFilter(filter)) {
-      if (!Array.isArray(filter.values)) {
-        console.error(
-          `[AG Grid Filters] Set filter values must be an array for column: ${columnName}`,
-        );
+      if (!Array.isArray(filter.values) || filter.values.length === 0) {
         return;
       }
 
-      if (filter.values.length === 0) {
-        console.warn(
-          `[AG Grid Filters] Empty set filter for column: ${columnName}`,
-        );
-        return;
-      }
-
-      // Set filters on metrics should go to HAVING clause as SQL
       if (isMetric) {
         const values = filter.values
           .map(v => (typeof v === 'string' ? `'${escapeSQLString(v)}'` : v))
@@ -390,7 +353,6 @@ export function convertAgGridFiltersToSQL(
     if (isCompoundFilter(filter)) {
       const whereClause = compoundFilterToWhereClause(columnName, filter);
       if (whereClause) {
-        // Compound filters on metrics go to HAVING clause
         if (isMetric) {
           complexHavingClauses.push(whereClause);
         } else {
@@ -404,21 +366,14 @@ export function convertAgGridFiltersToSQL(
     const { type, filter: value } = simpleFilter;
 
     if (!type) {
-      console.error(
-        `[AG Grid Filters] Missing filter type for column: ${columnName}`,
-      );
       return;
     }
 
     const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
     if (!operator) {
-      console.error(
-        `[AG Grid Filters] Unsupported filter operator: ${type} for column: ${columnName}`,
-      );
       return;
     }
 
-    // Handle BLANK and NOT_BLANK operators
     if (type === FILTER_OPERATORS.BLANK) {
       if (isMetric) {
         complexHavingClauses.push(`${columnName} ${SQL_OPERATORS.IS_NULL}`);
@@ -445,13 +400,12 @@ export function convertAgGridFiltersToSQL(
       return;
     }
 
-    if (!validateFilterValue(value, type, columnName)) {
+    if (!validateFilterValue(value, type)) {
       return;
     }
 
     const formattedValue = formatValueForOperator(type, value!);
 
-    // Simple filters on metrics go to HAVING clause as SQL
     if (isMetric) {
       const sqlClause = simpleFilterToWhereClause(columnName, simpleFilter);
       if (sqlClause) {
@@ -466,15 +420,19 @@ export function convertAgGridFiltersToSQL(
     }
   });
 
-  const complexWhere =
-    complexWhereClauses.length > 0
-      ? `(${complexWhereClauses.join(' AND ')})`
-      : undefined;
+  let complexWhere;
+  if (complexWhereClauses.length === 1) {
+    complexWhere = complexWhereClauses[0];
+  } else if (complexWhereClauses.length > 1) {
+    complexWhere = `(${complexWhereClauses.join(' AND ')})`;
+  }
 
-  const havingClause =
-    complexHavingClauses.length > 0
-      ? `(${complexHavingClauses.join(' AND ')})`
-      : undefined;
+  let havingClause;
+  if (complexHavingClauses.length === 1) {
+    havingClause = complexHavingClauses[0];
+  } else if (complexHavingClauses.length > 1) {
+    havingClause = `(${complexHavingClauses.join(' AND ')})`;
+  }
 
   return {
     simpleFilters,
