@@ -434,6 +434,9 @@ class SnowflakeSemanticView:
 
         self._quote = SnowflakeDialect().identifier_preparer.quote
 
+        self.dimensions = self.get_dimensions()
+        self.metrics = self.get_metrics()
+
     def uid(self) -> str:
         return ".".join(
             self._quote(part)

@@ -243,3 +243,18 @@ class SemanticResult:
 
     requests: list[SemanticRequest]
     results: DataFrame
+
+
+@dataclass(frozen=True)
+class SemanticQuery:
+    """
+    Represents a semantic query.
+    """
+
+    metrics: list[Metric]
+    dimensions: list[Dimension]
+    filters: set[Filter | NativeFilter] | None = None
+    order: list[tuple[Metric | Dimension, OrderDirection]] | None = None
+    limit: int | None = None
+    offset: int | None = None
+    group_limit: GroupLimit | None = None
