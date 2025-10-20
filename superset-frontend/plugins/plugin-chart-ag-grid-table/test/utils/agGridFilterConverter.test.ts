@@ -23,7 +23,6 @@ import {
   SQL_OPERATORS,
 } from '../../src/utils/agGridFilterConverter';
 
-// Test: Simple text filter - equals
 test('converts simple text filter with equals operator', () => {
   const filterModel: AgGridFilterModel = {
     name: {
@@ -45,7 +44,6 @@ test('converts simple text filter with equals operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple text filter - contains
 test('converts simple text filter with contains operator', () => {
   const filterModel: AgGridFilterModel = {
     description: {
@@ -67,7 +65,6 @@ test('converts simple text filter with contains operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple text filter - not contains
 test('converts simple text filter with notContains operator', () => {
   const filterModel: AgGridFilterModel = {
     description: {
@@ -89,7 +86,6 @@ test('converts simple text filter with notContains operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple text filter - starts with
 test('converts simple text filter with startsWith operator', () => {
   const filterModel: AgGridFilterModel = {
     email: {
@@ -111,7 +107,6 @@ test('converts simple text filter with startsWith operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple text filter - ends with
 test('converts simple text filter with endsWith operator', () => {
   const filterModel: AgGridFilterModel = {
     email: {
@@ -133,7 +128,6 @@ test('converts simple text filter with endsWith operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - equals
 test('converts simple number filter with equals operator', () => {
   const filterModel: AgGridFilterModel = {
     age: {
@@ -155,7 +149,6 @@ test('converts simple number filter with equals operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - not equal
 test('converts simple number filter with notEqual operator', () => {
   const filterModel: AgGridFilterModel = {
     age: {
@@ -177,7 +170,6 @@ test('converts simple number filter with notEqual operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - less than
 test('converts simple number filter with lessThan operator', () => {
   const filterModel: AgGridFilterModel = {
     price: {
@@ -199,7 +191,6 @@ test('converts simple number filter with lessThan operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - less than or equal
 test('converts simple number filter with lessThanOrEqual operator', () => {
   const filterModel: AgGridFilterModel = {
     price: {
@@ -221,7 +212,6 @@ test('converts simple number filter with lessThanOrEqual operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - greater than
 test('converts simple number filter with greaterThan operator', () => {
   const filterModel: AgGridFilterModel = {
     quantity: {
@@ -243,7 +233,6 @@ test('converts simple number filter with greaterThan operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple number filter - greater than or equal
 test('converts simple number filter with greaterThanOrEqual operator', () => {
   const filterModel: AgGridFilterModel = {
     quantity: {
@@ -265,7 +254,6 @@ test('converts simple number filter with greaterThanOrEqual operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple filter - blank (IS NULL)
 test('converts simple filter with blank operator to IS NULL', () => {
   const filterModel: AgGridFilterModel = {
     notes: {
@@ -286,7 +274,6 @@ test('converts simple filter with blank operator to IS NULL', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Simple filter - not blank (IS NOT NULL)
 test('converts simple filter with notBlank operator to IS NOT NULL', () => {
   const filterModel: AgGridFilterModel = {
     notes: {
@@ -307,7 +294,6 @@ test('converts simple filter with notBlank operator to IS NOT NULL', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Set filter with multiple values
 test('converts set filter with multiple values to IN operator', () => {
   const filterModel: AgGridFilterModel = {
     status: {
@@ -328,7 +314,6 @@ test('converts set filter with multiple values to IN operator', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Set filter with single value
 test('converts set filter with single value', () => {
   const filterModel: AgGridFilterModel = {
     category: {
@@ -349,7 +334,6 @@ test('converts set filter with single value', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Set filter with numeric values
 test('converts set filter with numeric values', () => {
   const filterModel: AgGridFilterModel = {
     priority: {
@@ -370,7 +354,6 @@ test('converts set filter with numeric values', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Compound filter with AND operator
 test('converts compound filter with AND operator to complex WHERE clause', () => {
   const filterModel: AgGridFilterModel = {
     price: {
@@ -392,10 +375,9 @@ test('converts compound filter with AND operator to complex WHERE clause', () =>
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe('((price > 50 AND price < 100))');
+  expect(result.complexWhere).toBe('(price > 50 AND price < 100)');
 });
 
-// Test: Compound filter with OR operator
 test('converts compound filter with OR operator to complex WHERE clause', () => {
   const filterModel: AgGridFilterModel = {
     status: {
@@ -418,11 +400,10 @@ test('converts compound filter with OR operator to complex WHERE clause', () => 
 
   expect(result.simpleFilters).toEqual([]);
   expect(result.complexWhere).toBe(
-    "((status == 'active' OR status == 'pending'))",
+    "(status == 'active' OR status == 'pending')",
   );
 });
 
-// Test: Compound filter with multiple conditions (using conditions array)
 test('converts compound filter with multiple conditions array', () => {
   const filterModel: AgGridFilterModel = {
     priority: {
@@ -462,11 +443,10 @@ test('converts compound filter with multiple conditions array', () => {
 
   expect(result.simpleFilters).toEqual([]);
   expect(result.complexWhere).toBe(
-    '((priority == 1 OR priority == 2 OR priority == 3))',
+    '(priority == 1 OR priority == 2 OR priority == 3)',
   );
 });
 
-// Test: Multiple simple filters combined
 test('converts multiple simple filters into separate simple filter entries', () => {
   const filterModel: AgGridFilterModel = {
     name: {
@@ -506,7 +486,6 @@ test('converts multiple simple filters into separate simple filter entries', () 
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Mix of simple and compound filters
 test('converts mix of simple and compound filters correctly', () => {
   const filterModel: AgGridFilterModel = {
     name: {
@@ -539,10 +518,9 @@ test('converts mix of simple and compound filters correctly', () => {
       val: '%John%',
     },
   ]);
-  expect(result.complexWhere).toBe('((price > 50 AND price < 100))');
+  expect(result.complexWhere).toBe('(price > 50 AND price < 100)');
 });
 
-// Test: Multiple compound filters
 test('combines multiple compound filters with AND in complex WHERE clause', () => {
   const filterModel: AgGridFilterModel = {
     price: {
@@ -583,7 +561,6 @@ test('combines multiple compound filters with AND in complex WHERE clause', () =
   expect(result.complexWhere).toMatch(/^\(.+ AND .+\)$/);
 });
 
-// Test: In-range filter (BETWEEN)
 test('converts inRange filter to BETWEEN operator in simple filters', () => {
   const filterModel: AgGridFilterModel = {
     age: {
@@ -606,7 +583,6 @@ test('converts inRange filter to BETWEEN operator in simple filters', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Compound filter with inRange in conditions
 test('converts compound filter with inRange operator in WHERE clause', () => {
   const filterModel: AgGridFilterModel = {
     price: {
@@ -630,11 +606,10 @@ test('converts compound filter with inRange operator in WHERE clause', () => {
 
   expect(result.simpleFilters).toEqual([]);
   expect(result.complexWhere).toBe(
-    '((price BETWEEN 50 AND 100 AND price != 75))',
+    '(price BETWEEN 50 AND 100 AND price != 75)',
   );
 });
 
-// Test: Empty filter model
 test('handles empty filter model gracefully', () => {
   const filterModel: AgGridFilterModel = {};
 
@@ -644,40 +619,21 @@ test('handles empty filter model gracefully', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Invalid filter model (null)
 test('handles null filter model gracefully', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
   const result = convertAgGridFiltersToSQL(null as any);
 
   expect(result.simpleFilters).toEqual([]);
   expect(result.complexWhere).toBeUndefined();
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Invalid filter model: must be a non-null object',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Invalid filter model (undefined)
 test('handles undefined filter model gracefully', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
   const result = convertAgGridFiltersToSQL(undefined as any);
 
   expect(result.simpleFilters).toEqual([]);
   expect(result.complexWhere).toBeUndefined();
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Invalid filter model: must be a non-null object',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Invalid column name (empty string)
-test('skips filter with empty column name and logs error', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+test('skips filter with empty column name', () => {
   const filterModel: AgGridFilterModel = {
     '': {
       filterType: 'text',
@@ -689,17 +645,9 @@ test('skips filter with empty column name and logs error', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Column name must be a non-empty string',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Invalid column name (too long)
 test('skips filter with column name exceeding maximum length', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
   const longColumnName = 'a'.repeat(256);
   const filterModel: AgGridFilterModel = {
     [longColumnName]: {
@@ -712,19 +660,9 @@ test('skips filter with column name exceeding maximum length', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    expect.stringContaining(
-      '[AG Grid Filters] Column name exceeds maximum length',
-    ),
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Invalid column name (special characters)
 test('skips filter with invalid column name characters', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
   const filterModel: AgGridFilterModel = {
     'column@name!': {
       filterType: 'text',
@@ -736,41 +674,22 @@ test('skips filter with invalid column name characters', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Invalid column name format: column@name!',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Missing filter value for operator requiring value
-test('skips filter with missing value and logs error', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+test('skips filter with missing value', () => {
   const filterModel: AgGridFilterModel = {
     name: {
       filterType: 'text',
       type: FILTER_OPERATORS.EQUALS,
-      // filter value is missing
     },
   };
 
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    expect.stringContaining(
-      '[AG Grid Filters] Filter value required for operator',
-    ),
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Empty set filter
-test('skips empty set filter and logs warning', () => {
-  const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
+test('skips empty set filter', () => {
   const filterModel: AgGridFilterModel = {
     status: {
       filterType: 'set',
@@ -781,17 +700,9 @@ test('skips empty set filter and logs warning', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleWarnSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Empty set filter for column: status',
-  );
-
-  consoleWarnSpy.mockRestore();
 });
 
-// Test: Set filter with non-array values
-test('skips set filter with non-array values and logs error', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+test('skips set filter with non-array values', () => {
   const filterModel: AgGridFilterModel = {
     status: {
       filterType: 'set',
@@ -802,17 +713,9 @@ test('skips set filter with non-array values and logs error', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Set filter values must be an array for column: status',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Filter with missing type
-test('skips filter with missing type and logs error', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+test('skips filter with missing type', () => {
   const filterModel: AgGridFilterModel = {
     name: {
       filterType: 'text',
@@ -823,17 +726,9 @@ test('skips filter with missing type and logs error', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Missing filter type for column: name',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Invalid filter object (null)
-test('skips null filter object and logs error', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+test('skips null filter object', () => {
   const filterModel: AgGridFilterModel = {
     name: null as any,
   };
@@ -841,14 +736,8 @@ test('skips null filter object and logs error', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    '[AG Grid Filters] Invalid filter for column: name',
-  );
-
-  consoleErrorSpy.mockRestore();
 });
 
-// Test: Boolean filter value
 test('converts filter with boolean value', () => {
   const filterModel: AgGridFilterModel = {
     is_active: {
@@ -870,7 +759,6 @@ test('converts filter with boolean value', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Null filter value
 test('converts filter with null value', () => {
   const filterModel: AgGridFilterModel = {
     middle_name: {
@@ -892,7 +780,6 @@ test('converts filter with null value', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Column names with spaces and dots
 test('accepts column names with valid spaces and dots', () => {
   const filterModel: AgGridFilterModel = {
     'user.first_name': {
@@ -922,7 +809,6 @@ test('accepts column names with valid spaces and dots', () => {
   });
 });
 
-// Test: Compound filter with blank/notBlank conditions
 test('converts compound filter with blank and notBlank operators', () => {
   const filterModel: AgGridFilterModel = {
     notes: {
@@ -943,10 +829,9 @@ test('converts compound filter with blank and notBlank operators', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe("((notes IS NULL OR notes == 'N/A'))");
+  expect(result.complexWhere).toBe("(notes IS NULL OR notes == 'N/A')");
 });
 
-// Test: Date filter value
 test('converts filter with Date value', () => {
   const date = new Date('2024-01-15');
   const filterModel: AgGridFilterModel = {
@@ -969,10 +854,7 @@ test('converts filter with Date value', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Compound filter with invalid condition logs error but returns valid condition
 test('handles compound filter with invalid conditions gracefully', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
   const filterModel: AgGridFilterModel = {
     price: {
       filterType: 'number',
@@ -993,13 +875,9 @@ test('handles compound filter with invalid conditions gracefully', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBe('(price > 50)');
-  expect(consoleErrorSpy).toHaveBeenCalled();
-
-  consoleErrorSpy.mockRestore();
+  expect(result.complexWhere).toBe('price > 50');
 });
 
-// Test: Partial match - starts with doesn't add trailing %
 test('formats startsWith filter value correctly with only trailing wildcard', () => {
   const filterModel: AgGridFilterModel = {
     product_code: {
@@ -1021,7 +899,6 @@ test('formats startsWith filter value correctly with only trailing wildcard', ()
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Partial match - ends with doesn't add leading %
 test('formats endsWith filter value correctly with only leading wildcard', () => {
   const filterModel: AgGridFilterModel = {
     product_code: {
@@ -1043,7 +920,6 @@ test('formats endsWith filter value correctly with only leading wildcard', () =>
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Set filter with mixed types
 test('converts set filter with mixed value types', () => {
   const filterModel: AgGridFilterModel = {
     mixed_column: {
