@@ -202,7 +202,7 @@ def create_mcp_app(
 
 # Create default MCP instance for backward compatibility
 # Tool modules can import this and use @mcp.tool decorators
-mcp = create_mcp_app()
+mcp = create_mcp_app(stateless_http=True)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
