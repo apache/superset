@@ -135,7 +135,7 @@ export type SearchOption = {
 export interface AgGridColumnFilter {
   col: string;
   op: string;
-  val: any;
+  val: string | number | boolean | null | (string | number)[];
 }
 
 export interface ServerPaginationData {

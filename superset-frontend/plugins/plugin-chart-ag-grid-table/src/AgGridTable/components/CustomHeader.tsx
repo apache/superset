@@ -19,7 +19,7 @@
  * under the License.
  */
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { t } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import FilterIcon from './Filter';
@@ -82,7 +82,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     column?.isFilterActive() ||
     (colId ? activeFilterColumns?.has(colId) : false);
 
-  const focusFilterInput = (position?: 'first' | 'second') => {
+  const focusFilterInput = useCallback((position?: 'first' | 'second') => {
     setTimeout(() => {
       if (!filterRef.current) return;
 
@@ -109,17 +109,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         input.focus();
       }
     }, 100);
-  };
-
-  // Auto-open filter popover if this column was last filtered
-  useEffect(() => {
-    setTimeout(() => {
-      if (lastFilteredColumn === colId && !isFilterVisible) {
-        handleFilterClick();
-        focusFilterInput(lastFilteredInputPosition);
-      }
-    }, 200);
-  }, [lastFilteredColumn, colId]);
+  }, []);
 
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
@@ -151,19 +141,33 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     else clearSort();
   };
 
-  const handleFilterClick = async (e?: React.MouseEvent | undefined) => {
-    if (e) {
-      e?.stopPropagation();
-    }
-    setFilterVisible(!isFilterVisible);
+  const handleFilterClick = useCallback(
+    async (e?: React.MouseEvent | undefined) => {
+      if (e) {
+        e?.stopPropagation();
+      }
+      setFilterVisible(!isFilterVisible);
 
-    const filterInstance = await api.getColumnFilterInstance<any>(column);
-    const filterEl = filterInstance?.eGui;
-    if (filterEl && filterRef.current) {
-      filterRef.current.innerHTML = '';
-      filterRef.current.appendChild(filterEl);
-    }
-  };
+      const filterInstance = await api.getColumnFilterInstance<any>(column);
+      const filterEl = filterInstance?.eGui;
+      if (filterEl && filterRef.current) {
+        filterRef.current.innerHTML = '';
+        filterRef.current.appendChild(filterEl);
+      }
+    },
+    [isFilterVisible, api, column],
+  );
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (lastFilteredColumn === colId && !isFilterVisible) {
+        handleFilterClick();
+        focusFilterInput(lastFilteredInputPosition);
+      }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [lastFilteredColumn, colId]);
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();

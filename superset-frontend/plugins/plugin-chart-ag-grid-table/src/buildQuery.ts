@@ -266,7 +266,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
-        extras: totalsExtras, // Use extras without WHERE clause
+        extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
@@ -314,11 +314,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
       // Add AG Grid complex WHERE clause from ownState (non-metric filters)
       if (ownState.agGridComplexWhere) {
+        const existingWhere = queryObject.extras?.where;
+        const combinedWhere = existingWhere
+          ? `${existingWhere} AND ${ownState.agGridComplexWhere}`
+          : ownState.agGridComplexWhere;
+
         queryObject = {
           ...queryObject,
           extras: {
             ...(queryObject.extras || {}),
-            where: ownState.agGridComplexWhere,
+            where: combinedWhere,
           },
         };
       }

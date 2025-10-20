@@ -69,6 +69,8 @@ export const SQL_OPERATORS = {
 
 export type FilterValue = string | number | boolean | Date | null;
 
+const COLUMN_NAME_REGEX = /^[a-zA-Z0-9_. ()%*+\-/]+$/;
+
 export interface AgGridSimpleFilter {
   filterType: AgGridFilterType;
   type: AgGridFilterOperator;
@@ -122,6 +124,10 @@ const AG_GRID_TO_SQLA_OPERATOR_MAP: Record<AgGridFilterOperator, string> = {
   [FILTER_OPERATORS.NOT_BLANK]: SQL_OPERATORS.IS_NOT_NULL,
 };
 
+function escapeSQLString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 function validateColumnName(columnName: string): boolean {
   if (!columnName || typeof columnName !== 'string') {
     console.error('[AG Grid Filters] Column name must be a non-empty string');
@@ -134,11 +140,7 @@ function validateColumnName(columnName: string): boolean {
     );
     return false;
   }
-
-  // Allow alphanumeric, underscore, dot, space, parentheses, and common metric characters
-  // This supports both regular columns (e.g., "user_id", "first.name") and
-  // metric columns (e.g., "COUNT(*)", "SUM(revenue)", "AVG(price)")
-  if (!/^[a-zA-Z0-9_. ()%*+\-/]+$/.test(columnName)) {
+  if (!COLUMN_NAME_REGEX.test(columnName)) {
     console.error(
       `[AG Grid Filters] Invalid column name format: ${columnName}`,
     );
@@ -246,11 +248,11 @@ function simpleFilterToWhereClause(
     operator === SQL_OPERATORS.ILIKE ||
     operator === SQL_OPERATORS.NOT_ILIKE
   ) {
-    return `${columnName} ${operator} '${formattedValue}'`;
+    return `${columnName} ${operator} '${escapeSQLString(String(formattedValue))}'`;
   }
 
   if (typeof formattedValue === 'string') {
-    return `${columnName} ${operator} '${formattedValue}'`;
+    return `${columnName} ${operator} '${escapeSQLString(formattedValue)}'`;
   }
 
   return `${columnName} ${operator} ${formattedValue}`;
@@ -372,7 +374,7 @@ export function convertAgGridFiltersToSQL(
       // Set filters on metrics should go to HAVING clause as SQL
       if (isMetric) {
         const values = filter.values
-          .map(v => (typeof v === 'string' ? `'${v}'` : v))
+          .map(v => (typeof v === 'string' ? `'${escapeSQLString(v)}'` : v))
           .join(', ');
         complexHavingClauses.push(`${columnName} IN (${values})`);
       } else {

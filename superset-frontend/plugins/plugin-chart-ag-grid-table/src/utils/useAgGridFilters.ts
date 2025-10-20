@@ -119,14 +119,14 @@ const preserveCompoundFilterStructure = (
           condition1: {
             filterType: currentSimple.filterType,
             type: condition1?.type || 'contains',
-            filter: null,
+            filter: condition1?.filter ?? null,
           },
           condition2: currentSimple,
           conditions: [
             {
               filterType: currentSimple.filterType,
               type: condition1?.type || 'contains',
-              filter: null,
+              filter: condition1?.filter ?? null,
             },
             currentSimple,
           ],
@@ -139,14 +139,14 @@ const preserveCompoundFilterStructure = (
           condition2: {
             filterType: currentSimple.filterType,
             type: condition2?.type || 'contains',
-            filter: null,
+            filter: condition2?.filter ?? null,
           },
           conditions: [
             currentSimple,
             {
               filterType: currentSimple.filterType,
               type: condition2?.type || 'contains',
-              filter: null,
+              filter: condition2?.filter ?? null,
             },
           ],
         };
@@ -233,7 +233,12 @@ export const useAgGridFilters = ({
       const { lastFilteredColumn, lastFilteredInputPosition } =
         detectLastFilteredColumn(filterModel, previousModel);
 
-      const shouldPreserveCompound = lastFilteredInputPosition !== undefined;
+      const hasCompoundFilters = Object.keys(previousModel).some(colId => {
+        const prevFilter = previousModel[colId];
+        return prevFilter && 'operator' in prevFilter && prevFilter.operator;
+      });
+
+      const shouldPreserveCompound = hasCompoundFilters;
 
       const preservedFilterModel = shouldPreserveCompound
         ? preserveCompoundFilterStructure(filterModel, previousModel)
