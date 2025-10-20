@@ -68,7 +68,7 @@
     "ts-loader": "^9.5.4"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.9.1",
+    "@docusaurus/module-type-aliases": "^3.9.2",
     "@docusaurus/tsconfig": "^3.9.2",
     "@eslint/js": "^9.38.0",
     "@types/react": "^19.1.8",
