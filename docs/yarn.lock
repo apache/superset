@@ -1900,16 +1900,16 @@
     react-helmet-async "npm:@slorber/react-helmet-async@1.3.0"
     react-loadable "npm:@docusaurus/react-loadable@6.0.0"
 
-"@docusaurus/plugin-client-redirects@3.9.1":
-  version "3.9.1"
-  resolved "https://registry.yarnpkg.com/@docusaurus/plugin-client-redirects/-/plugin-client-redirects-3.9.1.tgz#06e07487f1596c62536d50afac81535d5fe60a20"
-  integrity sha512-+1InCGvAnw46H+TnVqxaYlJC0qy9AY5gTMgTx2ZFryjAsImJNs3i1pEYW/iUTVbOdtWRj3E/87E4ehbBIaA1TA==
+"@docusaurus/plugin-client-redirects@3.9.2":
+  version "3.9.2"
+  resolved "https://registry.yarnpkg.com/@docusaurus/plugin-client-redirects/-/plugin-client-redirects-3.9.2.tgz#9c27025c72aeeedeb783a94720163911567da0e8"
+  integrity sha512-lUgMArI9vyOYMzLRBUILcg9vcPTCyyI2aiuXq/4npcMVqOr6GfmwtmBYWSbNMlIUM0147smm4WhpXD0KFboffw==
   dependencies:
-    "@docusaurus/core" "3.9.1"
-    "@docusaurus/logger" "3.9.1"
-    "@docusaurus/utils" "3.9.1"
-    "@docusaurus/utils-common" "3.9.1"
-    "@docusaurus/utils-validation" "3.9.1"
+    "@docusaurus/core" "3.9.2"
+    "@docusaurus/logger" "3.9.2"
+    "@docusaurus/utils" "3.9.2"
+    "@docusaurus/utils-common" "3.9.2"
+    "@docusaurus/utils-validation" "3.9.2"
     eta "^2.2.0"
     fs-extra "^11.1.1"
     lodash "^4.17.21"
