@@ -969,7 +969,7 @@ test('converts filter with Date value', () => {
   expect(result.complexWhere).toBeUndefined();
 });
 
-// Test: Compound filter with invalid condition logs error
+// Test: Compound filter with invalid condition logs error but returns valid condition
 test('handles compound filter with invalid conditions gracefully', () => {
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -993,7 +993,7 @@ test('handles compound filter with invalid conditions gracefully', () => {
   const result = convertAgGridFiltersToSQL(filterModel);
 
   expect(result.simpleFilters).toEqual([]);
-  expect(result.complexWhere).toBeUndefined();
+  expect(result.complexWhere).toBe('(price > 50)');
   expect(consoleErrorSpy).toHaveBeenCalled();
 
   consoleErrorSpy.mockRestore();
