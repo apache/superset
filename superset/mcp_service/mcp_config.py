@@ -16,7 +16,13 @@
 # under the License.
 """Default MCP service configuration for Apache Superset"""
 
-from typing import Any, Dict
+import logging
+import secrets
+from typing import Any, Dict, Optional
+
+from flask import Flask
+
+logger = logging.getLogger(__name__)
 
 # MCP Service Configuration
 # Note: MCP_DEV_USERNAME MUST be configured in superset_config.py
@@ -65,6 +71,79 @@ MCP_FACTORY_CONFIG = {
     "exclude_tags": None,  # Exclude no tags
     "config": None,  # No additional config
 }
+
+
+def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
+    """Default MCP auth factory using app.config values."""
+    if not app.config.get("MCP_AUTH_ENABLED", False):
+        return None
+
+    jwks_uri = app.config.get("MCP_JWKS_URI")
+    public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
+    secret = app.config.get("MCP_JWT_SECRET")
+
+    if not (jwks_uri or public_key or secret):
+        logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
+        return None
+
+    try:
+        from fastmcp.server.auth.providers.bearer import BearerAuthProvider
+
+        # For HS256 (symmetric), use the secret as the public_key parameter
+        if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
+            auth_provider = BearerAuthProvider(
+                public_key=secret,  # HS256 uses secret as key
+                issuer=app.config.get("MCP_JWT_ISSUER"),
+                audience=app.config.get("MCP_JWT_AUDIENCE"),
+                algorithm="HS256",
+                required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
+            )
+            logger.info("Created BearerAuthProvider with HS256 secret")
+        else:
+            # For RS256 (asymmetric), use public key or JWKS
+            auth_provider = BearerAuthProvider(
+                jwks_uri=jwks_uri,
+                public_key=public_key,
+                issuer=app.config.get("MCP_JWT_ISSUER"),
+                audience=app.config.get("MCP_JWT_AUDIENCE"),
+                algorithm=app.config.get("MCP_JWT_ALGORITHM", "RS256"),
+                required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
+            )
+            logger.info(
+                "Created BearerAuthProvider with jwks_uri=%s, public_key=%s",
+                jwks_uri,
+                "***" if public_key else None,
+            )
+
+        return auth_provider
+    except Exception as e:
+        logger.error("Failed to create MCP auth provider: %s", e)
+        return None
+
+
+def default_user_resolver(app: Any, access_token: Any) -> Optional[str]:
+    """Extract username from JWT token claims."""
+    logger.info(
+        "Resolving user from token: type=%s, token=%s",
+        type(access_token),
+        access_token,
+    )
+    if hasattr(access_token, "subject"):
+        return access_token.subject
+    if hasattr(access_token, "client_id"):
+        return access_token.client_id
+    if hasattr(access_token, "payload") and isinstance(access_token.payload, dict):
+        return (
+            access_token.payload.get("sub")
+            or access_token.payload.get("email")
+            or access_token.payload.get("username")
+        )
+    return None
+
+
+def generate_secret_key() -> str:
+    """Generate a secure random secret key for Superset"""
+    return secrets.token_urlsafe(42)
 
 
 def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
