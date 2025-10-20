@@ -34,15 +34,25 @@ def map_query_object(query_object: QueryObject) -> SemanticQuery:
     and more semantic layer-centric. This simplifies the process of adding new semantic
     layers to Superset, by providing a domain-specific representation of queries.
     """
+    semantic_view = query_object.datasource.semantic_view
+    validate_query_object(query_object, semantic_view)
+
+    all_dimensions = {dimension.id: dimension for dimension in semantic_view.dimensions}
+    all_metrics = {metric.id: metric for metric in semantic_view.metrics}
+
     metrics: set[Metric] = set()
     dimensions: set[Dimension] = set()
     filters: set[Filter] = set()
     order = None
 
     group_limit = GroupLimit(
-        dimensions=[],
+        dimensions=[
+            all_dimensions[dim_id]
+            for dim_id in query_object.columns
+            if dim_id in all_dimensions
+        ],
         top=query_object.series_limit,
-        metric=None,
+        metric=all_metrics.get(query_object.series_limit_metric),
         direction=(
             OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
         ),
@@ -58,3 +68,15 @@ def map_query_object(query_object: QueryObject) -> SemanticQuery:
         offset=query_object.row_offset,
         group_limit=group_limit,
     )
+
+
+def validate_query_object(
+    query_object: QueryObject,
+    semantic_view: SemanticViewProtocol,
+) -> None:
+    """
+    Validate that the `QueryObject` is compatible with the `SemanticView`.
+
+    For example, semantic view might not support adhoc expressions in filters or
+    metrics.
+    """
