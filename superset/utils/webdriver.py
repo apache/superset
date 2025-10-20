@@ -148,6 +148,13 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
+    @staticmethod
+    def _get_screenshot(page: Page, element: Locator, element_name: str) -> bytes:
+        if element_name == "standalone":
+            return page.screenshot(full_page=True)
+        else:
+            return element.screenshot()
+
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
@@ -286,11 +293,18 @@ class WebDriverPlaywright(WebDriverProxy):
                                     "falling back to standard screenshot"
                                 )
                             )
-                            img = element.screenshot()
+                            img = WebDriverPlaywright._get_screenshot(
+                                page, element, element_name
+                            )
                     else:
-                        img = element.screenshot()
+                        img = WebDriverPlaywright._get_screenshot(
+                            page, element, element_name
+                        )
                 else:
-                    img = element.screenshot()
+                    img = WebDriverPlaywright._get_screenshot(
+                        page, element, element_name
+                    )
+
             except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass
