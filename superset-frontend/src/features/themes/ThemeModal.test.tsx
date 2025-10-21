@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
@@ -320,7 +320,9 @@ test('enables save button when theme name is entered', async () => {
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
-  expect(saveButton).toBeEnabled();
+  await waitFor(() => {
+    expect(saveButton).toBeEnabled();
+  });
 });
 
 test('validates JSON format and enables save button', async () => {
@@ -342,7 +344,9 @@ test('validates JSON format and enables save button', async () => {
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
 
-  expect(saveButton).toBeEnabled();
+  await waitFor(() => {
+    expect(saveButton).toBeEnabled();
+  });
 });
 
 test('shows unsaved changes alert when closing modal with modifications', async () => {
@@ -467,7 +471,9 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 
   // Wait for API call to complete
   await screen.findByRole('dialog');
-  expect(fetchMock.callHistory.called()).toBe(true);
+  await waitFor(() => {
+    expect(fetchMock.callHistory.called()).toBe(true);
+  });
 });
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
@@ -525,7 +531,9 @@ test('creates new theme when saving', async () => {
   await userEvent.click(saveButton);
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
-  expect(fetchMock.callHistory.called(postThemeMockName)).toBe(true);
+  await waitFor(() => {
+    expect(fetchMock.callHistory.called(postThemeMockName)).toBe(true);
+  });
 });
 
 test('updates existing theme when saving', async () => {
@@ -576,7 +584,9 @@ test('handles API errors gracefully', async () => {
   await addValidJsonData();
 
   const saveButton = await screen.findByRole('button', { name: 'Add' });
-  expect(saveButton).toBeEnabled();
+  await waitFor(() => {
+    expect(saveButton).toBeEnabled();
+  });
 
   await userEvent.click(saveButton);
 
