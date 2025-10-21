@@ -316,6 +316,7 @@ export type Query = {
     errors?: SupersetError[];
   };
   id: string;
+  immutableId: string;
   isDataPreview: boolean;
   link?: string;
   progress: number;
@@ -370,6 +371,7 @@ export type QueryResponse = Query & QueryResults;
 // todo: move out from typing
 export const testQuery: Query = {
   id: 'clientId2353',
+  immutableId: 'immutableId2353',
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: 'dfsadfs',
