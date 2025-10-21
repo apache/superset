@@ -75,6 +75,7 @@ const DatasetSelect = ({
             label: string | ReactNode;
             value: string | number;
           }[] = filteredResult.map((item: Dataset) => ({
+            ...item,
             label: DatasetSelectLabel(item),
             value: item.id,
           }));
