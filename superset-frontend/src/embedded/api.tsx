@@ -18,10 +18,10 @@
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { updateDataMask } from '../dataMask/actions';
-import { triggerQuery } from '../components/Chart/chartAction';
 
 const bootstrapData = getBootstrapData();
 
@@ -69,16 +69,10 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 const getDataMask = () => store?.getState()?.dataMask || {};
 
 const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
-  const state = store?.getState();
-  const chartIds = state?.dashboardState?.sliceIds || [];
-
-  Object.entries(dataMask).forEach(([filterId, mask]) => {
-    store?.dispatch(updateDataMask(filterId, mask));
-  });
-
-  // Trigger query for all charts to apply the new filters
-  chartIds.forEach((chartId: number) => {
-    store?.dispatch(triggerQuery(true, chartId));
+  batch(() => {
+    Object.entries(dataMask).forEach(([filterId, mask]) => {
+      store?.dispatch(updateDataMask(filterId, mask));
+    });
   });
 };
 
