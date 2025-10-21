@@ -103,6 +103,9 @@ const Actions = styled.div`
         }
       }
       color: ${theme.colorTextDisabled};
+      &:hover {
+        cursor: not-allowed;
+      }
       .ant-menu-item:hover {
         cursor: default;
       }
@@ -479,7 +482,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditOutlined iconSize="l" />
