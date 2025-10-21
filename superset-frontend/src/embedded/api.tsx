@@ -20,6 +20,7 @@ import { DataMaskStateWithId } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
+import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -33,6 +34,7 @@ type EmbeddedSupersetApi = {
   getDashboardPermalink: ({ anchor }: { anchor: string }) => Promise<string>;
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
+  setDataMask: (dataMask: DataMaskStateWithId) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -65,9 +67,16 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const setDataMask = (dataMask: DataMaskStateWithId) => {
+  Object.entries(dataMask).forEach(([filterId, mask]) => {
+    store?.dispatch(updateDataMask(filterId, mask));
+  });
+};
+
 export const embeddedApi: EmbeddedSupersetApi = {
   getScrollSize,
   getDashboardPermalink,
   getActiveTabs,
   getDataMask,
+  setDataMask,
 };
