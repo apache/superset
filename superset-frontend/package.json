@@ -324,7 +324,7 @@
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
     "prettier": "3.6.2",
-    "prettier-plugin-packagejson": "^2.5.3",
+    "prettier-plugin-packagejson": "^2.5.19",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
     "redux-mock-store": "^1.5.4",
