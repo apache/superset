@@ -66,6 +66,7 @@ export const mapQueryResponse = (
 ): Omit<
   Query,
   | 'tempSchema'
+  | 'immutableId'
   | 'started'
   | 'time'
   | 'duration'
