@@ -318,11 +318,14 @@ test('enables save button when theme name is entered', async () => {
   await userEvent.type(nameInput, 'My New Theme');
   await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-
-  await waitFor(() => {
-    expect(saveButton).toBeEnabled();
-  });
+  // Wait for validation to complete and button to become enabled
+  await waitFor(
+    () => {
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('validates JSON format and enables save button', async () => {
@@ -342,11 +345,14 @@ test('validates JSON format and enables save button', async () => {
   await userEvent.type(nameInput, 'Test Theme');
   await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-
-  await waitFor(() => {
-    expect(saveButton).toBeEnabled();
-  });
+  // Wait for validation to complete and button to become enabled
+  await waitFor(
+    () => {
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('shows unsaved changes alert when closing modal with modifications', async () => {
@@ -583,10 +589,15 @@ test('handles API errors gracefully', async () => {
   await userEvent.type(nameInput, 'New Theme');
   await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
-  await waitFor(() => {
-    expect(saveButton).toBeEnabled();
-  });
+  // Wait for validation to complete and button to become enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Add' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
 
   await userEvent.click(saveButton);
 
