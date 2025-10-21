@@ -76,6 +76,7 @@ const DatasetSelect = ({
             value: string | number;
             table_name: string;
           }[] = filteredResult.map((item: Dataset) => ({
+            ...item,
             label: DatasetSelectLabel(item),
             value: item.id,
             table_name: item.table_name,
