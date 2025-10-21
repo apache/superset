@@ -133,7 +133,29 @@ describe('BigNumberWithTrendline', () => {
       // bigNumberFallback is only set when bigNumber is null after aggregation
       expect(transformed.bigNumberFallback).toBeNull();
 
-      // should successfully formatTime by granularity
+      // should successfully formatTime by granularity(QUARTER)
+      // @ts-ignore
+      expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
+        '2020 Q1',
+      );
+    });
+
+    it('should format time with by "SECOND" granularity only if time_grain_sqla were TimeGranularity.SECOND', () => {
+      const propsWithSecondGranularity = {
+        ...props,
+        // ensure extractTimegrain() gets SECOND granularity
+        rawFormData: {
+          ...rawFormData,
+          time_grain_sqla: TimeGranularity.SECOND,
+        },
+        formData: {
+          ...props.formData,
+          timeGrainSqla: TimeGranularity.SECOND,
+        },
+      } as unknown as BigNumberWithTrendlineChartProps;
+
+      const transformed = transformProps(propsWithSecondGranularity);
+      // should successfully formatTime by granularity(SECOND)
       // @ts-ignore
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
