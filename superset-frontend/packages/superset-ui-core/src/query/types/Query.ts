@@ -321,6 +321,7 @@ export type Query = {
   schema?: string;
   sql: string;
   sqlEditorId: string;
+  sqlEditorImmutableId: string;
   state: QueryState;
   tab: string | null;
   tempSchema: string | null;
@@ -370,6 +371,7 @@ export const testQuery: Query = {
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: 'dfsadfs',
+  sqlEditorImmutableId: 'immutableId2353',
   tab: 'unimportant',
   tempTable: '',
   ctas: false,

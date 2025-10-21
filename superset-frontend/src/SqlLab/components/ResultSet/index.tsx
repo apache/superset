@@ -181,6 +181,7 @@ const ResultSet = ({
         'tab',
         'sql',
         'sqlEditorId',
+        'sqlEditorImmutableId',
         'templateParams',
         'schema',
         'rows',

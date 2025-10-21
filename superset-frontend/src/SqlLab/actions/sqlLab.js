@@ -396,7 +396,7 @@ export function runQueryFromSqlEditor(
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.id,
-      immutableId: qe.immutableId,
+      sqlEditorImmutableId: qe.immutableId,
       tab: qe.name,
       catalog: qe.catalog,
       schema: qe.schema,
