@@ -122,7 +122,7 @@ describe('DatasourceModal', () => {
   });
 
   test('should render error dialog', async () => {
-    jest
+    const putSpy = jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
     await act(async () => {
@@ -135,6 +135,7 @@ describe('DatasourceModal', () => {
       const errorTitle = await screen.findByText('Error saving dataset');
       expect(errorTitle).toBeInTheDocument();
     });
+    putSpy.mockRestore();
   });
 
   test('shows sync columns checkbox when SQL changes', async () => {
@@ -159,9 +160,7 @@ describe('DatasourceModal', () => {
     );
 
     const saveButton = screen.getByTestId('datasource-modal-save');
-    await act(async () => {
-      fireEvent.click(saveButton);
-    });
+    fireEvent.click(saveButton);
 
     // Wait for confirmation modal to appear
     await waitFor(() => {
@@ -190,6 +189,7 @@ describe('DatasourceModal', () => {
     // Render with the initial datasource
     cleanup();
     fetchMock.reset();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
     fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
@@ -250,6 +250,7 @@ describe('DatasourceModal', () => {
     // Render with the initial datasource
     cleanup();
     fetchMock.reset();
+    fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
     fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
     fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
     fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
