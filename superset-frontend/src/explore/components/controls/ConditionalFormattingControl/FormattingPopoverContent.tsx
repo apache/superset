@@ -61,9 +61,9 @@ const JustifyEnd = styled.div`
 `;
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colorSuccessBg, label: t('success') },
-  { value: theme.colorWarningBg, label: t('alert') },
-  { value: theme.colorErrorBg, label: t('error') },
+  { value: theme.colorSuccess, label: t('success') },
+  { value: theme.colorWarning, label: t('alert') },
+  { value: theme.colorError, label: t('error') },
 ];
 
 const operatorOptions = [

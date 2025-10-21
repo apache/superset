@@ -882,7 +882,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (!formatterResult) return;
 
               if (formatter.toTextColor) {
-                color = formatterResult;
+                color = formatterResult.slice(0, -2);
               } else {
                 backgroundColor = formatterResult;
               }
@@ -911,12 +911,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 : '';
           }
           const StyledCell = styled.td`
-            color: ${theme.colorText};
+            color: ${color ? `${color}FF` : theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
-            color: ${color || undefined};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};
