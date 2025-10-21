@@ -21,6 +21,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { updateDataMask } from '../dataMask/actions';
+import { triggerQuery } from '../components/Chart/chartAction';
 
 const bootstrapData = getBootstrapData();
 
@@ -34,7 +35,7 @@ type EmbeddedSupersetApi = {
   getDashboardPermalink: ({ anchor }: { anchor: string }) => Promise<string>;
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
-  setDataMask: (dataMask: DataMaskStateWithId) => void;
+  setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -67,9 +68,17 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
-const setDataMask = (dataMask: DataMaskStateWithId) => {
+const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  const state = store?.getState();
+  const chartIds = state?.dashboardState?.sliceIds || [];
+
   Object.entries(dataMask).forEach(([filterId, mask]) => {
     store?.dispatch(updateDataMask(filterId, mask));
+  });
+
+  // Trigger query for all charts to apply the new filters
+  chartIds.forEach((chartId: number) => {
+    store?.dispatch(triggerQuery(true, chartId));
   });
 };
 
