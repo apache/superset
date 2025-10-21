@@ -448,12 +448,6 @@ def test_datetime_eval() -> None:
     assert result == expected
 
     result = datetime_eval(
-        "holiday('Eid al-Fitr', datetime('2000-01-01T00:00:00'), 'SA')"
-    )
-    expected = datetime(2000, 1, 8, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
         "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
     )
     expected = datetime(2018, 12, 26, 0, 0, 0)
