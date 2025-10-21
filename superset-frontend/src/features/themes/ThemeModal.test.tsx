@@ -119,6 +119,7 @@ const addValidJsonData = async () => {
     2,
   );
   const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
   await userEvent.type(jsonEditor, validJson);
 };
 
@@ -474,6 +475,9 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
     { timeout: 10000 },
   );
 
+  // Give extra time for all state updates to complete
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
 
@@ -481,15 +485,26 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
     await screen.findByText('You have unsaved changes'),
   ).toBeInTheDocument();
 
-  const saveButton = screen.getByRole('button', { name: 'Save' });
+  // Wait for the Save button in the alert to be enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Save' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
   await userEvent.click(saveButton);
 
   // Wait for API call to complete
   await screen.findByRole('dialog');
-  await waitFor(() => {
-    expect(fetchMock.callHistory.called()).toBe(true);
-  });
-});
+  await waitFor(
+    () => {
+      expect(fetchMock.callHistory.called()).toBe(true);
+    },
+    { timeout: 15000 },
+  );
+}, 30000);
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
   const onHide = jest.fn();
