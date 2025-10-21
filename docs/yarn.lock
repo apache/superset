@@ -4750,10 +4750,10 @@ ansi-styles@^6.1.0:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-6.2.1.tgz#0e62320cf99c21afff3b3012192546aacbfb05c5"
   integrity sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==
 
-antd@^5.27.5:
-  version "5.27.5"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-5.27.5.tgz#978b265c722b9229e7dcc2fcddc5f5445af9bdf0"
-  integrity sha512-Ehd9mqtHvJ1clon1yJ/1BTV6eX/3SH2YXZZPTHUk8XdzXFwUioI+Lht47s+MaHIUBY77RnZrmtKwwR+VVu0l7A==
+antd@^5.27.6:
+  version "5.27.6"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-5.27.6.tgz#6b7c7a87b5c696395d2aab2fdbd8409a342813e1"
+  integrity sha512-70HrjVbzDXvtiUQ5MP1XdNudr/wGAk9Ivaemk6f36yrAeJurJSmZ8KngOIilolLRHdGuNc6/Vk+4T1OZpSjpag==
   dependencies:
     "@ant-design/colors" "^7.2.1"
     "@ant-design/cssinjs" "^1.23.0"
