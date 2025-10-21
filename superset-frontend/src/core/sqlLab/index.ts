@@ -214,8 +214,9 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
     }
 
     // For tab events, we need to find the immutable ID of the affected tab
-    if (action.queryEditor?.id) {
-      const queryEditor = findQueryEditor(action.queryEditor.id);
+    const queryEditorId = action.queryEditor?.id || action.query?.sqlEditorId;
+    if (queryEditorId) {
+      const queryEditor = findQueryEditor(queryEditorId);
       return queryEditor?.immutableId === registrationImmutableId;
     }
 
