@@ -454,6 +454,15 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
   await userEvent.type(nameInput, 'Modified Theme');
   await addValidJsonData();
 
+  // Wait for validation to complete before canceling
+  await waitFor(
+    () => {
+      const addButton = screen.getByRole('button', { name: 'Add' });
+      expect(addButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
 
@@ -522,7 +531,15 @@ test('creates new theme when saving', async () => {
   await userEvent.type(nameInput, 'New Theme');
   await addValidJsonData();
 
-  const saveButton = await screen.findByRole('button', { name: 'Add' });
+  // Wait for validation to complete and button to become enabled
+  const saveButton = await waitFor(
+    () => {
+      const button = screen.getByRole('button', { name: 'Add' });
+      expect(button).toBeEnabled();
+      return button;
+    },
+    { timeout: 10000 },
+  );
   await userEvent.click(saveButton);
 
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -591,7 +608,9 @@ test('handles API errors gracefully', async () => {
   await userEvent.click(saveButton);
 
   await screen.findByRole('dialog');
-  expect(fetchMock.called()).toBe(true);
+  await waitFor(() => {
+    expect(fetchMock.called()).toBe(true);
+  });
 });
 
 test('applies theme locally when clicking Apply button', async () => {
