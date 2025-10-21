@@ -189,6 +189,7 @@ const ResultSet = ({
     ({ sqlLab: { queries } }: SqlLabRootState) =>
       pick(queries[queryId], [
         'id',
+        'immutableId',
         'errorMessage',
         'cached',
         'results',
