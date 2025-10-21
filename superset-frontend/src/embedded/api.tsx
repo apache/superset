@@ -23,6 +23,7 @@ import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/url
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
+import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -40,6 +41,7 @@ type EmbeddedSupersetApi = {
   getChartDataPayloads: (params?: {
     chartId?: number;
   }) => Promise<Record<string, JsonObject>>;
+  setDataMask: (dataMask: DataMaskStateWithId) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -83,6 +85,12 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const setDataMask = (dataMask: DataMaskStateWithId) => {
+  Object.entries(dataMask).forEach(([filterId, mask]) => {
+    store?.dispatch(updateDataMask(filterId, mask));
+  });
+};
+
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
@@ -102,4 +110,5 @@ export const embeddedApi: EmbeddedSupersetApi = {
   getDataMask,
   getChartStates,
   getChartDataPayloads,
+  setDataMask,
 };
