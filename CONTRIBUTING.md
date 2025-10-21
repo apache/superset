@@ -25,14 +25,14 @@ little bit helps, and credit will always be given.
 
 All developer and contribution documentation has moved to the Apache Superset Developer Portal:
 
-**[📚 View the Developer Portal →](https://superset.apache.org/docs/developer-portal/)**
+**[📚 View the Developer Portal →](https://superset.apache.org/developer_portal/)**
 
 The Developer Portal includes comprehensive guides for:
-- [Contributing Overview](https://superset.apache.org/docs/developer-portal/contributing/overview)
-- [Development Setup](https://superset.apache.org/docs/developer-portal/contributing/development-setup)
-- [Submitting Pull Requests](https://superset.apache.org/docs/developer-portal/contributing/submitting-pr)
-- [Contribution Guidelines](https://superset.apache.org/docs/developer-portal/contributing/guidelines)
-- [Code Review Process](https://superset.apache.org/docs/developer-portal/contributing/code-review)
-- [Development How-tos](https://superset.apache.org/docs/developer-portal/contributing/howtos)
+- [Contributing Overview](https://superset.apache.org/developer_portal/contributing/overview)
+- [Development Setup](https://superset.apache.org/developer_portal/contributing/development-setup)
+- [Submitting Pull Requests](https://superset.apache.org/developer_portal/contributing/submitting-pr)
+- [Contribution Guidelines](https://superset.apache.org/developer_portal/contributing/guidelines)
+- [Code Review Process](https://superset.apache.org/developer_portal/contributing/code-review)
+- [Development How-tos](https://superset.apache.org/developer_portal/contributing/howtos)
 
 Source for the Developer Portal documentation is [located here](https://github.com/apache/superset/tree/master/docs/developer_portal).
