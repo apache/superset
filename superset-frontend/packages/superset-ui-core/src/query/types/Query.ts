@@ -316,7 +316,6 @@ export type Query = {
     errors?: SupersetError[];
   };
   id: string;
-  immutableId: string;
   isDataPreview: boolean;
   link?: string;
   progress: number;
@@ -325,6 +324,7 @@ export type Query = {
   schema?: string;
   sql: string;
   sqlEditorId: string;
+  sqlEditorImmutableId: string;
   state: QueryState;
   tab: string | null;
   tempSchema: string | null;
@@ -371,10 +371,10 @@ export type QueryResponse = Query & QueryResults;
 // todo: move out from typing
 export const testQuery: Query = {
   id: 'clientId2353',
-  immutableId: 'immutableId2353',
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: 'dfsadfs',
+  sqlEditorImmutableId: 'immutableId2353',
   tab: 'unimportant',
   tempTable: '',
   ctas: false,

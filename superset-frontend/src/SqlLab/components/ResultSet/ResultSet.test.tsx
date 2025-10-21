@@ -603,11 +603,11 @@ describe('ResultSet', () => {
     expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
   });
 
-  test('should include immutableId in query object when fetching results', async () => {
+  test('should include sqlEditorImmutableId in query object when fetching results', async () => {
     const queryWithResultsKey = {
       ...queries[0],
       resultsKey: 'test-results-key',
-      immutableId: 'test-immutable-id-123',
+      sqlEditorImmutableId: 'test-immutable-id-123',
     };
 
     const store = mockStore({
@@ -630,8 +630,10 @@ describe('ResultSet', () => {
         action => action.type === 'REQUEST_QUERY_RESULTS',
       );
       expect(requestAction).toBeDefined();
-      // Verify immutableId is present in the query object
-      expect(requestAction?.query?.immutableId).toBe('test-immutable-id-123');
+      // Verify sqlEditorImmutableId is present in the query object
+      expect(requestAction?.query?.sqlEditorImmutableId).toBe(
+        'test-immutable-id-123',
+      );
     });
 
     // Verify the API was called

@@ -208,9 +208,9 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
     // If we don't have a registration ID, don't filter events
     if (!registrationImmutableId) return true;
 
-    // For query events, use the immutableId directly from the action payload
-    if (action.query?.immutableId) {
-      return action.query.immutableId === registrationImmutableId;
+    // For query events, use the sqlEditorImmutableId directly from the action payload
+    if (action.query?.sqlEditorImmutableId) {
+      return action.query.sqlEditorImmutableId === registrationImmutableId;
     }
 
     // For tab events, we need to find the immutable ID of the affected tab
