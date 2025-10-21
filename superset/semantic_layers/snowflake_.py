@@ -41,6 +41,7 @@ from snowflake.connector.connection import SnowflakeConnection
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
 from superset.semantic_layers.types import (
+    AdhocExpression,
     BINARY,
     BOOLEAN,
     DATE,
@@ -60,6 +61,7 @@ from superset.semantic_layers.types import (
     PredicateType,
     SemanticRequest,
     SemanticResult,
+    SemanticViewFeature,
     STRING,
     TIME,
     Type,
@@ -428,6 +430,15 @@ class SnowflakeSemanticLayer:
 
 
 class SnowflakeSemanticView:
+
+    features = frozenset(
+        {
+            SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,
+            SemanticViewFeature.GROUP_LIMIT,
+            SemanticViewFeature.GROUP_OTHERS,
+        }
+    )
+
     def __init__(self, configuration: SnowflakeConfiguration, name: str):
         self.configuration = configuration
         self.name = name
@@ -651,7 +662,9 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
+        order: (
+            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
+        ) = None,
         limit: int | None = None,
         offset: int | None = None,
         *,
@@ -691,7 +704,9 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
+        order: (
+            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
+        ) = None,
         limit: int | None = None,
         offset: int | None = None,
         *,
@@ -732,7 +747,9 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         filters: set[Filter | NativeFilter] | None = None,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None = None,
+        order: (
+            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
+        ) = None,
         limit: int | None = None,
         offset: int | None = None,
         group_limit: GroupLimit | None = None,
@@ -783,15 +800,21 @@ class SnowflakeSemanticView:
 
     def _build_order_clause(
         self,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
     ) -> str:
         """
         Build the ORDER BY clause from a list of (element, direction) tuples.
         """
         if not order:
             return ""
+
+        def build_element(element: Metric | Dimension | AdhocExpression) -> str:
+            if isinstance(element, AdhocExpression):
+                return element.definition
+            return self._quote(element.id)
+
         return ", ".join(
-            f"{self._quote(element.id)} {direction.value}"
+            f"{build_element(element)} {direction.value}"
             for element, direction in order
         )
 
@@ -801,7 +824,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
         limit: int | None,
         offset: int | None,
     ) -> str:
@@ -906,7 +929,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,
@@ -1022,7 +1045,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension, OrderDirection]] | None,
+        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,

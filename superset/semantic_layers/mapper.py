@@ -17,12 +17,14 @@
 
 from superset.common.query_object import QueryObject
 from superset.semantic_layers.types import (
+    AdhocExpression,
     Dimension,
     Filter,
     GroupLimit,
     Metric,
     OrderDirection,
     SemanticQuery,
+    SemanticViewFeature,
 )
 
 
@@ -34,16 +36,39 @@ def map_query_object(query_object: QueryObject) -> SemanticQuery:
     and more semantic layer-centric. This simplifies the process of adding new semantic
     layers to Superset, by providing a domain-specific representation of queries.
     """
-    semantic_view = query_object.datasource.semantic_view
+    semantic_view = query_object.datasource.implementation
     validate_query_object(query_object, semantic_view)
 
     all_dimensions = {dimension.id: dimension for dimension in semantic_view.dimensions}
     all_metrics = {metric.id: metric for metric in semantic_view.metrics}
 
-    metrics: set[Metric] = set()
-    dimensions: set[Dimension] = set()
+    metrics: set[Metric] = {
+        all_metrics[metric_id] for metric_id in query_object.metrics
+    }
+    dimensions: set[Dimension] = {
+        all_dimensions[dim_id] for dim_id in query_object.columns
+    }
+
     filters: set[Filter] = set()
-    order = None
+
+    order = []
+    for element, ascending in query_object.orderby:
+        direction = OrderDirection.ASC if ascending else OrderDirection.DESC
+
+        if isinstance(element, dict):
+            order.append(
+                (
+                    AdhocExpression(
+                        id=element["label"],
+                        definition=element["sqlExpression"],
+                    ),
+                    direction,
+                )
+            )
+        elif element in all_dimensions:
+            order.append((all_dimensions.get(element), direction))
+        elif element in all_metrics:
+            order.append((all_metrics.get(element), direction))
 
     group_limit = GroupLimit(
         dimensions=[
@@ -77,6 +102,54 @@ def validate_query_object(
     """
     Validate that the `QueryObject` is compatible with the `SemanticView`.
 
-    For example, semantic view might not support adhoc expressions in filters or
-    metrics.
+    If some semantic view implementation supports these features we should add an
+    attribute to the `SemanticViewProtocol` to indicate support for them.
     """
+    metric_ids = {metric.id for metric in semantic_view.metrics}
+    dimension_ids = {dimension.id for dimension in semantic_view.dimensions}
+
+    # Validate adhoc metrics and non-adhoc metrics
+    if any(not isinstance(metric, str) for metric in query_object.metrics):
+        raise ValueError("Adhoc metrics are not supported in Semantic Views.")
+
+    if not set(query_object.metrics) <= metric_ids:
+        raise ValueError("All metrics must be defined in the Semantic View.")
+
+    # Validate adhoc dimensions and non-adhoc dimensions
+    if any(not isinstance(column, str) for column in query_object.columns):
+        raise ValueError("Adhoc dimensions are not supported in Semantic Views.")
+
+    if not set(query_object.columns) <= dimension_ids:
+        raise ValueError("All dimensions must be defined in the Semantic View.")
+
+    # Validate group limit features
+    if (
+        query_object.columns
+        and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
+    ):
+        raise ValueError("Group limit is not supported in this Semantic View.")
+
+    if (
+        query_object.group_others_when_limit_reached
+        and SemanticViewFeature.GROUP_OTHERS not in semantic_view.features
+    ):
+        raise ValueError(
+            "Grouping others when limit is reached is not supported in this Semantic "
+            "View."
+        )
+
+    # Validate order by
+    if (
+        any(not isinstance(element, str) for element, _ in query_object.orderby)
+        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY
+        not in semantic_view.features
+    ):
+        raise ValueError(
+            "Adhoc expressions in order by are not supported in this Semantic View."
+        )
+
+    elements = {
+        element.id for element, _ in query_object.orderby if isinstance(element, str)
+    }
+    if not elements <= metric_ids | dimension_ids:
+        raise ValueError("All order by elements must be defined in the Semantic View.")

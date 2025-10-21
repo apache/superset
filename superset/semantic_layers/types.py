@@ -165,6 +165,12 @@ class Metric:
     description: str | None = None
 
 
+@dataclass(frozen=True)
+class AdhocExpression:
+    id: str
+    definition: str
+
+
 class Operator(enum.Enum):
     EQUALS = "="
     NOT_EQUALS = "!="
@@ -254,7 +260,19 @@ class SemanticQuery:
     metrics: list[Metric]
     dimensions: list[Dimension]
     filters: set[Filter | NativeFilter] | None = None
-    order: list[tuple[Metric | Dimension, OrderDirection]] | None = None
+    order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None = (
+        None
+    )
     limit: int | None = None
     offset: int | None = None
     group_limit: GroupLimit | None = None
+
+
+class SemanticViewFeature(enum.Enum):
+    """
+    Custom features supported by semantic layers.
+    """
+
+    ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
+    GROUP_LIMIT = "GROUP_LIMIT"
+    GROUP_OTHERS = "GROUP_OTHERS"
