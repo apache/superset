@@ -1901,13 +1901,6 @@ class DatasourceEditor extends PureComponent {
 
       // Check if this is just an update to existing calculated columns (not addition/removal)
       if (newCalculatedColumns.length === currentCalculatedColumns.length) {
-        // Create a map of current calculated columns by their identifier
-        const currentMap = new Map();
-        currentCalculatedColumns.forEach((col, index) => {
-          const id = col.id || col.column_name;
-          currentMap.set(id, { ...col, originalIndex: index });
-        });
-
         // Try to preserve the order by matching with existing calculated columns
         const orderedCalculatedColumns = [];
         const usedIds = new Set();

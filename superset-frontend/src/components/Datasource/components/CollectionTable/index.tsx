@@ -195,24 +195,28 @@ export default class CRUDCollection extends PureComponent<
 
   changeCollection(collection: any) {
     // Preserve existing order instead of recreating from Object.keys()
-    // Map existing items to their updated versions from the collection
-    const newCollectionArray = this.state.collectionArray
-      .map(existingItem => collection[existingItem.id] || existingItem)
-      .filter(item => collection[item.id]); // Remove deleted items
+    // Single-pass optimization to reduce iterations and memory allocations
+    const existingIds = new Set(this.state.collectionArray.map(item => item.id));
+    const newCollectionArray: CollectionItem[] = [];
+    
+    // First pass: preserve existing order and update items
+    for (const existingItem of this.state.collectionArray) {
+      if (collection[existingItem.id]) {
+        newCollectionArray.push(collection[existingItem.id]);
+      }
+    }
+    
+    // Second pass: add new items
+    for (const item of Object.values(collection) as CollectionItem[]) {
+      if (!existingIds.has(item.id)) {
+        newCollectionArray.push(item);
+      }
+    }
 
-    // Add any new items that weren't in the existing array
-    const existingIds = new Set(
-      this.state.collectionArray.map(item => item.id),
-    );
-    const newItems = Object.values(collection).filter(
-      (item: any) => !existingIds.has(item.id),
-    );
-    const finalCollectionArray = [...newCollectionArray, ...newItems];
-
-    this.setState({ collection, collectionArray: finalCollectionArray });
+    this.setState({ collection, collectionArray: newCollectionArray });
 
     if (this.props.onChange) {
-      this.props.onChange(finalCollectionArray);
+      this.props.onChange(newCollectionArray);
     }
   }
 
