@@ -99,6 +99,7 @@ const DatasetUsageTab = ({
 }: DatasetUsageTabProps) => {
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const prevLoadingRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,11 +133,13 @@ const DatasetUsageTab = ({
     addDangerToastRef.current = addDangerToast;
   }, [addDangerToast]);
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      handleFetchCharts(page);
+  // Scroll to top after data loads (when loading changes from true to false)
+  useEffect(() => {
+    let frameId: number | undefined;
 
-      setTimeout(() => {
+    if (prevLoadingRef.current && !loading) {
+      // Loading just finished, scroll to top
+      frameId = requestAnimationFrame(() => {
         const tableBody =
           tableContainerRef.current?.querySelector('.ant-table-body');
         if (tableBody) {
@@ -145,7 +148,21 @@ const DatasetUsageTab = ({
             behavior: 'smooth',
           });
         }
-      }, 100);
+      });
+    }
+    prevLoadingRef.current = loading;
+
+    // Cleanup: cancel animation frame if component unmounts
+    return () => {
+      if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [loading]);
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      handleFetchCharts(page);
     },
     [handleFetchCharts],
   );
