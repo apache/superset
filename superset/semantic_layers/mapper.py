@@ -15,7 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
+
 from superset.common.query_object import QueryObject
+from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.semantic_layers.types import (
     AdhocExpression,
     AdhocFilter,
@@ -24,6 +27,7 @@ from superset.semantic_layers.types import (
     Filter,
     GroupLimit,
     Metric,
+    Operator,
     OrderDirection,
     OrderTuple,
     PredicateType,
@@ -32,6 +36,8 @@ from superset.semantic_layers.types import (
     SemanticViewImplementation,
     TimeGrain,
 )
+from superset.utils.core import FilterOperator
+from superset.utils.date_parser import get_past_or_future
 
 
 def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
@@ -76,8 +82,10 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
     )
 
     queries = []
-    for offset in [None] + query_object.time_offsets:
-        filters = _get_filters_from_query_object(query_object, offset)
+    for time_offset in [None] + query_object.time_offsets:
+        filters = _get_filters_from_query_object(
+            query_object, time_offset, all_dimensions
+        )
 
         queries.append(
             SemanticQuery(
@@ -96,11 +104,18 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
 
 def _get_filters_from_query_object(
     query_object: QueryObject,
-    all_metrics: dict[str, Metric],
+    time_offset: str | None,
     all_dimensions: dict[str, Dimension],
 ) -> set[Filter | AdhocFilter]:
+    """
+    Extract all filters from the query object, including time range filters.
+
+    This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
+    by converting all time constraints into filters.
+    """
     filters: set[Filter | AdhocFilter] = set()
 
+    # 1. Add fetch values predicate if present
     if (
         query_object.apply_fetch_values_predicate
         and query_object.datasource.fetch_values_predicate
@@ -112,10 +127,142 @@ def _get_filters_from_query_object(
             )
         )
 
+    # 2. Add time range filter based on from_dttm/to_dttm
+    # For time offsets, this automatically calculates the shifted bounds
+    time_filter = _get_time_filter(query_object, time_offset, all_dimensions)
+    if time_filter:
+        filters.add(time_filter)
+
+    # 3. Add all other filters from query_object.filter
     for filter_ in query_object.filter:
-        pass
+        converted_filter = _convert_query_object_filter(filter_, all_dimensions)
+        if converted_filter:
+            filters.add(converted_filter)
 
     return filters
+
+
+def _get_time_filter(
+    query_object: QueryObject,
+    time_offset: str | None,
+    all_dimensions: dict[str, Dimension],
+) -> Filter | None:
+    """
+    Create a time range filter from the query object.
+
+    This handles both regular queries and time offset queries, simplifying the
+    complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm by using the
+    same time bounds for both the main query and series limit subqueries.
+    """
+    if not query_object.granularity:
+        return None
+
+    time_dimension = all_dimensions.get(query_object.granularity)
+    if not time_dimension:
+        return None
+
+    # Get the appropriate time bounds based on whether this is a time offset query
+    from_dttm, to_dttm = _get_time_bounds(query_object, time_offset)
+
+    if not from_dttm or not to_dttm:
+        return None
+
+    # Create a filter with >= and < operators
+    # Note: We use a tuple to represent the range, which semantic layers can interpret
+    # as "time_column >= from_dttm AND time_column < to_dttm"
+    return Filter(
+        type=PredicateType.WHERE,
+        column=time_dimension,
+        operator=Operator.GREATER_THAN_OR_EQUAL,
+        value=(from_dttm, to_dttm),
+    )
+
+
+def _get_time_bounds(
+    query_object: QueryObject,
+    time_offset: str | None,
+) -> tuple[datetime | None, datetime | None]:
+    """
+    Get the appropriate time bounds for the query.
+
+    For regular queries (time_offset is None), returns from_dttm/to_dttm.
+    For time offset queries, calculates the shifted bounds.
+
+    This simplifies the inner_from_dttm/inner_to_dttm complexity by using
+    the same bounds for both main queries and series limit subqueries (Option 1).
+    """
+    if time_offset is None:
+        # Main query: use from_dttm/to_dttm directly
+        return query_object.from_dttm, query_object.to_dttm
+
+    # Time offset query: calculate shifted bounds
+    outer_from, outer_to = get_since_until_from_query_object(query_object)
+
+    if not outer_from or not outer_to:
+        return None, None
+
+    # Apply the offset to both bounds
+    offset_from = get_past_or_future(time_offset, outer_from)
+    offset_to = get_past_or_future(time_offset, outer_to)
+
+    return offset_from, offset_to
+
+
+def _convert_query_object_filter(
+    filter_: dict,
+    all_dimensions: dict[str, Dimension],
+) -> Filter | AdhocFilter | None:
+    """
+    Convert a QueryObject filter dict to a semantic layer Filter or AdhocFilter.
+    """
+    # Handle adhoc filters (SQL expressions)
+    if filter_.get("expressionType") == "SQL":
+        return AdhocFilter(
+            type=PredicateType.WHERE,
+            definition=filter_.get("sqlExpression", ""),
+        )
+
+    # Handle TEMPORAL_RANGE filters (these are already handled by _get_time_filter)
+    if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value:
+        # Skip - already handled in _get_time_filter
+        return None
+
+    # Handle simple column filters
+    col = filter_.get("col")
+    if not col or col not in all_dimensions:
+        return None
+
+    dimension = all_dimensions[col]
+    operator_str = filter_.get("op")
+    value = filter_.get("val")
+
+    # Map QueryObject operators to semantic layer operators
+    operator_mapping = {
+        FilterOperator.EQUALS.value: Operator.EQUALS,
+        FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
+        FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
+        FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
+        FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
+        FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
+        FilterOperator.IN.value: Operator.IN,
+        FilterOperator.NOT_IN.value: Operator.NOT_IN,
+        FilterOperator.LIKE.value: Operator.LIKE,
+        FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
+        FilterOperator.IS_NULL.value: Operator.IS_NULL,
+        FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
+    }
+
+    operator = operator_mapping.get(operator_str)
+    if not operator:
+        # Unknown operator - create adhoc filter
+        return None
+
+    return Filter(
+        type=PredicateType.WHERE,
+        column=dimension,
+        operator=operator,
+        value=value,
+    )
 
 
 def _get_order_from_query_object(
