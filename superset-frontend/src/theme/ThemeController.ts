@@ -231,7 +231,7 @@ export class ThemeController {
         method: 'GET',
         endpoint: `/api/v1/theme/${themeId}`,
       });
-      
+
       const { result } = await getTheme();
       const themeConfig = JSON.parse(result.json_data);
 
@@ -867,7 +867,7 @@ export class ThemeController {
         method: 'GET',
         endpoint: `/api/v1/theme/${themeId}`,
       });
-      
+
       const { result } = await getTheme();
       const themeConfig = JSON.parse(result.json_data);
 
