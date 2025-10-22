@@ -42,6 +42,7 @@ from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
 from superset.semantic_layers.types import (
     AdhocExpression,
+    AdhocFilter,
     BINARY,
     BOOLEAN,
     DATE,
@@ -53,11 +54,11 @@ from superset.semantic_layers.types import (
     GroupLimit,
     INTEGER,
     Metric,
-    NativeFilter,
     NUMBER,
     OBJECT,
     Operator,
     OrderDirection,
+    OrderTuple,
     PredicateType,
     SemanticRequest,
     SemanticResult,
@@ -264,7 +265,7 @@ class SnowflakeSemanticLayer:
 
         Note that database and schema can both be left empty when the semantic layer is
         added to Superset; the user will then have to provide them when loading
-        explorables.
+        semantic views.
         """
         schema = cls.configuration_schema.model_json_schema()
         properties = schema["properties"]
@@ -305,7 +306,7 @@ class SnowflakeSemanticLayer:
         runtime_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
-        Get the JSON schema for the runtime parameters needed to load explorables.
+        Get the JSON schema for the runtime parameters needed to load semantic views.
 
         The schema can be enriched with actual values when `runtime_data` is provided,
         enabling dynamic schema updates (e.g., populating schema dropdown after
@@ -402,12 +403,12 @@ class SnowflakeSemanticLayer:
     def __init__(self, configuration: SnowflakeConfiguration):
         self.configuration = configuration
 
-    def get_explorables(
+    def get_semantic_views(
         self,
         runtime_configuration: BaseModel,
     ) -> set[SnowflakeSemanticView]:
         """
-        Get a list of available explorables (databases/schemas).
+        Get the semantic views available in the semantic layer.
         """
         # create a new configuration with the runtime parameters
         configuration = self.configuration.model_copy(
@@ -460,7 +461,7 @@ class SnowflakeSemanticView:
 
     def get_dimensions(self) -> set[Dimension]:
         """
-        Get the dimensions defined in the explorable.
+        Get the dimensions defined in the semantic view.
 
         Even though Snowflake supports `SHOW SEMANTIC DIMENSIONS IN my_semantic_view`,
         it doesn't return the expression of dimensions, so we use a slightly more
@@ -501,7 +502,7 @@ class SnowflakeSemanticView:
 
     def get_metrics(self) -> set[Metric]:
         """
-        Get the metrics defined in the explorable.
+        Get the metrics defined in the semantic view.
         """
         metrics: set[Metric] = set()
 
@@ -565,7 +566,7 @@ class SnowflakeSemanticView:
 
     def _build_predicates(
         self,
-        filters: set[Filter | NativeFilter],
+        filters: set[Filter | AdhocFilter],
     ) -> tuple[str, tuple[FilterValues]]:
         """
         Convert a set of filters to a single `AND`ed predicate.
@@ -582,7 +583,7 @@ class SnowflakeSemanticView:
         predicates: list[str] = []
         parameters: list[FilterValues] = []
         for filter_ in filters or set():
-            if isinstance(filter_, NativeFilter):
+            if isinstance(filter_, AdhocFilter):
                 predicates.append(f"({filter_.definition})")
             else:
                 predicates.append(f"({self._build_native_filter(filter_)})")
@@ -598,7 +599,7 @@ class SnowflakeSemanticView:
     def get_values(
         self,
         dimension: Dimension,
-        filters: set[Filter | NativeFilter] | None = None,
+        filters: set[Filter | AdhocFilter] | None = None,
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
@@ -636,7 +637,7 @@ class SnowflakeSemanticView:
 
     def _build_native_filter(self, filter_: Filter) -> str:
         """
-        Convert a Filter to a NativeFilter.
+        Convert a Filter to a AdhocFilter.
         """
         column = filter_.column
         operator = filter_.operator
@@ -661,10 +662,8 @@ class SnowflakeSemanticView:
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
-        filters: set[Filter | NativeFilter] | None = None,
-        order: (
-            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
-        ) = None,
+        filters: set[Filter | AdhocFilter] | None = None,
+        order: list[OrderTuple] | None = None,
         limit: int | None = None,
         offset: int | None = None,
         *,
@@ -703,10 +702,8 @@ class SnowflakeSemanticView:
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
-        filters: set[Filter | NativeFilter] | None = None,
-        order: (
-            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
-        ) = None,
+        filters: set[Filter | AdhocFilter] | None = None,
+        order: list[OrderTuple] | None = None,
         limit: int | None = None,
         offset: int | None = None,
         *,
@@ -746,16 +743,14 @@ class SnowflakeSemanticView:
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
-        filters: set[Filter | NativeFilter] | None = None,
-        order: (
-            list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None
-        ) = None,
+        filters: set[Filter | AdhocFilter] | None = None,
+        order: list[OrderTuple] | None = None,
         limit: int | None = None,
         offset: int | None = None,
         group_limit: GroupLimit | None = None,
     ) -> tuple[str, tuple[FilterValues]]:
         """
-        Build a query to fetch data from the explorable.
+        Build a query to fetch data from the semantic view.
 
         This also returns the parameters need to run `cursor.execute()`, passed
         separately to prevent SQL injection.
@@ -800,7 +795,7 @@ class SnowflakeSemanticView:
 
     def _build_order_clause(
         self,
-        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
+        order: list[OrderTuple] | None = None,
     ) -> str:
         """
         Build the ORDER BY clause from a list of (element, direction) tuples.
@@ -824,7 +819,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
+        order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
     ) -> str:
@@ -929,7 +924,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
+        order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,
@@ -1045,7 +1040,7 @@ class SnowflakeSemanticView:
         dimensions: list[Dimension],
         where_clause: str,
         having_clause: str,
-        order: list[tuple[Metric | Dimension | AdhocExpression, OrderDirection]] | None,
+        order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,
@@ -1135,16 +1130,16 @@ if __name__ == "__main__":
             "schema": "TPCDS_SF10TCL",
         }
     )
-    explorables = semantic_layer.get_explorables(runtime_configuration)
-    print(explorables)
-    explorable = next(iter(explorables))
+    semantic_views = semantic_layer.get_semantic_views(runtime_configuration)
+    print(semantic_views)
+    semantic_view = next(iter(semantic_views))
     print("DIMENSIONS")
     print("==========")
-    for dimension in explorable.get_dimensions():
+    for dimension in semantic_view.get_dimensions():
         print(dimension)
     print("METRICS")
     print("=======")
-    for metric in explorable.get_metrics():
+    for metric in semantic_view.get_metrics():
         print(metric)
     print("VALUES")
     print("======")
@@ -1156,12 +1151,12 @@ if __name__ == "__main__":
         definition="I_CATEGORY",
         grain=None,
     )
-    print(explorable.get_values(dimension))
+    print(semantic_view.get_values(dimension))
     filters = {
         Filter(PredicateType.WHERE, dimension, Operator.IS_NOT_NULL, None),
         Filter(PredicateType.WHERE, dimension, Operator.NOT_EQUALS, "Books"),
     }
-    print(explorable.get_values(dimension, filters))
+    print(semantic_view.get_values(dimension, filters))
     import sys
 
     sys.exit()
@@ -1173,9 +1168,9 @@ if __name__ == "__main__":
             frozenset({"Children", "Electronics"}),
         ),
     }
-    print(explorable.get_values(dimension, filters))
+    print(semantic_view.get_values(dimension, filters))
     print(
-        explorable.get_dataframe(
+        semantic_view.get_dataframe(
             [
                 Metric(
                     "STORESALES.TOTALSALESPRICE",
@@ -1204,8 +1199,8 @@ if __name__ == "__main__":
                 ),
             ],
             {
-                NativeFilter(PredicateType.WHERE, "Year = '2002'"),
-                NativeFilter(PredicateType.WHERE, "Month = '12'"),
+                AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+                AdhocFilter(PredicateType.WHERE, "Month = '12'"),
             },
         )
     )
@@ -1240,12 +1235,12 @@ if __name__ == "__main__":
         None,
     )
 
-    query_without_others, _ = explorable._get_query(
+    query_without_others, _ = semantic_view._get_query(
         metrics=[sales_metric],
         dimensions=[year_dim, category_dim],
         filters={
-            NativeFilter(PredicateType.WHERE, "Year = '2002'"),
-            NativeFilter(PredicateType.WHERE, "Month = '12'"),
+            AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+            AdhocFilter(PredicateType.WHERE, "Month = '12'"),
         },
         group_limit=GroupLimit(
             dimensions=[category_dim],
@@ -1263,12 +1258,12 @@ if __name__ == "__main__":
     print("Top 3 categories by total sales price + 'Other'")
     print("=" * 80)
 
-    query_with_others, _ = explorable._get_query(
+    query_with_others, _ = semantic_view._get_query(
         metrics=[sales_metric],
         dimensions=[year_dim, category_dim],
         filters={
-            NativeFilter(PredicateType.WHERE, "Year = '2002'"),
-            NativeFilter(PredicateType.WHERE, "Month = '12'"),
+            AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+            AdhocFilter(PredicateType.WHERE, "Month = '12'"),
         },
         group_limit=GroupLimit(
             dimensions=[category_dim],

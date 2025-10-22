@@ -23,14 +23,16 @@ from superset.semantic_layers.types import (
     GroupLimit,
     Metric,
     OrderDirection,
+    OrderTuple,
     SemanticQuery,
     SemanticViewFeature,
+    SemanticViewImplementation,
 )
 
 
 def map_query_object(query_object: QueryObject) -> SemanticQuery:
     """
-    Convert a QueryObject into a SemanticQuery.
+    Convert a `QueryObject` into a `SemanticQuery`.
 
     This function maps the `QueryObject` into a query that is less visualization-centric
     and more semantic layer-centric. This simplifies the process of adding new semantic
@@ -39,18 +41,46 @@ def map_query_object(query_object: QueryObject) -> SemanticQuery:
     semantic_view = query_object.datasource.implementation
     validate_query_object(query_object, semantic_view)
 
-    all_dimensions = {dimension.id: dimension for dimension in semantic_view.dimensions}
     all_metrics = {metric.id: metric for metric in semantic_view.metrics}
+    all_dimensions = {dimension.id: dimension for dimension in semantic_view.dimensions}
 
-    metrics: set[Metric] = {
-        all_metrics[metric_id] for metric_id in query_object.metrics
-    }
-    dimensions: set[Dimension] = {
-        all_dimensions[dim_id] for dim_id in query_object.columns
-    }
+    metrics = {all_metrics[metric] for metric in query_object.metrics}
+    dimensions = {all_dimensions[dimension] for dimension in query_object.columns}
+    filters = _get_filters_from_query_object(query_object)
+    order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+    limit = query_object.row_limit
+    offset = query_object.row_offset
+    group_limit = _get_group_limit_from_query_object(
+        query_object,
+        all_metrics,
+        all_dimensions,
+    )
 
-    filters: set[Filter] = set()
+    return SemanticQuery(
+        metrics=metrics,
+        dimensions=dimensions,
+        filters=filters,
+        order=order,
+        limit=limit,
+        offset=offset,
+        group_limit=group_limit,
+    )
 
+
+def _get_filters_from_query_object(
+    query_object: QueryObject,
+    all_metrics: dict[str, Metric],
+    all_dimensions: dict[str, Dimension],
+) -> set[Filter]:
+    # XXX
+    return set()
+
+
+def _get_order_from_query_object(
+    query_object: QueryObject,
+    all_metrics: dict[str, Metric],
+    all_dimensions: dict[str, Dimension],
+) -> list[OrderTuple]:
     order = []
     for element, ascending in query_object.orderby:
         direction = OrderDirection.ASC if ascending else OrderDirection.DESC
@@ -70,40 +100,41 @@ def map_query_object(query_object: QueryObject) -> SemanticQuery:
         elif element in all_metrics:
             order.append((all_metrics.get(element), direction))
 
-    group_limit = GroupLimit(
-        dimensions=[
-            all_dimensions[dim_id]
-            for dim_id in query_object.columns
-            if dim_id in all_dimensions
-        ],
-        top=query_object.series_limit,
-        metric=all_metrics.get(query_object.series_limit_metric),
-        direction=(
-            OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
-        ),
-        group_others=query_object.group_others_when_limit_reached,
-    )
+    return order
 
-    return SemanticQuery(
-        metrics=metrics,
+
+def _get_group_limit_from_query_object(
+    query_object: QueryObject,
+    all_metrics: dict[str, Metric],
+    all_dimensions: dict[str, Dimension],
+) -> GroupLimit | None:
+    if not query_object.columns:
+        return None
+
+    dimensions = [all_dimensions[dim_id] for dim_id in query_object.series_columns]
+    top = query_object.series_limit
+    metric = all_metrics.get(query_object.series_limit_metric)
+    direction = OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
+    group_others = query_object.group_others_when_limit_reached
+
+    return GroupLimit(
         dimensions=dimensions,
-        filters=filters,
-        order=order,
-        limit=query_object.row_limit,
-        offset=query_object.row_offset,
-        group_limit=group_limit,
+        top=top,
+        metric=metric,
+        direction=direction,
+        group_others=group_others,
     )
 
 
 def validate_query_object(
     query_object: QueryObject,
-    semantic_view: SemanticViewProtocol,
+    semantic_view: SemanticViewImplementation,
 ) -> None:
     """
     Validate that the `QueryObject` is compatible with the `SemanticView`.
 
     If some semantic view implementation supports these features we should add an
-    attribute to the `SemanticViewProtocol` to indicate support for them.
+    attribute to the `SemanticViewImplementation` to indicate support for them.
     """
     metric_ids = {metric.id for metric in semantic_view.metrics}
     dimension_ids = {dimension.id for dimension in semantic_view.dimensions}
@@ -124,10 +155,13 @@ def validate_query_object(
 
     # Validate group limit features
     if (
-        query_object.columns
+        query_object.series_columns
         and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
     ):
         raise ValueError("Group limit is not supported in this Semantic View.")
+
+    if not set(query_object.series_columns) <= dimension_ids:
+        raise ValueError("All series columns must be defined in the Semantic View.")
 
     if (
         query_object.group_others_when_limit_reached
