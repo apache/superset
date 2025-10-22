@@ -58,6 +58,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
+  ownState?: object;
   width: number;
   height: number;
   exportPivotExcel?: (arg0: string) => void;
@@ -170,6 +171,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      ownState,
     },
     ref,
   ) => {
@@ -354,6 +356,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  ownState={ownState}
                 />
               )}
             </>
