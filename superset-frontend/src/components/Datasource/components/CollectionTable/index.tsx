@@ -53,9 +53,6 @@ const StyledButtonWrapper = styled.span`
 
 type CollectionItem = { id: string | number; [key: string]: any };
 
-function createCollectionArray(collection: Record<PropertyKey, any>) {
-  return Object.keys(collection).map(k => collection[k] as CollectionItem);
-}
 
 function createKeyedCollection(arr: Array<object>) {
   const collectionArray = arr.map(
@@ -109,6 +106,7 @@ export default class CRUDCollection extends PureComponent<
       const { collection, collectionArray } = createKeyedCollection(
         this.props.collection,
       );
+      
       this.setState(prevState => ({
         collection,
         collectionArray,
@@ -117,7 +115,7 @@ export default class CRUDCollection extends PureComponent<
     }
   }
 
-  onCellChange(id: number, col: string, val: boolean) {
+  onCellChange(id: number, col: string, val: any) {
     this.setState(prevState => {
       const updatedCollection = {
         ...prevState.collection,
@@ -197,11 +195,21 @@ export default class CRUDCollection extends PureComponent<
   }
 
   changeCollection(collection: any) {
-    const newCollectionArray = createCollectionArray(collection);
-    this.setState({ collection, collectionArray: newCollectionArray });
+    // Preserve existing order instead of recreating from Object.keys()
+    // Map existing items to their updated versions from the collection
+    const newCollectionArray = this.state.collectionArray
+      .map(existingItem => collection[existingItem.id] || existingItem)
+      .filter(item => collection[item.id]); // Remove deleted items
+    
+    // Add any new items that weren't in the existing array
+    const existingIds = new Set(this.state.collectionArray.map(item => item.id));
+    const newItems = Object.values(collection).filter((item: any) => !existingIds.has(item.id));
+    const finalCollectionArray = [...newCollectionArray, ...newItems];
+    
+    this.setState({ collection, collectionArray: finalCollectionArray });
 
     if (this.props.onChange) {
-      this.props.onChange(newCollectionArray);
+      this.props.onChange(finalCollectionArray);
     }
   }
 
