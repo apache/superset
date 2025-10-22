@@ -204,21 +204,15 @@ const DependencyList = ({
     }
   }, [availableFilters, dependencies, onDependenciesChange]);
 
-  const onCheckChanged = (value: boolean) => {
-    if (value) {
-      // When enabling dependencies, add a suggestion if no dependencies exist
-      if (!hasDependencies && hasAvailableFilters) {
-        const suggestion = getDependencySuggestion();
-        if (suggestion) {
-          onDependenciesChange([suggestion]);
-        }
+   const onCheckChanged = (value: boolean) => {
+    const newDependencies: string[] = [];
+    if (value && !hasDependencies && hasAvailableFilters) {
+      const suggestion = getDependencySuggestion()
+      if(suggestion) {
+        newDependencies.push(suggestion);
       }
-      // If no available filters or suggestion, keep the checkbox checked but with empty dependencies
-      // This prevents the checkbox from immediately closing due to lack of available filters
-    } else {
-      // When disabling dependencies, clear all dependencies
-      onDependenciesChange([]);
     }
+    onDependenciesChange(newDependencies);
   };
 
   return (
