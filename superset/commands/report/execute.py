@@ -768,9 +768,6 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except ReportScheduleUnexpectedError:
-            # Don't try to log again if logging itself failed
-            raise
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -781,8 +778,15 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     ReportState.ERROR, error_message=error_message
                 )
             except ReportScheduleUnexpectedError:
-                # Logging failed, but we still want to raise the original error
-                raise
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule %s due to database issue",
+                    self._report_schedule.id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise first_ex from None
 
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
@@ -799,8 +803,12 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         [error.message for error in second_ex.errors]
                     )
                 except ReportScheduleUnexpectedError:
-                    # send_error failed due to logging issue
-                    raise
+                    # send_error failed due to logging issue, log and continue
+                    # to raise the original error
+                    logger.warning(
+                        "Failed to send error notification due to database issue",
+                        exc_info=True,
+                    )
                 except Exception as second_ex:  # pylint: disable=broad-except
                     second_error_message = str(second_ex)
                 finally:
@@ -809,8 +817,11 @@ class ReportNotTriggeredErrorState(BaseReportState):
                             ReportState.ERROR, error_message=second_error_message
                         )
                     except ReportScheduleUnexpectedError:
-                        # Logging failed again, raise this instead
-                        raise
+                        # Logging failed again, log it but don't let it hide first_ex
+                        logger.warning(
+                            "Failed to log final error state due to database issue",
+                            exc_info=True,
+                        )
             raise
 
 
@@ -879,13 +890,21 @@ class ReportSuccessState(BaseReportState):
         try:
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except ReportScheduleUnexpectedError:
-            # Don't try to log again if logging itself failed
-            raise
         except Exception as ex:  # pylint: disable=broad-except
-            self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=str(ex)
-            )
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR, error_message=str(ex)
+                )
+            except ReportScheduleUnexpectedError:
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule %s due to database issue",
+                    self._report_schedule.id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise ex from None
             raise
 
 
