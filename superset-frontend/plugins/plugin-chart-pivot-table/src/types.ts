@@ -57,7 +57,6 @@ interface PivotTableCustomizeProps {
   tableRenderer: string;
   colOrder: string;
   rowOrder: string;
-  aggregateFunction: string;
   transposePivot: boolean;
   combineMetric: boolean;
   rowSubtotalPosition: boolean;
@@ -96,5 +95,15 @@ export type PivotTableQueryFormData = QueryFormData &
 
 export type PivotTableProps = PivotTableStylesProps &
   PivotTableCustomizeProps & {
-    data: DataRecord[];
+    data: QueryData[];
   };
+
+export interface Groupby {
+  rows: QueryFormColumn[];
+  columns: QueryFormColumn[];
+}
+
+export interface QueryData {
+  data: DataRecord[];
+  groupby: Groupby;
+}

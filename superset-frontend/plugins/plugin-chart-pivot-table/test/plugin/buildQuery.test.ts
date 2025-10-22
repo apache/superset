@@ -28,7 +28,6 @@ const formData: PivotTableQueryFormData = {
   tableRenderer: 'Table With Subtotal',
   colOrder: 'key_a_to_z',
   rowOrder: 'key_a_to_z',
-  aggregateFunction: 'Sum',
   transposePivot: true,
   rowSubtotalPosition: true,
   colSubtotalPosition: true,
@@ -58,18 +57,74 @@ const formData: PivotTableQueryFormData = {
 
 test('should build groupby with series in form data', () => {
   const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-  expect(query.columns).toEqual([
-    {
-      columnType: 'BASE_AXIS',
-      expressionType: 'SQL',
-      label: 'col1',
-      sqlExpression: 'col1',
-      timeGrain: 'P1M',
-    },
-    'col2',
-    'row1',
-    'row2',
+  const { queries } = queryContext;
+  expect(queries.map(query => query.columns)).toEqual([
+    [],
+    ['row1'],
+    ['row1', 'row2'],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'row1',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'row1',
+      'row2',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+      'row1',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+      'row1',
+      'row2',
+    ],
   ]);
 });
 
@@ -80,18 +135,74 @@ test('should work with old charts', () => {
     granularity_sqla: 'col1',
   };
   const queryContext = buildQuery(modifiedFormData);
-  const [query] = queryContext.queries;
-  expect(query.columns).toEqual([
-    {
-      timeGrain: 'P1M',
-      columnType: 'BASE_AXIS',
-      sqlExpression: 'col1',
-      label: 'col1',
-      expressionType: 'SQL',
-    },
-    'col2',
-    'row1',
-    'row2',
+  const { queries } = queryContext;
+  expect(queries.map(query => query.columns)).toEqual([
+    [],
+    ['row1'],
+    ['row1', 'row2'],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'row1',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'row1',
+      'row2',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+      'row1',
+    ],
+    [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'col1',
+        sqlExpression: 'col1',
+        timeGrain: 'P1M',
+      },
+      'col2',
+      'row1',
+      'row2',
+    ],
   ]);
 });
 
@@ -101,8 +212,9 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
   };
   const queryContext = buildQuery(modifiedFormData);
-  const [query] = queryContext.queries;
-  expect(query.columns?.[0]).toEqual({
+  const { queries } = queryContext;
+  // last query in queries contains all columns
+  expect(queries[queries.length - 1].columns?.[0]).toEqual({
     timeGrain: TimeGranularity.QUARTER,
     columnType: 'BASE_AXIS',
     sqlExpression: 'col1',
@@ -113,8 +225,9 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
 
 test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
   const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-  expect(query.columns?.[0]).toEqual({
+  const { queries } = queryContext;
+  // last query in queries contains all columns
+  expect(queries[queries.length - 1].columns?.[0]).toEqual({
     timeGrain: formData.time_grain_sqla,
     columnType: 'BASE_AXIS',
     sqlExpression: 'col1',

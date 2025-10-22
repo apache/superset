@@ -179,345 +179,12 @@ const getSort = function (sorters, attr) {
 
 // aggregator templates default to US number formatting but this is overridable
 const usFmt = numberFormat();
-const usFmtInt = numberFormat({ digitsAfterDecimal: 0 });
-const usFmtPct = numberFormat({
-  digitsAfterDecimal: 1,
-  scaler: 100,
-  suffix: '%',
-});
 
 const fmtNonString = formatter => x =>
   typeof x === 'string' ? x : formatter(x);
 
-const baseAggregatorTemplates = {
-  count(formatter = usFmtInt) {
-    return () =>
-      function () {
-        return {
-          count: 0,
-          push() {
-            this.count += 1;
-          },
-          value() {
-            return this.count;
-          },
-          format: formatter,
-        };
-      };
-  },
-
-  uniques(fn, formatter = usFmtInt) {
-    return function ([attr]) {
-      return function () {
-        return {
-          uniq: [],
-          push(record) {
-            if (!Array.from(this.uniq).includes(record[attr])) {
-              this.uniq.push(record[attr]);
-            }
-          },
-          value() {
-            return fn(this.uniq);
-          },
-          format: fmtNonString(formatter),
-          numInputs: typeof attr !== 'undefined' ? 0 : 1,
-        };
-      };
-    };
-  },
-
-  sum(formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
-        return {
-          sum: 0,
-          push(record) {
-            if (Number.isNaN(Number(record[attr]))) {
-              this.sum = record[attr];
-            } else {
-              this.sum += parseFloat(record[attr]);
-            }
-          },
-          value() {
-            return this.sum;
-          },
-          format: fmtNonString(formatter),
-          numInputs: typeof attr !== 'undefined' ? 0 : 1,
-        };
-      };
-    };
-  },
-
-  extremes(mode, formatter = usFmt) {
-    return function ([attr]) {
-      return function (data) {
-        return {
-          val: null,
-          sorter: getSort(
-            typeof data !== 'undefined' ? data.sorters : null,
-            attr,
-          ),
-          push(record) {
-            const x = record[attr];
-            if (['min', 'max'].includes(mode)) {
-              const coercedValue = Number(x);
-              if (Number.isNaN(coercedValue)) {
-                this.val =
-                  !this.val ||
-                  (mode === 'min' && x < this.val) ||
-                  (mode === 'max' && x > this.val)
-                    ? x
-                    : this.val;
-              } else {
-                this.val = Math[mode](
-                  coercedValue,
-                  this.val !== null ? this.val : coercedValue,
-                );
-              }
-            } else if (
-              mode === 'first' &&
-              this.sorter(x, this.val !== null ? this.val : x) <= 0
-            ) {
-              this.val = x;
-            } else if (
-              mode === 'last' &&
-              this.sorter(x, this.val !== null ? this.val : x) >= 0
-            ) {
-              this.val = x;
-            }
-          },
-          value() {
-            return this.val;
-          },
-          format(x) {
-            if (typeof x === 'number') {
-              return formatter(x);
-            }
-            return x;
-          },
-          numInputs: typeof attr !== 'undefined' ? 0 : 1,
-        };
-      };
-    };
-  },
-
-  quantile(q, formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
-        return {
-          vals: [],
-          strMap: {},
-          push(record) {
-            const val = record[attr];
-            const x = Number(val);
-
-            if (Number.isNaN(x)) {
-              this.strMap[val] = (this.strMap[val] || 0) + 1;
-            } else {
-              this.vals.push(x);
-            }
-          },
-          value() {
-            if (
-              this.vals.length === 0 &&
-              Object.keys(this.strMap).length === 0
-            ) {
-              return null;
-            }
-
-            if (Object.keys(this.strMap).length) {
-              const values = Object.values(this.strMap).sort((a, b) => a - b);
-              const middle = Math.floor(values.length / 2);
-
-              const keys = Object.keys(this.strMap);
-              return keys.length % 2 !== 0
-                ? keys[middle]
-                : (keys[middle - 1] + keys[middle]) / 2;
-            }
-
-            this.vals.sort((a, b) => a - b);
-            const i = (this.vals.length - 1) * q;
-            return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
-          },
-          format: fmtNonString(formatter),
-          numInputs: typeof attr !== 'undefined' ? 0 : 1,
-        };
-      };
-    };
-  },
-
-  runningStat(mode = 'mean', ddof = 1, formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
-        return {
-          n: 0.0,
-          m: 0.0,
-          s: 0.0,
-          strValue: null,
-          push(record) {
-            const x = Number(record[attr]);
-            if (Number.isNaN(x)) {
-              this.strValue =
-                typeof record[attr] === 'string' ? record[attr] : this.strValue;
-              return;
-            }
-            this.n += 1.0;
-            if (this.n === 1.0) {
-              this.m = x;
-            }
-            const mNew = this.m + (x - this.m) / this.n;
-            this.s += (x - this.m) * (x - mNew);
-            this.m = mNew;
-          },
-          value() {
-            if (this.strValue) {
-              return this.strValue;
-            }
-
-            if (mode === 'mean') {
-              if (this.n === 0) {
-                return 0 / 0;
-              }
-              return this.m;
-            }
-            if (this.n <= ddof) {
-              return 0;
-            }
-            switch (mode) {
-              case 'var':
-                return this.s / (this.n - ddof);
-              case 'stdev':
-                return Math.sqrt(this.s / (this.n - ddof));
-              default:
-                throw new Error('unknown mode for runningStat');
-            }
-          },
-          format: fmtNonString(formatter),
-          numInputs: typeof attr !== 'undefined' ? 0 : 1,
-        };
-      };
-    };
-  },
-
-  sumOverSum(formatter = usFmt) {
-    return function ([num, denom]) {
-      return function () {
-        return {
-          sumNum: 0,
-          sumDenom: 0,
-          push(record) {
-            if (!Number.isNaN(Number(record[num]))) {
-              this.sumNum += parseFloat(record[num]);
-            }
-            if (!Number.isNaN(Number(record[denom]))) {
-              this.sumDenom += parseFloat(record[denom]);
-            }
-          },
-          value() {
-            return this.sumNum / this.sumDenom;
-          },
-          format: formatter,
-          numInputs:
-            typeof num !== 'undefined' && typeof denom !== 'undefined' ? 0 : 2,
-        };
-      };
-    };
-  },
-
-  fractionOf(wrapped, type = 'total', formatter = usFmtPct) {
-    return (...x) =>
-      function (data, rowKey, colKey) {
-        return {
-          selector: { total: [[], []], row: [rowKey, []], col: [[], colKey] }[
-            type
-          ],
-          inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
-          push(record) {
-            this.inner.push(record);
-          },
-          format: fmtNonString(formatter),
-          value() {
-            const acc = data
-              .getAggregator(...Array.from(this.selector || []))
-              .inner.value();
-
-            if (typeof acc === 'string') {
-              return acc;
-            }
-
-            return this.inner.value() / acc;
-          },
-          numInputs: wrapped(...Array.from(x || []))().numInputs,
-        };
-      };
-  },
-};
-
-const extendedAggregatorTemplates = {
-  countUnique(f) {
-    return baseAggregatorTemplates.uniques(x => x.length, f);
-  },
-  listUnique(s, f) {
-    return baseAggregatorTemplates.uniques(x => x.join(s), f || (x => x));
-  },
-  max(f) {
-    return baseAggregatorTemplates.extremes('max', f);
-  },
-  min(f) {
-    return baseAggregatorTemplates.extremes('min', f);
-  },
-  first(f) {
-    return baseAggregatorTemplates.extremes('first', f);
-  },
-  last(f) {
-    return baseAggregatorTemplates.extremes('last', f);
-  },
-  median(f) {
-    return baseAggregatorTemplates.quantile(0.5, f);
-  },
-  average(f) {
-    return baseAggregatorTemplates.runningStat('mean', 1, f);
-  },
-  var(ddof, f) {
-    return baseAggregatorTemplates.runningStat('var', ddof, f);
-  },
-  stdev(ddof, f) {
-    return baseAggregatorTemplates.runningStat('stdev', ddof, f);
-  },
-};
-
-const aggregatorTemplates = {
-  ...baseAggregatorTemplates,
-  ...extendedAggregatorTemplates,
-};
-
-// default aggregators & renderers use US naming and number formatting
-const aggregators = (tpl => ({
-  Count: tpl.count(usFmtInt),
-  'Count Unique Values': tpl.countUnique(usFmtInt),
-  'List Unique Values': tpl.listUnique(', '),
-  Sum: tpl.sum(usFmt),
-  'Integer Sum': tpl.sum(usFmtInt),
-  Average: tpl.average(usFmt),
-  Median: tpl.median(usFmt),
-  'Sample Variance': tpl.var(1, usFmt),
-  'Sample Standard Deviation': tpl.stdev(1, usFmt),
-  Minimum: tpl.min(usFmt),
-  Maximum: tpl.max(usFmt),
-  First: tpl.first(usFmt),
-  Last: tpl.last(usFmt),
-  'Sum over Sum': tpl.sumOverSum(usFmt),
-  'Sum as Fraction of Total': tpl.fractionOf(tpl.sum(), 'total', usFmtPct),
-  'Sum as Fraction of Rows': tpl.fractionOf(tpl.sum(), 'row', usFmtPct),
-  'Sum as Fraction of Columns': tpl.fractionOf(tpl.sum(), 'col', usFmtPct),
-  'Count as Fraction of Total': tpl.fractionOf(tpl.count(), 'total', usFmtPct),
-  'Count as Fraction of Rows': tpl.fractionOf(tpl.count(), 'row', usFmtPct),
-  'Count as Fraction of Columns': tpl.fractionOf(tpl.count(), 'col', usFmtPct),
-}))(aggregatorTemplates);
-
 const locales = {
   en: {
-    aggregators,
     localeStrings: {
       renderError: 'An error occurred rendering the PivotTable results.',
       computeError: 'An error occurred computing the PivotTable results.',
@@ -602,6 +269,23 @@ const derivers = {
 // can be used in objects.
 const flatKey = attrVals => attrVals.join(String.fromCharCode(0));
 
+const cellValue = (formatter = usFmt) =>
+  function ([attr]) {
+    return function () {
+      return {
+        val: 0,
+        push(record) {
+          this.val = record[attr];
+        },
+        value() {
+          return this.val;
+        },
+        format: fmtNonString(formatter),
+        numInputs: typeof attr !== 'undefined' ? 0 : 1,
+      };
+    };
+  };
+
 /*
 Data Model class
 */
@@ -617,18 +301,14 @@ class PivotData {
       'PivotData',
     );
 
-    this.aggregator = this.props
-      .aggregatorsFactory(this.props.defaultFormatter)
-      [this.props.aggregatorName](this.props.vals);
+    this.aggregator = cellValue(this.props.defaultFormatter)(this.props.vals);
     this.formattedAggregators =
       this.props.customFormatters &&
       Object.entries(this.props.customFormatters).reduce(
         (acc, [key, columnFormatter]) => {
           acc[key] = {};
           Object.entries(columnFormatter).forEach(([column, formatter]) => {
-            acc[key][column] = this.props
-              .aggregatorsFactory(formatter)
-              [this.props.aggregatorName](this.props.vals);
+            acc[key][column] = cellValue(formatter)(this.props.vals);
           });
           return acc;
         },
@@ -643,7 +323,7 @@ class PivotData {
     this.subtotals = subtotals;
     this.sorted = false;
 
-    // iterate through input, accumulating data for cells
+    // iterate through input, putting data for cells
     PivotData.forEachRecord(this.props.data, this.processRecord);
   }
 
@@ -737,74 +417,69 @@ class PivotData {
     // this code is called in a tight loop
     const colKey = [];
     const rowKey = [];
-    this.props.cols.forEach(col => {
+    record.columns.forEach(col => {
       colKey.push(col in record ? record[col] : 'null');
     });
-    this.props.rows.forEach(row => {
+    record.rows.forEach(row => {
       rowKey.push(row in record ? record[row] : 'null');
     });
 
-    this.allTotal.push(record);
+    const flatRowKey = flatKey(rowKey);
+    const flatColKey = flatKey(colKey);
 
-    const rowStart = this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
-    const colStart = this.subtotals.colEnabled ? 1 : Math.max(1, colKey.length);
+    const isColSubtotal = colKey.length < this.props.cols.length;
+    const isRowSubtotal = rowKey.length < this.props.rows.length;
 
-    let isRowSubtotal;
-    let isColSubtotal;
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
-      if (!this.rowTotals[flatRowKey]) {
-        this.rowKeys.push(fRowKey);
-        this.rowTotals[flatRowKey] = this.getFormattedAggregator(
-          record,
-          rowKey,
-        )(this, fRowKey, []);
+    if (!this.colTotals[flatColKey] && colKey.length > 0) {
+      if (!isColSubtotal || this.subtotals.colEnabled) {
+        this.colKeys.push(colKey);
       }
-      this.rowTotals[flatRowKey].push(record);
-      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+
+      this.colTotals[flatColKey] = this.getFormattedAggregator(record, colKey)(
+        this,
+        [],
+        colKey,
+      );
     }
 
-    for (let ci = colStart; ci <= colKey.length; ci += 1) {
-      isColSubtotal = ci < colKey.length;
-      const fColKey = colKey.slice(0, ci);
-      const flatColKey = flatKey(fColKey);
-      if (!this.colTotals[flatColKey]) {
-        this.colKeys.push(fColKey);
-        this.colTotals[flatColKey] = this.getFormattedAggregator(
-          record,
-          colKey,
-        )(this, [], fColKey);
+    if (!this.rowTotals[flatRowKey] && rowKey.length > 0) {
+      if (!isRowSubtotal || this.subtotals.rowEnabled) {
+        this.rowKeys.push(rowKey);
       }
-      this.colTotals[flatColKey].push(record);
-      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+
+      this.rowTotals[flatRowKey] = this.getFormattedAggregator(record, rowKey)(
+        this,
+        [],
+        rowKey,
+      );
     }
 
-    // And now fill in for all the sub-cells.
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
+    if (rowKey.length > 0 && colKey.length > 0) {
       if (!this.tree[flatRowKey]) {
         this.tree[flatRowKey] = {};
       }
-      for (let ci = colStart; ci <= colKey.length; ci += 1) {
-        isColSubtotal = ci < colKey.length;
-        const fColKey = colKey.slice(0, ci);
-        const flatColKey = flatKey(fColKey);
-        if (!this.tree[flatRowKey][flatColKey]) {
-          this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(
-            record,
-          )(this, fRowKey, fColKey);
-        }
-        this.tree[flatRowKey][flatColKey].push(record);
 
-        this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
-        this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
-        this.tree[flatRowKey][flatColKey].isSubtotal =
-          isRowSubtotal || isColSubtotal;
+      if (!this.tree[flatRowKey][flatColKey]) {
+        this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(record)(
+          this,
+          rowKey,
+          colKey,
+        );
       }
+    }
+
+    if (rowKey.length === 0 && colKey.length === 0) {
+      this.allTotal.push(record);
+    } else if (rowKey.length === 0) {
+      this.colTotals[flatColKey].push(record);
+      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+    } else if (colKey.length === 0) {
+      this.rowTotals[flatRowKey].push(record);
+      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+    } else {
+      this.tree[flatRowKey][flatColKey].push(record);
+      this.tree[flatRowKey][flatColKey].isSubtotal =
+        isRowSubtotal || isColSubtotal;
     }
   }
 
@@ -835,20 +510,18 @@ class PivotData {
 }
 
 // can handle arrays or jQuery selections of tables
-PivotData.forEachRecord = function (input, processRecord) {
-  if (Array.isArray(input)) {
+PivotData.forEachRecord = function (data, processRecord) {
+  if (Array.isArray(data)) {
     // array of objects
-    return input.map(record => processRecord(record));
+    return data.map(record => processRecord(record));
   }
   throw new Error(t('Unknown input format'));
 };
 
 PivotData.defaultProps = {
-  aggregators,
   cols: [],
   rows: [],
   vals: [],
-  aggregatorName: 'Count',
   sorters: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
@@ -857,7 +530,6 @@ PivotData.defaultProps = {
 PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
-  aggregatorName: PropTypes.string,
   cols: PropTypes.arrayOf(PropTypes.string),
   rows: PropTypes.arrayOf(PropTypes.string),
   vals: PropTypes.arrayOf(PropTypes.string),
@@ -882,8 +554,6 @@ PivotData.propTypes = {
 };
 
 export {
-  aggregatorTemplates,
-  aggregators,
   derivers,
   locales,
   naturalSort,
