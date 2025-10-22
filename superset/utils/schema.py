@@ -63,8 +63,8 @@ def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -
     :raises ValidationError: if value is not valid JSON or missing required fields
     :param value: a JSON string that should contain datasource and queries metadata
     """
-    if value is None:
-        return  # Allow None values
+    if value is None or not value:
+        return  # Allow None values and empty strings
 
     try:
         parsed_data = json.loads(value)
