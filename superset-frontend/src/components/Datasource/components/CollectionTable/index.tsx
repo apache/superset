@@ -196,16 +196,18 @@ export default class CRUDCollection extends PureComponent<
   changeCollection(collection: any) {
     // Preserve existing order instead of recreating from Object.keys()
     // Single-pass optimization to reduce iterations and memory allocations
-    const existingIds = new Set(this.state.collectionArray.map(item => item.id));
+    const existingIds = new Set(
+      this.state.collectionArray.map(item => item.id),
+    );
     const newCollectionArray: CollectionItem[] = [];
-    
+
     // First pass: preserve existing order and update items
     for (const existingItem of this.state.collectionArray) {
       if (collection[existingItem.id]) {
         newCollectionArray.push(collection[existingItem.id]);
       }
     }
-    
+
     // Second pass: add new items
     for (const item of Object.values(collection) as CollectionItem[]) {
       if (!existingIds.has(item.id)) {
