@@ -222,6 +222,13 @@ OrderTuple = tuple[Metric | Dimension | AdhocExpression, OrderDirection]
 class GroupLimit:
     """
     Limit query to top/bottom N combinations of specified dimensions.
+
+    The `filters` parameter allows specifying separate filter constraints for the
+    group limit subquery. This is useful when you want to determine the top N groups
+    using different criteria (e.g., a different time range) than the main query.
+
+    For example, you might want to find the top 10 products by sales over the last
+    30 days, but then show daily sales for those products over the last 7 days.
     """
 
     dimensions: list[Dimension]
@@ -229,6 +236,7 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
+    filters: set["Filter | AdhocFilter"] | None = None
 
 
 @dataclass(frozen=True)

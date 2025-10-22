@@ -780,7 +780,7 @@ class SnowflakeSemanticView:
         )
 
         if group_limit:
-            query = self._build_query_with_group_limit(
+            query, cte_parameters = self._build_query_with_group_limit(
                 metrics,
                 dimensions,
                 where_clause,
@@ -790,6 +790,8 @@ class SnowflakeSemanticView:
                 offset,
                 group_limit,
             )
+            # Combine parameters: CTE params first, then main query params
+            all_parameters = cte_parameters + where_parameters + having_parameters
         else:
             query = self._build_simple_query(
                 metrics,
@@ -800,8 +802,9 @@ class SnowflakeSemanticView:
                 limit,
                 offset,
             )
+            all_parameters = where_parameters + having_parameters
 
-        return query, where_parameters + having_parameters
+        return query, all_parameters
 
     def _alias_element(self, element: Metric | Dimension) -> str:
         """
@@ -886,9 +889,16 @@ class SnowflakeSemanticView:
         group_limit: GroupLimit,
         where_clause: str,
         having_clause: str,
-    ) -> str:
+    ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Build a CTE that finds the top N combinations of limited dimensions.
+
+        If group_limit.filters is set, it uses those filters instead of the main
+        query's where_clause/having_clause. This allows using different time bounds
+        for finding top groups vs showing data.
+
+        Returns:
+            Tuple of (CTE SQL, parameters for the CTE)
         """
         limited_dimension_arguments = ", ".join(
             self._alias_element(dimension) for dimension in group_limit.dimensions
@@ -897,7 +907,30 @@ class SnowflakeSemanticView:
             self._quote(dimension.id) for dimension in group_limit.dimensions
         )
 
-        return dedent(
+        # Use separate filters for group limit if provided (Option 2)
+        # Otherwise use the same filters as the main query (Option 1)
+        if group_limit.filters is not None:
+            group_where_clause, group_where_params = self._build_predicates(
+                {
+                    filter_
+                    for filter_ in group_limit.filters
+                    if filter_.type == PredicateType.WHERE
+                }
+            )
+            group_having_clause, group_having_params = self._build_predicates(
+                {
+                    filter_
+                    for filter_ in group_limit.filters
+                    if filter_.type == PredicateType.HAVING
+                }
+            )
+            cte_params = group_where_params + group_having_params
+        else:
+            group_where_clause = where_clause
+            group_having_clause = having_clause
+            cte_params = ()  # No additional params - using main query params
+
+        cte_sql = dedent(
             f"""
             WITH top_groups AS (
                 SELECT {limited_dimension_names}
@@ -906,15 +939,17 @@ class SnowflakeSemanticView:
                     DIMENSIONS {limited_dimension_arguments}
                     METRICS {group_limit.metric.id}
                         AS {self._quote(group_limit.metric.id)}
-                    {"WHERE " + where_clause if where_clause else ""}
+                    {"WHERE " + group_where_clause if group_where_clause else ""}
                 )
-                {"HAVING " + having_clause if having_clause else ""}
+                {"HAVING " + group_having_clause if group_having_clause else ""}
                 ORDER BY
                     {self._quote(group_limit.metric.id)} {group_limit.direction.value}
                 LIMIT {group_limit.top}
             )
             """
         )
+
+        return cte_sql, cte_params
 
     def _build_group_filter(self, group_limit: GroupLimit) -> str:
         """
@@ -962,7 +997,7 @@ class SnowflakeSemanticView:
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,
-    ) -> str:
+    ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Build a query that groups non-top N values as 'Other'.
 
@@ -970,8 +1005,11 @@ class SnowflakeSemanticView:
         1. CTE to find top N groups
         2. Subquery with CASE expressions to replace non-top values with 'Other'
         3. Outer query to re-aggregate with the new grouping
+
+        Returns:
+            Tuple of (SQL query, CTE parameters)
         """
-        top_groups_cte = self._build_top_groups_cte(
+        top_groups_cte, cte_params = self._build_top_groups_cte(
             group_limit,
             where_clause,
             having_clause,
@@ -1054,7 +1092,7 @@ class SnowflakeSemanticView:
         # Build ORDER BY clause (need to reference the aliased columns)
         order_clause = self._build_order_clause(order)
 
-        return dedent(
+        query = dedent(
             f"""
             {top_groups_cte},
             {subquery}
@@ -1068,6 +1106,8 @@ class SnowflakeSemanticView:
             """
         )
 
+        return query, cte_params
+
     def _build_query_with_group_limit(
         self,
         metrics: list[Metric],
@@ -1078,12 +1118,15 @@ class SnowflakeSemanticView:
         limit: int | None,
         offset: int | None,
         group_limit: GroupLimit,
-    ) -> str:
+    ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Build a query with group limiting (top N groups).
 
         If group_others is True, groups non-top values as 'Other'.
         Otherwise, filters to show only top N groups.
+
+        Returns:
+            Tuple of (SQL query, CTE parameters)
         """
         if group_limit.group_others:
             return self._build_query_with_others(
@@ -1105,14 +1148,14 @@ class SnowflakeSemanticView:
         metric_arguments = ", ".join(self._alias_element(metric) for metric in metrics)
         order_clause = self._build_order_clause(order)
 
-        top_groups_cte = self._build_top_groups_cte(
+        top_groups_cte, cte_params = self._build_top_groups_cte(
             group_limit,
             where_clause,
             having_clause,
         )
         group_filter = self._build_group_filter(group_limit)
 
-        return dedent(
+        query = dedent(
             f"""
             {top_groups_cte}
             SELECT * FROM (
@@ -1130,6 +1173,8 @@ class SnowflakeSemanticView:
             {"OFFSET " + str(offset) if offset is not None else ""}
             """
         )
+
+        return query, cte_params
 
     __repr__ = uid
 

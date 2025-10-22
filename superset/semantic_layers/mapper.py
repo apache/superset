@@ -306,13 +306,84 @@ def _get_group_limit_from_query_object(
     direction = OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
     group_others = query_object.group_others_when_limit_reached
 
+    # Check if we need separate filters for the group limit subquery
+    # This happens when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm
+    group_limit_filters = _get_group_limit_filters(query_object, all_dimensions)
+
     return GroupLimit(
         dimensions=dimensions,
         top=top,
         metric=metric,
         direction=direction,
         group_others=group_others,
+        filters=group_limit_filters,
     )
+
+
+def _get_group_limit_filters(
+    query_object: QueryObject,
+    all_dimensions: dict[str, Dimension],
+) -> set[Filter | AdhocFilter] | None:
+    """
+    Get separate filters for the group limit subquery if needed.
+
+    This is used when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm,
+    which happens during time comparison queries. The group limit subquery may need
+    different time bounds to determine the top N groups.
+
+    Returns None if the group limit should use the same filters as the main query.
+    """
+    # Check if inner time bounds are explicitly set and differ from outer bounds
+    if (
+        query_object.inner_from_dttm is None
+        or query_object.inner_to_dttm is None
+        or (
+            query_object.inner_from_dttm == query_object.from_dttm
+            and query_object.inner_to_dttm == query_object.to_dttm
+        )
+    ):
+        # No separate bounds needed - use the same filters as the main query
+        return None
+
+    # Create separate filters for the group limit subquery
+    filters: set[Filter | AdhocFilter] = set()
+
+    # Add time range filter using inner bounds
+    if query_object.granularity:
+        time_dimension = all_dimensions.get(query_object.granularity)
+        if time_dimension and query_object.inner_from_dttm and query_object.inner_to_dttm:
+            filters.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=time_dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=(query_object.inner_from_dttm, query_object.inner_to_dttm),
+                )
+            )
+
+    # Add fetch values predicate if present
+    if (
+        query_object.apply_fetch_values_predicate
+        and query_object.datasource.fetch_values_predicate
+    ):
+        filters.add(
+            AdhocFilter(
+                type=PredicateType.WHERE,
+                definition=query_object.datasource.fetch_values_predicate,
+            )
+        )
+
+    # Add all other non-temporal filters from query_object.filter
+    for filter_ in query_object.filter:
+        # Skip temporal range filters - we're using inner bounds instead
+        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value:
+            continue
+
+        converted_filter = _convert_query_object_filter(filter_, all_dimensions)
+        if converted_filter:
+            filters.add(converted_filter)
+
+    return filters if filters else None
 
 
 def _convert_time_grain(time_grain: str) -> TimeGrain | DateGrain | None:
