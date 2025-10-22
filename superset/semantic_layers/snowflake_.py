@@ -40,6 +40,7 @@ from snowflake.connector import connect, DictCursor
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 
+from superset.exceptions import SupersetParseError
 from superset.semantic_layers.types import (
     AdhocExpression,
     AdhocFilter,
@@ -67,6 +68,7 @@ from superset.semantic_layers.types import (
     TIME,
     Type,
 )
+from superset.sql.parse import SQLStatement
 
 REQUEST_TYPE = "snowflake"
 
@@ -92,6 +94,20 @@ def substitute_parameters(query: str, parameters: Sequence[Any] | None) -> str:
         result = result.replace("?", replacement, 1)
 
     return result
+
+
+def validate_order_by(definition: str) -> None:
+    """
+    Validate that an ORDER BY expression is safe to use.
+
+    Note that `definition` could contain multiple expressions separated by commas.
+    """
+    try:
+        # this ensures that we have a single statement, preventing SQL injection via a
+        # semicolon in the order by clause
+        SQLStatement(f"SELECT 1 ORDER BY {definition}", "snowflake")
+    except SupersetParseError as ex:
+        raise ValueError("Invalid ORDER BY expression") from ex
 
 
 class UserPasswordAuth(BaseModel):
@@ -799,12 +815,30 @@ class SnowflakeSemanticView:
     ) -> str:
         """
         Build the ORDER BY clause from a list of (element, direction) tuples.
+
+        Note that for adhoc expressions, Superset will still add `ASC` or `DESC` to the
+        end, which means adhoc expressions can contain multiple columns as long as the
+        last one has no direction specified.
+
+        This is fine:
+
+            gender ASC, COUNT(*)
+
+        But this is not
+
+            gender ASC, COUNT(*) DESC
+
+        The latter will produce a query that looks like this:
+
+            ... ORDER BY gender ASC, COUNT(*) DESC DESC
+
         """
         if not order:
             return ""
 
         def build_element(element: Metric | Dimension | AdhocExpression) -> str:
             if isinstance(element, AdhocExpression):
+                validate_order_by(element.definition)
                 return element.definition
             return self._quote(element.id)
 

@@ -133,17 +133,17 @@ class ComparableEnum(enum.Enum):
 
 
 class TimeGrain(ComparableEnum):
-    second = timedelta(seconds=1)
-    minute = timedelta(minutes=1)
-    hour = timedelta(hours=1)
+    PT1S = timedelta(seconds=1)
+    PT1M = timedelta(minutes=1)
+    PT1H = timedelta(hours=1)
 
 
 class DateGrain(ComparableEnum):
-    day = timedelta(days=1)
-    week = timedelta(weeks=1)
-    month = timedelta(days=30)
-    quarter = timedelta(days=90)
-    year = timedelta(days=365)
+    P1D = timedelta(days=1)
+    P1W = timedelta(weeks=1)
+    P1M = timedelta(days=30)
+    P3M = timedelta(days=90)
+    P1Y = timedelta(days=365)
 
 
 @dataclass(frozen=True)
@@ -152,8 +152,8 @@ class Dimension:
     name: str
     type: type[Type]
 
-    description: str | None = None
     definition: str | None = None
+    description: str | None = None
     grain: DateGrain | TimeGrain | None = None
 
 
@@ -163,9 +163,7 @@ class Metric:
     name: str
     type: type[Type]
 
-    # Metric definitions could be SQL expressions, SQL queries, or even a DSL
     definition: str | None
-
     description: str | None = None
 
 
