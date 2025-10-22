@@ -174,8 +174,7 @@ class TextAreaControl extends Component {
                 buttonSize="small"
                 style={{ marginTop: this.props.theme.sizeUnit }}
               >
-                {t('Edit')} <strong>{this.props.language}</strong>{' '}
-                {t('in modal')}
+                {t('Edit %s in modal', this.props.language)}
               </Button>
             }
             modalBody={this.renderModalBody(true)}
