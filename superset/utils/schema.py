@@ -67,7 +67,6 @@ def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -
         return  # Allow None values
 
     try:
-        json.validate_json(value)
         parsed_data = json.loads(value)
     except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
