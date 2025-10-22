@@ -22,11 +22,41 @@ Create Date: 2025-10-06 16:05:00.000000
 
 """
 
+import enum
+
+import migration_utils as utils
 from alembic import op
+from sqlalchemy import Column, Enum, Integer, MetaData, String, Table, Text
+from sqlalchemy.sql import func, select
 
 # revision identifiers, used by Alembic.
 revision = "b54f3bd8e69"
 down_revision = "c233f5365c9e"
+
+
+class TagType(enum.Enum):
+    # pylint: disable=invalid-name
+    custom = 1
+    type = 2
+    owner = 3
+    favorited_by = 4
+
+
+# Define the tag table structure for data operations
+metadata = MetaData()
+tag_table = Table(
+    "tag",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(250)),
+    Column("type", Enum(TagType)),
+    Column("description", Text),
+)
+
+old_constraint_name = "tag_name_key"
+new_constraint_name = "uix_tag_name_type"
+table_name = "tag"
+new_constraint_columns = ["name", "type"]
 
 
 def upgrade():
@@ -35,28 +65,52 @@ def upgrade():
     This allows the same tag name to exist with different types (e.g., 'type:dashboard'
     can be both a system tag with type='type' and a custom tag with type='custom').
     """
-    try:
-        # Drop the old unique constraint on name only
-        op.drop_constraint("tag_name_key", "tag", type_="unique")
+    bind = op.get_bind()
 
-        # Create new composite unique constraint on (name, type)
-        op.create_unique_constraint("uix_tag_name_type", "tag", ["name", "type"])
-    except Exception:  # noqa: S110
-        # SQLite doesn't support constraint operations well
-        pass
+    # Reflect the current database state to get existing tables
+    metadata.reflect(bind=bind)
+
+    # Delete duplicate tags if any, keeping the one with the lowest ID
+    min_id_subquery = (
+        select(
+            [
+                func.min(tag_table.c.id).label("min_id"),
+                tag_table.c.name,
+                tag_table.c.type,
+            ]
+        )
+        .group_by(
+            tag_table.c.name,
+            tag_table.c.type,
+        )
+        .alias("min_ids")
+    )
+
+    delete_query = tag_table.delete().where(
+        tag_table.c.id.notin_(select([min_id_subquery.c.min_id]))
+    )
+
+    bind.execute(delete_query)
+
+    # Drop the old unique constraint on name only
+    utils.drop_unique_constraint(op, old_constraint_name, table_name)
+
+    # Create new composite unique constraint on (name, type)
+    utils.create_unique_constraint(
+        op, new_constraint_name, table_name, new_constraint_columns
+    )
 
 
 def downgrade():
     """
     Revert to name-only unique constraint.
-    Note: This may fail if there are duplicate names with different types.
-    """
-    try:
-        # Drop the composite unique constraint
-        op.drop_constraint("uix_tag_name_type", "tag", type_="unique")
 
-        # Recreate the old unique constraint on name only
-        op.create_unique_constraint("tag_name_key", "tag", ["name"])
-    except Exception:  # noqa: S110
-        # SQLite doesn't support constraint operations well
-        pass
+    WARNING: This downgrade will fail if there are duplicate tag names with
+    different types in the database. Before downgrading, ensure there are no
+    tags with the same name but different types, or manually consolidate them.
+    """
+    # Drop the composite unique constraint
+    utils.drop_unique_constraint(op, new_constraint_name, table_name)
+
+    # Recreate the old unique constraint on name only
+    utils.create_unique_constraint(op, old_constraint_name, table_name, ["name"])
