@@ -447,18 +447,22 @@ def test_datetime_eval() -> None:
     expected = datetime(2018, 9, 3, 0, 0, 0)
     assert result == expected
 
-    # Saudi Arabia holidays use Arabic names in holidays>=0.24
-    try:
-        result = datetime_eval(
-            "holiday('عطلة عيد الفطر', datetime('2000-01-01T00:00:00'), 'SA')"
-        )
-        expected = datetime(2000, 1, 8, 0, 0, 0)
-        assert result == expected
-    except ValueError as e:
-        # Debug: print all SA holidays to help troubleshoot CI failures
-        import holidays as holidays_pkg
-        sa_holidays = holidays_pkg.country_holidays('SA', years=[2000], observed=False)
-        raise Exception(str(sa_holidays))
+    # Saudi Arabia holidays - try both English and Arabic names as the default
+    # language varies by environment (ar in some envs, en_US in CI)
+    sa_holiday_test_passed = False
+    for holiday_name in ["Eid al-Fitr", "عطلة عيد الفطر"]:
+        try:
+            result = datetime_eval(
+                f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
+            )
+            expected = datetime(2000, 1, 8, 0, 0, 0)
+            assert result == expected
+            sa_holiday_test_passed = True
+            break
+        except ValueError:
+            continue
+
+    assert sa_holiday_test_passed
 
     result = datetime_eval(
         "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
