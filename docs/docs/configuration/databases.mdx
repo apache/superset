@@ -1258,7 +1258,11 @@ The expected connection string is formatted as follows:
 hive://hive@{hostname}:{port}/{database}
 ```
 
-#### Arc Arrow
+#### Arc
+
+There are two ways to connect Superset to Arc:
+
+**1. Arc with Apache Arrow (Recommended)**
 
 The recommended connector library for Arc with Apache Arrow support is [arc-superset-arrow](https://pypi.org/project/arc-superset-arrow/).
 
@@ -1268,17 +1272,17 @@ The connection string looks like:
 arc+arrow://{api_key}@{hostname}:{port}/{database}
 ```
 
-Arc supports multiple databases (schemas) within a single instance. In Superset, each Arc database appears as a schema in the SQL Lab.
+**2. Arc with JSON**
 
-#### Arc JSON
-
-The recommended connector library for Arc with JSON responses is [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/).
+Alternatively, you can use the JSON connector [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/).
 
 The connection string looks like:
 
 ```
 arc+json://{api_key}@{hostname}:{port}/{database}
 ```
+
+Arc supports multiple databases (schemas) within a single instance. In Superset, each Arc database appears as a schema in the SQL Lab.
 
 **Note:** The Arrow dialect (`arc-superset-arrow`) is recommended for production use as it provides 3-5x better performance using Apache Arrow IPC binary format.
 
