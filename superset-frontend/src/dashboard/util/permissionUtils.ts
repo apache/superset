@@ -44,6 +44,18 @@ const isUserDashboardOwner = (
   isUserWithPermissionsAndRoles(user) &&
   dashboard.owners.some(owner => owner.id === user.userId);
 
+const isDashboardSharedWithUser = (
+  dashboard: Dashboard,
+  user: UserWithPermissionsAndRoles | UndefinedUser,
+) => {
+  const dashboardRoles = dashboard.roles || [];
+  const userRoles = (isUserWithPermissionsAndRoles(user) && user?.roles) ?? [];
+  const isDashboardSharedWithUser = Object.keys(userRoles).some(role =>
+    dashboardRoles.find(dashboardRole => dashboardRole.name === role),
+  );
+  return isDashboardSharedWithUser;
+};
+
 export const canUserEditDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | UndefinedUser | null,
@@ -77,5 +89,6 @@ export const canUserSaveAsDashboard = (
   isUserWithPermissionsAndRoles(user) &&
   findPermission('can_write', 'Dashboard', user?.roles) &&
   (!isFeatureEnabled(FeatureFlag.DashboardRbac) ||
+    isDashboardSharedWithUser(dashboard, user) ||
     isUserAdmin(user) ||
     isUserDashboardOwner(dashboard, user));

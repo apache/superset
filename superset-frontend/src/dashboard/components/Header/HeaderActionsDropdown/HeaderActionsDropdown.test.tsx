@@ -173,22 +173,6 @@ test('should show the share actions', async () => {
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('should render the "Save as" menu item when user can save', async () => {
-  const mockedProps = createProps();
-  const canSaveProps = {
-    ...mockedProps,
-    userCanSave: true,
-  };
-  setup(canSaveProps);
-  expect(screen.getByText('Save as')).toBeInTheDocument();
-});
-
-test('should NOT render the "Save as" menu item when user cannot save', async () => {
-  const mockedProps = createProps();
-  setup(mockedProps);
-  expect(screen.queryByText('Save as')).not.toBeInTheDocument();
-});
-
 test('should render the "Refresh dashboard" menu item as disabled when loading', async () => {
   const mockedProps = createProps();
   const loadingProps = {

@@ -49,11 +49,13 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
   DASHBOARD_HEADER_ID,
+  SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import SaveModal from 'src/dashboard/components/SaveModal';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -99,6 +101,10 @@ const editButtonStyle = theme => css`
   color: ${theme.colors.primary.dark2};
 `;
 
+const saveButtonStyle = theme => css`
+  color: ${theme.colors.primary.dark2};
+`;
+
 const actionButtonsStyle = theme => css`
   display: flex;
   align-items: center;
@@ -111,6 +117,11 @@ const actionButtonsStyle = theme => css`
     display: flex;
     margin-right: ${theme.gridUnit * 2}px;
   }
+`;
+
+const actionButtonsContainerStyle = theme => css`
+  display: flex;
+  gap: ${theme.gridUnit * 2}px;
 `;
 
 const StyledUndoRedoButton = styled(Button)`
@@ -571,9 +582,33 @@ const Header = () => {
     ],
   );
 
+  const saveAsModal = useMemo(() => (
+    <SaveModal
+      addSuccessToast={boundActionCreators.addSuccessToast}
+      addDangerToast={boundActionCreators.addDangerToast}
+      dashboardId={dashboardInfo.id}
+      dashboardTitle={dashboardTitle}
+      dashboardInfo={dashboardInfo}
+      lastModifiedTime={actualLastModifiedTime}
+      triggerNode={
+        <Button buttonStyle="primary" data-test="save-as" css={saveButtonStyle}>
+          <Icons.SaveOutlined iconSize="l" />
+          {t('Save as')}
+        </Button>
+      }
+      saveType={SAVE_TYPE_NEWDASHBOARD}
+      onSave={boundActionCreators.onSave}
+      canOverwrite={userCanEdit}
+      expandedSlices={expandedSlices}
+      customCss={customCss}
+      layout={layout}
+      refreshFrequency={0}
+    />
+  ));
+
   const rightPanelAdditionalItems = useMemo(
     () => (
-      <div className="button-container">
+      <div css={actionButtonsContainerStyle} className="button-container">
         {userCanSaveAs && (
           <div className="button-container" data-test="dashboard-edit-actions">
             {editMode && (
@@ -651,22 +686,25 @@ const Header = () => {
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
             {userCanEdit && (
-              <Button
-                buttonStyle="secondary"
-                onClick={() => {
-                  toggleEditMode();
-                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
-                }}
-                data-test="edit-dashboard-button"
-                className="action-button"
-                css={editButtonStyle}
-                aria-label={t('Edit dashboard')}
-              >
-                {t('Edit dashboard')}
-              </Button>
+              <div className="button-container">
+                <Button
+                  buttonStyle="secondary"
+                  onClick={() => {
+                    toggleEditMode();
+                    boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
+                  }}
+                  data-test="edit-dashboard-button"
+                  className="action-button"
+                  css={editButtonStyle}
+                  aria-label={t('Edit dashboard')}
+                >
+                  {t('Edit dashboard')}
+                </Button>
+              </div>
             )}
           </div>
         )}
+        <div className="button-container">{userCanSaveAs && saveAsModal}</div>
       </div>
     ),
     [
@@ -725,7 +763,6 @@ const Header = () => {
         hasUnsavedChanges={hasUnsavedChanges}
         userCanEdit={userCanEdit}
         userCanShare={userCanShare}
-        userCanSave={userCanSaveAs}
         userCanCurate={userCanCurate}
         isLoading={isLoading}
         showPropertiesModal={showPropertiesModal}

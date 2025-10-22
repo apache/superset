@@ -284,8 +284,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
+        if (
+            is_feature_enabled("DASHBOARD_RBAC")
+            and not security_manager.is_owner(original_dash)
+            and not security_manager.has_role_access(original_dash)
         ):
             raise DashboardForbiddenError()
 

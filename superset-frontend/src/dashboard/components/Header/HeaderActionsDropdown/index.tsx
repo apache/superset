@@ -26,10 +26,8 @@ import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import DownloadMenuItems from 'src/dashboard/components/menu/DownloadMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import SaveModal from 'src/dashboard/components/SaveModal';
 import HeaderReportDropdown from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -205,31 +203,6 @@ export class HeaderActionsDropdown extends PureComponent<
           </Menu.Item>
         )}
         <Menu.Divider />
-        {userCanSave && (
-          <Menu.Item key={MenuKeys.SaveModal}>
-            <SaveModal
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-              dashboardId={dashboardId}
-              dashboardTitle={dashboardTitle}
-              dashboardInfo={dashboardInfo}
-              saveType={SAVE_TYPE_NEWDASHBOARD}
-              layout={layout}
-              expandedSlices={expandedSlices}
-              refreshFrequency={refreshFrequency}
-              shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-              lastModifiedTime={lastModifiedTime}
-              customCss={customCss}
-              colorNamespace={colorNamespace}
-              colorScheme={colorScheme}
-              onSave={onSave}
-              triggerNode={
-                <div data-test="save-as-menu-item">{t('Save as')}</div>
-              }
-              canOverwrite={userCanEdit}
-            />
-          </Menu.Item>
-        )}
         <Menu.SubMenu
           key={MenuKeys.Download}
           disabled={isLoading}

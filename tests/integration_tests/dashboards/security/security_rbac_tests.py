@@ -480,7 +480,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.post(uri, json=data)
-        assert rv.status_code == 403
+        assert rv.status_code == 200
         self.logout()
 
         self.login(ADMIN_USERNAME)
