@@ -12,7 +12,7 @@ version: 1
 SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
 To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](/docs/configuration/configuring-superset#feature-flags) needs to be enabled in `superset_config.py`.
 
-:::warning[⚠️ Security Warning]
+:::warning[Security Warning]
 
 While powerful, this feature executes template code on the server. Within the Superset security model, this is **intended functionality**, as users with permissions to edit charts and virtual datasets are considered **trusted users**.
 
