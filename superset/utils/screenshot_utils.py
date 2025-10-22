@@ -139,15 +139,17 @@ def take_tiled_screenshot(
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(2000)  # 2 second wait per tile
 
-            # Get the current element position after scroll
-            current_element_box = page.evaluate(f"""() => {{
+            # Get the current element position after scroll and viewport size
+            viewport_info = page.evaluate(f"""() => {{
                 const el = document.querySelector(".{element_name}");
                 const rect = el.getBoundingClientRect();
                 return {{
-                    x: rect.left,
-                    y: rect.top,
-                    width: rect.width,
-                    height: rect.height
+                    elementX: rect.left,
+                    elementY: rect.top,
+                    elementWidth: rect.width,
+                    elementHeight: rect.height,
+                    viewportWidth: window.innerWidth,
+                    viewportHeight: window.innerHeight
                 }};
             }}""")
 
@@ -156,12 +158,46 @@ def take_tiled_screenshot(
             remaining_content = dashboard_height - tile_start_in_element
             tile_content_height = min(viewport_height, remaining_content)
 
+            # Ensure clip coordinates are within viewport bounds
+            # If element.top is negative, it's scrolled above viewport - start from y=0
+            clip_y = max(0, viewport_info["elementY"])
+            # If element.left is negative, start from x=0
+            clip_x = max(0, viewport_info["elementX"])
+
+            # Calculate visible height: if element starts above viewport, reduce height
+            visible_element_height = viewport_info["elementHeight"]
+            if viewport_info["elementY"] < 0:
+                visible_element_height += viewport_info["elementY"]
+
+            # Ensure clip doesn't extend beyond viewport
+            clip_height = min(
+                tile_content_height,
+                visible_element_height,
+                viewport_info["viewportHeight"] - clip_y,
+            )
+            clip_width = min(
+                viewport_info["elementWidth"], viewport_info["viewportWidth"] - clip_x
+            )
+
+            # Validate clip region before taking screenshot
+            if clip_width <= 0 or clip_height <= 0:
+                logger.warning(
+                    "Skipping tile %s/%s - invalid clip dimensions: %sx%s at (%s, %s)",
+                    i + 1,
+                    num_tiles,
+                    clip_width,
+                    clip_height,
+                    clip_x,
+                    clip_y,
+                )
+                continue
+
             # Clip to capture only the current tile portion of the element
             clip = {
-                "x": current_element_box["x"],
-                "y": current_element_box["y"],
-                "width": current_element_box["width"],
-                "height": min(tile_content_height, current_element_box["height"]),
+                "x": clip_x,
+                "y": clip_y,
+                "width": clip_width,
+                "height": clip_height,
             }
 
             # Take screenshot with clipping to capture only this tile's content
