@@ -799,10 +799,10 @@ msgstr "Асинхронные запросы"
 msgid "AUG"
 msgstr "АВГ"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "Отступ заголовка оси"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "Положение заголовка оси"
 
 msgid "About"
@@ -14035,7 +14035,7 @@ msgstr "Заполните описание к вашему запросу"
 msgid "Write a handlebars template to render the data"
 msgstr "Напишите шаблон Handlebars для отображения данных"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "Отступ заголовка оси X"
 
 msgid "X Axis"
@@ -14089,7 +14089,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Границы оси Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "Отступ заголовка оси Y"
 
 msgid "Y Axis"

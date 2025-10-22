@@ -267,6 +267,9 @@ const Chart = props => {
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
+  const chartCustomizationItems = useSelector(
+    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+  );
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
     state => state.dashboardState.colorNamespace,
@@ -294,6 +297,7 @@ const Chart = props => {
       getFormDataWithExtraFilters({
         chart,
         chartConfiguration,
+        chartCustomizationItems,
         filters: getAppliedFilterValues(props.id),
         colorScheme,
         colorNamespace,
@@ -310,6 +314,7 @@ const Chart = props => {
     [
       chart,
       chartConfiguration,
+      chartCustomizationItems,
       props.id,
       props.extraControls,
       colorScheme,
