@@ -1706,7 +1706,6 @@ class DatasourceEditor extends PureComponent {
               minLines={5}
               textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
               resize="both"
-              debounceDelay={300}
             />
           ),
           description: (v, onChange, label) => (
@@ -1899,7 +1898,6 @@ class DatasourceEditor extends PureComponent {
       );
       const currentCalculatedColumns = this.state.calculatedColumns;
 
-      // Check if this is just an update to existing calculated columns (not addition/removal)
       if (newCalculatedColumns.length === currentCalculatedColumns.length) {
         // Try to preserve the order by matching with existing calculated columns
         const orderedCalculatedColumns = [];
@@ -1925,7 +1923,6 @@ class DatasourceEditor extends PureComponent {
           }
         });
 
-        // Update state with preserved order
         this.setState({
           calculatedColumns: orderedCalculatedColumns,
           databaseColumns: this.props.datasource.columns.filter(

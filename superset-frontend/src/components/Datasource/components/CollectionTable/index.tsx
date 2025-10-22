@@ -114,7 +114,7 @@ export default class CRUDCollection extends PureComponent<
     }
   }
 
-  onCellChange(id: number, col: string, val: any) {
+  onCellChange(id: number, col: string, val: boolean) {
     this.setState(prevState => {
       const updatedCollection = {
         ...prevState.collection,
@@ -195,7 +195,6 @@ export default class CRUDCollection extends PureComponent<
 
   changeCollection(collection: any) {
     // Preserve existing order instead of recreating from Object.keys()
-    // Single-pass optimization to reduce iterations and memory allocations
     const existingIds = new Set(
       this.state.collectionArray.map(item => item.id),
     );
