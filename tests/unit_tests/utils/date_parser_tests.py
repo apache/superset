@@ -447,7 +447,6 @@ def test_datetime_eval() -> None:
     expected = datetime(2018, 9, 3, 0, 0, 0)
     assert result == expected
 
-    # Saudi Arabia holidays use Arabic names in holidays>=0.24
     result = datetime_eval(
         "holiday('(تقدير) عطلة عيد الفطر', datetime('2000-01-01T00:00:00'), 'SA')"
     )
