@@ -22,6 +22,7 @@ import {
   type ThemeControllerOptions,
   type ThemeStorage,
   isThemeConfigDark,
+  makeApi,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
@@ -225,14 +226,14 @@ export class ThemeController {
         return this.dashboardThemes.get(themeId)!;
       }
 
-      // Fetch theme config from API
-      const response = await fetch(`/api/v1/theme/${themeId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Fetch theme config from API using SupersetClient for proper auth
+      const getTheme = makeApi<void, { result: { json_data: string } }>({
+        method: 'GET',
+        endpoint: `/api/v1/theme/${themeId}`,
+      });
 
-      const data = await response.json();
-      const themeConfig = JSON.parse(data.result.json_data);
+      const { result } = await getTheme();
+      const themeConfig = JSON.parse(result.json_data);
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
@@ -861,13 +862,14 @@ export class ThemeController {
     themeId: string,
   ): Promise<AnyThemeConfig | null> {
     try {
-      const response = await fetch(`/api/v1/theme/${themeId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Use SupersetClient for proper authentication handling
+      const getTheme = makeApi<void, { result: { json_data: string } }>({
+        method: 'GET',
+        endpoint: `/api/v1/theme/${themeId}`,
+      });
 
-      const data = await response.json();
-      const themeConfig = JSON.parse(data.result.json_data);
+      const { result } = await getTheme();
+      const themeConfig = JSON.parse(result.json_data);
 
       return themeConfig;
     } catch (error) {
