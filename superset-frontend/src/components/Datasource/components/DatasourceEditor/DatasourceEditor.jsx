@@ -691,13 +691,13 @@ class DatasourceEditor extends PureComponent {
     const { datasourceType, datasource } = this.state;
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
-    
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
-    
+
     this.props.onChange(newDatasource, this.state.errors);
   }
 
@@ -1894,9 +1894,11 @@ class DatasourceEditor extends PureComponent {
   componentDidUpdate(prevProps) {
     // Preserve calculated columns order when props change to prevent jumping
     if (this.props.datasource !== prevProps.datasource) {
-      const newCalculatedColumns = this.props.datasource.columns.filter(col => !!col.expression);
+      const newCalculatedColumns = this.props.datasource.columns.filter(
+        col => !!col.expression,
+      );
       const currentCalculatedColumns = this.state.calculatedColumns;
-      
+
       // Check if this is just an update to existing calculated columns (not addition/removal)
       if (newCalculatedColumns.length === currentCalculatedColumns.length) {
         // Create a map of current calculated columns by their identifier
@@ -1905,23 +1907,23 @@ class DatasourceEditor extends PureComponent {
           const id = col.id || col.column_name;
           currentMap.set(id, { ...col, originalIndex: index });
         });
-        
+
         // Try to preserve the order by matching with existing calculated columns
         const orderedCalculatedColumns = [];
         const usedIds = new Set();
-        
+
         // First, add existing columns in their current order
         currentCalculatedColumns.forEach(currentCol => {
           const id = currentCol.id || currentCol.column_name;
-          const updatedCol = newCalculatedColumns.find(newCol => 
-            (newCol.id || newCol.column_name) === id
+          const updatedCol = newCalculatedColumns.find(
+            newCol => (newCol.id || newCol.column_name) === id,
           );
           if (updatedCol) {
             orderedCalculatedColumns.push(updatedCol);
             usedIds.add(id);
           }
         });
-        
+
         // Then add any new columns that weren't in the current list
         newCalculatedColumns.forEach(newCol => {
           const id = newCol.id || newCol.column_name;
@@ -1929,12 +1931,13 @@ class DatasourceEditor extends PureComponent {
             orderedCalculatedColumns.push(newCol);
           }
         });
-        
-        
+
         // Update state with preserved order
         this.setState({
           calculatedColumns: orderedCalculatedColumns,
-          databaseColumns: this.props.datasource.columns.filter(col => !col.expression),
+          databaseColumns: this.props.datasource.columns.filter(
+            col => !col.expression,
+          ),
         });
       }
     }
