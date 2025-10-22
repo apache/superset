@@ -179,6 +179,8 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
+    getPointRadius: fd.get_point_radius,
+    pointRadiusUnits: fd.point_radius_units,
     pointRadiusScale: fd.point_radius_scale,
     lineWidthUnits: fd.line_width_unit,
     ...commonLayerProps({
