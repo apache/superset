@@ -198,6 +198,7 @@ const ResultSet = ({
         'sql',
         'executedSql',
         'sqlEditorId',
+        'sqlEditorImmutableId',
         'templateParams',
         'schema',
         'rows',
