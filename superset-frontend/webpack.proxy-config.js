@@ -165,7 +165,26 @@ module.exports = newManifest => {
         if (isHTML(response)) {
           processHTML(proxyResponse, response);
         } else {
-          proxyResponse.pipe(response);
+          const isCSV = (proxyResponse.headers['content-type'] || '').includes(
+            'text/csv',
+          );
+
+          if (isCSV) {
+            proxyResponse.on('data', chunk => {
+              response.write(chunk);
+              if (response.flush) {
+                response.flush();
+              }
+            });
+            proxyResponse.on('end', () => {
+              response.end();
+            });
+            proxyResponse.on('error', () => {
+              response.end();
+            });
+          } else {
+            proxyResponse.pipe(response);
+          }
         }
         response.flushHeaders();
       } catch (e) {
