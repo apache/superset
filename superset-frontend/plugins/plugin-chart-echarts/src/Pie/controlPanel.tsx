@@ -41,6 +41,7 @@ const {
   numberFormat,
   showLabels,
   roseType,
+  half,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -115,6 +116,20 @@ const config: ControlPanelConfig = {
                 [null, t('None')],
               ],
               description: t('Whether to show as Nightingale chart.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'half',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Half doughnut'),
+              renderTrigger: true,
+              default: half,
+              description: t(
+                'Convert the full doughnut chart into a half doughnut.',
+              ),
             },
           },
         ],
