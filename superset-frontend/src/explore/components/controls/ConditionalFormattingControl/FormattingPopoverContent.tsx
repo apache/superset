@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import {
   Comparator,
   MultipleValueComparators,
@@ -50,10 +50,11 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colorSuccessBg, label: t('success') },
-  { value: theme.colorWarningBg, label: t('alert') },
-  { value: theme.colorErrorBg, label: t('error') },
+// Use theme token names instead of hex values to support theme switching
+const colorSchemeOptions = () => [
+  { value: 'colorSuccessBg', label: t('success') },
+  { value: 'colorWarningBg', label: t('alert') },
+  { value: 'colorErrorBg', label: t('error') },
 ];
 
 const operatorOptions = [
@@ -205,8 +206,7 @@ export const FormattingPopoverContent = ({
   columns: { label: string; value: string }[];
   extraColorChoices?: { label: string; value: string }[];
 }) => {
-  const theme = useTheme();
-  const colorScheme = colorSchemeOptions(theme);
+  const colorScheme = colorSchemeOptions();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&

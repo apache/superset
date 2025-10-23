@@ -76,7 +76,7 @@ export default memo(function ColumnConfigItem({
     alignItems: 'center',
     position: 'absolute',
     right: 3 * sizeUnit,
-    top: 3 * sizeUnit,
+    top: 4 * sizeUnit,
     transform: 'translateY(-50%)',
     gap: sizeUnit,
     color: theme.colorTextSecondary,

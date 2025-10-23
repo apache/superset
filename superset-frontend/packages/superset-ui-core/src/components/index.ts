@@ -179,4 +179,5 @@ export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
   setupAGGridModules,
+  defaultModules,
 } from './ThemedAgGridReact';

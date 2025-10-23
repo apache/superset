@@ -81,6 +81,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     filterState,
     datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
     emitCrossFilters,
+    theme,
   } = chartProps;
   const { data, colnames, coltypes } = queriesData[0];
   const {
@@ -141,7 +142,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
-  const metricColorFormatters = getColorFormatters(conditionalFormatting, data);
+  const metricColorFormatters = getColorFormatters(
+    conditionalFormatting,
+    data,
+    theme,
+  );
 
   return {
     width,
