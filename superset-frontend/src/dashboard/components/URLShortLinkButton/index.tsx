@@ -30,7 +30,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { Typography } from '@superset-ui/core/components/Typography';
-import { hasAgGridTables } from 'src/dashboard/util/agGridHelpers';
+import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -64,7 +64,7 @@ export default function URLShortLinkButton({
     try {
       // Check if dashboard has AG Grid tables (Table V2)
       const includeChartState =
-        hasAgGridTables(sliceEntities) &&
+        hasStatefulCharts(sliceEntities) &&
         chartStates &&
         Object.keys(chartStates).length > 0;
 

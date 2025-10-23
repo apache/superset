@@ -38,6 +38,10 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from '../../../util/chartStateConverter';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -201,10 +205,10 @@ const Chart = props => {
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
   );
 
-  // Chart state handler for AG Grid tables
+  // Chart state handler for stateful charts
   const handleChartStateChange = useCallback(
     chartState => {
-      if (slice?.viz_type === 'ag-grid-table') {
+      if (hasChartStateConverter(slice?.viz_type)) {
         dispatch(updateChartState(props.id, slice.viz_type, chartState));
       }
     },
@@ -395,110 +399,19 @@ const Chart = props => {
 
       let ownState = dataMask[props.id]?.ownState || {};
 
-      // For AG Grid tables, convert AG Grid state to backend-compatible format
-      if (slice.viz_type === 'ag-grid-table' && chartStates[props.id]?.state) {
-        const agGridState = chartStates[props.id].state;
-
-        // Convert AG Grid sortModel to backend sortBy format
-        if (agGridState.sortModel && agGridState.sortModel.length > 0) {
-          const sortItem = agGridState.sortModel[0];
-          ownState = {
-            ...ownState,
-            sortBy: [
-              {
-                id: sortItem.colId,
-                key: sortItem.colId,
-                desc: sortItem.sort === 'desc',
-              },
-            ],
-          };
-        }
-
-        // Store column order for backend processing
-        if (agGridState.columnState && agGridState.columnState.length > 0) {
-          ownState = {
-            ...ownState,
-            columnOrder: agGridState.columnState.map(col => col.colId),
-          };
-        }
-
-        if (
-          agGridState.filterModel &&
-          Object.keys(agGridState.filterModel).length > 0
-        ) {
-          // Map AG Grid filter operators to backend operators
-          const TEXT_FILTER_OPERATORS = {
-            equals: '==',
-            notEqual: '!=',
-            contains: 'ILIKE',
-            notContains: 'NOT ILIKE',
-            startsWith: 'ILIKE',
-            endsWith: 'ILIKE',
-          };
-
-          const NUMBER_FILTER_OPERATORS = {
-            equals: '==',
-            notEqual: '!=',
-            lessThan: '<',
-            lessThanOrEqual: '<=',
-            greaterThan: '>',
-            greaterThanOrEqual: '>=',
-          };
-
-          const getTextComparator = (type, value) => {
-            if (type === 'contains' || type === 'notContains') {
-              return `%${value}%`;
-            }
-            if (type === 'startsWith') {
-              return `${value}%`;
-            }
-            if (type === 'endsWith') {
-              return `%${value}`;
-            }
-            return value;
-          };
-
-          const filters = [];
-
-          Object.keys(agGridState.filterModel).forEach(colId => {
-            const filter = agGridState.filterModel[colId];
-
-            // Text filter
-            if (filter.filterType === 'text' && filter.filter) {
-              filters.push({
-                col: colId,
-                op: TEXT_FILTER_OPERATORS[filter.type] || 'ILIKE',
-                val: getTextComparator(filter.type, filter.filter),
-              });
-            } else if (
-              filter.filterType === 'number' &&
-              filter.filter !== undefined
-            ) {
-              filters.push({
-                col: colId,
-                op: NUMBER_FILTER_OPERATORS[filter.type] || '==',
-                val: filter.filter,
-              });
-            } else if (
-              filter.filterType === 'set' &&
-              Array.isArray(filter.values) &&
-              filter.values.length > 0
-            ) {
-              filters.push({
-                col: colId,
-                op: 'IN',
-                val: filter.values,
-              });
-            }
-          });
-
-          if (filters.length > 0) {
-            ownState = {
-              ...ownState,
-              filters,
-            };
-          }
-        }
+      // Convert chart-specific state to backend format using registered converter
+      if (
+        hasChartStateConverter(slice.viz_type) &&
+        chartStates[props.id]?.state
+      ) {
+        const convertedState = convertChartStateToOwnState(
+          slice.viz_type,
+          chartStates[props.id].state,
+        );
+        ownState = {
+          ...ownState,
+          ...convertedState,
+        };
       }
 
       exportChart({
@@ -660,7 +573,7 @@ const Chart = props => {
           labelsColorMap={labelsColorMap}
           ownState={{
             ...dataMask[props.id]?.ownState,
-            ...(slice.viz_type === 'ag-grid-table' &&
+            ...(hasChartStateConverter(slice.viz_type) &&
             chartStates[props.id]?.state
               ? { savedAgGridState: chartStates[props.id].state }
               : {}),

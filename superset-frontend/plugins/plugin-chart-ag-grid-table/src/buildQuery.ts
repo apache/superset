@@ -222,7 +222,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (Array.isArray(sortSource) && sortSource.length > 0) {
       const mapColIdToIdentifier = (colId: string): string | undefined => {
-        const matchingColumn = columns.find((col: any) => {
+        const matchingColumn = columns.find((col: QueryFormColumn) => {
           if (typeof col === 'string') return col === colId;
           return col?.sqlExpression === colId || col?.label === colId;
         });
@@ -233,7 +233,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             : matchingColumn.sqlExpression || matchingColumn.label;
         }
 
-        const matchingMetric = (metrics || []).find((met: any) => {
+        const matchingMetric = (metrics || []).find((met: QueryFormMetric) => {
           if (typeof met === 'string')
             return met === colId || `%${met}` === colId;
           const metLabel = getMetricLabel(met);

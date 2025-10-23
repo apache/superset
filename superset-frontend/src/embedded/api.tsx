@@ -21,7 +21,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
-import { hasAgGridTables } from '../dashboard/util/agGridHelpers';
+import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 
 const bootstrapData = getBootstrapData();
 
@@ -59,7 +59,7 @@ const getDashboardPermalink = async ({
   };
 
   const includeChartState =
-    hasAgGridTables(sliceEntities) &&
+    hasStatefulCharts(sliceEntities) &&
     chartStates &&
     Object.keys(chartStates).length > 0;
 

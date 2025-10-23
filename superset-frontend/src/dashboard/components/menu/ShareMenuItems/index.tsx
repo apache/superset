@@ -23,7 +23,7 @@ import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
-import { hasAgGridTables } from 'src/dashboard/util/agGridHelpers';
+import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
 
 export interface ShareMenuItemProps
   extends ComponentProps<typeof Menu.SubMenu> {
@@ -72,7 +72,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
   async function generateUrl() {
     // Only include chart state for AG Grid tables
     const includeChartState =
-      hasAgGridTables(sliceEntities) &&
+      hasStatefulCharts(sliceEntities) &&
       chartStates &&
       Object.keys(chartStates).length > 0;
 
