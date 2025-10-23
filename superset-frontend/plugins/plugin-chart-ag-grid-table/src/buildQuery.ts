@@ -332,8 +332,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       columns: orderedColumns,
       extras: {
         ...extras,
-        // Flag to indicate AG Grid chart - enables metric column filtering
-        is_ag_grid_chart: true,
         // Pass column order to enable mixed column+metric ordering
         ...(isDownloadQuery &&
         ownState.columnOrder &&

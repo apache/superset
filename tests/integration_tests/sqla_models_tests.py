@@ -1135,3 +1135,136 @@ def test__temporal_range_operator_in_adhoc_filter(physical_dataset):
     )
     df = pd.DataFrame(index=[0], data={"col1": 4, "col2": "e"})
     assert df.equals(result.df)
+
+
+def test_generic_metric_filtering_without_chart_flag(login_as_admin):
+    """
+    Test that filters on metrics work without chart-specific flags.
+
+    This ensures metric filtering is generic and works for any chart type.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.utils.database import get_example_database
+
+    database = get_example_database()
+    table = SqlaTable(
+        table_name="test_metric_filter",
+        database=database,
+    )
+
+    # Add column
+    col = TableColumn(
+        column_name="name",
+        type="VARCHAR(255)",
+        table=table,
+    )
+    table.columns = [col]
+
+    # Add metric
+    metric = SqlMetric(
+        metric_name="count",
+        expression="COUNT(*)",
+        table=table,
+    )
+    table.metrics = [metric]
+
+    db.session.add(table)
+    db.session.commit()
+
+    try:
+        # Query with metric filter and NO is_ag_grid_chart flag
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["name"],
+            "metrics": ["count"],
+            "filter": [
+                {
+                    "col": "count",  # Filter on metric
+                    "op": ">",
+                    "val": 0,
+                }
+            ],
+            "is_timeseries": False,
+            "extras": {},  # No chart-specific flags
+        }
+
+        # This should not raise an error
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = str(sqla_query).lower()
+
+        # Verify HAVING clause is used
+        assert "having" in sql, "Metric filter should use HAVING clause"
+    finally:
+        db.session.delete(table)
+        db.session.commit()
+
+
+def test_column_ordering_without_chart_flag(login_as_admin):
+    """
+    Test that column_order works without chart-specific flags.
+
+    This ensures column ordering is generic and works for any chart type.
+    """
+    from unittest.mock import patch
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.utils.database import get_example_database
+
+    database = get_example_database()
+    table = SqlaTable(
+        table_name="test_column_order",
+        database=database,
+    )
+
+    # Add columns
+    col_a = TableColumn(column_name="col_a", type="VARCHAR(255)", table=table)
+    col_b = TableColumn(column_name="col_b", type="VARCHAR(255)", table=table)
+    table.columns = [col_a, col_b]
+
+    # Add metrics
+    metric_x = SqlMetric(metric_name="metric_x", expression="COUNT(*)", table=table)
+    metric_y = SqlMetric(metric_name="metric_y", expression="SUM(val)", table=table)
+    table.metrics = [metric_x, metric_y]
+
+    db.session.add(table)
+    db.session.commit()
+
+    try:
+        # Mock the database response with columns in one order
+        mock_df = pd.DataFrame(
+            {
+                "col_a": [1, 2],
+                "col_b": [3, 4],
+                "metric_x": [10, 20],
+                "metric_y": [100, 200],
+            }
+        )
+
+        with patch.object(database, "get_df", return_value=mock_df):
+            query_obj = {
+                "granularity": None,
+                "from_dttm": None,
+                "to_dttm": None,
+                "groupby": ["col_a", "col_b"],
+                "metrics": ["metric_x", "metric_y"],
+                "filter": [],
+                "is_timeseries": False,
+                "extras": {
+                    # Specify custom column order (no chart-specific flags)
+                    "column_order": ["metric_y", "col_b", "metric_x", "col_a"]
+                },
+            }
+
+            result = table.query(query_obj)
+
+            # Verify columns are reordered
+            expected_order = ["metric_y", "col_b", "metric_x", "col_a"]
+            assert list(result.df.columns) == expected_order, (
+                f"Expected {expected_order}, got {list(result.df.columns)}"
+            )
+    finally:
+        db.session.delete(table)
+        db.session.commit()

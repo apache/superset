@@ -2063,10 +2063,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Check if it's a regular column first
                 col_obj = columns_by_name.get(cast(str, flt_col))
                 # If not found in columns, check if it's a metric
-                # This supports AG Grid table filters on metric columns
+                # This supports filtering on metric columns for any chart type
                 if (
                     col_obj is None
-                    and extras.get("is_ag_grid_chart")
                     and isinstance(flt_col, str)
                     and flt_col in metrics_by_name
                 ):

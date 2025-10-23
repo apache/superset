@@ -1018,23 +1018,13 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
-    is_ag_grid_chart = fields.Boolean(
-        metadata={
-            "description": (
-                "Flag indicating if the query is from an AG Grid table chart. "
-                "When true, enables filtering on metric columns in addition "
-                "to dimension columns."
-            )
-        },
-        allow_none=True,
-    )
     column_order = fields.List(
         fields.String(),
         metadata={
             "description": (
-                "Ordered list of column names for AG Grid table exports. "
+                "Ordered list of column names for result ordering. "
                 "Used to preserve user's column reordering (including mixed "
-                "columns and metrics)"
+                "dimension columns and metrics)"
             )
         },
         allow_none=True,
