@@ -43,6 +43,7 @@ export default function transformProps(
     rawFormData,
     hooks,
     datasource: { currencyFormats = {}, columnFormats = {} },
+    theme,
   } = chartProps;
   const {
     metricNameFontSize,
@@ -105,7 +106,7 @@ export default function transformProps(
   const defaultColorFormatters = [] as ColorFormatters;
 
   const colorThresholdFormatters =
-    getColorFormatters(conditionalFormatting, data, false) ??
+    getColorFormatters(conditionalFormatting, data, theme, false) ??
     defaultColorFormatters;
   return {
     width,
