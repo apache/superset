@@ -244,6 +244,8 @@ export const hydrateDashboard =
       metadata.cross_filters_enabled,
     );
 
+    const chartCustomizationItems = metadata?.chart_customization_config || [];
+
     return dispatch({
       type: HYDRATE_DASHBOARD,
       data: {
@@ -309,6 +311,7 @@ export const hydrateDashboard =
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},
+          chartCustomizationItems,
         },
         dashboardLayout,
       },

@@ -19,6 +19,7 @@
 
 import {
   ModuleRegistry,
+  type Module,
   ColumnAutoSizeModule,
   ColumnHoverModule,
   RowAutoHeightModule,
@@ -39,27 +40,29 @@ import {
 } from 'ag-grid-community';
 
 /**
- * Registers the AG-Grid modules required for Superset's table functionality.
- * This should be called once during application initialization.
+ * Default AG Grid modules that are registered by default.
+ * These modules provide core AG Grid functionality.
  */
-export const setupAGGridModules = () => {
-  ModuleRegistry.registerModules([
-    ColumnAutoSizeModule,
-    ColumnHoverModule,
-    RowAutoHeightModule,
-    RowStyleModule,
-    PaginationModule,
-    CellStyleModule,
-    TextFilterModule,
-    NumberFilterModule,
-    DateFilterModule,
-    ExternalFilterModule,
-    CsvExportModule,
-    ColumnApiModule,
-    RowApiModule,
-    CellApiModule,
-    RenderApiModule,
-    ClientSideRowModelModule,
-    CustomFilterModule,
-  ]);
+export const defaultModules: Module[] = [
+  ColumnAutoSizeModule,
+  ColumnHoverModule,
+  RowAutoHeightModule,
+  RowStyleModule,
+  PaginationModule,
+  CellStyleModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  ExternalFilterModule,
+  CsvExportModule,
+  ColumnApiModule,
+  RowApiModule,
+  CellApiModule,
+  RenderApiModule,
+  ClientSideRowModelModule,
+  CustomFilterModule,
+];
+
+export const setupAGGridModules = (additionalModules: Module[] = []) => {
+  ModuleRegistry.registerModules([...defaultModules, ...additionalModules]);
 };
