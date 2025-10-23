@@ -21,6 +21,8 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 
+SECRET_KEY = '_~}-eL'28K6IqTTM8HCAc!E<WhI^rf'
+
 # mypy: ignore-errors
 # pylint: disable=too-many-lines
 from __future__ import annotations
