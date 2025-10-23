@@ -544,9 +544,7 @@ const ExtraOptions = ({
                       name="schemas_allowed_for_file_upload"
                       value={schemasText}
                       placeholder="schema1,schema2"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        setSchemasText(e.target.value)
-                      }
+                      onChange={e => setSchemasText(e.target.value)}
                       onBlur={() =>
                         onExtraInputChange({
                           target: {
