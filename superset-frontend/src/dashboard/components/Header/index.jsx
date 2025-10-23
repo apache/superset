@@ -219,6 +219,7 @@ const Header = () => {
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
   const ctrlZTimeout = useRef(0);
+  const previousThemeRef = useRef(dashboardInfo.theme);
 
   const dashboardTitle = layout[DASHBOARD_HEADER_ID]?.meta?.text;
   const { slug } = dashboardInfo;
@@ -325,10 +326,16 @@ const Header = () => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
 
-  // Ensure theme changes are tracked as unsaved changes
+  // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {
-    if (editMode && dashboardInfo.theme !== undefined) {
-      boundActionCreators.setUnsavedChanges(true);
+    if (editMode) {
+      if (dashboardInfo.theme !== previousThemeRef.current) {
+        boundActionCreators.setUnsavedChanges(true);
+        previousThemeRef.current = dashboardInfo.theme;
+      }
+    } else {
+      // Sync ref when navigating between dashboards to avoid false positives
+      previousThemeRef.current = dashboardInfo.theme;
     }
   }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
@@ -713,7 +720,8 @@ const Header = () => {
                 buttonStyle="secondary"
                 onClick={() => {
                   toggleEditMode();
-                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
+                  boundActionCreators.clearDashboardHistory?.();
+                  boundActionCreators.setUnsavedChanges(false);
                 }}
                 data-test="edit-dashboard-button"
                 className="action-button"
