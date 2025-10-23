@@ -59,16 +59,6 @@ interface ActionsBarProps {
 const StyledActions = styled.span`
   white-space: nowrap;
   min-width: 100px;
-  .action-button {
-    cursor: pointer;
-    color: ${({ theme }) => theme.colorIcon};
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-    &:hover {
-      path {
-        fill: ${({ theme }) => theme.colorPrimary};
-      }
-    }
-  }
 `;
 
 export function ActionsBar({ actions }: ActionsBarProps) {
