@@ -101,6 +101,7 @@ const DatasetUsageTab = ({
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const prevLoadingRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,22 +114,37 @@ const DatasetUsageTab = ({
     async (page = 1, column = sortColumn, direction = sortDirection) => {
       if (!datasourceId) return;
 
-      setLoading(true);
+      if (isMountedRef.current) {
+        setLoading(true);
+      }
 
       try {
         await onFetchCharts(page, PAGE_SIZE, column, direction);
-        setCurrentPage(page);
-        setSortColumn(column);
-        setSortDirection(direction);
+
+        if (isMountedRef.current) {
+          setCurrentPage(page);
+          setSortColumn(column);
+          setSortDirection(direction);
+        }
       } catch (error) {
-        if (addDangerToastRef.current)
+        if (isMountedRef.current && addDangerToastRef.current) {
           addDangerToastRef.current(t('Error fetching charts'));
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [datasourceId, onFetchCharts, sortColumn, sortDirection],
   );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     addDangerToastRef.current = addDangerToast;
