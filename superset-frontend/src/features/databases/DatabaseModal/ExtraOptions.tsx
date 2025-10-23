@@ -58,7 +58,7 @@ const ExtraOptions = ({
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
   onExtraInputChange: (
-    e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
+    e: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
