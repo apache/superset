@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo } from 'react';
+import { Fragment, useCallback, memo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
-import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import {
@@ -35,6 +36,9 @@ import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
+
+// Delay before refreshing charts to ensure they are fully mounted
+const CHART_MOUNT_DELAY = 100;
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -113,6 +117,49 @@ const renderDraggableContent = dropProps =>
 const Tab = props => {
   const dispatch = useDispatch();
   const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
+  const dashboardLayout = useSelector(state => state.dashboardLayout.present);
+  const lastRefreshTime = useSelector(
+    state => state.dashboardState.lastRefreshTime,
+  );
+  const tabActivationTimes = useSelector(
+    state => state.dashboardState.tabActivationTimes || {},
+  );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
+
+  // Check if tab needs refresh when it becomes visible
+  useEffect(() => {
+    if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
+      const tabId = props.id;
+      const tabActivationTime = tabActivationTimes[tabId] || 0;
+
+      // If a refresh occurred while this tab was inactive,
+      // refresh the charts in this tab now that it's visible
+      if (
+        lastRefreshTime &&
+        tabActivationTime &&
+        lastRefreshTime > tabActivationTime
+      ) {
+        const chartIds = getChartIdsFromComponent(tabId, dashboardLayout);
+        if (chartIds.length > 0) {
+          // Small delay to ensure charts are fully mounted
+          setTimeout(() => {
+            // Refresh charts in this tab
+            dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+          }, CHART_MOUNT_DELAY);
+        }
+      }
+    }
+  }, [
+    props.isComponentVisible,
+    props.renderType,
+    props.id,
+    lastRefreshTime,
+    tabActivationTimes,
+    dashboardLayout,
+    dashboardInfo.id,
+    dispatch,
+  ]);
+
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }) => {
       props.setDirectPathToChild(pathToTabIndex);
