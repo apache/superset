@@ -202,11 +202,11 @@ describe('Native filters', () => {
           // Verify that only 'year' is available as dependency for region
           // 'country_name' and 'country_code' should not be available (would create circular dependency)
           cy.get('input[aria-label^="Limit type"]').click({ force: true });
-          cy.get('.ant-select-dropdown').should('be.visible');
-          cy.get('.ant-select-dropdown').should('contain', 'year');
-          cy.get('.ant-select-dropdown').should('not.contain', 'country_name');
-          cy.get('.ant-select-dropdown').should('not.contain', 'country_code');
-          cy.get('.ant-select-dropdown').contains('year').click();
+          cy.get('[role="listbox"]').should('be.visible');
+          cy.get('[role="listbox"]').should('contain', 'year');
+          cy.get('[role="listbox"]').should('not.contain', 'country_name');
+          cy.get('[role="listbox"]').should('not.contain', 'country_code');
+          cy.get('[role="listbox"]').contains('year').click();
         },
       );
     });
