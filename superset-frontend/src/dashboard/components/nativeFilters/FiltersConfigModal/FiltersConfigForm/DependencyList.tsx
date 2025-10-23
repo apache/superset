@@ -204,11 +204,11 @@ const DependencyList = ({
     }
   }, [availableFilters, dependencies, onDependenciesChange]);
 
-   const onCheckChanged = (value: boolean) => {
+  const onCheckChanged = (value: boolean) => {
     const newDependencies: string[] = [];
     if (value && !hasDependencies && hasAvailableFilters) {
-      const suggestion = getDependencySuggestion()
-      if(suggestion) {
+      const suggestion = getDependencySuggestion();
+      if (suggestion) {
         newDependencies.push(suggestion);
       }
     }
