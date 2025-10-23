@@ -42,6 +42,7 @@ jest.mock(
     ),
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {

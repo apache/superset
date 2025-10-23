@@ -78,6 +78,7 @@ export type SerializableThemeConfig = {
   algorithm?: ThemeAlgorithmOption;
   hashed?: boolean;
   inherit?: boolean;
+  cssVar?: boolean | { key?: string; prefix?: string };
 };
 
 /**
@@ -127,6 +128,15 @@ export interface SupersetSpecificTokens {
   // Spinner-related
   brandSpinnerUrl?: string;
   brandSpinnerSvg?: string;
+
+  // ECharts-related
+  /** Global ECharts configuration overrides applied to all chart types */
+  echartsOptionsOverrides?: any;
+
+  /** Chart-specific ECharts configuration overrides keyed by viz_type */
+  echartsOptionsOverridesByChartType?: {
+    [chartType: string]: any;
+  };
 }
 
 /**
@@ -392,7 +402,7 @@ export interface ThemeContextType {
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
-  setTemporaryTheme: (config: AnyThemeConfig) => void;
+  setTemporaryTheme: (config: AnyThemeConfig, themeId?: number | null) => void;
   clearLocalOverrides: () => void;
   getCurrentCrudThemeId: () => string | null;
   hasDevOverride: () => boolean;
@@ -400,6 +410,7 @@ export interface ThemeContextType {
   canSetTheme: () => boolean;
   canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
+  getAppliedThemeId: () => number | null;
 }
 
 /**

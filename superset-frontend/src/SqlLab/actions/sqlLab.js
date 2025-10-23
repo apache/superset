@@ -338,7 +338,6 @@ export function runQuery(query, runPreviewOnly) {
     const postPayload = {
       client_id: query.id,
       database_id: query.dbId,
-      json: true,
       runAsync: query.runAsync,
       catalog: query.catalog,
       schema: query.schema,
@@ -395,6 +394,7 @@ export function runQueryFromSqlEditor(
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.tabViewId ?? qe.id,
+      sqlEditorImmutableId: qe.immutableId,
       tab: qe.name,
       catalog: qe.catalog,
       schema: qe.schema,
@@ -537,6 +537,7 @@ export function addQueryEditor(queryEditor) {
   const newQueryEditor = {
     ...queryEditor,
     id: nanoid(11),
+    immutableId: nanoid(11),
     loaded: true,
     inLocalStorage: true,
   };
@@ -954,7 +955,7 @@ export function addTable(queryEditor, tableName, catalogName, schemaName) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const table = {
       dbId,
-      queryEditorId: queryEditor.id,
+      queryEditorId: queryEditor.tabViewId ?? queryEditor.id,
       catalog: catalogName,
       schema: schemaName,
       name: tableName,
@@ -1016,12 +1017,13 @@ export function runTablePreviewQuery(newTable, runPreviewOnly) {
   };
 }
 
-export function syncTable(table, tableMetadata) {
+export function syncTable(table, tableMetadata, finalQueryEditorId) {
   return function (dispatch) {
+    const finalTable = { ...table, queryEditorId: finalQueryEditorId };
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...table } },
+          postPayload: { table: { ...tableMetadata, ...finalTable } },
         })
       : Promise.resolve({ json: { id: table.id } });
 

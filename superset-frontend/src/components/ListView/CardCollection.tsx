@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row } from 'react-table';
+import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
@@ -65,7 +65,7 @@ export default function CardCollection({
 }: CardCollectionProps) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
-    toggleRowSelected: Row['toggleRowSelected'],
+    toggleRowSelected: (value?: boolean) => void,
   ) {
     if (bulkSelectEnabled) {
       event.preventDefault();
@@ -89,11 +89,18 @@ export default function CardCollection({
           return (
             <CardWrapper
               className={cx({
-                'card-selected': bulkSelectEnabled && row.isSelected,
+                'card-selected':
+                  bulkSelectEnabled &&
+                  (row as Row & UseRowSelectRowProps<any>).isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
-              onClick={e => handleClick(e, row.toggleRowSelected)}
+              onClick={e =>
+                handleClick(
+                  e,
+                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
+                )
+              }
               role="none"
             >
               {renderCard({ ...row.original, loading })}

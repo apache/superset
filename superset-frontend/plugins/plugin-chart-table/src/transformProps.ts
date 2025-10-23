@@ -24,7 +24,6 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -36,6 +35,7 @@ import {
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
@@ -469,6 +469,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    theme,
   } = chartProps;
 
   const formData = merge(
@@ -682,7 +683,7 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData) ??
+    getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(

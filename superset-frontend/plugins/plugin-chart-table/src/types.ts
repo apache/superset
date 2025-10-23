@@ -25,7 +25,6 @@ import {
   DataRecord,
   DataRecordValue,
   DataRecordFilters,
-  GenericDataType,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
@@ -34,6 +33,7 @@ import {
   CurrencyFormatter,
   Currency,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 
 export type CustomFormatter = (value: DataRecordValue) => string;

@@ -740,7 +740,6 @@ class DatasourceEditor extends PureComponent {
     this.props.runQuery({
       client_id: this.props.clientId,
       database_id: this.state.datasource.database.id,
-      json: true,
       runAsync: false,
       catalog: this.state.datasource.catalog,
       schema: this.state.datasource.schema,
@@ -1020,10 +1019,16 @@ class DatasourceEditor extends PureComponent {
         <Field
           fieldKey="default_endpoint"
           label={t('Default URL')}
-          description={t(
-            `Default URL to redirect to when accessing from the dataset list page.
-            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
-          )}
+          description={
+            <>
+              {t(
+                'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
+              )}{' '}
+              <Typography.Text code>
+                /superset/dashboard/{'{id}'}/
+              </Typography.Text>
+            </>
+          }
           control={<TextControl controlId="default_endpoint" />}
         />
         <Field

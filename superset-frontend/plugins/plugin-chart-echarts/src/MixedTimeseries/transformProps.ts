@@ -25,7 +25,6 @@ import {
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
-  GenericDataType,
   getCustomFormatter,
   getNumberFormatter,
   getXAxisLabel,
@@ -42,6 +41,7 @@ import {
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
@@ -322,12 +322,6 @@ export default function transformProps(
       primarySeries.add(seriesOption.id as string);
     }
   };
-  rawSeriesA.forEach(seriesOption =>
-    mapSeriesIdToAxis(seriesOption, yAxisIndex),
-  );
-  rawSeriesB.forEach(seriesOption =>
-    mapSeriesIdToAxis(seriesOption, yAxisIndexB),
-  );
   const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
     stack,
     onlyTotal,
@@ -460,7 +454,11 @@ export default function transformProps(
         theme,
       },
     );
-    if (transformedSeries) series.push(transformedSeries);
+
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndex);
+    }
   });
 
   rawSeriesB.forEach(entry => {
@@ -528,7 +526,11 @@ export default function transformProps(
         theme,
       },
     );
-    if (transformedSeries) series.push(transformedSeries);
+
+    if (transformedSeries) {
+      series.push(transformedSeries);
+      mapSeriesIdToAxis(transformedSeries, yAxisIndexB);
+    }
   });
 
   // default to 0-100% range when doing row-level contribution chart

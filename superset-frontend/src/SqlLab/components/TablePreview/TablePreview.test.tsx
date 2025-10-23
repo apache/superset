@@ -135,6 +135,7 @@ test('renders preview', async () => {
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {
     const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {

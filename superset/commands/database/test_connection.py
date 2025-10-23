@@ -189,7 +189,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(ex, self._context)
+            errors = database.db_engine_spec.extract_errors(
+                ex, self._context, database_name=database.unique_name
+            )
             raise SupersetErrorsException(errors, status=400) from ex
         except OAuth2RedirectError:
             raise

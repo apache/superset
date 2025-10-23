@@ -43,7 +43,6 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
-  GenericDataType,
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
@@ -54,6 +53,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,
   Space,
@@ -83,7 +83,6 @@ import DataTable, {
   SelectPageSizeRendererProps,
   SizeOption,
 } from './DataTable';
-
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
@@ -170,12 +169,21 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
+  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
+  theme: SupersetTheme;
 }) {
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return `rgba(${r},0,0,0.2)`;
+  if (!colorPositiveNegative) {
+    return `${theme.colorFillSecondary}50`;
+  }
+
+  if (value < 0) {
+    return `${theme.colorError}50`;
+  }
+
+  return `${theme.colorSuccess}50`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -186,6 +194,21 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   }
   return sortIcon;
 }
+
+/**
+ * Label that is visually hidden but accessible
+ */
+const VisuallyHidden = styled.label`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 function SearchInput({
   count,
@@ -217,10 +240,10 @@ function SelectPageSize({
   const { Option } = Select;
 
   return (
-    <>
-      <label htmlFor="pageSizeSelect" className="sr-only">
+    <span className="dt-select-page-size">
+      <VisuallyHidden htmlFor="pageSizeSelect">
         {t('Select page size')}
-      </label>
+      </VisuallyHidden>
       {t('Show')}{' '}
       <Select<number>
         id="pageSizeSelect"
@@ -244,7 +267,7 @@ function SelectPageSize({
         })}
       </Select>{' '}
       {t('entries per page')}
-    </>
+    </span>
   );
 }
 
@@ -288,12 +311,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPageLength,
     slice_id,
   } = props;
-  const comparisonColumns = [
-    { key: 'all', label: t('Display all') },
-    { key: '#', label: '#' },
-    { key: '△', label: '△' },
-    { key: '%', label: '%' },
-  ];
+
+  const comparisonColumns = useMemo(
+    () => [
+      { key: 'all', label: t('Display all') },
+      { key: '#', label: '#' },
+      { key: '△', label: '△' },
+      { key: '%', label: '%' },
+    ],
+    [],
+  );
+
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
@@ -345,71 +373,74 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [filters],
   );
 
-  const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
-    let updatedFilters = { ...(filters || {}) };
-    if (filters && isActiveFilterValue(key, value)) {
-      updatedFilters = {};
-    } else {
-      updatedFilters = {
-        [key]: [value],
-      };
-    }
-    if (
-      Array.isArray(updatedFilters[key]) &&
-      updatedFilters[key].length === 0
-    ) {
-      delete updatedFilters[key];
-    }
-
-    const groupBy = Object.keys(updatedFilters);
-    const groupByValues = Object.values(updatedFilters);
-    const labelElements: string[] = [];
-    groupBy.forEach(col => {
-      const isTimestamp = col === DTTM_ALIAS;
-      const filterValues = ensureIsArray(updatedFilters?.[col]);
-      if (filterValues.length) {
-        const valueLabels = filterValues.map(value =>
-          isTimestamp ? timestampFormatter(value) : value,
-        );
-        labelElements.push(`${valueLabels.join(', ')}`);
+  const getCrossFilterDataMask = useCallback(
+    (key: string, value: DataRecordValue) => {
+      let updatedFilters = { ...(filters || {}) };
+      if (filters && isActiveFilterValue(key, value)) {
+        updatedFilters = {};
+      } else {
+        updatedFilters = {
+          [key]: [value],
+        };
       }
-    });
+      if (
+        Array.isArray(updatedFilters[key]) &&
+        updatedFilters[key].length === 0
+      ) {
+        delete updatedFilters[key];
+      }
 
-    return {
-      dataMask: {
-        extraFormData: {
-          filters:
-            groupBy.length === 0
-              ? []
-              : groupBy.map(col => {
-                  const val = ensureIsArray(updatedFilters?.[col]);
-                  if (!val.length)
+      const groupBy = Object.keys(updatedFilters);
+      const groupByValues = Object.values(updatedFilters);
+      const labelElements: string[] = [];
+      groupBy.forEach(col => {
+        const isTimestamp = col === DTTM_ALIAS;
+        const filterValues = ensureIsArray(updatedFilters?.[col]);
+        if (filterValues.length) {
+          const valueLabels = filterValues.map(value =>
+            isTimestamp ? timestampFormatter(value) : value,
+          );
+          labelElements.push(`${valueLabels.join(', ')}`);
+        }
+      });
+
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              groupBy.length === 0
+                ? []
+                : groupBy.map(col => {
+                    const val = ensureIsArray(updatedFilters?.[col]);
+                    if (!val.length)
+                      return {
+                        col,
+                        op: 'IS NULL' as const,
+                      };
                     return {
                       col,
-                      op: 'IS NULL' as const,
+                      op: 'IN' as const,
+                      val: val.map(el =>
+                        el instanceof Date ? el.getTime() : el!,
+                      ),
+                      grain: col === DTTM_ALIAS ? timeGrain : undefined,
                     };
-                  return {
-                    col,
-                    op: 'IN' as const,
-                    val: val.map(el =>
-                      el instanceof Date ? el.getTime() : el!,
-                    ),
-                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
-                  };
-                }),
+                  }),
+          },
+          filterState: {
+            label: labelElements.join(', '),
+            value: groupByValues.length ? groupByValues : null,
+            filters:
+              updatedFilters && Object.keys(updatedFilters).length
+                ? updatedFilters
+                : null,
+          },
         },
-        filterState: {
-          label: labelElements.join(', '),
-          value: groupByValues.length ? groupByValues : null,
-          filters:
-            updatedFilters && Object.keys(updatedFilters).length
-              ? updatedFilters
-              : null,
-        },
-      },
-      isCurrentValueSelected: isActiveFilterValue(key, value),
-    };
-  };
+        isCurrentValueSelected: isActiveFilterValue(key, value),
+      };
+    },
+    [filters, isActiveFilterValue, timestampFormatter, timeGrain],
+  );
 
   const toggleFilter = useCallback(
     function toggleFilter(key: string, val: DataRecordValue) {
@@ -421,17 +452,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [emitCrossFilters, getCrossFilterDataMask, setDataMask],
   );
 
-  const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
-    const { isNumeric, config = {} } = column;
-    const textAlign =
-      config.horizontalAlign ||
-      (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
-    return {
-      textAlign,
-    };
-  };
+  const getSharedStyle = useCallback(
+    (column: DataColumnMeta): CSSProperties => {
+      const { isNumeric, config = {} } = column;
+      const textAlign =
+        config.horizontalAlign ||
+        (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
+      return {
+        textAlign,
+      };
+    },
+    [isUsingTimeComparison],
+  );
 
-  const comparisonLabels = [t('Main'), '#', '△', '%'];
+  const comparisonLabels = useMemo(() => [t('Main'), '#', '△', '%'], []);
+
   const filteredColumnsMeta = useMemo(() => {
     if (!isUsingTimeComparison) {
       return columnsMeta;
@@ -463,79 +498,86 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     selectedComparisonColumns,
   ]);
 
-  const handleContextMenu =
-    onContextMenu && !isRawRecords
-      ? (
-          value: D,
-          cellPoint: {
-            key: string;
-            value: DataRecordValue;
-            isMetric?: boolean;
-          },
-          clientX: number,
-          clientY: number,
-        ) => {
-          const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-          filteredColumnsMeta.forEach(col => {
-            if (!col.isMetric) {
-              const dataRecordValue = value[col.key];
-              drillToDetailFilters.push({
-                col: col.key,
-                op: '==',
-                val: dataRecordValue as string | number | boolean,
-                formattedVal: formatColumnValue(col, dataRecordValue)[1],
-              });
-            }
-          });
-          onContextMenu(clientX, clientY, {
-            drillToDetail: drillToDetailFilters,
-            crossFilter: cellPoint.isMetric
-              ? undefined
-              : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
-            drillBy: cellPoint.isMetric
-              ? undefined
-              : {
-                  filters: [
-                    {
-                      col: cellPoint.key,
-                      op: '==',
-                      val: cellPoint.value as string | number | boolean,
-                    },
-                  ],
-                  groupbyFieldName: 'groupby',
-                },
-          });
-        }
-      : undefined;
-
-  const getHeaderColumns = (
-    columnsMeta: DataColumnMeta[],
-    enableTimeComparison?: boolean,
-  ) => {
-    const resultMap: Record<string, number[]> = {};
-
-    if (!enableTimeComparison) {
-      return resultMap;
+  const handleContextMenu = useMemo(() => {
+    if (onContextMenu && !isRawRecords) {
+      return (
+        value: D,
+        cellPoint: {
+          key: string;
+          value: DataRecordValue;
+          isMetric?: boolean;
+        },
+        clientX: number,
+        clientY: number,
+      ) => {
+        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        filteredColumnsMeta.forEach(col => {
+          if (!col.isMetric) {
+            const dataRecordValue = value[col.key];
+            drillToDetailFilters.push({
+              col: col.key,
+              op: '==',
+              val: dataRecordValue as string | number | boolean,
+              formattedVal: formatColumnValue(col, dataRecordValue)[1],
+            });
+          }
+        });
+        onContextMenu(clientX, clientY, {
+          drillToDetail: drillToDetailFilters,
+          crossFilter: cellPoint.isMetric
+            ? undefined
+            : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+          drillBy: cellPoint.isMetric
+            ? undefined
+            : {
+                filters: [
+                  {
+                    col: cellPoint.key,
+                    op: '==',
+                    val: cellPoint.value as string | number | boolean,
+                  },
+                ],
+                groupbyFieldName: 'groupby',
+              },
+        });
+      };
     }
+    return undefined;
+  }, [
+    onContextMenu,
+    isRawRecords,
+    filteredColumnsMeta,
+    getCrossFilterDataMask,
+  ]);
 
-    columnsMeta.forEach((element, index) => {
-      // Check if element's label is one of the comparison labels
-      if (comparisonLabels.includes(element.label)) {
-        // Extract the key portion after the space, assuming the format is always "label key"
-        const keyPortion = element.key.substring(element.label.length);
+  const getHeaderColumns = useCallback(
+    (columnsMeta: DataColumnMeta[], enableTimeComparison?: boolean) => {
+      const resultMap: Record<string, number[]> = {};
 
-        // If the key portion is not in the map, initialize it with the current index
-        if (!resultMap[keyPortion]) {
-          resultMap[keyPortion] = [index];
-        } else {
-          // Add the index to the existing array
-          resultMap[keyPortion].push(index);
-        }
+      if (!enableTimeComparison) {
+        return resultMap;
       }
-    });
 
-    return resultMap;
-  };
+      columnsMeta.forEach((element, index) => {
+        // Check if element's label is one of the comparison labels
+        if (comparisonLabels.includes(element.label)) {
+          // Extract the key portion after the space, assuming the format is always "label key"
+          const keyPortion = element.key.substring(element.label.length);
+
+          // If the key portion is not in the map, initialize it with the current index
+          if (!resultMap[keyPortion]) {
+            resultMap[keyPortion] = [index];
+          } else {
+            // Add the index to the existing array
+            resultMap[keyPortion].push(index);
+          }
+        }
+      });
+
+      return resultMap;
+    },
+    [comparisonLabels],
+  );
 
   const renderTimeComparisonDropdown = (): JSX.Element => {
     const allKey = comparisonColumns[0].key;
@@ -630,6 +672,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     );
   };
 
+  const groupHeaderColumns = useMemo(
+    () => getHeaderColumns(filteredColumnsMeta, isUsingTimeComparison),
+    [filteredColumnsMeta, getHeaderColumns, isUsingTimeComparison],
+  );
+
   const renderGroupingHeaders = (): JSX.Element => {
     // TODO: Make use of ColumnGroup to render the aditional headers
     const headers: any = [];
@@ -710,11 +757,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       </tr>
     );
   };
-
-  const groupHeaderColumns = useMemo(
-    () => getHeaderColumns(filteredColumnsMeta, isUsingTimeComparison),
-    [filteredColumnsMeta, isUsingTimeComparison],
-  );
 
   const getColumnConfigs = useCallback(
     (
@@ -881,6 +923,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 background-color: ${cellBackground({
                   value: value as number,
                   colorPositiveNegative,
+                  theme,
                 })};
               `}
           `;
@@ -1077,18 +1120,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
     },
     [
+      getSharedStyle,
       defaultAlignPN,
       defaultColorPN,
-      emitCrossFilters,
-      getValueRange,
-      isActiveFilterValue,
-      isRawRecords,
-      showCellBars,
-      sortDesc,
-      toggleFilter,
-      totals,
       columnColorFormatters,
-      columnOrderToggle,
+      isUsingTimeComparison,
+      basicColorFormatters,
+      showCellBars,
+      isRawRecords,
+      getValueRange,
+      emitCrossFilters,
+      comparisonLabels,
+      totals,
+      theme,
+      sortDesc,
+      groupHeaderColumns,
+      allowRenderHtml,
+      basicColorColumnFormatters,
+      isActiveFilterValue,
+      toggleFilter,
+      handleContextMenu,
+      allowRearrangeColumns,
     ],
   );
 
@@ -1121,7 +1173,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (!isEqual(options, searchOptions)) {
       setSearchOptions(options || []);
     }
-  }, [columns]);
+  }, [columns, searchOptions]);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
@@ -1132,7 +1184,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask],
+    [serverPaginationData, setDataMask],
   );
 
   useEffect(() => {
@@ -1144,7 +1196,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
-  }, []);
+  }, [
+    hasServerPageLengthChanged,
+    serverPageLength,
+    serverPaginationData,
+    setDataMask,
+  ]);
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -1190,7 +1247,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, serverPagination],
+    [serverPagination, serverPaginationData, setDataMask],
   );
 
   const handleSearch = (searchText: string) => {
