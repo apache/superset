@@ -567,6 +567,12 @@ const Header = () => {
     [boundActionCreators],
   );
 
+  const handleEnterEditMode = useCallback(() => {
+    toggleEditMode();
+    boundActionCreators.clearDashboardHistory?.();
+    boundActionCreators.setUnsavedChanges(false);
+  }, [toggleEditMode, boundActionCreators]);
+
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
   const editableTitleProps = useMemo(
@@ -718,11 +724,7 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={() => {
-                  toggleEditMode();
-                  boundActionCreators.clearDashboardHistory?.();
-                  boundActionCreators.setUnsavedChanges(false);
-                }}
+                onClick={handleEnterEditMode}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
@@ -745,6 +747,7 @@ const Header = () => {
       emphasizeUndo,
       handleCtrlY,
       handleCtrlZ,
+      handleEnterEditMode,
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
