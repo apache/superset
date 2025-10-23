@@ -250,6 +250,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod('setDataMask', embeddedApi.setDataMask);
     Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {

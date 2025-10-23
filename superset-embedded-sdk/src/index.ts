@@ -89,7 +89,8 @@ export type EmbeddedDashboard = {
   observeDataMask: (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => void;
-  getDataMask: () => Record<string, any>;
+  getDataMask: () => Promise<Record<string, any>>;
+  setDataMask: (dataMask: Record<string, any>) => void;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
 };
 
@@ -244,6 +245,7 @@ export async function embedDashboard({
     ourPort.get<string>('getDashboardPermalink', { anchor });
   const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
   const getDataMask = () => ourPort.get<Record<string, any>>('getDataMask');
+  const setDataMask = (dataMask: Record<string, any>) => ourPort.emit('setDataMask', {dataMask});
   const observeDataMask = (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => {
@@ -270,6 +272,7 @@ export async function embedDashboard({
     getActiveTabs,
     observeDataMask,
     getDataMask,
+    setDataMask,
     setThemeConfig
   };
 }
