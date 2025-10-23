@@ -129,11 +129,14 @@ def _get_filters_from_query_object(
 
     # 2. Add time range filter based on from_dttm/to_dttm
     # For time offsets, this automatically calculates the shifted bounds
-    time_filter = _get_time_filter(query_object, time_offset, all_dimensions)
-    if time_filter:
-        filters.add(time_filter)
+    time_filters = _get_time_filter(query_object, time_offset, all_dimensions)
+    filters.update(time_filters)
 
-    # 3. Add all other filters from query_object.filter
+    # 3. Add filters from query_object.extras (WHERE and HAVING clauses)
+    extras_filters = _get_filters_from_extras(query_object.extras)
+    filters.update(extras_filters)
+
+    # 4. Add all other filters from query_object.filter
     for filter_ in query_object.filter:
         converted_filter = _convert_query_object_filter(filter_, all_dimensions)
         if converted_filter:
@@ -142,11 +145,51 @@ def _get_filters_from_query_object(
     return filters
 
 
+def _get_filters_from_extras(extras: dict) -> set[AdhocFilter]:
+    """
+    Extract filters from the extras dict.
+
+    The extras dict can contain various keys that affect query behavior:
+
+    Supported keys (converted to filters):
+    - "where": SQL WHERE clause expression (e.g., "customer_id > 100")
+    - "having": SQL HAVING clause expression (e.g., "SUM(sales) > 1000")
+
+    Other keys in extras (handled elsewhere in the mapper):
+    - "time_grain_sqla": Time granularity (e.g., "P1D", "PT1H")
+      Handled in _convert_time_grain() and used for dimension grain matching
+
+    Note: The WHERE and HAVING clauses from extras are SQL expressions that
+    are passed through as-is to the semantic layer as AdhocFilter objects.
+    """
+    filters: set[AdhocFilter] = set()
+
+    # Add WHERE clause from extras
+    if where_clause := extras.get("where"):
+        filters.add(
+            AdhocFilter(
+                type=PredicateType.WHERE,
+                definition=where_clause,
+            )
+        )
+
+    # Add HAVING clause from extras
+    if having_clause := extras.get("having"):
+        filters.add(
+            AdhocFilter(
+                type=PredicateType.HAVING,
+                definition=having_clause,
+            )
+        )
+
+    return filters
+
+
 def _get_time_filter(
     query_object: QueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
-) -> Filter | None:
+) -> set[Filter]:
     """
     Create a time range filter from the query object.
 
@@ -154,28 +197,36 @@ def _get_time_filter(
     complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm by using the
     same time bounds for both the main query and series limit subqueries.
     """
+    filters: set[Filter] = set()
+
     if not query_object.granularity:
-        return None
+        return filters
 
     time_dimension = all_dimensions.get(query_object.granularity)
     if not time_dimension:
-        return None
+        return filters
 
     # Get the appropriate time bounds based on whether this is a time offset query
     from_dttm, to_dttm = _get_time_bounds(query_object, time_offset)
 
     if not from_dttm or not to_dttm:
-        return None
+        return filters
 
     # Create a filter with >= and < operators
-    # Note: We use a tuple to represent the range, which semantic layers can interpret
-    # as "time_column >= from_dttm AND time_column < to_dttm"
-    return Filter(
-        type=PredicateType.WHERE,
-        column=time_dimension,
-        operator=Operator.GREATER_THAN_OR_EQUAL,
-        value=(from_dttm, to_dttm),
-    )
+    return {
+        Filter(
+            type=PredicateType.WHERE,
+            column=time_dimension,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=from_dttm,
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=time_dimension,
+            operator=Operator.LESS_THAN,
+            value=to_dttm,
+        ),
+    }
 
 
 def _get_time_bounds(
@@ -351,14 +402,26 @@ def _get_group_limit_filters(
     # Add time range filter using inner bounds
     if query_object.granularity:
         time_dimension = all_dimensions.get(query_object.granularity)
-        if time_dimension and query_object.inner_from_dttm and query_object.inner_to_dttm:
-            filters.add(
-                Filter(
-                    type=PredicateType.WHERE,
-                    column=time_dimension,
-                    operator=Operator.GREATER_THAN_OR_EQUAL,
-                    value=(query_object.inner_from_dttm, query_object.inner_to_dttm),
-                )
+        if (
+            time_dimension
+            and query_object.inner_from_dttm
+            and query_object.inner_to_dttm
+        ):
+            filters.update(
+                {
+                    Filter(
+                        type=PredicateType.WHERE,
+                        column=time_dimension,
+                        operator=Operator.GREATER_THAN_OR_EQUAL,
+                        value=query_object.inner_from_dttm,
+                    ),
+                    Filter(
+                        type=PredicateType.WHERE,
+                        column=time_dimension,
+                        operator=Operator.LESS_THAN,
+                        value=query_object.inner_to_dttm,
+                    ),
+                }
             )
 
     # Add fetch values predicate if present
@@ -372,6 +435,10 @@ def _get_group_limit_filters(
                 definition=query_object.datasource.fetch_values_predicate,
             )
         )
+
+    # Add filters from query_object.extras (WHERE and HAVING clauses)
+    extras_filters = _get_filters_from_extras(query_object.extras)
+    filters.update(extras_filters)
 
     # Add all other non-temporal filters from query_object.filter
     for filter_ in query_object.filter:

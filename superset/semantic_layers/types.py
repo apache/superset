@@ -236,7 +236,7 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
-    filters: set["Filter | AdhocFilter"] | None = None
+    filters: set[Filter | AdhocFilter] | None = None
 
 
 @dataclass(frozen=True)
