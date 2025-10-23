@@ -490,8 +490,9 @@ describe('ResultSet', () => {
     ).not.toBeInTheDocument();
   });
 
-  describe('should allow download as CSV when user has permission to export data.', () => {
-    it.each(['', '/myapp'])('href should contain %s', async app_root => {
+  test.each(['', '/myapp'])(
+    'should allow download as CSV when user has permission to export data with app_root=%s',
+    async app_root => {
       applicationRootMock.mockReturnValue(app_root);
       const { queryByTestId } = setup(
         mockedProps,
@@ -519,8 +520,8 @@ describe('ResultSet', () => {
           new RegExp(`^${app_root}/api/v1/sqllab/export/[a-zA-Z0-9]+/$`),
         ),
       );
-    });
-  });
+    },
+  );
 
   test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
     const queryLimit = 2;
