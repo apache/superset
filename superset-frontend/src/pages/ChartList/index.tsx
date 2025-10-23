@@ -84,6 +84,8 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import Owner from 'src/types/Owner';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -170,11 +172,8 @@ const StyledActions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
-  const {
-    addDangerToast,
-    addSuccessToast,
-    user: { userId },
-  } = props;
+  const { addDangerToast, addSuccessToast, user } = props;
+  const { userId } = user;
 
   const history = useHistory();
 
@@ -501,6 +500,11 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          // Verify owner or isAdmin
+          const allowEdit: boolean =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -519,15 +523,21 @@ function ChartList(props: ChartListProps) {
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a chart owner in order to edit. Please reach out to a chart owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     data-test="chart-row-edit"
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={openEditModal}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
+                    onClick={allowEdit ? openEditModal : undefined}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -564,15 +574,21 @@ function ChartList(props: ChartListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowEdit
+                          ? t('Delete')
+                          : t(
+                              'You must be a chart owner in order to delete. Please reach out to a chart owner to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
                     >
                       <span
                         data-test="chart-row-delete"
                         role="button"
                         tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
+                        className={`action-button ${allowEdit ? '' : 'disabled'}`}
+                        onClick={allowEdit ? confirmDelete : undefined}
                       >
                         <Icons.DeleteOutlined iconSize="l" />
                       </span>
