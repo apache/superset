@@ -53,7 +53,7 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError("JSON not valid") from ex
 
 
-def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -> None:
+def validate_query_context_metadata(value: bytes | bytearray | str | None) -> None:
     """
     Validator for query_context field to ensure it contains required metadata.
 
@@ -85,6 +85,9 @@ def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -
         missing_fields.append("queries")
 
     if missing_fields:
-        raise ValidationError(
+        error_msg = (
             f"Query context is missing required fields: {', '.join(missing_fields)}"
+        )
+        raise ValidationError(
+            error_msg,
         )
