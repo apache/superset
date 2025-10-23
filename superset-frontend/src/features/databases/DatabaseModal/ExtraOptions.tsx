@@ -58,17 +58,7 @@ const ExtraOptions = ({
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
   onExtraInputChange: (
-    e:
-      | CheckboxChangeEvent
-      | React.ChangeEvent<HTMLInputElement>
-      | {
-          target: {
-            type: string;
-            name: string;
-            value: string;
-            checked?: boolean;
-          };
-        },
+    e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
@@ -564,7 +554,7 @@ const ExtraOptions = ({
                             name: 'schemas_allowed_for_file_upload',
                             value: schemasText,
                           },
-                        })
+                        } as ChangeEvent<HTMLInputElement>)
                       }
                     />
                   </div>
