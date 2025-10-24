@@ -95,10 +95,10 @@ async function openAndSaveChanges(datasource: any) {
       overwriteRoutes: true,
     },
   );
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
-  userEvent.click(await screen.findByTestId('datasource-modal-save'));
-  userEvent.click(await screen.findByText('OK'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(await screen.findByTestId('datasource-modal-save'));
+  await userEvent.click(await screen.findByText('OK'));
 }
 
 test('Should render', async () => {
@@ -122,7 +122,7 @@ test('Should open a menu', async () => {
   expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -145,7 +145,7 @@ test('Should not show SQL Lab for non sql_lab role', async () => {
   });
   render(<DatasourceControl {...props} />, { useRouter: true });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -168,7 +168,7 @@ test('Should show SQL Lab for sql_lab role', async () => {
   });
   render(<DatasourceControl {...props} />, { useRouter: true });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Swap dataset')).toBeInTheDocument();
@@ -192,10 +192,10 @@ test('Click on Swap dataset option', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Swap dataset'));
+    await userEvent.click(screen.getByText('Swap dataset'));
   });
   expect(
     screen.getByText(
@@ -213,10 +213,10 @@ test('Click on Edit dataset', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Edit dataset'));
+    await userEvent.click(screen.getByText('Edit dataset'));
   });
 
   expect(
@@ -240,7 +240,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
     useRouter: true,
   });
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByTestId('edit-dataset')).toHaveAttribute(
     'aria-disabled',
@@ -268,12 +268,12 @@ test('Click on View in SQL Lab', async () => {
       useRouter: true,
     },
   );
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(queryByTestId('mock-sqllab-route')).not.toBeInTheDocument();
 
   await act(async () => {
-    userEvent.click(screen.getByText('View in SQL Lab'));
+    await userEvent.click(screen.getByText('View in SQL Lab'));
   });
 
   expect(getByTestId('mock-sqllab-route')).toBeInTheDocument();
@@ -302,7 +302,7 @@ test('Should open a different menu when datasource=query', async () => {
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
   expect(screen.queryByText('Save as dataset')).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Query preview')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
@@ -323,7 +323,7 @@ test('Click on Save as dataset', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   expect(
     screen.queryByRole('button', { name: /save/i }),
   ).not.toBeInTheDocument();
@@ -333,7 +333,7 @@ test('Click on Save as dataset', async () => {
   expect(
     screen.queryByText(/select or type dataset name/i),
   ).not.toBeInTheDocument();
-  userEvent.click(screen.getByText('Save as dataset'));
+  await userEvent.click(screen.getByText('Save as dataset'));
 
   // Renders a save dataset modal
   const saveRadioBtn = await screen.findByRole('radio', {
@@ -551,39 +551,39 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Open datasource menu and click edit dataset
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to appear and navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
 
-  userEvent.click(screen.getByText('Metrics'));
+  await userEvent.click(screen.getByText('Metrics'));
 
   // Click add new metric button
-  await waitFor(() => {
+  await waitFor(async () => {
     const addButton = screen.getByTestId('crud-add-table-item');
     expect(addButton).toBeInTheDocument();
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
   });
 
   // Find and fill in the metric name
-  await waitFor(() => {
+  await waitFor(async () => {
     const nameInput = screen.getByTestId('textarea-editable-title-input');
     expect(nameInput).toBeInTheDocument();
-    userEvent.clear(nameInput);
-    userEvent.type(nameInput, newMetricName);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, newMetricName);
   });
 
   // Save the modal
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(() => {
+  await waitFor(async () => {
     const okButton = screen.getByText('OK');
     expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
+    await userEvent.click(okButton);
   });
 
   // Verify the onDatasourceSave callback was called
@@ -626,17 +626,17 @@ test('should allow deleting metrics in dataset editor', async () => {
   });
 
   // Open edit dataset modal
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
-  userEvent.click(screen.getByText('Metrics'));
+  await userEvent.click(screen.getByText('Metrics'));
 
   // Find existing metric and delete it
-  await waitFor(() => {
+  await waitFor(async () => {
     const metricRow = screen.getByText(existingMetricName).closest('tr');
     expect(metricRow).toBeInTheDocument();
 
@@ -644,17 +644,17 @@ test('should allow deleting metrics in dataset editor', async () => {
       '[data-test="crud-delete-icon"]',
     );
     expect(deleteButton).toBeInTheDocument();
-    userEvent.click(deleteButton!);
+    await userEvent.click(deleteButton!);
   });
 
   // Save the changes
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(() => {
+  await waitFor(async () => {
     const okButton = screen.getByText('OK');
     expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
+    await userEvent.click(okButton);
   });
 
   // Verify the onDatasourceSave callback was called
@@ -689,14 +689,14 @@ test('should handle metric save confirmation modal', async () => {
   });
 
   // Open edit dataset modal
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Save without making changes
-  await waitFor(() => {
+  await waitFor(async () => {
     const saveButton = screen.getByTestId('datasource-modal-save');
     expect(saveButton).toBeInTheDocument();
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
   });
 
   // Verify confirmation modal appears
@@ -705,7 +705,7 @@ test('should handle metric save confirmation modal', async () => {
   });
 
   // Click OK to confirm
-  userEvent.click(screen.getByText('OK'));
+  await userEvent.click(screen.getByText('OK'));
 
   // Verify the save was processed
   await waitFor(() => {
@@ -750,8 +750,8 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   expect(screen.getByTestId('datasource-control')).toBeInTheDocument();
 
   // Open dataset editor
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  userEvent.click(await screen.findByTestId('edit-dataset'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to open
   await waitFor(() => {
@@ -759,11 +759,11 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Save without making changes (this should still trigger the callback)
-  userEvent.click(screen.getByTestId('datasource-modal-save'));
-  await waitFor(() => {
+  await userEvent.click(screen.getByTestId('datasource-modal-save'));
+  await waitFor(async () => {
     const okButton = screen.getByText('OK');
     expect(okButton).toBeInTheDocument();
-    userEvent.click(okButton);
+    await userEvent.click(okButton);
   });
 
   // Verify the REAL component called the callback
