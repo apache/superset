@@ -123,36 +123,34 @@ def _fetch_channels_without_search(
     cursor: Optional[str],
     limit: int,
 ) -> dict[str, Any]:
-    """Fetch channels without search filtering, paginating as needed."""
-    response = client.conversations_list(
-        limit=limit,
-        cursor=cursor,
-        exclude_archived=True,
-        types=types_param,
-    )
+    """Fetch channels without search filtering, paginating for large limits."""
+    channels: list[SlackChannelSchema] = []
+    slack_cursor = cursor
+    page_size = min(limit, 200)
 
-    channels = [channel_schema.load(channel) for channel in response.data["channels"]]
+    while True:
+        response = client.conversations_list(
+            limit=page_size,
+            cursor=slack_cursor,
+            exclude_archived=True,
+            types=types_param,
+        )
 
-    next_cursor = response.data.get("response_metadata", {}).get("next_cursor")
+        page_channels = [
+            channel_schema.load(channel) for channel in response.data["channels"]
+        ]
+        channels.extend(page_channels)
+
+        slack_cursor = response.data.get("response_metadata", {}).get("next_cursor")
+
+        if not slack_cursor or len(page_channels) < page_size or len(channels) >= limit:
+            break
 
     return {
-        "result": channels,
-        "next_cursor": next_cursor,
-        "has_more": bool(next_cursor),
+        "result": channels[:limit],
+        "next_cursor": slack_cursor,
+        "has_more": bool(slack_cursor),
     }
-
-
-def _channel_matches_search(
-    channel: dict[str, Any], search_string: str, exact_match: bool
-) -> bool:
-    """Check if a channel matches the search criteria."""
-    search_lower = search_string.lower()
-    name_lower = channel["name"].lower()
-    id_lower = channel["id"].lower()
-
-    if exact_match:
-        return search_lower == name_lower or search_lower == id_lower
-    return search_lower in name_lower or search_lower in id_lower
 
 
 def _fetch_channels_with_search(
@@ -169,6 +167,7 @@ def _fetch_channels_with_search(
     slack_cursor = cursor
     max_pages_to_fetch = 50
     pages_fetched = 0
+    search_string_lower = search_string.lower()
 
     while len(matches) < limit and pages_fetched < max_pages_to_fetch:
         response = client.conversations_list(
@@ -179,9 +178,23 @@ def _fetch_channels_with_search(
         )
 
         for channel_data in response.data["channels"]:
-            channel = channel_schema.load(channel_data)
+            channel_name_lower = channel_data["name"].lower()
+            channel_id_lower = channel_data["id"].lower()
 
-            if _channel_matches_search(channel, search_string, exact_match):
+            is_match = False
+            if exact_match:
+                is_match = (
+                    search_string_lower == channel_name_lower
+                    or search_string_lower == channel_id_lower
+                )
+            else:
+                is_match = (
+                    search_string_lower in channel_name_lower
+                    or search_string_lower in channel_id_lower
+                )
+
+            if is_match:
+                channel = channel_schema.load(channel_data)
                 matches.append(channel)
 
             if len(matches) >= limit:
@@ -217,8 +230,9 @@ def get_channels_with_search(
     - next_cursor: cursor for next page (None if no more pages)
     - has_more: boolean indicating if more pages exist
 
-    The Slack API is paginated but does not include search. We handle two cases:
-    1. WITHOUT search: Fetch single page from Slack API (fast, no timeout)
+    The Slack API is paginated but does not include search.
+    We handle two cases:
+    1. WITHOUT search: Fetch single page from Slack API
     2. WITH search: Stream through Slack API pages until we find enough matches
        (stops early to prevent timeouts on large workspaces)
     """

@@ -680,3 +680,63 @@ test('NotificationMethod - AsyncSelect should clear recipients and reload channe
     );
   });
 });
+
+test('NotificationMethod - data cache prevents redundant API calls when selecting channels', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannels = [
+    { name: 'general', id: 'C001', is_private: false, is_member: true },
+    { name: 'random', id: 'C002', is_private: false, is_member: true },
+  ];
+
+  let callCount = 0;
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockImplementation(async url => {
+      if (typeof url === 'object' && url.endpoint?.includes('slack_channels')) {
+        callCount += 1;
+      }
+      return {
+        json: {
+          result: mockChannels,
+          next_cursor: null,
+          has_more: false,
+        },
+      } as unknown as Promise<Response | JsonResponse | TextResponse>;
+    });
+
+  const { getByRole } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      email_subject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+    />,
+  );
+
+  const recipientsSelect = getByRole('combobox', {
+    name: /select channels/i,
+  });
+
+  fireEvent.mouseDown(recipientsSelect);
+
+  await waitFor(
+    () => {
+      expect(callCount).toBe(1);
+    },
+    { timeout: 3000 },
+  );
+
+  fireEvent.blur(recipientsSelect);
+  fireEvent.mouseDown(recipientsSelect);
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  expect(callCount).toBe(1);
+
+  getSpy.mockRestore();
+});
