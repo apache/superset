@@ -37,13 +37,13 @@ To configure the filter state cache using MinIO or other S3 compatible service:
 
 ```python
 FILTER_STATE_CACHE_CONFIG = {
-    'CACHE_TYPE': 'minio_cache.MinioCacheBackend'
-    'CACHE_MINIO_ENDPOINT': 'localhost:9000'
-    'CACHE_MINIO_ACCESS_KEY': 'minioadmin'
-    'CACHE_MINIO_SECRET_KEY': 'minioadmin'
-    'CACHE_MINIO_BUCKET': 'superset'
-    'CACHE_MINIO_SECURE': False  # Set to True for HTTPS,
-    'CACHE_DEFAULT_TIMEOUT': 300
+    'CACHE_TYPE': 'minio_cache.MinioCacheBackend',
+    'CACHE_MINIO_ENDPOINT': 'localhost:9000',
+    'CACHE_MINIO_ACCESS_KEY': 'minioadmin',
+    'CACHE_MINIO_SECRET_KEY': 'minioadmin',
+    'CACHE_MINIO_BUCKET': 'superset',
+    'CACHE_MINIO_SECURE': False,  # Set to True for HTTPS
+    'CACHE_DEFAULT_TIMEOUT': 300,
     'CACHE_KEY_PREFIX': 'superset_filter_cache'
 }
 ```
