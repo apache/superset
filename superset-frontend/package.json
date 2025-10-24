@@ -49,6 +49,7 @@
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
     "format": "npm run _prettier -- --write",
+    "eslint": "npm run lint",
     "lint": "npx oxlint --config oxlint.json --quiet",
     "lint:all": "npx oxlint --config oxlint.json && npm run type",
     "lint-fix": "npx oxlint --config oxlint.json --fix --quiet",
