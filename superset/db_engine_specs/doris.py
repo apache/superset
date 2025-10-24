@@ -21,7 +21,7 @@ from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
-from sqlalchemy import Float, Integer, Numeric, String, TEXT, types
+from sqlalchemy import Float, Integer, Numeric, String, TEXT, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
@@ -280,9 +280,10 @@ class DorisEngineSpec(MySQLEngineSpec):
 
         # if not, iterate over existing catalogs and find the current one
         with database.get_sqla_engine() as engine:
-            for catalog in engine.execute("SHOW CATALOGS"):
-                if catalog.IsCurrent:
-                    return catalog.CatalogName
+            with engine.connect() as connection:
+                for catalog in connection.execute(text("SHOW CATALOGS")):
+                    if catalog.IsCurrent:
+                        return catalog.CatalogName
 
         # fallback to "internal"
         return DEFAULT_CATALOG
@@ -299,8 +300,9 @@ class DorisEngineSpec(MySQLEngineSpec):
         CatalogId, CatalogName, Type, IsCurrent, CreateTime, LastUpdateTime, Comment
         We need to extract just the CatalogName column.
         """
-        result = inspector.bind.execute("SHOW CATALOGS")
-        return {row.CatalogName for row in result}
+        with inspector.bind.connect() as connection:
+            result = connection.execute(text("SHOW CATALOGS"))
+            return {row.CatalogName for row in result}
 
     @classmethod
     def get_schema_from_engine_params(

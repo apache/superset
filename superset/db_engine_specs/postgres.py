@@ -24,6 +24,7 @@ from re import Pattern
 from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
@@ -393,15 +394,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
         In Postgres, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                """
+        with inspector.bind.connect() as connection:
+            return {
+                catalog
+                for (catalog,) in connection.execute(
+                    text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
-            )
-        }
+                """)
+                )
+            }
 
     @classmethod
     def get_table_names(
