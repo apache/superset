@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,6 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,duckdb,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
--e ./superset-extensions-cli[test]
+
+"""
+Common schemas and utilities for MCP service.
+"""
+
+from superset.mcp_service.system.schemas import HealthCheckResponse
+
+__all__ = [
+    "HealthCheckResponse",
+]

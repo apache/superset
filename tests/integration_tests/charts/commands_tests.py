@@ -372,6 +372,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
         """Test that a chart command updates properties"""
+        import time
+
         pk = db.session.query(Slice).all()[0].id
         user = security_manager.find_user(username="admin")
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
@@ -383,6 +385,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
         }
         command = UpdateChartCommand(model_id, json_obj)
         last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+        time.sleep(0.01)  # Ensure timestamp will be different
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.last_saved_at != last_saved_before
