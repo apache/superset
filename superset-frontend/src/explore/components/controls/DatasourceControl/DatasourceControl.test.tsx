@@ -26,6 +26,7 @@ import {
   act,
   userEvent,
   waitFor,
+  cleanup,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
@@ -33,8 +34,10 @@ import DatasourceControl from '.';
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
 afterEach(() => {
+  cleanup();
   fetchMock.reset();
   fetchMock.restore();
+  jest.restoreAllMocks();
 });
 
 const mockDatasource = {
