@@ -23,6 +23,7 @@ import sys
 from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
+from celery.signals import after_task_publish
 from colorama import Fore, Style
 from deprecation import deprecated
 from flask import abort, current_app, Flask, redirect, request, session, url_for
@@ -74,6 +75,19 @@ if TYPE_CHECKING:
     from superset.app import SupersetApp
 
 logger = logging.getLogger(__name__)
+
+
+@after_task_publish.connect
+def update_sent_state(sender: str | None = None, headers: dict[str, str] | None = None, **kwargs: Any) -> None:
+    task = celery_app.tasks.get(sender)
+    backend = task.backend if task else celery_app.backend
+
+    # For context worker tasks, set a special state so that we can tell the difference between
+    # tasks that might run and tasks that don't exist anymore.
+    logger.info("headers: %s", headers)
+
+    if headers and headers["task"] == "generate_llm_context":
+        backend.store_result(headers["id"], None, "PUBLISHED")
 
 
 class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
@@ -177,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
+        from superset.llms.api import CustomLlmProviderRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
@@ -255,6 +270,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
+        appbuilder.add_api(CustomLlmProviderRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)

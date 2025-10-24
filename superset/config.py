@@ -1168,6 +1168,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.llm_context",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1186,6 +1187,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
+        },
+        "check_for_expired_llm_context": {
+            "task": "check_for_expired_llm_context",
+            "schedule": crontab(minute="*/5"),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
@@ -1992,6 +1997,16 @@ PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# Define a list of allowed URL patterns for custom LLM provider endpoints.
+# This prevents SSRF attacks by restricting which external URLs can be used.
+# By default, all URLs are allowed. For production, restrict to trusted domains:
+# LLM_ENDPOINT_ALLOWED_URL_PATTERNS = [
+#     r"^https://api\.openai\.com/.*",
+#     r"^https://api\.anthropic\.com/.*",
+#     r"^https://.*\.company\.com/.*"
+# ]
+LLM_ENDPOINT_ALLOWED_URL_PATTERNS = [r".*"]
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.

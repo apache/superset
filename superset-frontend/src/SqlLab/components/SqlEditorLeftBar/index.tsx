@@ -35,7 +35,10 @@ import {
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
 import { t, styled, css } from '@superset-ui/core';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
+import {
+  TableSelectorMultiple,
+  TableValue,
+} from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
   getItem,
@@ -92,9 +95,21 @@ const SqlEditorLeftBar = ({
   const { dbId, catalog, schema } = queryEditor;
   const tables = useMemo(
     () =>
-      allSelectedTables.filter(
-        table => table.dbId === dbId && table.schema === schema,
-      ),
+      allSelectedTables.filter(table => {
+        if (table.dbId !== dbId) {
+          return false;
+        }
+        // If schema is selected, only show tables from that schema(s)
+        // If no schema is selected, show all tables from the database
+        if (schema) {
+          // Handle both single schema (string) and multiple schemas (array)
+          const schemasToCheck = Array.isArray(schema) ? schema : [schema];
+          if (!schemasToCheck.includes(table.schema)) {
+            return false;
+          }
+        }
+        return true;
+      }),
     [allSelectedTables, dbId, schema],
   );
 
@@ -124,22 +139,26 @@ const SqlEditorLeftBar = ({
   };
 
   const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
+    () => tables?.map(table => `${table.schema}.${table.name}`) || [],
     [tables],
   );
 
   const onTablesChange = (
-    tableNames: string[],
-    catalogName: string | null,
-    schemaName: string,
+    tableValues?: TableValue | TableValue[],
+    catalogName?: string | null,
   ) => {
-    if (!schemaName) {
+    if (!tableValues) {
       return;
     }
 
+    // Ensure we have an array of table values
+    const tableValuesArray = Array.isArray(tableValues)
+      ? tableValues
+      : [tableValues];
+
     const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
+    const tablesToAdd = tableValuesArray.filter(tv => {
+      const index = currentTables.findIndex(table => table.name === tv.value);
       if (index >= 0) {
         currentTables.splice(index, 1);
         return false;
@@ -148,8 +167,10 @@ const SqlEditorLeftBar = ({
       return true;
     });
 
-    tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
+    tablesToAdd.forEach(tableValue => {
+      dispatch(
+        addTable(queryEditor, tableValue.value, catalogName, tableValue.schema),
+      );
     });
 
     dispatch(removeTables(currentTables));
@@ -180,9 +201,11 @@ const SqlEditorLeftBar = ({
   );
 
   const handleSchemaChange = useCallback(
-    (schema: string) => {
+    (schema: string | string[]) => {
       if (queryEditor) {
-        dispatch(queryEditorSetSchema(queryEditor, schema));
+        // For SQL Lab, we use the first schema if multiple are selected
+        const schemaValue = Array.isArray(schema) ? schema[0] : schema;
+        dispatch(queryEditorSetSchema(queryEditor, schemaValue));
       }
     },
     [dispatch, queryEditor],
@@ -226,14 +249,13 @@ const SqlEditorLeftBar = ({
       <div className="divider" />
       <StyledScrollbarContainer>
         {tables.map(table => (
-          <TableElement
-            table={table}
-            key={table.id}
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            onChange={onToggleTable}
-          />
+            <TableElement
+              table={table}
+              key={table.id}
+              activeKey={table.expanded ? [table.id] : []}
+              onChange={onToggleTable}
+            />
+          ))}
         ))}
       </StyledScrollbarContainer>
       {shouldShowReset && (

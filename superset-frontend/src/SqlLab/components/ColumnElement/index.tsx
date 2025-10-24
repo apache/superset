@@ -40,6 +40,10 @@ const StyledTooltip = (props: any) => {
                 color: ${theme.colorBgLayout};
                 font-size: ${theme.fontSizeXS}px;
               }
+
+              p {
+                text-align: left;
+              }
             }
           `}
           {...props}
@@ -57,12 +61,14 @@ const iconMap = {
   pk: 'fa-key',
   fk: 'fa-link',
   index: 'fa-bookmark',
+  comment: 'fa-comment',
 };
 
 const tooltipTitleMap = {
   pk: t('Primary key'),
   fk: t('Foreign key'),
   index: t('Index'),
+  comment: t('Comment'),
 };
 
 export type ColumnKeyTypeType = keyof typeof tooltipTitleMap;
@@ -72,6 +78,7 @@ interface ColumnElementProps {
     name: string;
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
+    comment?: string;
   };
 }
 
@@ -81,7 +88,7 @@ const NowrapDiv = styled.div`
 
 const ColumnElement = ({ column }: ColumnElementProps) => {
   let columnName: ReactNode = column.name;
-  let icons;
+  let icons: ReactNode[] = [];
   if (column.keys && column.keys.length > 0) {
     columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (
@@ -103,6 +110,23 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
         </StyledTooltip>
       </span>
     ));
+  }
+  if (column.comment) {
+    icons.push(
+      <StyledTooltip
+        key="comment"
+        placement="right"
+        title={
+          <>
+            <strong>{tooltipTitleMap.comment}</strong>
+            <Hr />
+            <p className="text-small">{column.comment}</p>
+          </>
+        }
+      >
+        <i className="fa text-muted m-l-2 fa-comment" />
+      </StyledTooltip>,
+    );
   }
   return (
     <Flex align="center" justify="space-between">

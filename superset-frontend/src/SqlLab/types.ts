@@ -71,6 +71,7 @@ export interface QueryEditor {
   updatedAt?: number;
   cursorPosition?: CursorPosition;
   isDataset?: boolean;
+  queryGenerator?: QueryGenerator;
   tabViewId?: string;
 }
 
@@ -96,6 +97,11 @@ export interface Table {
   initialized?: boolean;
   inLocalStorage?: boolean;
   persistData?: TableMetaData;
+}
+
+export interface QueryGenerator {
+  isGeneratingQuery: boolean;
+  prompt: string;
 }
 
 export type SqlLabRootState = {

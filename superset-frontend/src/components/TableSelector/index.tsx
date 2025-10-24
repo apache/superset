@@ -99,7 +99,7 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onCatalogChange?: (catalog?: string | null) => void;
-  onSchemaChange?: (schema?: string) => void;
+  onSchemaChange?: (schema: string | string[]) => void;
   readOnly?: boolean;
   catalog?: string | null;
   schema?: string;
@@ -107,12 +107,16 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableValue?: string | string[];
   onTableSelectChange?: (
-    value?: string | string[],
+    value?: TableValue | TableValue[],
     catalog?: string | null,
-    schema?: string,
   ) => void;
   tableSelectMode?: 'single' | 'multiple';
   customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
+}
+
+export interface TableValue {
+  value: string;
+  schema: string;
 }
 
 export interface TableOption {
@@ -122,9 +126,9 @@ export interface TableOption {
 }
 
 export const TableOption = ({ table }: { table: Table }) => {
-  const { value, type, extra } = table;
+  const { value, type, extra, schema } = table;
   return (
-    <TableLabel title={value}>
+    <TableLabel title={`${schema}.${value}`}>
       {type === 'view' ? (
         <Icons.FunctionOutlined iconSize="m" />
       ) : type === 'materialized_view' ? (
@@ -184,9 +188,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [currentCatalog, setCurrentCatalog] = useState<
     string | null | undefined
   >(catalog);
-  const [currentSchema, setCurrentSchema] = useState<string | undefined>(
-    schema,
-  );
+  const [currentSchema, setCurrentSchema] = useState<
+    string | string[] | undefined
+  >(schema);
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
   >(undefined);
@@ -219,7 +223,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     () =>
       data
         ? data.options.map(table => ({
-            value: table.value,
+            value: `${table.schema}.${table.value}`,
             label: customTableOptionLabelRenderer ? (
               customTableOptionLabelRenderer(table)
             ) : (
@@ -257,17 +261,26 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const internalTableChange = (
     selectedOptions: TableOption | TableOption[] | undefined,
   ) => {
-    if (currentSchema) {
+    const parseOption = (option: TableOption): TableValue => {
+      const nameParts = option.value.split('.');
+      return { value: nameParts[1], schema: nameParts[0] };
+    };
+    // Check if we have any schema selected (single string or non-empty array)
+    const hasValidSchema =
+      currentSchema &&
+      (typeof currentSchema === 'string' ||
+        (Array.isArray(currentSchema) && currentSchema.length > 0));
+
+    if (hasValidSchema && selectedOptions) {
       onTableSelectChange?.(
         Array.isArray(selectedOptions)
-          ? selectedOptions.map(option => option?.value)
-          : selectedOptions?.value,
+          ? selectedOptions.map(option => parseOption(option))
+          : parseOption(selectedOptions),
         currentCatalog,
-        currentSchema,
       );
-    } else {
-      setTableSelectValue(selectedOptions);
     }
+    // Always update the local state regardless
+    setTableSelectValue(selectedOptions);
   };
 
   const internalDbChange = (db: DatabaseObject) => {
@@ -292,7 +305,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     setTableSelectValue(value);
   };
 
-  const internalSchemaChange = (schema?: string) => {
+  const internalSchemaChange = (schema: string | string[]) => {
     setCurrentSchema(schema);
     if (onSchemaChange) {
       onSchemaChange(schema);
@@ -300,6 +313,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const value = tableSelectMode === 'single' ? undefined : [];
     setTableSelectValue(value);
+    onTableSelectChange?.(value, currentCatalog);
   };
 
   const handleFilterOption = useMemo(
@@ -312,8 +326,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 
   function renderTableSelect() {
-    const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
-
+    const disabled =
+      (currentSchema.length > 0 && !formMode && readOnly) ||
+      currentSchema.length === 0;
     const header = sqlLabMode ? (
       <FormLabel>{t('See table schema')}</FormLabel>
     ) : (
@@ -369,6 +384,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        schemaSelectMode="multiple"
       />
       {sqlLabMode && !formMode && <div className="divider" />}
       {renderTableSelect()}

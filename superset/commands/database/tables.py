@@ -141,6 +141,7 @@ class TablesDatabaseCommand(BaseCommand):
                         "value": table.table,
                         "type": "table",
                         "extra": extra_dict_by_name.get(table.table, None),
+                        "schema": table.schema,
                     }
                     for table in tables
                 ]
@@ -148,6 +149,7 @@ class TablesDatabaseCommand(BaseCommand):
                     {
                         "value": view.table,
                         "type": "view",
+                        "schema": view.schema,
                     }
                     for view in views
                 ]

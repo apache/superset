@@ -66,6 +66,10 @@ import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  SavedContextStatus,
+  useLlmContextStatus,
+} from 'src/hooks/apiResources';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -79,6 +83,7 @@ import {
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
+  generateSql,
   saveQuery,
   addSavedQueryToTabState,
   scheduleQuery,
@@ -96,6 +101,7 @@ import {
   INITIAL_NORTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
 } from 'src/SqlLab/constants';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
   getItem,
   LocalStorageKeys,
@@ -126,6 +132,7 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import AIAssistantEditor from '../AIAssistantEditor';
 import KeyboardShortcutButton, {
   KEY_MAP,
   KeyboardShortcut,
@@ -229,6 +236,23 @@ const SqlEditor: FC<Props> = ({
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const storedQueryEditor = useQueryEditor(queryEditor.id, [
+    'dbId',
+    'catalog',
+    'schema',
+  ]);
+  const [savedLlmContext, setSavedLlmContext] =
+    useState<SavedContextStatus | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
+  useLlmContextStatus({
+    dbId: storedQueryEditor.dbId,
+    onSuccess: result => {
+      if (result.context) {
+        setSavedLlmContext(result.context);
+      }
+      setContextError(result.error ? result.error.build_time : null);
+    },
+  });
 
   const {
     database,
@@ -332,6 +356,15 @@ const SqlEditor: FC<Props> = ({
       startQuery();
     }
   };
+
+  const runAiAssistant = useCallback(
+    (prompt: string) => {
+      if (database) {
+        dispatch(generateSql(database.id, storedQueryEditor, prompt));
+      }
+    },
+    [database, storedQueryEditor],
+  );
 
   useEffect(() => {
     if (autorun) {
@@ -880,6 +913,33 @@ const SqlEditor: FC<Props> = ({
     );
   };
 
+  const renderAiAssistantEditor = () => {
+    const disabledMessage =
+      savedLlmContext && contextError
+        ? t('Context build error; falling back to an older context')
+        : !savedLlmContext && contextError
+          ? t('AI Assistant is unavailable due to a context build error')
+          : !savedLlmContext && !contextError
+            ? t(
+                'AI Assistant is unavailable - please try again in a few minutes',
+              )
+            : undefined;
+
+    return (
+      database?.llm_connection?.enabled && (
+        <AIAssistantEditor
+          queryEditorId={queryEditor.id}
+          onGenerateSql={runAiAssistant}
+          isGeneratingSql={
+            queryEditor?.queryGenerator?.isGeneratingQuery || false
+          }
+          disabledMessage={disabledMessage}
+          schema={storedQueryEditor.schema}
+        />
+      )
+    );
+  };
+
   const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
@@ -975,6 +1035,7 @@ const SqlEditor: FC<Props> = ({
             />
           )}
           {queryEditor.isDataset && renderDatasetWarning()}
+          {renderAiAssistantEditor()}
           <div className="sql-container">
             <AutoSizer disableWidth>
               {({ height }) =>

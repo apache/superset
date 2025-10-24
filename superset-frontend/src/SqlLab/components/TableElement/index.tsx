@@ -362,7 +362,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             ref={tableNameRef}
             className="table-name"
           >
-            <strong>{name}</strong>
+            <strong>
+              {schema}.{name}
+            </strong>
           </StyledSpan>
         </Tooltip>
       </div>

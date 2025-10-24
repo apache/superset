@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any
 
 from flask import current_app, g
@@ -26,6 +27,8 @@ from sqlalchemy.sql.sqltypes import JSON
 from superset import security_manager
 from superset.models.core import Database
 from superset.views.base import BaseFilter
+
+logger = logging.getLogger(__name__)
 
 
 def can_access_databases(view_menu_name: str) -> set[str]:
