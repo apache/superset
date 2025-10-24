@@ -29,6 +29,7 @@ import {
   cleanup,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
+import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -83,7 +84,25 @@ const createProps = (overrides: JsonObject = {}) => ({
   ...overrides,
 });
 
-async function openAndSaveChanges(datasource: any) {
+type TestDataset = {
+  id?: number;
+  name?: string;
+  type?: DatasetObject['type'] | string;
+  main_dttm_col?: string | null;
+  columns?: Array<{
+    column_name?: string;
+    is_dttm?: boolean;
+    [key: string]: unknown;
+  }>;
+  metrics?: Array<{
+    id?: number;
+    metric_name?: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+};
+
+async function openAndSaveChanges(datasource: TestDataset) {
   fetchMock.get(
     'glob:*/api/v1/database/?q=*',
     { result: [] },
