@@ -64,6 +64,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": None,
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -94,6 +95,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": None,
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -128,6 +130,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": [],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -162,6 +165,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -195,6 +199,7 @@ def test_log_data_no_owners(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -230,6 +235,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
