@@ -81,6 +81,11 @@ const createProps = (overrides: JsonObject = {}) => ({
 });
 
 async function openAndSaveChanges(datasource: any) {
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
   fetchMock.put(
     'glob:*/api/v1/dataset/*',
     {},
@@ -208,6 +213,11 @@ test('Click on Edit dataset', async () => {
   const props = createProps();
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
+  );
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
   );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
@@ -525,6 +535,12 @@ test('should allow creating new metrics in dataset editor', async () => {
 
   // Mock API calls for dataset editor
   fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasourceWithMetrics },
     { overwriteRoutes: true },
@@ -605,6 +621,12 @@ test('should allow deleting metrics in dataset editor', async () => {
 
   // Mock API calls
   fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasourceWithMetrics },
     { overwriteRoutes: true },
@@ -668,6 +690,12 @@ test('should handle metric save confirmation modal', async () => {
 
   // Mock API calls for dataset editor
   fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasource },
     { overwriteRoutes: true },
@@ -724,6 +752,12 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Mock API calls with the same datasource (no changes needed for this test)
+  fetchMock.get(
+    'glob:*/api/v1/database/?q=*',
+    { result: [] },
+    { overwriteRoutes: true },
+  );
+
   fetchMock.get(
     'glob:*/api/v1/dataset/*',
     { result: mockDatasource },
