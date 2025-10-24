@@ -55,6 +55,7 @@ celery --app=superset.tasks.celery_app:app beat
 To setup a result backend, you need to pass an instance of a derivative of `BaseCache` (`from
 flask_caching.backends.base import BaseCache`) to the RESULTS_BACKEND configuration key in your
 superset_config.py. You can use Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
+[MinIO or other S3 compatible service](https://github.com/greggailly/minio-flask-cache),
 memory or the file system (in a single server-type setup or for testing), or to write your own
 caching interface. Your `superset_config.py` may look something like:
 
@@ -69,6 +70,26 @@ RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 from flask_caching.backends.rediscache import RedisCache
 RESULTS_BACKEND = RedisCache(
     host='localhost', port=6379, key_prefix='superset_results')
+
+# On MinIO or other S3 compatible Service
+from minio_cache import MinioCacheBackend
+
+MINIO_HOST = 'localhost'
+MINIO_PORT = '9000'
+MINIO_ACCESS_KEY = 'minio'
+MINIO_SECRET_KEY = 'minio123'
+MINIO_BUCKET = 'superset'
+MINIO_SECURE = False
+
+RESULTS_BACKEND = MinioCacheBackend(
+    endpoint=MINIO_HOST + ":" + MINIO_PORT,
+    access_key=MINIO_ACCESS_KEY,
+    secret_key=MINIO_SECRET_KEY,
+    bucket=MINIO_BUCKET,
+    secure=MINIO_SECURE,
+    default_timeout=300,
+    key_prefix='superset_results',
+)
 ```
 
 For performance gains, [MessagePack](https://github.com/msgpack/msgpack-python) and
@@ -88,6 +109,14 @@ issues arise. Please clear your existing results cache store when upgrading an e
 
 - SQL Lab will _only run your queries asynchronously if_ you enable **Asynchronous Query Execution**
   in your database settings (Sources > Databases > Edit record).
+
+- In order to use dedicated results backend, additional python libraries must be installed. These libraries can be installed using pip.
+  - [redis-py](https://pypi.org/project/redis/) for Redis.
+  - [pylibmc](https://pypi.org/project/pylibmc/) for memecached
+  - [s3werkzeugcache](https://pypi.python.org/pypi/s3werkzeugcache) for S3
+  - [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) fir MinIO or other S3 compatible service
+
+
 
 ## Celery Flower
 
