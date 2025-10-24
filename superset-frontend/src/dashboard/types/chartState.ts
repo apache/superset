@@ -16,16 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NumberFormatter } from '../number-format';
-import { CurrencyFormatter } from '../currency-format';
 
-export * from '../query/types';
-export * from './AgGrid';
+// Re-export AG Grid types from @superset-ui/core for convenience
+import type { AgGridChartState } from '@superset-ui/core';
 
-export type Maybe<T> = T | null;
+export type {
+  AgGridColumnState,
+  AgGridSortModel,
+  AgGridFilterModel,
+  AgGridChartState,
+  AgGridQueryFilterClause,
+} from '@superset-ui/core';
+export {
+  AgGridFilterType,
+  AgGridTextFilterOperator,
+  AgGridNumberFilterOperator,
+} from '@superset-ui/core';
 
-export type Optional<T> = T | undefined;
+export interface ChartState {
+  chartId: number;
+  vizType: string;
+  state: AgGridChartState;
+  lastModified?: number;
+}
 
-export type ValueOf<T> = T[keyof T];
-
-export type ValueFormatter = NumberFormatter | CurrencyFormatter;
+export interface DashboardChartStates {
+  [chartId: string]: ChartState;
+}
