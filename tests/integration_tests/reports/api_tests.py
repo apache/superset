@@ -2986,8 +2986,18 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Mock response without pagination
         mock_get_channels.return_value = {
             "result": [
-                {"id": "C001", "name": "general", "is_private": False, "is_member": True},
-                {"id": "C002", "name": "random", "is_private": False, "is_member": True},
+                {
+                    "id": "C001",
+                    "name": "general",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "id": "C002",
+                    "name": "random",
+                    "is_private": False,
+                    "is_member": True,
+                },
             ],
             "next_cursor": None,
             "has_more": False,
@@ -3022,7 +3032,12 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Mock response with pagination
         mock_get_channels.return_value = {
             "result": [
-                {"id": f"C{i:03d}", "name": f"channel-{i}", "is_private": False, "is_member": True}
+                {
+                    "id": f"C{i:03d}",
+                    "name": f"channel-{i}",
+                    "is_private": False,
+                    "is_member": True,
+                }
                 for i in range(100)
             ],
             "next_cursor": "page_1",
@@ -3048,7 +3063,12 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Mock response for second page
         mock_get_channels.return_value = {
             "result": [
-                {"id": "C100", "name": "channel-100", "is_private": False, "is_member": True},
+                {
+                    "id": "C100",
+                    "name": "channel-100",
+                    "is_private": False,
+                    "is_member": True,
+                },
             ],
             "next_cursor": None,
             "has_more": False,
@@ -3081,8 +3101,18 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Mock response with search results
         mock_get_channels.return_value = {
             "result": [
-                {"id": "C001", "name": "engineering", "is_private": False, "is_member": True},
-                {"id": "C002", "name": "engineering-ops", "is_private": True, "is_member": True},
+                {
+                    "id": "C001",
+                    "name": "engineering",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "id": "C002",
+                    "name": "engineering-ops",
+                    "is_private": True,
+                    "is_member": True,
+                },
             ],
             "next_cursor": None,
             "has_more": False,
@@ -3115,7 +3145,12 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Mock response with filtered types
         mock_get_channels.return_value = {
             "result": [
-                {"id": "C001", "name": "general", "is_private": False, "is_member": True},
+                {
+                    "id": "C001",
+                    "name": "general",
+                    "is_private": False,
+                    "is_member": True,
+                },
             ],
             "next_cursor": None,
             "has_more": False,

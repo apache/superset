@@ -187,7 +187,7 @@ class BaseReportState:
                 channel_names = (slack_recipients["target"] or "").replace("#", "")
                 # we need to ensure that existing reports can also fetch
                 # ids from private channels
-                channels = get_channels_with_search(
+                channels_data = get_channels_with_search(
                     search_string=channel_names,
                     types=[
                         SlackChannelTypes.PRIVATE,
@@ -195,6 +195,7 @@ class BaseReportState:
                     ],
                     exact_match=True,
                 )
+                channels = channels_data["result"]
                 channels_list = recipients_string_to_list(channel_names)
                 if len(channels_list) != len(channels):
                     missing_channels = set(channels_list) - {
