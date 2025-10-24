@@ -1753,9 +1753,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
