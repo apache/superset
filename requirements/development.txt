@@ -14,6 +14,12 @@ annotated-types==0.7.0
     # via
     #   -c requirements/base.txt
     #   pydantic
+anyio==4.11.0
+    # via
+    #   httpx
+    #   mcp
+    #   sse-starlette
+    #   starlette
 apispec==6.6.1
     # via
     #   -c requirements/base.txt
@@ -28,11 +34,14 @@ attrs==25.3.0
     # via
     #   -c requirements/base.txt
     #   cattrs
+    #   cyclopts
     #   jsonschema
     #   outcome
     #   referencing
     #   requests-cache
     #   trio
+authlib==1.6.5
+    # via fastmcp
 babel==2.17.0
     # via
     #   -c requirements/base.txt
@@ -81,6 +90,8 @@ celery==5.5.2
 certifi==2025.6.15
     # via
     #   -c requirements/base.txt
+    #   httpcore
+    #   httpx
     #   requests
     #   selenium
 cffi==1.17.1
@@ -105,6 +116,7 @@ click==8.2.1
     #   click-repl
     #   flask
     #   flask-appbuilder
+    #   uvicorn
 click-didyoumean==0.3.1
     # via
     #   -c requirements/base.txt
@@ -144,10 +156,14 @@ cryptography==44.0.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
+    #   authlib
     #   paramiko
+    #   pyjwt
     #   pyopenssl
 cycler==0.12.1
     # via matplotlib
+cyclopts==4.2.4
+    # via fastmcp
 db-dtypes==1.3.1
     # via pandas-gbq
 defusedxml==0.7.1
@@ -172,14 +188,29 @@ dnspython==2.7.0
     #   email-validator
 docker==7.0.0
     # via apache-superset
+docstring-parser==0.17.0
+    # via cyclopts
+docutils==0.22.3
+    # via rich-rst
+duckdb==1.4.2
+    # via
+    #   apache-superset
+    #   duckdb-engine
+duckdb-engine==0.17.0
+    # via apache-superset
 email-validator==2.2.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
+    #   pydantic
 et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+exceptiongroup==1.3.0
+    # via fastmcp
+fastmcp==2.10.6
+    # via apache-superset
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -332,6 +363,8 @@ gunicorn==23.0.0
 h11==0.16.0
     # via
     #   -c requirements/base.txt
+    #   httpcore
+    #   uvicorn
     #   wsproto
 hashids==1.3.1
     # via
@@ -342,6 +375,14 @@ holidays==0.82
     #   -c requirements/base.txt
     #   apache-superset
     #   prophet
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   fastmcp
+    #   mcp
+httpx-sse==0.4.3
+    # via mcp
 humanize==4.12.3
     # via
     #   -c requirements/base.txt
@@ -351,7 +392,9 @@ identify==2.5.36
 idna==3.10
     # via
     #   -c requirements/base.txt
+    #   anyio
     #   email-validator
+    #   httpx
     #   requests
     #   trio
     #   url-normalize
@@ -383,6 +426,7 @@ jsonschema==4.23.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
+    #   mcp
     #   openapi-schema-validator
     #   openapi-spec-validator
 jsonschema-path==0.3.4
@@ -443,6 +487,8 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
+mcp==1.21.2
+    # via fastmcp
 mdurl==0.1.2
     # via
     #   -c requirements/base.txt
@@ -482,6 +528,8 @@ odfpy==1.4.1
     # via
     #   -c requirements/base.txt
     #   pandas
+openapi-pydantic==0.5.1
+    # via fastmcp
 openapi-schema-validator==0.6.3
     # via
     #   -c requirements/base.txt
@@ -509,6 +557,7 @@ packaging==25.0
     #   db-dtypes
     #   deprecation
     #   docker
+    #   duckdb-engine
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
@@ -621,10 +670,16 @@ pydantic==2.11.7
     # via
     #   -c requirements/base.txt
     #   apache-superset
+    #   fastmcp
+    #   mcp
+    #   openapi-pydantic
+    #   pydantic-settings
 pydantic-core==2.33.2
     # via
     #   -c requirements/base.txt
     #   pydantic
+pydantic-settings==2.12.0
+    # via mcp
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -645,6 +700,7 @@ pyjwt==2.10.1
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
+    #   mcp
 pylint==3.3.7
     # via apache-superset
 pynacl==1.5.0
@@ -660,6 +716,8 @@ pyparsing==3.2.3
     #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
+pyperclip==1.11.0
+    # via fastmcp
 pysocks==1.7.1
     # via
     #   -c requirements/base.txt
@@ -692,12 +750,16 @@ python-dotenv==1.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+    #   fastmcp
+    #   pydantic-settings
 python-geohash==0.8.5
     # via
     #   -c requirements/base.txt
     #   apache-superset
 python-ldap==3.4.4
     # via apache-superset
+python-multipart==0.0.20
+    # via mcp
 pytz==2025.2
     # via
     #   -c requirements/base.txt
@@ -752,7 +814,12 @@ rfc3339-validator==0.1.4
 rich==13.9.4
     # via
     #   -c requirements/base.txt
+    #   cyclopts
+    #   fastmcp
     #   flask-limiter
+    #   rich-rst
+rich-rst==1.3.2
+    # via cyclopts
 rpds-py==0.25.0
     # via
     #   -c requirements/base.txt
@@ -797,6 +864,7 @@ slack-sdk==3.35.0
 sniffio==1.3.1
     # via
     #   -c requirements/base.txt
+    #   anyio
     #   trio
 sortedcontainers==2.4.0
     # via
@@ -807,6 +875,7 @@ sqlalchemy==1.4.54
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   duckdb-engine
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -826,10 +895,14 @@ sqlglot==27.15.2
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
+sse-starlette==3.0.3
+    # via mcp
 sshtunnel==0.4.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+starlette==0.50.0
+    # via mcp
 statsd==4.0.1
     # via apache-superset
 tabulate==0.9.0
@@ -857,20 +930,26 @@ typing-extensions==4.14.0
     # via
     #   -c requirements/base.txt
     #   alembic
+    #   anyio
     #   apache-superset
     #   cattrs
+    #   exceptiongroup
     #   limits
+    #   mcp
     #   pydantic
     #   pydantic-core
     #   pyopenssl
     #   referencing
     #   selenium
     #   shillelagh
+    #   starlette
     #   typing-inspection
 typing-inspection==0.4.1
     # via
     #   -c requirements/base.txt
+    #   mcp
     #   pydantic
+    #   pydantic-settings
 tzdata==2025.2
     # via
     #   -c requirements/base.txt
@@ -889,6 +968,8 @@ urllib3==2.5.0
     #   requests
     #   requests-cache
     #   selenium
+uvicorn==0.38.0
+    # via mcp
 vine==5.1.0
     # via
     #   -c requirements/base.txt
