@@ -1361,11 +1361,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ScreenshotImageNotAvailableException:
             return self.response_404()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error(
+            logger.exception(
                 "Error retrieving thumbnail for dashboard %s: %s",
                 str(dashboard.id),
                 str(ex),
-                exc_info=True,
             )
             return self.response_404()
         return Response(
