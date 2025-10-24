@@ -577,14 +577,17 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             search_string = params.get("search_string")
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
-            force = params.get("force", False)
-            channels = get_channels_with_search(
+            cursor = params.get("cursor")
+            limit = params.get("limit", 100)
+
+            channels_data = get_channels_with_search(
                 search_string=search_string,
                 types=types,
                 exact_match=exact_match,
-                force=force,
+                cursor=cursor,
+                limit=limit,
             )
-            return self.response(200, result=channels)
+            return self.response(200, **channels_data)
         except SupersetException as ex:
             logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))
