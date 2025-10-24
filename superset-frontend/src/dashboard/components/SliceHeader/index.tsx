@@ -86,7 +86,7 @@ const ChartHeaderStyles = styled.div`
     & > .header-title {
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: calc(100% - ${theme.sizeUnit * 4}px);
+      max-width: calc(100% - ${theme.sizeUnit * 6}px);
       flex-grow: 1;
       display: -webkit-box;
       -webkit-line-clamp: 2;

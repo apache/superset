@@ -94,6 +94,7 @@ const StyledDiv = styled.div`
       transform: unset;
       left: unset;
     }
+
     div:hover > .hover-menu-container .hover-menu,
     .hover-menu-container .hover-menu:hover {
       opacity: 1;
