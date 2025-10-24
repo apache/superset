@@ -32,6 +32,10 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base.txt
+    #   redis
 attrs==25.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -195,6 +199,13 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   openpyxl
+exceptiongroup==1.3.0
+    # via
+    #   -c requirements/base.txt
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -866,6 +877,11 @@ tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+tomli==2.2.1
+    # via
+    #   coverage
+    #   pylint
+    #   pytest
 tomlkit==0.13.3
     # via pylint
 tqdm==4.67.1
@@ -883,17 +899,20 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
-typing-extensions==4.14.0
+typing-extensions==4.14.1
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
+    #   astroid
     #   cattrs
+    #   exceptiongroup
     #   limits
     #   pydantic
     #   pydantic-core
     #   pyopenssl
     #   referencing
+    #   rich
     #   selenium
     #   shillelagh
     #   typing-inspection
