@@ -117,7 +117,7 @@ function cellBackground({
   theme: any;
 }) {
   if (!colorPositiveNegative) {
-    return isDarkTheme ? theme.colorTextLight : theme.colorBorder; // transparent or neutral
+    return 'transparent'; // Use transparent background when colorPositiveNegative is false
   }
 
   const r = value < 0 ? 150 : 0;
@@ -152,7 +152,7 @@ export const NumericCellRenderer = (
   } = params;
 
   const isDarkTheme = useIsDark();
-  const theme = useTheme();
+  const theme = !colorPositiveNegative ? null : useTheme();
 
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
