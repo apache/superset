@@ -20,6 +20,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, cast
+from urllib.parse import quote
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, g, redirect, request, Response, send_file, url_for
@@ -1026,11 +1027,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
+        # Use quote() to properly encode filename for HTTP headers (#31158)
+        safe_filename = quote(filename, safe=".")
         response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            download_name=safe_filename,
         )
         if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
