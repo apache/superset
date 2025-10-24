@@ -183,6 +183,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const theme = useTheme();
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
   const cursorRef = useRef<Record<string, string | null>>({});
+  const dataCache = useRef<
+    Record<
+      string,
+      { data: { label: string; value: string }[]; totalCount: number }
+    >
+  >({});
   const [refreshKey, setRefreshKey] = useState(0);
   const forceRefreshRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -218,6 +224,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }> => {
     try {
       const cacheKey = `${search}:${page}`;
+
+      if (dataCache.current[cacheKey] && !forceRefreshRef.current) {
+        return dataCache.current[cacheKey];
+      }
+
       const cursor = page > 0 ? cursorRef.current[cacheKey] : null;
 
       const params: Record<string, any> = {
@@ -254,16 +265,24 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       }));
 
       const totalCount = has_more
-        ? (page + 1) * pageSize + 1 // Fake "has more"
-        : page * pageSize + options.length; // Last page
+        ? (page + 1) * pageSize + 1
+        : page * pageSize + options.length;
 
-      return {
+      const responseData = {
         data: options,
         totalCount,
       };
+
+      dataCache.current[cacheKey] = responseData;
+
+      return responseData;
     } catch (error) {
       console.error('Failed to fetch Slack channels:', error);
       setUseSlackV1(true);
+      onMethodChange({
+        label: NotificationMethodOption.Slack,
+        value: NotificationMethodOption.Slack,
+      });
       throw error;
     }
   };
@@ -274,6 +293,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     try {
       forceRefreshRef.current = true;
       cursorRef.current = {};
+      dataCache.current = {};
 
       setSlackRecipients([]);
 

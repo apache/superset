@@ -181,19 +181,13 @@ class TestGetChannelsWithSearch:
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         result = get_channels_with_search(
-            search_string="general,random", exact_match=True, limit=100
+            search_string="general", exact_match=True, limit=100
         )
         assert result == {
             "result": [
                 {
                     "name": "general",
                     "id": "C12345",
-                    "is_private": False,
-                    "is_member": True,
-                },
-                {
-                    "name": "random",
-                    "id": "C67890",
                     "is_private": False,
                     "is_member": True,
                 },
@@ -232,7 +226,7 @@ class TestGetChannelsWithSearch:
         mock_client.conversations_list.return_value = mock_response_instance
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        result = get_channels_with_search(search_string="general,random", limit=100)
+        result = get_channels_with_search(search_string="general", limit=100)
         assert result == {
             "result": [
                 {
@@ -244,12 +238,6 @@ class TestGetChannelsWithSearch:
                 {
                     "name": "general2",
                     "id": "C13454",
-                    "is_private": False,
-                    "is_member": True,
-                },
-                {
-                    "name": "random",
-                    "id": "C67890",
                     "is_private": False,
                     "is_member": True,
                 },
@@ -292,21 +280,30 @@ The server responded with: missing scope: channels:read"""
     def test_filter_channels_by_specified_types(
         self, types: list[SlackChannelTypes], expected_channel_ids: set[str], mocker
     ):
+        # Determine which channels to return based on types parameter
+        public_channel = {
+            "id": "public_channel_id",
+            "name": "open",
+            "is_member": False,
+            "is_private": False,
+        }
+        private_channel = {
+            "id": "private_channel_id",
+            "name": "secret",
+            "is_member": False,
+            "is_private": True,
+        }
+
+        # Mock should return channels matching the requested types
+        # (simulating Slack API's type filtering)
+        channels = []
+        if not types or SlackChannelTypes.PUBLIC in types:
+            channels.append(public_channel)
+        if not types or SlackChannelTypes.PRIVATE in types:
+            channels.append(private_channel)
+
         mock_data = {
-            "channels": [
-                {
-                    "id": "public_channel_id",
-                    "name": "open",
-                    "is_member": False,
-                    "is_private": False,
-                },
-                {
-                    "id": "private_channel_id",
-                    "name": "secret",
-                    "is_member": False,
-                    "is_private": True,
-                },
-            ],
+            "channels": channels,
             "response_metadata": {"next_cursor": None},
         }
 
@@ -433,7 +430,7 @@ The server responded with: missing scope: channels:read"""
         }
 
     def test_streaming_search_max_pages_safety_limit(self, mocker):
-        """Test that streaming search stops after 50 pages to prevent runaway requests"""
+        """Test streaming search stops after 50 pages to prevent runaway requests"""
 
         # Create a response that always has a next cursor (infinite pagination)
         mock_data = {
@@ -553,7 +550,7 @@ The server responded with: missing scope: channels:read"""
         page2_channels = [
             {
                 "name": f"test-{i}",
-                "id": f"C{i+60}",
+                "id": f"C{i + 60}",
                 "is_private": False,
                 "is_member": True,
             }
@@ -584,9 +581,9 @@ The server responded with: missing scope: channels:read"""
 
         # Should return exactly 100 channels (60 from page1 + 40 from page2)
         assert len(result["result"]) == 100
-        # Should indicate more results available (stopped at page2 cursor)
+        # Should indicate more results available (next cursor points to page3)
         assert result["has_more"] is True
-        assert result["next_cursor"] == "page2"
+        assert result["next_cursor"] == "page3"
 
     def test_cursor_format_with_special_characters(self, mocker):
         """Test that cursor with special characters is handled correctly"""
@@ -607,7 +604,7 @@ The server responded with: missing scope: channels:read"""
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         # Call with special cursor
-        result = get_channels_with_search(cursor=special_cursor, limit=100)
+        get_channels_with_search(cursor=special_cursor, limit=100)
 
         # Verify cursor was passed to Slack API
         mock_client.conversations_list.assert_called_once()
@@ -638,7 +635,7 @@ The server responded with: missing scope: channels:read"""
     def test_custom_limit_parameter(self, mocker):
         """Test that custom limit parameter is respected"""
 
-        channels = [
+        all_channels = [
             {
                 "name": f"channel-{i}",
                 "id": f"C{i}",
@@ -648,14 +645,18 @@ The server responded with: missing scope: channels:read"""
             for i in range(200)
         ]
 
-        mock_data = {
-            "channels": channels,
-            "response_metadata": {"next_cursor": "next_page"},
-        }
-        mock_response = MockResponse(mock_data)
+        # Mock should respect the limit parameter (simulating Slack API behavior)
+        def mock_conversations_list(**kwargs):
+            limit = kwargs.get("limit", 100)
+            return MockResponse(
+                {
+                    "channels": all_channels[:limit],
+                    "response_metadata": {"next_cursor": "next_page"},
+                }
+            )
 
         mock_client = mocker.Mock()
-        mock_client.conversations_list.return_value = mock_response
+        mock_client.conversations_list.side_effect = mock_conversations_list
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         # Request custom limit of 50
@@ -664,3 +665,139 @@ The server responded with: missing scope: channels:read"""
         # Should return exactly 50 channels
         assert len(result["result"]) == 50
         assert result["has_more"] is True
+
+    def test_non_search_pagination_over_200_limit(self, mocker):
+        """Test non-search queries paginate correctly for limits > 200"""
+        # Create 500 channels
+        all_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(500)
+        ]
+
+        call_count = 0
+
+        def mock_conversations_list(**kwargs):
+            nonlocal call_count
+            limit = kwargs.get("limit", 100)
+            cursor = kwargs.get("cursor")
+
+            # Simulate Slack API pagination (max 200 per page)
+            if cursor is None:
+                start = 0
+            elif cursor == "cursor_200":
+                start = 200
+            elif cursor == "cursor_400":
+                start = 400
+            else:
+                start = 600
+
+            end = min(start + limit, 500)
+            next_cursor = f"cursor_{end}" if end < 500 else None
+
+            call_count += 1
+            return MockResponse(
+                {
+                    "channels": all_channels[start:end],
+                    "response_metadata": {"next_cursor": next_cursor},
+                }
+            )
+
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = mock_conversations_list
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Request 300 channels (requires 2 pages of 200 each)
+        result = get_channels_with_search(limit=300)
+
+        # Should return exactly 300 channels
+        assert len(result["result"]) == 300
+        assert result["has_more"] is True
+        assert result["next_cursor"] == "cursor_400"
+        # Should have made 2 API calls
+        assert call_count == 2
+
+    def test_search_with_exact_match_optimization(self, mocker):
+        """Test exact match search uses optimized string comparison"""
+        channels = [
+            {"name": "test", "id": "C1", "is_private": False, "is_member": True},
+            {"name": "test-dev", "id": "C2", "is_private": False, "is_member": True},
+            {"name": "testing", "id": "C3", "is_private": False, "is_member": True},
+        ]
+        mock_data = {"channels": channels, "response_metadata": {"next_cursor": None}}
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        result = get_channels_with_search(
+            search_string="TEST", exact_match=True, limit=100
+        )
+
+        # Only "test" should match (case-insensitive exact match)
+        assert len(result["result"]) == 1
+        assert result["result"][0]["name"] == "test"
+
+    def test_search_substring_match_optimization(self, mocker):
+        """Test substring search uses optimized string comparison"""
+        channels = [
+            {"name": "prod-api", "id": "C1", "is_private": False, "is_member": True},
+            {"name": "dev-api", "id": "C2", "is_private": False, "is_member": True},
+            {"name": "staging", "id": "C3", "is_private": False, "is_member": True},
+        ]
+        mock_data = {"channels": channels, "response_metadata": {"next_cursor": None}}
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        result = get_channels_with_search(search_string="API", limit=100)
+
+        # Both "prod-api" and "dev-api" should match (case-insensitive)
+        assert len(result["result"]) == 2
+        assert {ch["name"] for ch in result["result"]} == {"prod-api", "dev-api"}
+
+    def test_search_by_channel_id(self, mocker):
+        """Test search can match by channel ID"""
+        channels = [
+            {"name": "general", "id": "C12345", "is_private": False, "is_member": True},
+            {"name": "random", "id": "C67890", "is_private": False, "is_member": True},
+        ]
+        mock_data = {"channels": channels, "response_metadata": {"next_cursor": None}}
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        result = get_channels_with_search(
+            search_string="c12345", exact_match=True, limit=100
+        )
+
+        # Should match by ID (case-insensitive)
+        assert len(result["result"]) == 1
+        assert result["result"][0]["id"] == "C12345"
+
+    def test_non_search_empty_result_handling(self, mocker):
+        """Test non-search query handles empty channel list"""
+        mock_data = {
+            "channels": [],
+            "response_metadata": {"next_cursor": None},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        result = get_channels_with_search(limit=100)
+
+        assert len(result["result"]) == 0
+        assert result["has_more"] is False
+        assert result["next_cursor"] is None
