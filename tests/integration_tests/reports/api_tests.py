@@ -2049,3 +2049,180 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
 
         assert json.loads(report_schedule.extra_json) == extra_json
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_without_pagination(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint without pagination
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock response without pagination
+        mock_get_channels.return_value = {
+            "result": [
+                {"id": "C001", "name": "general", "is_private": False, "is_member": True},
+                {"id": "C002", "name": "random", "is_private": False, "is_member": True},
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        uri = "api/v1/report/slack_channels/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert len(data["result"]) == 2
+        assert data["result"][0]["name"] == "general"
+        assert data["next_cursor"] is None
+        assert data["has_more"] is False
+
+        # Verify get_channels_with_search was called with defaults
+        mock_get_channels.assert_called_once_with(
+            search_string=None,
+            types=[],
+            exact_match=False,
+            cursor=None,
+            limit=100,
+        )
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_with_pagination(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint with pagination
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock response with pagination
+        mock_get_channels.return_value = {
+            "result": [
+                {"id": f"C{i:03d}", "name": f"channel-{i}", "is_private": False, "is_member": True}
+                for i in range(100)
+            ],
+            "next_cursor": "page_1",
+            "has_more": True,
+        }
+
+        uri = "api/v1/report/slack_channels/?q=(limit:100)"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert len(data["result"]) == 100
+        assert data["next_cursor"] == "page_1"
+        assert data["has_more"] is True
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_with_cursor(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint with cursor for next page
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock response for second page
+        mock_get_channels.return_value = {
+            "result": [
+                {"id": "C100", "name": "channel-100", "is_private": False, "is_member": True},
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        uri = "api/v1/report/slack_channels/?q=(cursor:'page_1',limit:100)"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert len(data["result"]) == 1
+        assert data["next_cursor"] is None
+
+        # Verify cursor was passed
+        mock_get_channels.assert_called_once_with(
+            search_string=None,
+            types=[],
+            exact_match=False,
+            cursor="page_1",
+            limit=100,
+        )
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_with_search(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint with search parameter
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock response with search results
+        mock_get_channels.return_value = {
+            "result": [
+                {"id": "C001", "name": "engineering", "is_private": False, "is_member": True},
+                {"id": "C002", "name": "engineering-ops", "is_private": True, "is_member": True},
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        uri = "api/v1/report/slack_channels/?q=(search_string:'engineering')"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert len(data["result"]) == 2
+        assert all("engineering" in ch["name"] for ch in data["result"])
+
+        # Verify search_string was passed
+        mock_get_channels.assert_called_once_with(
+            search_string="engineering",
+            types=[],
+            exact_match=False,
+            cursor=None,
+            limit=100,
+        )
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_with_types(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint with channel types filter
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock response with filtered types
+        mock_get_channels.return_value = {
+            "result": [
+                {"id": "C001", "name": "general", "is_private": False, "is_member": True},
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        uri = "api/v1/report/slack_channels/?q=(types:!('public_channel'))"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        # Verify types were passed
+        mock_get_channels.assert_called_once_with(
+            search_string=None,
+            types=["public_channel"],
+            exact_match=False,
+            cursor=None,
+            limit=100,
+        )
+
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_error_handling(self, mock_get_channels):
+        """
+        Test /api/v1/report/slack_channels/ endpoint error handling
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Mock Slack API error
+        from superset.exceptions import SupersetException
+
+        mock_get_channels.side_effect = SupersetException("Slack API error")
+
+        uri = "api/v1/report/slack_channels/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 422
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "Slack API error" in data["message"]

@@ -17,7 +17,7 @@
 
 
 import logging
-from typing import Callable, Optional
+from typing import Any, Optional
 
 from flask import current_app as app
 from slack_sdk import WebClient
@@ -30,7 +30,6 @@ from superset.extensions import cache_manager
 from superset.reports.schemas import SlackChannelSchema
 from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
-from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 
@@ -117,22 +116,137 @@ def get_channels() -> list[SlackChannelSchema]:
         raise
 
 
+def _fetch_channels_without_search(
+    client: WebClient,
+    channel_schema: SlackChannelSchema,
+    types_param: str,
+    cursor: Optional[str],
+    limit: int,
+) -> dict[str, Any]:
+    """Fetch channels without search filtering, paginating as needed."""
+    response = client.conversations_list(
+        limit=limit,
+        cursor=cursor,
+        exclude_archived=True,
+        types=types_param,
+    )
+
+    channels = [channel_schema.load(channel) for channel in response.data["channels"]]
+
+    next_cursor = response.data.get("response_metadata", {}).get("next_cursor")
+
+    return {
+        "result": channels,
+        "next_cursor": next_cursor,
+        "has_more": bool(next_cursor),
+    }
+
+
+def _channel_matches_search(
+    channel: dict[str, Any], search_string: str, exact_match: bool
+) -> bool:
+    """Check if a channel matches the search criteria."""
+    search_lower = search_string.lower()
+    name_lower = channel["name"].lower()
+    id_lower = channel["id"].lower()
+
+    if exact_match:
+        return search_lower == name_lower or search_lower == id_lower
+    return search_lower in name_lower or search_lower in id_lower
+
+
+def _fetch_channels_with_search(
+    client: WebClient,
+    channel_schema: SlackChannelSchema,
+    types_param: str,
+    search_string: str,
+    exact_match: bool,
+    cursor: Optional[str],
+    limit: int,
+) -> dict[str, Any]:
+    """Fetch channels with search filtering, streaming through pages."""
+    matches: list[SlackChannelSchema] = []
+    slack_cursor = cursor
+    max_pages_to_fetch = 50
+    pages_fetched = 0
+
+    while len(matches) < limit and pages_fetched < max_pages_to_fetch:
+        response = client.conversations_list(
+            limit=200,
+            cursor=slack_cursor,
+            exclude_archived=True,
+            types=types_param,
+        )
+
+        for channel_data in response.data["channels"]:
+            channel = channel_schema.load(channel_data)
+
+            if _channel_matches_search(channel, search_string, exact_match):
+                matches.append(channel)
+
+            if len(matches) >= limit:
+                break
+
+        slack_cursor = response.data.get("response_metadata", {}).get("next_cursor")
+        if not slack_cursor:
+            break
+
+        pages_fetched += 1
+
+    has_more = bool(slack_cursor) and len(matches) >= limit
+
+    return {
+        "result": matches[:limit],
+        "next_cursor": slack_cursor if has_more else None,
+        "has_more": has_more,
+    }
+
+
 def get_channels_with_search(
     search_string: str = "",
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
-    force: bool = False,
-) -> list[SlackChannelSchema]:
+    cursor: Optional[str] = None,
+    limit: int = 100,
+) -> dict[str, Any]:
     """
-    The slack api is paginated but does not include search, so we need to fetch
-    all channels and filter them ourselves
-    This will search by slack name or id
+    Fetches Slack channels with pagination and search support.
+
+    Returns a dict with:
+    - result: list of channels
+    - next_cursor: cursor for next page (None if no more pages)
+    - has_more: boolean indicating if more pages exist
+
+    The Slack API is paginated but does not include search. We handle two cases:
+    1. WITHOUT search: Fetch single page from Slack API (fast, no timeout)
+    2. WITH search: Stream through Slack API pages until we find enough matches
+       (stops early to prevent timeouts on large workspaces)
     """
     try:
-        channels = get_channels(
-            force=force,
-            cache_timeout=app.config["SLACK_CACHE_TIMEOUT"],
+        client = get_slack_client()
+        channel_schema = SlackChannelSchema()
+
+        types_param = (
+            ",".join(types)
+            if types and len(types) < len(SlackChannelTypes)
+            else ",".join(SlackChannelTypes)
         )
+
+        if not search_string:
+            return _fetch_channels_without_search(
+                client, channel_schema, types_param, cursor, limit
+            )
+
+        return _fetch_channels_with_search(
+            client,
+            channel_schema,
+            types_param,
+            search_string,
+            exact_match,
+            cursor,
+            limit,
+        )
+
     except SlackApiError as ex:
         # Check if it's a rate limit error
         status_code = getattr(ex.response, "status_code", None)
@@ -145,38 +259,6 @@ def get_channels_with_search(
         raise SupersetException(f"Failed to list channels: {ex}") from ex
     except SlackClientError as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex
-
-    if types and not len(types) == len(SlackChannelTypes):
-        conditions: list[Callable[[SlackChannelSchema], bool]] = []
-        if SlackChannelTypes.PUBLIC in types:
-            conditions.append(lambda channel: not channel["is_private"])
-        if SlackChannelTypes.PRIVATE in types:
-            conditions.append(lambda channel: channel["is_private"])
-
-        channels = [
-            channel for channel in channels if any(cond(channel) for cond in conditions)
-        ]
-
-    # The search string can be multiple channels separated by commas
-    if search_string:
-        search_array = recipients_string_to_list(search_string)
-        channels = [
-            channel
-            for channel in channels
-            if any(
-                (
-                    search.lower() == channel["name"].lower()
-                    or search.lower() == channel["id"].lower()
-                    if exact_match
-                    else (
-                        search.lower() in channel["name"].lower()
-                        or search.lower() in channel["id"].lower()
-                    )
-                )
-                for search in search_array
-            )
-        ]
-    return channels
 
 
 def should_use_v2_api() -> bool:
