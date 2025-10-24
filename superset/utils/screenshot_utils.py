@@ -153,28 +153,28 @@ def take_tiled_screenshot(
                 }};
             }}""")
 
-            # Calculate what portion of the element we want to capture for this tile
-            tile_start_in_element = i * viewport_height
-            remaining_content = dashboard_height - tile_start_in_element
-            tile_content_height = min(viewport_height, remaining_content)
-
             # Ensure clip coordinates are within viewport bounds
             # If element.top is negative, it's scrolled above viewport - start from y=0
             clip_y = max(0, viewport_info["elementY"])
             # If element.left is negative, start from x=0
             clip_x = max(0, viewport_info["elementX"])
 
-            # Calculate visible height: if element starts above viewport, reduce height
-            visible_element_height = viewport_info["elementHeight"]
+            # Calculate clip dimensions - capture what's visible of the element
+            # Handle elements scrolled above viewport: if elementY is negative,
+            # only the portion from (elementY + elementHeight) is visible
             if viewport_info["elementY"] < 0:
-                visible_element_height += viewport_info["elementY"]
+                # Element extends from above viewport - calculate visible portion
+                visible_height = (
+                    viewport_info["elementY"] + viewport_info["elementHeight"]
+                )
+                clip_height = min(visible_height, viewport_info["viewportHeight"])
+            else:
+                # Element is within viewport
+                clip_height = min(
+                    viewport_info["elementHeight"],
+                    viewport_info["viewportHeight"] - clip_y,
+                )
 
-            # Ensure clip doesn't extend beyond viewport
-            clip_height = min(
-                tile_content_height,
-                visible_element_height,
-                viewport_info["viewportHeight"] - clip_y,
-            )
             clip_width = min(
                 viewport_info["elementWidth"], viewport_info["viewportWidth"] - clip_x
             )
