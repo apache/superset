@@ -1225,6 +1225,29 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
         if label := column.get("label"):
             return label
         if expr := column.get("sqlExpression"):
+            # If the expression contains an AS clause, extract just the alias
+            # This prevents double AS clauses when make_sqla_column_compatible
+            # adds .label()
+            import re
+
+            # Match patterns like '[Test Column] AS MyAlias' or
+            # '"Test Column" AS MyAlias'
+            as_match = re.search(r"\s+AS\s+(\w+)$", expr, re.IGNORECASE)
+            if as_match:
+                return as_match.group(1)
+
+            # For quoted column names without AS, extract the content inside
+            # quotes/brackets
+            # Handle patterns like [Test Column] -> Test Column
+            bracket_match = re.match(r"^\[([^\]]+)\]$", expr)
+            if bracket_match:
+                return bracket_match.group(1)
+
+            # Handle patterns like "Test Column" -> Test Column
+            quote_match = re.match(r'^"([^"]+)"$', expr)
+            if quote_match:
+                return quote_match.group(1)
+
             return expr
 
     if isinstance(column, str):
