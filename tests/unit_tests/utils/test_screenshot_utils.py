@@ -116,18 +116,25 @@ class TestTakeTiledScreenshot:
 
         # Mock element info - simulating a 5000px tall dashboard
         element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
-        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+        viewport_info = {
+            "elementX": 50,
+            "elementY": 200,
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
 
         # For 3 tiles (5000px / 2000px = 2.5, rounded up to 3):
-        # 1 initial call + 3 scroll + 3 element box + 1 reset scroll = 8 calls
+        # 1 initial call + 3 scroll + 3 viewport info + 1 reset scroll = 8 calls
         page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
             None,  # First scroll call
-            element_box,  # First element box call
+            viewport_info,  # First viewport info call
             None,  # Second scroll call
-            element_box,  # Second element box call
+            viewport_info,  # Second viewport info call
             None,  # Third scroll call
-            element_box,  # Third element box call
+            viewport_info,  # Third viewport info call
             None,  # Final reset scroll call
         ]
 
@@ -171,16 +178,23 @@ class TestTakeTiledScreenshot:
         """Test that tiles are calculated correctly."""
         # Mock dashboard height of 3500px with viewport of 2000px
         element_info = {"height": 3500, "top": 100, "left": 50, "width": 800}
-        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+        viewport_info = {
+            "elementX": 50,
+            "elementY": 200,
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
 
         # For 2 tiles (3500px / 2000px = 1.75, rounded up to 2):
-        # 1 initial call + 2 scroll + 2 element box + 1 reset scroll = 6 calls
+        # 1 initial call + 2 scroll + 2 viewport info + 1 reset scroll = 6 calls
         mock_page.evaluate.side_effect = [
             element_info,
             None,  # First scroll call
-            element_box,  # First element box call
+            viewport_info,  # First viewport info call
             None,  # Second scroll call
-            element_box,  # Second element box call
+            viewport_info,  # Second viewport info call
             None,  # Reset scroll call
         ]
 
@@ -198,16 +212,23 @@ class TestTakeTiledScreenshot:
         """Test that scroll positions are calculated correctly."""
         # Override the fixture's side_effect for this specific test
         element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
-        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+        viewport_info = {
+            "elementX": 50,
+            "elementY": 200,
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
 
         mock_page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
             None,  # First scroll call
-            element_box,  # First element box call
+            viewport_info,  # First viewport info call
             None,  # Second scroll call
-            element_box,  # Second element box call
+            viewport_info,  # Second viewport info call
             None,  # Third scroll call
-            element_box,  # Third element box call
+            viewport_info,  # Third viewport info call
             None,  # Reset scroll call
         ]
 
@@ -237,16 +258,23 @@ class TestTakeTiledScreenshot:
         """Test that scroll position is reset after screenshot."""
         # Override the fixture's side_effect for this specific test
         element_info = {"height": 5000, "top": 100, "left": 50, "width": 800}
-        element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+        viewport_info = {
+            "elementX": 50,
+            "elementY": 200,
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
 
         mock_page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
             None,  # First scroll call
-            element_box,  # First element box call
+            viewport_info,  # First viewport info call
             None,  # Second scroll call
-            element_box,  # Second element box call
+            viewport_info,  # Second viewport info call
             None,  # Third scroll call
-            element_box,  # Third element box call
+            viewport_info,  # Third viewport info call
             None,  # Reset scroll call
         ]
 
@@ -315,3 +343,264 @@ class TestTakeTiledScreenshot:
                 assert clip["width"] == 800
                 # Height should be min of viewport_height and remaining content
                 assert clip["height"] <= 600  # Element height from mock
+
+    def test_negative_element_position_clipped_to_zero(self):
+        """Test that negative element positions are clipped to viewport bounds."""
+        mock_page = MagicMock()
+
+        # Mock element locator
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        # Simulate element scrolled above viewport (negative Y position)
+        element_info = {"height": 3000, "top": 100, "left": 0, "width": 800}
+        viewport_info = {
+            "elementX": 0,
+            "elementY": -200,  # Element is scrolled 200px above viewport
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        # For 2 tiles: 1 initial + 2 scroll + 2 viewport info + 1 reset = 6 calls
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # First scroll
+            viewport_info,  # First viewport info
+            None,  # Second scroll
+            viewport_info,  # Second viewport info
+            None,  # Reset scroll
+        ]
+
+        mock_page.screenshot.return_value = b"screenshot"
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+
+            # Should complete successfully
+            assert result is not None
+
+            # Check that clip Y was adjusted to 0 (not negative)
+            screenshot_calls = mock_page.screenshot.call_args_list
+            for call in screenshot_calls:
+                clip = call[1]["clip"]
+                assert clip["y"] >= 0, "Clip Y should never be negative"
+                assert clip["x"] >= 0, "Clip X should never be negative"
+
+    def test_element_extends_beyond_viewport(self):
+        """Test clipping when element extends beyond viewport boundaries."""
+        mock_page = MagicMock()
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 2000, "top": 0, "left": 0, "width": 1200}
+
+        # Element is wider than viewport
+        viewport_info = {
+            "elementX": 0,
+            "elementY": 100,
+            "elementWidth": 1200,  # Wider than viewport
+            "elementHeight": 800,
+            "viewportWidth": 1024,  # Viewport width
+            "viewportHeight": 768,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # Scroll
+            viewport_info,
+            None,  # Reset scroll
+        ]
+
+        mock_page.screenshot.return_value = b"screenshot"
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+
+            assert result is not None
+
+            # Check that clip width was constrained to viewport
+            clip = mock_page.screenshot.call_args_list[0][1]["clip"]
+            assert clip["width"] <= 1024, "Clip width should not exceed viewport"
+
+    def test_invalid_clip_dimensions_skipped(self):
+        """Test that tiles with invalid dimensions are skipped with a warning."""
+        mock_page = MagicMock()
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 4000, "top": 0, "left": 0, "width": 800}
+
+        # First tile: valid
+        valid_viewport_info = {
+            "elementX": 0,
+            "elementY": 100,
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        # Second tile: invalid (negative height after calculation)
+        invalid_viewport_info = {
+            "elementX": 0,
+            "elementY": -1000,  # Far above viewport
+            "elementWidth": 800,
+            "elementHeight": 100,  # Not enough visible height
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # First scroll
+            valid_viewport_info,
+            None,  # Second scroll
+            invalid_viewport_info,  # This should be skipped
+            None,  # Reset scroll
+        ]
+
+        mock_page.screenshot.return_value = b"screenshot"
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                result = take_tiled_screenshot(
+                    mock_page, "dashboard", viewport_height=2000
+                )
+
+                # Should complete but with warning
+                assert result is not None
+
+                # Should have logged a warning about skipping tile
+                mock_logger.warning.assert_called_once()
+                warning_msg = mock_logger.warning.call_args[0][0]
+                assert "Skipping tile" in warning_msg
+                assert "invalid clip dimensions" in warning_msg
+
+                # Should only have taken 1 screenshot (skipped the invalid one)
+                assert mock_page.screenshot.call_count == 1
+
+    def test_viewport_bounds_with_offset_element(self):
+        """Test proper clipping for element with positive offset from viewport edge."""
+        mock_page = MagicMock()
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 2000, "top": 500, "left": 200, "width": 600}
+
+        # Element starts 200px from left edge
+        viewport_info = {
+            "elementX": 200,  # Offset from left
+            "elementY": 150,
+            "elementWidth": 600,
+            "elementHeight": 500,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # Scroll
+            viewport_info,
+            None,  # Reset scroll
+        ]
+
+        mock_page.screenshot.return_value = b"screenshot"
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+
+            assert result is not None
+
+            # Check clip respects element position
+            clip = mock_page.screenshot.call_args_list[0][1]["clip"]
+            assert clip["x"] == 200, "Should preserve element X offset"
+            assert clip["y"] == 150, "Should preserve element Y offset"
+            assert clip["width"] == 600, "Should use element width"
+
+    def test_zero_width_element_skipped(self):
+        """Test that elements with zero or negative width are skipped."""
+        mock_page = MagicMock()
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 2000, "top": 0, "left": 0, "width": 0}
+
+        viewport_info = {
+            "elementX": 0,
+            "elementY": 100,
+            "elementWidth": 0,  # Zero width
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # Scroll
+            viewport_info,
+            None,  # Reset scroll
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                result = take_tiled_screenshot(
+                    mock_page, "dashboard", viewport_height=2000
+                )
+
+                # Should handle gracefully
+                assert result is not None
+
+                # Should have logged warning about invalid dimensions
+                mock_logger.warning.assert_called_once()
+                warning_msg = mock_logger.warning.call_args[0][0]
+                assert "invalid clip dimensions" in warning_msg
+
+                # Should not have taken any screenshots
+                assert mock_page.screenshot.call_count == 0
+
+    def test_element_completely_above_viewport(self):
+        """Test element that is completely scrolled above the viewport."""
+        mock_page = MagicMock()
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 2000, "top": 0, "left": 0, "width": 800}
+
+        # Element completely above viewport
+        viewport_info = {
+            "elementX": 0,
+            "elementY": -800,  # Completely above viewport
+            "elementWidth": 800,
+            "elementHeight": 600,
+            "viewportWidth": 1024,
+            "viewportHeight": 768,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,
+            None,  # Scroll
+            viewport_info,
+            None,  # Reset scroll
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                result = take_tiled_screenshot(
+                    mock_page, "dashboard", viewport_height=2000
+                )
+
+                # Should handle gracefully
+                assert result is not None
+
+                # Should have skipped the tile with a warning
+                mock_logger.warning.assert_called_once()
+
+                # Should not have taken screenshots
+                assert mock_page.screenshot.call_count == 0
