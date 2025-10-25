@@ -46,24 +46,24 @@ def _sanitize_user_input(value: Any) -> str:
     # HTML escape to prevent XSS
     str_value = html.escape(str_value)
 
-    # Remove potentially dangerous patterns using substring checks
-    # This avoids ReDoS vulnerabilities from complex regex patterns
-    dangerous_substrings = [
-        "<script",
-        "</script>",
-        "javascript:",
-        "vbscript:",
-        "data:text/html",
-    ]
+    # Check for dangerous HTML tags with simple substring checks
+    html_tags = ["<script", "</script>"]
     str_lower = str_value.lower()
-    for substring in dangerous_substrings:
-        if substring in str_lower:
+    for tag in html_tags:
+        if tag in str_lower:
             str_value = "[FILTERED]"
             break
 
-    # Check for event handlers with simple regex (no backtracking)
-    if re.search(r"on\w+\s*=", str_value, re.IGNORECASE):
-        str_value = "[FILTERED]"
+    # Check for dangerous URL schemes using regex with word boundaries
+    # This ensures we match actual URL schemes, not arbitrary substrings
+    dangerous_url_patterns = [
+        r"\b(javascript|vbscript|data):",  # URL schemes
+        r"on\w+\s*=",  # Event handlers
+    ]
+    for pattern in dangerous_url_patterns:
+        if re.search(pattern, str_value, re.IGNORECASE):
+            str_value = "[FILTERED]"
+            break
 
     return str_value
 
