@@ -36,28 +36,45 @@ def _sanitize_error_for_logging(error: Exception) -> str:
     """Sanitize error messages to prevent information disclosure in logs."""
     error_str = str(error)
 
-    # Limit error message length to prevent log spam
+    # SECURITY FIX: Limit error message length FIRST to prevent ReDoS attacks
     if len(error_str) > 500:
         error_str = error_str[:500] + "...[truncated]"
 
-    # Remove potentially sensitive information patterns
-    sensitive_patterns = [
-        # Database connection strings
-        (r"postgresql://[^@]+@[^/]+/", "postgresql://[REDACTED]@[REDACTED]/"),
-        (r"mysql://[^@]+@[^/]+/", "mysql://[REDACTED]@[REDACTED]/"),
-        # API keys and tokens
-        (r'[Aa]pi[_-]?[Kk]ey[:\s]*[^\s\'"]+', "ApiKey: [REDACTED]"),
-        (r'[Tt]oken[:\s]*[^\s\'"]+', "Token: [REDACTED]"),
-        # File paths that might reveal system structure
-        (r"/[a-zA-Z0-9_\-/.]+/superset/", "/[REDACTED]/superset/"),
-        # IP addresses (keep first octet for debugging)
-        (r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx"),
-    ]
-
+    # SECURITY FIX: Use bounded patterns to prevent ReDoS
     import re
 
-    for pattern, replacement in sensitive_patterns:
-        error_str = re.sub(pattern, replacement, error_str)
+    # Database connection strings - bounded patterns with word boundaries
+    # Use case-insensitive flag to handle both cases
+    error_str = re.sub(
+        r"\bpostgresql://[^@\s]{1,100}@[^/\s]{1,100}/[^\s]{0,100}",
+        "postgresql://[REDACTED]@[REDACTED]/[REDACTED]",
+        error_str,
+        flags=re.IGNORECASE,
+    )
+    error_str = re.sub(
+        r"\bmysql://[^@\s]{1,100}@[^/\s]{1,100}/[^\s]{0,100}",
+        "mysql://[REDACTED]@[REDACTED]/[REDACTED]",
+        error_str,
+        flags=re.IGNORECASE,
+    )
+
+    # API keys and tokens - bounded patterns
+    error_str = re.sub(
+        r"[Aa]pi[_-]?[Kk]ey[:\s]{0,5}[^\s'\"]{1,100}",
+        "ApiKey: [REDACTED]",
+        error_str,
+    )
+    error_str = re.sub(
+        r"[Tt]oken[:\s]{0,5}[^\s'\"]{1,100}", "Token: [REDACTED]", error_str
+    )
+
+    # File paths - bounded pattern
+    error_str = re.sub(
+        r"/[a-zA-Z0-9_\-/.]{1,200}/superset/", "/[REDACTED]/superset/", error_str
+    )
+
+    # IP addresses - already safe pattern, keep as-is
+    error_str = re.sub(r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx", error_str)
 
     # For certain error types, provide generic messages
     if isinstance(error, (OperationalError, TimeoutError)):
