@@ -276,14 +276,19 @@ class TestGenerateExploreLink:
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_uses_base_url(self, mock_get_base_url) -> None:
         """Test that generate_explore_link uses the configured base URL"""
+        from urllib.parse import urlparse
+
         mock_get_base_url.return_value = "https://superset.example.com"
         form_data = {"viz_type": "table", "metrics": ["count"]}
 
         result = generate_explore_link("123", form_data)
 
-        # Should use the configured base URL
-        assert result.startswith("https://superset.example.com")
-        assert "/explore/?" in result
+        # Should use the configured base URL - use urlparse to avoid CodeQL warning
+        parsed_url = urlparse(result)
+        expected_netloc = "superset.example.com"
+        assert parsed_url.scheme == "https"
+        assert parsed_url.netloc == expected_netloc
+        assert "/explore/" in parsed_url.path
         assert "datasource_id=123" in result
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
