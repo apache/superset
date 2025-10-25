@@ -58,3 +58,58 @@ def test_decode_permalink_id_invalid() -> None:
 
     with pytest.raises(KeyValueParseKeyError):
         decode_permalink_id("foo", "bar")
+
+
+def test_get_uuid_namespace_md5() -> None:
+    """Test UUID namespace generation with MD5 (legacy mode)."""
+    from unittest.mock import MagicMock
+
+    from superset.key_value.utils import get_uuid_namespace
+
+    mock_app = MagicMock()
+    mock_app.config = {"HASH_ALGORITHM": "md5"}
+    namespace = get_uuid_namespace("test_seed", app=mock_app)
+    # MD5-based UUID should be consistent
+    assert isinstance(namespace, UUID)
+    assert namespace == UUID("d81a8c4d-6522-9513-525d-6a5cef1c7c9d")
+
+
+def test_get_uuid_namespace_sha256() -> None:
+    """Test UUID namespace generation with SHA-256 (FedRAMP compliant mode)."""
+    from unittest.mock import MagicMock
+
+    from superset.key_value.utils import get_uuid_namespace
+
+    mock_app = MagicMock()
+    mock_app.config = {"HASH_ALGORITHM": "sha256"}
+    namespace = get_uuid_namespace("test_seed", app=mock_app)
+    # SHA-256-based UUID (first 16 bytes)
+    assert isinstance(namespace, UUID)
+    # SHA-256("test_seed") first 16 bytes as UUID
+    assert namespace == UUID("4504d44d-861b-6919-7db1-d95e47344234")
+
+
+def test_get_uuid_namespace_deterministic() -> None:
+    """Test that UUID namespace generation is deterministic."""
+    from unittest.mock import MagicMock
+
+    from superset.key_value.utils import get_uuid_namespace
+
+    mock_app = MagicMock()
+    mock_app.config = {"HASH_ALGORITHM": "sha256"}
+    namespace1 = get_uuid_namespace("same_seed", app=mock_app)
+    namespace2 = get_uuid_namespace("same_seed", app=mock_app)
+    assert namespace1 == namespace2
+
+
+def test_get_uuid_namespace_different_seeds() -> None:
+    """Test that different seeds produce different UUID namespaces."""
+    from unittest.mock import MagicMock
+
+    from superset.key_value.utils import get_uuid_namespace
+
+    mock_app = MagicMock()
+    mock_app.config = {"HASH_ALGORITHM": "sha256"}
+    namespace1 = get_uuid_namespace("seed1", app=mock_app)
+    namespace2 = get_uuid_namespace("seed2", app=mock_app)
+    assert namespace1 != namespace2
