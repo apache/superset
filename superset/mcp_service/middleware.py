@@ -40,44 +40,38 @@ def _sanitize_error_for_logging(error: Exception) -> str:
     if len(error_str) > 500:
         error_str = error_str[:500] + "...[truncated]"
 
-    # SECURITY FIX: Use substring checks and bounded patterns to prevent ReDoS
+    # SECURITY FIX: Use bounded patterns to prevent ReDoS
     import re
 
-    # Database connection strings - use substring checks instead of complex regex
-    error_str_lower = error_str.lower()
-    if "postgresql://" in error_str_lower:
-        # Simple bounded pattern for postgres URLs
-        error_str = re.sub(
-            r"postgresql://[^@]{1,100}@[^/]{1,100}/",
-            "postgresql://[REDACTED]@[REDACTED]/",
-            error_str,
-        )
-    if "mysql://" in error_str_lower:
-        # Simple bounded pattern for mysql URLs
-        error_str = re.sub(
-            r"mysql://[^@]{1,100}@[^/]{1,100}/",
-            "mysql://[REDACTED]@[REDACTED]/",
-            error_str,
-        )
+    # Database connection strings - bounded patterns with word boundaries
+    # Use case-insensitive flag to handle both cases
+    error_str = re.sub(
+        r"\bpostgresql://[^@\s]{1,100}@[^/\s]{1,100}/[^\s]{0,100}",
+        "postgresql://[REDACTED]@[REDACTED]/[REDACTED]",
+        error_str,
+        flags=re.IGNORECASE,
+    )
+    error_str = re.sub(
+        r"\bmysql://[^@\s]{1,100}@[^/\s]{1,100}/[^\s]{0,100}",
+        "mysql://[REDACTED]@[REDACTED]/[REDACTED]",
+        error_str,
+        flags=re.IGNORECASE,
+    )
 
-    # API keys and tokens - substring check first, then bounded pattern
-    if "api" in error_str_lower and "key" in error_str_lower:
-        error_str = re.sub(
-            r"[Aa]pi[_-]?[Kk]ey[:\s]{0,5}[^\s'\"]{1,100}",
-            "ApiKey: [REDACTED]",
-            error_str,
-        )
-    if "token" in error_str_lower:
-        error_str = re.sub(
-            r"[Tt]oken[:\s]{0,5}[^\s'\"]{1,100}", "Token: [REDACTED]", error_str
-        )
+    # API keys and tokens - bounded patterns
+    error_str = re.sub(
+        r"[Aa]pi[_-]?[Kk]ey[:\s]{0,5}[^\s'\"]{1,100}",
+        "ApiKey: [REDACTED]",
+        error_str,
+    )
+    error_str = re.sub(
+        r"[Tt]oken[:\s]{0,5}[^\s'\"]{1,100}", "Token: [REDACTED]", error_str
+    )
 
-    # File paths - substring check first
-    if "/superset/" in error_str:
-        # Bounded pattern for file paths
-        error_str = re.sub(
-            r"/[a-zA-Z0-9_\-/.]{1,200}/superset/", "/[REDACTED]/superset/", error_str
-        )
+    # File paths - bounded pattern
+    error_str = re.sub(
+        r"/[a-zA-Z0-9_\-/.]{1,200}/superset/", "/[REDACTED]/superset/", error_str
+    )
 
     # IP addresses - already safe pattern, keep as-is
     error_str = re.sub(r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx", error_str)
