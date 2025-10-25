@@ -369,7 +369,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             ...values,
           },
         },
@@ -599,7 +599,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             defaultValueQueriesData: columns,
             filterType: 'filter_select',
             hasDefaultValue: true,
@@ -636,7 +636,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             defaultValueQueriesData: null,
             hasDefaultValue:
               currentFilters[item.id]?.hasDefaultValue ??

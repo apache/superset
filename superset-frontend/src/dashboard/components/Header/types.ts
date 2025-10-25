@@ -77,7 +77,7 @@ export interface HeaderProps {
   charts: ChartState | {};
   colorScheme?: string;
   customCss: string;
-  user: Object | undefined;
+  user: object | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
   setColorScheme: () => void;

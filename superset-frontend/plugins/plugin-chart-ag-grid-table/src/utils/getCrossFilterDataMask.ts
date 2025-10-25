@@ -42,7 +42,7 @@ export const getCrossFilterDataMask = ({
   isActiveFilterValue,
   timestampFormatter,
 }: GetCrossFilterDataMaskProps) => {
-  let updatedFilters = { ...(filters || {}) };
+  let updatedFilters = { ...filters };
   if (filters && isActiveFilterValue(key, value)) {
     updatedFilters = {};
   } else {

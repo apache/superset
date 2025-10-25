@@ -118,7 +118,7 @@ describe('DashboardState reducer', () => {
       );
       request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
-        ...(store.getState() ?? {}),
+        ...(store.getState() as object),
         dashboardState: result,
       }));
       result = typedDashboardStateReducer(result, thunkAction);
@@ -130,7 +130,7 @@ describe('DashboardState reducer', () => {
       );
       request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
-        ...(store.getState() ?? {}),
+        ...(store.getState() as object),
         dashboardState: result,
       }));
       result = typedDashboardStateReducer(result, thunkAction);
@@ -142,7 +142,7 @@ describe('DashboardState reducer', () => {
       );
       request = setActiveTab('TAB-A', 'TAB-B');
       thunkAction = request(store.dispatch, () => ({
-        ...(store.getState() ?? {}),
+        ...(store.getState() as object),
         dashboardState: result,
       }));
       result = typedDashboardStateReducer(result, thunkAction);
@@ -154,7 +154,7 @@ describe('DashboardState reducer', () => {
       );
       request = setActiveTab('TAB-2', 'TAB-1');
       thunkAction = request(store.dispatch, () => ({
-        ...(store.getState() ?? {}),
+        ...(store.getState() as object),
         dashboardState: result,
       }));
       result = typedDashboardStateReducer(result, thunkAction);
@@ -166,7 +166,7 @@ describe('DashboardState reducer', () => {
       );
       request = setActiveTab('TAB-1', 'TAB-2');
       thunkAction = request(store.dispatch, () => ({
-        ...(store.getState() ?? {}),
+        ...(store.getState() as object),
         dashboardState: result,
       }));
       result = typedDashboardStateReducer(result, thunkAction);

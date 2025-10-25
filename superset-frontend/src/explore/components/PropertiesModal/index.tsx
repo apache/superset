@@ -143,7 +143,7 @@ function PropertiesModal({
 
       addDangerToast(errorText);
     },
-    [addDangerToast, t],
+    [addDangerToast],
   );
 
   const fetchChartProperties = useCallback(

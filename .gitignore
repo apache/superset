@@ -134,3 +134,4 @@ PROJECT.md
 .aider*
 .claude_rc*
 .env.local
+oxc-custom-build/

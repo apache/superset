@@ -278,7 +278,7 @@ const ChartHolder = ({
           {!!outlinedComponentId && (
             <style>
               {`label[for=${outlinedColumnName}] + .Select .Select__control {
-                    border-color: #00736a;
+                    border-color: ${theme.colorPrimary};
                     transition: border-color 1s ease-in-out;
                   }`}
             </style>

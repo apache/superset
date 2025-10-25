@@ -32,7 +32,11 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => () => <span />);
+jest.mock('src/features/databases/DatabaseModal', () => {
+  const DatabaseModal = () => <span />;
+  DatabaseModal.displayName = 'DatabaseModal';
+  return DatabaseModal;
+});
 
 const dropdownItems = [
   {
@@ -127,24 +131,26 @@ const createProps = (): RightMenuProps => ({
   },
 });
 
-const mockNonExamplesDB = [...new Array(2)].map((_, i) => ({
-  changed_by: {
-    first_name: `user`,
-    last_name: `${i}`,
-  },
-  database_name: `db ${i}`,
-  backend: 'postgresql',
-  allow_run_async: true,
-  allow_dml: false,
-  allow_file_upload: true,
-  expose_in_sqllab: false,
-  changed_on_delta_humanized: `${i} day(s) ago`,
-  changed_on: new Date().toISOString,
-  id: i,
-  engine_information: {
-    supports_file_upload: true,
-  },
-}));
+const mockNonExamplesDB = Array.from({ length: 2 })
+  .fill(undefined)
+  .map((_, i) => ({
+    changed_by: {
+      first_name: `user`,
+      last_name: `${i}`,
+    },
+    database_name: `db ${i}`,
+    backend: 'postgresql',
+    allow_run_async: true,
+    allow_dml: false,
+    allow_file_upload: true,
+    expose_in_sqllab: false,
+    changed_on_delta_humanized: `${i} day(s) ago`,
+    changed_on: new Date().toISOString,
+    id: i,
+    engine_information: {
+      supports_file_upload: true,
+    },
+  }));
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 

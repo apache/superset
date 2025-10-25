@@ -60,9 +60,23 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: eslint-frontend
-        name: eslint (frontend)
-        entry: ./scripts/eslint.sh
+      - id: prettier-frontend
+        name: prettier (frontend)
+        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+  - repo: local
+    hooks:
+      - id: oxlint-frontend
+        name: oxlint (frontend)
+        entry: ./scripts/oxlint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: custom-rules-frontend
+        name: custom rules (frontend)
+        entry: ./scripts/check-custom-rules.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
@@ -110,7 +124,10 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            git fetch origin "$TARGET_BRANCH"
+            # Only fetch if the branch doesn't exist locally or in CI
+            if ! git rev-parse --verify "origin/$TARGET_BRANCH" >/dev/null 2>&1; then
+              git fetch origin "$TARGET_BRANCH" --quiet
+            fi
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
             files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
