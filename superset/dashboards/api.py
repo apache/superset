@@ -1342,9 +1342,31 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         self.incr_stats("from_cache", self.thumbnail.__name__)
         try:
             image = cache_payload.get_image()
+            # Validate the BytesIO object is properly initialized
             if not image or not hasattr(image, "read"):
+                logger.warning(
+                    "Thumbnail image object is invalid for dashboard %s",
+                    str(dashboard.id),
+                )
                 return self.response_404()
+            # Additional validation: ensure the BytesIO has content
+            if image.getbuffer().nbytes == 0:
+                logger.warning(
+                    "Thumbnail image is empty for dashboard %s",
+                    str(dashboard.id),
+                )
+                return self.response_404()
+            # Reset position to ensure reading from start
+            image.seek(0)
         except ScreenshotImageNotAvailableException:
+            return self.response_404()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "Error retrieving thumbnail for dashboard %s: %s",
+                str(dashboard.id),
+                str(ex),
+                exc_info=True,
+            )
             return self.response_404()
         return Response(
             FileWrapper(image),

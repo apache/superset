@@ -22,7 +22,7 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "antd": "^5.26.0",
+    "antd": "^5.25.2",
     "react": "^17.0.2"
   },
   "scripts": {

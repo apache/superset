@@ -218,3 +218,29 @@ test('handles missing theme gracefully', () => {
   // Should still render without crashing
   expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
 });
+
+test('merges theme overrides with default theme parameters', () => {
+  const themeOverrides = {
+    fontSize: 16,
+    headerBackgroundColor: '#custom-color',
+  };
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      themeOverrides={themeOverrides}
+    />,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // Custom overrides should be applied
+  expect(theme.fontSize).toBe(16);
+  expect(theme.headerBackgroundColor).toBe('#custom-color');
+
+  // Default theme parameters should still be present
+  expect(theme.foregroundColor).toBeDefined();
+  expect(theme.borderColor).toBeDefined();
+});
