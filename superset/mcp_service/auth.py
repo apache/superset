@@ -30,7 +30,7 @@ Future enhancements (to be added in separate PRs):
 import logging
 from typing import Any, Callable, TypeVar
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import User
 
 # Type variable for decorated functions
@@ -52,8 +52,9 @@ def get_user_from_request() -> User:
     from superset import security_manager
 
     # TODO: Extract from JWT token once authentication is implemented
-    # For now, use a simple admin user fallback for development
-    username = "admin"
+    # For now, use configured fallback user for development
+    # Get from config to avoid hardcoded credentials
+    username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
     user = security_manager.find_user(username)
 
     if not user:
