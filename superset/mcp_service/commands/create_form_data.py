@@ -15,12 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+"""
+MCP-specific form data command that extends the base CreateFormDataCommand
+"""
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.utils.core import get_user_id
 
-__all__ = [
-    "health_check",
-    "get_superset_instance_info",
-]
+
+class MCPCreateFormDataCommand(CreateFormDataCommand):
+    """
+    MCP-specific CreateFormDataCommand that uses user_id instead of session._id
+    """
+
+    def _get_session_id(self) -> str:
+        """Override to use user_id instead of Flask session for MCP context."""
+        return str(get_user_id())

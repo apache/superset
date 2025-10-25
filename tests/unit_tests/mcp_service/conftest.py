@@ -15,12 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+"""
+MCP service test configuration.
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
-
-__all__ = [
-    "health_check",
-    "get_superset_instance_info",
-]
+Tool imports are handled by app.py, not here.
+This conftest is empty to prevent test pollution.
+"""

@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
-
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
+from .get_dataset_available_filters import get_dataset_available_filters
+from .get_dataset_info import get_dataset_info
+from .list_datasets import list_datasets
 
 __all__ = [
-    "health_check",
-    "get_superset_instance_info",
+    "list_datasets",
+    "get_dataset_info",
+    "get_dataset_available_filters",
 ]

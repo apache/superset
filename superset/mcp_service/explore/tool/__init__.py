@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+"""
+Explore tools for MCP service.
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
+This module contains FastMCP tools for generating and working with
+explore links and configurations.
+"""
+
+from .generate_explore_link import generate_explore_link
 
 __all__ = [
-    "health_check",
-    "get_superset_instance_info",
+    "generate_explore_link",
 ]

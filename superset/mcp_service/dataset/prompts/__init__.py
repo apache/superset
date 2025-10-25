@@ -15,12 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+"""Dataset prompts for Superset MCP service"""
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
-
-__all__ = [
-    "health_check",
-    "get_superset_instance_info",
-]
+# Import prompt modules here when created
+# from . import explore_dataset  # noqa: F401

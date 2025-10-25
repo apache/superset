@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+from __future__ import annotations
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
 
-__all__ = [
-    "health_check",
-    "get_superset_instance_info",
-]
+def _is_uuid(value: str) -> bool:
+    """Check if a string is a valid UUID."""
+    import uuid
+
+    try:
+        uuid.UUID(value)
+        return True
+    except ValueError:
+        return False
