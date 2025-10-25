@@ -32,11 +32,48 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 logger = logging.getLogger(__name__)
 
 
+def _redact_sql_select(error_str: str, error_str_upper: str) -> str:
+    """Redact SELECT...FROM clause content to prevent data disclosure."""
+    if "SELECT" in error_str_upper and "FROM" in error_str_upper:
+        select_idx = error_str_upper.find("SELECT")
+        from_idx = error_str_upper.find("FROM", select_idx)
+        if select_idx != -1 and from_idx != -1:
+            return error_str[: select_idx + 7] + " [REDACTED] " + error_str[from_idx:]
+    return error_str
+
+
+def _redact_sql_where(error_str: str, error_str_upper: str) -> str:
+    """Redact WHERE clause content to prevent data disclosure."""
+    if "WHERE" not in error_str_upper:
+        return error_str
+
+    where_idx = error_str_upper.find("WHERE")
+    terminators = ["ORDER", "GROUP", "LIMIT", "UNION", "EXCEPT", "INTERSECT"]
+    term_idx = len(error_str)
+    for term in terminators:
+        idx = error_str_upper.find(term, where_idx)
+        if idx != -1 and idx < term_idx:
+            term_idx = idx
+    return error_str[: where_idx + 6] + " [REDACTED]" + error_str[term_idx:]
+
+
+def _get_generic_error_message(error_str: str) -> str | None:
+    """Return generic message for common error types, or None."""
+    error_lower = error_str.lower()
+    if "permission" in error_lower or "access" in error_lower:
+        return "Validation failed due to access restrictions"
+    if "database" in error_lower or "connection" in error_lower:
+        return "Validation failed due to database connectivity"
+    if "timeout" in error_lower:
+        return "Validation timed out"
+    return None
+
+
 def _sanitize_validation_error(error: Exception) -> str:
     """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
     error_str = str(error)
 
-    # Limit length to prevent information leakage
+    # SECURITY FIX: Limit length FIRST to prevent ReDoS attacks
     if len(error_str) > 200:
         error_str = error_str[:200] + "...[truncated]"
 
@@ -44,27 +81,22 @@ def _sanitize_validation_error(error: Exception) -> str:
     import re
 
     sensitive_patterns = [
-        # Database table/column references
         (r'\btable\s+[\'"`]?(\w+)[\'"`]?', "table [REDACTED]"),
         (r'\bcolumn\s+[\'"`]?(\w+)[\'"`]?', "column [REDACTED]"),
-        # SQL fragments
-        (r"SELECT\s+.*?\s+FROM", "SELECT [REDACTED] FROM"),
-        (r"WHERE\s+.*?(\s+ORDER|\s+GROUP|\s+LIMIT|$)", "WHERE [REDACTED]"),
-        # Database names/schemas
         (r'\bdatabase\s+[\'"`]?(\w+)[\'"`]?', "database [REDACTED]"),
         (r'\bschema\s+[\'"`]?(\w+)[\'"`]?', "schema [REDACTED]"),
     ]
-
     for pattern, replacement in sensitive_patterns:
         error_str = re.sub(pattern, replacement, error_str, flags=re.IGNORECASE)
 
-    # For common error types, provide generic messages
-    if "permission" in error_str.lower() or "access" in error_str.lower():
-        return "Validation failed due to access restrictions"
-    elif "database" in error_str.lower() or "connection" in error_str.lower():
-        return "Validation failed due to database connectivity"
-    elif "timeout" in error_str.lower():
-        return "Validation timed out"
+    # SECURITY FIX: SQL sanitization without ReDoS-vulnerable patterns
+    error_str_upper = error_str.upper()
+    error_str = _redact_sql_select(error_str, error_str_upper)
+    error_str = _redact_sql_where(error_str, error_str_upper)
+
+    # Return generic message for common error types
+    if generic := _get_generic_error_message(error_str):
+        return generic
 
     return error_str
 
