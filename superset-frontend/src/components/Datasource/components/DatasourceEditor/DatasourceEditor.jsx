@@ -664,6 +664,8 @@ class DatasourceEditor extends PureComponent {
       usageChartsCount: 0,
     };
 
+    this.isComponentMounted = false;
+
     this.onChange = this.onChange.bind(this);
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
@@ -760,16 +762,22 @@ class DatasourceEditor extends PureComponent {
 
     try {
       const response = await this.props.formatQuery(datasource.sql);
-      this.onDatasourcePropChange('sql', response.json.result);
-      this.props.addSuccessToast(t('SQL was formatted'));
+
+      if (this.isComponentMounted) {
+        this.onDatasourcePropChange('sql', response.json.result);
+        this.props.addSuccessToast(t('SQL was formatted'));
+      }
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while formatting SQL'),
-      );
+
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError ||
+            statusText ||
+            t('An error occurred while formatting SQL'),
+        );
+      }
     }
   }
 
@@ -808,43 +816,59 @@ class DatasourceEditor extends PureComponent {
         body: JSON.stringify({ sql: datasource.sql }),
         headers: { 'Content-Type': 'application/json' },
       });
-      this.onDatasourcePropChange('sql', response.json.result);
-      this.props.addSuccessToast(t('SQL was formatted'));
+
+      if (this.isComponentMounted) {
+        this.onDatasourcePropChange('sql', response.json.result);
+        this.props.addSuccessToast(t('SQL was formatted'));
+      }
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while formatting SQL'),
-      );
+
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError ||
+            statusText ||
+            t('An error occurred while formatting SQL'),
+        );
+      }
     }
   }
 
   async syncMetadata() {
     const { datasource } = this.state;
-    this.setState({ metadataLoading: true });
+
+    if (this.isComponentMounted) {
+      this.setState({ metadataLoading: true });
+    }
+
     try {
       const newCols = await fetchSyncedColumns(datasource);
-      const columnChanges = updateColumns(
-        datasource.columns,
-        newCols,
-        this.props.addSuccessToast,
-      );
-      this.setColumns({
-        databaseColumns: columnChanges.finalColumns.filter(
-          col => !col.expression, // remove calculated columns
-        ),
-      });
-      this.props.addSuccessToast(t('Metadata has been synced'));
-      this.setState({ metadataLoading: false });
+
+      if (this.isComponentMounted) {
+        const columnChanges = updateColumns(
+          datasource.columns,
+          newCols,
+          this.props.addSuccessToast,
+        );
+        this.setColumns({
+          databaseColumns: columnChanges.finalColumns.filter(
+            col => !col.expression, // remove calculated columns
+          ),
+        });
+        this.props.addSuccessToast(t('Metadata has been synced'));
+        this.setState({ metadataLoading: false });
+      }
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError || statusText || t('An error has occurred'),
-      );
-      this.setState({ metadataLoading: false });
+
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError || statusText || t('An error has occurred'),
+        );
+        this.setState({ metadataLoading: false });
+      }
     }
   }
 
@@ -901,10 +925,12 @@ class DatasourceEditor extends PureComponent {
         id: ids[index],
       }));
 
-      this.setState({
-        usageCharts: chartsWithIds,
-        usageChartsCount: json?.count || 0,
-      });
+      if (this.isComponentMounted) {
+        this.setState({
+          usageCharts: chartsWithIds,
+          usageChartsCount: json?.count || 0,
+        });
+      }
 
       return {
         charts: chartsWithIds,
@@ -914,15 +940,19 @@ class DatasourceEditor extends PureComponent {
     } catch (error) {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while fetching usage data'),
-      );
-      this.setState({
-        usageCharts: [],
-        usageChartsCount: 0,
-      });
+
+      if (this.isComponentMounted) {
+        this.props.addDangerToast(
+          clientError ||
+            statusText ||
+            t('An error occurred while fetching usage data'),
+        );
+        this.setState({
+          usageCharts: [],
+          usageChartsCount: 0,
+        });
+      }
+
       return {
         charts: [],
         count: 0,
@@ -1889,6 +1919,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentDidMount() {
+    this.isComponentMounted = true;
     Mousetrap.bind('ctrl+shift+f', e => {
       e.preventDefault();
       if (this.state.isEditMode) {
@@ -1900,6 +1931,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentWillUnmount() {
+    this.isComponentMounted = false;
     Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }

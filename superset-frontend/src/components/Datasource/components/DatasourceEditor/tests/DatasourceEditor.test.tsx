@@ -83,6 +83,16 @@ describe('DatasourceEditor', () => {
   });
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+    fetchMock.get(
+      url => url.includes('/api/v1/chart/'),
+      { result: [], count: 0, ids: [] },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      url => url.includes('/api/v1/database/'),
+      { result: [], count: 0, ids: [] },
+      { overwriteRoutes: true },
+    );
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
@@ -234,6 +244,16 @@ describe('DatasourceEditor Source Tab', () => {
 
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+    fetchMock.get(
+      url => url.includes('/api/v1/chart/'),
+      { result: [], count: 0, ids: [] },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      url => url.includes('/api/v1/database/'),
+      { result: [], count: 0, ids: [] },
+      { overwriteRoutes: true },
+    );
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
