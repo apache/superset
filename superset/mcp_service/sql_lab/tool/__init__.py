@@ -15,12 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
+"""
+SQL Lab MCP Tools
+"""
 
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
+from superset.mcp_service.sql_lab.tool.execute_sql import execute_sql
+from superset.mcp_service.sql_lab.tool.open_sql_lab_with_context import (
+    open_sql_lab_with_context,
+)
 
 __all__ = [
-    "health_check",
-    "get_superset_instance_info",
+    "execute_sql",
+    "open_sql_lab_with_context",
 ]

@@ -15,12 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""System tools for MCP service."""
-
-from .get_superset_instance_info import get_superset_instance_info
-from .health_check import health_check
+from .add_chart_to_existing_dashboard import add_chart_to_existing_dashboard
+from .generate_dashboard import generate_dashboard
+from .get_dashboard_available_filters import get_dashboard_available_filters
+from .get_dashboard_info import get_dashboard_info
+from .list_dashboards import list_dashboards
 
 __all__ = [
-    "health_check",
-    "get_superset_instance_info",
+    "list_dashboards",
+    "get_dashboard_info",
+    "generate_dashboard",
+    "add_chart_to_existing_dashboard",
+    "get_dashboard_available_filters",
 ]
