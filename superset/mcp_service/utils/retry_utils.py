@@ -22,7 +22,7 @@ Retry utilities for handling transient failures in MCP service operations.
 import asyncio
 import functools
 import logging
-import random
+import secrets
 import time
 from typing import Any, Callable, Type, TypeVar
 
@@ -61,9 +61,10 @@ def exponential_backoff(
     delay = min(delay, max_delay)
 
     if jitter:
-        # Add up to 25% jitter
+        # Add up to 25% jitter using cryptographically secure random
         jitter_amount = delay * 0.25
-        delay += random.uniform(-jitter_amount, jitter_amount)  # noqa: S311
+        random_gen = secrets.SystemRandom()
+        delay += random_gen.uniform(-jitter_amount, jitter_amount)
 
     return max(0, delay)
 
