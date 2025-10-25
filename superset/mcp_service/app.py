@@ -202,9 +202,56 @@ def create_mcp_app(
 
 # Create default MCP instance for backward compatibility
 # Tool modules can import this and use @mcp.tool decorators
-mcp = create_mcp_app()
+mcp = create_mcp_app(stateless_http=True)
 
-from superset.mcp_service.system.tool import health_check  # noqa: F401, E402
+# Import all MCP tools to register them with the mcp instance
+# NOTE: Always add new tool imports here when creating new MCP tools.
+# Tools use @mcp.tool decorators and register automatically on import.
+# Import prompts and resources to register them with the mcp instance
+# NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
+# Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
+# They register automatically on import, similar to tools.
+from superset.mcp_service.chart import (  # noqa: F401, E402
+    prompts as chart_prompts,
+    resources as chart_resources,
+)
+from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    generate_chart,
+    get_chart_available_filters,
+    get_chart_data,
+    get_chart_info,
+    get_chart_preview,
+    list_charts,
+    update_chart,
+    update_chart_preview,
+)
+from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
+    add_chart_to_existing_dashboard,
+    generate_dashboard,
+    get_dashboard_available_filters,
+    get_dashboard_info,
+    list_dashboards,
+)
+from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    get_dataset_available_filters,
+    get_dataset_info,
+    list_datasets,
+)
+from superset.mcp_service.explore.tool import (  # noqa: F401, E402
+    generate_explore_link,
+)
+from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
+    execute_sql,
+    open_sql_lab_with_context,
+)
+from superset.mcp_service.system import (  # noqa: F401, E402
+    prompts as system_prompts,
+    resources as system_resources,
+)
+from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    get_superset_instance_info,
+    health_check,
+)
 
 
 def init_fastmcp_server(
