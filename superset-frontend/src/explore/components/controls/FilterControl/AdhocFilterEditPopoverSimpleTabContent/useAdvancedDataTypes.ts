@@ -76,20 +76,25 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
     [validHandler],
   );
 
-  const fetchSubjectAdvancedDataType = (props: Props) => {
-    const option = props.options.find(
-      option =>
-        ('column_name' in option &&
-          option.column_name === props.adhocFilter.subject) ||
-        ('optionName' in option &&
-          option.optionName === props.adhocFilter.subject),
-    );
-    if (option && 'advanced_data_type' in option) {
-      setSubjectAdvancedDataType(option.advanced_data_type);
-    } else {
-      props.validHandler(true);
-    }
-  };
+  const fetchSubjectAdvancedDataType = useCallback(
+    (
+      options: Props['options'],
+      subject: Props['adhocFilter']['subject'],
+      validHandler: Props['validHandler'],
+    ) => {
+      const option = options.find(
+        opt =>
+          ('column_name' in opt && opt.column_name === subject) ||
+          ('optionName' in opt && opt.optionName === subject),
+      );
+      if (option && 'advanced_data_type' in option) {
+        setSubjectAdvancedDataType(option.advanced_data_type);
+      } else {
+        validHandler(true);
+      }
+    },
+    [],
+  );
 
   return {
     advancedDataTypesState,
