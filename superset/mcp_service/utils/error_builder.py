@@ -38,7 +38,7 @@ def _sanitize_user_input(value: Any) -> str:
     if value is None:
         return "None"
 
-    # Convert to string and limit length
+    # Convert to string and limit length to prevent ReDoS attacks
     str_value = str(value)
     if len(str_value) > 200:
         str_value = str_value[:200] + "...[truncated]"
@@ -46,19 +46,24 @@ def _sanitize_user_input(value: Any) -> str:
     # HTML escape to prevent XSS
     str_value = html.escape(str_value)
 
-    # Remove potentially dangerous patterns
-    dangerous_patterns = [
-        r"<script[^>]*>.*?</script>",
-        r"javascript:",
-        r"vbscript:",
-        r"on\w+\s*=",
-        r"data:text/html",
+    # Remove potentially dangerous patterns using substring checks
+    # This avoids ReDoS vulnerabilities from complex regex patterns
+    dangerous_substrings = [
+        "<script",
+        "</script>",
+        "javascript:",
+        "vbscript:",
+        "data:text/html",
     ]
+    str_lower = str_value.lower()
+    for substring in dangerous_substrings:
+        if substring in str_lower:
+            str_value = "[FILTERED]"
+            break
 
-    for pattern in dangerous_patterns:
-        str_value = re.sub(
-            pattern, "[FILTERED]", str_value, flags=re.IGNORECASE | re.DOTALL
-        )
+    # Check for event handlers with simple regex (no backtracking)
+    if re.search(r"on\w+\s*=", str_value, re.IGNORECASE):
+        str_value = "[FILTERED]"
 
     return str_value
 
