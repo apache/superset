@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v5
       # Do not bump this linkinator-action version without opening
       # an ASF Infra ticket to allow the new version first!
-      - uses: JustinBeckwith/linkinator-action@3d5ba091319fa7b0ac14703761eebb7d100e6f6d  # v1.11.0
+      - uses: JustinBeckwith/linkinator-action@cf305c16947ba91077d8a51fa2cbe155cd60f455  # v2.1
         continue-on-error: true # This will make the job advisory (non-blocking, no red X)
         with:
           paths: "**/*.md, **/*.mdx"
