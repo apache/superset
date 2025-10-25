@@ -388,21 +388,42 @@ class ColumnRef(BaseModel):
         if not v or not v.strip():
             raise ValueError("Column name cannot be empty")
 
+        # Length check first to prevent ReDoS attacks
+        if len(v) > 255:
+            raise ValueError(
+                f"Column name too long ({len(v)} characters). "
+                f"Maximum allowed length is 255 characters."
+            )
+
         # Remove HTML tags and decode entities
         sanitized = html.escape(v.strip())
 
-        # Check for script content
-        if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
-            raise ValueError(
-                "Column name contains potentially malicious script content"
-            )
+        # Check for dangerous tags using simple substring checks (not regex)
+        # This avoids ReDoS vulnerabilities while still detecting attacks
+        dangerous_substrings = [
+            "<script",
+            "</script>",
+            "<iframe",
+            "<object",
+            "<embed",
+            "javascript:",
+            "vbscript:",
+            "data:text/html",
+        ]
+        v_lower = v.lower()
+        for substring in dangerous_substrings:
+            if substring in v_lower:
+                raise ValueError(
+                    "Column name contains potentially malicious script content"
+                )
 
         # Basic SQL injection patterns (basic protection)
+        # Use simple patterns without backtracking
         dangerous_patterns = [
-            r"(;|\||&|\$|`)",
+            r"[;|&$`]",  # Dangerous shell characters
             r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            r"--",
-            r"/\*.*\*/",
+            r"--",  # SQL comment
+            r"/\*",  # SQL comment start (just check for start, not full pattern)
         ]
 
         for pattern in dangerous_patterns:
@@ -425,27 +446,46 @@ class ColumnRef(BaseModel):
         if not v:
             return None
 
-        # Check for dangerous HTML tags and JavaScript protocols BEFORE escaping
-        dangerous_patterns = [
-            r"<script[^>]*>.*?</script>",  # Script tags
-            r"<iframe[^>]*>.*?</iframe>",  # Iframe tags
-            r"<object[^>]*>.*?</object>",  # Object tags
-            r"<embed[^>]*>.*?</embed>",  # Embed tags
-            r"<link[^>]*>",  # Link tags
-            r"<meta[^>]*>",  # Meta tags
-            r"javascript:",  # JavaScript protocol
-            r"vbscript:",  # VBScript protocol
-            r"data:text/html",  # Data URL HTML
-            r"on\w+\s*=",  # Event handlers (onclick, onload, etc)
+        # Length check first to prevent ReDoS attacks
+        if len(v) > 500:
+            raise ValueError(
+                f"Label too long ({len(v)} characters). "
+                f"Maximum allowed length is 500 characters."
+            )
+
+        # Check for dangerous HTML tags and JavaScript protocols using substring checks
+        # This avoids ReDoS vulnerabilities from regex patterns
+        dangerous_substrings = [
+            "<script",
+            "</script>",
+            "<iframe",
+            "</iframe>",
+            "<object",
+            "</object>",
+            "<embed",
+            "</embed>",
+            "<link",
+            "<meta",
+            "javascript:",
+            "vbscript:",
+            "data:text/html",
         ]
 
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE | re.DOTALL):
+        v_lower = v.lower()
+        for substring in dangerous_substrings:
+            if substring in v_lower:
                 raise ValueError(
                     "Label contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed in "
-                    "labels."
+                    "HTML tags, JavaScript, and event handlers are not allowed "
+                    "in labels."
                 )
+
+        # Check for event handlers (onclick, onload, etc) with simple regex
+        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
+            raise ValueError(
+                "Label contains potentially malicious content. "
+                "HTML tags, JavaScript, and event handlers are not allowed in labels."
+            )
 
         # Filter dangerous Unicode characters
         v = re.sub(
@@ -491,14 +531,24 @@ class FilterConfig(BaseModel):
         if not v or not v.strip():
             raise ValueError("Filter column name cannot be empty")
 
+        # Length check first to prevent ReDoS attacks
+        if len(v) > 255:
+            raise ValueError(
+                f"Filter column name too long ({len(v)} characters). "
+                f"Maximum allowed length is 255 characters."
+            )
+
         # Remove HTML tags and decode entities
         sanitized = html.escape(v.strip())
 
-        # Check for dangerous patterns
-        if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
-            raise ValueError(
-                "Filter column contains potentially malicious script content"
-            )
+        # Check for dangerous patterns using substring checks (not regex)
+        dangerous_substrings = ["<script", "</script>", "javascript:", "vbscript:"]
+        v_lower = v.lower()
+        for substring in dangerous_substrings:
+            if substring in v_lower:
+                raise ValueError(
+                    "Filter column contains potentially malicious script content"
+                )
 
         return sanitized
 
@@ -510,45 +560,67 @@ class FilterConfig(BaseModel):
             # Strip whitespace
             v = v.strip()
 
-            # Check for dangerous patterns (SQL injection, XSS, script injection)
-            dangerous_patterns = [
-                # SQL injection patterns
-                r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-                r"'\s*OR\s*'",
-                r"'\s*AND\s*'",
-                r"--\s*",
-                r"/\*.*?\*/",
-                r"UNION\s+SELECT",
-                r"xp_cmdshell",
-                r"sp_executesql",
-                # XSS patterns
-                r"<script[^>]*>.*?</script>",
-                r"<iframe[^>]*>.*?</iframe>",
-                r"<object[^>]*>.*?</object>",
-                r"<embed[^>]*>.*?</embed>",
-                r"javascript:",
-                r"vbscript:",
-                r"data:text/html",
-                r"on\w+\s*=",
-                # Command injection patterns
-                r"[;&|`$()]",
-                r"\\x[0-9a-fA-F]{2}",  # Hex encoding
-            ]
-
-            for pattern in dangerous_patterns:
-                if re.search(pattern, v, re.IGNORECASE | re.DOTALL):
-                    raise ValueError(
-                        "Filter value contains potentially malicious content. "
-                        "SQL injection attempts, HTML tags, JavaScript, and command "
-                        "injection "
-                        "are not allowed in filter values."
-                    )
-
-            # Additional length check for filter values
+            # Length check FIRST to prevent ReDoS attacks
             if len(v) > 1000:
                 raise ValueError(
                     f"Filter value too long ({len(v)} characters). "
                     f"Maximum allowed length is 1000 characters."
+                )
+
+            # Check for dangerous substrings using simple substring checks
+            # This avoids ReDoS vulnerabilities while still detecting attacks
+            dangerous_substrings = [
+                "<script",
+                "</script>",
+                "<iframe",
+                "<object",
+                "<embed",
+                "javascript:",
+                "vbscript:",
+                "data:text/html",
+                "xp_cmdshell",
+                "sp_executesql",
+            ]
+            v_lower = v.lower()
+            for substring in dangerous_substrings:
+                if substring in v_lower:
+                    raise ValueError(
+                        "Filter value contains potentially malicious content. "
+                        "HTML tags and JavaScript are not allowed."
+                    )
+
+            # SQL injection patterns - use simple patterns without backtracking
+            sql_patterns = [
+                r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
+                r"'\s*OR\s*'",
+                r"'\s*AND\s*'",
+                r"--\s*",
+                r"/\*",  # Just check for comment start, not full pattern
+                r"UNION\s+SELECT",
+            ]
+
+            for pattern in sql_patterns:
+                if re.search(pattern, v, re.IGNORECASE):
+                    raise ValueError(
+                        "Filter value contains potentially malicious SQL patterns."
+                    )
+
+            # Check for command injection - simple character checks
+            if re.search(r"[;&|`$()]", v):
+                raise ValueError(
+                    "Filter value contains potentially unsafe shell characters."
+                )
+
+            # Check for event handlers
+            if re.search(r"on\w+\s*=", v, re.IGNORECASE):
+                raise ValueError(
+                    "Filter value contains potentially malicious event handlers."
+                )
+
+            # Check for hex encoding attempts
+            if re.search(r"\\x[0-9a-fA-F]{2}", v):
+                raise ValueError(
+                    "Filter value contains hex encoding which is not allowed."
                 )
 
             # Filter dangerous Unicode characters
@@ -817,27 +889,44 @@ class UpdateChartRequest(QueryCacheControl):
         if not v:
             return None
 
-        # Check for dangerous HTML tags and JavaScript protocols BEFORE escaping
-        dangerous_patterns = [
-            r"<script[^>]*>.*?</script>",  # Script tags
-            r"<iframe[^>]*>.*?</iframe>",  # Iframe tags
-            r"<object[^>]*>.*?</object>",  # Object tags
-            r"<embed[^>]*>.*?</embed>",  # Embed tags
-            r"<link[^>]*>",  # Link tags
-            r"<meta[^>]*>",  # Meta tags
-            r"javascript:",  # JavaScript protocol
-            r"vbscript:",  # VBScript protocol
-            r"data:text/html",  # Data URL HTML
-            r"on\w+\s*=",  # Event handlers (onclick, onload, etc)
+        # Length check first to prevent ReDoS attacks
+        if len(v) > 255:
+            raise ValueError(
+                f"Chart name too long ({len(v)} characters). "
+                f"Maximum allowed length is 255 characters."
+            )
+
+        # Check for dangerous HTML tags and JavaScript protocols using substring checks
+        # This avoids ReDoS vulnerabilities while still detecting attacks
+        dangerous_substrings = [
+            "<script",
+            "</script>",
+            "<iframe",
+            "</iframe>",
+            "<object",
+            "</object>",
+            "<embed",
+            "</embed>",
+            "<link",
+            "<meta",
+            "javascript:",
+            "vbscript:",
+            "data:text/html",
         ]
 
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE | re.DOTALL):
+        v_lower = v.lower()
+        for substring in dangerous_substrings:
+            if substring in v_lower:
                 raise ValueError(
                     "Chart name contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed in "
-                    "chart names."
+                    "HTML tags and JavaScript are not allowed in chart names."
                 )
+
+        # Check for event handlers with simple regex
+        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
+            raise ValueError(
+                "Chart name contains potentially malicious event handlers."
+            )
 
         # Filter dangerous Unicode characters
         v = re.sub(
