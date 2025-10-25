@@ -399,24 +399,18 @@ class ColumnRef(BaseModel):
         # Remove HTML tags and decode entities
         sanitized = html.escape(v.strip())
 
-        # Check for dangerous tags using simple substring checks (not regex)
-        # This avoids ReDoS vulnerabilities while still detecting attacks
-        dangerous_substrings = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "<object",
-            "<embed",
-            "javascript:",
-            "vbscript:",
-            "data:text/html",
-        ]
+        # Check for dangerous HTML tags using substring checks (safe)
+        dangerous_tags = ["<script", "</script>", "<iframe", "<object", "<embed"]
         v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
+        for tag in dangerous_tags:
+            if tag in v_lower:
                 raise ValueError(
                     "Column name contains potentially malicious script content"
                 )
+
+        # Check URL schemes with word boundaries to match only actual URLs
+        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
+            raise ValueError("Column name contains potentially malicious URL scheme")
 
         # Basic SQL injection patterns (basic protection)
         # Use simple patterns without backtracking
@@ -456,7 +450,7 @@ class ColumnRef(BaseModel):
 
         # Check for dangerous HTML tags and JavaScript protocols using substring checks
         # This avoids ReDoS vulnerabilities from regex patterns
-        dangerous_substrings = [
+        dangerous_tags = [
             "<script",
             "</script>",
             "<iframe",
@@ -467,26 +461,28 @@ class ColumnRef(BaseModel):
             "</embed>",
             "<link",
             "<meta",
-            "javascript:",
-            "vbscript:",
-            "data:text/html",
         ]
 
         v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
+        for tag in dangerous_tags:
+            if tag in v_lower:
                 raise ValueError(
                     "Label contains potentially malicious content. "
                     "HTML tags, JavaScript, and event handlers are not allowed "
                     "in labels."
                 )
 
-        # Check for event handlers (onclick, onload, etc) with simple regex
-        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-            raise ValueError(
-                "Label contains potentially malicious content. "
-                "HTML tags, JavaScript, and event handlers are not allowed in labels."
-            )
+        # Check URL schemes and event handlers with word boundaries
+        dangerous_patterns = [
+            r"\b(javascript|vbscript|data):",  # URL schemes
+            r"on\w+\s*=",  # Event handlers
+        ]
+        for pattern in dangerous_patterns:
+            if re.search(pattern, v, re.IGNORECASE):
+                raise ValueError(
+                    "Label contains potentially malicious content. "
+                    "HTML tags, JavaScript, and event handlers are not allowed."
+                )
 
         # Filter dangerous Unicode characters
         v = re.sub(
@@ -542,23 +538,78 @@ class FilterConfig(BaseModel):
         # Remove HTML tags and decode entities
         sanitized = html.escape(v.strip())
 
-        # Check for dangerous patterns using substring checks (not regex)
-        dangerous_substrings = ["<script", "</script>", "javascript:", "vbscript:"]
+        # Check for dangerous HTML tags using substring checks (safe)
+        dangerous_tags = ["<script", "</script>"]
         v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
+        for tag in dangerous_tags:
+            if tag in v_lower:
                 raise ValueError(
                     "Filter column contains potentially malicious script content"
                 )
 
+        # Check URL schemes with word boundaries
+        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
+            raise ValueError("Filter column contains potentially malicious URL scheme")
+
         return sanitized
+
+    @staticmethod
+    def _validate_string_value(v: str) -> None:
+        """Validate string filter value for security issues."""
+        # Check for dangerous HTML tags and SQL procedures
+        dangerous_substrings = [
+            "<script",
+            "</script>",
+            "<iframe",
+            "<object",
+            "<embed",
+            "xp_cmdshell",
+            "sp_executesql",
+        ]
+        v_lower = v.lower()
+        for substring in dangerous_substrings:
+            if substring in v_lower:
+                raise ValueError(
+                    "Filter value contains potentially malicious content. "
+                    "HTML tags and JavaScript are not allowed."
+                )
+
+        # Check URL schemes with word boundaries
+        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
+            raise ValueError("Filter value contains potentially malicious URL scheme")
+
+        # SQL injection patterns
+        sql_patterns = [
+            r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
+            r"'\s*OR\s*'",
+            r"'\s*AND\s*'",
+            r"--\s*",
+            r"/\*",
+            r"UNION\s+SELECT",
+        ]
+        for pattern in sql_patterns:
+            if re.search(pattern, v, re.IGNORECASE):
+                raise ValueError(
+                    "Filter value contains potentially malicious SQL patterns."
+                )
+
+        # Check for other dangerous patterns
+        if re.search(r"[;&|`$()]", v):
+            raise ValueError(
+                "Filter value contains potentially unsafe shell characters."
+            )
+        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
+            raise ValueError(
+                "Filter value contains potentially malicious event handlers."
+            )
+        if re.search(r"\\x[0-9a-fA-F]{2}", v):
+            raise ValueError("Filter value contains hex encoding which is not allowed.")
 
     @field_validator("value")
     @classmethod
     def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
         """Sanitize filter value to prevent XSS and SQL injection attacks."""
         if isinstance(v, str):
-            # Strip whitespace
             v = v.strip()
 
             # Length check FIRST to prevent ReDoS attacks
@@ -568,61 +619,8 @@ class FilterConfig(BaseModel):
                     f"Maximum allowed length is 1000 characters."
                 )
 
-            # Check for dangerous substrings using simple substring checks
-            # This avoids ReDoS vulnerabilities while still detecting attacks
-            dangerous_substrings = [
-                "<script",
-                "</script>",
-                "<iframe",
-                "<object",
-                "<embed",
-                "javascript:",
-                "vbscript:",
-                "data:text/html",
-                "xp_cmdshell",
-                "sp_executesql",
-            ]
-            v_lower = v.lower()
-            for substring in dangerous_substrings:
-                if substring in v_lower:
-                    raise ValueError(
-                        "Filter value contains potentially malicious content. "
-                        "HTML tags and JavaScript are not allowed."
-                    )
-
-            # SQL injection patterns - use simple patterns without backtracking
-            sql_patterns = [
-                r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-                r"'\s*OR\s*'",
-                r"'\s*AND\s*'",
-                r"--\s*",
-                r"/\*",  # Just check for comment start, not full pattern
-                r"UNION\s+SELECT",
-            ]
-
-            for pattern in sql_patterns:
-                if re.search(pattern, v, re.IGNORECASE):
-                    raise ValueError(
-                        "Filter value contains potentially malicious SQL patterns."
-                    )
-
-            # Check for command injection - simple character checks
-            if re.search(r"[;&|`$()]", v):
-                raise ValueError(
-                    "Filter value contains potentially unsafe shell characters."
-                )
-
-            # Check for event handlers
-            if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-                raise ValueError(
-                    "Filter value contains potentially malicious event handlers."
-                )
-
-            # Check for hex encoding attempts
-            if re.search(r"\\x[0-9a-fA-F]{2}", v):
-                raise ValueError(
-                    "Filter value contains hex encoding which is not allowed."
-                )
+            # Validate security
+            cls._validate_string_value(v)
 
             # Filter dangerous Unicode characters
             v = re.sub(
@@ -630,8 +628,7 @@ class FilterConfig(BaseModel):
             )
 
             # HTML escape the cleaned content
-            sanitized = html.escape(v)
-            return sanitized
+            return html.escape(v)
 
         return v  # Return non-string values as-is
 
@@ -897,9 +894,8 @@ class UpdateChartRequest(QueryCacheControl):
                 f"Maximum allowed length is 255 characters."
             )
 
-        # Check for dangerous HTML tags and JavaScript protocols using substring checks
-        # This avoids ReDoS vulnerabilities while still detecting attacks
-        dangerous_substrings = [
+        # Check for dangerous HTML tags using substring checks (safe)
+        dangerous_tags = [
             "<script",
             "</script>",
             "<iframe",
@@ -910,18 +906,19 @@ class UpdateChartRequest(QueryCacheControl):
             "</embed>",
             "<link",
             "<meta",
-            "javascript:",
-            "vbscript:",
-            "data:text/html",
         ]
 
         v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
+        for tag in dangerous_tags:
+            if tag in v_lower:
                 raise ValueError(
                     "Chart name contains potentially malicious content. "
                     "HTML tags and JavaScript are not allowed in chart names."
                 )
+
+        # Check URL schemes with word boundaries
+        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
+            raise ValueError("Chart name contains potentially malicious URL scheme")
 
         # Check for event handlers with simple regex
         if re.search(r"on\w+\s*=", v, re.IGNORECASE):
