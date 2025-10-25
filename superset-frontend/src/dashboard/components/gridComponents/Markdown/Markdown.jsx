@@ -96,6 +96,10 @@ const MarkdownStyles = styled.div`
         font-weight: ${theme.fontWeightNormal};
       }
 
+      strong {
+        font-weight: 600;
+      }
+
       h6 {
         font-size: ${theme.fontSizeSM}px;
       }
