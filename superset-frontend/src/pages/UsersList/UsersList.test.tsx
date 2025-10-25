@@ -152,13 +152,13 @@ describe('UsersList', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const fnameColumn = await within(table).findByText('First name');
-    const lnameColumn = await within(table).findByText('Last name');
-    const usernameColumn = await within(table).findByText('Username');
-    const emailColumn = await within(table).findByText('Email');
-    const rolesColumn = await within(table).findByText('Roles');
-    const actionsColumn = await within(table).findByText('Actions');
-    const activeColumn = await within(table).findByText('Is active?');
+    const fnameColumn = await within(table).findByTitle('First name');
+    const lnameColumn = await within(table).findByTitle('Last name');
+    const usernameColumn = await within(table).findByTitle('Username');
+    const emailColumn = await within(table).findByTitle('Email');
+    const rolesColumn = await within(table).findByTitle('Roles');
+    const actionsColumn = await within(table).findByTitle('Actions');
+    const activeColumn = await within(table).findByTitle('Is active?');
 
     expect(fnameColumn).toBeInTheDocument();
     expect(lnameColumn).toBeInTheDocument();
