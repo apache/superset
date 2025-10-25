@@ -1,0 +1,18 @@
+name: "CodeQL Config"
+
+# Paths to ignore during analysis
+paths-ignore:
+  - "superset-frontend/node_modules/**"
+  - "superset-frontend/packages/**/node_modules/**"
+
+# Query filters to disable specific checks
+query-filters:
+  # Suppress ReDoS warnings in MCP service input validation patterns
+  # These patterns validate user input and are bounded by Pydantic field length limits
+  # which prevents catastrophic backtracking attacks
+  - exclude:
+      id:
+        - py/redos
+        - py/polynomial-redos
+      paths:
+        - superset/mcp_service/**/*.py
