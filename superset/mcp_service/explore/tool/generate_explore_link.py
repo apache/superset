@@ -44,7 +44,23 @@ async def generate_explore_link(
 ) -> Dict[str, Any]:
     """Generate explore URL for interactive visualization.
 
-    Returns URL for immediate use. PREFERRED for most viz requests.
+    PREFERRED TOOL for most visualization requests.
+
+    Use this tool for:
+    - "Show me a chart of [data]"
+    - "Visualize [data]"
+    - General data exploration
+    - When user wants to SEE data visually
+
+    Better UX because:
+    - Users can interact with chart before saving
+    - Easy to modify parameters instantly
+    - No database clutter from exploration
+
+    Only use generate_chart when user EXPLICITLY requests to save/create a
+    permanent chart.
+
+    Returns explore URL for immediate use.
     """
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"

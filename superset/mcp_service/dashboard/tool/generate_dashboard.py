@@ -122,9 +122,14 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
-    """
-    Create dashboard from chart IDs. Arranges charts in 2-column grid.
-    Returns dashboard ID and URL.
+    """Create dashboard from chart IDs.
+
+    IMPORTANT:
+    - All charts must exist and be accessible to current user
+    - Charts arranged automatically in 2-column grid layout
+
+    Returns:
+    - Dashboard ID and URL
     """
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
