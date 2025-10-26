@@ -31,7 +31,11 @@ const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
-      country_cca2: PropTypes.string,
+      codes: PropTypes.shape({
+        cca2: PropTypes.string,
+        cca3: PropTypes.string,
+        cioc: PropTypes.string,
+      }),
       latitude: PropTypes.number,
       longitude: PropTypes.number,
       name: PropTypes.string,
@@ -121,7 +125,9 @@ function WorldMap(element, props) {
     if (countryFieldtype === 'name') {
       country = mapData[key]?.name;
     } else if (countryFieldtype === 'cca2') {
-      country = mapData[key]?.country_cca2;
+      country = mapData[key]?.codes?.cca2;
+    } else if (countryFieldtype === 'cioc') {
+      country = mapData[key]?.codes?.cioc;
     } else {
       country = mapData[key]?.country;
     }
@@ -182,7 +188,9 @@ function WorldMap(element, props) {
     if (countryFieldtype === 'name') {
       val = mapData[key]?.name;
     } else if (countryFieldtype === 'cca2') {
-      val = mapData[key]?.country_cca2;
+      val = mapData[key]?.codes?.cca2;
+    } else if (countryFieldtype === 'cioc') {
+      val = mapData[key]?.codes?.cioc;
     } else {
       val = mapData[key]?.country;
     }
