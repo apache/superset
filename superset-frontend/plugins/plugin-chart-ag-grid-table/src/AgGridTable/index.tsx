@@ -131,10 +131,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
 
     const defaultColDef = useMemo<ColDef>(
       () => ({
-        flex: 1,
         filter: true,
-        enableRowGroup: true,
-        enableValue: true,
         sortable: true,
         resizable: true,
         minWidth: 100,
@@ -251,6 +248,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    useEffect(() => {
+      if (gridRef.current?.api) {
+        gridRef.current.api.sizeColumnsToFit();
+      }
+    }, [width]);
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
@@ -312,7 +315,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           onCellClicked={handleCrossFilter}
           initialState={gridInitialState}
           suppressAggFuncInHeader
-          rowGroupPanelShow="always"
           enableCellTextSelection
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}

@@ -23,10 +23,10 @@ import {
   DatasourceType,
   denormalizeTimestamp,
   ErrorTypeEnum,
-  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
@@ -188,6 +188,7 @@ export const table = {
 export const defaultQueryEditor = {
   version: LatestQueryEditorVersion,
   id: 'dfsadfs',
+  immutableId: 'immutable-id',
   autorun: false,
   dbId: 1,
   latestQueryId: null,
@@ -204,6 +205,7 @@ export const defaultQueryEditor = {
 export const extraQueryEditor1 = {
   ...defaultQueryEditor,
   id: 'diekd23',
+  immutableId: 'immutable-id',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
   selectedText: 'SELECT',
@@ -212,6 +214,7 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
+  immutableId: 'immutable-id',
   sql: '',
   name: 'Untitled Query 3',
 };
@@ -219,6 +222,7 @@ export const extraQueryEditor2 = {
 export const extraQueryEditor3 = {
   ...defaultQueryEditor,
   id: 'kvk23',
+  immutableId: 'immutable-id',
   sql: '',
   name: 'Untitled Query 4',
   tabViewId: 37,
@@ -234,6 +238,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'BkA1CLrJg',
+    sqlEditorImmutableId: 'BkA1CLrJg_immutable',
     progress: 100,
     startDttm: 1476910566092.96,
     state: QueryState.Success,
@@ -293,6 +298,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'S1zeAISkx',
+    sqlEditorImmutableId: 'S1zeAISkx_immutable',
     progress: 100,
     startDttm: 1476910570802.2,
     state: QueryState.Success,
@@ -327,6 +333,7 @@ export const queryWithNoQueryLimit = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -585,6 +592,7 @@ const baseQuery: QueryResponse = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -668,6 +676,7 @@ export const runningQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 90,
   state: QueryState.Running,
   startDttm: Date.now() - 500,
@@ -679,6 +688,7 @@ export const successfulQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 100,
   state: QueryState.Success,
   startDttm: Date.now() - 500,

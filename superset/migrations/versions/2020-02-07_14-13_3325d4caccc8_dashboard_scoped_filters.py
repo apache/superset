@@ -89,7 +89,9 @@ def upgrade():
                 filter_scopes = convert_filter_scopes(json_metadata, filters)
                 json_metadata["filter_scopes"] = filter_scopes
                 logger.info(
-                    f"Adding filter_scopes for dashboard {dashboard.id}: {json.dumps(filter_scopes)}"  # noqa: E501
+                    "Adding filter_scopes for dashboard %s: %s",  # noqa: E501
+                    dashboard.id,
+                    json.dumps(filter_scopes),
                 )
 
             json_metadata.pop("filter_immune_slices", None)
@@ -102,7 +104,7 @@ def upgrade():
             else:
                 dashboard.json_metadata = None
         except Exception as ex:
-            logger.exception(f"dashboard {dashboard.id} has error: {ex}")
+            logger.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

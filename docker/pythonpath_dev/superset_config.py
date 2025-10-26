@@ -138,7 +138,7 @@ try:
     from superset_config_docker import *  # noqa: F403
 
     logger.info(
-        f"Loaded your Docker configuration at [{superset_config_docker.__file__}]"
+        "Loaded your Docker configuration at [%s]", superset_config_docker.__file__
     )
 except ImportError:
     logger.info("Using default Docker config...")

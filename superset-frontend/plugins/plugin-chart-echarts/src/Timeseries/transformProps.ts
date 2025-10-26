@@ -26,7 +26,6 @@ import {
   CurrencyFormatter,
   ensureIsArray,
   tooltipHtml,
-  GenericDataType,
   getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
@@ -41,13 +40,17 @@ import {
   TimeseriesChartDataResponseResult,
   NumberFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
-import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type {
+  LineStyleOption,
+  CallbackDataParams,
+} from 'echarts/types/src/util/types';
 import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
@@ -168,6 +171,7 @@ export default function transformProps(
     sortSeriesType,
     sortSeriesAscending,
     timeGrainSqla,
+    forceMaxInterval,
     timeCompare,
     timeShiftColor,
     stack,
@@ -510,11 +514,17 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.Time && timeGrainSqla
+      xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
             timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ]
         : 0,
+    maxInterval:
+      xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
+        : undefined,
     ...getMinAndMaxFromBounds(
       xAxisType,
       truncateXAxis,
@@ -568,15 +578,30 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
-        const forecastValue: any[] = richTooltip ? params : [params];
+        const forecastValue: CallbackDataParams[] = richTooltip
+          ? params
+          : [params];
         const sortedKeys = extractTooltipKeys(
           forecastValue,
           yIndex,
           richTooltip,
           tooltipSortByMetric,
         );
+        const filteredForecastValue = forecastValue.filter(
+          (item: CallbackDataParams) =>
+            !annotationLayers.some(
+              (annotation: AnnotationLayer) =>
+                item.seriesName === annotation.name,
+            ),
+        );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
+
+        const filteredForecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(
+            filteredForecastValue,
+            isHorizontal,
+          );
 
         const isForecast = Object.values(forecastValues).some(
           value =>
@@ -588,7 +613,7 @@ export default function transformProps(
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
-        const total = Object.values(forecastValues).reduce(
+        const total = Object.values(filteredForecastValues).reduce(
           (acc, value) =>
             value.observation !== undefined ? acc + value.observation : acc,
           0,
@@ -610,7 +635,16 @@ export default function transformProps(
               seriesName: key,
               formatter,
             });
-            if (showPercentage && value.observation !== undefined) {
+
+            const annotationRow = annotationLayers.some(
+              item => item.name === key,
+            );
+
+            if (
+              showPercentage &&
+              value.observation !== undefined &&
+              !annotationRow
+            ) {
               row.push(
                 percentFormatter.format(value.observation / (total || 1)),
               );
