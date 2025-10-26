@@ -18,6 +18,7 @@
 import pytest  # noqa: F401
 from pytest_mock import MockerFixture
 from sqlglot import parse_one
+from sqlglot.errors import ParseError
 
 from superset.constants import TimeGrain
 from superset.sql.parse import Table
@@ -83,7 +84,7 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "grain,expected_expression",
+    ("grain", "expected_expression"),
     [
         (None, "my_col"),
         (
@@ -145,5 +146,5 @@ def test_time_grain_day_parseable() -> None:
     try:
         parsed = parse_one(sql)
         assert parsed is not None
-    except Exception as e:
+    except ParseError as e:
         pytest.fail(f"Failed to parse DAY time grain SQL: {e}")
