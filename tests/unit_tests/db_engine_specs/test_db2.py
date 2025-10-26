@@ -138,7 +138,7 @@ def test_time_grain_day_parseable() -> None:
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     expression = Db2EngineSpec._time_grain_expressions[TimeGrain.DAY].format(
-        col="my_timestamp_col"
+        col="my_timestamp_col",
     )
     sql = f"SELECT {expression} FROM my_table"  # noqa: S608
 
