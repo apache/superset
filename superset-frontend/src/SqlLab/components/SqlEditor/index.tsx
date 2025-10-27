@@ -168,6 +168,9 @@ const StyledToolbar = styled.div`
 
 const StyledSidebar = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledSqlEditor = styled.div`
@@ -182,6 +185,7 @@ const StyledSqlEditor = styled.div`
 
     .queryPane {
       padding: ${theme.sizeUnit * 2}px;
+      padding-left: 0px;
       + .ant-splitter-bar .ant-splitter-bar-dragger {
         &::before {
           background: transparent;

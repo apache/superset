@@ -394,7 +394,7 @@ export function runQueryFromSqlEditor(
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.tabViewId ?? qe.id,
-      immutableId: qe.immutableId,
+      sqlEditorImmutableId: qe.immutableId,
       tab: qe.name,
       catalog: qe.catalog,
       schema: qe.schema,
@@ -1017,12 +1017,13 @@ export function runTablePreviewQuery(newTable, runPreviewOnly) {
   };
 }
 
-export function syncTable(table, tableMetadata) {
+export function syncTable(table, tableMetadata, finalQueryEditorId) {
   return function (dispatch) {
+    const finalTable = { ...table, queryEditorId: finalQueryEditorId };
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? SupersetClient.post({
           endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...table } },
+          postPayload: { table: { ...tableMetadata, ...finalTable } },
         })
       : Promise.resolve({ json: { id: table.id } });
 

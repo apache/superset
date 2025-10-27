@@ -150,6 +150,7 @@ const setup = (props?: any, store?: Store) =>
     ...(store && { store }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultSet', () => {
   beforeAll(() => {
     setupAGGridModules();
@@ -600,5 +601,43 @@ describe('ResultSet', () => {
       }),
     );
     expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
+  });
+
+  test('should include sqlEditorImmutableId in query object when fetching results', async () => {
+    const queryWithResultsKey = {
+      ...queries[0],
+      resultsKey: 'test-results-key',
+      sqlEditorImmutableId: 'test-immutable-id-123',
+    };
+
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [queryWithResultsKey.id]: queryWithResultsKey,
+        },
+      },
+    });
+
+    setup({ ...mockedProps, queryId: queryWithResultsKey.id }, store);
+
+    await waitFor(() => {
+      // Check that REQUEST_QUERY_RESULTS action was dispatched
+      const actions = store.getActions();
+      const requestAction = actions.find(
+        action => action.type === 'REQUEST_QUERY_RESULTS',
+      );
+      expect(requestAction).toBeDefined();
+      // Verify sqlEditorImmutableId is present in the query object
+      expect(requestAction?.query?.sqlEditorImmutableId).toBe(
+        'test-immutable-id-123',
+      );
+    });
+
+    // Verify the API was called
+    const resultsCalls = fetchMock.calls('glob:*/api/v1/sqllab/results/*');
+    expect(resultsCalls).toHaveLength(1);
   });
 });

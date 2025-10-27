@@ -40,6 +40,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RoleListDuplicateModal', () => {
   const mockRole = {
     id: 1,
@@ -56,7 +57,7 @@ describe('RoleListDuplicateModal', () => {
     onSave: jest.fn(),
   };
 
-  it('renders modal with form fields', () => {
+  test('renders modal with form fields', () => {
     render(<RoleListDuplicateModal {...mockProps} />);
     expect(
       screen.getByText(`Duplicate role ${mockRole.name}`),
@@ -64,18 +65,18 @@ describe('RoleListDuplicateModal', () => {
     expect(screen.getByText('Role Name')).toBeInTheDocument();
   });
 
-  it('calls onHide when cancel button is clicked', () => {
+  test('calls onHide when cancel button is clicked', () => {
     render(<RoleListDuplicateModal {...mockProps} />);
     fireEvent.click(screen.getByTestId('modal-cancel-button'));
     expect(mockProps.onHide).toHaveBeenCalled();
   });
 
-  it('disables save button when role name is empty', () => {
+  test('disables save button when role name is empty', () => {
     render(<RoleListDuplicateModal {...mockProps} />);
     expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
   });
 
-  it('enables save button when role name is entered', () => {
+  test('enables save button when role name is entered', () => {
     render(<RoleListDuplicateModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'New Role' },
@@ -83,7 +84,7 @@ describe('RoleListDuplicateModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  it('calls createRole when save button is clicked', async () => {
+  test('calls createRole when save button is clicked', async () => {
     mockCreateRole.mockResolvedValue({ json: { id: 2 } } as any);
 
     render(<RoleListDuplicateModal {...mockProps} />);
