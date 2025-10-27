@@ -328,15 +328,10 @@ const Header = () => {
 
   // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {
-    if (editMode) {
-      if (dashboardInfo.theme !== previousThemeRef.current) {
-        boundActionCreators.setUnsavedChanges(true);
-        previousThemeRef.current = dashboardInfo.theme;
-      }
-    } else {
-      // Sync ref when navigating between dashboards to avoid false positives
-      previousThemeRef.current = dashboardInfo.theme;
+    if (editMode && dashboardInfo.theme !== previousThemeRef.current) {
+      boundActionCreators.setUnsavedChanges(true);
     }
+    previousThemeRef.current = dashboardInfo.theme;
   }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
   useEffect(() => {
