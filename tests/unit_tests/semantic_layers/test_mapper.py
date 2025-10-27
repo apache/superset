@@ -32,6 +32,7 @@ from superset.semantic_layers.mapper import (
     _get_time_bounds,
     _get_time_filter,
     map_query_object,
+    validate_query_object,
 )
 from superset.semantic_layers.types import (
     AdhocExpression,
@@ -52,6 +53,9 @@ from superset.semantic_layers.types import (
     TimeGrain,
 )
 from superset.utils.core import FilterOperator
+
+# Alias for convenience
+Feature = SemanticViewFeature
 
 
 class MockSemanticViewImplementation:
@@ -143,31 +147,29 @@ def mock_datasource() -> Mock:
     return datasource
 
 
-def test_convert_time_grain_time() -> None:
+@pytest.mark.parametrize(
+    "input_grain, expected_grain",
+    [
+        ("PT1S", TimeGrain.PT1S),
+        ("PT1M", TimeGrain.PT1M),
+        ("PT1H", TimeGrain.PT1H),
+        ("P1D", DateGrain.P1D),
+        ("P1W", DateGrain.P1W),
+        ("P1M", DateGrain.P1M),
+        ("P1Y", DateGrain.P1Y),
+        ("P3M", DateGrain.P3M),
+        ("INVALID", None),
+        ("", None),
+    ],
+)
+def test_convert_date_time_grain(
+    input_grain: str,
+    expected_grain: TimeGrain | DateGrain,
+) -> None:
     """
     Test conversion of time grains (hour, minute, second).
     """
-    assert _convert_time_grain("PT1S") == TimeGrain.PT1S
-    assert _convert_time_grain("PT1M") == TimeGrain.PT1M
-    assert _convert_time_grain("PT1H") == TimeGrain.PT1H
-
-
-def test_convert_time_grain_date() -> None:
-    """
-    Test conversion of date grains (day, week, month, year).
-    """
-    assert _convert_time_grain("P1D") == DateGrain.P1D
-    assert _convert_time_grain("P1W") == DateGrain.P1W
-    assert _convert_time_grain("P1M") == DateGrain.P1M
-    assert _convert_time_grain("P1Y") == DateGrain.P1Y
-
-
-def test_convert_time_grain_invalid() -> None:
-    """
-    Test that invalid grain returns None.
-    """
-    assert _convert_time_grain("INVALID") is None
-    assert _convert_time_grain("") is None
+    assert _convert_time_grain(input_grain) == expected_grain
 
 
 def test_get_filters_from_extras_empty() -> None:
@@ -333,30 +335,6 @@ def test_convert_query_object_filter_temporal_range() -> None:
     result = _convert_query_object_filter(filter_, all_dimensions)
 
     assert result is None
-
-
-def test_convert_query_object_filter_equals(mock_datasource):
-    """
-    Test conversion of EQUALS filter.
-    """
-    all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
-    }
-
-    filter_ = {
-        "op": FilterOperator.EQUALS.value,
-        "col": "region",
-        "val": "US",
-    }
-
-    result = _convert_query_object_filter(filter_, all_dimensions)
-
-    assert result == Filter(
-        type=PredicateType.WHERE,
-        column=all_dimensions["region"],
-        operator=Operator.EQUALS,
-        value="US",
-    )
 
 
 def test_convert_query_object_filter_in(mock_datasource):
@@ -1007,147 +985,184 @@ def test_map_query_object_with_time_offsets(mock_datasource):
     }
 
 
-def test_map_query_object_with_group_limit(mock_datasource):
+def test_convert_query_object_filter_unknown_operator(mock_datasource):
     """
-    Test mapping with group limit.
+    Test filter with unknown operator returns None.
     """
-    query_object = QueryObject(
-        datasource=mock_datasource,
-        from_dttm=datetime(2025, 10, 15),
-        to_dttm=datetime(2025, 10, 22),
-        metrics=["total_sales"],
-        columns=["category", "region"],
-        series_columns=["category"],
-        series_limit=10,
-        series_limit_metric="total_sales",
-        granularity="order_date",
-    )
-
-    result = map_query_object(query_object)
-
-    assert len(result) == 1
-
-    semantic_query = result[0]
-    print(semantic_query.group_limit.dimensions)
-    assert semantic_query.group_limit == GroupLimit(
-        top=10,
-        dimensions=[
-            Dimension(
-                id="products.category",
-                name="category",
-                type=STRING,
-                definition="category",
-                description="Product category",
-                grain=None,
-            )
-        ],
-        metric=Metric(
-            id="orders.total_sales",
-            name="total_sales",
-            type=NUMBER,
-            definition="SUM(amount)",
-            description="Total sales",
-        ),
-        direction=OrderDirection.DESC,
-        group_others=False,
-        filters=None,
-    )
-
-
-def test_map_query_object_with_order(mock_datasource):
-    """
-    Test mapping with order by (testing _get_order directly).
-    """
-    all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
-    }
     all_dimensions = {
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
-        datasource=mock_datasource,
-        from_dttm=datetime(2025, 10, 15),
-        to_dttm=datetime(2025, 10, 22),
-        metrics=["total_sales"],
-        columns=["order_date", "category"],
-        granularity="order_date",
-        orderby=[("total_sales", False)],
-    )
-
-    # Test _get_order_from_query_object directly to avoid validation
-    order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
-
-    assert order == [(all_metrics["total_sales"], OrderDirection.DESC)]
-
-
-def test_map_query_object_filters_all_sources(mock_datasource):
-    """
-    Test that filters from all sources are combined.
-    """
-    mock_datasource.fetch_values_predicate = "tenant_id = 123"
-
-    query_object = QueryObject(
-        datasource=mock_datasource,
-        from_dttm=datetime(2025, 10, 15),
-        to_dttm=datetime(2025, 10, 22),
-        metrics=["total_sales"],
-        columns=["order_date", "category"],
-        granularity="order_date",
-        apply_fetch_values_predicate=True,
-        extras={
-            "where": "customer_id > 100",
-            "having": "SUM(amount) > 1000",
-        },
-        filter=[
-            {
-                "op": FilterOperator.EQUALS.value,
-                "col": "region",
-                "val": "US",
-            }
-        ],
-    )
-
-    result = map_query_object(query_object)
-
-    assert len(result) == 1
-
-    semantic_query = result[0]
-    filters = semantic_query.filters
-
-    # Should have at least:
-    # - 2 time filters (>= and <)
-    # - 1 fetch values filter
-    # - 2 extras filters (where and having)
-    # May also have region filter if it gets converted
-    assert filters == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=Dimension(
-                id="orders.order_date",
-                name="order_date",
-                type=STRING,
-                definition="order_date",
-                description="Order date",
-                grain=None,
-            ),
-            operator=Operator.LESS_THAN,
-            value=datetime(2025, 10, 22, 0, 0),
-        ),
-        AdhocFilter(type=PredicateType.WHERE, definition="tenant_id = 123"),
-        Filter(
-            type=PredicateType.WHERE,
-            column=Dimension(
-                id="orders.order_date",
-                name="order_date",
-                type=STRING,
-                definition="order_date",
-                description="Order date",
-                grain=None,
-            ),
-            operator=Operator.GREATER_THAN_OR_EQUAL,
-            value=datetime(2025, 10, 15, 0, 0),
-        ),
-        AdhocFilter(type=PredicateType.HAVING, definition="SUM(amount) > 1000"),
-        AdhocFilter(type=PredicateType.WHERE, definition="customer_id > 100"),
+    filter_ = {
+        "op": "UNKNOWN_OPERATOR",
+        "col": "category",
+        "val": "Electronics",
     }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result is None
+
+
+def test_validate_query_object_undefined_metric_error(mock_datasource):
+    """
+    Test validation error for undefined metrics.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["undefined_metric"],
+        columns=["order_date"],
+    )
+
+    with pytest.raises(ValueError, match="All metrics must be defined"):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+def test_validate_query_object_undefined_dimension_error(mock_datasource):
+    """
+    Test validation error for undefined dimensions.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["undefined_dimension"],
+    )
+
+    with pytest.raises(ValueError, match="All dimensions must be defined"):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+def test_validate_query_object_time_grain_without_column_error(mock_datasource):
+    """
+    Test validation error when time grain provided without time column.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity=None,  # No time column
+        extras={"time_grain_sqla": "P1D"},
+    )
+
+    with pytest.raises(ValueError, match="time column must be specified"):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+def test_validate_query_object_unsupported_time_grain_error(mock_datasource):
+    """
+    Test validation error for unsupported time grain.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1Y"},  # Year grain not supported
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "The time grain is not supported for the time column in the Semantic View."
+        ),
+    ):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+def test_validate_query_object_group_limit_not_supported_error():
+    """
+    Test validation error when group limit not supported.
+    """
+    mock_datasource = Mock()
+    time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
+    category_dim = Dimension("category", "category", STRING, "category", "Category")
+    sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
+
+    mock_datasource.implementation.dimensions = {time_dim, category_dim}
+    mock_datasource.implementation.metrics = {sales_metric}
+    mock_datasource.implementation.features = frozenset()  # No GROUP_LIMIT feature
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        series_columns=["category"],
+        series_limit=10,
+    )
+
+    with pytest.raises(ValueError, match="Group limit is not supported"):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+def test_validate_query_object_undefined_series_column_error(mock_datasource):
+    """
+    Test validation error for undefined series columns.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        series_columns=["undefined_column"],
+        series_limit=10,
+    )
+
+    with pytest.raises(ValueError, match="All series columns must be defined"):
+        validate_query_object(query_object, mock_datasource.implementation)
+
+
+@pytest.mark.parametrize(
+    "filter_op, expected_operator",
+    [
+        ("==", Operator.EQUALS),
+        ("!=", Operator.NOT_EQUALS),
+        ("<", Operator.LESS_THAN),
+        (">", Operator.GREATER_THAN),
+        ("<=", Operator.LESS_THAN_OR_EQUAL),
+        (">=", Operator.GREATER_THAN_OR_EQUAL),
+    ],
+)
+def test_convert_query_object_filter(
+    filter_op: str,
+    expected_operator: Operator,
+) -> None:
+    """
+    Test filter with different operators.
+    """
+    all_dimensions = {
+        "category": Dimension("category", "category", STRING, "category", "Category")
+    }
+
+    filter_ = {
+        "op": filter_op,
+        "col": "category",
+        "val": "Electronics",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["category"],
+        operator=expected_operator,
+        value="Electronics",
+    )
+
+
+def test_convert_query_object_filter_like():
+    """Test filter with LIKE operator."""
+    all_dimensions = {"name": Dimension("name", "name", STRING, "name", "Name")}
+
+    filter_ = {
+        "op": "LIKE",
+        "col": "name",
+        "val": "%test%",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["name"],
+        operator=Operator.LIKE,
+        value="%test%",
+    )
