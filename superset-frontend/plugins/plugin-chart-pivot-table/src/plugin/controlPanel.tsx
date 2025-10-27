@@ -416,7 +416,7 @@ const config: ControlPanelConfig = {
                 const rows =
                   (explore?.controls?.groupbyRows
                     ?.value as QueryFormMetric[]) || [];
-                const values = [...metrics, ...new Set([...columns, ...rows])];
+                const values = [...new Set([...metrics, ...columns, ...rows])];
 
                 const verboseMap = explore?.datasource?.hasOwnProperty(
                   'verbose_map',
