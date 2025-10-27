@@ -212,8 +212,22 @@ class AlertCommand(BaseCommand):
             self._result = None
             return
         if df.empty and self._is_validator_operator:
-            self._result = 0.0
-            return
+            logger.error(
+                "Alert query returned empty result for report_schedule_id=%s, "
+                "execution_id=%s. This may indicate a query error or no data "
+                "matching the WHERE conditions. Query: %s",
+                self._report_schedule.id,
+                self._execution_id,
+                self._report_schedule.sql[:500],
+            )
+            raise AlertQueryError(
+                message=_(
+                    (
+                        "Alert query returned no results. Please verify your query "
+                        "is correct and returns data."
+                    )
+                )
+            )
         rows = df.to_records()
         if self._is_validator_not_null:
             self._validate_not_null(rows)
