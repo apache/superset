@@ -1,0 +1,1153 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from datetime import datetime
+from unittest.mock import Mock
+
+import pytest
+
+from superset.common.query_object import QueryObject
+from superset.semantic_layers.mapper import (
+    _convert_query_object_filter,
+    _convert_time_grain,
+    _get_filters_from_extras,
+    _get_filters_from_query_object,
+    _get_group_limit_filters,
+    _get_group_limit_from_query_object,
+    _get_order_from_query_object,
+    _get_time_bounds,
+    _get_time_filter,
+    map_query_object,
+)
+from superset.semantic_layers.types import (
+    AdhocExpression,
+    AdhocFilter,
+    DateGrain,
+    Dimension,
+    Filter,
+    GroupLimit,
+    INTEGER,
+    Metric,
+    NUMBER,
+    Operator,
+    OrderDirection,
+    PredicateType,
+    SemanticQuery,
+    SemanticViewFeature,
+    STRING,
+    TimeGrain,
+)
+from superset.utils.core import FilterOperator
+
+
+class MockSemanticViewImplementation:
+    """
+    Mock implementation of SemanticViewImplementation protocol.
+    """
+
+    def __init__(
+        self,
+        dimensions: set[Dimension],
+        metrics: set[Metric],
+        features: frozenset[SemanticViewFeature],
+    ):
+        self.dimensions = dimensions
+        self.metrics = metrics
+        self.features = features
+
+    def uid(self) -> str:
+        return "mock_semantic_view"
+
+    def get_dimensions(self) -> set[Dimension]:
+        return self.dimensions
+
+    def get_metrics(self) -> set[Metric]:
+        return self.metrics
+
+
+@pytest.fixture
+def mock_datasource() -> Mock:
+    """
+    Create a mock datasource with semantic view implementation.
+    """
+    datasource = Mock()
+
+    # Create dimensions
+    time_dim = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=STRING,
+        description="Order date",
+        definition="order_date",
+    )
+    category_dim = Dimension(
+        id="products.category",
+        name="category",
+        type=STRING,
+        description="Product category",
+        definition="category",
+    )
+    region_dim = Dimension(
+        id="customers.region",
+        name="region",
+        type=STRING,
+        description="Customer region",
+        definition="region",
+    )
+
+    # Create metrics
+    sales_metric = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=NUMBER,
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    count_metric = Metric(
+        id="orders.order_count",
+        name="order_count",
+        type=INTEGER,
+        definition="COUNT(*)",
+        description="Order count",
+    )
+
+    # Create semantic view implementation
+    implementation = MockSemanticViewImplementation(
+        dimensions={time_dim, category_dim, region_dim},
+        metrics={sales_metric, count_metric},
+        features=frozenset(
+            {
+                SemanticViewFeature.GROUP_LIMIT,
+                SemanticViewFeature.GROUP_OTHERS,
+            }
+        ),
+    )
+
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    return datasource
+
+
+def test_convert_time_grain_time() -> None:
+    """
+    Test conversion of time grains (hour, minute, second).
+    """
+    assert _convert_time_grain("PT1S") == TimeGrain.PT1S
+    assert _convert_time_grain("PT1M") == TimeGrain.PT1M
+    assert _convert_time_grain("PT1H") == TimeGrain.PT1H
+
+
+def test_convert_time_grain_date() -> None:
+    """
+    Test conversion of date grains (day, week, month, year).
+    """
+    assert _convert_time_grain("P1D") == DateGrain.P1D
+    assert _convert_time_grain("P1W") == DateGrain.P1W
+    assert _convert_time_grain("P1M") == DateGrain.P1M
+    assert _convert_time_grain("P1Y") == DateGrain.P1Y
+
+
+def test_convert_time_grain_invalid() -> None:
+    """
+    Test that invalid grain returns None.
+    """
+    assert _convert_time_grain("INVALID") is None
+    assert _convert_time_grain("") is None
+
+
+def test_get_filters_from_extras_empty() -> None:
+    """
+    Test that empty extras returns empty set.
+    """
+    result = _get_filters_from_extras({})
+    assert result == set()
+
+
+def test_get_filters_from_extras_where() -> None:
+    """
+    Test extraction of WHERE clause from extras.
+    """
+    extras = {"where": "customer_id > 100"}
+    result = _get_filters_from_extras(extras)
+
+    assert len(result) == 1
+    filter_ = next(iter(result))
+    assert isinstance(filter_, AdhocFilter)
+    assert filter_.type == PredicateType.WHERE
+    assert filter_.definition == "customer_id > 100"
+
+
+def test_get_filters_from_extras_having() -> None:
+    """
+    Test extraction of HAVING clause from extras.
+    """
+    extras = {"having": "SUM(sales) > 1000"}
+    result = _get_filters_from_extras(extras)
+
+    assert result == {
+        AdhocFilter(type=PredicateType.HAVING, definition="SUM(sales) > 1000"),
+    }
+
+
+def test_get_filters_from_extras_both() -> None:
+    """
+    Test extraction of both WHERE and HAVING from extras.
+    """
+    extras = {
+        "where": "region = 'US'",
+        "having": "COUNT(*) > 10",
+    }
+    result = _get_filters_from_extras(extras)
+
+    assert result == {
+        AdhocFilter(type=PredicateType.WHERE, definition="region = 'US'"),
+        AdhocFilter(type=PredicateType.HAVING, definition="COUNT(*) > 10"),
+    }
+
+
+def test_get_time_bounds_no_offset(mock_datasource):
+    """
+    Test time bounds without offset.
+    """
+    from_dttm = datetime(2025, 10, 15, 0, 0, 0)
+    to_dttm = datetime(2025, 10, 22, 23, 59, 59)
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=from_dttm,
+        to_dttm=to_dttm,
+        metrics=["total_sales"],
+        columns=["category"],
+    )
+
+    result_from, result_to = _get_time_bounds(query_object, None)
+
+    assert result_from == from_dttm
+    assert result_to == to_dttm
+
+
+def test_get_time_filter_no_granularity(mock_datasource):
+    """
+    Test that no time filter is created without granularity.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity=None,
+    )
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    result = _get_time_filter(query_object, None, all_dimensions)
+
+    assert result == set()
+
+
+def test_get_time_filter_with_granularity(mock_datasource):
+    """
+    Test time filter creation with granularity.
+    """
+    from_dttm = datetime(2025, 10, 15, 0, 0, 0)
+    to_dttm = datetime(2025, 10, 22, 23, 59, 59)
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=from_dttm,
+        to_dttm=to_dttm,
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity="order_date",
+    )
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    result = _get_time_filter(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=from_dttm,
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=to_dttm,
+        ),
+    }
+
+
+def test_convert_query_object_filter_sql() -> None:
+    """
+    Test conversion of SQL adhoc filter.
+    """
+    all_dimensions = {}
+    filter_ = {
+        "expressionType": "SQL",
+        "sqlExpression": "customer_id > 100",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == AdhocFilter(
+        type=PredicateType.WHERE,
+        definition="customer_id > 100",
+    )
+
+
+def test_convert_query_object_filter_temporal_range() -> None:
+    """
+    Test that TEMPORAL_RANGE filters are skipped.
+    """
+    all_dimensions = {}
+    filter_ = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": "Last 7 days",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result is None
+
+
+def test_convert_query_object_filter_equals(mock_datasource):
+    """
+    Test conversion of EQUALS filter.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    filter_ = {
+        "op": FilterOperator.EQUALS.value,
+        "col": "region",
+        "val": "US",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["region"],
+        operator=Operator.EQUALS,
+        value="US",
+    )
+
+
+def test_convert_query_object_filter_in(mock_datasource):
+    """
+    Test conversion of IN filter.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    filter_ = {
+        "op": FilterOperator.IN.value,
+        "col": "category",
+        "val": ["Electronics", "Books"],
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["category"],
+        operator=Operator.IN,
+        value=["Electronics", "Books"],
+    )
+
+
+def test_convert_query_object_filter_is_null(mock_datasource):
+    """
+    Test conversion of IS_NULL filter.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    filter_ = {
+        "op": FilterOperator.IS_NULL.value,
+        "col": "region",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == Filter(
+        type=PredicateType.WHERE,
+        column=all_dimensions["region"],
+        operator=Operator.IS_NULL,
+        value=None,
+    )
+
+
+def test_get_filters_from_query_object_basic(mock_datasource):
+    """
+    Test basic filter extraction from query object.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity="order_date",
+    )
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 15),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22),
+        ),
+    }
+
+
+def test_get_filters_from_query_object_with_extras(mock_datasource):
+    """
+    Test filter extraction with extras.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        extras={"where": "customer_id > 100"},
+    )
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 15),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22),
+        ),
+        AdhocFilter(
+            type=PredicateType.WHERE,
+            definition="customer_id > 100",
+        ),
+    }
+
+
+def test_get_filters_from_query_object_with_fetch_values(mock_datasource):
+    """
+    Test filter extraction with fetch values predicate.
+    """
+    mock_datasource.fetch_values_predicate = "tenant_id = 123"
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        apply_fetch_values_predicate=True,
+    )
+
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 15),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22),
+        ),
+        AdhocFilter(
+            type=PredicateType.WHERE,
+            definition="tenant_id = 123",
+        ),
+    }
+
+
+def test_get_order_from_query_object_metric(mock_datasource):
+    """
+    Test order extraction with metric.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[("total_sales", False)],  # DESC
+    )
+
+    result = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+
+    assert result == [(all_metrics["total_sales"], OrderDirection.DESC)]
+
+
+def test_get_order_from_query_object_dimension(mock_datasource):
+    """
+    Test order extraction with dimension.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[("category", True)],  # ASC
+    )
+
+    result = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+
+    assert result == [(all_dimensions["category"], OrderDirection.ASC)]
+
+
+def test_get_order_from_query_object_adhoc(mock_datasource):
+    """
+    Test order extraction with adhoc expression.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[({"label": "custom_order", "sqlExpression": "RAND()"}, True)],
+    )
+
+    result = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+
+    assert result == [
+        (
+            AdhocExpression(
+                id="custom_order",
+                definition="RAND()",
+            ),
+            OrderDirection.ASC,
+        )
+    ]
+
+
+def test_get_group_limit_from_query_object_none(mock_datasource):
+    """
+    Test that None is returned with no columns.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=[],  # No columns
+    )
+
+    result = _get_group_limit_from_query_object(
+        query_object,
+        all_metrics,
+        all_dimensions,
+    )
+
+    assert result is None
+
+
+def test_get_group_limit_from_query_object_basic(mock_datasource):
+    """
+    Test basic group limit creation.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category", "region"],
+        series_columns=["category"],
+        series_limit=10,
+        series_limit_metric="total_sales",
+        order_desc=True,
+    )
+
+    result = _get_group_limit_from_query_object(
+        query_object,
+        all_metrics,
+        all_dimensions,
+    )
+
+    assert result == GroupLimit(
+        top=10,
+        dimensions=[all_dimensions["category"]],
+        metric=all_metrics["total_sales"],
+        direction=OrderDirection.DESC,
+        group_others=False,
+        filters=None,
+    )
+
+
+def test_get_group_limit_from_query_object_with_group_others(mock_datasource):
+    """
+    Test group limit with group_others enabled.
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=["category"],
+        series_limit=5,
+        series_limit_metric="total_sales",
+        group_others_when_limit_reached=True,
+    )
+
+    result = _get_group_limit_from_query_object(
+        query_object,
+        all_metrics,
+        all_dimensions,
+    )
+
+    assert result.group_others is True
+
+
+def test_get_group_limit_filters_no_inner_bounds(mock_datasource):
+    """
+    Test that None is returned when no inner bounds.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        inner_from_dttm=None,
+        inner_to_dttm=None,
+        metrics=["total_sales"],
+        columns=["category"],
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result is None
+
+
+def test_get_group_limit_filters_same_bounds(mock_datasource):
+    """
+    Test that None is returned when inner bounds equal outer bounds.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    from_dttm = datetime(2025, 10, 15)
+    to_dttm = datetime(2025, 10, 22)
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=from_dttm,
+        to_dttm=to_dttm,
+        inner_from_dttm=from_dttm,  # Same
+        inner_to_dttm=to_dttm,  # Same
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result is None
+
+
+def test_get_group_limit_filters_different_bounds(mock_datasource):
+    """
+    Test filter creation when inner bounds differ.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        inner_from_dttm=datetime(2025, 9, 22),  # Different (30 days)
+        inner_to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 9, 22),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22),
+        ),
+    }
+
+
+def test_get_group_limit_filters_with_extras(mock_datasource):
+    """
+    Test that extras filters are included in group limit filters.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        inner_from_dttm=datetime(2025, 9, 22),
+        inner_to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        extras={"where": "customer_id > 100"},
+    )
+
+    result = _get_group_limit_filters(query_object, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 9, 22),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22),
+        ),
+        AdhocFilter(
+            type=PredicateType.WHERE,
+            definition="customer_id > 100",
+        ),
+    }
+
+
+def test_map_query_object_basic(mock_datasource):
+    """
+    Test basic query object mapping.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        row_limit=100,
+        row_offset=10,
+    )
+
+    result = map_query_object(query_object)
+
+    assert result == [
+        SemanticQuery(
+            metrics={
+                Metric(
+                    id="orders.total_sales",
+                    name="total_sales",
+                    type=NUMBER,
+                    definition="SUM(amount)",
+                    description="Total sales",
+                ),
+            },
+            dimensions={
+                Dimension(
+                    id="products.category",
+                    name="category",
+                    type=STRING,
+                    definition="category",
+                    description="Product category",
+                    grain=None,
+                ),
+            },
+            filters={
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=Dimension(
+                        id="orders.order_date",
+                        name="order_date",
+                        type=STRING,
+                        definition="order_date",
+                        description="Order date",
+                        grain=None,
+                    ),
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=datetime(2025, 10, 15, 0, 0),
+                ),
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=Dimension(
+                        id="orders.order_date",
+                        name="order_date",
+                        type=STRING,
+                        definition="order_date",
+                        description="Order date",
+                        grain=None,
+                    ),
+                    operator=Operator.LESS_THAN,
+                    value=datetime(2025, 10, 22, 0, 0),
+                ),
+            },
+            order=[],
+            limit=100,
+            offset=10,
+            group_limit=GroupLimit(
+                dimensions=[],
+                top=0,
+                metric=None,
+                direction=OrderDirection.DESC,
+                group_others=False,
+                filters=None,
+            ),
+        )
+    ]
+
+
+def test_map_query_object_with_time_offsets(mock_datasource):
+    """
+    Test mapping with time offsets.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago", "1 month ago"],
+    )
+
+    result = map_query_object(query_object)
+
+    # Should have 3 queries: main + 2 offsets
+    assert len(result) == 3
+    assert result[0].filters == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 15, 0, 0),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22, 0, 0),
+        ),
+    }
+    assert result[1].filters == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 8, 0, 0),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 15, 0, 0),
+        ),
+    }
+    assert result[2].filters == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 9, 15, 0, 0),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 9, 22, 0, 0),
+        ),
+    }
+
+
+def test_map_query_object_with_group_limit(mock_datasource):
+    """
+    Test mapping with group limit.
+    """
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category", "region"],
+        series_columns=["category"],
+        series_limit=10,
+        series_limit_metric="total_sales",
+        granularity="order_date",
+    )
+
+    result = map_query_object(query_object)
+
+    assert len(result) == 1
+
+    semantic_query = result[0]
+    print(semantic_query.group_limit.dimensions)
+    assert semantic_query.group_limit == GroupLimit(
+        top=10,
+        dimensions=[
+            Dimension(
+                id="products.category",
+                name="category",
+                type=STRING,
+                definition="category",
+                description="Product category",
+                grain=None,
+            )
+        ],
+        metric=Metric(
+            id="orders.total_sales",
+            name="total_sales",
+            type=NUMBER,
+            definition="SUM(amount)",
+            description="Total sales",
+        ),
+        direction=OrderDirection.DESC,
+        group_others=False,
+        filters=None,
+    )
+
+
+def test_map_query_object_with_order(mock_datasource):
+    """
+    Test mapping with order by (testing _get_order directly).
+    """
+    all_metrics = {
+        metric.name: metric for metric in mock_datasource.implementation.metrics
+    }
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity="order_date",
+        orderby=[("total_sales", False)],
+    )
+
+    # Test _get_order_from_query_object directly to avoid validation
+    order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+
+    assert order == [(all_metrics["total_sales"], OrderDirection.DESC)]
+
+
+def test_map_query_object_filters_all_sources(mock_datasource):
+    """
+    Test that filters from all sources are combined.
+    """
+    mock_datasource.fetch_values_predicate = "tenant_id = 123"
+
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["order_date", "category"],
+        granularity="order_date",
+        apply_fetch_values_predicate=True,
+        extras={
+            "where": "customer_id > 100",
+            "having": "SUM(amount) > 1000",
+        },
+        filter=[
+            {
+                "op": FilterOperator.EQUALS.value,
+                "col": "region",
+                "val": "US",
+            }
+        ],
+    )
+
+    result = map_query_object(query_object)
+
+    assert len(result) == 1
+
+    semantic_query = result[0]
+    filters = semantic_query.filters
+
+    # Should have at least:
+    # - 2 time filters (>= and <)
+    # - 1 fetch values filter
+    # - 2 extras filters (where and having)
+    # May also have region filter if it gets converted
+    assert filters == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.LESS_THAN,
+            value=datetime(2025, 10, 22, 0, 0),
+        ),
+        AdhocFilter(type=PredicateType.WHERE, definition="tenant_id = 123"),
+        Filter(
+            type=PredicateType.WHERE,
+            column=Dimension(
+                id="orders.order_date",
+                name="order_date",
+                type=STRING,
+                definition="order_date",
+                description="Order date",
+                grain=None,
+            ),
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2025, 10, 15, 0, 0),
+        ),
+        AdhocFilter(type=PredicateType.HAVING, definition="SUM(amount) > 1000"),
+        AdhocFilter(type=PredicateType.WHERE, definition="customer_id > 100"),
+    }

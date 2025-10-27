@@ -84,7 +84,9 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
     queries = []
     for time_offset in [None] + query_object.time_offsets:
         filters = _get_filters_from_query_object(
-            query_object, time_offset, all_dimensions
+            query_object,
+            time_offset,
+            all_dimensions,
         )
 
         queries.append(
@@ -247,7 +249,13 @@ def _get_time_bounds(
         return query_object.from_dttm, query_object.to_dttm
 
     # Time offset query: calculate shifted bounds
-    outer_from, outer_to = get_since_until_from_query_object(query_object)
+    # Use from_dttm/to_dttm if available, otherwise try to get from time_range
+    outer_from = query_object.from_dttm
+    outer_to = query_object.to_dttm
+
+    if not outer_from or not outer_to:
+        # Fall back to parsing time_range if from_dttm/to_dttm not set
+        outer_from, outer_to = get_since_until_from_query_object(query_object)
 
     if not outer_from or not outer_to:
         return None, None
