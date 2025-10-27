@@ -55,17 +55,17 @@ const zoomStates = {};
 
 function CountryMap(element, props) {
   const {
-    data = [],
-    width = 800,
-    height = 400,
+    data,
+    width,
+    height,
     country,
     entity,
     linearColorScheme,
     numberFormat,
     colorScheme,
     sliceId,
-    filterState = {},
-    emitCrossFilters = false,
+    filterState,
+    emitCrossFilters,
     onContextMenu,
     setDataMask,
   } = props;
@@ -78,7 +78,7 @@ function CountryMap(element, props) {
 
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => (v ? v.metric : 0)));
+    .createLinearScale(d3Extent(data, v => v.metric));
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
@@ -101,7 +101,6 @@ function CountryMap(element, props) {
   div.selectAll('*').remove();
   container.style.height = `${height}px`;
   container.style.width = `${width}px`;
-
   const svg = div
     .append('svg:svg')
     .attr('width', width)
@@ -110,17 +109,14 @@ function CountryMap(element, props) {
 
   const g = svg.append('g');
   const mapLayer = g.append('g').classed('map-layer', true);
-
   const textLayer = svg
     .append('g')
     .attr('class', 'text-layer')
     .attr('transform', `translate(${width / 2}, 45)`);
-
   const bigText = textLayer
     .append('text')
     .classed('big-text', true)
     .style('font-size', '18px');
-
   const resultText = textLayer
     .append('text')
     .classed('result-text', true)
