@@ -111,6 +111,7 @@ const TabsRenderer = memo<TabsRendererProps>(
         type={editMode ? 'editable-card' : 'card'}
         items={tabItems}
         tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+        fullHeight
       />
     </StyledTabsContainer>
   ),

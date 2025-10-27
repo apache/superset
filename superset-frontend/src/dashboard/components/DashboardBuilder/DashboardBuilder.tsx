@@ -305,7 +305,7 @@ const StyledDashboardContent = styled.div<{
 
       /* this is the ParentSize wrapper */
     & > div:first-child {
-        height: inherit !important;
+        height: 100% !important;
       }
     }
 

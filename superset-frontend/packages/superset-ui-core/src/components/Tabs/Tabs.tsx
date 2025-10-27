@@ -24,11 +24,13 @@ import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
+  fullHeight?: boolean;
 }
 
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
+  fullHeight = false,
   tabBarStyle,
   ...props
 }: TabsProps) => {
@@ -43,9 +45,17 @@ const StyledTabs = ({
       tabBarStyle={mergedStyle}
       css={theme => css`
         overflow: ${allowOverflow ? 'visible' : 'hidden'};
+        ${fullHeight && 'height: 100%;'}
 
         .ant-tabs-content-holder {
           overflow: ${allowOverflow ? 'visible' : 'auto'};
+          ${fullHeight && 'height: 100%;'}
+        }
+        .ant-tabs-content {
+          ${fullHeight && 'height: 100%;'}
+        }
+        .ant-tabs-tabpane {
+          ${fullHeight && 'height: 100%;'}
         }
         .ant-tabs-tab {
           flex: 1 1 auto;
