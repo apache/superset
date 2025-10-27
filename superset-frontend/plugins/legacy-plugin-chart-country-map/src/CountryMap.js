@@ -41,9 +41,17 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
+  onContextMenu: PropTypes.func,
+  emitCrossFilters: PropTypes.bool,
+  setDataMask: PropTypes.func,
+  filterState: PropTypes.object,
+  entity: PropTypes.string,
+  sliceId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 const maps = {};
+// Store zoom state per chart instance using element as key to enable garbage collection
+const zoomStates = new WeakMap();
 
 function CountryMap(element, props) {
   const {
@@ -51,17 +59,24 @@ function CountryMap(element, props) {
     width,
     height,
     country,
+    entity,
     linearColorScheme,
     numberFormat,
     colorScheme,
     sliceId,
+    filterState,
+    emitCrossFilters,
+    onContextMenu,
+    setDataMask,
   } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
+
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap = {};
@@ -70,7 +85,12 @@ function CountryMap(element, props) {
       ? colorScale(d.country_id, sliceId)
       : linearColorScale(d.metric);
   });
-  const colorFn = d => colorMap[d.properties.ISO] || 'none';
+
+  const colorFn = feature => {
+    if (!feature?.properties) return 'none';
+    const iso = feature.properties.ISO;
+    return colorMap[iso] || '#d9d9d9';
+  };
 
   const path = d3.geo.path();
   const div = d3.select(container);
@@ -90,40 +110,65 @@ function CountryMap(element, props) {
     .attr('height', height);
   const g = svg.append('g');
   const mapLayer = g.append('g').classed('map-layer', true);
+  // Add hover popup for tooltip
   const hoverPopup = div.append('div').attr('class', 'hover-popup');
 
   let centered;
 
-  const clicked = function clicked(d) {
-    const hasCenter = d && centered !== d;
-    let x;
-    let y;
-    let k;
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
+  // Cross-filter support
+  const getCrossFilterDataMask = source => {
+    // Guard check for entity prop
+    if (!entity) return undefined;
 
-    if (hasCenter) {
-      const centroid = path.centroid(d);
-      [x, y] = centroid;
-      k = 4;
-      centered = d;
-    } else {
-      x = halfWidth;
-      y = halfHeight;
-      k = 1;
-      centered = null;
-    }
+    const selected = filterState?.selectedValues || [];
+    const iso = source?.properties?.ISO;
+    if (!iso) return undefined;
 
-    g.transition()
-      .duration(750)
-      .attr(
-        'transform',
-        `translate(${halfWidth},${halfHeight})scale(${k})translate(${-x},${-y})`,
-      );
+    const isSelected = selected.includes(iso);
+    const values = isSelected ? [] : [iso];
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters: values.length
+            ? [{ col: entity, op: 'IN', val: values }]
+            : [],
+        },
+        filterState: {
+          value: values.length ? values : null,
+          selectedValues: values.length ? values : null,
+        },
+      },
+      isCurrentValueSelected: isSelected,
+    };
   };
 
-  backgroundRect.on('click', clicked);
+  // Handle right-click context menu
+  const handleContextMenu = feature => {
+    const pointerEvent = d3.event;
 
+    // Only prevent default if we have a context menu handler
+    if (typeof onContextMenu === 'function') {
+      pointerEvent?.preventDefault();
+    }
+
+    const iso = feature?.properties?.ISO;
+    if (!iso || typeof onContextMenu !== 'function' || !entity) return;
+
+    const drillVal = iso;
+    const drillToDetailFilters = [
+      { col: entity, op: '==', val: drillVal, formattedVal: drillVal },
+    ];
+    const drillByFilters = [{ col: entity, op: '==', val: drillVal }];
+
+    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+      drillToDetail: drillToDetailFilters,
+      crossFilter: getCrossFilterDataMask(feature),
+      drillBy: { filters: drillByFilters, groupbyFieldName: entity },
+    });
+  };
+
+  // Helper to get region name
   const getNameOfRegion = function getNameOfRegion(feature) {
     if (feature && feature.properties) {
       if (feature.properties.ID_2) {
@@ -134,18 +179,17 @@ function CountryMap(element, props) {
     return '';
   };
 
+  // Mouse enter handler with tooltip (merged from both versions)
   const mouseenter = function mouseenter(d) {
     // Darken color
     let c = colorFn(d);
-    if (c !== 'none') {
+    if (c && c !== 'none') {
       c = d3.rgb(c).darker().toString();
     }
     d3.select(this).style('fill', c);
-    // Display information popup
-    const result = data.filter(
-      region => region.country_id === d.properties.ISO,
-    );
 
+    // Display information popup
+    const result = data.filter(r => r.country_id === d?.properties?.ISO);
     const position = d3.mouse(svg.node());
     hoverPopup
       .style('display', 'block')
@@ -156,6 +200,7 @@ function CountryMap(element, props) {
       );
   };
 
+  // Mouse move handler to update tooltip position
   const mousemove = function mousemove() {
     const position = d3.mouse(svg.node());
     hoverPopup
@@ -163,9 +208,107 @@ function CountryMap(element, props) {
       .style('left', `${position[0]}px`);
   };
 
+  // Mouse out handler (merged from both versions)
   const mouseout = function mouseout() {
-    d3.select(this).style('fill', colorFn);
+    d3.select(this).style('fill', d => colorFn(d));
     hoverPopup.style('display', 'none');
+  };
+
+  // Zoom with panning bounds
+  const zoom = d3.behavior
+    .zoom()
+    .scaleExtent([1, 4])
+    .on('zoom', () => {
+      const { translate, scale } = d3.event;
+      let [tx, ty] = translate;
+
+      const scaledW = width * scale;
+      const scaledH = height * scale;
+      const minX = Math.min(0, width - scaledW);
+      const maxX = 0;
+      const minY = Math.min(0, height - scaledH);
+      const maxY = 0;
+
+      tx = Math.max(Math.min(tx, maxX), minX);
+      ty = Math.max(Math.min(ty, maxY), minY);
+
+      g.attr('transform', `translate(${tx}, ${ty}) scale(${scale})`);
+      // Prevent redundant writes by updating zoomStates only when scale or translate values change
+      const prev = zoomStates.get(element);
+      const changed =
+        !prev ||
+        prev.scale !== scale ||
+        prev.translate[0] !== tx ||
+        prev.translate[1] !== ty;
+      if (changed) {
+        // Store zoom state using element as WeakMap key
+        zoomStates.set(element, { scale, translate: [tx, ty] });
+      }
+    });
+
+  d3.select(svg.node()).call(zoom);
+
+  // Restore previous zoom state if it exists
+  const savedZoom = zoomStates.get(element);
+  if (savedZoom) {
+    const { scale, translate } = savedZoom;
+    zoom.scale(scale).translate(translate);
+    g.attr(
+      'transform',
+      `translate(${translate[0]}, ${translate[1]}) scale(${scale})`,
+    );
+  }
+
+  // Visual highlighting for selected regions
+  function highlightSelectedRegion(selectedValues = null) {
+    const selected = selectedValues || filterState?.selectedValues || [];
+
+    mapLayer
+      .selectAll('path.region')
+      .style('fill-opacity', d => {
+        const iso = d?.properties?.ISO;
+        return selected.length === 0 || selected.includes(iso) ? 1 : 0.3;
+      })
+      .style('stroke', d => {
+        const iso = d?.properties?.ISO;
+        return selected.includes(iso) ? '#222' : null;
+      })
+      .style('stroke-width', d => {
+        const iso = d?.properties?.ISO;
+        return selected.includes(iso) ? '1.5px' : '0.5px';
+      });
+  }
+
+  // Click handler for cross-filters
+  const handleClick = feature => {
+    // Guard checks for required props
+    if (!entity || !emitCrossFilters || typeof setDataMask !== 'function') {
+      return;
+    }
+
+    const iso = feature?.properties?.ISO;
+    if (!iso) return;
+
+    const selectedValues = filterState?.selectedValues || [];
+    const isSelected = selectedValues.includes(iso);
+
+    // Toggle selection: if already selected, clear; otherwise select this region
+    const newSelection = isSelected ? [] : [iso];
+
+    setDataMask({
+      extraFormData: {
+        filters: newSelection.length
+          ? [{ col: entity, op: 'IN', val: newSelection }]
+          : [],
+      },
+      filterState: {
+        value: newSelection.length ? newSelection : null,
+        selectedValues: newSelection.length ? newSelection : null,
+      },
+    });
+
+    // Pass new selection directly to avoid stale state
+    highlightSelectedRegion(newSelection.length ? newSelection : []);
   };
 
   function drawMap(mapData) {
@@ -179,13 +322,11 @@ function CountryMap(element, props) {
       .translate([width / 2, height / 2]);
     path.projection(projection);
 
-    // Compute scale that fits container.
     const bounds = path.bounds(mapData);
     const hscale = (scale * width) / (bounds[1][0] - bounds[0][0]);
     const vscale = (scale * height) / (bounds[1][1] - bounds[0][1]);
-    const newScale = hscale < vscale ? hscale : vscale;
+    const newScale = Math.min(hscale, vscale);
 
-    // Compute bounds and offset using the updated scale.
     projection.scale(newScale);
     const newBounds = path.bounds(mapData);
     projection.translate([
@@ -193,20 +334,25 @@ function CountryMap(element, props) {
       height - (newBounds[0][1] + newBounds[1][1]) / 2,
     ]);
 
-    // Draw each province as a path
-    mapLayer
-      .selectAll('path')
-      .data(features)
+    const sel = mapLayer.selectAll('path.region').data(features);
+
+    sel
       .enter()
       .append('path')
-      .attr('d', path)
       .attr('class', 'region')
       .attr('vector-effect', 'non-scaling-stroke')
+      .attr('d', path)
       .style('fill', colorFn)
       .on('mouseenter', mouseenter)
       .on('mousemove', mousemove)
       .on('mouseout', mouseout)
-      .on('click', clicked);
+      .on('contextmenu', handleContextMenu)
+      .on('click', handleClick );
+
+    mapLayer.selectAll('path.region').attr('d', path).style('fill', colorFn);
+    sel.exit().remove();
+
+    highlightSelectedRegion();
   }
 
   const map = maps[country];
