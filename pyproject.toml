@@ -58,8 +58,8 @@ dependencies = [
     "greenlet>=3.0.3, <=3.1.1",
     "gunicorn>=22.0.0; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
-    # known issue with holidays 0.26.0 and above related to prophet lib #25017
-    "holidays>=0.25, <0.26",
+    # holidays>=0.45 required for security fix
+    "holidays>=0.45, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
@@ -165,7 +165,7 @@ playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.6"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.328.0"]
-prophet = ["prophet>=1.1.5, <2"]
+prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
