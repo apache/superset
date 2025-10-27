@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ActionButton } from '.';
 
