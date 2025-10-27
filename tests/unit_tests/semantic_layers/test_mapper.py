@@ -1149,7 +1149,9 @@ def test_convert_query_object_filter(
 
 
 def test_convert_query_object_filter_like():
-    """Test filter with LIKE operator."""
+    """
+    Test filter with LIKE operator.
+    """
     all_dimensions = {"name": Dimension("name", "name", STRING, "name", "Name")}
 
     filter_ = {

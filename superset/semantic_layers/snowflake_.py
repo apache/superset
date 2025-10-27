@@ -82,10 +82,11 @@ def substitute_parameters(query: str, parameters: Sequence[Any] | None) -> str:
     for parameter in parameters:
         if parameter is None:
             replacement = "NULL"
+        elif isinstance(parameter, bool):
+            # Check bool before int/float since bool is a subclass of int
+            replacement = str(parameter).upper()
         elif isinstance(parameter, (int, float)):
             replacement = str(parameter)
-        elif isinstance(parameter, bool):
-            replacement = str(parameter).upper()
         else:
             # String - escape single quotes
             quoted = str(parameter).replace("'", "''")
@@ -244,9 +245,9 @@ def get_connection_parameters(configuration: SnowflakeConfiguration) -> dict[str
         params["password"] = auth.password.get_secret_value()
     elif isinstance(auth, PrivateKeyAuth):
         pem_private_key = serialization.load_pem_private_key(
-            auth.private_key.encode(),
+            auth.private_key.get_secret_value().encode(),
             password=(
-                auth.private_key_password.encode()
+                auth.private_key_password.get_secret_value().encode()
                 if auth.private_key_password
                 else None
             ),
