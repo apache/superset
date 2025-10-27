@@ -17,11 +17,12 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ActionButton } from '.';
 
 const defaultProps = {
   label: 'test-action',
-  icon: 'EditOutlined',
+  icon: <Icons.EditOutlined />,
   onClick: jest.fn(),
 };
 
@@ -79,7 +80,7 @@ test('supports ReactElement tooltip', async () => {
 });
 
 test('renders different icons correctly', () => {
-  render(<ActionButton {...defaultProps} icon="DeleteOutlined" />);
+  render(<ActionButton {...defaultProps} icon={<Icons.DeleteOutlined />} />);
 
   const button = screen.getByRole('button');
   expect(button).toBeInTheDocument();
@@ -92,7 +93,7 @@ test('renders with custom placement for tooltip', async () => {
   );
 
   const button = screen.getByRole('button');
-  await userEvent.hover(button);
+  userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();

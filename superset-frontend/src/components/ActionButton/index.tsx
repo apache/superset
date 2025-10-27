@@ -19,10 +19,9 @@
 
 import type { ReactElement } from 'react';
 import {
-  Icons,
-  type IconNameType,
   Tooltip,
   type TooltipPlacement,
+  type IconType,
 } from '@superset-ui/core/components';
 import { css, useTheme } from '@superset-ui/core';
 
@@ -30,8 +29,7 @@ export interface ActionProps {
   label: string;
   tooltip?: string | ReactElement;
   placement?: TooltipPlacement;
-  icon: string;
-  iconSize?: 's' | 'm' | 'l' | 'xl' | 'xs';
+  icon: IconType;
   onClick: () => void;
 }
 
@@ -40,11 +38,9 @@ export const ActionButton = ({
   tooltip,
   placement,
   icon,
-  iconSize,
   onClick,
 }: ActionProps) => {
   const theme = useTheme();
-  const ActionIcon = Icons[icon as IconNameType];
   const actionButton = (
     <span
       role="button"
@@ -63,7 +59,7 @@ export const ActionButton = ({
       data-test={label}
       onClick={onClick}
     >
-      <ActionIcon iconSize={iconSize || 'l'} />
+      {icon}
     </span>
   );
 

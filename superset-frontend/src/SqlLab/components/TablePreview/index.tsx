@@ -236,15 +236,13 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       <ActionButton
         label="Refresh table schema"
         tooltip={t('Refresh table schema')}
-        icon="SyncOutlined"
-        iconSize="m"
+        icon={<Icons.SyncOutlined iconSize="m" />}
         onClick={refreshTableMetadata}
       />
       {tableData.selectStar && (
         <ActionButton
           label="Copy SELECT statement"
-          icon="CopyOutlined"
-          iconSize="m"
+          icon={<Icons.CopyOutlined iconSize="m" />}
           tooltip={t('Copy SELECT statement')}
           onClick={() => copyStatementActionRef.current?.click()}
         />
@@ -252,8 +250,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       {tableData.view && (
         <ActionButton
           label="Show CREATE VIEW statement"
-          icon="EyeOutlined"
-          iconSize="m"
+          icon={<Icons.EyeOutlined iconSize="m" />}
           tooltip={t('Show CREATE VIEW statement')}
           onClick={() => showViewStatementActionRef.current?.click()}
         />

@@ -37,7 +37,11 @@
  */
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
-import { type TooltipPlacement } from '@superset-ui/core/components';
+import {
+  IconNameType,
+  Icons,
+  type TooltipPlacement,
+} from '@superset-ui/core/components';
 import { ActionButton } from '../ActionButton';
 
 export type ActionProps = {
@@ -60,9 +64,16 @@ const StyledActions = styled.span`
 export function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
-      {actions.map((action, index) => (
-        <ActionButton key={action.tooltip ? undefined : index} {...action} />
-      ))}
+      {actions.map(({ icon, tooltip, ...rest }, index) => {
+        const IconComponent = Icons[icon as IconNameType];
+        return (
+          <ActionButton
+            key={tooltip ? undefined : index}
+            icon={<IconComponent />}
+            {...rest}
+          />
+        );
+      })}
     </StyledActions>
   );
 }
