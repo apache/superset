@@ -41,8 +41,8 @@ import {
   IconNameType,
   Icons,
   type TooltipPlacement,
+  ActionButton,
 } from '@superset-ui/core/components';
-import { ActionButton } from '../ActionButton';
 
 export type ActionProps = {
   label: string;
