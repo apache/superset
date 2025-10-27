@@ -24,9 +24,8 @@ metadata:
   name: {{ template "superset.fullname" . }}-celerybeat
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-celerybeat
+    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 4 }}
     chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.extraLabels }}
       {{- toYaml .Values.extraLabels | nindent 4 }}
@@ -59,8 +58,7 @@ spec:
           {{- toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-celerybeat"
-        release: {{ .Release.Name }}
+        {{- include "supersetCeleryBeat.selectorLabels" . | nindent 8 }}
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}

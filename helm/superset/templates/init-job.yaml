@@ -24,9 +24,8 @@ metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
+    {{- include "superset.commonLabels" . | nindent 4 }}
     chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.extraLabels }}
       {{- toYaml .Values.extraLabels | nindent 4 }}

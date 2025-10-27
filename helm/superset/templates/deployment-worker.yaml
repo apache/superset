@@ -23,9 +23,8 @@ metadata:
   name: {{ template "superset.fullname" . }}-worker
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-worker
+    {{- include "supersetWorker.selectorLabels" . | nindent 4 }}
     chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.extraLabels }}
       {{- toYaml .Values.extraLabels | nindent 4 }}
@@ -65,8 +64,7 @@ spec:
           {{- toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ template "superset.name" . }}-worker
-        release: {{ .Release.Name }}
+        {{- include "supersetWorker.selectorLabels" . | nindent 8 }}
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}

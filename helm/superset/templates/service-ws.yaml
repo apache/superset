@@ -24,9 +24,8 @@ metadata:
   name: "{{ template "superset.fullname" . }}-ws"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
+    {{- include "supersetWebsockets.selectorLabels" . | nindent 4 }}
     chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.extraLabels }}
       {{- toYaml .Values.extraLabels | nindent 4 }}
@@ -45,8 +44,7 @@ spec:
       nodePort: {{ .Values.supersetWebsockets.service.nodePort.http }}
       {{- end }}
   selector:
-    app: "{{ template "superset.name" . }}-ws"
-    release: {{ .Release.Name }}
+  {{- include "supersetWebsockets.selectorLabels" . | nindent 4 }}
   {{- if .Values.supersetWebsockets.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.supersetWebsockets.service.loadBalancerIP }}
   {{- end }}
