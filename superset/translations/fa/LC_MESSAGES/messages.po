@@ -767,10 +767,10 @@ msgstr ""
 msgid "AUG"
 msgstr "آگوست"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "حاشیه عنوان محور"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "محل عنوان محور"
 
 msgid "About"
@@ -13425,7 +13425,7 @@ msgstr "توضیحی برای کوئری خود بنویسید."
 msgid "Write a handlebars template to render the data"
 msgstr "یک الگوی هندل‌بارز برای نمایش داده‌ها بنویسید."
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "حاشیه عنوان محور ایکس"
 
 msgid "X Axis"
@@ -13474,7 +13474,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "بازه‌های Y ۲"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "حاشیه عنوان محور Y"
 
 msgid "Y Axis"
