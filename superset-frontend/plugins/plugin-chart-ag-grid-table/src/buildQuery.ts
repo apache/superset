@@ -20,6 +20,7 @@ import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
   isPhysicalColumn,
   QueryFormColumn,
@@ -194,6 +195,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
@@ -223,31 +225,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (Array.isArray(sortSource) && sortSource.length > 0) {
       const mapColIdToIdentifier = (colId: string): string | undefined => {
         const matchingColumn = columns.find((col: QueryFormColumn) => {
-          if (typeof col === 'string') return col === colId;
-          return col?.sqlExpression === colId || col?.label === colId;
+          const colLabel = getColumnLabel(col);
+          return colLabel === colId;
         });
 
         if (matchingColumn) {
-          return typeof matchingColumn === 'string'
-            ? matchingColumn
-            : matchingColumn.sqlExpression || matchingColumn.label;
+          return getColumnLabel(matchingColumn);
         }
 
         const matchingMetric = (metrics || []).find((met: QueryFormMetric) => {
-          if (typeof met === 'string')
-            return met === colId || `%${met}` === colId;
           const metLabel = getMetricLabel(met);
-          return (
-            metLabel === colId ||
-            met?.label === colId ||
-            `%${metLabel}` === colId
-          );
+          return metLabel === colId || `%${metLabel}` === colId;
         });
 
         if (matchingMetric) {
-          return typeof matchingMetric === 'string'
-            ? matchingMetric
-            : getMetricLabel(matchingMetric);
+          return getMetricLabel(matchingMetric);
         }
 
         return colId;
@@ -392,6 +384,43 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
+    /**
+     * Helper to determine if a column is a metric (needs HAVING) or dimension (needs WHERE)
+     */
+    const isMetricColumn = (colId: string): boolean => {
+      const metricLabels = new Set(
+        (metrics || []).map(m =>
+          typeof m === 'string' ? m : getMetricLabel(m),
+        ),
+      );
+      return metricLabels.has(colId) || colId.startsWith('%');
+    };
+
+    /**
+     * Helper to classify SQL clauses into WHERE (for dimensions) and HAVING (for metrics)
+     */
+    const classifySQLClauses = (
+      sqlClauses: Record<string, string>,
+    ): { whereClause?: string; havingClause?: string } => {
+      const whereClauses: string[] = [];
+      const havingClauses: string[] = [];
+
+      Object.entries(sqlClauses).forEach(([colId, sqlClause]) => {
+        if (isMetricColumn(colId)) {
+          havingClauses.push(sqlClause);
+        } else {
+          whereClauses.push(sqlClause);
+        }
+      });
+
+      return {
+        whereClause:
+          whereClauses.length > 0 ? whereClauses.join(' AND ') : undefined,
+        havingClause:
+          havingClauses.length > 0 ? havingClauses.join(' AND ') : undefined,
+      };
+    };
+
     if (formData.server_pagination) {
       // Add search filter if search text exists
       if (ownState.searchText && ownState?.searchColumn) {
@@ -409,16 +438,37 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
-    // Apply AG Grid filters from export (already in standard filter format)
-    if (
-      isDownloadQuery &&
-      Array.isArray(ownState.filters) &&
-      ownState.filters.length > 0
-    ) {
-      queryObject = {
-        ...queryObject,
-        filters: [...(queryObject.filters || []), ...ownState.filters],
-      };
+    if (isDownloadQuery) {
+      // Apply any QueryFilterClause filters from ownState (e.g., server pagination search)
+      if (ownState.filters?.length) {
+        queryObject.filters = [
+          ...(queryObject.filters || []),
+          ...ownState.filters,
+        ];
+      }
+
+      // Apply AG Grid filters converted to SQL WHERE/HAVING clauses
+      if (ownState.sqlClauses) {
+        const { whereClause, havingClause } = classifySQLClauses(
+          ownState.sqlClauses as Record<string, string>,
+        );
+
+        if (whereClause || havingClause) {
+          queryObject.extras = {
+            ...queryObject.extras,
+            ...(whereClause && {
+              where: queryObject.extras?.where
+                ? `${queryObject.extras.where} AND ${whereClause}`
+                : whereClause,
+            }),
+            ...(havingClause && {
+              having: queryObject.extras?.having
+                ? `${queryObject.extras.having} AND ${havingClause}`
+                : havingClause,
+            }),
+          };
+        }
+      }
     }
 
     // Now since row limit control is always visible even

@@ -737,7 +737,7 @@ const transformProps = (
     basicColorColumnFormatters,
     basicColorFormatters,
     formData,
-    savedAgGridState: serverPaginationData?.savedAgGridState,
+    chartState: serverPaginationData?.chartState,
     onChartStateChange,
   };
 };

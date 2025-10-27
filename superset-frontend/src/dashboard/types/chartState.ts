@@ -21,16 +21,10 @@
 import type { AgGridChartState } from '@superset-ui/core';
 
 export type {
-  AgGridColumnState,
   AgGridSortModel,
+  AgGridFilter,
   AgGridFilterModel,
   AgGridChartState,
-  AgGridQueryFilterClause,
-} from '@superset-ui/core';
-export {
-  AgGridFilterType,
-  AgGridTextFilterOperator,
-  AgGridNumberFilterOperator,
 } from '@superset-ui/core';
 
 export interface ChartState {

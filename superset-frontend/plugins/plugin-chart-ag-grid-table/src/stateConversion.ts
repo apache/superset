@@ -19,11 +19,11 @@
 
 import {
   BackendOwnState,
-  QueryFilterClause,
   QuerySortBy,
   type AgGridChartState,
   type AgGridSortModel,
   type AgGridFilterModel,
+  type AgGridFilter,
 } from '@superset-ui/core';
 
 /**
@@ -50,9 +50,6 @@ const NUMBER_FILTER_OPERATORS: Record<string, string> = {
   greaterThanOrEqual: '>=',
 };
 
-/**
- * Converts text filter value based on filter type
- */
 function getTextComparator(type: string, value: string): string {
   if (type === 'contains' || type === 'notContains') {
     return `%${value}%`;
@@ -100,55 +97,102 @@ export function convertColumnState(
 }
 
 /**
- * Converts AG Grid filterModel to backend filter clauses
+ * Converts any AG Grid filter to a SQL WHERE/HAVING clause.
+ * Recursively handles both simple filters (single condition) and complex filters (multiple conditions with AND/OR).
+ *
+ * Examples:
+ * - Simple text: {filterType: 'text', type: 'contains', filter: 'abc'} → "column_name ILIKE '%abc%'"
+ * - Simple number: {filterType: 'number', type: 'greaterThan', filter: 5} → "column_name > 5"
+ * - Complex: {operator: 'AND', condition1: {type: 'greaterThan', filter: 1}, condition2: {type: 'lessThan', filter: 16}}
+ *   → "(column_name > 1 AND column_name < 16)"
+ * - Set: {filterType: 'set', values: ['a', 'b']} → "column_name IN ('a', 'b')"
+ */
+function convertFilterToSQL(
+  colId: string,
+  filter: AgGridFilter,
+): string | null {
+  // Complex filter: has operator and conditions
+  if (
+    filter.operator &&
+    (filter.condition1 || filter.condition2 || filter.conditions)
+  ) {
+    const conditions: string[] = [];
+
+    // Collect all conditions
+    [filter.condition1, filter.condition2, ...(filter.conditions || [])]
+      .filter(Boolean)
+      .forEach(condition => {
+        const sql = convertFilterToSQL(colId, condition!);
+        if (sql) conditions.push(sql);
+      });
+
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
+
+    return `(${conditions.join(` ${filter.operator} `)})`;
+  }
+
+  if (filter.filterType === 'text' && filter.filter && filter.type) {
+    const op = TEXT_FILTER_OPERATORS[filter.type];
+    const val = getTextComparator(filter.type, String(filter.filter));
+    return op === 'ILIKE' || op === 'NOT ILIKE'
+      ? `${colId} ${op} '${val}'`
+      : `${colId} ${op} '${filter.filter}'`;
+  }
+
+  if (
+    filter.filterType === 'number' &&
+    filter.filter !== undefined &&
+    filter.type
+  ) {
+    const op = NUMBER_FILTER_OPERATORS[filter.type];
+    return `${colId} ${op} ${filter.filter}`;
+  }
+
+  if (filter.filterType === 'date' && filter.dateFrom && filter.type) {
+    const op = NUMBER_FILTER_OPERATORS[filter.type];
+    return `${colId} ${op} '${filter.dateFrom}'`;
+  }
+
+  if (
+    filter.filterType === 'set' &&
+    Array.isArray(filter.values) &&
+    filter.values.length > 0
+  ) {
+    const values = filter.values.map((v: string) => `'${v}'`).join(', ');
+    return `${colId} IN (${values})`;
+  }
+
+  return null;
+}
+
+/**
+ * Converts AG Grid filterModel to SQL WHERE/HAVING clauses.
+ * All filters (simple and complex) are uniformly converted to SQL for consistent backend handling.
+ *
+ * Returns a map of column IDs to their SQL filter expressions.
  */
 export function convertFilterModel(
   filterModel: AgGridFilterModel,
-): QueryFilterClause[] | undefined {
+): { sqlClauses?: Record<string, string> } | undefined {
   if (!filterModel || Object.keys(filterModel).length === 0) {
     return undefined;
   }
 
-  const filters: QueryFilterClause[] = [];
+  const sqlClauses: Record<string, string> = {};
 
-  Object.keys(filterModel).forEach(colId => {
-    const filter = filterModel[colId];
-
-    // Text filter
-    if (filter.filterType === 'text' && filter.filter && filter.type) {
-      filters.push({
-        col: colId,
-        op: TEXT_FILTER_OPERATORS[filter.type] || 'ILIKE',
-        val: getTextComparator(filter.type, filter.filter),
-      });
-    }
-    // Number filter
-    else if (
-      filter.filterType === 'number' &&
-      filter.filter !== undefined &&
-      filter.type
-    ) {
-      filters.push({
-        col: colId,
-        op: NUMBER_FILTER_OPERATORS[filter.type] || '==',
-        val: filter.filter,
-      });
-    }
-    // Set filter (multi-select)
-    else if (
-      filter.filterType === 'set' &&
-      Array.isArray(filter.values) &&
-      filter.values.length > 0
-    ) {
-      filters.push({
-        col: colId,
-        op: 'IN',
-        val: filter.values,
-      });
+  Object.entries(filterModel).forEach(([colId, filter]) => {
+    const sqlClause = convertFilterToSQL(colId, filter);
+    if (sqlClause) {
+      sqlClauses[colId] = sqlClause;
     }
   });
 
-  return filters.length > 0 ? filters : undefined;
+  if (Object.keys(sqlClauses).length === 0) {
+    return undefined;
+  }
+
+  return { sqlClauses };
 }
 
 /**
@@ -163,25 +207,21 @@ export function convertAgGridStateToOwnState(
 ): Partial<BackendOwnState> {
   const ownState: Partial<BackendOwnState> = {};
 
-  // Convert sort model
   const sortBy = convertSortModel(agGridState.sortModel);
   if (sortBy) {
     ownState.sortBy = sortBy;
   }
 
-  // Convert column state
   const columnOrder = convertColumnState(agGridState.columnState);
   if (columnOrder) {
     ownState.columnOrder = columnOrder;
   }
 
-  // Convert filter model
-  const filters = convertFilterModel(agGridState.filterModel);
-  if (filters) {
-    ownState.filters = filters;
+  const filterConversion = convertFilterModel(agGridState.filterModel);
+  if (filterConversion?.sqlClauses) {
+    ownState.sqlClauses = filterConversion.sqlClauses;
   }
 
-  // Include page size and current page if present
   if (agGridState.pageSize !== undefined) {
     ownState.pageSize = agGridState.pageSize;
   }

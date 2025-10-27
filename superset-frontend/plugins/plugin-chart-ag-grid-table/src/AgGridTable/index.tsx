@@ -42,7 +42,13 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
-import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
+import {
+  AgGridChartState,
+  DataRecordValue,
+  DataRecord,
+  JsonObject,
+  t,
+} from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -89,7 +95,7 @@ export interface AgGridTableProps {
   width: number;
   onColumnStateChange?: (state: AgGridState) => void;
   gridRef?: RefObject<AgGridReact>;
-  savedAgGridState?: JsonObject;
+  chartState?: AgGridChartState;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -125,7 +131,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     showTotals,
     width,
     onColumnStateChange,
-    savedAgGridState,
+    chartState,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -321,17 +327,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       params.api.sizeColumnsToFit();
 
       // Restore saved AG Grid state from permalink if available
-      if (savedAgGridState && params.api) {
+      if (chartState && params.api) {
         try {
-          if (savedAgGridState.columnState) {
+          if (chartState.columnState) {
             params.api.applyColumnState?.({
-              state: savedAgGridState.columnState as ColumnState[],
+              state: chartState.columnState as ColumnState[],
               applyOrder: true,
             });
           }
 
-          if (savedAgGridState.filterModel) {
-            params.api.setFilterModel?.(savedAgGridState.filterModel);
+          if (chartState.filterModel) {
+            params.api.setFilterModel?.(chartState.filterModel);
           }
         } catch {
           // Silently fail if state restoration fails

@@ -50,48 +50,23 @@ export enum AgGridNumberFilterOperator {
   NotBlank = 'notBlank',
 }
 
-/**
- * @deprecated Use ColumnState from 'ag-grid-community' instead
- */
-export type AgGridColumnState = ColumnState;
-
-/**
- * Extend AG Grid's SortModelItem to add sortIndex for multi-column sorting support
- */
 export interface AgGridSortModel extends SortModelItem {
   sortIndex?: number;
 }
 
-interface AgGridTextFilter {
-  filterType: AgGridFilterType.Text;
-  type?: AgGridTextFilterOperator;
-  filter?: string;
-}
-
-interface AgGridNumberFilter {
-  filterType: AgGridFilterType.Number;
-  type?: AgGridNumberFilterOperator;
-  filter?: number;
+export interface AgGridFilter {
+  filterType?: string;
+  type?: string;
+  filter?: string | number;
   filterTo?: number;
-}
-
-interface AgGridSetFilter {
-  filterType: AgGridFilterType.Set;
   values?: string[];
-}
-
-interface AgGridDateFilter {
-  filterType: AgGridFilterType.Date;
-  type?: AgGridNumberFilterOperator;
   dateFrom?: string;
   dateTo?: string;
+  operator?: 'AND' | 'OR';
+  condition1?: AgGridFilter;
+  condition2?: AgGridFilter;
+  conditions?: AgGridFilter[];
 }
-
-type AgGridFilter =
-  | AgGridTextFilter
-  | AgGridNumberFilter
-  | AgGridSetFilter
-  | AgGridDateFilter;
 
 export interface AgGridFilterModel {
   [colId: string]: AgGridFilter;
@@ -104,13 +79,4 @@ export interface AgGridChartState {
   columnOrder?: string[];
   pageSize?: number;
   currentPage?: number;
-}
-
-// Query filter clause for backend processing
-// This represents the converted AG Grid filter in a format the backend can understand
-export interface AgGridQueryFilterClause {
-  expressionType: 'SIMPLE';
-  subject: string;
-  operator: string;
-  comparator: string | number | string[];
 }
