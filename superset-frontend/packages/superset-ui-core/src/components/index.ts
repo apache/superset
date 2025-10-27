@@ -189,3 +189,4 @@ export {
   type CodeEditorMode,
   type CodeEditorTheme,
 } from './CodeEditor';
+export { ActionButton, type ActionProps } from './ActionButton';
