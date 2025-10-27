@@ -116,6 +116,15 @@ const ExtraOptions = ({
   );
   const [activeKey, setActiveKey] = useState<string[] | undefined>();
 
+  const [schemasText, setSchemasText] = useState<string>('');
+  useEffect(() => {
+    if (!db) return;
+    const initialSchemas = (
+      (extraJson?.schemas_allowed_for_file_upload as string[] | undefined) || []
+    ).join(',');
+    setSchemasText(initialSchemas);
+  }, [db?.extra]);
+
   useEffect(() => {
     if (!expandableModalIsOpen && activeKey !== undefined) {
       setActiveKey(undefined);
@@ -555,11 +564,18 @@ const ExtraOptions = ({
                     <Input
                       type="text"
                       name="schemas_allowed_for_file_upload"
-                      value={(
-                        extraJson?.schemas_allowed_for_file_upload || []
-                      ).join(',')}
+                      value={schemasText}
                       placeholder="schema1,schema2"
-                      onChange={onExtraInputChange}
+                      onChange={e => setSchemasText(e.target.value)}
+                      onBlur={() =>
+                        onExtraInputChange({
+                          target: {
+                            type: 'text',
+                            name: 'schemas_allowed_for_file_upload',
+                            value: schemasText,
+                          },
+                        } as ChangeEvent<HTMLInputElement>)
+                      }
                     />
                   </div>
                   <div className="helper">
