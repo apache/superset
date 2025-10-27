@@ -10,8 +10,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
@@ -19,14 +18,26 @@
 import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData } = chartProps;
   const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    inContextMenu,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const {
+    entity,
     linearColorScheme,
     numberFormat,
     selectCountry,
     colorScheme,
     sliceId,
   } = formData;
+
+  const { onContextMenu, setDataMask } = hooks;
 
   return {
     width,
@@ -37,5 +48,11 @@ export default function transformProps(chartProps: ChartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    entity,
+    onContextMenu,
+    inContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
   };
 }
