@@ -20,7 +20,7 @@ import { getChartControlPanelRegistry } from '@superset-ui/core';
 import MainPreset from '../visualizations/presets/MainPreset';
 import setupPluginsExtra from './setupPluginsExtra';
 import { registerChartStateConverter } from '../dashboard/util/chartStateConverter';
-import { convertAgGridStateToOwnState } from '../../plugins/plugin-chart-ag-grid-table';
+import { convertAgGridStateToOwnState } from '@superset-ui/plugin-chart-ag-grid-table';
 
 import Separator from '../explore/controlPanels/Separator';
 
