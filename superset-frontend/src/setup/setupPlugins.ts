@@ -17,10 +17,10 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/core';
+import { convertAgGridStateToOwnState } from '@superset-ui/plugin-chart-ag-grid-table';
 import MainPreset from '../visualizations/presets/MainPreset';
 import setupPluginsExtra from './setupPluginsExtra';
 import { registerChartStateConverter } from '../dashboard/util/chartStateConverter';
-import { convertAgGridStateToOwnState } from '@superset-ui/plugin-chart-ag-grid-table';
 
 import Separator from '../explore/controlPanels/Separator';
 
