@@ -181,3 +181,4 @@ export {
   setupAGGridModules,
   defaultModules,
 } from './ThemedAgGridReact';
+export { ActionButton, type ActionProps } from './ActionButton';

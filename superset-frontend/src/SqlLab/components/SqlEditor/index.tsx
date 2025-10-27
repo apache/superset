@@ -191,6 +191,7 @@ const StyledSqlEditor = styled.div`
     .queryPane {
       flex: 1 1 auto;
       padding: ${theme.sizeUnit * 2}px;
+      padding-left: 0px;
       overflow-y: auto;
       overflow-x: scroll;
     }

@@ -25,15 +25,15 @@ import {
   getExtensionsRegistry,
   styled,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import {
   SafeMarkdown,
   Alert,
   Breadcrumb,
-  Button,
   Card,
-  Dropdown,
   Skeleton,
+  Flex,
 } from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -47,7 +47,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 
@@ -68,23 +68,6 @@ const TABS_KEYS = {
   INDEXES: 'indexes',
   SAMPLE: 'sample',
 };
-const MENUS = [
-  {
-    key: 'refresh-table',
-    label: t('Refresh table schema'),
-    icon: <Icons.SyncOutlined iconSize="s" aria-hidden />,
-  },
-  {
-    key: 'copy-select-statement',
-    label: t('Copy SELECT statement'),
-    icon: <Icons.CopyOutlined iconSize="s" aria-hidden />,
-  },
-  {
-    key: 'show-create-view-statement',
-    label: t('Show CREATE VIEW statement'),
-    icon: <Icons.EyeOutlined iconSize="s" aria-hidden />,
-  },
-];
 const TAB_HEADER_HEIGHT = 80;
 const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
@@ -97,6 +80,8 @@ const Title = styled.div`
     column-gap: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeLG}px;
     font-weight: ${theme.fontWeightStrong};
+    padding-top: ${theme.sizeUnit * 2}px;
+    padding-left: ${theme.sizeUnit * 4}px;
   `}
 `;
 const renderWell = (partitions: TableMetaData['partitions']) => {
@@ -134,6 +119,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
 
 const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const [databaseName, backend, disableDataPreview] = useSelector<
     SqlLabRootState,
     string[]
@@ -241,16 +227,37 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     ],
   );
 
-  const dropdownMenu = useMemo(() => {
-    let menus = [...MENUS];
-    if (!tableData.selectStar) {
-      menus = menus.filter(({ key }) => key !== 'copy-select-statement');
-    }
-    if (!tableData.view) {
-      menus = menus.filter(({ key }) => key !== 'show-create-view-statement');
-    }
-    return menus;
-  }, [tableData.view, tableData.selectStar]);
+  const titleActions = () => (
+    <Flex
+      align="center"
+      css={css`
+        padding-left: ${theme.sizeUnit * 2}px;
+      `}
+    >
+      <ActionButton
+        label={t('Refresh table schema')}
+        tooltip={t('Refresh table schema')}
+        icon={<Icons.SyncOutlined iconSize="m" />}
+        onClick={refreshTableMetadata}
+      />
+      {tableData.selectStar && (
+        <ActionButton
+          label={t('Copy SELECT statement')}
+          icon={<Icons.CopyOutlined iconSize="m" />}
+          tooltip={t('Copy SELECT statement')}
+          onClick={() => copyStatementActionRef.current?.click()}
+        />
+      )}
+      {tableData.view && (
+        <ActionButton
+          label={t('Show CREATE VIEW statement')}
+          icon={<Icons.EyeOutlined iconSize="m" />}
+          tooltip={t('Show CREATE VIEW statement')}
+          onClick={() => showViewStatementActionRef.current?.click()}
+        />
+      )}
+    </Flex>
+  );
 
   if (isMetadataLoading) {
     return <Skeleton active />;
@@ -283,7 +290,12 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         flex-direction: column;
       `}
     >
-      <Breadcrumb separator=">">
+      <Breadcrumb
+        separator=">"
+        css={css`
+          padding-left: ${theme.sizeUnit * 4}px;
+        `}
+      >
         <Breadcrumb.Item>{backend}</Breadcrumb.Item>
         <Breadcrumb.Item>{databaseName}</Breadcrumb.Item>
         {catalog && <Breadcrumb.Item>{catalog}</Breadcrumb.Item>}
@@ -316,33 +328,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       <Title>
         <Icons.InsertRowAboveOutlined iconSize="l" />
         {tableName}
-        <Dropdown
-          popupRender={() => (
-            <Menu
-              onClick={({ key }) => {
-                if (key === 'refresh-table') {
-                  refreshTableMetadata();
-                }
-                if (key === 'copy-select-statement') {
-                  copyStatementActionRef.current?.click();
-                }
-                if (key === 'show-create-view-statement') {
-                  showViewStatementActionRef.current?.click();
-                }
-              }}
-              items={dropdownMenu}
-            />
-          )}
-          trigger={['click']}
-        >
-          <Button buttonSize="xsmall" buttonStyle="link">
-            <Icons.DownSquareOutlined
-              iconSize="m"
-              style={{ marginTop: 2, marginLeft: 4 }}
-              aria-label={t('Table actions')}
-            />
-          </Button>
-        </Dropdown>
+        {titleActions()}
       </Title>
       {isMetadataRefreshing ? (
         <Skeleton active />
@@ -444,7 +430,11 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                     css={css`
                       height: ${height}px;
                     `}
+                    tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
                     items={tabItems}
+                    contentStyle={css`
+                      padding-left: ${theme.sizeUnit * 4}px;
+                    `}
                   />
                 );
               }}
