@@ -18,7 +18,7 @@
 import logging
 
 from flask import request, Response
-from flask_appbuilder import expose
+from flask_appbuilder import expose, permission_name
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from sqlalchemy import and_
@@ -43,6 +43,7 @@ class SavedQueryView(BaseSupersetView):
 
     @expose("/list/")
     @has_access
+    @permission_name("read")
     def list(self) -> FlaskResponse:
         return super().render_app_template()
 
