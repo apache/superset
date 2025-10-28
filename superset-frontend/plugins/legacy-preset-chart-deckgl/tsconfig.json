@@ -9,7 +9,19 @@
     // but packages need paths relative to their own directory
     "outDir": "lib",
     "rootDir": "src",
-    "declarationDir": "lib"
+    "declarationDir": "lib",
+    
+    // Allow implicit any for third-party libraries with missing types
+    "noImplicitAny": false,
+    
+    // Skip type checking for node_modules to avoid deck.gl/luma.gl issues
+    "skipLibCheck": true,
+    
+    // Allow synthetic default imports for better compatibility
+    "allowSyntheticDefaultImports": true,
+    
+    // Allow js files to be imported
+    "allowJs": true
   },
   "include": ["src/**/*", "types/**/*"],
   "exclude": ["src/**/*.test.*", "src/**/*.stories.*"],

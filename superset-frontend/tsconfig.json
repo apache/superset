@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
 
     "types": ["jest", "node", "@testing-library/jest-dom"],
-    "typeRoots": ["src/types", "node_modules/@types"],
+    "typeRoots": ["src/types", "node_modules/@types", "plugins/*/types"],
 
     /* Emit */
     "declaration": true,
