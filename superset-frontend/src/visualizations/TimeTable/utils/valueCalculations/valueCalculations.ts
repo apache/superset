@@ -77,8 +77,8 @@ export function calculateTimeValue(
       return { value: recent / laggedValue - 1 };
   }
 
-  // If recent is null, return null (can't do meaningful calculations)
-  if (recent === null) {
+  // If recent is null or undefined, return null (can't do meaningful calculations)
+  if (typeof recent !== 'number') {
     return { value: null };
   }
 
