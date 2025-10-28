@@ -484,6 +484,7 @@ class BaseReportState:
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
             "slack_channels": slack_channels,
+            "execution_id": str(self._execution_id),
         }
         return log_data
 
