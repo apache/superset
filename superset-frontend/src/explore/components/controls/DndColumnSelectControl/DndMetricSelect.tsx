@@ -238,14 +238,23 @@ const DndMetricSelect = (props: any) => {
 
   const moveLabel = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...value];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
-      setValue(newValues);
+      if (
+        dragIndex === hoverIndex ||
+        dragIndex < 0 ||
+        hoverIndex < 0 ||
+        dragIndex >= value.length ||
+        hoverIndex >= value.length
+      ) {
+        return;
+      }
+      // Use a pure function to reorder the array
+      const newValue = [...value];
+      const [moved] = newValue.splice(dragIndex, 1);
+      newValue.splice(hoverIndex, 0, moved);
+      setValue(newValue);
+      onChange(newValue);
     },
-    [value],
+    [value, onChange],
   );
 
   const newSavedMetricOptions = useMemo(
