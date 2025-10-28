@@ -233,6 +233,48 @@ def alert_dynamic_minimal_interval(**kwargs) -> int:
 ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
 ```
 
+## Security Configuration
+
+### External Link Redirection
+
+For security purposes, Superset automatically processes HTML content in alert and report emails to redirect external links through a warning page. This helps protect users from potentially malicious links.
+
+#### Configuration Options
+
+```python
+# Enable/disable external link redirection (default: True)
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
+
+# Show visual indicators for external links in emails (default: True)
+ALERT_REPORTS_EXTERNAL_LINK_INDICATOR = True
+
+# Custom URL for external redirect warning page (optional)
+# If not set, uses the built-in Superset redirect warning page
+# Example: REDIRECT_URL_PAGE = "https://mycompany.com/external-link-warning"
+REDIRECT_URL_PAGE = None
+```
+
+#### How it Works
+
+1. **HTML Processing**: When generating alert/report emails, Superset scans HTML content for external links
+2. **Link Replacement**: External links (those not pointing to your Superset instance) are replaced with redirect URLs
+3. **Warning Page**: Users who click external links see a warning page before being redirected. By default, this uses Superset's built-in warning page, but you can customize this by setting `REDIRECT_URL_PAGE` to your own URL
+4. **Internal Links**: Links pointing to your Superset instance are not modified
+
+#### Security Features
+
+- **Dangerous Scheme Blocking**: Automatically blocks `javascript:`, `data:`, `vbscript:`, and `file:` URLs
+- **Host Validation**: Uses your `WEBDRIVER_BASEURL_USER_FRIENDLY` or `WEBDRIVER_BASEURL` configuration to determine internal vs external links
+- **Logging**: All redirect attempts are logged for security monitoring
+
+#### Disabling the Feature
+
+To disable external link redirection entirely:
+
+```python
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = False
+```
+
 ## Troubleshooting
 
 There are many reasons that reports might not be working.  Try these steps to check for specific issues.
