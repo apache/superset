@@ -20,6 +20,9 @@
 import { Component } from 'react';
 import { t, safeHtmlSpan } from '@superset-ui/core';
 import PropTypes from 'prop-types';
+import { FaSort } from '@react-icons/all-files/fa/FaSort';
+import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
+import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -71,6 +74,73 @@ function displayHeaderCell(
   );
 }
 
+function sortHierarchicalObject(obj, objSort, rowPartialOnTop) {
+  const sortedKeys = Object.keys(obj).sort((a, b) => {
+    const valA = obj[a].currentVal || 0;
+    const valB = obj[b].currentVal || 0;
+    if (rowPartialOnTop) {
+      if (obj[a].currentVal !== undefined && obj[b].currentVal === undefined) {
+        return -1;
+      }
+      if (obj[b].currentVal !== undefined && obj[a].currentVal === undefined) {
+        return 1;
+      }
+    }
+    return objSort === 'asc' ? valA - valB : valB - valA;
+  });
+  return sortedKeys.reduce((acc, key) => {
+    acc[key] =
+      typeof obj[key] === 'object' && !Array.isArray(obj[key])
+        ? sortHierarchicalObject(obj[key], objSort, rowPartialOnTop)
+        : obj[key];
+    return acc;
+  }, {});
+}
+
+function convertToArray(
+  obj,
+  rowEnabled,
+  rowPartialOnTop,
+  maxRowIndex,
+  parentKeys = [],
+  result = [],
+  flag = false,
+) {
+  let updatedFlag = flag;
+  Object.keys(obj).forEach(key => {
+    if (key === 'currentVal') {
+      return;
+    }
+    if (rowEnabled && rowPartialOnTop && parentKeys.length < maxRowIndex - 1) {
+      result.push(parentKeys.length > 0 ? [...parentKeys, key] : [key]);
+      updatedFlag = true;
+    }
+    if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+      convertToArray(
+        obj[key],
+        rowEnabled,
+        rowPartialOnTop,
+        maxRowIndex,
+        [...parentKeys, key],
+        result,
+      );
+    }
+    if (
+      parentKeys.length >= maxRowIndex - 1 ||
+      (rowEnabled && !rowPartialOnTop)
+    ) {
+      if (!updatedFlag) {
+        result.push(parentKeys.length > 0 ? [...parentKeys, key] : [key]);
+        return;
+      }
+    }
+    if (parentKeys.length === 0 && maxRowIndex === 1) {
+      result.push([key]);
+    }
+  });
+  return result;
+}
+
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
@@ -78,7 +148,7 @@ export class TableRenderer extends Component {
     // We need state to record which entries are collapsed and which aren't.
     // This is an object with flat-keys indicating if the corresponding rows
     // should be collapsed.
-    this.state = { collapsedRows: {}, collapsedCols: {} };
+    this.state = { collapsedRows: {}, collapsedCols: {}, sortingOrder: [] };
 
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
@@ -348,6 +418,71 @@ export class TableRenderer extends Component {
     return spans;
   }
 
+  calculateGroups(pivotData, visibleColKey, columnIndex) {
+    const groups = {};
+    const rows = pivotData.rowKeys;
+    rows.forEach(rowKey => {
+      let current = groups;
+      rowKey.forEach(key => {
+        if (!current[key]) {
+          current[key] = { currentVal: 0 };
+        }
+        current[key].currentVal += pivotData
+          .getAggregator(rowKey, visibleColKey[columnIndex])
+          .value();
+        current = current[key];
+      });
+    });
+    return groups;
+  }
+
+  sortAndCacheData(groups, sortOrder, subtotals, maxRowIndex) {
+    const { rowEnabled, rowPartialOnTop } = subtotals;
+    const sortedGroups = sortHierarchicalObject(
+      groups,
+      sortOrder,
+      rowPartialOnTop,
+    );
+    return convertToArray(
+      sortedGroups,
+      rowEnabled,
+      rowPartialOnTop,
+      maxRowIndex,
+    );
+  }
+
+  updateSortingOrder(sortingOrder, columnIndex) {
+    const newSortingOrder = [...sortingOrder];
+    newSortingOrder[columnIndex] =
+      sortingOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
+    return newSortingOrder;
+  }
+
+  sortData(columnIndex, visibleColKey, pivotData, maxRowIndex) {
+    this.setState(state => {
+      const { sortingOrder } = state;
+      const newSortingOrder = this.updateSortingOrder(
+        sortingOrder,
+        columnIndex,
+      );
+      const groups = this.calculateGroups(
+        pivotData,
+        visibleColKey,
+        columnIndex,
+      );
+      const sortedRowKeys = this.sortAndCacheData(
+        groups,
+        newSortingOrder[columnIndex],
+        pivotData.subtotals,
+        maxRowIndex,
+      );
+      this.cachedBasePivotSettings.rowKeys = sortedRowKeys;
+      return {
+        sortingOrder: newSortingOrder,
+      };
+    });
+  }
+
   renderColHeaderRow(attrName, attrIdx, pivotSettings) {
     // Render a single row in the column header at the top of the pivot table.
 
@@ -371,6 +506,7 @@ export class TableRenderer extends Component {
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
       dateFormatters,
+      sortingOrder = this.state.sortingOrder,
     } = this.props.tableOptions;
 
     const spaceCell =
@@ -433,11 +569,29 @@ export class TableRenderer extends Component {
         ) {
           colLabelClass += ' active';
         }
+        const { maxRowVisible: maxRowIndex, maxColVisible } = pivotSettings;
+        const visibleSortIcon = maxColVisible - 1 === attrIdx;
 
         const rowSpan = 1 + (attrIdx === colAttrs.length - 1 ? rowIncrSpan : 0);
         const flatColKey = flatKey(colKey.slice(0, attrIdx + 1));
         const onArrowClick = needToggle ? this.toggleColKey(flatColKey) : null;
 
+        const getSortIcon = key => {
+          const SortIcon =
+            {
+              asc: FaSortAsc,
+              desc: FaSortDesc,
+              default: FaSort,
+            }[sortingOrder[key]] || FaSort;
+
+          return (
+            <SortIcon
+              onClick={() =>
+                this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
+              }
+            />
+          );
+        };
         const headerCellFormattedValue =
           dateFormatters &&
           dateFormatters[attrName] &&
@@ -470,6 +624,15 @@ export class TableRenderer extends Component {
               namesMapping,
               allowRenderHtml,
             )}
+            <span
+              role="columnheader button"
+              tabIndex={0}
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
+              {visibleSortIcon && getSortIcon(Object.keys(visibleColKeys)[i])}
+            </span>
           </th>,
         );
       } else if (attrIdx === colKey.length) {
