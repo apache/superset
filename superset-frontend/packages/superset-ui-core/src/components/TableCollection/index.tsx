@@ -94,8 +94,9 @@ const StyledTable = styled(Table)<{
       }
     }
 
-    tr.table-row-highlighted td {
-      background-color: ${theme.colorPrimaryBg} !important;
+    .ant-table-row.table-row-highlighted > td.ant-table-cell,
+    .ant-table-row.table-row-highlighted > td.ant-table-cell.ant-table-cell-row-hover {
+      background-color: ${theme.colorPrimaryBg};
     }
 
     .ant-table-cell {
