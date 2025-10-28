@@ -37,7 +37,7 @@ class CreateFormDataCommand(BaseCommand):
     def __init__(self, cmd_params: CommandParameters):
         self._cmd_params = cmd_params
 
-    def _get_session_id(self) -> str:
+    def _get_session_id(self) -> str | None:
         """Get session ID. Can be overridden in subclasses."""
         return session.get("_id")
 

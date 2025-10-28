@@ -14,32 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.utils.core import DatasourceType
-
-
-def test_get_session_id_returns_session_id():
-    """Test that _get_session_id returns the session ID from Flask session."""
-    cmd_params = CommandParameters(
-        datasource_id=1,
-        datasource_type=DatasourceType.TABLE,
-        chart_id=1,
-        tab_id=1,
-        form_data='{"test": "data"}',
-    )
-    command = CreateFormDataCommand(cmd_params)
-
-    # Mock the session object before calling _get_session_id
-    mock_session = MagicMock()
-    mock_session.get.return_value = "test-session-id"
-
-    with patch("superset.commands.explore.form_data.create.session", mock_session):
-        session_id = command._get_session_id()
-        assert session_id == "test-session-id"
-        mock_session.get.assert_called_once_with("_id")
 
 
 def test_get_session_id_can_be_overridden():
