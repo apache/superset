@@ -254,6 +254,7 @@ export const allowedAntdTokens = [
   'controlTmpOutline',
   'fontFamily',
   'fontFamilyCode',
+  'fontWeightStrong',
   'fontHeight',
   'fontHeightLG',
   'fontHeightSM',
