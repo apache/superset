@@ -580,7 +580,13 @@ const Chart = props => {
             ...dataMask[props.id]?.ownState,
             ...(hasChartStateConverter(slice.viz_type) &&
             chartStates[props.id]?.state
-              ? { chartState: chartStates[props.id].state }
+              ? {
+                  ...convertChartStateToOwnState(
+                    slice.viz_type,
+                    chartStates[props.id].state,
+                  ),
+                  chartState: chartStates[props.id].state,
+                }
               : {}),
           }}
           filterState={dataMask[props.id]?.filterState}

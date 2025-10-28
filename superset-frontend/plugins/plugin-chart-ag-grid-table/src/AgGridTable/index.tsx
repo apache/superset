@@ -62,6 +62,12 @@ export interface AgGridState extends Partial<GridState> {
   hasChanges?: boolean;
 }
 
+// AgGridChartState with optional metadata fields for state change events
+export type AgGridChartStateWithMetadata = Partial<AgGridChartState> & {
+  timestamp?: number;
+  hasChanges?: boolean;
+};
+
 export interface AgGridTableProps {
   gridTheme?: string;
   isDarkMode?: boolean;
@@ -93,7 +99,7 @@ export interface AgGridTableProps {
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;
-  onColumnStateChange?: (state: AgGridState) => void;
+  onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
   gridRef?: RefObject<AgGridReact>;
   chartState?: AgGridChartState;
 }
@@ -230,6 +236,34 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
 
       if (!isSortable) return;
 
+      if (serverPagination && gridRef.current?.api && onColumnStateChange) {
+        const { api } = gridRef.current;
+
+        if (sortDir == null) {
+          api.applyColumnState({
+            defaultState: { sort: null },
+          });
+        } else {
+          api.applyColumnState({
+            defaultState: { sort: null },
+            state: [{ colId, sort: sortDir as 'asc' | 'desc', sortIndex: 0 }],
+          });
+        }
+
+        const columnState = api.getColumnState?.() || [];
+        const filterModel = api.getFilterModel?.() || {};
+        const sortModel = sortDir
+          ? [{ colId, sort: sortDir as 'asc' | 'desc', sortIndex: 0 }]
+          : [];
+
+        onColumnStateChange({
+          columnState,
+          sortModel,
+          filterModel,
+          timestamp: Date.now(),
+        });
+      }
+
       if (sortDir == null) {
         onSortChange([]);
         return;
@@ -267,7 +301,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               .filter(col => col.sort)
               .map(col => ({
                 colId: col.colId,
-                sort: col.sort,
+                sort: col.sort as 'asc' | 'desc',
                 sortIndex: col.sortIndex || 0,
               }))
               .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
