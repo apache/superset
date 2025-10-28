@@ -78,6 +78,7 @@ pre-commit run --files superset-frontend/src/file.tsx
 ### OXC Configuration (`oxlint.json`)
 
 The OXC configuration includes:
+
 - Standard ESLint rules
 - React and React Hooks rules
 - TypeScript rules
@@ -96,6 +97,7 @@ The custom rules are implemented in `scripts/check-custom-rules.js` and check fo
 ## Performance
 
 The hybrid approach provides:
+
 - **50-100x faster linting** compared to ESLint for standard rules via OXC
 - **Selective checking** - custom rules only run on changed files during pre-commit
 - **Parallel execution** - OXC and custom rules can run concurrently
@@ -105,6 +107,7 @@ The hybrid approach provides:
 ### "Plugin 'basic-custom-plugin' not found" Error
 
 If you see this error when running `npm run lint`, ensure you're using the explicit config:
+
 ```bash
 npx oxlint --config oxlint.json
 ```
@@ -112,6 +115,7 @@ npx oxlint --config oxlint.json
 ### Custom Rules Not Running
 
 Verify the AST parsing dependencies are installed:
+
 ```bash
 npm ls @babel/parser @babel/traverse glob
 ```
@@ -119,6 +123,7 @@ npm ls @babel/parser @babel/traverse glob
 ### Pre-commit Hook Failures
 
 Ensure your changes are staged:
+
 ```bash
 git add .
 pre-commit run
@@ -130,6 +135,7 @@ pre-commit run
 
 1. Edit `scripts/check-custom-rules.js`
 2. Add a new check function following the pattern:
+
 ```javascript
 function checkNewRule(ast, filepath) {
   traverse(ast, {
@@ -137,6 +143,7 @@ function checkNewRule(ast, filepath) {
   });
 }
 ```
+
 3. Call the function in `processFile()`
 
 ### Updating OXC Rules
@@ -148,6 +155,7 @@ function checkNewRule(ast, filepath) {
 ## Migration from ESLint
 
 This hybrid approach replaces the previous ESLint setup while maintaining all custom Superset linting rules. The migration provides:
+
 - Significantly faster linting (50-100x improvement)
 - Compatibility with Apache Software Foundation requirements (no custom binaries)
 - Maintainable JavaScript-based custom rules
