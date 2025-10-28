@@ -94,12 +94,14 @@ function transformer({
   metric,
   breakdown,
   totalMark,
+  showTotal,
 }: {
   data: DataRecord[];
   xAxis: string;
   metric: string;
   breakdown?: string;
   totalMark: string;
+  showTotal: boolean;
 }) {
   // Group by series (temporary map)
   const groupedData = data.reduce((acc, cur) => {
@@ -121,11 +123,12 @@ function transformer({
         0,
       );
       // Push total per period to the end of period values array
-      tempValue.push({
-        [xAxis]: key,
-        [breakdown]: totalMark,
-        [metric]: sum,
-      });
+      showTotal &&
+        tempValue.push({
+          [xAxis]: key,
+          [breakdown]: totalMark,
+          [metric]: sum,
+        });
       transformedData.push(...tempValue);
     });
   } else {
@@ -141,10 +144,11 @@ function transformer({
       });
       total += sum;
     });
-    transformedData.push({
-      [xAxis]: totalMark,
-      [metric]: total,
-    });
+    showTotal &&
+      transformedData.push({
+        [xAxis]: totalMark,
+        [metric]: total,
+      });
   }
 
   return transformedData;
@@ -183,6 +187,7 @@ export default function transformProps(
     xAxisLabel,
     yAxisFormat,
     showValue,
+    showTotal,
     totalLabel,
     increaseLabel,
     decreaseLabel,
@@ -220,6 +225,7 @@ export default function transformProps(
     xAxis: xAxisName,
     metric: metricLabel,
     totalMark,
+    showTotal,
   });
 
   const assistData: ISeriesData[] = [];
