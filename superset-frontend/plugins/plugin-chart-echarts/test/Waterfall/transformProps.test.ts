@@ -145,7 +145,7 @@ test('renaming series names, checking legend and X axis labels', () => {
 
 test('hide totals', () => {
   const chartProps = new ChartProps({
-    formData: { ...formData, series: 'bar', show_total: false },
+    formData: { ...formData, series: 'bar', showTotal: false },
     width: 800,
     height: 600,
     queriesData: [
