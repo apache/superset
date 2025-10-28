@@ -414,7 +414,7 @@ class SnowflakeSemanticLayer:
             FROM INFORMATION_SCHEMA.SCHEMATA
             WHERE CATALOG_NAME = ?
             """
-        )
+        ).strip()
         return {row[0] for row in cursor.execute(query, (database,))}
 
     def __init__(self, configuration: SnowflakeConfiguration):
@@ -440,7 +440,7 @@ class SnowflakeSemanticLayer:
                 SHOW SEMANTIC VIEWS
                     ->> SELECT "name" FROM $1;
                 """
-            )
+            ).strip()
             return {
                 SnowflakeSemanticView(configuration, row[0])
                 for row in cursor.execute(query)
@@ -495,7 +495,7 @@ class SnowflakeSemanticView:
                         "object_kind" = 'DIMENSION' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
             """
-        )
+        ).strip()
 
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
@@ -532,7 +532,7 @@ class SnowflakeSemanticView:
                         "object_kind" = 'METRIC' AND
                         "property" IN ('COMMENT', 'DATA_TYPE', 'EXPRESSION', 'TABLE');
             """
-        )
+        ).strip()
 
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
@@ -584,7 +584,7 @@ class SnowflakeSemanticView:
     def _build_predicates(
         self,
         filters: set[Filter | AdhocFilter],
-    ) -> tuple[str, tuple[FilterValues]]:
+    ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Convert a set of filters to a single `AND`ed predicate.
 
@@ -637,7 +637,7 @@ class SnowflakeSemanticView:
                 {"WHERE " + where_clause if where_clause else ""}
             )
             """
-        )
+        ).strip()
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             df = connection.cursor().execute(query, parameters).fetch_pandas_all()
@@ -765,7 +765,7 @@ class SnowflakeSemanticView:
         limit: int | None = None,
         offset: int | None = None,
         group_limit: GroupLimit | None = None,
-    ) -> tuple[str, tuple[FilterValues]]:
+    ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Build a query to fetch data from the semantic view.
 
@@ -883,7 +883,7 @@ class SnowflakeSemanticView:
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
             """
-        )
+        ).strip()
 
     def _build_top_groups_cte(
         self,
@@ -948,7 +948,7 @@ class SnowflakeSemanticView:
                 LIMIT {group_limit.top}
             )
             """
-        )
+        ).strip()
 
         return cte_sql, cte_params
 
@@ -1076,7 +1076,7 @@ class SnowflakeSemanticView:
                 {"HAVING " + having_clause if having_clause else ""}
             )
             """
-        )
+        ).strip()
 
         # Build GROUP BY clause (full CASE expressions + non-limited dimensions)
         # We need to repeat the full CASE expressions, not use aliases, because
@@ -1105,7 +1105,7 @@ class SnowflakeSemanticView:
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
             """
-        )
+        ).strip()
 
         return query, cte_params
 
@@ -1173,7 +1173,7 @@ class SnowflakeSemanticView:
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
             """
-        )
+        ).strip()
 
         return query, cte_params
 
