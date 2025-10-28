@@ -23,7 +23,10 @@ jest.mock('ag-grid-community', () => ({
   ModuleRegistry: {
     registerModules: jest.fn(),
   },
-  ColumnAutoSizeModule: { moduleName: 'ColumnAutoSizeModule', version: '1.0.0' },
+  ColumnAutoSizeModule: {
+    moduleName: 'ColumnAutoSizeModule',
+    version: '1.0.0',
+  },
   ColumnHoverModule: { moduleName: 'ColumnHoverModule', version: '1.0.0' },
   RowAutoHeightModule: { moduleName: 'RowAutoHeightModule', version: '1.0.0' },
   RowStyleModule: { moduleName: 'RowStyleModule', version: '1.0.0' },
@@ -32,13 +35,19 @@ jest.mock('ag-grid-community', () => ({
   TextFilterModule: { moduleName: 'TextFilterModule', version: '1.0.0' },
   NumberFilterModule: { moduleName: 'NumberFilterModule', version: '1.0.0' },
   DateFilterModule: { moduleName: 'DateFilterModule', version: '1.0.0' },
-  ExternalFilterModule: { moduleName: 'ExternalFilterModule', version: '1.0.0' },
+  ExternalFilterModule: {
+    moduleName: 'ExternalFilterModule',
+    version: '1.0.0',
+  },
   CsvExportModule: { moduleName: 'CsvExportModule', version: '1.0.0' },
   ColumnApiModule: { moduleName: 'ColumnApiModule', version: '1.0.0' },
   RowApiModule: { moduleName: 'RowApiModule', version: '1.0.0' },
   CellApiModule: { moduleName: 'CellApiModule', version: '1.0.0' },
   RenderApiModule: { moduleName: 'RenderApiModule', version: '1.0.0' },
-  ClientSideRowModelModule: { moduleName: 'ClientSideRowModelModule', version: '1.0.0' },
+  ClientSideRowModelModule: {
+    moduleName: 'ClientSideRowModelModule',
+    version: '1.0.0',
+  },
   CustomFilterModule: { moduleName: 'CustomFilterModule', version: '1.0.0' },
 }));
 
@@ -65,7 +74,10 @@ test('setupAGGridModules registers default modules when called without arguments
 });
 
 test('setupAGGridModules registers default + additional modules when provided', () => {
-  const mockEnterpriseModule1 = { moduleName: 'MultiFilterModule', version: '1.0.0' };
+  const mockEnterpriseModule1 = {
+    moduleName: 'MultiFilterModule',
+    version: '1.0.0',
+  };
   const mockEnterpriseModule2 = { moduleName: 'PivotModule', version: '1.0.0' };
   const additionalModules = [mockEnterpriseModule1, mockEnterpriseModule2];
 
@@ -100,7 +112,10 @@ test('setupAGGridModules handles empty additional modules array', () => {
 
 test('setupAGGridModules does not mutate defaultModules array', () => {
   const originalLength = defaultModules.length;
-  const mockEnterpriseModule = { moduleName: 'EnterpriseModule', version: '1.0.0' };
+  const mockEnterpriseModule = {
+    moduleName: 'EnterpriseModule',
+    version: '1.0.0',
+  };
 
   setupAGGridModules([mockEnterpriseModule]);
 
