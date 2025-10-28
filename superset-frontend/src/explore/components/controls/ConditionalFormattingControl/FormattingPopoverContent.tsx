@@ -31,9 +31,13 @@ import {
   Input,
   Col,
   Row,
+  Checkbox,
   type FormProps,
 } from '@superset-ui/core/components';
-import { ConditionalFormattingConfig } from './types';
+import {
+  ConditionalFormattingConfig,
+  ConditionalFormattingFlag,
+} from './types';
 
 // TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
 // used to be imported but main app shouldn't depend on plugins...
@@ -57,9 +61,9 @@ const JustifyEnd = styled.div`
 
 // Use theme token names instead of hex values to support theme switching
 const colorSchemeOptions = () => [
-  { value: 'colorSuccessBg', label: t('success') },
-  { value: 'colorWarningBg', label: t('alert') },
-  { value: 'colorErrorBg', label: t('error') },
+  { value: 'colorSuccess', label: t('success') },
+  { value: 'colorWarning', label: t('alert') },
+  { value: 'colorError', label: t('error') },
 ];
 
 const operatorOptions = [
@@ -232,11 +236,16 @@ export const FormattingPopoverContent = ({
   onChange,
   columns = [],
   extraColorChoices = [],
+  conditionalFormattingFlag = {
+    toAllRowCheck: false,
+    toColorTextCheck: false,
+  },
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; value: string }[];
+  conditionalFormattingFlag?: ConditionalFormattingFlag;
 }) => {
   const [form] = Form.useForm();
   const colorScheme = colorSchemeOptions();
@@ -245,6 +254,33 @@ export const FormattingPopoverContent = ({
       (config?.colorScheme !== ColorSchemeEnum.Green &&
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
+
+  const [toAllRow, setToAllRow] = useState(() => Boolean(config?.toAllRow));
+  const [toTextColor, setToTextColor] = useState(() =>
+    Boolean(config?.toTextColor),
+  );
+
+  const useConditionalFormattingFlag = (
+    flagKey: 'toAllRowCheck' | 'toColorTextCheck',
+    configKey: 'toAllRow' | 'toTextColor',
+  ) =>
+    useMemo(
+      () =>
+        conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
+          ? config?.[configKey] === undefined
+          : config?.[configKey] !== undefined,
+      [conditionalFormattingFlag, config],
+    );
+
+  const showToAllRow = useConditionalFormattingFlag(
+    'toAllRowCheck',
+    'toAllRow',
+  );
+  const showToColorText = useConditionalFormattingFlag(
+    'toColorTextCheck',
+    'toTextColor',
+  );
+
   const handleChange = (event: any) => {
     setShowOperatorFields(
       !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
@@ -338,6 +374,47 @@ export const FormattingPopoverContent = ({
           </Row>
         )}
       </FormItem>
+      <Row>
+        {showOperatorFields && showToAllRow && (
+          <Row gutter={20}>
+            <Col span={1}>
+              <FormItem
+                name="toAllRow"
+                valuePropName="checked"
+                initialValue={toAllRow}
+              >
+                <Checkbox
+                  onChange={event => setToAllRow(event.target.checked)}
+                  checked={toAllRow}
+                />
+              </FormItem>
+            </Col>
+            <Col>
+              <FormItem required>{t('To entire row')}</FormItem>
+            </Col>
+          </Row>
+        )}
+        {showOperatorFields && showToColorText && (
+          <Row gutter={20}>
+            <Col span={1}>
+              <FormItem
+                name="toTextColor"
+                valuePropName="checked"
+                initialValue={toTextColor}
+              >
+                <Checkbox
+                  onChange={event => setToTextColor(event.target.checked)}
+                  checked={toTextColor}
+                />
+              </FormItem>
+            </Col>
+            <Col>
+              <FormItem required>{t('To text color')}</FormItem>
+            </Col>
+          </Row>
+        )}
+      </Row>
+
       <FormItem>
         <JustifyEnd>
           <Button htmlType="submit" buttonStyle="primary">
