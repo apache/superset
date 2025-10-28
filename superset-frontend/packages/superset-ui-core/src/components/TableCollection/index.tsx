@@ -94,6 +94,10 @@ const StyledTable = styled(Table)<{
       }
     }
 
+    tr.table-row-highlighted td {
+      background-color: ${theme.colorPrimaryBg} !important;
+    }
+
     .ant-table-cell {
       max-width: 320px;
       font-feature-settings: 'tnum' 1;
@@ -146,6 +150,7 @@ function TableCollection<T extends object>({
   columns,
   rows,
   loading,
+  highlightRowId,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -280,6 +285,9 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
+      rowClassName={(record: Record<string, unknown>) =>
+        record?.id === highlightRowId ? 'table-row-highlighted' : ''
+      }
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
