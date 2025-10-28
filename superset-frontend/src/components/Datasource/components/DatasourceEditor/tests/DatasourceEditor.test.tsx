@@ -25,7 +25,8 @@ import {
   cleanup,
 } from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
 
 /* eslint-disable jest/no-export */
@@ -34,8 +35,17 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
+interface DatasourceEditorProps {
+  datasource: DatasetObject;
+  addSuccessToast: () => void;
+  addDangerToast: () => void;
+  onChange: jest.Mock;
+  columnLabels?: Record<string, string>;
+  columnLabelTooltips?: Record<string, string>;
+}
+
 // Common setup for tests
-export const props = {
+export const props: DatasourceEditorProps = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
@@ -47,16 +57,19 @@ export const props = {
     state: 'This is a tooltip for state',
   },
 };
+
 export const DATASOURCE_ENDPOINT =
   'glob:*/datasource/external_metadata_by_name/*';
+
 const routeProps = {
   history: {},
   location: {},
   match: {},
 };
-export const asyncRender = props =>
+
+export const asyncRender = (renderProps: DatasourceEditorProps) =>
   waitFor(() =>
-    render(<DatasourceEditor {...props} {...routeProps} />, {
+    render(<DatasourceEditor {...renderProps} {...routeProps} />, {
       useRedux: true,
       initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
       useRouter: true,
@@ -87,16 +100,16 @@ describe('DatasourceEditor', () => {
 
   test('can sync columns from source', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsTab);
+    await userEvent.click(columnsTab);
 
     const syncButton = screen.getByText(/sync columns from source/i);
     expect(syncButton).toBeInTheDocument();
 
     // Use a Promise to track when fetchMock is called
-    const fetchPromise = new Promise(resolve => {
+    const fetchPromise = new Promise<string>(resolve => {
       fetchMock.get(
         DATASOURCE_ENDPOINT,
-        url => {
+        (url: string) => {
           resolve(url);
           return [];
         },
@@ -104,7 +117,7 @@ describe('DatasourceEditor', () => {
       );
     });
 
-    userEvent.click(syncButton);
+    await userEvent.click(syncButton);
 
     // Wait for the fetch to be called
     const url = await fetchPromise;
@@ -114,12 +127,12 @@ describe('DatasourceEditor', () => {
   // to add, remove and modify columns accordingly
   test('can modify columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsTab);
+    await userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
       name: /expand row/i,
     });
-    userEvent.click(getToggles[0]);
+    await userEvent.click(getToggles[0]);
 
     const getTextboxes = await screen.findAllByRole('textbox');
     expect(getTextboxes.length).toBeGreaterThanOrEqual(5);
@@ -132,22 +145,39 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    userEvent.type(inputLabel, 'test_label');
-    userEvent.type(inputDescription, 'test');
-    userEvent.type(inputDtmFormat, 'test');
-    userEvent.type(inputCertifiedBy, 'test');
-    userEvent.type(inputCertDetails, 'test');
+    // Clear onChange mock to track user action callbacks
+    props.onChange.mockClear();
+
+    await userEvent.type(inputLabel, 'test_label');
+    await userEvent.type(inputDescription, 'test');
+    await userEvent.type(inputDtmFormat, 'test');
+    await userEvent.type(inputCertifiedBy, 'test');
+    await userEvent.type(inputCertDetails, 'test');
+
+    // Verify the inputs were updated with the typed values
+    await waitFor(() => {
+      expect(inputLabel).toHaveValue('test_label');
+      expect(inputDescription).toHaveValue('test');
+      expect(inputDtmFormat).toHaveValue('test');
+      expect(inputCertifiedBy).toHaveValue('test');
+      expect(inputCertDetails).toHaveValue('test');
+    });
+
+    // Verify that onChange was triggered by user actions
+    await waitFor(() => {
+      expect(props.onChange).toHaveBeenCalled();
+    });
   }, 40000);
 
   test('can delete columns', async () => {
     const columnsTab = screen.getByTestId('collection-tab-Columns');
-    userEvent.click(columnsTab);
+    await userEvent.click(columnsTab);
 
     const getToggles = screen.getAllByRole('button', {
       name: /expand row/i,
     });
 
-    userEvent.click(getToggles[0]);
+    await userEvent.click(getToggles[0]);
 
     const deleteButtons = await screen.findAllByRole('button', {
       name: /delete item/i,
@@ -155,7 +185,7 @@ describe('DatasourceEditor', () => {
     const initialCount = deleteButtons.length;
     expect(initialCount).toBeGreaterThan(0);
 
-    userEvent.click(deleteButtons[0]);
+    await userEvent.click(deleteButtons[0]);
 
     await waitFor(() => {
       const countRows = screen.getAllByRole('button', { name: /delete item/i });
@@ -165,14 +195,14 @@ describe('DatasourceEditor', () => {
 
   test('can add new columns', async () => {
     const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
-    userEvent.click(calcColsTab);
+    await userEvent.click(calcColsTab);
 
     const addBtn = screen.getByRole('button', {
       name: /add item/i,
     });
     expect(addBtn).toBeInTheDocument();
 
-    userEvent.click(addBtn);
+    await userEvent.click(addBtn);
 
     // newColumn (Column name) is the first textbox in the tab
     await waitFor(() => {
@@ -185,7 +215,7 @@ describe('DatasourceEditor', () => {
     const columnsTab = screen.getByRole('tab', {
       name: /settings/i,
     });
-    userEvent.click(columnsTab);
+    await userEvent.click(columnsTab);
 
     const extraField = screen.getAllByText(/extra/i);
     expect(extraField.length).toBeGreaterThan(0);
@@ -199,7 +229,7 @@ describe('DatasourceEditor', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor Source Tab', () => {
   beforeAll(() => {
-    isFeatureEnabled.mockImplementation(() => false);
+    (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
   });
 
   beforeEach(async () => {
@@ -215,12 +245,12 @@ describe('DatasourceEditor Source Tab', () => {
   });
 
   afterAll(() => {
-    isFeatureEnabled.mockRestore();
+    (isFeatureEnabled as jest.Mock).mockRestore();
   });
 
   test('Source Tab: edit mode', async () => {
     const getLockBtn = screen.getByRole('img', { name: /lock/i });
-    userEvent.click(getLockBtn);
+    await userEvent.click(getLockBtn);
 
     const physicalRadioBtn = screen.getByRole('radio', {
       name: /physical \(table or view\)/i,
@@ -259,7 +289,7 @@ describe('DatasourceEditor Source Tab', () => {
       datasource: {
         ...props.datasource,
         table_name: 'Vehicle Sales +',
-        datasourceType: 'virtual',
+        type: DatasourceType.Query,
         sql: 'SELECT * FROM users',
       },
     });

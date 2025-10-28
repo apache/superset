@@ -584,7 +584,10 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  const availableFilters = getAvailableFilters(filterId);
+  const availableFilters = useMemo(
+    () => getAvailableFilters(filterId),
+    [getAvailableFilters, filterId, filters],
+  );
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
@@ -918,7 +921,8 @@ const FiltersConfigForm = (
                             children: (
                               <>
                                 {canDependOnOtherFilters &&
-                                  hasAvailableFilters && (
+                                  (hasAvailableFilters ||
+                                    dependencies.length > 0) && (
                                     <StyledRowFormItem
                                       expanded={expanded}
                                       name={[
