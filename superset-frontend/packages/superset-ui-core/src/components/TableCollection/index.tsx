@@ -268,6 +268,12 @@ function TableCollection<T extends object>({
     onPageChange,
   ]);
 
+  const getRowClassName = useCallback(
+    (record: Record<string, unknown>) =>
+      record?.id === highlightRowId ? 'table-row-highlighted' : '',
+    [highlightRowId],
+  );
+
   return (
     <StyledTable
       loading={loading}
@@ -285,9 +291,7 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
-      rowClassName={(record: Record<string, unknown>) =>
-        record?.id === highlightRowId ? 'table-row-highlighted' : ''
-      }
+      rowClassName={getRowClassName}
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
