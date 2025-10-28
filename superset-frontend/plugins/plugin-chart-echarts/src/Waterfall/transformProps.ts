@@ -129,7 +129,7 @@ function transformer({
           [breakdown]: totalMark,
           [metric]: sum,
         });
-      } 
+      }
       transformedData.push(...tempValue);
     });
   } else {
@@ -150,7 +150,7 @@ function transformer({
         [xAxis]: totalMark,
         [metric]: total,
       });
-    } 
+    }
   }
 
   return transformedData;
