@@ -107,7 +107,9 @@ CELERY_CONFIG = CeleryConfig
 
 # Apply marshmallow 4.x compatibility fix for Flask-AppBuilder
 try:
-    from superset.marshmallow_fix import patch_marshmallow_for_flask_appbuilder
+    from superset.marshmallow_compatibility import (
+        patch_marshmallow_for_flask_appbuilder,
+    )
 
     patch_marshmallow_for_flask_appbuilder()
 except ImportError:

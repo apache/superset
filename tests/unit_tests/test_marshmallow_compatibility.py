@@ -16,9 +16,9 @@
 # under the License.
 
 """
-Unit tests for marshmallow 4.x compatibility fix.
+Unit tests for marshmallow 4.x compatibility module.
 
-This module tests the marshmallow_fix.py module that provides compatibility
+This module tests the marshmallow_compatibility.py module that provides compatibility
 between Flask-AppBuilder 5.0.0 and marshmallow 4.x by handling missing
 auto-generated fields during schema initialization.
 """
@@ -28,11 +28,11 @@ from unittest.mock import patch
 import pytest
 from marshmallow import Schema, fields
 
-from superset.marshmallow_fix import patch_marshmallow_for_flask_appbuilder
+from superset.marshmallow_compatibility import patch_marshmallow_for_flask_appbuilder
 
 
-class TestMarshmallowFix:
-    """Test cases for the marshmallow 4.x compatibility fix."""
+class TestMarshmallowCompatibility:
+    """Test cases for the marshmallow 4.x compatibility module."""
 
     def test_patch_marshmallow_for_flask_appbuilder_applies_patch(self):
         """Test that the patch function correctly replaces Schema._init_fields."""

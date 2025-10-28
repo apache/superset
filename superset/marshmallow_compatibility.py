@@ -1,9 +1,9 @@
 """
-Marshmallow 4.x Compatibility Fix for Flask-AppBuilder 5.0.0
+Marshmallow 4.x Compatibility Module for Flask-AppBuilder 5.0.0
 
-This module provides a targeted fix for incompatibilities between
-Flask-AppBuilder 5.0.0 and marshmallow 4.x, specifically handling
-missing auto-generated fields during schema initialization.
+This module provides compatibility between Flask-AppBuilder 5.0.0 and
+marshmallow 4.x, specifically handling missing auto-generated fields
+during schema initialization.
 """
 
 from marshmallow import fields
