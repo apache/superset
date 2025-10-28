@@ -78,7 +78,10 @@ test('setupAGGridModules registers default + additional modules when provided', 
     moduleName: 'MultiFilterModule' as any,
     version: '1.0.0',
   };
-  const mockEnterpriseModule2 = { moduleName: 'PivotModule' as any, version: '1.0.0' };
+  const mockEnterpriseModule2 = {
+    moduleName: 'PivotModule' as any,
+    version: '1.0.0',
+  };
   const additionalModules = [mockEnterpriseModule1, mockEnterpriseModule2];
 
   setupAGGridModules(additionalModules);
