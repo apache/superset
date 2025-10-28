@@ -772,42 +772,41 @@ class SnowflakeSemanticView:
         This also returns the parameters need to run `cursor.execute()`, passed
         separately to prevent SQL injection.
         """
+        if limit is None and offset is not None:
+            raise ValueError("Offset cannot be set without limit")
+
         filters = filters or set()
         where_clause, where_parameters = self._build_predicates(
             sorted(
                 filter_ for filter_ in filters if filter_.type == PredicateType.WHERE
             )
         )
-        having_clause, having_parameters = self._build_predicates(
-            sorted(
-                filter_ for filter_ in filters if filter_.type == PredicateType.HAVING
-            )
-        )
+        # having clauses are not supported, since there's no GROUP BY
+        if any(filter_.type == PredicateType.HAVING for filter_ in filters):
+            raise ValueError("HAVING filters are not supported")
 
         if group_limit:
             query, cte_parameters = self._build_query_with_group_limit(
                 metrics,
                 dimensions,
                 where_clause,
-                having_clause,
                 order,
                 limit,
                 offset,
                 group_limit,
             )
             # Combine parameters: CTE params first, then main query params
-            all_parameters = cte_parameters + where_parameters + having_parameters
+            all_parameters = cte_parameters + where_parameters
         else:
             query = self._build_simple_query(
                 metrics,
                 dimensions,
                 where_clause,
-                having_clause,
                 order,
                 limit,
                 offset,
             )
-            all_parameters = where_parameters + having_parameters
+            all_parameters = where_parameters
 
         return query, all_parameters
 
@@ -860,7 +859,6 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         where_clause: str,
-        having_clause: str,
         order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
@@ -882,7 +880,6 @@ class SnowflakeSemanticView:
                 {"METRICS " + metric_arguments if metric_arguments else ""}
                 {"WHERE " + where_clause if where_clause else ""}
             )
-            {"HAVING " + having_clause if having_clause else ""}
             {"ORDER BY " + order_clause if order_clause else ""}
             {"LIMIT " + str(limit) if limit is not None else ""}
             {"OFFSET " + str(offset) if offset is not None else ""}
@@ -893,14 +890,13 @@ class SnowflakeSemanticView:
         self,
         group_limit: GroupLimit,
         where_clause: str,
-        having_clause: str,
     ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Build a CTE that finds the top N combinations of limited dimensions.
 
         If group_limit.filters is set, it uses those filters instead of the main
-        query's where_clause/having_clause. This allows using different time bounds
-        for finding top groups vs showing data.
+        query's where clause. This allows using different time bounds for finding top
+        groups vs showing data.
 
         Returns:
             Tuple of (CTE SQL, parameters for the CTE)
@@ -922,17 +918,15 @@ class SnowflakeSemanticView:
                     if filter_.type == PredicateType.WHERE
                 )
             )
-            group_having_clause, group_having_params = self._build_predicates(
-                sorted(
-                    filter_
-                    for filter_ in group_limit.filters
-                    if filter_.type == PredicateType.HAVING
+            if any(
+                filter_.type == PredicateType.HAVING for filter_ in group_limit.filters
+            ):
+                raise ValueError(
+                    "HAVING filters are not supported in group limit filters"
                 )
-            )
-            cte_params = group_where_params + group_having_params
+            cte_params = group_where_params
         else:
             group_where_clause = where_clause
-            group_having_clause = having_clause
             cte_params = ()  # No additional params - using main query params
 
         cte_sql = dedent(
@@ -946,7 +940,6 @@ class SnowflakeSemanticView:
                         AS {self._quote(group_limit.metric.id)}
                     {"WHERE " + group_where_clause if group_where_clause else ""}
                 )
-                {"HAVING " + group_having_clause if group_having_clause else ""}
                 ORDER BY
                     {self._quote(group_limit.metric.id)} {group_limit.direction.value}
                 LIMIT {group_limit.top}
@@ -997,7 +990,6 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         where_clause: str,
-        having_clause: str,
         order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
@@ -1017,7 +1009,6 @@ class SnowflakeSemanticView:
         top_groups_cte, cte_params = self._build_top_groups_cte(
             group_limit,
             where_clause,
-            having_clause,
         )
 
         # Determine which dimensions are limited vs non-limited
@@ -1077,7 +1068,6 @@ class SnowflakeSemanticView:
                     METRICS {metric_arguments}
                     {"WHERE " + where_clause if where_clause else ""}
                 )
-                {"HAVING " + having_clause if having_clause else ""}
             )
             """
         ).strip()
@@ -1118,7 +1108,6 @@ class SnowflakeSemanticView:
         metrics: list[Metric],
         dimensions: list[Dimension],
         where_clause: str,
-        having_clause: str,
         order: list[OrderTuple] | None,
         limit: int | None,
         offset: int | None,
@@ -1138,7 +1127,6 @@ class SnowflakeSemanticView:
                 metrics,
                 dimensions,
                 where_clause,
-                having_clause,
                 order,
                 limit,
                 offset,
@@ -1156,7 +1144,6 @@ class SnowflakeSemanticView:
         top_groups_cte, cte_params = self._build_top_groups_cte(
             group_limit,
             where_clause,
-            having_clause,
         )
         group_filter = self._build_group_filter(group_limit)
 
@@ -1170,7 +1157,6 @@ class SnowflakeSemanticView:
                     {"METRICS " + metric_arguments if metric_arguments else ""}
                     {"WHERE " + where_clause if where_clause else ""}
                 )
-                {"HAVING " + having_clause if having_clause else ""}
             ) AS subquery
             WHERE {group_filter}
             {"ORDER BY " + order_clause if order_clause else ""}

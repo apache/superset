@@ -41,6 +41,7 @@ from superset.semantic_layers.types import (
     Metric,
     NUMBER,
     Operator,
+    OrderDirection,
     PredicateType,
     SemanticRequest,
     STRING,
@@ -1179,7 +1180,7 @@ FROM SEMANTIC_VIEW(
 
 
 @pytest.mark.parametrize(
-    "metrics, dimensions, filters, expected_sql, expected_parameters",
+    "metrics, dimensions, filters, order, limit, offset, sql, parameters",
     [
         (
             ["TOTALSALESPRICE"],
@@ -1188,6 +1189,9 @@ FROM SEMANTIC_VIEW(
                 AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
                 AdhocFilter(PredicateType.WHERE, "Month = '12'"),
             },
+            None,
+            10,
+            10,
             """
 SELECT * FROM SEMANTIC_VIEW(
     "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
@@ -1195,6 +1199,9 @@ SELECT * FROM SEMANTIC_VIEW(
     METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
     WHERE (Month = '12') AND (Year = '2002')
 )
+
+LIMIT 10
+OFFSET 10
             """,
             (),
         ),
@@ -1205,6 +1212,9 @@ SELECT * FROM SEMANTIC_VIEW(
                 AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
                 AdhocFilter(PredicateType.WHERE, "Month = '12'"),
             },
+            None,
+            20,
+            None,
             """
 SELECT * FROM SEMANTIC_VIEW(
     "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
@@ -1212,6 +1222,8 @@ SELECT * FROM SEMANTIC_VIEW(
 
     WHERE (Month = '12') AND (Year = '2002')
 )
+
+LIMIT 20
             """,
             (),
         ),
@@ -1222,6 +1234,12 @@ SELECT * FROM SEMANTIC_VIEW(
                 AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
                 AdhocFilter(PredicateType.WHERE, "Month = '12'"),
             },
+            [
+                ("TOTALSALESPRICE", OrderDirection.DESC),
+                ("CATEGORY", OrderDirection.ASC),
+            ],
+            10,
+            10,
             """
 SELECT * FROM SEMANTIC_VIEW(
     "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
@@ -1229,6 +1247,9 @@ SELECT * FROM SEMANTIC_VIEW(
     METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
     WHERE (Month = '12') AND (Year = '2002')
 )
+ORDER BY "STORESALES.TOTALSALESPRICE" DESC, "ITEM.CATEGORY" ASC
+LIMIT 10
+OFFSET 10
             """,
             (),
         ),
@@ -1239,8 +1260,11 @@ def test_get_query(
     metrics: list[str],
     dimensions: list[str],
     filters: set[Filter | AdhocFilter] | None,
-    expected_sql: str,
-    expected_parameters: tuple[FilterValues, ...],
+    order: list[tuple[str, OrderDirection]] | None,
+    limit: int | None,
+    offset: int | None,
+    sql: str,
+    parameters: tuple[FilterValues, ...],
 ) -> None:
     """
     Tests for query generation.
@@ -1252,4 +1276,10 @@ def test_get_query(
         [metric_map[name] for name in metrics],
         [dimension_map[name] for name in dimensions],
         filters,
-    ) == (expected_sql.strip(), expected_parameters)
+        [
+            (metric_map.get(name) or dimension_map.get(name), direction)
+            for name, direction in (order or [])
+        ],
+        limit,
+        offset,
+    ) == (sql.strip(), parameters)
