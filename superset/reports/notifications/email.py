@@ -253,7 +253,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, task_id: %s, notification content is %s",
+                content.header_data.get("execution_id")
+                if content.header_data
+                else None,
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(
