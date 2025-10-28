@@ -60,7 +60,7 @@ export type EchartsWaterfallFormData = QueryFormData &
     increaseLabel?: string;
     decreaseLabel?: string;
     totalLabel?: string;
-    showTotal?: boolean;
+    showTotal: boolean;
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {
