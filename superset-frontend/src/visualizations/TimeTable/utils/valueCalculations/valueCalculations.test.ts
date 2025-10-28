@@ -92,8 +92,18 @@ describe('valueCalculations', () => {
         timeLag: 1,
       };
 
-      const unfilteredResult = calculateTimeValue(500, 'productA', unfilteredEntries, column);
-      const filteredResult = calculateTimeValue(500, 'productA', filteredEntries, column);
+      const unfilteredResult = calculateTimeValue(
+        500,
+        'productA',
+        unfilteredEntries,
+        column,
+      );
+      const filteredResult = calculateTimeValue(
+        500,
+        'productA',
+        filteredEntries,
+        column,
+      );
 
       expect(unfilteredResult.value).toBe(filteredResult.value);
       expect(unfilteredResult.value).toBe(300);
@@ -201,8 +211,18 @@ describe('valueCalculations', () => {
         timeLag: 2,
       };
 
-      const result1 = calculateTimeValue(700, 'sales', entriesWithGaps, column1);
-      const result2 = calculateTimeValue(700, 'sales', entriesWithGaps, column2);
+      const result1 = calculateTimeValue(
+        700,
+        'sales',
+        entriesWithGaps,
+        column1,
+      );
+      const result2 = calculateTimeValue(
+        700,
+        'sales',
+        entriesWithGaps,
+        column2,
+      );
 
       expect(result1.value).toBe(400);
       expect(result2.value).toBe(500);
@@ -230,8 +250,18 @@ describe('valueCalculations', () => {
         timeLag: 1,
       };
 
-      const percResult = calculateTimeValue(400, 'sales', entriesWithNulls, percColumn);
-      const percChangeResult = calculateTimeValue(400, 'sales', entriesWithNulls, percChangeColumn);
+      const percResult = calculateTimeValue(
+        400,
+        'sales',
+        entriesWithNulls,
+        percColumn,
+      );
+      const percChangeResult = calculateTimeValue(
+        400,
+        'sales',
+        entriesWithNulls,
+        percChangeColumn,
+      );
 
       expect(percResult.value).toBe(2);
       expect(percChangeResult.value).toBe(1);
