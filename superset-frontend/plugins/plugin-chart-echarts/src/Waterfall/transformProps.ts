@@ -123,12 +123,13 @@ function transformer({
         0,
       );
       // Push total per period to the end of period values array
-      showTotal &&
+      if (showTotal) {
         tempValue.push({
           [xAxis]: key,
           [breakdown]: totalMark,
           [metric]: sum,
         });
+      } 
       transformedData.push(...tempValue);
     });
   } else {
@@ -144,11 +145,12 @@ function transformer({
       });
       total += sum;
     });
-    showTotal &&
+    if (showTotal) {
       transformedData.push({
         [xAxis]: totalMark,
         [metric]: total,
       });
+    } 
   }
 
   return transformedData;
