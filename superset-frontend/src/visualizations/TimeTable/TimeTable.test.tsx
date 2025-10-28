@@ -94,7 +94,7 @@ test('should render table headers', () => {
     el => !el.closest('.ant-table-measure-cell-content'),
   );
 
-  expect(visibleTimeSeriesHeaders.length).toBeEqualThan(1);
+  expect(visibleTimeSeriesHeaders.length).toBe(1);
   visibleTimeSeriesHeaders.forEach(header => {
     expect(header).toBeInTheDocument();
   });

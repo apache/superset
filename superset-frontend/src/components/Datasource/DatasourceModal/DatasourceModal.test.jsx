@@ -132,8 +132,9 @@ describe('DatasourceModal', () => {
       okButton.click();
     });
     await act(async () => {
-      const errorTitle = await screen.findByText('Error saving dataset');
-      expect(errorTitle).toBeInTheDocument();
+      const errorElements = await screen.findAllByText('Error saving dataset');
+      const errorDiv = errorElements.map(el => el.closest('div')).find(Boolean);
+      expect(errorDiv).toBeInTheDocument();
     });
   });
 });
