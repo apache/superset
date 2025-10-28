@@ -31,6 +31,7 @@ import {
   SMART_DATE_ID,
   t,
   validateNonEmpty,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum } from '../types';
 
@@ -408,14 +409,14 @@ const config: ControlPanelConfig = {
               },
               mapStateToProps(explore, _, chart) {
                 const metrics =
-                  (explore?.controls?.metrics?.value as QueryFormMetric[]) ||
+                  (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
                 const columns =
                   (explore?.controls?.groupbyColumns
-                    ?.value as QueryFormMetric[]) || [];
+                    ?.value as QueryFormColumn[]) ?? [];
                 const rows =
                   (explore?.controls?.groupbyRows
-                    ?.value as QueryFormMetric[]) || [];
+                    ?.value as QueryFormColumn[]) ?? [];
                 const values = [...new Set([...metrics, ...columns, ...rows])];
 
                 const verboseMap = explore?.datasource?.hasOwnProperty(
