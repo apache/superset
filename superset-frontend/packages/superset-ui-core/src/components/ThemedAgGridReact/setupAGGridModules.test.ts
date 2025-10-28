@@ -75,10 +75,10 @@ test('setupAGGridModules registers default modules when called without arguments
 
 test('setupAGGridModules registers default + additional modules when provided', () => {
   const mockEnterpriseModule1 = {
-    moduleName: 'MultiFilterModule',
+    moduleName: 'MultiFilterModule' as any,
     version: '1.0.0',
   };
-  const mockEnterpriseModule2 = { moduleName: 'PivotModule', version: '1.0.0' };
+  const mockEnterpriseModule2 = { moduleName: 'PivotModule' as any, version: '1.0.0' };
   const additionalModules = [mockEnterpriseModule1, mockEnterpriseModule2];
 
   setupAGGridModules(additionalModules);
@@ -113,7 +113,7 @@ test('setupAGGridModules handles empty additional modules array', () => {
 test('setupAGGridModules does not mutate defaultModules array', () => {
   const originalLength = defaultModules.length;
   const mockEnterpriseModule = {
-    moduleName: 'EnterpriseModule',
+    moduleName: 'EnterpriseModule' as any,
     version: '1.0.0',
   };
 
