@@ -583,7 +583,7 @@ class SnowflakeSemanticView:
 
     def _build_predicates(
         self,
-        filters: set[Filter | AdhocFilter],
+        filters: list[Filter | AdhocFilter],
     ) -> tuple[str, tuple[FilterValues, ...]]:
         """
         Convert a set of filters to a single `AND`ed predicate.
@@ -622,11 +622,11 @@ class SnowflakeSemanticView:
         Return distinct values for a dimension.
         """
         where_clause, parameters = self._build_predicates(
-            {
+            sorted(
                 filter_
                 for filter_ in (filters or [])
                 if filter_.type == PredicateType.WHERE
-            }
+            )
         )
         query = dedent(
             f"""
@@ -774,10 +774,14 @@ class SnowflakeSemanticView:
         """
         filters = filters or set()
         where_clause, where_parameters = self._build_predicates(
-            {filter_ for filter_ in filters if filter_.type == PredicateType.WHERE}
+            sorted(
+                filter_ for filter_ in filters if filter_.type == PredicateType.WHERE
+            )
         )
         having_clause, having_parameters = self._build_predicates(
-            {filter_ for filter_ in filters if filter_.type == PredicateType.HAVING}
+            sorted(
+                filter_ for filter_ in filters if filter_.type == PredicateType.HAVING
+            )
         )
 
         if group_limit:
@@ -912,18 +916,18 @@ class SnowflakeSemanticView:
         # Otherwise use the same filters as the main query (Option 1)
         if group_limit.filters is not None:
             group_where_clause, group_where_params = self._build_predicates(
-                {
+                sorted(
                     filter_
                     for filter_ in group_limit.filters
                     if filter_.type == PredicateType.WHERE
-                }
+                )
             )
             group_having_clause, group_having_params = self._build_predicates(
-                {
+                sorted(
                     filter_
                     for filter_ in group_limit.filters
                     if filter_.type == PredicateType.HAVING
-                }
+                )
             )
             cte_params = group_where_params + group_having_params
         else:

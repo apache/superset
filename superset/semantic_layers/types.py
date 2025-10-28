@@ -173,7 +173,7 @@ class AdhocExpression:
     definition: str
 
 
-class Operator(enum.Enum):
+class Operator(str, enum.Enum):
     EQUALS = "="
     NOT_EQUALS = "!="
     GREATER_THAN = ">"
@@ -196,7 +196,7 @@ class PredicateType(enum.Enum):
     HAVING = "HAVING"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Filter:
     type: PredicateType
     column: Dimension | Metric
@@ -204,7 +204,7 @@ class Filter:
     value: FilterValues | set[FilterValues]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class AdhocFilter:
     type: PredicateType
     definition: str
