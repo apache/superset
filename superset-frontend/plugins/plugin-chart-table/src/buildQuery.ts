@@ -18,6 +18,7 @@
  */
 import {
   AdhocColumn,
+  // BinaryQueryObjectFilterClause,
   BuildQuery,
   PostProcessingRule,
   QueryFormOrderBy,
@@ -257,6 +258,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ...moreProps,
     };
 
+    if (formData.server_pagination) {
+      // Add search filter if search text exists
+      if (ownState.searchText && ownState?.searchColumn) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            {
+              col: ownState?.searchColumn,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            },
+          ],
+        };
+      }
+    }
+
     if (
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
@@ -320,22 +338,22 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    if (formData.server_pagination) {
-      // Add search filter if search text exists
-      if (ownState.searchText && ownState?.searchColumn) {
-        queryObject = {
-          ...queryObject,
-          filters: [
-            ...(queryObject.filters || []),
-            {
-              col: ownState?.searchColumn,
-              op: 'ILIKE',
-              val: `${ownState.searchText}%`,
-            },
-          ],
-        };
-      }
-    }
+    // if (formData.server_pagination) {
+    //   // Add search filter if search text exists
+    //   if (ownState.searchText && ownState?.searchColumn) {
+    //     queryObject = {
+    //       ...queryObject,
+    //       filters: [
+    //         ...(queryObject.filters || []),
+    //         {
+    //           col: ownState?.searchColumn,
+    //           op: 'ILIKE',
+    //           val: `${ownState.searchText}%`,
+    //         },
+    //       ],
+    //     };
+    //   }
+    // }
 
     // Now since row limit control is always visible even
     // in case of server pagination
