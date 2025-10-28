@@ -89,7 +89,8 @@ export const FiltersOutOfScopeCollapsible = ({
             font-size: ${theme.typography.sizes.s}px;
           `}
         >
-          {t('Filters out of scope (%d)', filtersOutOfScope.length)}
+          {/* {t('Filters out of scope (%d)', filtersOutOfScope.length)} */}
+          {`Filtros fora de escopo (${filtersOutOfScope.length})`}
         </span>
       }
       key="1"

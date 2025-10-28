@@ -308,10 +308,11 @@ const SliceHeaderControls = (
     : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
-      return t('Cached %s', cachedWhen);
+      // return t('Cached %s', cachedWhen);
+      return ('Cacheado ' + cachedWhen);
     }
     if (updatedWhen) {
-      return t('Fetched %s', updatedWhen);
+      return ('Atualizado ' + updatedWhen);
     }
     return '';
   };
@@ -325,8 +326,10 @@ const SliceHeaderControls = (
     </div>
   ));
   const fullscreenLabel = isFullSize
-    ? t('Exit fullscreen')
-    : t('Enter fullscreen');
+    // ? t('Exit fullscreen')
+    // : t('Enter fullscreen');
+    ? 'Sair da tela cheia'
+    : 'Entrar na tela cheia';
 
   // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
   const dropdownOverlayStyle = {
@@ -359,7 +362,8 @@ const SliceHeaderControls = (
         style={{ height: 'auto', lineHeight: 'initial' }}
         data-test="refresh-chart-menu-item"
       >
-        {t('Force refresh')}
+        {/* {t('Force refresh')} */}
+        {'Forçar atualização'}
         <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
           {refreshTooltip}
         </RefreshTooltip>
@@ -383,7 +387,8 @@ const SliceHeaderControls = (
           data-test-edit-chart-name={slice.slice_name}
         >
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
-            {t('Edit chart')}
+            {/* {t('Edit chart')} */}
+            {'Editar gráfico'}
           </Tooltip>
         </Menu.Item>
       )}
@@ -400,9 +405,9 @@ const SliceHeaderControls = (
         <Menu.Item key={MenuKeys.ViewQuery}>
           <ModalTrigger
             triggerNode={
-              <div data-test="view-query-menu-item">{t('View query')}</div>
+              <div data-test="view-query-menu-item">{'visualizar consulta'}</div>
             }
-            modalTitle={t('View query')}
+            modalTitle={'visualizar consulta'}
             modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
             draggable
             resizable
@@ -418,7 +423,7 @@ const SliceHeaderControls = (
             canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
             triggerNode={
-              <div data-test="view-query-menu-item">{t('View as table')}</div>
+              <div data-test="view-query-menu-item">{'visualizar como tabela'}</div>
             }
             modalRef={resultsMenuRef}
             modalTitle={t('Chart Data: %s', slice.slice_name)}
@@ -452,39 +457,47 @@ const SliceHeaderControls = (
         <ShareMenuItems
           dashboardId={dashboardId}
           dashboardComponentId={componentId}
-          copyMenuItemTitle={t('Copy permalink to clipboard')}
-          emailMenuItemTitle={t('Share chart by email')}
-          emailSubject={t('Superset chart')}
-          emailBody={t('Check out this chart: ')}
+          // copyMenuItemTitle={t('Copy permalink to clipboard')}
+          // emailMenuItemTitle={t('Share chart by email')}
+          // emailSubject={t('Superset chart')}
+          // emailBody={t('Check out this chart: ')}
+          copyMenuItemTitle={'Copiar permalink'}
+          emailMenuItemTitle={'Compartilhar gráfico por email'}
+          emailSubject={'Gráfico Superset'}
+          emailBody={'Confira este gráfico: '}
           addSuccessToast={addSuccessToast}
           addDangerToast={addDangerToast}
           setOpenKeys={setOpenKeys}
-          title={t('Share')}
+          // title={t('Share')}
+          title={'Compartilhar'}
           key={MenuKeys.Share}
         />
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu title={t('Download')} key={MenuKeys.Download}>
+        <Menu.SubMenu title={'Baixar'} key={MenuKeys.Download}>
           <Menu.Item
             key={MenuKeys.ExportCsv}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
-            {t('Export to .CSV')}
+            {/* {t('Export to .CSV')} */}
+            {'Exportar para .CSV'}
           </Menu.Item>
           {isPivotTable && (
             <Menu.Item
               key={MenuKeys.ExportPivotCsv}
               icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
             >
-              {t('Export to Pivoted .CSV')}
+              {/* {t('Export to Pivoted .CSV')} */}
+              {'Exportar para .CSV pivotado'}
             </Menu.Item>
           )}
           <Menu.Item
             key={MenuKeys.ExportXlsx}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
-            {t('Export to Excel')}
+            {/* {t('Export to Excel')} */}
+            {'Exportar para Excel'}
           </Menu.Item>
 
           {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
@@ -495,13 +508,15 @@ const SliceHeaderControls = (
                   key={MenuKeys.ExportFullCsv}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
-                  {t('Export to full .CSV')}
+                  {/* {t('Export to full .CSV')} */}
+                  {'Exportar para .CSV completo'}
                 </Menu.Item>
                 <Menu.Item
                   key={MenuKeys.ExportFullXlsx}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
-                  {t('Export to full Excel')}
+                  {/* {t('Export to full Excel')} */}
+                  {'Exportar para Excel completo'}
                 </Menu.Item>
               </>
             )}
@@ -510,7 +525,8 @@ const SliceHeaderControls = (
             key={MenuKeys.DownloadAsImage}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
-            {t('Download as image')}
+            {/* {t('Download as image')} */}
+            {'Baixar como imagem'}
           </Menu.Item>
         </Menu.SubMenu>
       )}
