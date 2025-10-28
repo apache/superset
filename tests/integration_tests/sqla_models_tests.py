@@ -1193,10 +1193,12 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
 
         # This should not raise an error
         sqla_query = table.get_sqla_query(**query_obj)
-        sql = str(sqla_query).lower()
+        sql = str(
+            sqla_query.sqla_query.compile(compile_kwargs={"literal_binds": True})
+        ).lower()
 
         # Verify HAVING clause is used
-        assert "having" in sql, "Metric filter should use HAVING clause"
+        assert "having" in sql, "Metric filter should use HAVING clause. SQL: " + sql
     finally:
         db.session.delete(table)
         db.session.commit()
@@ -1243,7 +1245,14 @@ def test_column_ordering_without_chart_flag(login_as_admin):
             }
         )
 
-        with patch.object(database, "get_df", return_value=mock_df):
+        def mock_get_df(sql, catalog=None, schema=None, mutator=None):
+            """Mock get_df that calls the mutator function if provided."""
+            df = mock_df.copy()
+            if mutator:
+                df = mutator(df)
+            return df
+
+        with patch.object(database, "get_df", side_effect=mock_get_df):
             query_obj = {
                 "granularity": None,
                 "from_dttm": None,
