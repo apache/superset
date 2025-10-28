@@ -47,6 +47,11 @@ describe('DatasourceEditor Currency Tests', () => {
       { result: [], count: 0, ids: [] },
       { overwriteRoutes: true },
     );
+    fetchMock.get(
+      url => url.includes('/api/v1/dataset/related/owners'),
+      { result: [], count: 0 },
+      { overwriteRoutes: true },
+    );
   });
 
   afterEach(() => {

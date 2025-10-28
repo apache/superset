@@ -38,6 +38,11 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
       { result: [], count: 0, ids: [] },
       { overwriteRoutes: true },
     );
+    fetchMock.get(
+      url => url.includes('/api/v1/dataset/related/owners'),
+      { result: [], count: 0 },
+      { overwriteRoutes: true },
+    );
     jest.clearAllMocks();
   });
 
@@ -108,6 +113,11 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     fetchMock.get(
       url => url.includes('/api/v1/database/'),
       { result: [], count: 0, ids: [] },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      url => url.includes('/api/v1/dataset/related/owners'),
+      { result: [], count: 0 },
       { overwriteRoutes: true },
     );
     jest.clearAllMocks();
