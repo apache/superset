@@ -110,7 +110,8 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_TIME_LIMIT = None
 
 # MCP Service Configuration
-MCP_ADMIN_USERNAME = 'admin'
+# REQUIRED: Set this to your actual Superset username
+# The service will fail if not configured
 MCP_DEV_USERNAME = 'admin'
 SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:9001'
 
@@ -203,12 +204,13 @@ Then restart Claude Desktop. That's it! ✨
       "args": ["/absolute/path/to/your/superset/superset/mcp_service", "--stdio"],
       "env": {
         "PYTHONPATH": "/absolute/path/to/your/superset",
-        "MCP_ADMIN_USERNAME": "admin"
+        "MCP_DEV_USERNAME": "admin"
       }
     }
   }
 }
 ```
+Note: Replace "admin" with your actual Superset username. These environment variables override the values in superset_config.py.
 </details>
 
 <details>

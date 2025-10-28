@@ -45,22 +45,27 @@ def get_user_from_request() -> User:
 
     TODO (future PR): Add JWT token extraction and validation.
     TODO (future PR): Add user impersonation support.
-    TODO (future PR): Add fallback user configuration.
 
-    For now, this returns the admin user for development.
+    For now, this uses MCP_DEV_USERNAME from configuration for development.
+
+    Raises:
+        ValueError: If MCP_DEV_USERNAME is not configured or user doesn't exist
     """
+    from flask import current_app
+
     from superset import security_manager
 
     # TODO: Extract from JWT token once authentication is implemented
-    # For now, use a simple admin user fallback for development
-    username = "admin"
+    # For now, use MCP_DEV_USERNAME from configuration
+    username = current_app.config.get("MCP_DEV_USERNAME")
+
+    if not username:
+        raise ValueError("Username not configured")
+
     user = security_manager.find_user(username)
 
     if not user:
-        raise ValueError(
-            f"User '{username}' not found. "
-            f"Please create admin user with: superset fab create-admin"
-        )
+        raise ValueError(f"User '{username}' not found")
 
     return user
 
