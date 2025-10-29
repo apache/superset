@@ -1646,6 +1646,16 @@ class SqlaTable(
                 if len(df.columns) > len(labels_expected):
                     df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+
+                extras = query_obj.get("extras", {})
+                column_order = extras.get("column_order")
+                if column_order and isinstance(column_order, list):
+                    existing_cols = [col for col in column_order if col in df.columns]
+                    remaining_cols = [
+                        col for col in df.columns if col not in existing_cols
+                    ]
+                    final_order = existing_cols + remaining_cols
+                    df = df[final_order]
             return df
 
         try:

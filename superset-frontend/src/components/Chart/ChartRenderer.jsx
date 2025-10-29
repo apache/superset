@@ -64,6 +64,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  onChartStateChange: PropTypes.func,
 };
 
 const BLANK = {};
@@ -126,6 +127,7 @@ class ChartRenderer extends Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
+      onChartStateChange: this.props.onChartStateChange,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by

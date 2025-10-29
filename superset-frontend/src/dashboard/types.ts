@@ -129,6 +129,7 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
+  chartStates?: Record<string, any>;
 };
 export type DashboardInfo = {
   id: number;
@@ -246,6 +247,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
+  chartStates?: Record<string, any>;
 }
 
 export interface DashboardPermalinkValue {

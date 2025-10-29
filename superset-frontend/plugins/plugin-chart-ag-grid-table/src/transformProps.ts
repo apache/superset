@@ -470,7 +470,7 @@ const transformProps = (
     queriesData = [],
     ownState: serverPaginationData,
     filterState,
-    hooks: { setDataMask = () => {} },
+    hooks: { setDataMask = () => {}, onChartStateChange },
     emitCrossFilters,
     theme,
   } = chartProps;
@@ -738,6 +738,8 @@ const transformProps = (
     basicColorColumnFormatters,
     basicColorFormatters,
     formData,
+    chartState: serverPaginationData?.chartState,
+    onChartStateChange,
   };
 };
 

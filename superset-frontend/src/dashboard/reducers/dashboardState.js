@@ -50,6 +50,9 @@ import {
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE,
   SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED,
   TOGGLE_NATIVE_FILTERS_BAR,
+  UPDATE_CHART_STATE,
+  REMOVE_CHART_STATE,
+  RESTORE_CHART_STATES,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -290,6 +293,37 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         nativeFiltersBarOpen: action.isOpen,
+      };
+    },
+    [UPDATE_CHART_STATE]() {
+      const { chartId, vizType, chartState, lastModified } = action;
+      return {
+        ...state,
+        chartStates: {
+          ...state.chartStates,
+          [chartId]: {
+            chartId,
+            vizType,
+            state: chartState,
+            lastModified,
+          },
+        },
+      };
+    },
+    [REMOVE_CHART_STATE]() {
+      const { chartId } = action;
+      const updatedChartStates = { ...state.chartStates };
+      delete updatedChartStates[chartId];
+      return {
+        ...state,
+        chartStates: updatedChartStates,
+      };
+    },
+    [RESTORE_CHART_STATES]() {
+      const { chartStates } = action;
+      return {
+        ...state,
+        chartStates: chartStates || {},
       };
     },
   };

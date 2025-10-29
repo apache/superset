@@ -161,6 +161,7 @@ export type { CustomCellRendererProps } from 'ag-grid-react';
 export type {
   ColDef,
   Column,
+  ColumnState,
   GridOptions,
   GridState,
   GridReadyEvent,

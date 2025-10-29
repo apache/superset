@@ -35,6 +35,7 @@ import {
   Currency,
   JsonObject,
   Metric,
+  AgGridChartState,
 } from '@superset-ui/core';
 import {
   ColDef,
@@ -176,6 +177,8 @@ export interface AgGridTableChartTransformedProps<
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
+  onChartStateChange?: (chartState: JsonObject) => void;
+  chartState?: AgGridChartState;
 }
 
 export enum ColorSchemeEnum {

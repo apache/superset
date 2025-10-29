@@ -1018,6 +1018,17 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    column_order = fields.List(
+        fields.String(),
+        metadata={
+            "description": (
+                "Ordered list of column names for result ordering. "
+                "Used to preserve user's column reordering (including mixed "
+                "dimension columns and metrics)"
+            )
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
