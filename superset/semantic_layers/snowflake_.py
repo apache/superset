@@ -1150,13 +1150,11 @@ class SnowflakeSemanticView:
         query = dedent(
             f"""
             {top_groups_cte}
-            SELECT * FROM (
-                SELECT * FROM SEMANTIC_VIEW(
-                    {self.uid()}
-                    {"DIMENSIONS " + dimension_arguments if dimension_arguments else ""}
-                    {"METRICS " + metric_arguments if metric_arguments else ""}
-                    {"WHERE " + where_clause if where_clause else ""}
-                )
+            SELECT * FROM SEMANTIC_VIEW(
+                {self.uid()}
+                {"DIMENSIONS " + dimension_arguments if dimension_arguments else ""}
+                {"METRICS " + metric_arguments if metric_arguments else ""}
+                {"WHERE " + where_clause if where_clause else ""}
             ) AS subquery
             WHERE {group_filter}
             {"ORDER BY " + order_clause if order_clause else ""}

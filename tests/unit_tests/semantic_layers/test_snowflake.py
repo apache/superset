@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# flake8: noqa: E501
+
 from contextlib import nullcontext
 from typing import Iterator
 from unittest.mock import MagicMock, patch
@@ -36,7 +38,7 @@ from superset.semantic_layers.types import (
     DATE,
     Dimension,
     Filter,
-    FilterValues,
+    GroupLimit,
     INTEGER,
     Metric,
     NUMBER,
@@ -1180,7 +1182,7 @@ FROM SEMANTIC_VIEW(
 
 
 @pytest.mark.parametrize(
-    "metrics, dimensions, filters, order, limit, offset, sql, parameters",
+    "metrics, dimensions, filters, order, limit, offset, sql",
     [
         (
             ["TOTALSALESPRICE"],
@@ -1203,7 +1205,6 @@ SELECT * FROM SEMANTIC_VIEW(
 LIMIT 10
 OFFSET 10
             """,
-            (),
         ),
         (
             [],
@@ -1225,7 +1226,6 @@ SELECT * FROM SEMANTIC_VIEW(
 
 LIMIT 20
             """,
-            (),
         ),
         (
             ["TOTALSALESPRICE"],
@@ -1251,7 +1251,6 @@ ORDER BY "STORESALES.TOTALSALESPRICE" DESC, "ITEM.CATEGORY" ASC
 LIMIT 10
 OFFSET 10
             """,
-            (),
         ),
     ],
 )
@@ -1264,7 +1263,6 @@ def test_get_query(
     limit: int | None,
     offset: int | None,
     sql: str,
-    parameters: tuple[FilterValues, ...],
 ) -> None:
     """
     Tests for query generation.
@@ -1272,7 +1270,7 @@ def test_get_query(
     metric_map = {metric.name: metric for metric in semantic_view.metrics}
     dimension_map = {dim.name: dim for dim in semantic_view.dimensions}
 
-    assert semantic_view._get_query(
+    result_sql, _ = semantic_view._get_query(
         [metric_map[name] for name in metrics],
         [dimension_map[name] for name in dimensions],
         filters,
@@ -1282,4 +1280,319 @@ def test_get_query(
         ],
         limit,
         offset,
-    ) == (sql.strip(), parameters)
+    )
+
+    assert result_sql.strip() == sql.strip()
+
+
+@pytest.mark.parametrize(
+    "metrics, dimensions, filters, order, limit, offset, group_limit_config, sql",
+    [
+        # Test 1: Basic group limit without group_others
+        (
+            ["TOTALSALESPRICE"],
+            ["YEAR", "CATEGORY"],
+            {
+                AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+                AdhocFilter(PredicateType.WHERE, "Month = '12'"),
+            },
+            None,
+            None,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 3,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.DESC,
+                "group_others": False,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+        WHERE (Month = '12') AND (Year = '2002')
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" DESC
+    LIMIT 3
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS DATE.YEAR AS "DATE.YEAR", ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+                WHERE (Month = '12') AND (Year = '2002')
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+            """,
+        ),
+        # Test 2: Group limit with group_others
+        (
+            ["TOTALSALESPRICE"],
+            ["YEAR", "CATEGORY"],
+            {
+                AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+                AdhocFilter(PredicateType.WHERE, "Month = '12'"),
+            },
+            None,
+            None,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 3,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.DESC,
+                "group_others": True,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+        WHERE (Month = '12') AND (Year = '2002')
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" DESC
+    LIMIT 3
+),
+            raw_data AS (
+    SELECT * FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS DATE.YEAR AS "DATE.YEAR", ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+        WHERE (Month = '12') AND (Year = '2002')
+    )
+)
+            SELECT
+                CASE
+            WHEN "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups) THEN "ITEM.CATEGORY"
+            ELSE CAST('Other' AS VARCHAR)
+        END AS "ITEM.CATEGORY",
+    "DATE.YEAR" AS "DATE.YEAR",
+    SUM("STORESALES.TOTALSALESPRICE") AS "STORESALES.TOTALSALESPRICE"
+            FROM raw_data
+            GROUP BY CASE
+            WHEN "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups) THEN "ITEM.CATEGORY"
+            ELSE CAST('Other' AS VARCHAR)
+        END, "DATE.YEAR"
+            """,
+        ),
+        # Test 3: Group limit with custom filters (different from main query)
+        (
+            ["TOTALSALESPRICE"],
+            ["YEAR", "CATEGORY"],
+            {
+                AdhocFilter(PredicateType.WHERE, "Year = '2002'"),
+                AdhocFilter(PredicateType.WHERE, "Month = '12'"),
+            },
+            None,
+            None,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 5,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.DESC,
+                "group_others": False,
+                "filters": {AdhocFilter(PredicateType.WHERE, "Year = '2001'")},
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+        WHERE (Year = '2001')
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" DESC
+    LIMIT 5
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS DATE.YEAR AS "DATE.YEAR", ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+                WHERE (Month = '12') AND (Year = '2002')
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+            """,
+        ),
+        # Test 4: Group limit with ASC direction
+        (
+            ["TOTALSALESPRICE"],
+            ["CATEGORY"],
+            None,
+            None,
+            10,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 5,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.ASC,
+                "group_others": False,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" ASC
+    LIMIT 5
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+
+            LIMIT 10
+            """,
+        ),
+        # Test 5: Group limit with order clause
+        (
+            ["TOTALSALESPRICE"],
+            ["YEAR", "CATEGORY"],
+            {AdhocFilter(PredicateType.WHERE, "Year = '2002'")},
+            [
+                ("YEAR", OrderDirection.DESC),
+                ("TOTALSALESPRICE", OrderDirection.ASC),
+            ],
+            None,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 10,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.DESC,
+                "group_others": False,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+        WHERE (Year = '2002')
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" DESC
+    LIMIT 10
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS DATE.YEAR AS "DATE.YEAR", ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+                WHERE (Year = '2002')
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+            ORDER BY "DATE.YEAR" DESC, "STORESALES.TOTALSALESPRICE" ASC
+            """,
+        ),
+        # Test 6: Group limit with limit and offset
+        (
+            ["TOTALSALESPRICE"],
+            ["CATEGORY"],
+            None,
+            None,
+            20,
+            5,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 3,
+                "metric": "TOTALSALESPRICE",
+                "direction": OrderDirection.DESC,
+                "group_others": False,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+        METRICS STORESALES.TOTALSALESPRICE
+            AS "STORESALES.TOTALSALESPRICE"
+
+    )
+    ORDER BY
+        "STORESALES.TOTALSALESPRICE" DESC
+    LIMIT 3
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+
+            LIMIT 20
+            OFFSET 5
+            """,
+        ),
+    ],
+)
+def test_get_query_with_group_limit(
+    semantic_view: SnowflakeSemanticView,
+    metrics: list[str],
+    dimensions: list[str],
+    filters: set[Filter | AdhocFilter] | None,
+    order: list[tuple[str, OrderDirection]] | None,
+    limit: int | None,
+    offset: int | None,
+    group_limit_config: dict,
+    sql: str,
+) -> None:
+    """
+    Tests for query generation with GroupLimit.
+    """
+    metric_map = {metric.name: metric for metric in semantic_view.metrics}
+    dimension_map = {dim.name: dim for dim in semantic_view.dimensions}
+
+    # Build GroupLimit object from config
+    group_limit = GroupLimit(
+        dimensions=[dimension_map[name] for name in group_limit_config["dimensions"]],
+        top=group_limit_config["top"],
+        metric=metric_map[group_limit_config["metric"]],
+        direction=group_limit_config["direction"],
+        group_others=group_limit_config["group_others"],
+        filters=group_limit_config["filters"],
+    )
+
+    result_sql, _ = semantic_view._get_query(
+        [metric_map[name] for name in metrics],
+        [dimension_map[name] for name in dimensions],
+        filters,
+        [
+            (metric_map.get(name) or dimension_map.get(name), direction)
+            for name, direction in (order or [])
+        ],
+        limit,
+        offset,
+        group_limit=group_limit,
+    )
+
+    assert result_sql == sql.strip()
