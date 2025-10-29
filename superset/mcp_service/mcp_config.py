@@ -19,8 +19,8 @@
 from typing import Any, Dict
 
 # MCP Service Configuration
-MCP_ADMIN_USERNAME = "admin"
-MCP_DEV_USERNAME = "admin"
+# Note: MCP_DEV_USERNAME MUST be configured in superset_config.py
+# There is no default value - the service will fail if not set
 SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 
 # WebDriver Configuration for screenshots
@@ -80,8 +80,6 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
 
     # Default MCP configuration
     defaults = {
-        "MCP_ADMIN_USERNAME": MCP_ADMIN_USERNAME,
-        "MCP_DEV_USERNAME": MCP_DEV_USERNAME,
         "SUPERSET_WEBSERVER_ADDRESS": SUPERSET_WEBSERVER_ADDRESS,
         "WEBDRIVER_BASEURL": WEBDRIVER_BASEURL,
         "WEBDRIVER_BASEURL_USER_FRIENDLY": WEBDRIVER_BASEURL_USER_FRIENDLY,
