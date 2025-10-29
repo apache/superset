@@ -177,7 +177,7 @@ function cellBackground({
   theme: SupersetTheme;
 }) {
   if (!colorPositiveNegative) {
-    return `${theme.colorFillSecondary}50`;
+    return `${theme.colorFill}`;
   }
 
   if (value < 0) {
