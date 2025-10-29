@@ -131,6 +131,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show total'),
+              renderTrigger: true,
+              default: true,
+              description: t('Display cumulative total at end'),
+            },
+          },
+        ],
+        [
+          {
             name: 'total_color',
             config: {
               label: t('Total color'),
