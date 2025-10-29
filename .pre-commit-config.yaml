@@ -124,7 +124,10 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            git fetch --no-recurse-submodules origin "$TARGET_BRANCH"
+            # Skip fetch if origin/master already exists (like in CI)
+            if ! git rev-parse --verify origin/"$TARGET_BRANCH" >/dev/null 2>&1; then
+              git fetch --no-recurse-submodules origin "$TARGET_BRANCH"
+            fi
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
             files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
