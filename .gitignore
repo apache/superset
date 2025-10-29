@@ -121,6 +121,8 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+docker/superset-websocket/config.json
+docker-compose.override.yml
 
 .temp_cache
 
