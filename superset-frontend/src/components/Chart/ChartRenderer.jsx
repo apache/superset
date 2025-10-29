@@ -355,9 +355,17 @@ class ChartRenderer extends Component {
       ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
-    // By pass no result component when server pagination is enabled & the table has a backend search query
+    // By pass no result component when server pagination is enabled & the table has:
+    // - a backend search query, OR
+    // - AG Grid column filters applied
+    const hasSearchQuery = (ownState?.searchText?.length || 0) > 0;
+    const hasAgGridFilters =
+      (ownState?.agGridSimpleFilters?.length || 0) > 0 ||
+      (ownState?.agGridComplexWhere?.length || 0) > 0;
+
     const bypassNoResult = !(
-      formData?.server_pagination && (ownState?.searchText?.length || 0) > 0
+      formData?.server_pagination &&
+      (hasSearchQuery || hasAgGridFilters)
     );
 
     return (

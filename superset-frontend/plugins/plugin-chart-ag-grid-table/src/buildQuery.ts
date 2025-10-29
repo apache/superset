@@ -257,9 +257,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      // Create a copy of extras without the WHERE clause
+      // AG Grid filters in extras.where can reference calculated columns
+      // which aren't available in the totals subquery
+      const totalsExtras = { ...extras };
+      delete totalsExtras.where; // Remove AG Grid WHERE clause from totals query
+
       extraQueries.push({
         ...queryObject,
         columns: [],
+        extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
@@ -288,6 +295,52 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               val: `${ownState.searchText}%`,
             },
           ],
+        };
+      }
+
+      // Add AG Grid column filters from ownState (non-metric filters only)
+      if (
+        ownState.agGridSimpleFilters &&
+        ownState.agGridSimpleFilters.length > 0
+      ) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            ...ownState.agGridSimpleFilters,
+          ],
+        };
+      }
+
+      // Add AG Grid complex WHERE clause from ownState (non-metric filters)
+      if (ownState.agGridComplexWhere) {
+        const existingWhere = queryObject.extras?.where;
+        const combinedWhere = existingWhere
+          ? `${existingWhere} AND ${ownState.agGridComplexWhere}`
+          : ownState.agGridComplexWhere;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            where: combinedWhere,
+          },
+        };
+      }
+
+      // Add AG Grid HAVING clause from ownState (metric filters only)
+      if (ownState.agGridHavingClause) {
+        const existingHaving = queryObject.extras?.having;
+        const combinedHaving = existingHaving
+          ? `${existingHaving} AND ${ownState.agGridHavingClause}`
+          : ownState.agGridHavingClause;
+
+        queryObject = {
+          ...queryObject,
+          extras: {
+            ...(queryObject.extras || {}),
+            having: combinedHaving,
+          },
         };
       }
     }

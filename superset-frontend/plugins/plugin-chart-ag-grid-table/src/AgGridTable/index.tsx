@@ -48,6 +48,8 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+import { type AgGridFilterModel } from '../utils/agGridFilterConverter';
+import { useAgGridFilters } from '../utils/useAgGridFilters';
 
 export interface AgGridTableProps {
   gridTheme?: string;
@@ -70,6 +72,11 @@ export interface AgGridTableProps {
   onSearchColChange: (searchCol: string) => void;
   onSearchChange: (searchText: string) => void;
   onSortChange: (sortBy: SortByItem[]) => void;
+  onAgGridColumnFiltersChange?: (
+    filterModel: AgGridFilterModel,
+    lastFilteredColumn?: string,
+    lastFilteredInputPosition?: 'first' | 'second',
+  ) => void;
   id: number;
   percentMetrics: string[];
   serverPageLength: number;
@@ -104,6 +111,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     onSearchColChange,
     onSearchChange,
     onSortChange,
+    onAgGridColumnFiltersChange,
     id,
     percentMetrics,
     serverPageLength,
@@ -254,9 +262,24 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [width]);
 
+    // Handler for column filter changes using custom hook
+    const {
+      onFilterChanged,
+      activeFilterColumns,
+      initializeFiltersOnGridReady,
+    } = useAgGridFilters({
+      gridRef,
+      serverPagination,
+      serverPaginationData,
+      onAgGridColumnFiltersChange,
+    });
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
+
+      // Initialize filters on grid ready
+      initializeFiltersOnGridReady(params.api);
     };
 
     return (
@@ -303,6 +326,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         <ThemedAgGridReact
           ref={gridRef}
           onGridReady={onGridReady}
+          onFilterChanged={onFilterChanged}
           className="ag-container"
           rowData={rowData}
           headerHeight={36}
@@ -402,6 +426,10 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
               serverPaginationData?.sortBy || [],
             ),
             isActiveFilterValue,
+            lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
+            lastFilteredInputPosition:
+              serverPaginationData?.lastFilteredInputPosition,
+            activeFilterColumns,
           }}
         />
         {serverPagination && (
