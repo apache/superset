@@ -179,7 +179,7 @@ export function getDashboardPermalink({
 }) {
   // only encode filter state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
-    urlParams: getDashboardUrlParams(),
+    urlParams: getDashboardUrlParams(['edit']),
     dataMask,
     activeTabs,
     anchor,
