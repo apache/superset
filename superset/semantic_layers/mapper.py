@@ -35,6 +35,7 @@ from superset.semantic_layers.types import (
     OrderTuple,
     PredicateType,
     SemanticQuery,
+    SemanticResult,
     SemanticViewFeature,
     SemanticViewImplementation,
     TimeGrain,
@@ -609,11 +610,25 @@ def _validate_orderby(
         raise ValueError("All order by elements must be defined in the Semantic View.")
 
 
-def get_results(query_object: QueryObject) -> pd.DataFrame:
+def get_results(query_object: QueryObject) -> SemanticResult:
     """
-    Run a query based on the `QueryObject` and return the results as a Pandas DataFrame.
+    Run a query based on the `QueryObject` and return the results as a SemanticResult.
+
+    This function handles the complete flow:
+    1. Converts QueryObject to SemanticQuery objects (one per time offset)
+    2. Executes all queries via the semantic view
+    3. Joins the results into a single DataFrame
+    4. Collects all requests from each query for troubleshooting
+
+    :param query_object: The QueryObject containing query specifications
+    :return: SemanticResult with combined DataFrame and all requests
     """
     semantic_view = query_object.datasource.implementation
+    dispatcher = (
+        semantic_view.get_row_count
+        if query_object.is_rowcount
+        else semantic_view.get_dataframe
+    )
 
     # Step 1: Convert QueryObject to list of SemanticQuery objects
     # The first query is the main query, subsequent queries are for time offsets
@@ -621,7 +636,7 @@ def get_results(query_object: QueryObject) -> pd.DataFrame:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = semantic_view.get_dataframe(
+    main_result = dispatcher(
         metrics=main_query.metrics,
         dimensions=main_query.dimensions,
         filters=main_query.filters,
@@ -633,9 +648,15 @@ def get_results(query_object: QueryObject) -> pd.DataFrame:
 
     main_df = main_result.results
 
-    # If no time offsets, return the main DataFrame as-is
+    # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
+    all_requests = list(main_result.requests)
+
+    # If no time offsets, return the main result as-is
     if not query_object.time_offsets or len(queries) <= 1:
-        return main_df
+        return SemanticResult(
+            requests=all_requests,
+            results=main_df,
+        )
 
     # Get metric names from the main query
     # These are the columns that will be renamed with offset suffixes
@@ -647,10 +668,12 @@ def get_results(query_object: QueryObject) -> pd.DataFrame:
 
     # Step 3 & 4: Execute each time offset query and join results
     for offset_query, time_offset in zip(
-        queries[1:], query_object.time_offsets, strict=False
+        queries[1:],
+        query_object.time_offsets,
+        strict=False,
     ):
         # Execute the offset query
-        result = semantic_view.get_dataframe(
+        result = dispatcher(
             metrics=offset_query.metrics,
             dimensions=offset_query.dimensions,
             filters=offset_query.filters,
@@ -659,6 +682,9 @@ def get_results(query_object: QueryObject) -> pd.DataFrame:
             offset=offset_query.offset,
             group_limit=offset_query.group_limit,
         )
+
+        # Add this query's requests to the collection
+        all_requests.extend(result.requests)
 
         offset_df = result.results
 
@@ -700,4 +726,7 @@ def get_results(query_object: QueryObject) -> pd.DataFrame:
         if duplicate_cols:
             main_df = main_df.drop(columns=duplicate_cols)
 
-    return main_df
+    return SemanticResult(
+        requests=all_requests,
+        results=main_df,
+    )
