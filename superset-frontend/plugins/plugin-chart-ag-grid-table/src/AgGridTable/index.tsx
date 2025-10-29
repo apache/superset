@@ -326,10 +326,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             }
           } catch (error) {
             console.warn('Error capturing AG Grid state:', error);
-            onColumnStateChange({
-              timestamp: Date.now(),
-              hasChanges: true,
-            });
           }
         }
       }, Constants.SLOW_DEBOUNCE),
