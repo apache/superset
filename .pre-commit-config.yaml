@@ -124,10 +124,7 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            # Only fetch if the branch doesn't exist locally or in CI
-            if ! git rev-parse --verify "origin/$TARGET_BRANCH" >/dev/null 2>&1; then
-              git fetch origin "$TARGET_BRANCH" --quiet
-            fi
+            git fetch origin "$TARGET_BRANCH"
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
             files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
