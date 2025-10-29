@@ -1009,6 +1009,12 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8-sig"}
 
+# CSV Streaming: row threshold for using streaming CSV exports
+# When row count >= this threshold, use streaming response instead of loading
+# all data into memory. Streaming provides real-time progress and handles
+# large datasets efficiently.
+CSV_STREAMING_ROW_THRESHOLD = 100000
+
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
 # note: index option should not be overridden
