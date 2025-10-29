@@ -776,12 +776,17 @@ const config: ControlPanelConfig = {
                         item.colorScheme &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
-                        if (!item.toAllRow || !item.toTextColor) {
+                        if (
+                          !item.toAllRow ||
+                          !item.toTextColor ||
+                          !item.toCellBar
+                        ) {
                           // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
                             toAllRow: item.toAllRow ?? false,
                             toTextColor: item.toTextColor ?? false,
+                            toCellBar: item.toCellBar ?? false,
                           };
                         }
                       }
@@ -825,6 +830,7 @@ const config: ControlPanelConfig = {
                   conditionalFormattingFlag: {
                     toAllRowCheck: true,
                     toColorTextCheck: true,
+                    toCellBarCheck: true,
                   },
                 };
               },
