@@ -89,7 +89,7 @@ describe('Dashboards list', () => {
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('[aria-label="Select all"]').click();
+      cy.get('th.ant-table-cell input[aria-label="Select all"]').click();
       cy.get('.ant-checkbox-input')
         .should('be.checked')
         .should('have.length', 6);
