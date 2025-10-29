@@ -216,6 +216,7 @@ class HeaderDataType(TypedDict):
     chart_id: int | None
     dashboard_id: int | None
     slack_channels: list[str] | None
+    execution_id: str | None
 
 
 class DatasourceDict(TypedDict):

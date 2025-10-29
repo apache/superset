@@ -30,7 +30,6 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
-import memoizeOne from 'memoize-one';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { Disposable } from '../models';
 import { createActionListener } from '../utils';
@@ -198,13 +197,10 @@ const getActiveEditorImmutableId = () => {
   return activeEditor?.immutableId;
 };
 
-// Memoized version to avoid repeated store lookups when active editor hasn't changed
-const getActiveEditorId = memoizeOne(getActiveEditorImmutableId);
-
 const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
   // Capture the immutable ID of the active editor at the time the listener is created
   // This ID never changes for a tab, ensuring stable event routing
-  const registrationImmutableId = getActiveEditorId();
+  const registrationImmutableId = getActiveEditorImmutableId();
 
   return action => {
     if (action.type !== actionType) return false;
@@ -212,14 +208,15 @@ const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
     // If we don't have a registration ID, don't filter events
     if (!registrationImmutableId) return true;
 
-    // For query events, use the immutableId directly from the action payload
-    if (action.query?.immutableId) {
-      return action.query.immutableId === registrationImmutableId;
+    // For query events, use the sqlEditorImmutableId directly from the action payload
+    if (action.query?.sqlEditorImmutableId) {
+      return action.query.sqlEditorImmutableId === registrationImmutableId;
     }
 
     // For tab events, we need to find the immutable ID of the affected tab
-    if (action.queryEditor?.id) {
-      const queryEditor = findQueryEditor(action.queryEditor.id);
+    const queryEditorId = action.queryEditor?.id || action.query?.sqlEditorId;
+    if (queryEditorId) {
+      const queryEditor = findQueryEditor(queryEditorId);
       return queryEditor?.immutableId === registrationImmutableId;
     }
 
