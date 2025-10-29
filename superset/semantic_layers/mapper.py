@@ -17,6 +17,9 @@
 
 from datetime import datetime
 
+import numpy as np
+import pandas as pd
+
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.semantic_layers.types import (
@@ -36,7 +39,7 @@ from superset.semantic_layers.types import (
     SemanticViewImplementation,
     TimeGrain,
 )
-from superset.utils.core import FilterOperator
+from superset.utils.core import FilterOperator, TIME_COMPARISON
 from superset.utils.date_parser import get_past_or_future
 
 
@@ -604,3 +607,97 @@ def _validate_orderby(
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}
     if not elements <= metric_names | dimension_names:
         raise ValueError("All order by elements must be defined in the Semantic View.")
+
+
+def get_results(query_object: QueryObject) -> pd.DataFrame:
+    """
+    Run a query based on the `QueryObject` and return the results as a Pandas DataFrame.
+    """
+    semantic_view = query_object.datasource.implementation
+
+    # Step 1: Convert QueryObject to list of SemanticQuery objects
+    # The first query is the main query, subsequent queries are for time offsets
+    queries = map_query_object(query_object)
+
+    # Step 2: Execute the main query (first in the list)
+    main_query = queries[0]
+    main_result = semantic_view.get_dataframe(
+        metrics=main_query.metrics,
+        dimensions=main_query.dimensions,
+        filters=main_query.filters,
+        order=main_query.order,
+        limit=main_query.limit,
+        offset=main_query.offset,
+        group_limit=main_query.group_limit,
+    )
+
+    main_df = main_result.results
+
+    # If no time offsets, return the main DataFrame as-is
+    if not query_object.time_offsets or len(queries) <= 1:
+        return main_df
+
+    # Get metric names from the main query
+    # These are the columns that will be renamed with offset suffixes
+    metric_names = [metric.name for metric in main_query.metrics]
+
+    # Join keys are all columns except metrics
+    # These will be used to match rows between main and offset DataFrames
+    join_keys = [col for col in main_df.columns if col not in metric_names]
+
+    # Step 3 & 4: Execute each time offset query and join results
+    for offset_query, time_offset in zip(
+        queries[1:], query_object.time_offsets, strict=False
+    ):
+        # Execute the offset query
+        result = semantic_view.get_dataframe(
+            metrics=offset_query.metrics,
+            dimensions=offset_query.dimensions,
+            filters=offset_query.filters,
+            order=offset_query.order,
+            limit=offset_query.limit,
+            offset=offset_query.offset,
+            group_limit=offset_query.group_limit,
+        )
+
+        offset_df = result.results
+
+        # Handle empty results - create a DataFrame with NaN values
+        # This ensures the join doesn't fail and produces NULL values for missing data
+        if offset_df.empty:
+            offset_df = pd.DataFrame(
+                {
+                    **{col: [np.nan] for col in join_keys},
+                    **{
+                        TIME_COMPARISON.join([metric, time_offset]): [np.nan]
+                        for metric in metric_names
+                    },
+                }
+            )
+        else:
+            # Rename metric columns with time offset suffix
+            # Format: "{metric_name}__{time_offset}"
+            # Example: "revenue" -> "revenue__1 week ago"
+            offset_df = offset_df.rename(
+                columns={
+                    metric: TIME_COMPARISON.join([metric, time_offset])
+                    for metric in metric_names
+                }
+            )
+
+        # Step 5: Perform left join on dimension columns
+        # This preserves all rows from main_df and adds offset metrics where they match
+        main_df = main_df.merge(
+            offset_df,
+            on=join_keys,
+            how="left",
+            suffixes=("", "__duplicate"),
+        )
+
+        # Clean up any duplicate columns that might have been created
+        # (shouldn't happen with proper join keys, but defensive programming)
+        duplicate_cols = [col for col in main_df.columns if col.endswith("__duplicate")]
+        if duplicate_cols:
+            main_df = main_df.drop(columns=duplicate_cols)
+
+    return main_df
