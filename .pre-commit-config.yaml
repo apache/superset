@@ -120,15 +120,23 @@ repos:
         language: system
         types: [python]
         exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
+        pass_filenames: true
+        require_serial: true
         args:
           - -c
           - |
-            TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            git fetch --no-recurse-submodules --quiet origin "$TARGET_BRANCH"
-            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
-            if [ -n "$files" ]; then
-              pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
+            # When pre-commit passes files, use them; otherwise get from git diff
+            if [ $# -gt 0 ]; then
+              files=""
+              for file in "$@"; do
+                # Filter to only superset/*.py files
+                if [[ "$file" =~ ^superset/.*\.py$ ]]; then
+                  files="$files $file"
+                fi
+              done
+              if [ -n "$files" ]; then
+                pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
+              fi
             else
               echo "No Python files to lint."
             fi
