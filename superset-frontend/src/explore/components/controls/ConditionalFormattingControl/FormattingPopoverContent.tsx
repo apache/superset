@@ -306,7 +306,10 @@ export const FormattingPopoverContent = ({
     [columns, column],
   );
 
-  const columnTypeNumeric = columnType === GenericDataType.Numeric;
+  const columnTypeNumeric = useMemo(
+    () => columnType === GenericDataType.Numeric,
+    [columnType],
+  );
 
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;

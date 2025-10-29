@@ -784,9 +784,15 @@ const config: ControlPanelConfig = {
                           // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
-                            toAllRow: item.toAllRow ?? false,
-                            toTextColor: item.toTextColor ?? false,
-                            toCellBar: item.toCellBar ?? false,
+                            ...(item.toAllRow === undefined && {
+                              toAllRow: false,
+                            }),
+                            ...(item.toTextColor === undefined && {
+                              toTextColor: false,
+                            }),
+                            ...(item.toCellBar === undefined && {
+                              toCellBar: false,
+                            }),
                           };
                         }
                       }
