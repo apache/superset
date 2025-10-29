@@ -270,7 +270,7 @@ export const FormattingPopoverContent = ({
         conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
           ? config?.[configKey] === undefined
           : config?.[configKey] !== undefined,
-      [conditionalFormattingFlag, config], // oxlint-disable-line react-hooks/exhaustive-deps
+      [conditionalFormattingFlag], // oxlint-disable-line react-hooks/exhaustive-deps
     );
 
   const showToAllRow = useConditionalFormattingFlag(
