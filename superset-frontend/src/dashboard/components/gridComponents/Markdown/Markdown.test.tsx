@@ -426,10 +426,11 @@ test('should have fontWeightStrong in theme for bold markdown rendering', async 
     },
   });
 
-  // CRITICAL: Verify fontWeightStrong exists in the theme
+  // CRITICAL: Verify fontWeightStrong exists in the theme with adequate weight
   // If it's missing from allowedAntdTokens, GlobalStyles.tsx:66 will set
   // font-weight: undefined on <strong> tags, breaking bold markdown rendering
-  // Ant Design default is 600, backend config sets 500, either is acceptable
+  // Must be >= 600 (semibold) to show a true visual difference when bolded
+  // Values < 600 (like 500/medium) are too subtle and appear similar to normal (400)
   expect(supersetTheme.fontWeightStrong).toBeDefined();
-  expect(supersetTheme.fontWeightStrong).toBeGreaterThan(400);
+  expect(supersetTheme.fontWeightStrong).toBeGreaterThanOrEqual(600);
 });
