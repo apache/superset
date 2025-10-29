@@ -82,6 +82,7 @@ const propTypes = {
 
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
+const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -161,7 +162,8 @@ const Chart = props => {
   );
   const streamingThreshold = useSelector(
     state =>
-      state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD || 100000,
+      state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD ||
+      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
   const datasource = useSelector(
     state =>
