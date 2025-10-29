@@ -42,7 +42,7 @@ const NEWLINE_BYTE = 10; // '\n' character code
 const createFetchRequest = async (
   _url: string,
   payload: StreamingExportPayload,
-  filename: string,
+  filename: string | undefined,
   _exportType: string,
   expectedRows: number | undefined,
   signal: AbortSignal,
@@ -57,12 +57,15 @@ const createFetchRequest = async (
     headers['X-CSRFToken'] = csrfToken;
   }
 
-  // Build form data - if payload has client_id, it's SQL Lab export
-  // Otherwise it's a chart export with form_data
-  const formParams: Record<string, string> = {
-    filename,
-    expected_rows: expectedRows?.toString() || '',
-  };
+  const formParams: Record<string, string> = {};
+
+  if (filename) {
+    formParams.filename = filename;
+  }
+
+  if (expectedRows) {
+    formParams.expected_rows = expectedRows.toString();
+  }
 
   if ('client_id' in payload) {
     // SQL Lab export - pass client_id directly
@@ -146,13 +149,10 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
       });
 
       try {
-        const defaultFilename = `export.${exportType}`;
-        const finalFilename = filename || defaultFilename;
-
         const fetchOptions = await createFetchRequest(
           url,
           payload,
-          finalFilename,
+          filename,
           exportType,
           expectedRows,
           abortControllerRef.current.signal,
@@ -167,6 +167,18 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
         if (!response.body) {
           throw new Error('Response body is not available for streaming');
+        }
+
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const defaultFilename = `export.${exportType}`;
+        let serverFilename = defaultFilename;
+
+        if (contentDisposition) {
+          const filenameMatch =
+            contentDisposition.match(/filename="?([^"]+)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            serverFilename = filenameMatch[1];
+          }
         }
 
         const reader = response.body.getReader();
@@ -227,6 +239,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
             rowsProcessed,
             totalRows: expectedRows,
             totalSize: receivedLength,
+            filename: serverFilename,
           });
         }
 
@@ -247,11 +260,11 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
         updateProgress({
           status: ExportStatus.COMPLETED,
           downloadUrl,
-          filename: finalFilename,
+          filename: serverFilename,
         });
 
         isExportingRef.current = false;
-        options.onComplete?.(downloadUrl, finalFilename);
+        options.onComplete?.(downloadUrl, serverFilename);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error occurred';

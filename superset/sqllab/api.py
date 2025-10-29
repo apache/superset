@@ -377,13 +377,11 @@ class SqlLabRestApi(BaseSupersetApi):
         command = StreamingSqlResultExportCommand(client_id, chunk_size)
         command.validate()
 
-        # Generate filename if not provided
         if not filename:
             query = command._query
             assert query is not None
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            query_name = query.name or "query"
-            filename = secure_filename(f"sqllab_{query_name}_{timestamp}.csv")
+            filename = secure_filename(f"sqllab_{client_id}_{timestamp}.csv")
 
         # Get the callable that returns the generator
         csv_generator_callable = command.run()

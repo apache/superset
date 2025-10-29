@@ -423,17 +423,9 @@ const ResultSet = ({
                     e.preventDefault();
                     setShowStreamingModal(true);
 
-                    const timestamp = new Date()
-                      .toISOString()
-                      .slice(0, 19)
-                      .replace(/[-:]/g, '')
-                      .replace('T', '_');
-                    const filename = `sqllab_${query.id}_${timestamp}.csv`;
-
                     startExport({
                       url: '/api/v1/sqllab/export_streaming/',
                       payload: { client_id: query.id },
-                      filename,
                       exportType: 'csv',
                       expectedRows: rows,
                     });
