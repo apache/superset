@@ -57,7 +57,6 @@
     "lint:full": "npm run lint && npm run check:custom-rules",
     "check:custom-rules": "node scripts/check-custom-rules.js",
     "ensure-oxc": "echo 'OXC linter is ready' && npx oxlint --version",
-    "postinstall": "npm run ensure-oxc",
     "lint-stats": "node ./scripts/oxlint-metrics-uploader.js",
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
