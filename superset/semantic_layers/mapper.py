@@ -18,7 +18,6 @@
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
@@ -614,12 +613,6 @@ def get_results(query_object: QueryObject) -> SemanticResult:
     """
     Run a query based on the `QueryObject` and return the results as a SemanticResult.
 
-    This function handles the complete flow:
-    1. Converts QueryObject to SemanticQuery objects (one per time offset)
-    2. Executes all queries via the semantic view
-    3. Joins the results into a single DataFrame
-    4. Collects all requests from each query for troubleshooting
-
     :param query_object: The QueryObject containing query specifications
     :return: SemanticResult with combined DataFrame and all requests
     """
@@ -688,18 +681,13 @@ def get_results(query_object: QueryObject) -> SemanticResult:
 
         offset_df = result.results
 
-        # Handle empty results - create a DataFrame with NaN values
-        # This ensures the join doesn't fail and produces NULL values for missing data
+        # Handle empty results - add NaN columns directly instead of merging
+        # This avoids dtype mismatch issues with empty DataFrames
         if offset_df.empty:
-            offset_df = pd.DataFrame(
-                {
-                    **{col: [np.nan] for col in join_keys},
-                    **{
-                        TIME_COMPARISON.join([metric, time_offset]): [np.nan]
-                        for metric in metric_names
-                    },
-                }
-            )
+            # Add offset metric columns with NaN values directly to main_df
+            for metric in metric_names:
+                offset_col_name = TIME_COMPARISON.join([metric, time_offset])
+                main_df[offset_col_name] = np.nan
         else:
             # Rename metric columns with time offset suffix
             # Format: "{metric_name}__{time_offset}"
@@ -711,22 +699,22 @@ def get_results(query_object: QueryObject) -> SemanticResult:
                 }
             )
 
-        # Step 5: Perform left join on dimension columns
-        # This preserves all rows from main_df and adds offset metrics where they match
-        main_df = main_df.merge(
-            offset_df,
-            on=join_keys,
-            how="left",
-            suffixes=("", "__duplicate"),
-        )
+            # Step 5: Perform left join on dimension columns
+            # This preserves all rows from main_df and adds offset metrics
+            # where they match
+            main_df = main_df.merge(
+                offset_df,
+                on=join_keys,
+                how="left",
+                suffixes=("", "__duplicate"),
+            )
 
-        # Clean up any duplicate columns that might have been created
-        # (shouldn't happen with proper join keys, but defensive programming)
-        duplicate_cols = [col for col in main_df.columns if col.endswith("__duplicate")]
-        if duplicate_cols:
-            main_df = main_df.drop(columns=duplicate_cols)
+            # Clean up any duplicate columns that might have been created
+            # (shouldn't happen with proper join keys, but defensive programming)
+            duplicate_cols = [
+                col for col in main_df.columns if col.endswith("__duplicate")
+            ]
+            if duplicate_cols:
+                main_df = main_df.drop(columns=duplicate_cols)
 
-    return SemanticResult(
-        requests=all_requests,
-        results=main_df,
-    )
+    return SemanticResult(requests=all_requests, results=main_df)

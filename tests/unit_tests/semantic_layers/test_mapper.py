@@ -18,6 +18,7 @@
 from datetime import datetime
 from unittest.mock import Mock
 
+import pandas as pd
 import pytest
 
 from superset.common.query_object import QueryObject
@@ -31,6 +32,7 @@ from superset.semantic_layers.mapper import (
     _get_order_from_query_object,
     _get_time_bounds,
     _get_time_filter,
+    get_results,
     map_query_object,
     validate_query_object,
 )
@@ -48,6 +50,8 @@ from superset.semantic_layers.types import (
     OrderDirection,
     PredicateType,
     SemanticQuery,
+    SemanticRequest,
+    SemanticResult,
     SemanticViewFeature,
     STRING,
     TimeGrain,
@@ -1168,3 +1172,390 @@ def test_convert_query_object_filter_like():
         operator=Operator.LIKE,
         value="%test%",
     )
+
+
+def test_get_results_without_time_offsets(mock_datasource):
+    """
+    Test get_results without time offsets returns main query result.
+    """
+    # Create mock dataframe for main query
+    main_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [1000.0, 500.0, 750.0],
+        }
+    )
+
+    # Mock the semantic view's get_dataframe method
+    mock_result = SemanticResult(
+        requests=[
+            SemanticRequest(
+                type="SQL",
+                definition="SELECT category, SUM(amount) FROM orders GROUP BY category",
+            )
+        ],
+        results=main_df,
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(return_value=mock_result)
+
+    # Create query object without time offsets
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify result
+    assert isinstance(result, SemanticResult)
+    assert len(result.requests) == 1
+    assert result.requests[0].type == "SQL"
+
+    # Verify DataFrame matches main query result
+    pd.testing.assert_frame_equal(result.results, main_df)
+
+
+def test_get_results_with_single_time_offset(mock_datasource):
+    """
+    Test get_results with a single time offset joins correctly.
+    """
+    # Create mock dataframes
+    main_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [1000.0, 500.0, 750.0],
+        }
+    )
+
+    offset_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [950.0, 480.0, 700.0],
+        }
+    )
+
+    # Mock the semantic view's get_dataframe method
+    # It will be called twice: once for main, once for offset
+    mock_main_result = SemanticResult(
+        requests=[
+            SemanticRequest(
+                type="SQL",
+                definition=(
+                    "SELECT category, SUM(amount) FROM orders "
+                    "WHERE date >= '2025-10-15' GROUP BY category"
+                ),
+            )
+        ],
+        results=main_df.copy(),
+    )
+
+    mock_offset_result = SemanticResult(
+        requests=[
+            SemanticRequest(
+                type="SQL",
+                definition=(
+                    "SELECT category, SUM(amount) FROM orders "
+                    "WHERE date >= '2025-10-08' GROUP BY category"
+                ),
+            )
+        ],
+        results=offset_df.copy(),
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    # Create query object with time offset
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify result structure
+    assert isinstance(result, SemanticResult)
+    assert len(result.requests) == 2  # Main + offset query
+
+    # Verify DataFrame has both main and offset metrics
+    expected_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [1000.0, 500.0, 750.0],
+            "total_sales__1 week ago": [950.0, 480.0, 700.0],
+        }
+    )
+
+    pd.testing.assert_frame_equal(result.results, expected_df)
+
+
+def test_get_results_with_multiple_time_offsets(mock_datasource):
+    """
+    Test get_results with multiple time offsets joins all correctly.
+    """
+    # Create mock dataframes
+    main_df = pd.DataFrame(
+        {
+            "region": ["US", "UK", "JP"],
+            "order_count": [100, 50, 75],
+        }
+    )
+
+    offset_1w_df = pd.DataFrame(
+        {
+            "region": ["US", "UK", "JP"],
+            "order_count": [95, 48, 70],
+        }
+    )
+
+    offset_1m_df = pd.DataFrame(
+        {
+            "region": ["US", "UK", "JP"],
+            "order_count": [80, 40, 60],
+        }
+    )
+
+    # Mock results
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
+        results=main_df.copy(),
+    )
+
+    mock_offset_1w_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="OFFSET 1W QUERY")],
+        results=offset_1w_df.copy(),
+    )
+
+    mock_offset_1m_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="OFFSET 1M QUERY")],
+        results=offset_1m_df.copy(),
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(
+        side_effect=[mock_main_result, mock_offset_1w_result, mock_offset_1m_result]
+    )
+
+    # Create query object with multiple time offsets
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["order_count"],
+        columns=["region"],
+        granularity="order_date",
+        time_offsets=["1 week ago", "1 month ago"],
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify result structure
+    assert isinstance(result, SemanticResult)
+    assert len(result.requests) == 3  # Main + 2 offset queries
+
+    # Verify all requests are collected
+    assert result.requests[0].definition == "MAIN QUERY"
+    assert result.requests[1].definition == "OFFSET 1W QUERY"
+    assert result.requests[2].definition == "OFFSET 1M QUERY"
+
+    # Verify DataFrame has all metrics
+    expected_df = pd.DataFrame(
+        {
+            "region": ["US", "UK", "JP"],
+            "order_count": [100, 50, 75],
+            "order_count__1 week ago": [95, 48, 70],
+            "order_count__1 month ago": [80, 40, 60],
+        }
+    )
+
+    pd.testing.assert_frame_equal(result.results, expected_df)
+
+
+def test_get_results_with_empty_offset_result(mock_datasource):
+    """
+    Test get_results handles empty offset results gracefully.
+    """
+    # Create mock dataframes
+    main_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books"],
+            "total_sales": [1000.0, 500.0],
+        }
+    )
+
+    # Empty offset result
+    offset_df = pd.DataFrame()
+
+    # Mock results
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
+        results=main_df.copy(),
+    )
+
+    mock_offset_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
+        results=offset_df,
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    # Create query object with time offset
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify result structure
+    assert isinstance(result, SemanticResult)
+    assert len(result.requests) == 2
+
+    # Verify DataFrame has NaN for missing offset data
+    assert "total_sales__1 week ago" in result.results.columns
+    assert result.results["total_sales__1 week ago"].isna().all()
+
+
+def test_get_results_with_partial_offset_match(mock_datasource):
+    """
+    Test get_results with partial matches in offset data (left join behavior).
+    """
+    # Main query has 3 categories
+    main_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [1000.0, 500.0, 750.0],
+        }
+    )
+
+    # Offset query only has 2 categories (Books missing)
+    offset_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Clothing"],
+            "total_sales": [950.0, 700.0],
+        }
+    )
+
+    # Mock results
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
+        results=main_df.copy(),
+    )
+
+    mock_offset_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
+        results=offset_df.copy(),
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    # Create query object
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify DataFrame structure
+    expected_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Books", "Clothing"],
+            "total_sales": [1000.0, 500.0, 750.0],
+            "total_sales__1 week ago": [950.0, None, 700.0],
+        }
+    )
+
+    pd.testing.assert_frame_equal(result.results, expected_df)
+
+
+def test_get_results_with_multiple_dimensions(mock_datasource):
+    """
+    Test get_results with multiple dimension columns in join.
+    """
+    # Create mock dataframes with multiple dimensions
+    main_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Electronics", "Books"],
+            "region": ["US", "UK", "US"],
+            "total_sales": [1000.0, 800.0, 500.0],
+        }
+    )
+
+    offset_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Electronics", "Books"],
+            "region": ["US", "UK", "US"],
+            "total_sales": [950.0, 780.0, 480.0],
+        }
+    )
+
+    # Mock results
+    mock_main_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
+        results=main_df.copy(),
+    )
+
+    mock_offset_result = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
+        results=offset_df.copy(),
+    )
+
+    mock_datasource.implementation.get_dataframe = Mock(
+        side_effect=[mock_main_result, mock_offset_result]
+    )
+
+    # Create query object with multiple dimensions
+    query_object = QueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category", "region"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+
+    # Call get_results
+    result = get_results(query_object)
+
+    # Verify DataFrame structure - join should be on both category and region
+    expected_df = pd.DataFrame(
+        {
+            "category": ["Electronics", "Electronics", "Books"],
+            "region": ["US", "UK", "US"],
+            "total_sales": [1000.0, 800.0, 500.0],
+            "total_sales__1 week ago": [950.0, 780.0, 480.0],
+        }
+    )
+
+    pd.testing.assert_frame_equal(result.results, expected_df)
