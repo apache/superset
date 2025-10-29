@@ -16,10 +16,11 @@
 # under the License.
 
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.query_object import QueryObject
 from superset.semantic_layers.mapper import (
@@ -88,11 +89,11 @@ class MockSemanticViewImplementation:
 
 
 @pytest.fixture
-def mock_datasource() -> Mock:
+def mock_datasource(mocker: MockerFixture) -> MagicMock:
     """
     Create a mock datasource with semantic view implementation.
     """
-    datasource = Mock()
+    datasource = mocker.Mock()
 
     # Create dimensions
     time_dim = Dimension(
@@ -226,7 +227,7 @@ def test_get_filters_from_extras_both() -> None:
     }
 
 
-def test_get_time_bounds_no_offset(mock_datasource):
+def test_get_time_bounds_no_offset(mock_datasource: MagicMock) -> None:
     """
     Test time bounds without offset.
     """
@@ -247,7 +248,7 @@ def test_get_time_bounds_no_offset(mock_datasource):
     assert result_to == to_dttm
 
 
-def test_get_time_filter_no_granularity(mock_datasource):
+def test_get_time_filter_no_granularity(mock_datasource: MagicMock) -> None:
     """
     Test that no time filter is created without granularity.
     """
@@ -269,7 +270,7 @@ def test_get_time_filter_no_granularity(mock_datasource):
     assert result == set()
 
 
-def test_get_time_filter_with_granularity(mock_datasource):
+def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
     """
     Test time filter creation with granularity.
     """
@@ -341,7 +342,7 @@ def test_convert_query_object_filter_temporal_range() -> None:
     assert result is None
 
 
-def test_convert_query_object_filter_in(mock_datasource):
+def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     """
     Test conversion of IN filter.
     """
@@ -365,7 +366,7 @@ def test_convert_query_object_filter_in(mock_datasource):
     )
 
 
-def test_convert_query_object_filter_is_null(mock_datasource):
+def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None:
     """
     Test conversion of IS_NULL filter.
     """
@@ -388,7 +389,7 @@ def test_convert_query_object_filter_is_null(mock_datasource):
     )
 
 
-def test_get_filters_from_query_object_basic(mock_datasource):
+def test_get_filters_from_query_object_basic(mock_datasource: MagicMock) -> None:
     """
     Test basic filter extraction from query object.
     """
@@ -423,7 +424,7 @@ def test_get_filters_from_query_object_basic(mock_datasource):
     }
 
 
-def test_get_filters_from_query_object_with_extras(mock_datasource):
+def test_get_filters_from_query_object_with_extras(mock_datasource: MagicMock) -> None:
     """
     Test filter extraction with extras.
     """
@@ -463,7 +464,9 @@ def test_get_filters_from_query_object_with_extras(mock_datasource):
     }
 
 
-def test_get_filters_from_query_object_with_fetch_values(mock_datasource):
+def test_get_filters_from_query_object_with_fetch_values(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test filter extraction with fetch values predicate.
     """
@@ -505,7 +508,7 @@ def test_get_filters_from_query_object_with_fetch_values(mock_datasource):
     }
 
 
-def test_get_order_from_query_object_metric(mock_datasource):
+def test_get_order_from_query_object_metric(mock_datasource: MagicMock) -> None:
     """
     Test order extraction with metric.
     """
@@ -528,7 +531,7 @@ def test_get_order_from_query_object_metric(mock_datasource):
     assert result == [(all_metrics["total_sales"], OrderDirection.DESC)]
 
 
-def test_get_order_from_query_object_dimension(mock_datasource):
+def test_get_order_from_query_object_dimension(mock_datasource: MagicMock) -> None:
     """
     Test order extraction with dimension.
     """
@@ -551,7 +554,7 @@ def test_get_order_from_query_object_dimension(mock_datasource):
     assert result == [(all_dimensions["category"], OrderDirection.ASC)]
 
 
-def test_get_order_from_query_object_adhoc(mock_datasource):
+def test_get_order_from_query_object_adhoc(mock_datasource: MagicMock) -> None:
     """
     Test order extraction with adhoc expression.
     """
@@ -582,7 +585,7 @@ def test_get_order_from_query_object_adhoc(mock_datasource):
     ]
 
 
-def test_get_group_limit_from_query_object_none(mock_datasource):
+def test_get_group_limit_from_query_object_none(mock_datasource: MagicMock) -> None:
     """
     Test that None is returned with no columns.
     """
@@ -608,7 +611,7 @@ def test_get_group_limit_from_query_object_none(mock_datasource):
     assert result is None
 
 
-def test_get_group_limit_from_query_object_basic(mock_datasource):
+def test_get_group_limit_from_query_object_basic(mock_datasource: MagicMock) -> None:
     """
     Test basic group limit creation.
     """
@@ -645,7 +648,9 @@ def test_get_group_limit_from_query_object_basic(mock_datasource):
     )
 
 
-def test_get_group_limit_from_query_object_with_group_others(mock_datasource):
+def test_get_group_limit_from_query_object_with_group_others(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test group limit with group_others enabled.
     """
@@ -675,7 +680,7 @@ def test_get_group_limit_from_query_object_with_group_others(mock_datasource):
     assert result.group_others is True
 
 
-def test_get_group_limit_filters_no_inner_bounds(mock_datasource):
+def test_get_group_limit_filters_no_inner_bounds(mock_datasource: MagicMock) -> None:
     """
     Test that None is returned when no inner bounds.
     """
@@ -698,7 +703,7 @@ def test_get_group_limit_filters_no_inner_bounds(mock_datasource):
     assert result is None
 
 
-def test_get_group_limit_filters_same_bounds(mock_datasource):
+def test_get_group_limit_filters_same_bounds(mock_datasource: MagicMock) -> None:
     """
     Test that None is returned when inner bounds equal outer bounds.
     """
@@ -725,7 +730,7 @@ def test_get_group_limit_filters_same_bounds(mock_datasource):
     assert result is None
 
 
-def test_get_group_limit_filters_different_bounds(mock_datasource):
+def test_get_group_limit_filters_different_bounds(mock_datasource: MagicMock) -> None:
     """
     Test filter creation when inner bounds differ.
     """
@@ -762,7 +767,7 @@ def test_get_group_limit_filters_different_bounds(mock_datasource):
     }
 
 
-def test_get_group_limit_filters_with_extras(mock_datasource):
+def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None:
     """
     Test that extras filters are included in group limit filters.
     """
@@ -804,7 +809,7 @@ def test_get_group_limit_filters_with_extras(mock_datasource):
     }
 
 
-def test_map_query_object_basic(mock_datasource):
+def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
     """
     Test basic query object mapping.
     """
@@ -885,7 +890,7 @@ def test_map_query_object_basic(mock_datasource):
     ]
 
 
-def test_map_query_object_with_time_offsets(mock_datasource):
+def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
     """
     Test mapping with time offsets.
     """
@@ -989,7 +994,9 @@ def test_map_query_object_with_time_offsets(mock_datasource):
     }
 
 
-def test_convert_query_object_filter_unknown_operator(mock_datasource):
+def test_convert_query_object_filter_unknown_operator(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test filter with unknown operator returns None.
     """
@@ -1008,7 +1015,9 @@ def test_convert_query_object_filter_unknown_operator(mock_datasource):
     assert result is None
 
 
-def test_validate_query_object_undefined_metric_error(mock_datasource):
+def test_validate_query_object_undefined_metric_error(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test validation error for undefined metrics.
     """
@@ -1022,7 +1031,9 @@ def test_validate_query_object_undefined_metric_error(mock_datasource):
         validate_query_object(query_object, mock_datasource.implementation)
 
 
-def test_validate_query_object_undefined_dimension_error(mock_datasource):
+def test_validate_query_object_undefined_dimension_error(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test validation error for undefined dimensions.
     """
@@ -1036,7 +1047,9 @@ def test_validate_query_object_undefined_dimension_error(mock_datasource):
         validate_query_object(query_object, mock_datasource.implementation)
 
 
-def test_validate_query_object_time_grain_without_column_error(mock_datasource):
+def test_validate_query_object_time_grain_without_column_error(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test validation error when time grain provided without time column.
     """
@@ -1052,7 +1065,9 @@ def test_validate_query_object_time_grain_without_column_error(mock_datasource):
         validate_query_object(query_object, mock_datasource.implementation)
 
 
-def test_validate_query_object_unsupported_time_grain_error(mock_datasource):
+def test_validate_query_object_unsupported_time_grain_error(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test validation error for unsupported time grain.
     """
@@ -1073,11 +1088,13 @@ def test_validate_query_object_unsupported_time_grain_error(mock_datasource):
         validate_query_object(query_object, mock_datasource.implementation)
 
 
-def test_validate_query_object_group_limit_not_supported_error():
+def test_validate_query_object_group_limit_not_supported_error(
+    mocker: MockerFixture,
+) -> None:
     """
     Test validation error when group limit not supported.
     """
-    mock_datasource = Mock()
+    mock_datasource = mocker.Mock()
     time_dim = Dimension("order_date", "order_date", STRING, "order_date", "Date")
     category_dim = Dimension("category", "category", STRING, "category", "Category")
     sales_metric = Metric("total_sales", "total_sales", NUMBER, "SUM(amount)", "Sales")
@@ -1098,7 +1115,9 @@ def test_validate_query_object_group_limit_not_supported_error():
         validate_query_object(query_object, mock_datasource.implementation)
 
 
-def test_validate_query_object_undefined_series_column_error(mock_datasource):
+def test_validate_query_object_undefined_series_column_error(
+    mock_datasource: MagicMock,
+) -> None:
     """
     Test validation error for undefined series columns.
     """
@@ -1152,7 +1171,7 @@ def test_convert_query_object_filter(
     )
 
 
-def test_convert_query_object_filter_like():
+def test_convert_query_object_filter_like() -> None:
     """
     Test filter with LIKE operator.
     """
@@ -1174,7 +1193,10 @@ def test_convert_query_object_filter_like():
     )
 
 
-def test_get_results_without_time_offsets(mock_datasource):
+def test_get_results_without_time_offsets(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results without time offsets returns main query result.
     """
@@ -1197,7 +1219,7 @@ def test_get_results_without_time_offsets(mock_datasource):
         results=main_df,
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(return_value=mock_result)
+    mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
 
     # Create query object without time offsets
     query_object = QueryObject(
@@ -1221,7 +1243,10 @@ def test_get_results_without_time_offsets(mock_datasource):
     pd.testing.assert_frame_equal(result.results, main_df)
 
 
-def test_get_results_with_single_time_offset(mock_datasource):
+def test_get_results_with_single_time_offset(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results with a single time offset joins correctly.
     """
@@ -1268,7 +1293,7 @@ def test_get_results_with_single_time_offset(mock_datasource):
         results=offset_df.copy(),
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(
+    mock_datasource.implementation.get_dataframe = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1302,7 +1327,10 @@ def test_get_results_with_single_time_offset(mock_datasource):
     pd.testing.assert_frame_equal(result.results, expected_df)
 
 
-def test_get_results_with_multiple_time_offsets(mock_datasource):
+def test_get_results_with_multiple_time_offsets(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results with multiple time offsets joins all correctly.
     """
@@ -1344,7 +1372,7 @@ def test_get_results_with_multiple_time_offsets(mock_datasource):
         results=offset_1m_df.copy(),
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(
+    mock_datasource.implementation.get_dataframe = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_1w_result, mock_offset_1m_result]
     )
 
@@ -1384,7 +1412,10 @@ def test_get_results_with_multiple_time_offsets(mock_datasource):
     pd.testing.assert_frame_equal(result.results, expected_df)
 
 
-def test_get_results_with_empty_offset_result(mock_datasource):
+def test_get_results_with_empty_offset_result(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results handles empty offset results gracefully.
     """
@@ -1410,7 +1441,7 @@ def test_get_results_with_empty_offset_result(mock_datasource):
         results=offset_df,
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(
+    mock_datasource.implementation.get_dataframe = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1437,7 +1468,10 @@ def test_get_results_with_empty_offset_result(mock_datasource):
     assert result.results["total_sales__1 week ago"].isna().all()
 
 
-def test_get_results_with_partial_offset_match(mock_datasource):
+def test_get_results_with_partial_offset_match(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results with partial matches in offset data (left join behavior).
     """
@@ -1468,7 +1502,7 @@ def test_get_results_with_partial_offset_match(mock_datasource):
         results=offset_df.copy(),
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(
+    mock_datasource.implementation.get_dataframe = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 
@@ -1498,7 +1532,10 @@ def test_get_results_with_partial_offset_match(mock_datasource):
     pd.testing.assert_frame_equal(result.results, expected_df)
 
 
-def test_get_results_with_multiple_dimensions(mock_datasource):
+def test_get_results_with_multiple_dimensions(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     """
     Test get_results with multiple dimension columns in join.
     """
@@ -1530,7 +1567,7 @@ def test_get_results_with_multiple_dimensions(mock_datasource):
         results=offset_df.copy(),
     )
 
-    mock_datasource.implementation.get_dataframe = Mock(
+    mock_datasource.implementation.get_dataframe = mocker.Mock(
         side_effect=[mock_main_result, mock_offset_result]
     )
 

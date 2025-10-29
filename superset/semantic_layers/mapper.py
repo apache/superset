@@ -617,6 +617,8 @@ def get_results(query_object: QueryObject) -> SemanticResult:
     :return: SemanticResult with combined DataFrame and all requests
     """
     semantic_view = query_object.datasource.implementation
+    validate_query_object(query_object, semantic_view)
+
     dispatcher = (
         semantic_view.get_row_count
         if query_object.is_rowcount
