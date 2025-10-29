@@ -50,8 +50,8 @@ const propTypes = {
 };
 
 const maps = {};
-// Store zoom state per chart instance
-const zoomStates = {};
+// Store zoom state per chart instance using element as key to enable garbage collection
+const zoomStates = new WeakMap();
 
 function CountryMap(element, props) {
   const {
@@ -73,9 +73,6 @@ function CountryMap(element, props) {
   const container = element;
   const format = getNumberFormatter(numberFormat);
 
-  // Use sliceId as unique key for this chart instance
-  const chartKey = sliceId || `${country}-${width}-${height}`;
-
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
@@ -92,7 +89,7 @@ function CountryMap(element, props) {
   const colorFn = feature => {
     if (!feature?.properties) return 'none';
     const iso = feature.properties.ISO;
-    return colorMap[iso] || '#FFFEFE';
+    return colorMap[iso] || '#d9d9d9';
   };
 
   const path = d3.geo.path();
@@ -125,7 +122,10 @@ function CountryMap(element, props) {
 
   // Cross-filter support
   const getCrossFilterDataMask = source => {
-    const selected = filterState.selectedValues || [];
+    // Guard check for entity prop
+    if (!entity) return undefined;
+
+    const selected = filterState?.selectedValues || [];
     const iso = source?.properties?.ISO;
     if (!iso) return undefined;
 
@@ -158,7 +158,7 @@ function CountryMap(element, props) {
     }
 
     const iso = feature?.properties?.ISO;
-    if (!iso || typeof onContextMenu !== 'function') return;
+    if (!iso || typeof onContextMenu !== 'function' || !entity) return;
 
     const drillVal = iso;
     const drillToDetailFilters = [
@@ -169,7 +169,7 @@ function CountryMap(element, props) {
     onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
       drillToDetail: drillToDetailFilters,
       crossFilter: getCrossFilterDataMask(feature),
-      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
+      drillBy: { filters: drillByFilters, groupbyFieldName: entity },
     });
   };
 
@@ -206,7 +206,7 @@ function CountryMap(element, props) {
     .zoom()
     .scaleExtent([1, 4])
     .on('zoom', () => {
-      const { translate, scale } = d3.event; // [tx, ty]
+      const { translate, scale } = d3.event;
       let [tx, ty] = translate;
 
       const scaledW = width * scale;
@@ -216,19 +216,29 @@ function CountryMap(element, props) {
       const minY = Math.min(0, height - scaledH);
       const maxY = 0;
 
-      // clamp
       tx = Math.max(Math.min(tx, maxX), minX);
       ty = Math.max(Math.min(ty, maxY), minY);
 
       g.attr('transform', `translate(${tx}, ${ty}) scale(${scale})`);
-      zoomStates[chartKey] = { scale, translate: [tx, ty] };
+      // Prevent redundant writes by updating zoomStates only when scale or translate values change
+      const prev = zoomStates.get(element);
+      const changed =
+        !prev ||
+        prev.scale !== scale ||
+        prev.translate[0] !== tx ||
+        prev.translate[1] !== ty;
+      if (changed) {
+        // Store zoom state using element as WeakMap key
+        zoomStates.set(element, { scale, translate: [tx, ty] });
+      }
     });
 
   d3.select(svg.node()).call(zoom);
 
-  // Restore
-  if (zoomStates[chartKey]) {
-    const { scale, translate } = zoomStates[chartKey];
+  // Restore previous zoom state if it exists
+  const savedZoom = zoomStates.get(element);
+  if (savedZoom) {
+    const { scale, translate } = savedZoom;
     zoom.scale(scale).translate(translate);
     g.attr(
       'transform',
@@ -237,36 +247,36 @@ function CountryMap(element, props) {
   }
 
   // Visual highlighting for selected regions
-  function highlightSelectedRegion() {
-    const selectedValues = filterState.selectedValues?.length
-      ? filterState.selectedValues
-      : [];
+  function highlightSelectedRegion(selectedValues = null) {
+    const selected = selectedValues || filterState?.selectedValues || [];
 
     mapLayer
       .selectAll('path.region')
       .style('fill-opacity', d => {
         const iso = d?.properties?.ISO;
-        return selectedValues.length === 0 || selectedValues.includes(iso)
-          ? 1
-          : 0.3;
+        return selected.length === 0 || selected.includes(iso) ? 1 : 0.3;
       })
       .style('stroke', d => {
         const iso = d?.properties?.ISO;
-        return selectedValues.includes(iso) ? '#222' : null;
+        return selected.includes(iso) ? '#222' : null;
       })
       .style('stroke-width', d => {
         const iso = d?.properties?.ISO;
-        return selectedValues.includes(iso) ? '1.5px' : '0.5px';
+        return selected.includes(iso) ? '1.5px' : '0.5px';
       });
   }
 
   // Click handler
   const handleClick = feature => {
-    if (!emitCrossFilters || typeof setDataMask !== 'function') return;
+    // Guard checks for required props
+    if (!entity || !emitCrossFilters || typeof setDataMask !== 'function') {
+      return;
+    }
+
     const iso = feature?.properties?.ISO;
     if (!iso) return;
 
-    const baseline = filterState.selectedValues || [];
+    const baseline = filterState?.selectedValues || [];
     const currently = new Set(baseline);
     const shift = !!(d3.event && d3.event.shiftKey);
 
@@ -297,7 +307,8 @@ function CountryMap(element, props) {
       },
     });
 
-    highlightSelectedRegion();
+    // Pass new selection directly to avoid stale state
+    highlightSelectedRegion(newSelection.length ? newSelection : []);
   };
 
   function drawMap(mapData) {
