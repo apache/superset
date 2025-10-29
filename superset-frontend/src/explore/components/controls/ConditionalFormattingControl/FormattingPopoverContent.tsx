@@ -270,7 +270,7 @@ export const FormattingPopoverContent = ({
         conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
           ? config?.[configKey] === undefined
           : config?.[configKey] !== undefined,
-      [conditionalFormattingFlag, config],
+      [conditionalFormattingFlag],
     );
 
   const showToAllRow = useConditionalFormattingFlag(
