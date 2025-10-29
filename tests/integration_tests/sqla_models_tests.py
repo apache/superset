@@ -1153,7 +1153,6 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
         database=database,
     )
 
-    # Add column
     col = TableColumn(
         column_name="name",
         type="VARCHAR(255)",
@@ -1161,7 +1160,6 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
     )
     table.columns = [col]
 
-    # Add metric
     metric = SqlMetric(
         metric_name="count",
         expression="COUNT(*)",
@@ -1173,7 +1171,6 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
     db.session.commit()
 
     try:
-        # Query with metric filter and NO is_ag_grid_chart flag
         query_obj = {
             "granularity": None,
             "from_dttm": None,
@@ -1182,22 +1179,20 @@ def test_generic_metric_filtering_without_chart_flag(login_as_admin):
             "metrics": ["count"],
             "filter": [
                 {
-                    "col": "count",  # Filter on metric
+                    "col": "count",
                     "op": ">",
                     "val": 0,
                 }
             ],
             "is_timeseries": False,
-            "extras": {},  # No chart-specific flags
+            "extras": {},
         }
 
-        # This should not raise an error
         sqla_query = table.get_sqla_query(**query_obj)
         sql = str(
             sqla_query.sqla_query.compile(compile_kwargs={"literal_binds": True})
         ).lower()
 
-        # Verify HAVING clause is used
         assert "having" in sql, "Metric filter should use HAVING clause. SQL: " + sql
     finally:
         db.session.delete(table)
@@ -1221,12 +1216,10 @@ def test_column_ordering_without_chart_flag(login_as_admin):
         database=database,
     )
 
-    # Add columns
     col_a = TableColumn(column_name="col_a", type="VARCHAR(255)", table=table)
     col_b = TableColumn(column_name="col_b", type="VARCHAR(255)", table=table)
     table.columns = [col_a, col_b]
 
-    # Add metrics
     metric_x = SqlMetric(metric_name="metric_x", expression="COUNT(*)", table=table)
     metric_y = SqlMetric(metric_name="metric_y", expression="SUM(val)", table=table)
     table.metrics = [metric_x, metric_y]
@@ -1235,7 +1228,6 @@ def test_column_ordering_without_chart_flag(login_as_admin):
     db.session.commit()
 
     try:
-        # Mock the database response with columns in one order
         mock_df = pd.DataFrame(
             {
                 "col_a": [1, 2],
@@ -1261,15 +1253,11 @@ def test_column_ordering_without_chart_flag(login_as_admin):
                 "metrics": ["metric_x", "metric_y"],
                 "filter": [],
                 "is_timeseries": False,
-                "extras": {
-                    # Specify custom column order (no chart-specific flags)
-                    "column_order": ["metric_y", "col_b", "metric_x", "col_a"]
-                },
+                "extras": {"column_order": ["metric_y", "col_b", "metric_x", "col_a"]},
             }
 
             result = table.query(query_obj)
 
-            # Verify columns are reordered
             expected_order = ["metric_y", "col_b", "metric_x", "col_a"]
             assert list(result.df.columns) == expected_order, (
                 f"Expected {expected_order}, got {list(result.df.columns)}"
