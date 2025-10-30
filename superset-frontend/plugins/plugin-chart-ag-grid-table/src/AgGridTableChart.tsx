@@ -82,6 +82,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     columnColorFormatters,
     basicColorFormatters,
     width,
+    onChartStateChange,
+    chartState,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -109,6 +111,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
     comparisonColumns?.[0]?.key,
   ]);
+
+  const handleColumnStateChange = useCallback(
+    agGridState => {
+      if (onChartStateChange) {
+        onChartStateChange(agGridState);
+      }
+    },
+    [onChartStateChange],
+  );
 
   const filteredColumns = useMemo(() => {
     if (!isUsingTimeComparison) {
@@ -289,6 +300,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         cleanedTotals={totals || {}}
         showTotals={showTotals}
         width={width}
+        onColumnStateChange={handleColumnStateChange}
+        chartState={chartState}
       />
     </StyledChartContainer>
   );

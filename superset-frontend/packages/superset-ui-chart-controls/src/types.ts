@@ -478,10 +478,14 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
 };
 
 export type ColorFormatters = {
   column: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
   getColorFromValue: (value: number | string) => string | undefined;
 }[];
 
