@@ -22,6 +22,7 @@ import {
   ChangeEvent,
   useMemo,
   useRef,
+  useEffect,
 } from 'react';
 import rison from 'rison';
 
@@ -29,6 +30,7 @@ import {
   FeatureFlag,
   SupersetClient,
   isFeatureEnabled,
+  logging,
   styled,
   t,
   useTheme,
@@ -136,6 +138,7 @@ interface NotificationMethodProps {
   email_subject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
+  addDangerToast?: (msg: string) => void;
 }
 
 export const mapSlackValues = ({
@@ -168,6 +171,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   email_subject,
   defaultSubject,
   setErrorSubject,
+  addDangerToast,
 }) => {
   const { method, recipients, cc, bcc, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
@@ -193,6 +197,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [refreshKey, setRefreshKey] = useState(0);
   const forceRefreshRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasShownErrorToast = useRef(false); // Track if we've shown the error toast
 
   const onMethodChange = (selected: {
     label: string;
@@ -278,13 +283,40 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
       return responseData;
     } catch (error) {
-      console.error('Failed to fetch Slack channels:', error);
+      logging.error('Failed to fetch Slack channels:', error);
+
+      // Show user-friendly error message
+      if (addDangerToast && !hasShownErrorToast.current) {
+        addDangerToast(
+          t(
+            'Unable to load Slack channels. Please check your Slack API token configuration. ' +
+              'Switching to manual channel input.',
+          ),
+        );
+        hasShownErrorToast.current = true;
+      }
+
+      // Fallback to Slack v1 without clearing recipients to prevent data loss
       setUseSlackV1(true);
-      onMethodChange({
-        label: NotificationMethodOption.Slack,
-        value: NotificationMethodOption.Slack,
-      });
-      throw error;
+
+      // Auto-switch to Slack V1 in the notification method dropdown
+      if (
+        onUpdate &&
+        setting &&
+        setting.method === NotificationMethodOption.SlackV2
+      ) {
+        onUpdate(index, {
+          ...setting,
+          method: NotificationMethodOption.Slack, // Switch from SlackV2 to Slack V1
+          // Keep recipients to preserve user data
+        });
+      }
+
+      // Return empty result instead of throwing to allow UI to continue
+      return {
+        data: [],
+        totalCount: 0,
+      };
     }
   };
 
@@ -292,28 +324,74 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     setIsRefreshing(true);
 
     try {
+      // Clear cache and cursor to force fresh data fetch
       forceRefreshRef.current = true;
       cursorRef.current = {};
       dataCache.current = {};
 
-      setSlackRecipients([]);
-
-      if (onUpdate && setting) {
-        onUpdate(index, {
-          ...setting,
-          recipients: '',
-        } as NotificationSetting);
-      }
-
+      // Fetch fresh channel list without clearing user selections
       await fetchSlackChannels('', 0, 100);
 
       setRefreshKey(prev => prev + 1);
     } catch (error) {
-      console.error('Error refreshing channels:', error);
+      logging.error('Error refreshing channels:', error);
+
+      // Show error toast if available
+      if (addDangerToast) {
+        addDangerToast(
+          t('Failed to refresh Slack channels. Please try again.'),
+        );
+      }
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  // Reset error toast flag when method changes
+  useEffect(() => {
+    hasShownErrorToast.current = false;
+  }, [method]);
+
+  // Initialize slackRecipients when editing an existing alert with SlackV2
+  useEffect(() => {
+    const initializeSlackRecipients = async () => {
+      if (
+        method === NotificationMethodOption.SlackV2 &&
+        recipients &&
+        slackRecipients.length === 0
+      ) {
+        try {
+          // Fetch first page of channels to map IDs to names
+          const channelData = await fetchSlackChannels('', 0, 100);
+          const recipientIds = recipients.split(',').map(id => id.trim());
+
+          // Map recipient IDs to {label, value} format
+          const mappedRecipients = recipientIds
+            .map(id => {
+              const channel = channelData.data.find(
+                ch => ch.value.toLowerCase() === id.toLowerCase(),
+              );
+              // If channel found, use its label; otherwise fallback to ID
+              return channel || { label: id, value: id };
+            })
+            .filter(r => r.value); // Filter out empty values
+
+          setSlackRecipients(mappedRecipients);
+        } catch (error) {
+          // If fetching fails, use IDs as both label and value
+          const recipientIds = recipients.split(',').map(id => id.trim());
+          const fallbackRecipients = recipientIds.map(id => ({
+            label: id,
+            value: id,
+          }));
+          setSlackRecipients(fallbackRecipients);
+        }
+      }
+    };
+
+    initializeSlackRecipients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, recipients]);
 
   const methodOptions = useMemo(
     () =>
