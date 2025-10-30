@@ -103,6 +103,9 @@ const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFilterScopes = useNativeFilterScopes();
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -117,6 +120,15 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const chartIds = useChartIds();
 
   const renderedChartIds = useRenderedChartIds();
+
+  const nativeFilterScopesKey = useMemo(
+    () => JSON.stringify(nativeFilterScopes),
+    [nativeFilterScopes],
+  );
+  const nativeFiltersKey = useMemo(
+    () => JSON.stringify(nativeFilters),
+    [nativeFilters],
+  );
 
   const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
     useState(false);
@@ -192,7 +204,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    chartIds,
+    nativeFilterScopesKey,
+    dashboardLayout,
+    dispatch,
+    nativeFiltersKey,
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -297,6 +316,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           />
         ),
       }));
+
+      console.log('DASHBOARD CONTAINER');
 
       return (
         <Tabs

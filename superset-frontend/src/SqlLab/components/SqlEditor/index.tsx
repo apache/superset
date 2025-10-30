@@ -185,6 +185,7 @@ const StyledSqlEditor = styled.div`
 
     .queryPane {
       padding: ${theme.sizeUnit * 2}px;
+      padding-left: 0px;
       + .ant-splitter-bar .ant-splitter-bar-dragger {
         &::before {
           background: transparent;
