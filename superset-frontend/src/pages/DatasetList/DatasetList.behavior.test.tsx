@@ -222,7 +222,12 @@ test('clicking delete opens modal with related objects count', async () => {
 
   // Find and click delete button in the row
   const table = screen.getByTestId('listview-table');
-  const deleteButton = await within(table).findByTestId('delete');
+  const datasetRow = within(table)
+    .getAllByRole('row')
+    .find(row => within(row).queryByText(datasetToDelete.table_name));
+  expect(datasetRow).toBeTruthy();
+  await userEvent.hover(datasetRow!);
+  const deleteButton = within(datasetRow!).getByTestId('delete');
 
   await userEvent.click(deleteButton);
 
@@ -475,3 +480,6 @@ test('dataset name links to Explore with correct URL and accessible label', asyn
     expect.stringContaining(`${dataset.id}__table`),
   );
 });
+
+// Note: Component "+1" tests for state persistence through operations have been
+// moved to DatasetList.listview.test.tsx where they can use the reliable selectOption helper.

@@ -320,7 +320,7 @@ export const API_ENDPOINTS = {
   DATASET_GET: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_RELATED_OBJECTS: 'glob:*/api/v1/dataset/*/related_objects*',
   DATASET_DELETE: 'glob:*/api/v1/dataset/[0-9]*',
-  DATASET_BULK_DELETE: 'glob:*/api/v1/dataset/?q=*',
+  DATASET_BULK_DELETE: 'glob:*/api/v1/dataset/?q=*', // Matches DELETE /api/v1/dataset/?q=...
   DATASET_DUPLICATE: 'glob:*/api/v1/dataset/duplicate*',
   DATASET_FAVORITE_STATUS: 'glob:*/api/v1/dataset/favorite_status*',
   DATASET_RELATED_DATABASE: 'glob:*/api/v1/dataset/related/database*',
@@ -397,7 +397,7 @@ export const renderDatasetList = (
  * Waits for the "Datasets" heading to appear, indicating initial render is complete
  */
 export const waitForDatasetsPageReady = async () => {
-  expect(await screen.findByText('Datasets')).toBeInTheDocument();
+  await screen.findByText('Datasets');
 };
 
 // Helper functions for specific operations
