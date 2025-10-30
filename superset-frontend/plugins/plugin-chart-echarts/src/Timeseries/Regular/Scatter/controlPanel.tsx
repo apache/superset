@@ -143,7 +143,6 @@ const config: ControlPanelConfig = {
                 }
                 
                 const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
-                console.log('xAxisType', xAxisType);
 
                 if (typeof xAxisType !== 'string')
                 {
