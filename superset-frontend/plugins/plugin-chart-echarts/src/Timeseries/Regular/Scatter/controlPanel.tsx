@@ -113,6 +113,7 @@ const config: ControlPanelConfig = {
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
               visibility: ({ controls }: ControlPanelsContainerProps) => {
+                // check if x axis is a time column
                 const xAxisColumn = controls?.x_axis?.value;
                 const xAxisOptions = controls?.x_axis?.options;
 
@@ -121,17 +122,18 @@ const config: ControlPanelConfig = {
                   return false;
                 }
 
-                const xAxisType = Array.isArray(xAxisOptions) ? xAxisOptions.find(option => option.column_name === xAxisColumn)?.type : null;
+                const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
                 
                 return typeof xAxisType === 'string' && xAxisType.toUpperCase().includes('TIME');
               },
             },
           },
           {
-            name: 'x_axis_format',
+            name: 'x_axis_number_format',
             config: {
               ...sharedControls.x_axis_number_format,
               visibility: ({ controls }: ControlPanelsContainerProps) => {
+                // check if x axis is a floating-point column
                 const xAxisColumn = controls?.x_axis?.value;
                 const xAxisOptions = controls?.x_axis?.options;
 
@@ -140,9 +142,17 @@ const config: ControlPanelConfig = {
                   return false;
                 }
                 
-                const xAxisType = Array.isArray(xAxisOptions) ? xAxisOptions.find(option => option.column_name === xAxisColumn)?.type : null;
+                const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
+                console.log('xAxisType', xAxisType);
+
+                if (typeof xAxisType !== 'string')
+                {
+                  return false;
+                }
+
+                const typeUpper = xAxisType.toUpperCase();
                 
-                return typeof xAxisType === 'string' && xAxisType.toUpperCase().includes('FLOAT');
+                return ['FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'DECIMAL'].some(t => typeUpper.includes(t));
               },
             },
           }
