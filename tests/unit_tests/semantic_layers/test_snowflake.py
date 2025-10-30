@@ -25,11 +25,13 @@ import pytest
 from pandas import DataFrame
 from pytest_mock import MockerFixture
 
-from superset.semantic_layers.snowflake_ import (
-    get_connection_parameters,
+from superset.semantic_layers.snowflake import (
     SnowflakeConfiguration,
     SnowflakeSemanticLayer,
     SnowflakeSemanticView,
+)
+from superset.semantic_layers.snowflake.utils import (
+    get_connection_parameters,
     substitute_parameters,
     validate_order_by,
 )
@@ -191,7 +193,9 @@ def connection(mocker: MockerFixture) -> Iterator[MagicMock]:
     """
     Mock the Snowflake connect function to return a mock connection.
     """
-    connect = mocker.patch("superset.semantic_layers.snowflake_.connect")
+    # Patch connect in both places where it's imported
+    connect = mocker.patch("superset.semantic_layers.snowflake.semantic_view.connect")
+    mocker.patch("superset.semantic_layers.snowflake.semantic_layer.connect", new=connect)
     with connect() as connection:
         yield connection
 
@@ -570,7 +574,7 @@ def test_get_configuration_schema(
             mock_cursor.execute.return_value = iter([(schema,) for schema in schemas])
 
         # Mock connect to return our mock connection
-        with patch("superset.semantic_layers.snowflake_.connect") as mock_connect:
+        with patch("superset.semantic_layers.snowflake.semantic_layer.connect") as mock_connect:
             mock_connect.return_value.__enter__.return_value = mock_connection
 
             # Get the schema
@@ -754,7 +758,7 @@ def test_get_runtime_schema(
         mock_cursor.execute.return_value = iter([(schema,) for schema in schemas])
 
     # Mock connect to return our mock connection
-    with patch("superset.semantic_layers.snowflake_.connect") as mock_connect:
+    with patch("superset.semantic_layers.snowflake.semantic_layer.connect") as mock_connect:
         mock_connect.return_value.__enter__.return_value = mock_connection
 
         # Get the runtime schema
