@@ -250,7 +250,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     let dispatchAllowed = false;
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       // Filtros com nome Estado não poderão ser apagados
-      if (filter.name === "Estado Padrão") return;
+      if (filter.name.toLowerCase().includes("padrão")) return;
       const { id } = filter;
       if (dataMaskSelected[id]) {
         if (filter.controlValues?.enableEmptyFilter) {
