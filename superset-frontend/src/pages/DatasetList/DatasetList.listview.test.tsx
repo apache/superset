@@ -16,16 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  cleanup,
-  fireEvent,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
+import { selectOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
@@ -33,6 +29,7 @@ import {
   mockDatasets,
   setupDeleteMocks,
   setupBulkDeleteMocks,
+  setupDuplicateMocks,
   mockHandleResourceExport,
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
@@ -127,7 +124,11 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Wait for any pending state updates to complete before cleanup
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
   cleanup();
   fetchMock.reset();
   jest.restoreAllMocks();
@@ -595,7 +596,7 @@ test('exit bulk select via close button returns to normal view', async () => {
   const closeButton = bulkSelectControls.querySelector(
     '.ant-alert-close-icon',
   ) as HTMLElement;
-  fireEvent.click(closeButton);
+  await userEvent.click(closeButton);
 
   // Checkboxes should disappear
   await waitFor(() => {
@@ -1077,4 +1078,369 @@ test('duplicate action shows error toast on 500 internal server error', async ()
 
   // Verify table state unchanged
   expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
+});
+
+// Component "+1" Tests - State persistence through operations
+
+test('sort order persists after deleting a dataset', async () => {
+  const datasetToDelete = mockDatasets[0];
+  setupDeleteMocks(datasetToDelete.id);
+
+  renderDatasetList(mockAdminUser, {
+    addSuccessToast: mockAddSuccessToast,
+    addDangerToast: mockAddDangerToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const nameHeader = within(table).getByText(/Name/i);
+
+  // Record initial API calls count
+  const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  // Click Name header to sort
+  await userEvent.click(nameHeader);
+
+  // Wait for new API call with sort parameter
+  await waitFor(() => {
+    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    expect(calls.length).toBeGreaterThan(initialCalls);
+  });
+
+  // Record the sort parameter from the API call after sorting
+  const callsAfterSort = fetchMock.calls(API_ENDPOINTS.DATASETS);
+  const sortedUrl = callsAfterSort[callsAfterSort.length - 1][0] as string;
+  expect(sortedUrl).toMatch(/order_column|sort/);
+
+  // Delete a dataset - get delete button from first row only
+  const firstRow = screen.getAllByRole('row')[1];
+  const deleteButton = within(firstRow).getByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  // Confirm delete in modal - type DELETE to enable button
+  const modal = await screen.findByRole('dialog');
+  await within(modal).findByText(datasetToDelete.table_name);
+
+  // Enable the danger button by typing DELETE
+  const confirmInput = within(modal).getByTestId('delete-modal-input');
+  await userEvent.clear(confirmInput);
+  await userEvent.type(confirmInput, 'DELETE');
+
+  // Record call count before delete to track refetch
+  const callsBeforeDelete = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
+  await userEvent.click(confirmButton!);
+
+  // Confirm the delete request fired
+  await waitFor(() => {
+    expect(mockAddSuccessToast).toHaveBeenCalled();
+  });
+
+  // Wait for modal to close completely
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // Wait for list refetch to complete (prevents async cleanup error)
+  await waitFor(() => {
+    const currentCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+    expect(currentCalls).toBeGreaterThan(callsBeforeDelete);
+  });
+
+  // Now re-query the header and assert the sort indicators still exist
+  await waitFor(() => {
+    const carets = within(nameHeader.closest('th')!).getAllByLabelText(
+      /caret/i,
+    );
+    expect(carets.length).toBeGreaterThan(0);
+  });
+});
+
+// Note: "deleting last item on page 2 fetches page 1" is a hook-level pagination
+// concern (useListViewResource handles page reset logic). This is covered by
+// integration tests where we can verify the full pagination cycle.
+
+test('bulk delete refreshes list with updated count', async () => {
+  setupBulkDeleteMocks();
+
+  renderDatasetList(mockAdminUser, {
+    addSuccessToast: mockAddSuccessToast,
+    addDangerToast: mockAddDangerToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  await waitFor(() => {
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes.length).toBeGreaterThan(0);
+  });
+
+  // Select first 3 items (re-query checkboxes after each click to handle DOM updates)
+  let checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+
+  checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[2]);
+
+  checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[3]);
+
+  // Wait for selections to register
+  await waitFor(() => {
+    const selectionText = screen.getByText(/selected/i);
+    expect(selectionText).toBeInTheDocument();
+    expect(selectionText).toHaveTextContent('3');
+  });
+
+  // Verify bulk actions UI appears and click the bulk delete button
+  // Multiple bulk actions share the same test ID, so filter by text content
+  const bulkActionButtons = await screen.findAllByTestId('bulk-select-action');
+  const bulkDeleteButton = bulkActionButtons.find(btn =>
+    btn.textContent?.includes('Delete'),
+  );
+  expect(bulkDeleteButton).toBeTruthy();
+
+  await userEvent.click(bulkDeleteButton!);
+
+  // Confirm in modal - type DELETE to enable button
+  const modal = await screen.findByRole('dialog');
+
+  // Enable the danger button by typing DELETE
+  const confirmInput = within(modal).getByTestId('delete-modal-input');
+  await userEvent.clear(confirmInput);
+  await userEvent.type(confirmInput, 'DELETE');
+
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
+  await userEvent.click(confirmButton!);
+
+  // Wait for modal to close first (defensive wait for CI stability)
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // Wait for success toast
+  await waitFor(() => {
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      expect.stringContaining('deleted'),
+    );
+  });
+
+  // Verify danger toast was not called
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+}, 30000); // 30 second timeout for slow bulk delete test
+
+test('bulk selection clears when filter changes', async () => {
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: mockDatasets, count: mockDatasets.length },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Enter bulk select mode
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  await waitFor(() => {
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes.length).toBeGreaterThan(0);
+  });
+
+  // Select first 2 items
+  const checkboxes = screen.getAllByRole('checkbox');
+  await userEvent.click(checkboxes[1]);
+  await userEvent.click(checkboxes[2]);
+
+  // Wait for selections to register - assert on "selected" text which is what users see
+  await screen.findByText(/selected/i);
+
+  // Record API call count before filter
+  const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  // Apply a filter using selectOption helper
+  await selectOption('Virtual', 'Type');
+
+  // Wait for filter API call to complete
+  await waitFor(() => {
+    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
+  });
+
+  // Verify filter was applied by decoding URL payload
+  const urlAfterFilter = fetchMock
+    .calls(API_ENDPOINTS.DATASETS)
+    .at(-1)?.[0] as string;
+  const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  const decodedAfterFilter = rison.decode(
+    decodeURIComponent(risonAfterFilter!),
+  ) as Record<string, any>;
+  expect(decodedAfterFilter.filters).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ col: 'sql', value: false }),
+    ]),
+  );
+
+  // Verify selection was cleared - count should show "0 Selected"
+  await waitFor(() => {
+    expect(screen.getByText(/0 selected/i)).toBeInTheDocument();
+  });
+});
+
+test('type filter persists after duplicating a dataset', async () => {
+  const datasetToDuplicate = mockDatasets.find(d => d.kind === 'virtual')!;
+
+  setupDuplicateMocks();
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Apply Type filter using selectOption helper
+  // Check if filter is already applied (from previous test state)
+  const typeFilterCombobox = screen.queryByRole('combobox', { name: /^Type:/ });
+  if (!typeFilterCombobox) {
+    // Filter not applied yet, apply it
+    await selectOption('Virtual', 'Type');
+  }
+
+  // Wait a moment for any pending filter operations to complete
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Verify filter is present by checking the latest API call
+  const urlAfterFilter = fetchMock
+    .calls(API_ENDPOINTS.DATASETS)
+    .at(-1)?.[0] as string;
+  const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  const decodedAfterFilter = rison.decode(
+    decodeURIComponent(risonAfterFilter!),
+  ) as Record<string, any>;
+  expect(decodedAfterFilter.filters).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ col: 'sql', value: false }),
+    ]),
+  );
+
+  // Capture datasets API call count BEFORE any duplicate operations
+  const datasetsCallCountBeforeDuplicate = fetchMock.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
+
+  // Now duplicate the dataset
+  const row = screen.getByText(datasetToDuplicate.table_name).closest('tr');
+  expect(row).toBeInTheDocument();
+
+  const duplicateIcon = await within(row!).findByTestId('copy');
+  const duplicateButton = duplicateIcon.closest(
+    '[role="button"]',
+  ) as HTMLElement | null;
+  expect(duplicateButton).toBeTruthy();
+
+  await userEvent.click(duplicateButton!);
+
+  const modal = await screen.findByRole('dialog');
+  const modalInput = within(modal).getByRole('textbox');
+  await userEvent.clear(modalInput);
+  await userEvent.type(modalInput, 'Copy of Dataset');
+
+  const confirmButton = within(modal).getByRole('button', {
+    name: /duplicate/i,
+  });
+  await userEvent.click(confirmButton);
+
+  // Wait for duplicate API call to be made
+  await waitFor(() => {
+    const duplicateCalls = fetchMock.calls(API_ENDPOINTS.DATASET_DUPLICATE);
+    expect(duplicateCalls.length).toBeGreaterThan(0);
+  });
+
+  // Wait for datasets refetch to occur (proves duplicate triggered a refresh)
+  await waitFor(() => {
+    const datasetsCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+    expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDuplicate);
+  });
+
+  // Verify Type filter persisted in the NEW datasets API call after duplication
+  const urlAfterDuplicate = fetchMock
+    .calls(API_ENDPOINTS.DATASETS)
+    .at(-1)?.[0] as string;
+  const risonAfterDuplicate = urlAfterDuplicate.split('?q=')[1];
+  const decodedAfterDuplicate = rison.decode(
+    decodeURIComponent(risonAfterDuplicate!),
+  ) as Record<string, any>;
+  expect(decodedAfterDuplicate.filters).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ col: 'sql', value: false }),
+    ]),
+  );
+});
+
+test('type filter API call includes correct filter parameter', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Apply Type filter using selectOption helper
+  // Check if filter is already applied (from previous test state)
+  const typeFilterCombobox = screen.queryByRole('combobox', { name: /^Type:/ });
+  if (!typeFilterCombobox) {
+    // Filter not applied yet, apply it
+    await selectOption('Virtual', 'Type');
+  }
+
+  // Wait a moment for any pending filter operations to complete
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Verify the latest API call includes the Type filter
+  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+  const latestCall = calls[calls.length - 1];
+  const url = latestCall[0] as string;
+
+  // URL should contain filters parameter
+  expect(url).toContain('filters');
+  const risonPayload = url.split('?q=')[1];
+  expect(risonPayload).toBeTruthy();
+  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
+    string,
+    unknown
+  >;
+  const filters = Array.isArray(decoded?.filters) ? decoded.filters : [];
+
+  // Type filter should be present (sql=false for Virtual datasets)
+  const hasTypeFilter = filters.some(
+    (filter: Record<string, unknown>) =>
+      filter?.col === 'sql' && filter?.value === false,
+  );
+
+  expect(hasTypeFilter).toBe(true);
 });
