@@ -19,6 +19,7 @@ from operator import and_
 from typing import Any, Optional
 
 from flask import g
+from sqlalchemy import tuple_
 from sqlalchemy.exc import NoResultFound
 
 from superset.commands.tag.exceptions import TagNotFoundError
@@ -99,6 +100,21 @@ class TagDAO(BaseDAO[Tag]):
             )
 
         db.session.delete(tagged_object.one())
+
+    @staticmethod
+    def bulk_delete_tagged_object(
+        tagged_objects_to_delete: set[tuple[str, str]],
+        tag: Tag,
+    ) -> None:
+        """
+        deletes multiple tagged objects by the object_id, object_type, and tag_name
+        """
+        db.session.query(TaggedObject).filter(
+            TaggedObject.tag_id == tag.id,
+            tuple_(TaggedObject.object_type, TaggedObject.object_id).in_(
+                list(tagged_objects_to_delete)
+            ),
+        ).delete(synchronize_session=False)
 
     @staticmethod
     def delete_tags(tag_names: list[str]) -> None:
@@ -375,12 +391,6 @@ class TagDAO(BaseDAO[Tag]):
                 )
 
         if not bulk_create:
-            # delete relationships that aren't retained from single tag create
-            for object_type, object_id in tagged_objects_to_delete:
-                # delete objects that were removed
-                TagDAO.delete_tagged_object(
-                    object_type,  # type: ignore
-                    object_id,
-                    tag.name,
-                )
+            TagDAO.bulk_delete_tagged_object(tagged_objects_to_delete, tag)
+
         db.session.add_all(tagged_objects)
