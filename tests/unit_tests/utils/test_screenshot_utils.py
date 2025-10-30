@@ -110,6 +110,9 @@ class TestTakeTiledScreenshot:
         """Create a mock Playwright page object."""
         page = MagicMock()
 
+        # Mock viewport size
+        page.viewport_size = {"width": 1024, "height": 768}
+
         # Mock element locator
         element = MagicMock()
         page.locator.return_value = element
@@ -125,16 +128,24 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
-        # For 3 tiles (5000px / 2000px = 2.5, rounded up to 3):
-        # 1 initial call + 3 scroll + 3 viewport info + 1 reset scroll = 8 calls
+        # For 7 tiles (5000px / 768px actual viewport = 6.5, rounded up to 7):
+        # 1 initial call + 7 scroll + 7 viewport info + 1 reset scroll = 16 calls
         page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
-            None,  # First scroll call
-            viewport_info,  # First viewport info call
-            None,  # Second scroll call
-            viewport_info,  # Second viewport info call
-            None,  # Third scroll call
-            viewport_info,  # Third viewport info call
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
+            None,
+            viewport_info,  # Tile 4
+            None,
+            viewport_info,  # Tile 5
+            None,
+            viewport_info,  # Tile 6
+            None,
+            viewport_info,  # Tile 7
             None,  # Final reset scroll call
         ]
 
@@ -157,8 +168,8 @@ class TestTakeTiledScreenshot:
             assert result == b"combined_screenshot"
 
             # Should have called screenshot method multiple times
-            # (3 tiles for 5000px height)
-            assert mock_page.screenshot.call_count == 3
+            # (7 tiles for 5000px height with 768px actual viewport)
+            assert mock_page.screenshot.call_count == 7
 
             # Should have called combine function
             mock_combine.assert_called_once()
@@ -223,34 +234,46 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
-            None,  # First scroll call
-            viewport_info,  # First viewport info call
-            None,  # Second scroll call
-            viewport_info,  # Second viewport info call
-            None,  # Third scroll call
-            viewport_info,  # Third viewport info call
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
+            None,
+            viewport_info,  # Tile 4
+            None,
+            viewport_info,  # Tile 5
+            None,
+            viewport_info,  # Tile 6
+            None,
+            viewport_info,  # Tile 7
             None,  # Reset scroll call
         ]
 
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
-            # Check scroll positions (dashboard_top = 100)
+            # Check scroll positions (dashboard_top = 100, tile_height = 768)
             scroll_calls = [
                 call
                 for call in mock_page.evaluate.call_args_list
                 if "scrollTo" in str(call)
             ]
 
-            # Should have scrolled to positions: 100, 2100, 4100
+            # Should have scrolled to positions: 100, 868, 1636, 2404, 3172, 3940, 4708
             expected_scrolls = [
                 "window.scrollTo(0, 100)",
-                "window.scrollTo(0, 2100)",
-                "window.scrollTo(0, 4100)",
+                "window.scrollTo(0, 868)",
+                "window.scrollTo(0, 1636)",
+                "window.scrollTo(0, 2404)",
+                "window.scrollTo(0, 3172)",
+                "window.scrollTo(0, 3940)",
+                "window.scrollTo(0, 4708)",
             ]
             actual_scrolls = [call[0][0] for call in scroll_calls]
 
-            assert len(actual_scrolls) == 4  # 3 tile scrolls + 1 reset
+            assert len(actual_scrolls) == 8  # 7 tile scrolls + 1 reset
             for expected in expected_scrolls:
                 assert expected in actual_scrolls
 
@@ -269,12 +292,20 @@ class TestTakeTiledScreenshot:
 
         mock_page.evaluate.side_effect = [
             element_info,  # Initial call for dashboard dimensions
-            None,  # First scroll call
-            viewport_info,  # First viewport info call
-            None,  # Second scroll call
-            viewport_info,  # Second viewport info call
-            None,  # Third scroll call
-            viewport_info,  # Third viewport info call
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
+            None,
+            viewport_info,  # Tile 4
+            None,
+            viewport_info,  # Tile 5
+            None,
+            viewport_info,  # Tile 6
+            None,
+            viewport_info,  # Tile 7
             None,  # Reset scroll call
         ]
 
@@ -296,7 +327,7 @@ class TestTakeTiledScreenshot:
                     "Dashboard: %sx%spx at (%s, %s)", 800, 5000, 50, 100
                 )
                 # Should log number of tiles with lazy logging format
-                mock_logger.info.assert_any_call("Taking %s screenshot tiles", 3)
+                mock_logger.info.assert_any_call("Taking %s screenshot tiles", 7)
 
     def test_exception_handling_returns_none(self):
         """Test that exceptions are handled and None is returned."""
@@ -317,8 +348,8 @@ class TestTakeTiledScreenshot:
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
-            # Should have called wait_for_timeout for each tile (3 tiles)
-            assert mock_page.wait_for_timeout.call_count == 3
+            # Should have called wait_for_timeout for each tile (7 tiles)
+            assert mock_page.wait_for_timeout.call_count == 7
 
             # Each wait should be 2000ms (2 seconds)
             for call in mock_page.wait_for_timeout.call_args_list:
@@ -347,6 +378,7 @@ class TestTakeTiledScreenshot:
     def test_negative_element_position_clipped_to_zero(self):
         """Test that negative element positions are clipped to viewport bounds."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         # Mock element locator
         element = MagicMock()
@@ -363,13 +395,18 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
-        # For 2 tiles: 1 initial + 2 scroll + 2 viewport info + 1 reset = 6 calls
+        # For 4 tiles (3000px / 768px = 3.9, rounded up to 4):
+        # 1 initial + 4 * (scroll + viewport info) + 1 reset = 10 calls
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # First scroll
-            viewport_info,  # First viewport info
-            None,  # Second scroll
-            viewport_info,  # Second viewport info
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
+            None,
+            viewport_info,  # Tile 4
             None,  # Reset scroll
         ]
 
@@ -391,6 +428,7 @@ class TestTakeTiledScreenshot:
     def test_element_extends_beyond_viewport(self):
         """Test clipping when element extends beyond viewport boundaries."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         element = MagicMock()
         mock_page.locator.return_value = element
@@ -407,10 +445,16 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
+        # For 3 tiles (2000px / 768px = 2.6, rounded up to 3):
+        # 1 initial + 3 * (scroll + viewport info) + 1 reset = 8 calls
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # Scroll
-            viewport_info,
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
             None,  # Reset scroll
         ]
 
@@ -428,6 +472,7 @@ class TestTakeTiledScreenshot:
     def test_invalid_clip_dimensions_skipped(self):
         """Test that tiles with invalid dimensions are skipped with a warning."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         element = MagicMock()
         mock_page.locator.return_value = element
@@ -454,12 +499,22 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
+        # For 6 tiles (4000px / 768px = 5.2, rounded up to 6):
+        # 1 initial + 6 * (scroll + viewport info) + 1 reset = 14 calls
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # First scroll
-            valid_viewport_info,
-            None,  # Second scroll
-            invalid_viewport_info,  # This should be skipped
+            None,
+            valid_viewport_info,  # Tile 1 - valid
+            None,
+            invalid_viewport_info,  # Tile 2 - invalid, should be skipped
+            None,
+            valid_viewport_info,  # Tile 3 - valid
+            None,
+            valid_viewport_info,  # Tile 4 - valid
+            None,
+            valid_viewport_info,  # Tile 5 - valid
+            None,
+            valid_viewport_info,  # Tile 6 - valid
             None,  # Reset scroll
         ]
 
@@ -480,12 +535,13 @@ class TestTakeTiledScreenshot:
                 assert "Skipping tile" in warning_msg
                 assert "invalid clip dimensions" in warning_msg
 
-                # Should only have taken 1 screenshot (skipped the invalid one)
-                assert mock_page.screenshot.call_count == 1
+                # Should have taken 5 screenshots (6 tiles - 1 invalid)
+                assert mock_page.screenshot.call_count == 5
 
     def test_viewport_bounds_with_offset_element(self):
         """Test proper clipping for element with positive offset from viewport edge."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         element = MagicMock()
         mock_page.locator.return_value = element
@@ -502,10 +558,16 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
+        # For 3 tiles (2000px / 768px = 2.6, rounded up to 3):
+        # 1 initial + 3 * (scroll + viewport info) + 1 reset = 8 calls
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # Scroll
-            viewport_info,
+            None,
+            viewport_info,  # Tile 1
+            None,
+            viewport_info,  # Tile 2
+            None,
+            viewport_info,  # Tile 3
             None,  # Reset scroll
         ]
 
@@ -525,6 +587,7 @@ class TestTakeTiledScreenshot:
     def test_zero_width_element_skipped(self):
         """Test that elements with zero or negative width are skipped."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         element = MagicMock()
         mock_page.locator.return_value = element
@@ -540,10 +603,17 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
+        # For 3 tiles (2000px / 768px = 2.6, rounded up to 3):
+        # 1 initial + 3 * (scroll + viewport info) + 1 reset = 8 calls
+        # All tiles will be skipped due to zero width
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # Scroll
-            viewport_info,
+            None,
+            viewport_info,  # Tile 1 - skipped
+            None,
+            viewport_info,  # Tile 2 - skipped
+            None,
+            viewport_info,  # Tile 3 - skipped
             None,  # Reset scroll
         ]
 
@@ -556,10 +626,12 @@ class TestTakeTiledScreenshot:
                 # Should handle gracefully
                 assert result is not None
 
-                # Should have logged warning about invalid dimensions
-                mock_logger.warning.assert_called_once()
-                warning_msg = mock_logger.warning.call_args[0][0]
-                assert "invalid clip dimensions" in warning_msg
+                # Should have logged warnings about invalid dimensions
+                # (3 times, once per tile)
+                assert mock_logger.warning.call_count == 3
+                for call in mock_logger.warning.call_args_list:
+                    warning_msg = call[0][0]
+                    assert "invalid clip dimensions" in warning_msg
 
                 # Should not have taken any screenshots
                 assert mock_page.screenshot.call_count == 0
@@ -567,6 +639,7 @@ class TestTakeTiledScreenshot:
     def test_element_completely_above_viewport(self):
         """Test element that is completely scrolled above the viewport."""
         mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1024, "height": 768}
 
         element = MagicMock()
         mock_page.locator.return_value = element
@@ -583,10 +656,17 @@ class TestTakeTiledScreenshot:
             "viewportHeight": 768,
         }
 
+        # For 3 tiles (2000px / 768px = 2.6, rounded up to 3):
+        # 1 initial + 3 * (scroll + viewport info) + 1 reset = 8 calls
+        # All tiles will be skipped because element is completely above viewport
         mock_page.evaluate.side_effect = [
             element_info,
-            None,  # Scroll
-            viewport_info,
+            None,
+            viewport_info,  # Tile 1 - skipped
+            None,
+            viewport_info,  # Tile 2 - skipped
+            None,
+            viewport_info,  # Tile 3 - skipped
             None,  # Reset scroll
         ]
 
@@ -599,8 +679,62 @@ class TestTakeTiledScreenshot:
                 # Should handle gracefully
                 assert result is not None
 
-                # Should have skipped the tile with a warning
-                mock_logger.warning.assert_called_once()
+                # Should have skipped all 3 tiles with warnings
+                assert mock_logger.warning.call_count == 3
 
                 # Should not have taken screenshots
                 assert mock_page.screenshot.call_count == 0
+
+    def test_scroll_increment_respects_actual_viewport_height(self):
+        """When config viewport height > actual viewport, we still cover every tile."""
+        mock_page = MagicMock()
+        mock_page.viewport_size = {"width": 1600, "height": 1200}
+
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        element_info = {"height": 3600, "top": 0, "left": 0, "width": 800}
+        viewport_info = {
+            "elementX": 0,
+            "elementY": 0,
+            "elementWidth": 800,
+            "elementHeight": 1200,
+            "viewportWidth": 1600,
+            "viewportHeight": 1200,
+        }
+
+        mock_page.evaluate.side_effect = [
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll
+            viewport_info,  # First viewport info
+            None,  # Second scroll
+            viewport_info,  # Second viewport info
+            None,  # Third scroll
+            viewport_info,  # Third viewport info
+            None,  # Reset scroll
+        ]
+
+        mock_page.screenshot.return_value = b"screenshot"
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+
+        # We expect three tiles (0–1200, 1200–2400, 2400–3600)
+        # even though config says 2000.
+        assert mock_page.screenshot.call_count == 3
+
+        scroll_calls = [
+            call
+            for call in mock_page.evaluate.call_args_list
+            if "scrollTo" in str(call)
+        ]
+        actual_scrolls = [call[0][0] for call in scroll_calls]
+
+        # Should have scrolled to positions: 0, 1200, 2400, plus final reset to 0
+        assert len(actual_scrolls) == 4  # 3 tile scrolls + 1 reset
+        assert actual_scrolls == [
+            "window.scrollTo(0, 0)",
+            "window.scrollTo(0, 1200)",
+            "window.scrollTo(0, 2400)",
+            "window.scrollTo(0, 0)",  # Reset scroll
+        ]

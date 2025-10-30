@@ -120,15 +120,26 @@ def take_tiled_screenshot(
             dashboard_top,
         )
 
-        # Calculate number of tiles needed
-        num_tiles = max(1, (dashboard_height + viewport_height - 1) // viewport_height)
+        # Get actual viewport height to ensure we don't skip content
+        actual_viewport_height = page.viewport_size["height"]
+        tile_height = min(viewport_height, actual_viewport_height)
+
+        logger.info(
+            "Viewport: configured=%s, actual=%s, using tile_height=%s",
+            viewport_height,
+            actual_viewport_height,
+            tile_height,
+        )
+
+        # Calculate number of tiles needed based on actual tile height
+        num_tiles = max(1, (dashboard_height + tile_height - 1) // tile_height)
         logger.info("Taking %s screenshot tiles", num_tiles)
 
         screenshot_tiles = []
 
         for i in range(num_tiles):
             # Calculate scroll position to show this tile's content
-            scroll_y = dashboard_top + (i * viewport_height)
+            scroll_y = dashboard_top + (i * tile_height)
 
             # Scroll the window to the desired position
             page.evaluate(f"window.scrollTo(0, {scroll_y})")
