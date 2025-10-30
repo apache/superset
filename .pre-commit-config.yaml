@@ -124,12 +124,12 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            # Skip fetch if origin/master already exists (like in CI)
-            if ! git rev-parse --verify origin/"$TARGET_BRANCH" >/dev/null 2>&1; then
-              git fetch --no-recurse-submodules origin "$TARGET_BRANCH"
+            # Only fetch if we're not in CI (CI already has all refs)
+            if [ -z "$CI" ]; then
+              git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
             fi
-            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
+            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else
