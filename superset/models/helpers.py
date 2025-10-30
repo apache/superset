@@ -888,10 +888,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             # Fix for issue #35493: Quote column names with spaces to prevent SQLGlot
             # from misinterpreting them as "column AS alias" syntax
-            if " " in expression and not any(char in expression for char in ['"', "'", "`", "[", "("]):
+            if " " in expression and not any(
+                char in expression for char in ['"', "'", "`", "[", "("]
+            ):
                 # This appears to be a simple column name with spaces, quote it
                 expression = self.database.quote_identifier(expression)
-            
+
             expression = f"SELECT {expression}"
 
         if processed := self._process_sql_expression(
