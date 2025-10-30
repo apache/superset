@@ -1028,7 +1028,7 @@ def test_validate_query_object_undefined_metric_error(
     )
 
     with pytest.raises(ValueError, match="All metrics must be defined"):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 def test_validate_query_object_undefined_dimension_error(
@@ -1044,7 +1044,7 @@ def test_validate_query_object_undefined_dimension_error(
     )
 
     with pytest.raises(ValueError, match="All dimensions must be defined"):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 def test_validate_query_object_time_grain_without_column_error(
@@ -1062,7 +1062,7 @@ def test_validate_query_object_time_grain_without_column_error(
     )
 
     with pytest.raises(ValueError, match="time column must be specified"):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 def test_validate_query_object_unsupported_time_grain_error(
@@ -1085,7 +1085,7 @@ def test_validate_query_object_unsupported_time_grain_error(
             "The time grain is not supported for the time column in the Semantic View."
         ),
     ):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 def test_validate_query_object_group_limit_not_supported_error(
@@ -1112,7 +1112,7 @@ def test_validate_query_object_group_limit_not_supported_error(
     )
 
     with pytest.raises(ValueError, match="Group limit is not supported"):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 def test_validate_query_object_undefined_series_column_error(
@@ -1130,7 +1130,7 @@ def test_validate_query_object_undefined_series_column_error(
     )
 
     with pytest.raises(ValueError, match="All series columns must be defined"):
-        validate_query_object(query_object, mock_datasource.implementation)
+        validate_query_object(query_object)
 
 
 @pytest.mark.parametrize(

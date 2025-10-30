@@ -34,7 +34,14 @@ from superset.sql.parse import SQLStatement
 
 
 def substitute_parameters(query: str, parameters: Sequence[Any] | None) -> str:
-    """Substitute parametereters for logging only - NOT for execution"""
+    """
+    Substitute parametereters in templated query.
+
+    This is used to convert bind query parameters so that we can return the executed
+    query for logging/auditing purposes. With Snowflake the binding happens on the
+    server, so the only way to get the true executed query would be to query the
+    database, which is innefficient.
+    """
     if not parameters:
         return query
 
