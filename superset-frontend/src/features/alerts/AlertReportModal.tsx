@@ -2597,6 +2597,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         email_subject={currentAlert?.email_subject || ''}
                         defaultSubject={emailSubject || ''}
                         setErrorSubject={handleErrorUpdate}
+                        addDangerToast={addDangerToast}
                       />
                     </StyledNotificationMethodWrapper>
                   ))}
