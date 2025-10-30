@@ -1162,7 +1162,8 @@ def test_process_select_expression_column_names_with_spaces(
         or "'Test Column'" in result
     )
 
-    # Test 2: Complex expression with spaces - should NOT be pre-quoted (let SQLGlot handle it)
+    # Test 2: Complex expression with spaces - should NOT be pre-quoted
+    # (let SQLGlot handle it)
     result = table._process_select_expression(
         expression="col1 * 10",
         database_id=database.id,

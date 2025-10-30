@@ -874,8 +874,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def _should_quote_identifier(self, expr: str) -> bool:
         """
-        Determine if an expression should be quoted because it's an identifier with spaces.
-        
+        Determine if an expression should be quoted because it's an
+        identifier with spaces.
+
         Uses SQLGlot parsing to detect if the expression gets misinterpreted as an alias
         when it should be treated as a single identifier.
         """
