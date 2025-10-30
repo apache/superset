@@ -888,7 +888,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             # Fix for issue #35493: Quote column names with spaces to prevent SQLGlot
             # from misinterpreting them as "column AS alias" syntax
-            # Only quote if it appears to be a simple identifier (no SQL operators or functions)
+            # Only quote if it appears to be a simple identifier
+            # (no SQL operators or functions)
             if (
                 " " in expression
                 and not any(
