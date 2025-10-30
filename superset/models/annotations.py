@@ -16,11 +16,12 @@
 # under the License.
 """a collection of Annotation-related models"""
 
+from datetime import datetime
 from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 
 from superset.models.helpers import AuditMixinNullable
 from superset.utils.core import MediumText
@@ -30,9 +31,9 @@ class AnnotationLayer(Model, AuditMixinNullable):
     """A logical namespace for a set of annotations"""
 
     __tablename__ = "annotation_layer"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250))
-    descr = Column(Text)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    name: Mapped[str | None] = Column(String(250))
+    descr: Mapped[str | None] = Column(Text)
 
     def __repr__(self) -> str:
         return str(self.name)
@@ -42,14 +43,16 @@ class Annotation(Model, AuditMixinNullable):
     """Time-related annotation"""
 
     __tablename__ = "annotation"
-    id = Column(Integer, primary_key=True)
-    start_dttm = Column(DateTime)
-    end_dttm = Column(DateTime)
-    layer_id = Column(Integer, ForeignKey("annotation_layer.id"), nullable=False)
-    short_descr = Column(String(500))
-    long_descr = Column(Text)
-    layer = relationship(AnnotationLayer, backref="annotation")
-    json_metadata = Column(MediumText())
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    start_dttm: Mapped[datetime | None] = Column(DateTime)
+    end_dttm: Mapped[datetime | None] = Column(DateTime)
+    layer_id: Mapped[int] = Column(
+        Integer, ForeignKey("annotation_layer.id"), nullable=False
+    )
+    short_descr: Mapped[str | None] = Column(String(500))
+    long_descr: Mapped[str | None] = Column(Text)
+    layer: Mapped[AnnotationLayer] = relationship(AnnotationLayer, backref="annotation")
+    json_metadata: Mapped[str | None] = Column(MediumText())
 
     __table_args__ = (Index("ti_dag_state", layer_id, start_dttm, end_dttm),)
 

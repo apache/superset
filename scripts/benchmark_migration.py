@@ -30,7 +30,7 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from progress.bar import ChargingBar
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -153,9 +153,10 @@ def main(  # noqa: C901
         )
 
     print(f"Migration goes from {down_revision} to {revision}")
-    current_revision = db.engine.execute(
-        "SELECT version_num FROM alembic_version"
-    ).scalar()
+    with db.engine.connect() as connection:
+        current_revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar()
     print(f"Current version of the DB is {current_revision}")
 
     if current_revision != down_revision:

@@ -158,7 +158,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # store the existing relationship between dashboards and charts
         existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
+            select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id)
         ).fetchall()
 
         # import dashboards
