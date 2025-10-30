@@ -43,6 +43,7 @@ import numpy as np
 import pandas as pd
 import pytz
 import sqlalchemy as sa
+import sqlglot
 import yaml
 from flask import current_app as app, g
 from flask_appbuilder import Model
@@ -871,6 +872,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 raise QueryObjectValidationError(ex.message) from ex
         return expression
 
+    def _should_quote_identifier(self, expr: str) -> bool:
+        """
+        Determine if an expression should be quoted because it's an identifier with spaces.
+        
+        Uses SQLGlot parsing to detect if the expression gets misinterpreted as an alias
+        when it should be treated as a single identifier.
+        """
+        if " " not in expr:
+            return False
+        try:
+            parsed = sqlglot.parse_one(expr)
+            # If SQLGlot interprets it as an alias (column AS alias), we should quote it
+            # because it was meant to be a single column name with spaces
+            alias = parsed.find(sqlglot.expressions.Alias)
+            if alias:
+                # Check if this looks like an unintended alias parsing
+                # (i.e., no explicit AS keyword in the original expression)
+                return "AS" not in expr.upper()
+            return False
+        except (sqlglot.errors.ParseError, AttributeError):
+            return False
+
     def _process_select_expression(
         self,
         expression: Optional[str],
@@ -888,56 +911,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             # Fix for issue #35493: Quote column names with spaces to prevent SQLGlot
             # from misinterpreting them as "column AS alias" syntax
-            # Only quote if it appears to be a simple identifier
-            # (no SQL operators or functions)
-            if (
-                " " in expression
-                and not any(
-                    char in expression
-                    for char in [
-                        '"',
-                        "'",
-                        "`",
-                        "[",
-                        "(",
-                        ")",
-                        "*",
-                        "+",
-                        "-",
-                        "/",
-                        "=",
-                        "<",
-                        ">",
-                        ",",
-                    ]
-                )
-                and not any(
-                    keyword in expression.upper()
-                    for keyword in [
-                        "SELECT",
-                        "FROM",
-                        "WHERE",
-                        "AND",
-                        "OR",
-                        "AS",
-                        "CASE",
-                        "WHEN",
-                        "THEN",
-                        "ELSE",
-                        "END",
-                        "CAST",
-                        "CONVERT",
-                        "FUNCTION",
-                        "SUM",
-                        "COUNT",
-                        "AVG",
-                        "MAX",
-                        "MIN",
-                        "DISTINCT",
-                    ]
-                )
-            ):
-                # This appears to be a simple column name with spaces, quote it
+            if self._should_quote_identifier(expression):
                 expression = self.database.quote_identifier(expression)
 
             expression = f"SELECT {expression}"
