@@ -888,8 +888,53 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             # Fix for issue #35493: Quote column names with spaces to prevent SQLGlot
             # from misinterpreting them as "column AS alias" syntax
-            if " " in expression and not any(
-                char in expression for char in ['"', "'", "`", "[", "("]
+            # Only quote if it appears to be a simple identifier (no SQL operators or functions)
+            if (
+                " " in expression
+                and not any(
+                    char in expression
+                    for char in [
+                        '"',
+                        "'",
+                        "`",
+                        "[",
+                        "(",
+                        ")",
+                        "*",
+                        "+",
+                        "-",
+                        "/",
+                        "=",
+                        "<",
+                        ">",
+                        ",",
+                    ]
+                )
+                and not any(
+                    keyword in expression.upper()
+                    for keyword in [
+                        "SELECT",
+                        "FROM",
+                        "WHERE",
+                        "AND",
+                        "OR",
+                        "AS",
+                        "CASE",
+                        "WHEN",
+                        "THEN",
+                        "ELSE",
+                        "END",
+                        "CAST",
+                        "CONVERT",
+                        "FUNCTION",
+                        "SUM",
+                        "COUNT",
+                        "AVG",
+                        "MAX",
+                        "MIN",
+                        "DISTINCT",
+                    ]
+                )
             ):
                 # This appears to be a simple column name with spaces, quote it
                 expression = self.database.quote_identifier(expression)
