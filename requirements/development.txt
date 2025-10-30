@@ -756,7 +756,7 @@ setuptools==80.7.1
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.3.5
+shillelagh==1.4.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
