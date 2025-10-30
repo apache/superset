@@ -317,7 +317,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => Boolean)
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
     | null;
 }
 

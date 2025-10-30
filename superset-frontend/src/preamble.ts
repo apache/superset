@@ -43,7 +43,6 @@ import 'dayjs/plugin/customParseFormat';
 import 'dayjs/plugin/duration';
 import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
-import 'dayjs/plugin/isSameOrBefore';
 
 configure();
 

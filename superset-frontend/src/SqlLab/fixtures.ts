@@ -774,7 +774,7 @@ export const testQuery: ISaveableDatasource = {
   ],
 };
 
-export const mockdatasets = [...new Array(3)].map((_, i) => ({
+export const mockdatasets = new Array(3).fill(undefined).map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',

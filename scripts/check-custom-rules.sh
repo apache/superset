@@ -27,4 +27,22 @@ if [[ ! -d "$root_dir/$frontend_dir" ]]; then
 fi
 
 cd "$root_dir/$frontend_dir"
-npm run lint-fix -- "${@//$frontend_dir\//}"
+
+# Filter files to only include JS/TS files and remove the frontend dir prefix
+js_ts_files=()
+for file in "$@"; do
+  # Remove superset-frontend/ prefix if present
+  cleaned_file="${file#$frontend_dir/}"
+
+  # Only include JS/TS files
+  if [[ "$cleaned_file" =~ \.(js|jsx|ts|tsx)$ ]]; then
+    js_ts_files+=("$cleaned_file")
+  fi
+done
+
+# Only run if we have JS/TS files to check
+if [ ${#js_ts_files[@]} -gt 0 ]; then
+  node scripts/check-custom-rules.js "${js_ts_files[@]}"
+else
+  echo "No JavaScript/TypeScript files to check for custom rules"
+fi

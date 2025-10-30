@@ -81,16 +81,13 @@ Below, you will find a list of all currently registered helpers in the Handlebar
 #### List of Registered Helpers:
 
 1. **`dateFormat`**: Formats a date using a specified format.
-
    - **Usage**: `{{dateFormat my_date format="MMMM YYYY"}}`
    - **Default format**: `YYYY-MM-DD`.
 
 2. **`stringify`**: Converts an object into a JSON string or returns a string representation of non-object values.
-
    - **Usage**: `{{stringify myObj}}`.
 
 3. **`formatNumber`**: Formats a number using locale-specific formatting.
-
    - **Usage**: `{{formatNumber number locale="en-US"}}`.
    - **Default locale**: `en-US`.
 

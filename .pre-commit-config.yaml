@@ -60,9 +60,23 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: eslint-frontend
-        name: eslint (frontend)
-        entry: ./scripts/eslint.sh
+      - id: prettier-frontend
+        name: prettier (frontend)
+        entry: bash -c 'cd superset-frontend && for file in "$@"; do npx prettier --write "${file#superset-frontend/}"; done'
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+  - repo: local
+    hooks:
+      - id: oxlint-frontend
+        name: oxlint (frontend)
+        entry: ./scripts/oxlint.sh
+        language: system
+        pass_filenames: true
+        files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
+      - id: custom-rules-frontend
+        name: custom rules (frontend)
+        entry: ./scripts/check-custom-rules.sh
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
@@ -110,9 +124,12 @@ repos:
           - -c
           - |
             TARGET_BRANCH=${GITHUB_BASE_REF:-master}
-            git fetch origin "$TARGET_BRANCH"
-            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
+            # Only fetch if we're not in CI (CI already has all refs)
+            if [ -z "$CI" ]; then
+              git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
+            fi
+            BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else

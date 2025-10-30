@@ -131,16 +131,14 @@ const getFiltersBySpatialType = ({
           values = position;
           customColumnLabel = cols.join(', ');
 
-          filters = [
-            ...cols.map(
-              (col, index) =>
-                ({
-                  col,
-                  op: '==',
-                  val: position[index],
-                }) as QueryObjectFilterClause,
-            ),
-          ];
+          filters = cols.map(
+            (col, index) =>
+              ({
+                col,
+                op: '==',
+                val: position[index],
+              }) as QueryObjectFilterClause,
+          );
         } else if (positionBounds) {
           values = [positionBounds.from, positionBounds.to];
           customColumnLabel = `From ${lonCol}, ${latCol} to ${lonCol}, ${latCol}`;
