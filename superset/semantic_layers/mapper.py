@@ -711,7 +711,9 @@ def _validate_orderby(query_object: QueryObject) -> None:
         )
 
     elements = {
-        element.name for element, _ in query_object.orderby if isinstance(element, str)
+        element.name
+        for element, _ in query_object.orderby
+        if not isinstance(element, str)
     }
     metric_names = {metric.name for metric in semantic_view.metrics}
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}

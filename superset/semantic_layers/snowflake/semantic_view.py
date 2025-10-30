@@ -65,7 +65,6 @@ REQUEST_TYPE = "snowflake"
 
 
 class SnowflakeSemanticView:
-
     features = frozenset(
         {
             SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,
@@ -285,9 +284,8 @@ class SnowflakeSemanticView:
 
         # Handle IN and NOT IN operators (set values)
         if operator in {Operator.IN, Operator.NOT_IN}:
-            if not isinstance(value, frozenset):
-                value = {value}
-            formatted_values = ", ".join("?" for _ in value)
+            parameter_count = len(value) if isinstance(value, frozenset) else 1
+            formatted_values = ", ".join("?" for _ in range(parameter_count))
             return f"{column_name} {operator.value} ({formatted_values})"
 
         return f"{column_name} {operator.value} ?"
@@ -342,12 +340,15 @@ class SnowflakeSemanticView:
         offset: int | None = None,
         *,
         group_limit: GroupLimit | None = None,
-    ) -> int:
+    ) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
         """
         if not metrics and not dimensions:
-            return 0
+            return SemanticResult(
+                requests=[],
+                results=DataFrame([[0]], columns=["COUNT"]),
+            )
 
         query, parameters = self._get_query(
             metrics,

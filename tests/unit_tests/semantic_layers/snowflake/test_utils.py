@@ -18,6 +18,7 @@
 # flake8: noqa: E501
 
 from contextlib import nullcontext
+from typing import Any
 
 import pytest
 
@@ -117,7 +118,7 @@ from superset.semantic_layers.snowflake.utils import (
 )
 def test_substitute_parameters(
     query: str,
-    parameters: list | None,
+    parameters: list[Any] | None,
     expected: str,
 ) -> None:
     """
@@ -259,8 +260,8 @@ def test_validate_order_by(definition: str, should_raise: bool) -> None:
     ],
 )
 def test_get_connection_parameters(
-    configuration: dict,
-    expected: dict,
+    configuration: dict[str, Any],
+    expected: dict[str, Any],
 ) -> None:
     """
     Test connection parameter generation for various configurations.

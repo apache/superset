@@ -17,6 +17,7 @@
 
 # flake8: noqa: E501
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -92,7 +93,7 @@ from superset.semantic_layers.snowflake import (
     ],
 )
 def test_get_configuration_schema(
-    configuration: dict | None,
+    configuration: dict[str, Any] | None,
     databases: list[str] | None,
     schemas: list[str] | None,
     expected_db_enum: list[str],
@@ -131,7 +132,9 @@ def test_get_configuration_schema(
             mock_cursor.execute.return_value = iter([(schema,) for schema in schemas])
 
         # Mock connect to return our mock connection
-        with patch("superset.semantic_layers.snowflake.semantic_layer.connect") as mock_connect:
+        with patch(
+            "superset.semantic_layers.snowflake.semantic_layer.connect"
+        ) as mock_connect:
             mock_connect.return_value.__enter__.return_value = mock_connection
 
             # Get the schema
@@ -281,8 +284,8 @@ def test_get_configuration_schema(
     ],
 )
 def test_get_runtime_schema(
-    configuration: dict,
-    runtime_data: dict | None,
+    configuration: dict[str, Any],
+    runtime_data: dict[str, Any] | None,
     databases: list[str] | None,
     schemas: list[str] | None,
     expect_database: bool,
@@ -315,7 +318,9 @@ def test_get_runtime_schema(
         mock_cursor.execute.return_value = iter([(schema,) for schema in schemas])
 
     # Mock connect to return our mock connection
-    with patch("superset.semantic_layers.snowflake.semantic_layer.connect") as mock_connect:
+    with patch(
+        "superset.semantic_layers.snowflake.semantic_layer.connect"
+    ) as mock_connect:
         mock_connect.return_value.__enter__.return_value = mock_connection
 
         # Get the runtime schema

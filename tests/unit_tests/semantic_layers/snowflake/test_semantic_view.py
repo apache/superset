@@ -17,7 +17,7 @@
 
 # flake8: noqa: E501
 
-from typing import Iterator
+from typing import Any, Iterator
 from unittest.mock import MagicMock
 
 import pytest
@@ -187,7 +187,9 @@ def connection(mocker: MockerFixture) -> Iterator[MagicMock]:
     """
     # Patch connect in both places where it's imported
     connect = mocker.patch("superset.semantic_layers.snowflake.semantic_view.connect")
-    mocker.patch("superset.semantic_layers.snowflake.semantic_layer.connect", new=connect)
+    mocker.patch(
+        "superset.semantic_layers.snowflake.semantic_layer.connect", new=connect
+    )
     with connect() as connection:
         yield connection
 
@@ -569,7 +571,7 @@ def test_get_values_with_filters(
         definition="I_CATEGORY",
         grain=None,
     )
-    filters = {
+    filters: set[Filter | AdhocFilter] = {
         Filter(PredicateType.WHERE, dimension, Operator.NOT_EQUALS, "Books"),
         Filter(PredicateType.WHERE, dimension, Operator.IS_NOT_NULL, None),
     }
@@ -690,15 +692,13 @@ def test_get_query(
     """
     metric_map = {metric.name: metric for metric in semantic_view.metrics}
     dimension_map = {dim.name: dim for dim in semantic_view.dimensions}
+    element_map: dict[str, Metric | Dimension] = {**metric_map, **dimension_map}
 
     result_sql, _ = semantic_view._get_query(
         [metric_map[name] for name in metrics],
         [dimension_map[name] for name in dimensions],
         filters,
-        [
-            (metric_map.get(name) or dimension_map.get(name), direction)
-            for name, direction in (order or [])
-        ],
+        [(element_map[name], direction) for name, direction in (order or [])],
         limit,
         offset,
     )
@@ -984,7 +984,7 @@ def test_get_query_with_group_limit(
     order: list[tuple[str, OrderDirection]] | None,
     limit: int | None,
     offset: int | None,
-    group_limit_config: dict,
+    group_limit_config: dict[str, Any],
     sql: str,
 ) -> None:
     """
@@ -994,6 +994,7 @@ def test_get_query_with_group_limit(
 
     metric_map = {metric.name: metric for metric in semantic_view.metrics}
     dimension_map = {dim.name: dim for dim in semantic_view.dimensions}
+    element_map: dict[str, Metric | Dimension] = {**metric_map, **dimension_map}
 
     # Build GroupLimit object from config
     group_limit = GroupLimit(
@@ -1009,10 +1010,7 @@ def test_get_query_with_group_limit(
         [metric_map[name] for name in metrics],
         [dimension_map[name] for name in dimensions],
         filters,
-        [
-            (metric_map.get(name) or dimension_map.get(name), direction)
-            for name, direction in (order or [])
-        ],
+        [(element_map[name], direction) for name, direction in (order or [])],
         limit,
         offset,
         group_limit=group_limit,

@@ -677,6 +677,7 @@ def test_get_group_limit_from_query_object_with_group_others(
         all_dimensions,
     )
 
+    assert result
     assert result.group_others is True
 
 
