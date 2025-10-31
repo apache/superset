@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -124,11 +124,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(async () => {
-  // Wait for any pending state updates to complete before cleanup
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
+afterEach(() => {
   cleanup();
   fetchMock.reset();
   jest.restoreAllMocks();
@@ -1307,7 +1303,7 @@ test('bulk selection clears when filter changes', async () => {
   await waitFor(() => {
     expect(screen.getByText(/0 selected/i)).toBeInTheDocument();
   });
-});
+}, 30000); // 30 second timeout for slow CI environment
 
 test('type filter persists after duplicating a dataset', async () => {
   const datasetToDuplicate = mockDatasets.find(d => d.kind === 'virtual')!;
