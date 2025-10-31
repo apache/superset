@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app as app
+from flask import current_app as app, g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -411,13 +411,39 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
-        Suffix with the first six characters from the md5 of the label to avoid
-        collisions with original column names
+        Conditionally suffix the label with the first six characters from the md5
+        of the label to avoid collisions with original column names.
+
+        By default, labels are mutated for backward compatibility. To disable this
+        behavior on a per-database basis, set `mutate_label_name` to `false` in
+        the database's "extra" JSON configuration:
+
+            {
+                "mutate_label_name": false
+            }
+
+        This is useful when your ClickHouse queries refer to their own aliases
+        within the same SELECT statement.
 
         :param label: Expected expression label
-        :return: Conditionally mutated label
+        :return: Mutated label if mutation is enabled, otherwise the original label
         """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+        mutate_label = True
+
+        if hasattr(g, "database") and g.database:
+            try:
+                extra = g.database.get_extra()
+                mutate_label = extra.get("mutate_label_name", True)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Error retrieving mutate_label_name setting. Falling back to "
+                    "default behavior of True."
+                )
+                pass
+
+        if mutate_label:
+            return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return label
 
     @classmethod
     def adjust_engine_params(
