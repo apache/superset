@@ -1381,8 +1381,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if time_filters or where_clause_and:
                 qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
-            if where_clause_and:
-                qry = qry.where(and_(*where_clause_and))
+            all_filters = time_filters + where_clause_and
+            if all_filters:
+                qry = qry.where(and_(*all_filters))
 
         if having_clause_and:
             qry = qry.having(and_(*having_clause_and))
