@@ -20,7 +20,7 @@ import { getClientErrorObject, t } from '@superset-ui/core';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
-import type { Location, Path } from 'history';
+import type { Location } from 'history';
 
 type UseUnsavedChangesPromptProps = {
   hasUnsavedChanges: boolean;
@@ -39,7 +39,7 @@ export const useUnsavedChangesPrompt = ({
   const [showModal, setShowModal] = useState(false);
 
   const confirmNavigationRef = useRef<(() => void) | null>(null);
-  const unblockRef = useRef<() => void>(() => {});
+  const unblockRef = useRef<() => void>(() => { });
   const manualSaveRef = useRef(false); // Track if save was user-initiated (not via navigation)
 
   const handleConfirmNavigation = useCallback(() => {
@@ -57,8 +57,8 @@ export const useUnsavedChangesPrompt = ({
       const clientError = await getClientErrorObject(err);
       throw new Error(
         clientError.message ||
-          clientError.error ||
-          t('Sorry, an error occurred'),
+        clientError.error ||
+        t('Sorry, an error occurred'),
         { cause: err },
       );
     }
@@ -74,8 +74,8 @@ export const useUnsavedChangesPrompt = ({
       pathname,
       state,
     }: {
-      pathname: Location['state'];
-      state: Path['pathname'];
+      pathname: Location['pathname'];
+      state: Location['state'];
     }) => {
       if (manualSaveRef.current) {
         manualSaveRef.current = false;
