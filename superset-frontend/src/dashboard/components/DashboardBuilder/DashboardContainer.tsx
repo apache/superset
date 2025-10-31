@@ -121,15 +121,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const renderedChartIds = useRenderedChartIds();
 
-  const nativeFilterScopesKey = useMemo(
-    () => JSON.stringify(nativeFilterScopes),
-    [nativeFilterScopes],
-  );
-  const nativeFiltersKey = useMemo(
-    () => JSON.stringify(nativeFilters),
-    [nativeFilters],
-  );
-
   const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
     useState(false);
   const prevRenderedChartIds = useRef<number[]>([]);
@@ -204,13 +195,12 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     chartIds,
-    nativeFilterScopesKey,
+    JSON.stringify(nativeFilterScopes),
     dashboardLayout,
     dispatch,
-    nativeFiltersKey,
+    JSON.stringify(nativeFilters),
   ]);
 
   const childIds: string[] = useMemo(
@@ -316,7 +306,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           />
         ),
       }));
-
 
       return (
         <Tabs

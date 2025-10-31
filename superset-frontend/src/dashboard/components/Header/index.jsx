@@ -219,7 +219,6 @@ const Header = () => {
   const refreshTimer = useRef(0);
   const ctrlYTimeout = useRef(0);
   const ctrlZTimeout = useRef(0);
-  const previousThemeRef = useRef(dashboardInfo.theme);
 
   const dashboardTitle = layout[DASHBOARD_HEADER_ID]?.meta?.text;
   const { slug } = dashboardInfo;
@@ -326,12 +325,11 @@ const Header = () => {
     startPeriodicRender(refreshFrequency * 1000);
   }, [refreshFrequency, startPeriodicRender]);
 
-  // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
+  // Ensure theme changes are tracked as unsaved changes
   useEffect(() => {
-    if (editMode && dashboardInfo.theme !== previousThemeRef.current) {
+    if (editMode && dashboardInfo.theme !== undefined) {
       boundActionCreators.setUnsavedChanges(true);
     }
-    previousThemeRef.current = dashboardInfo.theme;
   }, [dashboardInfo.theme, editMode, boundActionCreators]);
 
   useEffect(() => {
@@ -562,12 +560,6 @@ const Header = () => {
     [boundActionCreators],
   );
 
-  const handleEnterEditMode = useCallback(() => {
-    toggleEditMode();
-    boundActionCreators.clearDashboardHistory?.();
-    boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators]);
-
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
   const editableTitleProps = useMemo(
@@ -719,7 +711,10 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={handleEnterEditMode}
+                onClick={() => {
+                  toggleEditMode();
+                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
+                }}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
@@ -742,7 +737,6 @@ const Header = () => {
       emphasizeUndo,
       handleCtrlY,
       handleCtrlZ,
-      handleEnterEditMode,
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
