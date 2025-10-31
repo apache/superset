@@ -21,7 +21,6 @@ import {
   css,
   DataMaskState,
   DataMaskStateWithId,
-  t,
   isDefined,
   SupersetTheme,
   styled,
