@@ -26,6 +26,7 @@ import {
   userEvent,
   within,
   waitFor,
+  fireEvent
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -55,7 +56,7 @@ const dbProps = {
   show: true,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
-  onHide: () => {},
+  onHide: () => { },
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
@@ -421,6 +422,45 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+    });
+
+    test.only('shows filtered database options when pasting text in the select', async () => {
+      setup();
+
+      const modal = await screen.findByRole('dialog');
+      expect(modal).toBeInTheDocument();
+
+      // Find the select input (not opening the dropdown)
+      const selectInput = screen.getByRole('combobox');
+
+      // Simulate focusing the input
+      userEvent.click(selectInput);
+
+      // Simulate a paste event with clipboard data
+      fireEvent.paste(selectInput, {
+        clipboardData: {
+          getData: () => 'post',
+        },
+      });
+
+      fireEvent.change(selectInput, { target: { value: 'post' } });
+
+      // Wait for filtered options to appear
+      const options = await screen.findAllByRole('option');
+
+      // Ensure that only supported databases are displayed
+      expect(
+        options.some(option =>
+          option.textContent?.toLowerCase().includes('postgres'),
+        ),
+      ).toBe(true);
+
+      // Ensure unsupported ones are hidden
+      expect(
+        options.some(option =>
+          option.textContent?.toLowerCase().includes('sqlite'),
+        ),
+      ).toBe(false);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
