@@ -277,7 +277,7 @@ const DatasetPanel = ({
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
         <>
-          <StyledTitle>{COLUMN_TITLE}</StyledTitle>
+          <StyledTitle title={COLUMN_TITLE}>{COLUMN_TITLE}</StyledTitle>
           {tableWithDataset ? (
             <TableContainerWithBanner>
               <TableScrollContainer>
