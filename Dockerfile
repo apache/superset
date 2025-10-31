@@ -177,7 +177,7 @@ ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "${INCLUDE_CHROMIUM}" = "true" ] || [ "${INCLUDE_FIREFOX}" = "true" ]; then \
-        uv pip install playwright Pillow && \
+        uv pip install playwright && \
         playwright install-deps && \
         if [ "${INCLUDE_CHROMIUM}" = "true" ]; then playwright install chromium; fi && \
         if [ "${INCLUDE_FIREFOX}" = "true" ]; then playwright install firefox; fi; \
