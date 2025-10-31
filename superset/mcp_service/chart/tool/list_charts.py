@@ -20,14 +20,19 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
+from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
+
+if TYPE_CHECKING:
+    from superset.models.slice import Slice
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ChartInfo,
+    ChartLike,
     ChartList,
     ListChartsRequest,
     serialize_chart_object,
@@ -89,10 +94,14 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
 
     from superset.daos.chart import ChartDAO
 
+    def _serialize_chart(obj: "Slice | None", cols: Any) -> ChartInfo | None:
+        """Serialize chart object with proper type casting."""
+        return serialize_chart_object(cast(ChartLike | None, obj))
+
     tool = ModelListCore(
         dao_class=ChartDAO,
         output_schema=ChartInfo,
-        item_serializer=lambda obj, cols: serialize_chart_object(obj) if obj else None,  # type: ignore[arg-type]
+        item_serializer=_serialize_chart,
         filter_type=ChartFilter,
         default_columns=DEFAULT_CHART_COLUMNS,
         search_columns=[

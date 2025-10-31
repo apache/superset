@@ -20,15 +20,16 @@
 import datetime
 import logging
 import platform
-import time
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.system.schemas import HealthCheckResponse
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
+@mcp_auth_hook
 async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
@@ -47,7 +48,6 @@ async def health_check() -> HealthCheckResponse:
             version="1.0.0",
             python_version=platform.python_version(),
             platform=platform.system(),
-            uptime_seconds=time.time(),  # Simple uptime approximation
         )
 
         logger.info("Health check completed successfully")
@@ -63,5 +63,4 @@ async def health_check() -> HealthCheckResponse:
             version="1.0.0",
             python_version=platform.python_version(),
             platform=platform.system(),
-            uptime_seconds=0.0,
         )
