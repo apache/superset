@@ -43,6 +43,15 @@ CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
 
 
+# When running tests it's important to disable autoflush to prevent dirty reads. If a
+# command modifies the database but doesn't explicitly commit the transaction, a
+# subsequent read won't see the data because we use READ COMMITTED isolation level. But
+# many integration tests write and read in the same session, and because by default
+# SQLAlchemy uses autoflush, the test would see data that in real world wouldn't be
+# there.
+db.session.configure(autoflush=False)
+
+
 @pytest.fixture
 def app_context():
     with app.app_context() as ctx:
@@ -74,7 +83,9 @@ def login_as_admin(login_as: Callable[..., None]):
 
 @pytest.fixture
 def create_user(app_context: AppContext):
-    def _create_user(username: str, role: str = "Admin", password: str = "general"):  # noqa: S107
+    def _create_user(
+        username: str, role: str = "Admin", password: str = "general"
+    ):  # noqa: S107
         security_manager.add_user(
             username,
             "firstname",
@@ -263,7 +274,8 @@ def virtual_dataset():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            dedent("""\
+            dedent(
+                """\
             SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6
             UNION ALL
             SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL
@@ -283,7 +295,8 @@ def virtual_dataset():
             SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9
             UNION ALL
             SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
-        """)  # noqa: E501
+        """
+            )  # noqa: E501
         ),
         database=get_example_database(),
     )
@@ -312,7 +325,8 @@ def virtual_dataset_with_comments():
     dataset = SqlaTable(
         table_name="virtual_dataset_with_comments",
         sql=(
-            dedent("""\
+            dedent(
+                """\
             --COMMENT
             /*COMMENT*/
             WITH cte as (--COMMENT
@@ -323,7 +337,8 @@ def virtual_dataset_with_comments():
             UNION ALL/*COMMENT*/
             SELECT 1 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 --COMMENT
             UNION ALL--COMMENT
-            SELECT * FROM cte --COMMENT""")  # noqa: E501
+            SELECT * FROM cte --COMMENT"""
+            )  # noqa: E501
         ),
         database=get_example_database(),
     )
