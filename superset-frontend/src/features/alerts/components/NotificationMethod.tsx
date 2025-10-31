@@ -20,23 +20,23 @@ import {
   FunctionComponent,
   useState,
   ChangeEvent,
-  useEffect,
   useMemo,
+  useRef,
+  useEffect,
 } from 'react';
 import rison from 'rison';
 
 import {
   FeatureFlag,
-  JsonResponse,
   SupersetClient,
   isFeatureEnabled,
+  logging,
   styled,
   t,
   useTheme,
 } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Select } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import { Input, Select, AsyncSelect } from '@superset-ui/core/components';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -77,6 +77,17 @@ const StyledNotificationMethod = styled.div`
         margin-left: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit}px;
       }
+
+      .refresh-button {
+        margin-left: ${theme.sizeUnit * 2}px;
+        cursor: pointer;
+        color: ${theme.colorTextSecondary};
+
+        &:hover {
+          color: ${theme.colorPrimary};
+        }
+      }
+
       .anticon {
         margin-left: ${theme.sizeUnit}px;
       }
@@ -127,6 +138,7 @@ interface NotificationMethodProps {
   email_subject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
+  addDangerToast?: (msg: string) => void;
 }
 
 export const mapSlackValues = ({
@@ -150,47 +162,6 @@ export const mapSlackValues = ({
     .filter(val => !!val) as { label: string; value: string }[];
 };
 
-export const mapChannelsToOptions = (result: SlackChannel[]) => {
-  const publicChannels: SlackChannel[] = [];
-  const privateChannels: SlackChannel[] = [];
-
-  result.forEach(channel => {
-    if (channel.is_private) {
-      privateChannels.push(channel);
-    } else {
-      publicChannels.push(channel);
-    }
-  });
-
-  return [
-    {
-      label: 'Public Channels',
-      options: publicChannels.map((channel: SlackChannel) => ({
-        label: `${channel.name} ${
-          channel.is_member ? '' : t('(Bot not in channel)')
-        }`,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'public',
-    },
-    {
-      label: t('Private Channels (Bot in channel)'),
-      options: privateChannels.map((channel: SlackChannel) => ({
-        label: channel.name,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'private',
-    },
-  ];
-};
-
-type SlackOptionsType = {
-  label: string;
-  options: { label: string; value: string }[];
-}[];
-
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
@@ -200,6 +171,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   email_subject,
   defaultSubject,
   setErrorSubject,
+  addDangerToast,
 }) => {
   const { method, recipients, cc, bcc, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
@@ -214,24 +186,23 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [ccValue, setCcValue] = useState<string>(cc || '');
   const [bccValue, setBccValue] = useState<string>(bcc || '');
   const theme = useTheme();
-  const [methodOptionsLoading, setMethodOptionsLoading] =
-    useState<boolean>(true);
-  const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
-    {
-      label: '',
-      options: [],
-    },
-  ]);
-
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
-    useState<boolean>(true);
+  const cursorRef = useRef<Record<string, string | null>>({});
+  const dataCache = useRef<
+    Record<
+      string,
+      { data: { label: string; value: string }[]; totalCount: number }
+    >
+  >({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const forceRefreshRef = useRef(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasShownErrorToast = useRef(false); // Track if we've shown the error toast
 
   const onMethodChange = (selected: {
     label: string;
     value: NotificationMethodOption;
   }) => {
-    // Since we're swapping the method, reset the recipients
     setRecipientValue('');
     setCcValue('');
     setBccValue('');
@@ -249,84 +220,178 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const fetchSlackChannels = async ({
-    searchString = '',
-    types = [],
-    exactMatch = false,
-    force = false,
-  }: {
-    searchString?: string | undefined;
-    types?: string[];
-    exactMatch?: boolean | undefined;
-    force?: boolean | undefined;
-  } = {}): Promise<JsonResponse> => {
-    const queryString = rison.encode({
-      searchString,
-      types,
-      exactMatch,
-      force,
-    });
-    const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
-    return SupersetClient.get({ endpoint });
-  };
+  const fetchSlackChannels = async (
+    search: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{
+    data: { label: string; value: string }[];
+    totalCount: number;
+  }> => {
+    try {
+      const cacheKey = `${search}:${page}`;
 
-  const updateSlackOptions = async ({
-    force,
-  }: {
-    force?: boolean | undefined;
-  } = {}) => {
-    setIsSlackChannelsLoading(true);
-    fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
-      .then(({ json }) => {
-        const { result } = json;
-        const options: SlackOptionsType = mapChannelsToOptions(result);
+      if (dataCache.current[cacheKey] && !forceRefreshRef.current) {
+        return dataCache.current[cacheKey];
+      }
 
-        setSlackOptions(options);
+      const cursor = page > 0 ? cursorRef.current[cacheKey] : null;
 
-        if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-          // for edit mode, map existing ids to names for display if slack v2
-          // or names to ids if slack v1
-          const [publicOptions, privateOptions] = options;
-          if (
-            method &&
-            [
-              NotificationMethodOption.SlackV2,
-              NotificationMethodOption.Slack,
-            ].includes(method)
-          ) {
-            setSlackRecipients(
-              mapSlackValues({
-                method,
-                recipientValue,
-                slackOptions: [
-                  ...publicOptions.options,
-                  ...privateOptions.options,
-                ],
-              }),
-            );
-          }
-        }
-      })
-      .catch(e => {
-        // Fallback to slack v1 if slack v2 is not compatible
-        setUseSlackV1(true);
-      })
-      .finally(() => {
-        setMethodOptionsLoading(false);
-        setIsSlackChannelsLoading(false);
-      });
-  };
+      const params: Record<string, any> = {
+        types: ['public_channel', 'private_channel'],
+        limit: pageSize,
+      };
 
-  useEffect(() => {
-    const slackEnabled = options?.some(
-      option =>
-        option === NotificationMethodOption.Slack ||
-        option === NotificationMethodOption.SlackV2,
-    );
-    if (slackEnabled && !slackOptions[0]?.options.length) {
-      updateSlackOptions();
+      if (page === 0 && forceRefreshRef.current) {
+        params.force = true;
+        forceRefreshRef.current = false;
+      }
+
+      if (search) {
+        params.search_string = search;
+      }
+
+      if (cursor) {
+        params.cursor = cursor;
+      }
+
+      const queryString = rison.encode(params);
+      const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
+      const response = await SupersetClient.get({ endpoint });
+
+      const { result, next_cursor, has_more } = response.json;
+
+      if (next_cursor) {
+        cursorRef.current[`${search}:${page + 1}`] = next_cursor;
+      }
+
+      const options = result.map((channel: SlackChannel) => ({
+        label: channel.name,
+        value: channel.id,
+      }));
+
+      const totalCount = has_more
+        ? (page + 1) * pageSize + 1
+        : page * pageSize + options.length;
+
+      const responseData = {
+        data: options,
+        totalCount,
+      };
+
+      dataCache.current[cacheKey] = responseData;
+
+      return responseData;
+    } catch (error) {
+      logging.error('Failed to fetch Slack channels:', error);
+
+      // Show user-friendly error message
+      if (addDangerToast && !hasShownErrorToast.current) {
+        addDangerToast(
+          t(
+            'Unable to load Slack channels. Please check your Slack API token configuration. ' +
+              'Switching to manual channel input.',
+          ),
+        );
+        hasShownErrorToast.current = true;
+      }
+
+      // Fallback to Slack v1 without clearing recipients to prevent data loss
+      setUseSlackV1(true);
+
+      // Auto-switch to Slack V1 in the notification method dropdown
+      if (
+        onUpdate &&
+        setting &&
+        setting.method === NotificationMethodOption.SlackV2
+      ) {
+        onUpdate(index, {
+          ...setting,
+          method: NotificationMethodOption.Slack, // Switch from SlackV2 to Slack V1
+          // Keep recipients to preserve user data
+        });
+      }
+
+      // Return empty result instead of throwing to allow UI to continue
+      return {
+        data: [],
+        totalCount: 0,
+      };
     }
-  }, []);
+  };
+
+  const handleRefreshSlackChannels = async () => {
+    setIsRefreshing(true);
+
+    try {
+      // Clear cache and cursor to force fresh data fetch
+      forceRefreshRef.current = true;
+      cursorRef.current = {};
+      dataCache.current = {};
+
+      // Fetch fresh channel list without clearing user selections
+      await fetchSlackChannels('', 0, 100);
+
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      logging.error('Error refreshing channels:', error);
+
+      // Show error toast if available
+      if (addDangerToast) {
+        addDangerToast(
+          t('Failed to refresh Slack channels. Please try again.'),
+        );
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Reset error toast flag when method changes
+  useEffect(() => {
+    hasShownErrorToast.current = false;
+  }, [method]);
+
+  // Initialize slackRecipients when editing an existing alert with SlackV2
+  useEffect(() => {
+    const initializeSlackRecipients = async () => {
+      if (
+        method === NotificationMethodOption.SlackV2 &&
+        recipients &&
+        slackRecipients.length === 0
+      ) {
+        try {
+          // Fetch first page of channels to map IDs to names
+          const channelData = await fetchSlackChannels('', 0, 100);
+          const recipientIds = recipients.split(',').map(id => id.trim());
+
+          // Map recipient IDs to {label, value} format
+          const mappedRecipients = recipientIds
+            .map(id => {
+              const channel = channelData.data.find(
+                ch => ch.value.toLowerCase() === id.toLowerCase(),
+              );
+              // If channel found, use its label; otherwise fallback to ID
+              return channel || { label: id, value: id };
+            })
+            .filter(r => r.value); // Filter out empty values
+
+          setSlackRecipients(mappedRecipients);
+        } catch (error) {
+          // If fetching fails, use IDs as both label and value
+          const recipientIds = recipients.split(',').map(id => id.trim());
+          const fallbackRecipients = recipientIds.map(id => ({
+            label: id,
+            value: id,
+          }));
+          setSlackRecipients(fallbackRecipients);
+        }
+      }
+    };
+
+    initializeSlackRecipients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, recipients]);
 
   const methodOptions = useMemo(
     () =>
@@ -459,10 +524,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               options={methodOptions}
               showSearch
               value={methodOptions.find(option => option.value === method)}
-              loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              // eslint-disable-next-line jsx-a11y/control-has-associated-label
               <span
                 role="button"
                 tabIndex={0}
@@ -541,24 +604,31 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ) : (
                   // for SlackV2
                   <div className="input-container">
-                    <Select
+                    <AsyncSelect
+                      key={refreshKey}
                       ariaLabel={t('Select channels')}
                       mode="multiple"
                       name="recipients"
                       value={slackRecipients}
-                      options={slackOptions}
+                      options={fetchSlackChannels}
                       onChange={onSlackRecipientsChange}
                       allowClear
                       data-test="recipients"
-                      loading={isSlackChannelsLoading}
-                      allowSelectAll={false}
-                      labelInValue
+                      fetchOnlyOnSearch={false}
+                      pageSize={100}
+                      placeholder={t('Select Slack channels')}
                     />
-                    <RefreshLabel
-                      onClick={() => updateSlackOptions({ force: true })}
-                      tooltipContent={t('Force refresh Slack channels list')}
-                      disabled={isSlackChannelsLoading}
-                    />
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="refresh-button"
+                      onClick={handleRefreshSlackChannels}
+                      data-test="refresh-slack-channels"
+                      title={t('Refresh channels')}
+                      style={{ opacity: isRefreshing ? 0.5 : 1 }}
+                    >
+                      <Icons.SyncOutlined iconSize="l" spin={isRefreshing} />
+                    </span>
                   </div>
                 )}
               </div>
