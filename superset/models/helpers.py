@@ -1819,6 +1819,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 assert isinstance(metric, dict)
+                # SQL expressions are sanitized during QueryObject.validate() via
+                # _sanitize_sql_expressions(), but we still process here to handle
+                # Jinja templates. sanitize_clause() is idempotent so re-sanitizing
+                # is safe.
                 metrics_exprs.append(
                     self.adhoc_metric_to_sqla(
                         metric=metric,
@@ -1855,20 +1859,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
-                if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
-                        expression=col["sqlExpression"],
-                        database_id=self.database_id,
-                        engine=self.database.backend,
-                        schema=self.schema,
-                        template_processor=template_processor,
-                    )
+                # SQL expressions are sanitized during QueryObject.validate() via
+                # _sanitize_sql_expressions(). We still process here to handle
+                # Jinja templates. The removal of the _process_orderby_expression()
+                # call (which mutated the dict) prevents cache key mismatches.
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
-                        processed=True,
+                        template_processor=template_processor,
                     )
                     # use the existing instance, if possible
                     col = metrics_exprs_by_expr.get(str(col), col)
