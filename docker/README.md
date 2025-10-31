@@ -34,8 +34,24 @@ intended for use with local development.
 
 ### Local overrides
 
+#### Environment Variables
+
+To override environment variables locally, create a `./docker/.env-local` file (git-ignored). This file will be loaded after `.env` and can override any settings.
+
+#### Python Configuration
+
 In order to override configuration settings locally, simply make a copy of [`./docker/pythonpath_dev/superset_config_local.example`](./pythonpath_dev/superset_config_local.example)
-into `./docker/pythonpath_dev/superset_config_docker.py` (git ignored) and fill in your overrides.
+into `./docker/pythonpath_dev/superset_config_docker.py` (git-ignored) and fill in your overrides.
+
+#### WebSocket Configuration
+
+To customize the WebSocket server configuration, create `./docker/superset-websocket/config.json` (git-ignored) based on [`./docker/superset-websocket/config.example.json`](./superset-websocket/config.example.json).
+
+Then update the `superset-websocket`.`volumes` config to mount it.
+
+#### Docker Compose Overrides
+
+For advanced Docker Compose customization, create a `docker-compose-override.yml` file (git-ignored) to override or extend services without modifying the main compose file.
 
 ### Local packages
 
