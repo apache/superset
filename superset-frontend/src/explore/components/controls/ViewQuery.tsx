@@ -106,7 +106,8 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
-        backend = response.json.result.database;
+        const { backend: datasetBackend } = response.json.result.database;
+        backend = datasetBackend;
       }
 
       // Format the SQL query
