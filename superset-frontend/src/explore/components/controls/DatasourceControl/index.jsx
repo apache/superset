@@ -68,7 +68,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChange: () => { },
+  onChange: () => {},
   onDatasourceSave: null,
   value: null,
   isEditable: true,
@@ -288,7 +288,7 @@ class DatasourceControl extends PureComponent {
       if (typeof datasource.extra === 'string') {
         try {
           extra = JSON.parse(datasource.extra);
-        } catch { } // eslint-disable-line no-empty
+        } catch {} // eslint-disable-line no-empty
       } else {
         extra = datasource.extra; // eslint-disable-line prefer-destructuring
       }

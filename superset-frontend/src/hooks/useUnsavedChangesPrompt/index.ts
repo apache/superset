@@ -39,7 +39,7 @@ export const useUnsavedChangesPrompt = ({
   const [showModal, setShowModal] = useState(false);
 
   const confirmNavigationRef = useRef<(() => void) | null>(null);
-  const unblockRef = useRef<() => void>(() => { });
+  const unblockRef = useRef<() => void>(() => {});
   const manualSaveRef = useRef(false); // Track if save was user-initiated (not via navigation)
 
   const handleConfirmNavigation = useCallback(() => {
@@ -57,8 +57,8 @@ export const useUnsavedChangesPrompt = ({
       const clientError = await getClientErrorObject(err);
       throw new Error(
         clientError.message ||
-        clientError.error ||
-        t('Sorry, an error occurred'),
+          clientError.error ||
+          t('Sorry, an error occurred'),
         { cause: err },
       );
     }
