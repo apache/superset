@@ -197,9 +197,10 @@ class BaseReportState:
             # Report schedule was modified or deleted by another process
             db.session.rollback()
             logger.warning(
-                "Report schedule %s was modified or deleted during execution. "
-                "This can occur when a report is deleted while running.",
-                self._report_schedule.id,
+                "Report schedule (execution %s) was modified or deleted "
+                "during execution. This can occur when a report is deleted "
+                "while running.",
+                self._execution_id,
             )
             raise ReportScheduleUnexpectedError(
                 "Report schedule was modified or deleted by another process "
@@ -777,16 +778,17 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=error_message
                 )
-            except ReportScheduleUnexpectedError:
+            except ReportScheduleUnexpectedError as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
                 logger.warning(
-                    "Failed to log error for report schedule %s due to database issue",
-                    self._report_schedule.id,
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
                     exc_info=True,
                 )
                 # Re-raise the original exception, not the logging failure
-                raise first_ex from None
+                raise first_ex from logging_ex
 
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
@@ -895,16 +897,17 @@ class ReportSuccessState(BaseReportState):
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=str(ex)
                 )
-            except ReportScheduleUnexpectedError:
+            except ReportScheduleUnexpectedError as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
                 logger.warning(
-                    "Failed to log error for report schedule %s due to database issue",
-                    self._report_schedule.id,
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
                     exc_info=True,
                 )
                 # Re-raise the original exception, not the logging failure
-                raise ex from None
+                raise ex from logging_ex
             raise
 
 
