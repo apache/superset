@@ -163,7 +163,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             if not alive:
                 raise DBAPIError(ex_str or None, None, None)
 
-            # Log succesful connection test with engine
+            # Log successful connection test with engine
             event_logger.log_with_context(
                 action=get_log_connection_action("test_connection_success", ssh_tunnel),
                 engine=database.db_engine_spec.__name__,

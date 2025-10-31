@@ -343,7 +343,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             textwrap.dedent(
                 """
                 In superset private config, EVENT_LOGGER has been assigned a class
-                object. In order to accomodate pre-configured instances without a
+                object. In order to accommodate pre-configured instances without a
                 default constructor, assignment of a class is deprecated and may no
                 longer work at some point in the future. Please assign an object
                 instance of a type that implements

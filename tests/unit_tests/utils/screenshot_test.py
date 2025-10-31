@@ -91,7 +91,7 @@ def test_get_cache_key(screenshot_obj):
 
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
-    # backwards compatability test for retrieving plain bytes
+    # backwards compatibility test for retrieving plain bytes
     fake_bytes = b"fake_screenshot_data"
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)
