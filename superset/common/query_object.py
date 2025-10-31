@@ -189,11 +189,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        #   4. int - metric ID
+        def is_str_int_or_adhoc(metric: Metric) -> bool:
+            return isinstance(metric, (str, int)) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
+            x if is_str_int_or_adhoc(x) else x["label"]  # type: ignore
             for x in metrics
         ]
 

@@ -1231,6 +1231,9 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
         verbose_map = verbose_map or {}
         return verbose_map.get(column, column)
 
+    if isinstance(column, int):
+        return str(column)
+
     raise ValueError("Missing label")
 
 
@@ -1262,6 +1265,9 @@ def get_metric_name(metric: Metric, verbose_map: dict[str, Any] | None = None) -
     if isinstance(metric, str):
         verbose_map = verbose_map or {}
         return verbose_map.get(metric, metric)
+
+    if isinstance(metric, int):
+        return str(metric)
 
     raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
