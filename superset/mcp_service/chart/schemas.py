@@ -42,6 +42,7 @@ from superset.mcp_service.common.cache_schemas import (
     MetadataCacheControl,
     QueryCacheControl,
 )
+from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
@@ -1106,7 +1107,7 @@ class GenerateChartResponse(BaseModel):
 
     # Success/error handling
     success: bool = Field(True, description="Whether chart creation succeeded")
-    error: ChartError | None = Field(
+    error: ChartGenerationError | None = Field(
         None, description="Error details if creation failed"
     )
     warnings: List[str] = Field(default_factory=list, description="Non-fatal warnings")

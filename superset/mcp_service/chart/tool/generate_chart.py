@@ -375,15 +375,8 @@ async def generate_chart(  # noqa: C901
                 "uuid": str(chart.uuid) if chart and chart.uuid else None,
                 "saved": request.save_chart,
             }
-            if request.save_chart
-            else {
-                "id": None,
-                "slice_name": generate_chart_name(request.config),
-                "viz_type": form_data.get("viz_type"),
-                "url": explore_url,
-                "uuid": None,
-                "saved": False,
-            },
+            if request.save_chart and chart
+            else None,
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
