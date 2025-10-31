@@ -154,6 +154,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
+  const canEditChart = userHasPermission(user, 'Chart', 'can_write');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const params = rison.encode({ page_size: 24, distinct: false });
@@ -398,20 +399,22 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   />
                 )}
               </Collapse.Panel>
-              <Collapse.Panel header={t('Charts')} key="3">
-                {!chartData || isRecentActivityLoading ? (
-                  <LoadingCards cover={checked} />
-                ) : (
-                  <ChartTable
-                    showThumbnails={checked}
-                    user={user}
-                    mine={chartData}
-                    otherTabData={activityData?.[TableTab.Other]}
-                    otherTabFilters={otherTabFilters}
-                    otherTabTitle={otherTabTitle}
-                  />
-                )}
-              </Collapse.Panel>
+              {canEditChart && (
+                <Collapse.Panel header={t('Charts')} key="3">
+                  {!chartData || isRecentActivityLoading ? (
+                    <LoadingCards cover={checked} />
+                  ) : (
+                    <ChartTable
+                      showThumbnails={checked}
+                      user={user}
+                      mine={chartData}
+                      otherTabData={activityData?.[TableTab.Other]}
+                      otherTabFilters={otherTabFilters}
+                      otherTabTitle={otherTabTitle}
+                    />
+                  )}
+                </Collapse.Panel>
+              )}
               {canReadSavedQueries && (
                 <Collapse.Panel header={t('Saved queries')} key="4">
                   {!queryData ? (
