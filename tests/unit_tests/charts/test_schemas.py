@@ -152,3 +152,44 @@ def test_time_grain_validation_with_config_addons(app_context: None) -> None:
     }
     result = schema.load(custom_data)
     assert result["time_grain"] == "PT10M"
+
+
+def test_chart_data_query_object_schema_orderby_validation(
+    app_context: None,
+) -> None:
+    """Test that orderby field handles strings, integers and objects"""
+    schema = ChartDataQueryObjectSchema()
+
+    # Valid values should pass
+    for orderby_value in ["column_name", 123, {"label": "my_metric", "sqlExpression": "SUM(col)"}]:
+        result = schema.load({
+            "datasource": {"type": "table", "id": 1},
+            "metrics": ["count"],
+            "orderby": [[orderby_value, False]],
+        })
+        assert result["orderby"][0][1] is False
+
+    # None and empty string should fail
+    for invalid_value in [None, ""]:
+        with pytest.raises(ValidationError):
+            schema.load({
+                "datasource": {"type": "table", "id": 1},
+                "metrics": ["count"],
+                "orderby": [[invalid_value, True]],
+            })
+
+
+def test_chart_data_query_object_schema_metrics_validation(
+    app_context: None,
+) -> None:
+    """Test that metrics field handles strings, integers and objects"""
+    schema = ChartDataQueryObjectSchema()
+
+    # Mix of different types should all pass
+    result = schema.load({
+        "datasource": {"type": "table", "id": 1},
+        "metrics": ["count", 123, {"expressionType": "SQL", "sqlExpression": "SUM(col)", "label": "sum"}],
+    })
+    assert result["metrics"][0] == "count"
+    assert result["metrics"][1] == 123
+    assert result["metrics"][2]["label"] == "sum"

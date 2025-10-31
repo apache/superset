@@ -1142,6 +1142,12 @@ class AnnotationLayerSchema(Schema):
     )
 
 
+def validate_orderby_column(value: Any) -> bool:
+    if value is None or (isinstance(value, str) and len(value) == 0):
+        raise validate.ValidationError(_("orderby column must be populated"))
+    return True
+
+
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
     id = Union(
@@ -1339,9 +1345,7 @@ class ChartDataQueryObjectSchema(Schema):
         fields.Tuple(
             (
                 fields.Raw(
-                    validate=[
-                        Length(min=1, error=_("orderby column must be populated"))
-                    ],
+                    validate=validate_orderby_column,
                     allow_none=False,
                 ),
                 fields.Boolean(),
