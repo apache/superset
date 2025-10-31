@@ -26,7 +26,7 @@ import {
   userEvent,
   within,
   waitFor,
-  fireEvent
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -56,7 +56,7 @@ const dbProps = {
   show: true,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
-  onHide: () => { },
+  onHide: () => {},
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
@@ -424,7 +424,7 @@ describe('DatabaseModal', () => {
       expect(footer).toBeEmptyDOMElement();
     });
 
-    test.only('shows filtered database options when pasting text in the select', async () => {
+    test('shows filtered database options when pasting text in the select', async () => {
       setup();
 
       const modal = await screen.findByRole('dialog');
