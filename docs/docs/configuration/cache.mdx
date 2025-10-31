@@ -10,8 +10,7 @@ version: 1
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
 SimpleCache (in-memory), or the local filesystem.
-[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
-are also supported.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) are also supported. MinIO (compatible with other S3 services) backend [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) is known to work.
 
 Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
@@ -34,6 +33,21 @@ FILTER_STATE_CACHE_CONFIG = {
 }
 ```
 
+To configure the filter state cache using MinIO or other S3 compatible service:
+
+```python
+FILTER_STATE_CACHE_CONFIG = {
+    'CACHE_TYPE': 'minio_cache.MinioCacheBackend',
+    'CACHE_MINIO_ENDPOINT': 'localhost:9000',
+    'CACHE_MINIO_ACCESS_KEY': 'minioadmin',
+    'CACHE_MINIO_SECRET_KEY': 'minioadmin',
+    'CACHE_MINIO_BUCKET': 'superset',
+    'CACHE_MINIO_SECURE': False,  # Set to True for HTTPS
+    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_KEY_PREFIX': 'superset_filter_cache'
+}
+```
+
 ## Dependencies
 
 In order to use dedicated cache stores, additional python libraries must be installed
@@ -41,6 +55,7 @@ In order to use dedicated cache stores, additional python libraries must be inst
 - For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
   `python-memcached` does not handle storing binary data correctly.
+- MinIO (S3): we recommend using the [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) package
 
 These libraries can be installed using pip.
 
