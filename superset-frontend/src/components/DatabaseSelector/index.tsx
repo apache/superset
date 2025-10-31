@@ -48,6 +48,7 @@ import type {
   DatabaseValue,
   DatabaseObject,
 } from './types';
+import { StyledFormLabel } from './styles';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -73,12 +74,6 @@ const DatabaseSelectorWrapper = styled.div`
       margin-bottom: ${theme.sizeUnit * 4}px;
     }
   `}
-`;
-
-const StyledFormLabel = styled(FormLabel)`
-  display: block;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const LabelStyle = styled.div`

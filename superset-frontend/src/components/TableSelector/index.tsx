@@ -31,14 +31,11 @@ import {
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  FormLabel,
-  CertifiedBadge,
-  Select,
-} from '@superset-ui/core/components';
+import { CertifiedBadge, Select } from '@superset-ui/core/components';
 import { DatabaseSelector } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
+import { StyledFormLabel } from 'src/components/DatabaseSelector/styles';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -75,12 +72,6 @@ const TableSelectorWrapper = styled.div`
       max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
     }
   `}
-`;
-
-const StyledFormLabel = styled(FormLabel)`
-  display: block;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const TableLabel = styled.span`
