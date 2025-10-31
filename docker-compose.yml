@@ -186,8 +186,10 @@ services:
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
+      WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
-      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
+      - "9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
