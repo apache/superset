@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -124,7 +124,11 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Wait for any pending state updates to complete before cleanup
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
   cleanup();
   fetchMock.reset();
   jest.restoreAllMocks();
@@ -847,9 +851,9 @@ test('edit action is disabled for non-owner', async () => {
   const editIcon = within(row!).getByTestId('edit');
   const editButton = editIcon.closest('.action-button, .disabled');
 
-  // Should have disabled class
+  // Should have disabled class (disabled buttons still have 'action-button' class)
   expect(editButton).toHaveClass('disabled');
-  expect(editButton).not.toHaveClass('action-button');
+  expect(editButton).toHaveClass('action-button');
 });
 
 test('all action buttons are clickable and enabled for admin user', async () => {
