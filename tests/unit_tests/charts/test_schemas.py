@@ -152,3 +152,62 @@ def test_time_grain_validation_with_config_addons(app_context: None) -> None:
     }
     result = schema.load(custom_data)
     assert result["time_grain"] == "PT10M"
+
+
+def test_chart_data_query_object_schema_orderby_validation(
+    app_context: None,
+) -> None:
+    """Test that ChartDataQueryObjectSchema validates orderby with various types"""
+    schema = ChartDataQueryObjectSchema()
+
+    # String column name should pass
+    result = schema.load(
+        {
+            "datasource": {"type": "table", "id": 1},
+            "metrics": ["count"],
+            "orderby": [["column_name", True]],
+        }
+    )
+    assert result["orderby"] == [("column_name", True)]
+
+    # Integer column ID should pass (fixes deck.gl bug)
+    result = schema.load(
+        {
+            "datasource": {"type": "table", "id": 1},
+            "metrics": ["count"],
+            "orderby": [[123, False]],
+        }
+    )
+    assert result["orderby"] == [(123, False)]
+
+    # Adhoc metric object should pass
+    result = schema.load(
+        {
+            "datasource": {"type": "table", "id": 1},
+            "metrics": ["count"],
+            "orderby": [[{"label": "my_metric", "sqlExpression": "SUM(col)"}, False]],
+        }
+    )
+    assert result["orderby"][0][0]["label"] == "my_metric"
+
+    # Empty string should fail
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "datasource": {"type": "table", "id": 1},
+                "metrics": ["count"],
+                "orderby": [["", True]],
+            }
+        )
+    assert "orderby" in exc_info.value.messages
+
+    # None should fail
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "datasource": {"type": "table", "id": 1},
+                "metrics": ["count"],
+                "orderby": [[None, True]],
+            }
+        )
+    assert "orderby" in exc_info.value.messages
