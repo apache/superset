@@ -1069,6 +1069,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // eslint-disable-next-line camelcase
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      if (!selectedDbModel) return;
       const {
         engine,
         parameters,
