@@ -41,6 +41,8 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   ) => SelectOptionsType;
   multi?: boolean;
   onChange: (val: SelectValue) => void;
+  // Optional search parameters to append to the endpoint
+  searchParams?: Record<string, any>;
   // ControlHeader related props
   description?: string;
   hovered?: boolean;
@@ -48,7 +50,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
 }
 
 function isLabeledValue(arg: any): arg is LabeledValue {
-  return arg.value !== undefined;
+  return arg && typeof arg === 'object' && arg.value !== undefined;
 }
 
 const SelectAsyncControl = ({
@@ -60,6 +62,7 @@ const SelectAsyncControl = ({
   mutator,
   onChange,
   placeholder,
+  searchParams,
   value,
   ...props
 }: SelectAsyncControlProps) => {
@@ -98,6 +101,7 @@ const SelectAsyncControl = ({
     const loadOptions = () =>
       SupersetClient.get({
         endpoint: dataEndpoint,
+        searchParams,
       })
         .then(response => {
           const data = mutator
@@ -113,7 +117,7 @@ const SelectAsyncControl = ({
     if (!loaded) {
       loadOptions();
     }
-  }, [addDangerToast, dataEndpoint, mutator, value, loaded]);
+  }, [addDangerToast, dataEndpoint, mutator, value, loaded, searchParams]);
 
   return (
     <Select

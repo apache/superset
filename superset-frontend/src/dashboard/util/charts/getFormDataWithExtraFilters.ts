@@ -41,6 +41,7 @@ import {
 } from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
+import { getFilterIdsAppliedOnChart } from '../getFilterIdsAppliedOnChart';
 
 interface CachedFormData {
   extra_form_data?: JsonObject;
@@ -498,9 +499,10 @@ export default function getFormDataWithExtraFilters({
     });
 
   let extraData: JsonObject = {};
-  const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
-    .map(([filterId]) => filterId);
+  const filterIdsAppliedOnChart = getFilterIdsAppliedOnChart(
+    activeFilters,
+    chart.id,
+  );
 
   if (filterIdsAppliedOnChart.length) {
     const aggregatedFormData = getExtraFormData(
