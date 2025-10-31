@@ -1,6 +1,5 @@
-import { SuperChart, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import FlaskChart from './FlaskChart';
 
 export default class FlaskChartPlugin extends ChartPlugin {
   constructor() {

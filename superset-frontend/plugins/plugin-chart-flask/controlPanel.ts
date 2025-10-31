@@ -1,4 +1,4 @@
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 export default {
   controlPanelSections: [

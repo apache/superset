@@ -71,6 +71,7 @@
     "./plugins/*/src/**/*",
     "./plugins/*/types/**/*",
     "./packages/*/test/**/*",
-    "./plugins/*/test/**/*"
+    "./plugins/*/test/**/*",
+    "./plugins/plugin-chart-flask/**/*"
   ]
 }
