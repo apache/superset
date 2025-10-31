@@ -344,7 +344,7 @@
     "ts-loader": "^9.5.1",
     "tscw-config": "^1.1.2",
     "tsx": "^4.20.3",
-    "typescript": "5.4.5",
+    "typescript": "5.9.3",
     "vm-browserify": "^1.1.2",
     "webpack": "^5.102.1",
     "webpack-bundle-analyzer": "^4.10.1",
