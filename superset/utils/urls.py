@@ -54,15 +54,20 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
     Replace or add parameters to a URL.
     """
     parts = list(urllib.parse.urlsplit(url))
-    params = urllib.parse.parse_qs(parts[3])
+    pairs = urllib.parse.parse_qsl(parts[3],keep_blank_values=True)
     for k, v in kwargs.items():
-        if not isinstance(v, list):
-            v = [v]
-        params[k] = v
-
-    parts[3] = "&".join(
-        f"{k}={urllib.parse.quote(str(v[0]))}" for k, v in params.items()
-    )
+        idxs = [i for i,(kk,_) in enumerate(pairs) if kk==k]
+        if idxs:
+            pos = min(idxs)
+            pairs = [(kk,vv) for (kk,vv) in pairs if kk!=k]
+            new=[(k,str(x)) for x in v] if isinstance(v, (list,tuple)) else [(k,str(v))]
+            pairs[pos:pos]=new
+        else:
+            if isinstance(v,(list,tuple)):
+                pairs.extend((k,str(x)) for x in v)
+            else:
+                pairs.append((k,str(v)))
+    parts[3]=urllib.parse.urlencode(pairs,doseq=True)
     return urllib.parse.urlunsplit(parts)
 
 
