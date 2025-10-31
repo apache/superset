@@ -167,6 +167,8 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
+
 ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
