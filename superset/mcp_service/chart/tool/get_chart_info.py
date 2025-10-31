@@ -43,6 +43,14 @@ async def get_chart_info(
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the chart URL when returned
+    - URL field contains chart's screenshot URL for preview
+
+    Supports:
+    - Numeric ID (e.g., 123)
+    - UUID string (e.g., "a1b2c3d4-...")
+
     Returns chart details including name, type, and URL.
     """
     from superset.daos.chart import ChartDAO

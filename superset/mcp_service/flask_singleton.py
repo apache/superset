@@ -36,12 +36,18 @@ try:
     from superset.app import create_app
     from superset.mcp_service.mcp_config import get_mcp_config
 
-    # Create the Flask app instance - this is the singleton
-    app = create_app()
+    # Create a temporary context to avoid
+    # "Working outside of application context" errors.
+    _temp_app = create_app()
 
-    # Apply MCP configuration - reads from app.config first, falls back to defaults
-    mcp_config = get_mcp_config(app.config)
-    app.config.update(mcp_config)
+    # Push an application context for any initialization code that needs it
+    with _temp_app.app_context():
+        # Apply MCP configuration - reads from app.config first, falls back to defaults
+        mcp_config = get_mcp_config(_temp_app.config)
+        _temp_app.config.update(mcp_config)
+
+    # Store the app instance for later use
+    app = _temp_app
 
     logger.info("Flask app instance created successfully")
 
