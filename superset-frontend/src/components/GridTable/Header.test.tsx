@@ -81,7 +81,7 @@ test('sorts by clicking a column header', () => {
   expect(queryByTestId('mock-sort-desc')).not.toBeInTheDocument();
 });
 
-test('synchronizes the current sort when sortChanged event occured', async () => {
+test('synchronizes the current sort when sortChanged event occurred', async () => {
   const { findByTestId } = render(<Header {...mockedProps} />);
   act(() => {
     mockedProps.api.dispatchEvent(new Event('sortChanged'));
