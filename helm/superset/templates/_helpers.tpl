@@ -148,27 +148,46 @@ RESULTS_BACKEND = RedisCache(
 
 {{- end }}
 
+{{- define "superset.commonLabels" -}}
+app: {{ include "superset.name" . }}
+release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+
 {{- define "supersetCeleryBeat.selectorLabels" -}}
 app: {{ include "superset.name" . }}-celerybeat
 release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}-celerybeat
+app.kubernetes.io/instance: {{ .Release.Name }}
+
 {{- end }}
 
 {{- define "supersetCeleryFlower.selectorLabels" -}}
 app: {{ include "superset.name" . }}-flower
 release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}-flower
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "supersetNode.selectorLabels" -}}
 app: {{ include "superset.name" . }}
 release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "supersetWebsockets.selectorLabels" -}}
 app: {{ include "superset.name" . }}-ws
 release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}-ws
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- define "supersetWorker.selectorLabels" -}}
 app: {{ include "superset.name" . }}-worker
 release: {{ .Release.Name }}
+app.kubernetes.io/name: {{ include "superset.name" . }}-worker
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
