@@ -27,6 +27,7 @@ export type FrameType =
   | 'Current'
   | 'Custom'
   | 'Advanced'
+  | 'Persian'
   | 'No filter';
 
 export type DateTimeGrainType =

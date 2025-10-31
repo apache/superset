@@ -41,6 +41,7 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Current', label: t('Current') },
   { value: 'Custom', label: t('Custom') },
   { value: 'Advanced', label: t('Advanced') },
+  { value: 'Persian', label: t('Persian Calendar') },
   { value: 'No filter', label: t('No filter') },
 ];
 

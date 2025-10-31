@@ -16,24 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@superset-ui/core';
 
-export const INPUT_HEIGHT = 32;
-
-export const INPUT_WIDTH = 270;
-
-export const TIME_FILTER_INPUT_WIDTH = 350;
-
-export const FILTER_SUPPORTED_TYPES = {
-  filter_time: [GenericDataType.Temporal],
-  filter_timegrain: [GenericDataType.Temporal],
-  filter_timecolumn: [GenericDataType.Temporal],
-  filter_select: [
-    GenericDataType.Boolean,
-    GenericDataType.String,
-    GenericDataType.Numeric,
-    GenericDataType.Temporal,
+export default {
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'viz_type',
+            config: {
+              type: 'HiddenControl',
+              label: t('Viz Type'),
+              default: 'filter_persian_calendar',
+            },
+          },
+        ],
+        [
+          {
+            name: 'time_range',
+            config: {
+              type: 'HiddenControl',
+              label: t('Time Range'),
+              default: 'No filter',
+            },
+          },
+        ],
+      ],
+    },
   ],
-  filter_range: [GenericDataType.Numeric],
-  filter_persian_calendar: [GenericDataType.Temporal],
 };

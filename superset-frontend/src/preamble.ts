@@ -44,6 +44,8 @@ import 'dayjs/plugin/duration';
 import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
 
+// dayjs-jalali will be loaded dynamically in components that need it
+
 configure();
 
 // Set hot reloader config

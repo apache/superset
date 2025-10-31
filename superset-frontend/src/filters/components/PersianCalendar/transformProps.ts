@@ -16,24 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { ChartProps } from '@superset-ui/core';
 
-export const INPUT_HEIGHT = 32;
+export default function transformProps(chartProps: ChartProps) {
+  const { formData, height, width } = chartProps;
 
-export const INPUT_WIDTH = 270;
-
-export const TIME_FILTER_INPUT_WIDTH = 350;
-
-export const FILTER_SUPPORTED_TYPES = {
-  filter_time: [GenericDataType.Temporal],
-  filter_timegrain: [GenericDataType.Temporal],
-  filter_timecolumn: [GenericDataType.Temporal],
-  filter_select: [
-    GenericDataType.Boolean,
-    GenericDataType.String,
-    GenericDataType.Numeric,
-    GenericDataType.Temporal,
-  ],
-  filter_range: [GenericDataType.Numeric],
-  filter_persian_calendar: [GenericDataType.Temporal],
-};
+  return {
+    formData,
+    height,
+    width,
+    timeRange: formData.time_range,
+    setDataMask: (chartProps as any).setDataMask,
+  };
+}

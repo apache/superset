@@ -77,6 +77,7 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import PersianCalendarFilterPlugin from 'src/filters/components/PersianCalendar';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { FilterPlugins } from 'src/constants';
@@ -173,6 +174,9 @@ export default class MainPreset extends Preset {
         }),
         new TimeGrainFilterPlugin().configure({
           key: FilterPlugins.TimeGrain,
+        }),
+        new PersianCalendarFilterPlugin().configure({
+          key: FilterPlugins.PersianCalendar,
         }),
         new EchartsTreeChartPlugin().configure({ key: VizType.Tree }),
         new EchartsSunburstChartPlugin().configure({ key: VizType.Sunburst }),
