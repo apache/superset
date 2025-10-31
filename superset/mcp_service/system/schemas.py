@@ -40,7 +40,7 @@ class HealthCheckResponse(BaseModel):
     version: str
     python_version: str
     platform: str
-    uptime_seconds: float
+    uptime_seconds: float | None = None
 
 
 class GetSupersetInstanceInfoRequest(BaseModel):

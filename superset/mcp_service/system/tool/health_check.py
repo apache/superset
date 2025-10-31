@@ -20,7 +20,6 @@
 import datetime
 import logging
 import platform
-import time
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.system.schemas import HealthCheckResponse
@@ -47,7 +46,6 @@ async def health_check() -> HealthCheckResponse:
             version="1.0.0",
             python_version=platform.python_version(),
             platform=platform.system(),
-            uptime_seconds=time.time(),  # Simple uptime approximation
         )
 
         logger.info("Health check completed successfully")
@@ -63,5 +61,4 @@ async def health_check() -> HealthCheckResponse:
             version="1.0.0",
             python_version=platform.python_version(),
             platform=platform.system(),
-            uptime_seconds=0.0,
         )
