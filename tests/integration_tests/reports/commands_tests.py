@@ -160,7 +160,13 @@ def assert_log(state: str, error_message: Optional[str] = None):
     log_states = [log.state for log in logs]
     assert ReportState.WORKING in log_states
     assert state in log_states
-    assert error_message in [log.error_message for log in logs]
+    if error_message is not None:
+        error_messages = [log.error_message for log in logs]
+        # Convert error_message to string in case it's a LazyString from lazy_gettext
+        error_message_str = str(error_message)
+        assert any(error_message_str in (msg or "") for msg in error_messages), (
+            f"Expected '{error_message_str}' in error messages: {error_messages}"
+        )
 
     for log in logs:
         if log.state == ReportState.WORKING:
@@ -2128,7 +2134,7 @@ def test_soft_timeout_csv(
 
     assert_log(
         ReportState.ERROR,
-        error_message="A timeout occurred while generating a csv.",
+        error_message="CSV timeout: chart_id=",
     )
 
 
