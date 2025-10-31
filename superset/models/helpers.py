@@ -1342,6 +1342,54 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return ob
 
+    def _reapply_query_filters(
+        self,
+        qry: Select,
+        apply_fetch_values_predicate: bool,
+        template_processor: Optional[BaseTemplateProcessor],
+        granularity: str | None,
+        time_filters: list[ColumnElement],
+        where_clause_and: list[ColumnElement],
+        having_clause_and: list[ColumnElement],
+    ) -> Select:
+        """
+        Re-apply WHERE and HAVING clauses to a reconstructed query.
+
+        When group_others_when_limit_reached=True, the query is reconstructed
+        with sa.select(), losing previously applied filters. This method
+        re-applies those filters to maintain query correctness.
+
+        The WHERE clause includes: user filters, RLS filters, extra WHERE
+        clauses, and time range filters accumulated in where_clause_and
+        and time_filters.
+
+        :param qry: The reconstructed SQLAlchemy Select object
+        :param apply_fetch_values_predicate: Whether to apply fetch values predicate
+        :param template_processor: Template processor for dynamic filters
+        :param granularity: Time granularity (if None, time_filters not applied)
+        :param time_filters: Time-based filter conditions
+        :param where_clause_and: Accumulated WHERE clause conditions
+        :param having_clause_and: Accumulated HAVING clause conditions
+        :return: The query with filters re-applied
+        """
+        if apply_fetch_values_predicate and self.fetch_values_predicate:
+            qry = qry.where(
+                self.get_fetch_values_predicate(template_processor=template_processor)
+            )
+
+        if granularity:
+            if time_filters or where_clause_and:
+                qry = qry.where(and_(*(time_filters + where_clause_and)))
+        else:
+            all_filters = time_filters + where_clause_and
+            if all_filters:
+                qry = qry.where(and_(*all_filters))
+
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
+
+        return qry
+
     def adhoc_column_to_sqla(
         self,
         col: "AdhocColumn",  # type: ignore  # noqa: F821
@@ -1972,6 +2020,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             metrics_exprs = []
 
+        time_filters = []
         if granularity:
             if granularity not in columns_by_name or not dttm_col:
                 raise QueryObjectValidationError(
@@ -1980,7 +2029,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         col=granularity,
                     )
                 )
-            time_filters = []
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
@@ -2392,6 +2440,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
+
+                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
+                    qry = self._reapply_query_filters(
+                        qry,
+                        apply_fetch_values_predicate,
+                        template_processor,
+                        granularity,
+                        time_filters,
+                        where_clause_and,
+                        having_clause_and,
+                    )
                 else:
                     tbl = tbl.join(
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
@@ -2455,6 +2514,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
+
+                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
+                    qry = self._reapply_query_filters(
+                        qry,
+                        apply_fetch_values_predicate,
+                        template_processor,
+                        granularity,
+                        time_filters,
+                        where_clause_and,
+                        having_clause_and,
+                    )
                 else:
                     # Original behavior: filter to only top groups
                     qry = qry.where(top_groups)
