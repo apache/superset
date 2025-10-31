@@ -317,7 +317,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         ),
       }));
 
-      console.log('DASHBOARD CONTAINER');
 
       return (
         <Tabs
