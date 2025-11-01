@@ -172,7 +172,7 @@ export function useTables(options: Params) {
     catalog: catalog || undefined,
   });
   const schemaOptionsMap = useMemo(
-    () => new Set(schemaOptions?.map(({ value }) => value)),
+    () => new Set(schemaOptions?.result?.map(({ value }) => value)),
     [schemaOptions],
   );
 

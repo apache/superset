@@ -170,7 +170,7 @@ export function useKeywords(
 
   const schemaKeywords = useMemo(
     () =>
-      (schemaOptions ?? []).map(s => ({
+      (schemaOptions?.result ?? []).map(s => ({
         name: s.label,
         value: s.value,
         score: SCHEMA_AUTOCOMPLETE_SCORE,

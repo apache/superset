@@ -73,11 +73,14 @@ beforeEach(() => {
           dbId: expectDbId,
           forceRefresh: false,
         },
-        fakeSchemaApiResult.map(value => ({
-          value,
-          label: value,
-          title: value,
-        })),
+        {
+          result: fakeSchemaApiResult.map(value => ({
+            value,
+            label: value,
+            title: value,
+          })),
+          default: null,
+        },
       ),
     );
     store.dispatch(
@@ -307,11 +310,14 @@ test('returns long keywords with docText', async () => {
           dbId: expectLongKeywordDbId,
           forceRefresh: false,
         },
-        ['short', longKeyword].map(value => ({
-          value,
-          label: value,
-          title: value,
-        })),
+        {
+          result: ['short', longKeyword].map(value => ({
+            value,
+            label: value,
+            title: value,
+          })),
+          default: null,
+        },
       ),
     );
   });
