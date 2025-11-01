@@ -26,6 +26,9 @@ export default defineConfig({
   // Test directory
   testDir: './playwright/tests',
 
+  // Global setup - authenticate once before all tests
+  globalSetup: './playwright/global-setup.ts',
+
   // Timeout settings
   timeout: 30000,
   expect: { timeout: 8000 },
@@ -59,6 +62,9 @@ export default defineConfig({
     headless: !!process.env.CI,
 
     viewport: { width: 1280, height: 1024 },
+
+    // Reuse authentication state from global setup
+    storageState: 'playwright/.auth/user.json',
 
     // Screenshots and videos on failure
     screenshot: 'only-on-failure',
