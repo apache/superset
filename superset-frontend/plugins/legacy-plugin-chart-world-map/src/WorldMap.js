@@ -31,6 +31,11 @@ const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      codes: PropTypes.shape({
+        cca2: PropTypes.string,
+        cca3: PropTypes.string,
+        cioc: PropTypes.string,
+      }),
       latitude: PropTypes.number,
       longitude: PropTypes.number,
       name: PropTypes.string,
@@ -115,8 +120,17 @@ function WorldMap(element, props) {
   const getCrossFilterDataMask = source => {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
-    const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+
+    let country;
+    if (countryFieldtype === 'name') {
+      country = mapData[key]?.name;
+    } else if (countryFieldtype === 'cca2') {
+      country = mapData[key]?.codes?.cca2;
+    } else if (countryFieldtype === 'cioc') {
+      country = mapData[key]?.codes?.cioc;
+    } else {
+      country = mapData[key]?.country;
+    }
 
     if (!country) {
       return undefined;
@@ -169,8 +183,18 @@ function WorldMap(element, props) {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+
+    let val;
+    if (countryFieldtype === 'name') {
+      val = mapData[key]?.name;
+    } else if (countryFieldtype === 'cca2') {
+      val = mapData[key]?.codes?.cca2;
+    } else if (countryFieldtype === 'cioc') {
+      val = mapData[key]?.codes?.cioc;
+    } else {
+      val = mapData[key]?.country;
+    }
+
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
