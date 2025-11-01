@@ -1125,3 +1125,95 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
         assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
             f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
         )
+
+
+def test_process_select_expression_column_names_with_spaces(
+    database: Database,
+) -> None:
+    """
+    Test for issue #35493: Column names with spaces should be quoted
+    to prevent SQLGlot from misinterpreting them as "column AS alias" syntax.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+    )
+
+    # Test 1: Simple column name with spaces - should be quoted and not misinterpreted
+    result = table._process_select_expression(
+        expression="Test Column",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    # The result should be a quoted identifier, not "Test AS Column"
+    assert result is not None
+    assert (
+        "AS" not in result or result.count("AS") <= 1
+    )  # Allow one AS if it's part of a proper alias
+    # Should contain the full column name in some quoted form
+    assert (
+        "Test Column" in result
+        or '"Test Column"' in result
+        or "'Test Column'" in result
+    )
+
+    # Test 2: Complex expression with spaces - should NOT be pre-quoted
+    # (let SQLGlot handle it)
+    result = table._process_select_expression(
+        expression="col1 * 10",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    # Should process the expression without breaking it
+    assert result is not None
+    assert "*" in result  # The multiplication should be preserved
+
+    # Test 3: Expression with SQL keywords - should NOT be pre-quoted
+    result = table._process_select_expression(
+        expression="UPPER(name)",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    # Should process the function call correctly
+    assert result is not None
+    assert "UPPER" in result
+    assert "name" in result
+
+    # Test 4: Already quoted column - should NOT be quoted again
+    result = table._process_select_expression(
+        expression='"Already Quoted Column"',
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    # Should preserve the original quoting
+    assert result is not None
+    assert '"Already Quoted Column"' in result
+
+    # Test 5: Column name with spaces that should trigger the fix
+    # This simulates the exact issue from #35493
+    result = table._process_select_expression(
+        expression="Customer Name",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    # The key test: should NOT result in "Customer AS Name"
+    assert result is not None
+    assert result != "Customer AS Name"
+    assert "Customer Name" in result or '"Customer Name"' in result
