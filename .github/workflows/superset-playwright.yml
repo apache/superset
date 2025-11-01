@@ -25,8 +25,6 @@ concurrency:
 jobs:
   playwright-tests:
     runs-on: ubuntu-22.04
-    # Allow workflow to succeed even if tests fail during shadow mode
-    continue-on-error: true
     permissions:
       contents: read
       pull-requests: read
