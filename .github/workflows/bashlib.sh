@@ -195,6 +195,7 @@ playwright-install() {
 
 playwright-run() {
   local APP_ROOT=$1
+  local TEST_PATH=$2
 
   # Start Flask from the project root (same as Cypress)
   cd "$GITHUB_WORKSPACE"
@@ -238,7 +239,13 @@ playwright-run() {
 
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
-  npx playwright test auth/login --reporter=github --output=playwright-results
+  if [ -n "$TEST_PATH" ]; then
+    echo "Running tests: ${TEST_PATH}"
+    npx playwright test ${TEST_PATH} --reporter=github --output=playwright-results
+  else
+    echo "Running all required tests (excluding experimental/)"
+    npx playwright test --ignore-path experimental/ --reporter=github --output=playwright-results
+  fi
   local status=$?
   say "::endgroup::"
 
