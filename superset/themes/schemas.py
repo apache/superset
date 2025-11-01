@@ -14,12 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from contextvars import ContextVar
 from typing import Any
 
 from marshmallow import fields, Schema, validates, ValidationError
 
 from superset.themes.utils import is_valid_theme, sanitize_theme_tokens
 from superset.utils import json
+
+# Context variable for storing sanitized JSON data during validation
+sanitized_json_context: ContextVar[str | None] = ContextVar(
+    "sanitized_json_data", default=None
+)
 
 
 class ImportV1ThemeSchema(Schema):
@@ -56,7 +62,7 @@ class ImportV1ThemeSchema(Schema):
                 value.clear()
                 value.update(sanitized_config)
             else:
-                self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+                sanitized_json_context.set(json.dumps(sanitized_config))
 
 
 class ThemePostSchema(Schema):
@@ -87,7 +93,7 @@ class ThemePostSchema(Schema):
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
 
 
 class ThemePutSchema(Schema):
@@ -118,7 +124,7 @@ class ThemePutSchema(Schema):
         # Note: This modifies the input data to ensure sanitized content is stored
         if sanitized_config != theme_config:
             # Re-serialize the sanitized config
-            self.context["sanitized_json_data"] = json.dumps(sanitized_config)
+            sanitized_json_context.set(json.dumps(sanitized_config))
 
 
 openapi_spec_methods_override = {
