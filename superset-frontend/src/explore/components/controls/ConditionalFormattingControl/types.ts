@@ -31,6 +31,7 @@ export type ConditionalFormattingConfig = {
   colorScheme?: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  toCellBar?: boolean;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
@@ -58,4 +59,5 @@ export type FormattingPopoverProps = PopoverProps & {
 export type ConditionalFormattingFlag = {
   toAllRowCheck?: boolean;
   toColorTextCheck?: boolean;
+  toCellBarCheck?: boolean;
 };

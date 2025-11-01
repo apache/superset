@@ -54,6 +54,7 @@ const extraColorChoices = [
 const config: ConditionalFormattingConfig = {
   toAllRow: true,
   toTextColor: true,
+  toCellBar: true,
 };
 
 test('renders FormattingPopoverContent component', () => {
@@ -148,7 +149,7 @@ test('displays the correct input fields based on the selected string type operat
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
 });
 
-test('displays the toAllRow and toTextColor flags based on the selected numeric type operator', () => {
+test('displays the toAllRow, toTextColor  and toCellBar flags based on the selected numeric type operator', () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
@@ -159,9 +160,10 @@ test('displays the toAllRow and toTextColor flags based on the selected numeric 
 
   expect(screen.getByText('To entire row')).toBeInTheDocument();
   expect(screen.getByText('To text color')).toBeInTheDocument();
+  expect(screen.getByText('To cell bar')).toBeInTheDocument();
 });
 
-test('displays the toAllRow and toTextColor flags based on the selected string type operator', () => {
+test('displays the toAllRow and toTextColor flags and not display toCellBar flag based on the selected string type operator', () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
@@ -172,13 +174,15 @@ test('displays the toAllRow and toTextColor flags based on the selected string t
 
   expect(screen.getByText('To entire row')).toBeInTheDocument();
   expect(screen.getByText('To text color')).toBeInTheDocument();
+  expect(screen.queryByText('To cell bar')).not.toBeInTheDocument();
 });
 
-test('Not displays the toAllRow and toTextColor flags', () => {
+test('Not displays the toAllRow, toTextColor  and toCellBar  flags', () => {
   render(
     <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
   );
 
   expect(screen.queryByText('To entire row')).not.toBeInTheDocument();
   expect(screen.queryByText('To text color')).not.toBeInTheDocument();
+  expect(screen.queryByText('To cell bar')).not.toBeInTheDocument();
 });

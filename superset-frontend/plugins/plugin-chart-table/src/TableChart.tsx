@@ -822,7 +822,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         basicColorFormatters.length > 0;
       const valueRange =
         !hasBasicColorFormatters &&
-        !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
@@ -857,6 +856,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           let backgroundColor;
           let color;
+          let backgroundColorCellBar;
+          let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
@@ -883,8 +884,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
               if (formatter.toTextColor) {
                 color = formatterResult.slice(0, -2);
+              } else if (formatter.toCellBar) {
+                if (showCellBars)
+                  backgroundColorCellBar = formatterResult.slice(0, -2);
               } else {
                 backgroundColor = formatterResult;
+                valueRangeFlag = false;
               }
             };
             columnColorFormatters
@@ -927,6 +932,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             display: block;
             top: 0;
             ${valueRange &&
+            valueRangeFlag &&
             `
                 width: ${`${cellWidth({
                   value: value as number,
@@ -938,11 +944,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
-                background-color: ${cellBackground({
-                  value: value as number,
-                  colorPositiveNegative,
-                  theme,
-                })};
+                background-color: ${
+                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  cellBackground({
+                    value: value as number,
+                    colorPositiveNegative,
+                    theme,
+                  })
+                };
               `}
           `;
 
