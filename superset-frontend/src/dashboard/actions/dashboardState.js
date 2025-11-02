@@ -262,7 +262,7 @@ export const setDashboardMetadata =
     dispatch(
       dashboardInfoChanged({
         metadata: {
-          ...(dashboardInfo?.metadata || {}),
+          ...dashboardInfo?.metadata,
           ...updatedMetadata,
         },
       }),
@@ -458,7 +458,7 @@ export function saveDashboardRequest(data, id, saveType) {
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
-                ...(cleanedData?.metadata || {}),
+                ...cleanedData?.metadata,
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
