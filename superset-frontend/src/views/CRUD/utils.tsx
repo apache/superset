@@ -268,7 +268,7 @@ export function handleChartDelete(
   { id, slice_name: sliceName }: Chart,
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
-  refreshData: (arg0?: FetchDataConfig) => void,
+  refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
   userId?: string | number,
 ) {
@@ -281,22 +281,20 @@ export function handleChartDelete(
         desc: true,
       },
     ],
-    filters:
-      chartFilter === 'Mine'
-        ? [
-            {
-              id: 'created_by',
-              operator: 'rel_o_m',
-              value: `${userId}`,
-            },
-          ]
-        : [],
+    filters: [
+      {
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: `${userId}`,
+      },
+    ],
   };
   SupersetClient.delete({
     endpoint: `/api/v1/chart/${id}`,
   }).then(
     () => {
-      refreshData(filters);
+      if (chartFilter === 'Mine') refreshData(filters);
+      else refreshData();
       addSuccessToast(t('Deleted: %s', sliceName));
     },
     () => {
@@ -307,7 +305,7 @@ export function handleChartDelete(
 
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
-  refreshData: (config?: FetchDataConfig) => void,
+  refreshData: (config?: FetchDataConfig | null) => void,
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
@@ -326,18 +324,16 @@ export function handleDashboardDelete(
             desc: true,
           },
         ],
-        filters:
-          dashboardFilter === 'Mine'
-            ? [
-                {
-                  id: 'owners',
-                  operator: 'rel_m_m',
-                  value: `${userId}`,
-                },
-              ]
-            : [],
+        filters: [
+          {
+            id: 'owners',
+            operator: 'rel_m_m',
+            value: `${userId}`,
+          },
+        ],
       };
-      refreshData(filters);
+      if (dashboardFilter === 'Mine') refreshData(filters);
+      else refreshData();
       addSuccessToast(t('Deleted: %s', dashboardTitle));
     },
     createErrorHandler(errMsg =>

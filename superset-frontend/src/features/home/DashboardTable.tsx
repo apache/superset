@@ -243,6 +243,7 @@ function DashboardTable({
               activeTab,
               user?.userId,
             );
+            getData(activeTab);
             setDashboardToDelete(null);
           }}
           onHide={() => setDashboardToDelete(null)}
