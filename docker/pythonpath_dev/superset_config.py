@@ -105,16 +105,6 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-# Apply marshmallow 4.x compatibility fix for Flask-AppBuilder
-try:
-    from superset.marshmallow_compatibility import (
-        patch_marshmallow_for_flask_appbuilder,
-    )
-
-    patch_marshmallow_for_flask_appbuilder()
-except ImportError:
-    pass  # If the fix module doesn't exist, continue without it
-
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
