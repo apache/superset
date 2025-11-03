@@ -32,12 +32,8 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
+import { setItem, getItem } from 'src/utils/localStorageHelpers';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
-import {
-  LocalStorageKeys,
-  setItem,
-  getItem,
-} from 'src/utils/localStorageHelpers';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -106,6 +102,7 @@ class ChartRenderer extends Component {
       const savedIndex = getItem(legendIndexKey);
       if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
     } catch (e) {
+      // do nothing
     }
 
     this.state = {
@@ -286,6 +283,7 @@ class ChartRenderer extends Component {
         JSON.stringify(legendState),
       );
     } catch (e) {
+      // do nothing
     }
   }
 
@@ -306,6 +304,7 @@ class ChartRenderer extends Component {
         JSON.stringify(legendIndex),
       );
     } catch (e) {
+      // do nothing
     }
   }
 
