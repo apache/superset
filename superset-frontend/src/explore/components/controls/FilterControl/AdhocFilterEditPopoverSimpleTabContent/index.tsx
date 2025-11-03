@@ -395,7 +395,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       const col = props.adhocFilter.subject;
       const having = props.adhocFilter.clause === Clauses.Having;
 
-      if (col && datasource && datasource.filter_select && !having) {
+      if (col && datasource && datasource.filter_select_enabled && !having) {
         const controller = new AbortController();
         const { signal } = controller;
         if (loadingComparatorSuggestions) {
