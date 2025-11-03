@@ -240,6 +240,13 @@ playwright-run() {
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
   if [ -n "$TEST_PATH" ]; then
+    # Check if there are any test files in the specified path
+    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+      echo "No test files found in ${TEST_PATH} - skipping test run"
+      say "::endgroup::"
+      kill $flaskProcessId
+      return 0
+    fi
     echo "Running tests: ${TEST_PATH}"
     npx playwright test ${TEST_PATH} --reporter=github --output=playwright-results
   else
