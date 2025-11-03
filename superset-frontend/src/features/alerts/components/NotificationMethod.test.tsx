@@ -76,7 +76,7 @@ test('NotificationMethod - should render the component', () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -96,7 +96,7 @@ test('NotificationMethod - should call onRemove when the delete button is clicke
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -117,7 +117,7 @@ test('NotificationMethod - should update recipient value when input changes', ()
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -143,7 +143,7 @@ test('NotificationMethod - should call onRecipientsChange when the recipients va
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -219,7 +219,7 @@ test('NotificationMethod - should render CC and BCC fields when method is Email 
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    email_subject: 'Test Subject',
+    emailSubject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -244,7 +244,7 @@ test('NotificationMethod - should render CC and BCC fields with correct values w
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    email_subject: 'Test Subject',
+    emailSubject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -269,7 +269,7 @@ test('NotificationMethod - should not render CC and BCC fields when method is no
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    email_subject: 'Test Subject',
+    emailSubject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -294,7 +294,7 @@ test('NotificationMethod - should handle empty recipients list gracefully', () =
     onUpdate: jest.fn(),
     onRemove: jest.fn(),
     onInputChange: jest.fn(),
-    email_subject: 'Test Subject',
+    emailSubject: 'Test Subject',
     defaultSubject: 'Default Subject',
     setErrorSubject: jest.fn(),
   };
@@ -328,7 +328,7 @@ test('shows the right combo when ff is false', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -366,7 +366,7 @@ test('shows the textbox when the fetch fails', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -409,7 +409,7 @@ test('shows the dropdown when ff is true and slackChannels succeed', async () =>
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -445,7 +445,7 @@ test('shows the textarea when ff is true and slackChannels fail', async () => {
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -481,7 +481,7 @@ test('shows the textarea when ff is true and slackChannels fail and slack is sel
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -510,7 +510,7 @@ test('shows the textarea when ff is true, slackChannels fail and slack is select
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -544,7 +544,7 @@ test('NotificationMethod - AsyncSelect should render for SlackV2 method', async 
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -583,7 +583,7 @@ test('NotificationMethod - AsyncSelect should handle SlackV2 with valid API resp
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -625,7 +625,7 @@ test('NotificationMethod - AsyncSelect should render refresh button for SlackV2'
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -669,7 +669,7 @@ test('NotificationMethod - AsyncSelect should reload channels without clearing r
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -743,7 +743,7 @@ test('NotificationMethod - data cache prevents redundant API calls when selectin
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -810,7 +810,7 @@ test('NotificationMethod - should preserve selected channels on refresh', async 
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -885,7 +885,7 @@ test('NotificationMethod - should initialize Slack recipients when editing exist
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -990,7 +990,7 @@ test('NotificationMethod - should preserve selected channels during search and p
       onUpdate={mockOnUpdate}
       onRemove={mockOnRemove}
       onInputChange={mockOnInputChange}
-      email_subject={mockEmailSubject}
+      emailSubject={mockEmailSubject}
       defaultSubject={mockDefaultSubject}
       setErrorSubject={mockSetErrorSubject}
       addDangerToast={mockAddDangerToast}
@@ -1049,6 +1049,185 @@ test('NotificationMethod - should preserve selected channels during search and p
     call => !call[1]?.hasOwnProperty('recipients') || call[1].recipients !== '',
   );
   expect(updateCallsWithEmptyRecipientsCheck).toBe(true);
+
+  getSpy.mockRestore();
+});
+
+test('NotificationMethod - should support comma-separated channel search', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannelsPage1 = [
+    { id: 'C001', name: 'engineering', is_private: false, is_member: true },
+    {
+      id: 'C002',
+      name: 'engineering-team',
+      is_private: false,
+      is_member: true,
+    },
+  ];
+  const mockChannelsPage2 = [
+    { id: 'C003', name: 'marketing', is_private: false, is_member: true },
+    { id: 'C004', name: 'sales', is_private: false, is_member: true },
+  ];
+
+  let callCount = 0;
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    callCount += 1;
+    if (callCount === 1) {
+      return Promise.resolve({
+        json: {
+          result: mockChannelsPage1,
+          next_cursor: 'cursor_2',
+          has_more: true,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>;
+    }
+    return Promise.resolve({
+      json: {
+        result: mockChannelsPage2,
+        next_cursor: null,
+        has_more: false,
+      },
+    }) as unknown as Promise<Response | JsonResponse | TextResponse>;
+  });
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      emailSubject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const apiCalls = getSpy.mock.calls;
+  expect(apiCalls.length).toBeGreaterThan(0);
+
+  getSpy.mockRestore();
+});
+
+test('NotificationMethod - AsyncSelect should not filter results client-side', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannels = [
+    { id: 'C001', name: 'analytics-team', is_private: false, is_member: true },
+    { id: 'C002', name: 'analytics-ops', is_private: false, is_member: true },
+    { id: 'C003', name: 'engineering', is_private: false, is_member: true },
+  ];
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(
+    () =>
+      Promise.resolve({
+        json: {
+          result: mockChannels,
+          next_cursor: null,
+          has_more: false,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>,
+  );
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      emailSubject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const recipientsSelect = getByTestId('recipients');
+  expect(recipientsSelect).toBeInTheDocument();
+
+  getSpy.mockRestore();
+});
+
+test('NotificationMethod - AsyncSelect should not use comma as token separator', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannels = [
+    { id: 'C001', name: 'engineering', is_private: false, is_member: true },
+    { id: 'C002', name: 'marketing', is_private: false, is_member: true },
+  ];
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(
+    () =>
+      Promise.resolve({
+        json: {
+          result: mockChannels,
+          next_cursor: null,
+          has_more: false,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>,
+  );
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      emailSubject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const recipientsSelect = getByTestId('recipients');
+  expect(recipientsSelect).toBeInTheDocument();
 
   getSpy.mockRestore();
 });

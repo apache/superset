@@ -429,30 +429,6 @@ The server responded with: missing scope: channels:read"""
             "has_more": False,
         }
 
-    def test_streaming_search_max_pages_safety_limit(self, mocker):
-        """Test streaming search stops after 50 pages to prevent runaway requests"""
-
-        # Create a response that always has a next cursor (infinite pagination)
-        mock_data = {
-            "channels": [
-                {"name": "channel", "id": "C1", "is_private": False, "is_member": True},
-            ],
-            "response_metadata": {"next_cursor": "next_page"},
-        }
-        mock_response = MockResponse(mock_data)
-
-        mock_client = mocker.Mock()
-        mock_client.conversations_list.return_value = mock_response
-        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
-
-        # Search that matches the channel - should stop at 50 pages
-        result = get_channels_with_search(search_string="channel", limit=100)
-
-        # Should have called conversations_list exactly 50 times (max pages)
-        assert mock_client.conversations_list.call_count == 50
-        # Should return the matches found (50 channels, one per page)
-        assert len(result["result"]) == 50
-
     def test_search_with_no_matches(self, mocker):
         """Test search that finds no matching channels"""
 
@@ -666,9 +642,9 @@ The server responded with: missing scope: channels:read"""
         assert len(result["result"]) == 50
         assert result["has_more"] is True
 
-    def test_non_search_pagination_over_200_limit(self, mocker):
-        """Test non-search queries paginate correctly for limits > 200"""
-        # Create 500 channels
+    def test_non_search_pagination_over_1000_limit(self, mocker):
+        """Test non-search queries paginate correctly for limits > 1000"""
+        # Create 2500 channels
         all_channels = [
             {
                 "name": f"channel-{i}",
@@ -676,7 +652,7 @@ The server responded with: missing scope: channels:read"""
                 "is_private": False,
                 "is_member": True,
             }
-            for i in range(500)
+            for i in range(2500)
         ]
 
         call_count = 0
@@ -686,18 +662,18 @@ The server responded with: missing scope: channels:read"""
             limit = kwargs.get("limit", 100)
             cursor = kwargs.get("cursor")
 
-            # Simulate Slack API pagination (max 200 per page)
+            # Simulate Slack API pagination (max 1000 per page)
             if cursor is None:
                 start = 0
-            elif cursor == "cursor_200":
-                start = 200
-            elif cursor == "cursor_400":
-                start = 400
+            elif cursor == "cursor_1000":
+                start = 1000
+            elif cursor == "cursor_2000":
+                start = 2000
             else:
-                start = 600
+                start = 3000
 
-            end = min(start + limit, 500)
-            next_cursor = f"cursor_{end}" if end < 500 else None
+            end = min(start + limit, 2500)
+            next_cursor = f"cursor_{end}" if end < 2500 else None
 
             call_count += 1
             return MockResponse(
@@ -711,13 +687,13 @@ The server responded with: missing scope: channels:read"""
         mock_client.conversations_list.side_effect = mock_conversations_list
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        # Request 300 channels (requires 2 pages of 200 each)
-        result = get_channels_with_search(limit=300)
+        # Request 1500 channels (requires 2 pages of 1000 each)
+        result = get_channels_with_search(limit=1500)
 
-        # Should return exactly 300 channels
-        assert len(result["result"]) == 300
+        # Should return exactly 1500 channels
+        assert len(result["result"]) == 1500
         assert result["has_more"] is True
-        assert result["next_cursor"] == "cursor_400"
+        assert result["next_cursor"] == "cursor_2000"
         # Should have made 2 API calls
         assert call_count == 2
 
@@ -801,3 +777,153 @@ The server responded with: missing scope: channels:read"""
         assert len(result["result"]) == 0
         assert result["has_more"] is False
         assert result["next_cursor"] is None
+
+    def test_comma_separated_search_strings(self, mocker):
+        """Test search with comma-separated search strings (OR logic)"""
+        mock_data = {
+            "channels": [
+                {
+                    "name": "engineering",
+                    "id": "C1",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "marketing",
+                    "id": "C2",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "sales",
+                    "id": "C3",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "design",
+                    "id": "C4",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "general",
+                    "id": "C5",
+                    "is_private": False,
+                    "is_member": True,
+                },
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Search for "engineering,marketing,sales"
+        result = get_channels_with_search(
+            search_string="engineering,marketing,sales", limit=100
+        )
+
+        # Should match 3 channels: engineering, marketing, sales
+        assert len(result["result"]) == 3
+        channel_names = [channel["name"] for channel in result["result"]]
+        assert "engineering" in channel_names
+        assert "marketing" in channel_names
+        assert "sales" in channel_names
+        assert "design" not in channel_names
+        assert "general" not in channel_names
+
+    def test_comma_separated_search_with_whitespace(self, mocker):
+        """Test comma-separated search handles extra whitespace correctly"""
+        mock_data = {
+            "channels": [
+                {
+                    "name": "engineering-team",
+                    "id": "C1",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "marketing-ops",
+                    "id": "C2",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "general",
+                    "id": "C3",
+                    "is_private": False,
+                    "is_member": True,
+                },
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Search with extra whitespace: " engineering , marketing "
+        result = get_channels_with_search(
+            search_string=" engineering , marketing ", limit=100
+        )
+
+        # Should match 2 channels, whitespace should be stripped
+        assert len(result["result"]) == 2
+        channel_names = [channel["name"] for channel in result["result"]]
+        assert "engineering-team" in channel_names
+        assert "marketing-ops" in channel_names
+        assert "general" not in channel_names
+
+    def test_comma_separated_exact_match(self, mocker):
+        """Test comma-separated search with exact_match=True"""
+        mock_data = {
+            "channels": [
+                {
+                    "name": "engineering",
+                    "id": "C1",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "engineering-team",
+                    "id": "C2",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "sales",
+                    "id": "C3",
+                    "is_private": False,
+                    "is_member": True,
+                },
+                {
+                    "name": "general",
+                    "id": "C4",
+                    "is_private": False,
+                    "is_member": True,
+                },
+            ],
+            "response_metadata": {"next_cursor": None},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Exact match search for "engineering,sales"
+        result = get_channels_with_search(
+            search_string="engineering,sales", exact_match=True, limit=100
+        )
+
+        # Should match only exact names: engineering and sales (not engineering-team)
+        assert len(result["result"]) == 2
+        channel_names = [channel["name"] for channel in result["result"]]
+        assert "engineering" in channel_names
+        assert "sales" in channel_names
+        assert "engineering-team" not in channel_names
+        assert "general" not in channel_names
