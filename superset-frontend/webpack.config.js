@@ -191,33 +191,26 @@ if (!isDevMode) {
   );
 }
 
-// Type checking only in production builds
-// In Docker/CI, this runs after transpilation to catch type errors
+// TypeScript type checking configuration
+// SWC handles transpilation, but we still need ForkTsCheckerWebpackPlugin
+// to generate .d.ts files for the plugin packages
 if (!isDevMode) {
-  // Check if plugins have been built (required for type checking)
-  const pluginsBuilt = require('fs').existsSync(
-    path.join(__dirname, 'packages/superset-ui-core/lib/index.d.ts'),
-  );
-
-  if (pluginsBuilt) {
-    plugins.push(
-      new ForkTsCheckerWebpackPlugin({
-        async: false,
-        typescript: {
-          memoryLimit: 4096,
-          configOverwrite: {
-            compilerOptions: {
-              skipLibCheck: true,
-            },
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      async: false,
+      typescript: {
+        memoryLimit: 4096,
+        build: true, // CRITICAL: Generate .d.ts files for plugins
+        mode: 'write-references', // Handle project references
+        configOverwrite: {
+          compilerOptions: {
+            skipLibCheck: true,
+            incremental: true,
           },
         },
-      }),
-    );
-  } else {
-    console.warn(
-      '⚠️ TypeScript checking disabled - run "npm run plugins:build" first',
-    );
-  }
+      },
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
