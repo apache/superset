@@ -191,33 +191,18 @@ if (!isDevMode) {
   );
 }
 
+// Only add TypeScript checking in production builds
 if (!isDevMode) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
-      async: isDevMode,
+      async: false,
       typescript: {
-        memoryLimit: 4096, // Increase memory for faster checking
-        mode: 'write-references',
+        memoryLimit: 4096,
         configOverwrite: {
           compilerOptions: {
             skipLibCheck: true,
-            incremental: true,
-            tsBuildInfoFile: '.tsbuildinfo',
           },
         },
-      },
-      issue: {
-        include: [{ severity: 'error' }],
-        exclude: [
-          { file: '**/node_modules/**/*' },
-          { file: '**/*.test.ts' },
-          { file: '**/*.test.tsx' },
-        ],
-      },
-      logger: {
-        infrastructure: 'silent',
-        issues: 'console',
-        devServer: false,
       },
     }),
   );
