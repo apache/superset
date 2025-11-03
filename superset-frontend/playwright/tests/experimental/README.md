@@ -57,12 +57,14 @@ Organize tests by feature area:
 ## Running Tests
 
 ```bash
-# Run all experimental tests
-npm run playwright:test -- experimental/
+# Run all experimental tests (requires INCLUDE_EXPERIMENTAL env var)
+INCLUDE_EXPERIMENTAL=true npm run playwright:test -- experimental/
 
 # Run specific experimental test
-npm run playwright:test -- experimental/dashboard/test.spec.ts
+INCLUDE_EXPERIMENTAL=true npm run playwright:test -- experimental/dashboard/test.spec.ts
 
 # Run in UI mode for debugging
-npm run playwright:ui -- experimental/
+INCLUDE_EXPERIMENTAL=true npm run playwright:ui -- experimental/
 ```
+
+**Note**: The `INCLUDE_EXPERIMENTAL=true` environment variable is required because experimental tests are filtered out by default in `playwright.config.ts`. Without it, Playwright will report "No tests found".
