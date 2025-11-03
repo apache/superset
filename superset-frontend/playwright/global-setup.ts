@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import { chromium, FullConfig, Browser, BrowserContext } from '@playwright/test';
+import {
+  chromium,
+  FullConfig,
+  Browser,
+  BrowserContext,
+} from '@playwright/test';
+import { mkdir } from 'fs/promises';
+import { dirname } from 'path';
 import { AuthPage } from './pages/AuthPage';
 
 /**
@@ -55,11 +62,15 @@ async function globalSetup(config: FullConfig) {
     await authPage.waitForLoginSuccess();
 
     // Save authentication state for all tests to reuse
+    const authStatePath = 'playwright/.auth/user.json';
+    await mkdir(dirname(authStatePath), { recursive: true });
     await context.storageState({
-      path: 'playwright/.auth/user.json',
+      path: authStatePath,
     });
 
-    console.log('[Global Setup] Authentication successful - state saved to playwright/.auth/user.json');
+    console.log(
+      '[Global Setup] Authentication successful - state saved to playwright/.auth/user.json',
+    );
   } catch (error) {
     console.error('[Global Setup] Authentication failed:', error);
     throw error;
