@@ -149,7 +149,7 @@ test('displays the correct input fields based on the selected string type operat
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
 });
 
-test('displays the toAllRow, toTextColor  and toCellBar flags based on the selected numeric type operator', () => {
+test('displays the toAllRow, toTextColor and toCellBar flags based on the selected numeric type operator', () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
@@ -177,7 +177,7 @@ test('displays the toAllRow and toTextColor flags and not display toCellBar flag
   expect(screen.queryByText('To cell bar')).not.toBeInTheDocument();
 });
 
-test('Not displays the toAllRow, toTextColor  and toCellBar  flags', () => {
+test('does not display the toAllRow, toTextColor and toCellBar flags', () => {
   render(
     <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
   );
