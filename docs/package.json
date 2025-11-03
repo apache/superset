@@ -49,7 +49,7 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^5.27.6",
+    "antd": "^5.28.0",
     "caniuse-lite": "^1.0.30001753",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
@@ -63,7 +63,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
-    "swagger-ui-react": "^5.30.0",
+    "swagger-ui-react": "^5.30.1",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4"
   },
