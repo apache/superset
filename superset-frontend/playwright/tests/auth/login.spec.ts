@@ -20,69 +20,70 @@
 import { test, expect } from '@playwright/test';
 import { AuthPage } from '../../pages/AuthPage';
 import { URL } from '../../utils/urls';
+import { TIMEOUT } from '../../utils/constants';
 
-test.describe('Login view', () => {
-  let authPage: AuthPage;
+// Opt out of global authentication for login tests
+// (global-setup.ts saves auth state for all tests, but login tests need a clean slate)
+// File-scope test.use ensures fresh context without cached auth
+test.use({ storageState: undefined });
 
-  test.beforeEach(async ({ page }: any) => {
-    authPage = new AuthPage(page);
-    await authPage.goto();
-    await authPage.waitForLoginForm();
+test('should redirect to login with incorrect username and password', async ({
+  page,
+}) => {
+  // Create page object and navigate to login
+  const authPage = new AuthPage(page);
+  await authPage.goto();
+  await authPage.waitForLoginForm();
+
+  // Setup request interception before login attempt
+  const loginRequestPromise = authPage.waitForLoginRequest();
+
+  // Attempt login with incorrect credentials
+  await authPage.loginWithCredentials('admin', 'wrongpassword');
+
+  // Wait for login request and verify response
+  const loginResponse = await loginRequestPromise;
+  // Failed login returns 401 Unauthorized or 302 redirect to login
+  expect([401, 302]).toContain(loginResponse.status());
+
+  // Wait for redirect to complete before checking URL
+  await page.waitForURL(url => url.pathname.endsWith(URL.LOGIN), {
+    timeout: TIMEOUT.PAGE_LOAD,
   });
 
-  test('should redirect to login with incorrect username and password', async ({
-    page,
-  }: any) => {
-    // Setup request interception before login attempt
-    const loginRequestPromise = authPage.waitForLoginRequest();
+  // Verify we stay on login page
+  const currentUrl = await authPage.getCurrentUrl();
+  expect(currentUrl).toContain(URL.LOGIN);
 
-    // Attempt login with incorrect credentials
-    await authPage.loginWithCredentials('admin', 'wrongpassword');
+  // Verify error message is shown
+  const hasError = await authPage.hasLoginError();
+  expect(hasError).toBe(true);
+});
 
-    // Wait for login request and verify response
-    const loginResponse = await loginRequestPromise;
-    // Failed login returns 401 Unauthorized or 302 redirect to login
-    expect([401, 302]).toContain(loginResponse.status());
+test('should login with correct username and password', async ({ page }) => {
+  // Create page object and navigate to login
+  const authPage = new AuthPage(page);
+  await authPage.goto();
+  await authPage.waitForLoginForm();
 
-    // Wait for redirect to complete before checking URL
-    await page.waitForURL((url: any) => url.pathname.endsWith('login/'), {
-      timeout: 10000,
-    });
+  // Setup request interception before login attempt
+  const loginRequestPromise = authPage.waitForLoginRequest();
 
-    // Verify we stay on login page
-    const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain(URL.LOGIN);
+  // Login with correct credentials
+  await authPage.loginWithCredentials('admin', 'general');
 
-    // Verify error message is shown
-    const hasError = await authPage.hasLoginError();
-    expect(hasError).toBe(true);
+  // Wait for login request and verify response
+  const loginResponse = await loginRequestPromise;
+  // Successful login returns 302 redirect
+  expect(loginResponse.status()).toBe(302);
+
+  // Wait for successful redirect to welcome page
+  await page.waitForURL(url => url.pathname.endsWith(URL.WELCOME), {
+    timeout: TIMEOUT.PAGE_LOAD,
   });
 
-  test('should login with correct username and password', async ({
-    page,
-  }: any) => {
-    // Setup request interception before login attempt
-    const loginRequestPromise = authPage.waitForLoginRequest();
-
-    // Login with correct credentials
-    await authPage.loginWithCredentials('admin', 'general');
-
-    // Wait for login request and verify response
-    const loginResponse = await loginRequestPromise;
-    // Successful login returns 302 redirect
-    expect(loginResponse.status()).toBe(302);
-
-    // Wait for successful redirect to welcome page
-    await page.waitForURL(
-      (url: any) => url.pathname.endsWith('superset/welcome/'),
-      {
-        timeout: 10000,
-      },
-    );
-
-    // Verify specific session cookie exists
-    const sessionCookie = await authPage.getSessionCookie();
-    expect(sessionCookie).not.toBeNull();
-    expect(sessionCookie?.value).toBeTruthy();
-  });
+  // Verify specific session cookie exists
+  const sessionCookie = await authPage.getSessionCookie();
+  expect(sessionCookie).not.toBeNull();
+  expect(sessionCookie?.value).toBeTruthy();
 });
