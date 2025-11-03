@@ -15,17 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Optional
 
 from flask import current_app
 
-from superset.extensions import celery_app
-from superset.utils.slack import get_channels
+from superset.extensions import cache_manager, celery_app
+from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="slack.cache_channels")
 def cache_channels() -> None:
+    """
+    Celery task to warm up the Slack channels cache.
+
+    This task fetches all Slack channels using pagination and stores them in cache.
+    Useful for large workspaces where the initial channel fetch can be slow.
+    """
     cache_timeout = current_app.config["SLACK_CACHE_TIMEOUT"]
     retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
 
@@ -37,7 +44,45 @@ def cache_channels() -> None:
     )
 
     try:
-        get_channels(force=True, cache_timeout=cache_timeout)
+        all_channels = []
+        cursor: Optional[str] = None
+        page_count = 0
+
+        while True:
+            page_count += 1
+
+            result = get_channels_with_search(
+                search_string="",
+                types=list(SlackChannelTypes),
+                cursor=cursor,
+                limit=1000,
+            )
+
+            page_channels = result["result"]
+            all_channels.extend(page_channels)
+
+            logger.debug(
+                "Fetched page %d: %d channels (total: %d)",
+                page_count,
+                len(page_channels),
+                len(all_channels),
+            )
+
+            cursor = result.get("next_cursor")
+            if not cursor or not result.get("has_more"):
+                break
+
+        logger.info(
+            "Successfully fetched %d Slack channels in %d pages. Caching results.",
+            len(all_channels),
+            page_count,
+        )
+
+        cache_key = "slack_conversations_list"
+        cache_manager.cache.set(cache_key, all_channels, timeout=cache_timeout)
+
+        logger.info("Slack channels cache warm-up completed successfully")
+
     except Exception as ex:
         logger.exception(
             "Failed to cache Slack channels: %s. "
