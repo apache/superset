@@ -273,8 +273,18 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
+  const isMountedRef = useState({ current: true })[0];
+  const latestRequestIdRef = useState({ current: 0 })[0];
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
+  );
+
+  // Cleanup on unmount to prevent state updates after unmount
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    [isMountedRef],
   );
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
@@ -427,6 +437,10 @@ const FiltersConfigForm = (
       });
       formData.extra_form_data = dependenciesDefaultValues;
 
+      // Track this request to ignore stale responses - use monotonic counter
+      latestRequestIdRef.current += 1;
+      const requestId = latestRequestIdRef.current;
+
       setNativeFilterFieldValuesWrapper({
         defaultValueQueriesData: null,
         isDataDirty: false,
@@ -436,6 +450,11 @@ const FiltersConfigForm = (
         force,
       })
         .then(({ response, json }) => {
+          // Ignore stale responses from earlier requests
+          if (!isMountedRef.current || requestId < latestRequestIdRef.current) {
+            return;
+          }
+
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
@@ -447,14 +466,29 @@ const FiltersConfigForm = (
             } else if (response.status === 202) {
               waitForAsyncData(result)
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setNativeFilterFieldValuesWrapper({
-                    defaultValueQueriesData: asyncResult,
-                  });
+                  if (
+                    isMountedRef.current &&
+                    requestId >= latestRequestIdRef.current
+                  ) {
+                    setNativeFilterFieldValuesWrapper({
+                      defaultValueQueriesData: asyncResult,
+                    });
+                  }
                 })
                 .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setErrorWrapper(clientErrorObject);
-                  });
+                  if (
+                    isMountedRef.current &&
+                    requestId >= latestRequestIdRef.current
+                  ) {
+                    getClientErrorObject(error).then(clientErrorObject => {
+                      if (
+                        isMountedRef.current &&
+                        requestId >= latestRequestIdRef.current
+                      ) {
+                        setErrorWrapper(clientErrorObject);
+                      }
+                    });
+                  }
                 });
             } else {
               throw new Error(
@@ -468,12 +502,28 @@ const FiltersConfigForm = (
           }
         })
         .catch((error: Response) => {
-          getClientErrorObject(error).then(clientErrorObject => {
-            setError(clientErrorObject);
-          });
+          if (isMountedRef.current && requestId >= latestRequestIdRef.current) {
+            getClientErrorObject(error).then(clientErrorObject => {
+              if (
+                isMountedRef.current &&
+                requestId >= latestRequestIdRef.current
+              ) {
+                setError(clientErrorObject);
+              }
+            });
+          }
         });
     },
-    [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
+    [
+      filterId,
+      forceUpdate,
+      form,
+      formFilter,
+      hasDataset,
+      dependenciesText,
+      isMountedRef,
+      latestRequestIdRef,
+    ],
   );
 
   // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
@@ -648,7 +698,10 @@ const FiltersConfigForm = (
   useBackendFormUpdate(form, filterId);
 
   useEffect(() => {
-    if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
+    // Removed hasDefaultValue from condition - it was blocking refresh for filters without default values
+    // isDataDirty provides the natural transition guard (false→true→false via hook dependency)
+    // This allows dataset changes to trigger refresh regardless of default value preference
+    if (hasDataset && hasFilledDataset && isDataDirty) {
       refreshHandler();
     }
   }, [

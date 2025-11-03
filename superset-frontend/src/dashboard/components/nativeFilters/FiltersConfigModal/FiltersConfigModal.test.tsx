@@ -28,6 +28,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import {
   RangeFilterPlugin,
@@ -68,9 +69,7 @@ const defaultState = () => ({
 const noTemporalColumnsState = () => {
   const state = defaultState();
   return {
-    charts: {
-      ...state.charts,
-    },
+    ...state,
     datasources: {
       ...state.datasources,
       [datasourceId]: {
@@ -104,9 +103,19 @@ const bigIntChartDataState = () => {
   };
 };
 
-const datasetResult = (id: number) => ({
+const SECOND_DATASET_ID = id + 1;
+const SECOND_DATASET_NAME = 'users';
+const SECOND_DATASET_COLUMN = 'Column B';
+
+const datasetResult = (
+  datasetId: number,
+  {
+    tableName = 'birth_names',
+    columnName = 'Column A',
+  }: { tableName?: string; columnName?: string } = {},
+) => ({
   description_columns: {},
-  id,
+  id: datasetId,
   label_columns: {
     columns: 'Columns',
     table_name: 'Table Name',
@@ -115,18 +124,44 @@ const datasetResult = (id: number) => ({
     metrics: [],
     columns: [
       {
-        column_name: 'Column A',
-        id: 1,
+        column_name: columnName,
+        id: datasetId,
       },
     ],
-    table_name: 'birth_names',
-    id,
+    table_name: tableName,
+    id: datasetId,
   },
   show_columns: ['id', 'table_name'],
 });
 
-fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
-fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
+fetchMock.get('glob:*/api/v1/dataset/1*', datasetResult(1));
+fetchMock.get(`glob:*/api/v1/dataset/${id}*`, datasetResult(id));
+fetchMock.get(
+  `glob:*/api/v1/dataset/${SECOND_DATASET_ID}*`,
+  datasetResult(SECOND_DATASET_ID, {
+    tableName: SECOND_DATASET_NAME,
+    columnName: SECOND_DATASET_COLUMN,
+  }),
+);
+
+// Mock dataset list endpoint for AsyncSelect dropdown
+fetchMock.get('glob:*/api/v1/dataset/?*', {
+  count: 2,
+  result: [
+    {
+      id, // Use numeric id (7), not datasourceId ("7__table")
+      table_name: 'birth_names',
+      database: { database_name: 'main' },
+      schema: 'public',
+    },
+    {
+      id: SECOND_DATASET_ID,
+      table_name: SECOND_DATASET_NAME,
+      database: { database_name: 'main' },
+      schema: 'analytics',
+    },
+  ],
+});
 
 fetchMock.post('glob:*/api/v1/chart/data', {
   result: [
@@ -147,7 +182,6 @@ const FILTER_NAME_REGEX = /^filter name$/i;
 const DATASET_REGEX = /^dataset$/i;
 const COLUMN_REGEX = /^column$/i;
 const VALUE_REGEX = /^value$/i;
-const NUMERICAL_RANGE_REGEX = /^numerical range$/i;
 const TIME_RANGE_REGEX = /^time range$/i;
 const TIME_COLUMN_REGEX = /^time column$/i;
 const TIME_GRAIN_REGEX = /^time grain$/i;
@@ -168,6 +202,107 @@ const DEFAULT_VALUE_REQUIRED_REGEX = /^default value is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
 const FILL_REQUIRED_FIELDS_REGEX = /fill all required fields to enable/;
 const TIME_RANGE_PREFILTER_REGEX = /^time range$/i;
+
+const getOpenDropdown = () =>
+  document.querySelector(
+    '.ant-select-dropdown:not(.ant-select-dropdown-hidden)',
+  ) as HTMLElement | null;
+
+const findDropdownOption = (text: string) =>
+  waitFor(() => {
+    const dropdown = getOpenDropdown();
+    if (!dropdown) {
+      throw new Error('Dropdown not visible');
+    }
+    return within(dropdown).getByText(text);
+  });
+
+const getSelectTrigger = (label: string) => {
+  const byAria = screen.queryByLabelText(label) as HTMLElement | null;
+  if (byAria) {
+    return byAria;
+  }
+  const byDataTest = document.querySelector(
+    `[data-test="${label}"]`,
+  ) as HTMLElement | null;
+  if (byDataTest) {
+    return byDataTest;
+  }
+  const labelNode = screen.queryByText(new RegExp(`^${label}$`, 'i'));
+  if (labelNode) {
+    const container =
+      labelNode.closest('.ant-form-item') ??
+      labelNode.parentElement?.parentElement ??
+      labelNode.parentElement ??
+      undefined;
+    const select = container?.querySelector(
+      '.ant-select-selector',
+    ) as HTMLElement | null;
+    if (select) {
+      return select;
+    }
+  }
+  return null;
+};
+
+const selectOption = async (label: string, optionText: string) => {
+  const trigger = getSelectTrigger(label);
+  if (!trigger) {
+    const availableDataTests = Array.from(
+      document.querySelectorAll('[data-test]'),
+    ).map(node => (node as HTMLElement).getAttribute('data-test'));
+    const matchingLabels = screen
+      .queryAllByText(new RegExp(label, 'i'))
+      .map(node => node.textContent);
+    throw new Error(
+      `Unable to find select trigger for ${label}. Matched label texts: [${matchingLabels.join(
+        ', ',
+      )}]. Available data-test attributes: ${availableDataTests.join(', ')}`,
+    );
+  }
+  await userEvent.click(trigger);
+  const option = await findDropdownOption(optionText);
+  await userEvent.click(option);
+};
+
+const selectDatasetOption = async (optionText: string) =>
+  selectOption('Dataset', optionText);
+
+const selectColumnOption = async (optionText: string) =>
+  selectOption('Column', optionText);
+
+// Helper to wait for all loading states to complete
+const waitForFormStability = async (timeout = 5000) => {
+  await waitFor(
+    () => {
+      expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+    },
+    { timeout },
+  );
+};
+
+// Helper to open Filter Settings accordion panel
+const openFilterSettings = async () => {
+  const settingsHeader = screen.getByText(FILTER_SETTINGS_REGEX);
+  await userEvent.click(settingsHeader);
+  // Wait for panel to expand and content to be visible
+  await waitFor(() => {
+    // Check for an element that should be in the expanded panel
+    expect(getCheckbox(MULTIPLE_REGEX)).toBeInTheDocument();
+  });
+};
+
+// Helper to select a filter type from the dropdown
+const selectFilterType = async (filterTypeName: string) => {
+  const filterTypeButton = screen.getByText(VALUE_REGEX);
+  await userEvent.click(filterTypeButton);
+
+  const option = await screen.findByText(filterTypeName);
+  await userEvent.click(option);
+
+  // Wait for form to re-render with new filter type
+  await waitForFormStability();
+};
 
 const props: FiltersConfigModalProps = {
   isOpen: true,
@@ -226,15 +361,16 @@ test('renders a value filter type', () => {
 test('renders a numerical range filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
-
-  await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
+  await selectFilterType('Numerical range');
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+
+  // Open Filter Settings accordion to access checkboxes
+  await openFilterSettings();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
@@ -250,14 +386,15 @@ test('renders a numerical range filter type', async () => {
 test('renders a time range filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
-
-  await waitFor(() => userEvent.click(screen.getByText(TIME_RANGE_REGEX)));
+  await selectFilterType('Time range');
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
+
+  // Open Filter Settings accordion to access checkboxes
+  await openFilterSettings();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
 });
@@ -265,14 +402,15 @@ test('renders a time range filter type', async () => {
 test('renders a time column filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
-
-  await waitFor(() => userEvent.click(screen.getByText(TIME_COLUMN_REGEX)));
+  await selectFilterType('Time column');
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
+
+  // Open Filter Settings accordion to access checkboxes
+  await openFilterSettings();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
 });
@@ -280,14 +418,15 @@ test('renders a time column filter type', async () => {
 test('renders a time grain filter type', async () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
-
-  await waitFor(() => userEvent.click(screen.getByText(TIME_GRAIN_REGEX)));
+  await selectFilterType('Time grain');
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
+
+  // Open Filter Settings accordion to access checkboxes
+  await openFilterSettings();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
 });
@@ -295,7 +434,9 @@ test('renders a time grain filter type', async () => {
 test('render time filter types as disabled if there are no temporal columns in the dataset', async () => {
   defaultRender(noTemporalColumnsState());
 
-  userEvent.click(screen.getByText(VALUE_REGEX));
+  // Open filter type dropdown
+  const filterTypeButton = screen.getByText(VALUE_REGEX);
+  await userEvent.click(filterTypeButton);
 
   const timeRange = await screen.findByText(TIME_RANGE_REGEX);
   const timeGrain = await screen.findByText(TIME_GRAIN_REGEX);
@@ -309,32 +450,44 @@ test('render time filter types as disabled if there are no temporal columns in t
 
 test('validates the name', async () => {
   defaultRender();
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  await waitFor(
-    async () => {
-      expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
 });
 
 test('validates the column', async () => {
   defaultRender();
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
 });
 
-// eslint-disable-next-line jest/no-disabled-tests
-test.skip('validates the default value', async () => {
-  defaultRender(noTemporalColumnsState());
-  expect(await screen.findByText('birth_names')).toBeInTheDocument();
-  userEvent.type(screen.getByRole('combobox'), `Column A{Enter}`);
-  userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
+test('validates the default value', async () => {
+  defaultRender();
+
+  // Wait for form to render and stabilize
+  expect(await screen.findByText(DATASET_REGEX)).toBeInTheDocument();
+  await waitForFormStability();
+
+  // Select dataset and column
+  await selectDatasetOption('birth_names');
+  await waitForFormStability();
+
+  await selectColumnOption('Column A');
+  await waitForFormStability();
+
+  // Open Filter Settings to access Default Value checkbox
+  await openFilterSettings();
+
+  // Enable "Filter has default value" checkbox
+  await userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
+
+  // Wait for "fill required fields" message to clear
   await waitFor(() => {
     expect(
       screen.queryByText(FILL_REQUIRED_FIELDS_REGEX),
     ).not.toBeInTheDocument();
   });
+
+  // Should show "default value is required" validation error
   expect(
     await screen.findByText(DEFAULT_VALUE_REQUIRED_REGEX),
   ).toBeInTheDocument();
@@ -365,21 +518,30 @@ test('validates the pre-filter value', async () => {
   );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
-// eslint-disable-next-line jest/no-disabled-tests
-test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
+test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
   defaultRender(noTemporalColumnsState());
-  userEvent.click(screen.getByText(DATASET_REGEX));
+
+  // Wait for form to render
+  expect(await screen.findByText(DATASET_REGEX)).toBeInTheDocument();
+  await waitForFormStability();
+
+  // Select dataset that has no temporal columns
+  await selectDatasetOption('birth_names');
+  await waitForFormStability();
+
+  // Open Filter Settings accordion
+  await openFilterSettings();
+
+  // Enable pre-filter
+  await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+
+  // Wait for pre-filter options to potentially render
   await waitFor(() => {
-    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
-    userEvent.click(screen.getByText('birth_names'));
-  });
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  await waitFor(() =>
+    // Time range pre-filter should NOT be available for datasets without temporal columns
     expect(
       screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
-    ).not.toBeInTheDocument(),
-  );
+    ).not.toBeInTheDocument();
+  });
 });
 
 test('filters are draggable', async () => {
