@@ -23,6 +23,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # REQUIRED: This job must be added to branch protection rules to block merges on failure
+  # The job name "playwright-tests" should be added to the required status checks in GitHub settings
   playwright-tests:
     runs-on: ubuntu-22.04
     permissions:

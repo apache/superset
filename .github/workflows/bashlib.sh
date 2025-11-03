@@ -243,8 +243,8 @@ playwright-run() {
     echo "Running tests: ${TEST_PATH}"
     npx playwright test ${TEST_PATH} --reporter=github --output=playwright-results
   else
-    echo "Running all required tests (excluding experimental/)"
-    npx playwright test --ignore-path experimental/ --reporter=github --output=playwright-results
+    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    npx playwright test --reporter=github --output=playwright-results
   fi
   local status=$?
   say "::endgroup::"

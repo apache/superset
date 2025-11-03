@@ -26,6 +26,9 @@ export default defineConfig({
   // Test directory
   testDir: './playwright/tests',
 
+  // Ignore experimental tests by default (run separately in CI with continue-on-error)
+  testIgnore: '**/experimental/**',
+
   // Timeout settings
   timeout: 30000,
   expect: { timeout: 8000 },
