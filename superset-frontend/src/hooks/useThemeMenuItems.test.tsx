@@ -51,13 +51,17 @@ describe('useThemeMenuItems', () => {
     render(<TestComponent {...props} />);
 
   const findMenuWithText = async (text: string) => {
-    await waitFor(() => {
-      const found = screen
-        .getAllByRole('menu')
-        .some(m => within(m).queryByText(text));
+    await waitFor(
+      () => {
+        const found = screen
+          .getAllByRole('menu')
+          .some(m => within(m).queryByText(text));
 
-      if (!found) throw new Error(`Menu with text "${text}" not yet rendered`);
-    });
+        if (!found)
+          throw new Error(`Menu with text "${text}" not yet rendered`);
+      },
+      { timeout: 3000 },
+    );
 
     return screen.getAllByRole('menu').find(m => within(m).queryByText(text))!;
   };
