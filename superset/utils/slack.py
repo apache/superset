@@ -26,9 +26,7 @@ from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
-from superset.extensions import cache_manager
 from superset.reports.schemas import SlackChannelSchema
-from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
@@ -58,64 +56,6 @@ def get_slack_client() -> WebClient:
     return client
 
 
-@cache_util.memoized_func(
-    key="slack_conversations_list",
-    cache=cache_manager.cache,
-)
-def get_channels() -> list[SlackChannelSchema]:
-    """
-    Retrieves a list of all conversations accessible by the bot
-    from the Slack API, and caches results (to avoid rate limits).
-
-    The Slack API does not provide search so to apply a search use
-    get_channels_with_search instead.
-    """
-    client = get_slack_client()
-    channel_schema = SlackChannelSchema()
-    channels: list[SlackChannelSchema] = []
-    extra_params = {"types": ",".join(SlackChannelTypes)}
-    cursor = None
-    page_count = 0
-
-    logger.info("Starting Slack channels fetch")
-
-    try:
-        while True:
-            page_count += 1
-
-            response = client.conversations_list(
-                limit=999, cursor=cursor, exclude_archived=True, **extra_params
-            )
-            page_channels = response.data["channels"]
-            channels.extend(channel_schema.load(channel) for channel in page_channels)
-
-            logger.debug(
-                "Fetched page %d: %d channels (total: %d)",
-                page_count,
-                len(page_channels),
-                len(channels),
-            )
-
-            cursor = response.data.get("response_metadata", {}).get("next_cursor")
-            if not cursor:
-                break
-
-        logger.info(
-            "Successfully fetched %d Slack channels in %d pages",
-            len(channels),
-            page_count,
-        )
-        return channels
-    except SlackApiError as ex:
-        logger.error(
-            "Failed to fetch Slack channels after %d pages: %s",
-            page_count,
-            str(ex),
-            exc_info=True,
-        )
-        raise
-
-
 def _fetch_channels_without_search(
     client: WebClient,
     channel_schema: SlackChannelSchema,
@@ -126,7 +66,7 @@ def _fetch_channels_without_search(
     """Fetch channels without search filtering, paginating for large limits."""
     channels: list[SlackChannelSchema] = []
     slack_cursor = cursor
-    page_size = min(limit, 200)
+    page_size = min(limit, 1000)
 
     while True:
         response = client.conversations_list(
@@ -165,13 +105,13 @@ def _fetch_channels_with_search(
     """Fetch channels with search filtering, streaming through pages."""
     matches: list[SlackChannelSchema] = []
     slack_cursor = cursor
-    max_pages_to_fetch = 50
-    pages_fetched = 0
-    search_string_lower = search_string.lower()
+    search_terms = [
+        term.strip().lower() for term in search_string.split(",") if term.strip()
+    ]
 
-    while len(matches) < limit and pages_fetched < max_pages_to_fetch:
+    while len(matches) < limit:
         response = client.conversations_list(
-            limit=200,
+            limit=1000,
             cursor=slack_cursor,
             exclude_archived=True,
             types=types_param,
@@ -182,16 +122,21 @@ def _fetch_channels_with_search(
             channel_id_lower = channel_data["id"].lower()
 
             is_match = False
-            if exact_match:
-                is_match = (
-                    search_string_lower == channel_name_lower
-                    or search_string_lower == channel_id_lower
-                )
-            else:
-                is_match = (
-                    search_string_lower in channel_name_lower
-                    or search_string_lower in channel_id_lower
-                )
+            for search_term in search_terms:
+                if exact_match:
+                    if (
+                        search_term == channel_name_lower
+                        or search_term == channel_id_lower
+                    ):
+                        is_match = True
+                        break
+                else:
+                    if (
+                        search_term in channel_name_lower
+                        or search_term in channel_id_lower
+                    ):
+                        is_match = True
+                        break
 
             if is_match:
                 channel = channel_schema.load(channel_data)
@@ -203,8 +148,6 @@ def _fetch_channels_with_search(
         slack_cursor = response.data.get("response_metadata", {}).get("next_cursor")
         if not slack_cursor:
             break
-
-        pages_fetched += 1
 
     has_more = bool(slack_cursor) and len(matches) >= limit
 
@@ -225,6 +168,15 @@ def get_channels_with_search(
     """
     Fetches Slack channels with pagination and search support.
 
+    Args:
+        search_string: Search term(s). Can be comma-separated for OR logic.
+                      e.g., "engineering,marketing" matches channels containing
+                      "engineering" OR "marketing"
+        types: Channel types to filter (public_channel, private_channel)
+        exact_match: If True, search term must exactly match channel name/ID
+        cursor: Pagination cursor for fetching next page
+        limit: Maximum number of channels to return
+
     Returns a dict with:
     - result: list of channels
     - next_cursor: cursor for next page (None if no more pages)
@@ -234,7 +186,6 @@ def get_channels_with_search(
     We handle two cases:
     1. WITHOUT search: Fetch single page from Slack API
     2. WITH search: Stream through Slack API pages until we find enough matches
-       (stops early to prevent timeouts on large workspaces)
     """
     try:
         client = get_slack_client()

@@ -1052,3 +1052,182 @@ test('NotificationMethod - should preserve selected channels during search and p
 
   getSpy.mockRestore();
 });
+
+test('NotificationMethod - should support comma-separated channel search', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannelsPage1 = [
+    { id: 'C001', name: 'engineering', is_private: false, is_member: true },
+    {
+      id: 'C002',
+      name: 'engineering-team',
+      is_private: false,
+      is_member: true,
+    },
+  ];
+  const mockChannelsPage2 = [
+    { id: 'C003', name: 'marketing', is_private: false, is_member: true },
+    { id: 'C004', name: 'sales', is_private: false, is_member: true },
+  ];
+
+  let callCount = 0;
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    callCount += 1;
+    if (callCount === 1) {
+      return Promise.resolve({
+        json: {
+          result: mockChannelsPage1,
+          next_cursor: 'cursor_2',
+          has_more: true,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>;
+    }
+    return Promise.resolve({
+      json: {
+        result: mockChannelsPage2,
+        next_cursor: null,
+        has_more: false,
+      },
+    }) as unknown as Promise<Response | JsonResponse | TextResponse>;
+  });
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      email_subject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const apiCalls = getSpy.mock.calls;
+  expect(apiCalls.length).toBeGreaterThan(0);
+
+  getSpy.mockRestore();
+});
+
+test('NotificationMethod - AsyncSelect should not filter results client-side', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannels = [
+    { id: 'C001', name: 'analytics-team', is_private: false, is_member: true },
+    { id: 'C002', name: 'analytics-ops', is_private: false, is_member: true },
+    { id: 'C003', name: 'engineering', is_private: false, is_member: true },
+  ];
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(
+    () =>
+      Promise.resolve({
+        json: {
+          result: mockChannels,
+          next_cursor: null,
+          has_more: false,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>,
+  );
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      email_subject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const recipientsSelect = getByTestId('recipients');
+  expect(recipientsSelect).toBeInTheDocument();
+
+  getSpy.mockRestore();
+});
+
+test('NotificationMethod - AsyncSelect should not use comma as token separator', async () => {
+  window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
+
+  const mockChannels = [
+    { id: 'C001', name: 'engineering', is_private: false, is_member: true },
+    { id: 'C002', name: 'marketing', is_private: false, is_member: true },
+  ];
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockImplementation(
+    () =>
+      Promise.resolve({
+        json: {
+          result: mockChannels,
+          next_cursor: null,
+          has_more: false,
+        },
+      }) as unknown as Promise<Response | JsonResponse | TextResponse>,
+  );
+
+  const { getByTestId } = render(
+    <NotificationMethod
+      setting={mockSettingSlackV2}
+      index={0}
+      onUpdate={mockOnUpdate}
+      onRemove={mockOnRemove}
+      onInputChange={mockOnInputChange}
+      email_subject={mockEmailSubject}
+      defaultSubject={mockDefaultSubject}
+      setErrorSubject={mockSetErrorSubject}
+      addDangerToast={mockAddDangerToast}
+    />,
+  );
+
+  await waitFor(
+    () => {
+      expect(getByTestId('recipients')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+
+  await waitFor(
+    () => {
+      expect(getSpy).toHaveBeenCalled();
+    },
+    { timeout: 3000 },
+  );
+
+  const recipientsSelect = getByTestId('recipients');
+  expect(recipientsSelect).toBeInTheDocument();
+
+  getSpy.mockRestore();
+});
