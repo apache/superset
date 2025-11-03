@@ -565,7 +565,7 @@ const RightMenu = ({
         key: 'new-dropdown',
         label: <Icons.PlusOutlined data-test="new-dropdown-icon" />,
         className: 'submenu-with-caret',
-        icon: <Icons.CaretDownOutlined iconSize="xs" />,
+        icon: <Icons.DownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
       });
     }
@@ -581,7 +581,7 @@ const RightMenu = ({
     items.push({
       key: 'settings',
       label: t('Settings'),
-      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      icon: <Icons.DownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
       className: 'submenu-with-caret',
     });
@@ -676,7 +676,7 @@ const RightMenu = ({
           }
 
           .submenu-with-caret {
-            padding: 0 ${theme.sizeUnit}px;
+            padding: 0;
             .ant-menu-submenu-title {
               display: flex;
               gap: ${theme.sizeUnit * 2}px;
@@ -684,6 +684,12 @@ const RightMenu = ({
             }
             &.ant-menu-submenu::after {
               inset-inline: ${theme.sizeUnit}px;
+            }
+            &.ant-menu-submenu:hover,
+            &.ant-menu-submenu-active {
+              .ant-menu-title-content {
+                color: ${theme.colorPrimary};
+              }
             }
           }
         `}
