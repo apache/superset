@@ -22,10 +22,11 @@ import { AuthPage } from '../../pages/AuthPage';
 import { URL } from '../../utils/urls';
 import { TIMEOUT } from '../../utils/constants';
 
-// Opt out of global authentication for login tests
-// (global-setup.ts saves auth state for all tests, but login tests need a clean slate)
-// File-scope test.use ensures fresh context without cached auth
-test.use({ storageState: undefined });
+/**
+ * Auth/login tests run in the 'chromium-unauth' project (see playwright.config.ts)
+ * which has storageState: undefined, so these tests start without authentication.
+ * This allows us to test the actual login flow from an unauthenticated state.
+ */
 
 test('should redirect to login with incorrect username and password', async ({
   page,

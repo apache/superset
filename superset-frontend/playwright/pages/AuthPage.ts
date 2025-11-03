@@ -113,9 +113,7 @@ export class AuthPage {
     // 3. Verify it's a redirect (3xx status code indicates successful login)
     const status = loginResponse.status();
     if (status < 300 || status >= 400) {
-      throw new Error(
-        `Login failed: expected redirect (3xx), got ${status}`,
-      );
+      throw new Error(`Login failed: expected redirect (3xx), got ${status}`);
     }
 
     // 4. Poll for session cookie to appear (may take a moment after redirect)
