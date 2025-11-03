@@ -55,6 +55,7 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
@@ -98,6 +99,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
@@ -138,6 +140,7 @@ export interface BaseTransformedProps<F> {
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {
@@ -183,7 +186,7 @@ export class EchartsChartPlugin<
     super({
       ...restProps,
       metadata: new ChartMetadata({
-        parseMethod: 'json-bigint',
+        parseMethod: 'json',
         ...metadata,
       }),
     });

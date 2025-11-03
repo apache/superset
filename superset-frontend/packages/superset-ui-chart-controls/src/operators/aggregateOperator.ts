@@ -30,7 +30,7 @@ export const aggregationOperator: PostProcessingFactory<
 > = (formData: QueryFormData, queryObject) => {
   const { aggregation = 'LAST_VALUE' } = formData;
 
-  if (aggregation === 'LAST_VALUE') {
+  if (aggregation === 'LAST_VALUE' || aggregation === 'raw') {
     return undefined;
   }
 

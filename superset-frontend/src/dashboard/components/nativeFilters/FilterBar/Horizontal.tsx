@@ -19,7 +19,7 @@
 
 import { FC, memo, useMemo } from 'react';
 import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -29,14 +29,16 @@ import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import crossFiltersSelector from './CrossFilters/selectors';
+import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
+import { ChartCustomizationItem } from '../ChartCustomization/types';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-      theme.gridUnit * 3
-    }px ${theme.gridUnit * 4}px;
-    background: ${theme.colors.grayscale.light5};
-    box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
+      theme.sizeUnit * 3
+    }px ${theme.sizeUnit * 4}px;
+    background: ${theme.colorBgBase};
+    box-shadow: inset 0px -2px 2px -1px ${theme.colorSplit};
   `}
 `;
 
@@ -47,10 +49,8 @@ const HorizontalBarContent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    line-height: 0;
-
     .loading {
-      margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
+      margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 2}px;
       padding: 0;
     }
   `}
@@ -58,10 +58,10 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
-    color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
-    padding-left: ${theme.gridUnit * 2}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+    font-size: ${theme.fontSizeSM}px;
+    padding-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -71,6 +71,8 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   filterValues,
   isInitialized,
   onSelectionChange,
+  clearAllTriggers,
+  onClearAllComplete,
 }) => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -90,13 +92,21 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
-  const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(state => selectChartCustomizationItems(state));
+
+  const hasFilters =
+    filterValues.length > 0 ||
+    selectedCrossFilters.length > 0 ||
+    chartCustomizationItems.length > 0;
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
         {!isInitialized ? (
-          <Loading position="inline-centered" />
+          <Loading position="inline-centered" size="s" muted />
         ) : (
           <>
             <FilterBarSettings />
@@ -109,6 +119,8 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={onSelectionChange}
+                clearAllTriggers={clearAllTriggers}
+                onClearAllComplete={onClearAllComplete}
               />
             )}
             {actions}

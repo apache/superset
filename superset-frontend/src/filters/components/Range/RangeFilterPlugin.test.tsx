@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AppSection, GenericDataType } from '@superset-ui/core';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { AppSection } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 import RangeFilterPlugin from './RangeFilterPlugin';
+import { RangeDisplayMode } from './types';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
 
@@ -81,6 +84,7 @@ const rangeProps = {
   appSection: AppSection.Dashboard,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props: any = {}) =>
@@ -101,7 +105,7 @@ describe('RangeFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
-  it('should render two numerical inputs', () => {
+  test('should render two numerical inputs and a slider by default', () => {
     getWrapper();
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -109,33 +113,39 @@ describe('RangeFilterPlugin', () => {
 
     expect(inputs[0]).toHaveValue('10');
     expect(inputs[1]).toHaveValue('70');
+
+    // For a range slider, there are two slider handles
+    const sliders = screen.getAllByRole('slider');
+    expect(sliders.length).toBeGreaterThan(0);
   });
 
-  it('should set the data mask to error when the range is incorrect', () => {
+  test('should set the data mask to error when the range is incorrect', async () => {
     getWrapper({ filterState: { value: [null, null] } });
 
     const inputs = screen.getAllByRole('spinbutton');
     const fromInput = inputs[0];
     const toInput = inputs[1];
 
-    fireEvent.change(fromInput, { target: { value: 20 } });
+    userEvent.clear(fromInput);
+    userEvent.type(fromInput, '20');
 
-    fireEvent.change(toInput, { target: { value: 10 } });
+    userEvent.clear(toInput);
+    userEvent.type(toInput, '10');
 
-    fireEvent.blur(toInput);
+    userEvent.tab();
 
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {},
       filterState: {
         label: '',
-        validateMessage: 'Please provide a valid range',
+        validateMessage: 'Numbers must be within 10 and 100',
         validateStatus: 'error',
         value: null,
       },
     });
   });
 
-  it('should call setDataMask with correct filter', () => {
+  test('should call setDataMask with correct filter', () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
@@ -161,7 +171,7 @@ describe('RangeFilterPlugin', () => {
     });
   });
 
-  it('should call setDataMask with correct greater than filter', () => {
+  test('should call setDataMask with correct greater than filter', () => {
     getWrapper({
       filterState: { value: [20, null] },
       formData: {
@@ -186,11 +196,13 @@ describe('RangeFilterPlugin', () => {
         value: [20, null],
       },
     });
-    const input = screen.getByRole('spinbutton');
-    expect(input).toHaveValue('20');
+
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toHaveValue('20');
   });
 
-  it('should call setDataMask with correct less than filter', () => {
+  test('should call setDataMask with correct less than filter', () => {
     getWrapper({
       filterState: { value: [null, 60] },
       formData: {
@@ -214,11 +226,13 @@ describe('RangeFilterPlugin', () => {
         validateStatus: undefined,
       },
     });
-    const input = screen.getByRole('spinbutton');
-    expect(input).toHaveValue('60');
+
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toHaveValue('60');
   });
 
-  it('should call setDataMask with correct exact filter', () => {
+  test('should call setDataMask with correct exact filter', () => {
     getWrapper({
       formData: {
         enableSingleValue: SingleValueType.Exact,
@@ -241,6 +255,71 @@ describe('RangeFilterPlugin', () => {
         validateStatus: undefined,
         validateMessage: '',
       },
+    });
+
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toHaveValue('10');
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Range Display Modes', () => {
+    test('should render only the slider in slider mode', () => {
+      getWrapper({
+        formData: {
+          rangeDisplayMode: RangeDisplayMode.Slider,
+        },
+      });
+
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBeGreaterThan(0);
+
+      expect(screen.queryAllByRole('spinbutton')).toHaveLength(0);
+    });
+
+    test('should render only inputs in input mode', () => {
+      getWrapper({
+        formData: {
+          rangeDisplayMode: RangeDisplayMode.Input,
+        },
+      });
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs).toHaveLength(2);
+
+      expect(screen.queryAllByRole('slider')).toHaveLength(0);
+    });
+
+    test('should render both slider and inputs in slider-and-input mode', () => {
+      getWrapper({
+        formData: {
+          rangeDisplayMode: RangeDisplayMode.SliderAndInput,
+        },
+      });
+
+      // Should show inputs
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs).toHaveLength(2);
+
+      // Should show slider
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBeGreaterThan(0);
+    });
+
+    test('should default to slider-and-input mode when not specified', () => {
+      getWrapper({
+        formData: {
+          // No rangeDisplayMode specified
+        },
+      });
+
+      // Should show inputs
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs).toHaveLength(2);
+
+      // Should show slider
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBeGreaterThan(0);
     });
   });
 });

@@ -22,9 +22,9 @@ import { ChartSource } from 'src/types/ChartSource';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { ErrorType } from '@superset-ui/core';
+import type { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
+import { getErrorMessageComponentRegistry } from 'src/components/ErrorMessage';
 import { ChartErrorMessage } from './ChartErrorMessage';
-import { ErrorMessageComponentProps } from '../ErrorMessage/types';
-import getErrorMessageComponentRegistry from '../ErrorMessage/getErrorMessageComponentRegistry';
 
 // Mock the useChartOwnerNames hook
 jest.mock('src/hooks/apiResources', () => ({
@@ -42,14 +42,15 @@ const ERROR_MESSAGE_COMPONENT = (props: ErrorMessageComponentProps) => (
   </>
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartErrorMessage', () => {
   const defaultProps = {
-    chartId: '1',
+    chartId: 1,
     subtitle: 'Test subtitle',
     source: 'test_source' as ChartSource,
   };
 
-  it('renders the default error message when error is null', () => {
+  test('renders the default error message when error is null', () => {
     mockUseChartOwnerNames.mockReturnValue({
       result: null,
       status: ResourceStatus.Loading,
@@ -61,7 +62,7 @@ describe('ChartErrorMessage', () => {
     expect(screen.getByText('Test subtitle')).toBeInTheDocument();
   });
 
-  it('renders the error message that is passed in from the error', () => {
+  test('renders the error message that is passed in from the error', () => {
     getErrorMessageComponentRegistry().registerValue(
       'VALID_KEY',
       ERROR_MESSAGE_COMPONENT,

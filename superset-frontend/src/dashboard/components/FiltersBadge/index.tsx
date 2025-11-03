@@ -37,10 +37,10 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import Badge from 'src/components/Badge';
+import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -60,42 +60,32 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgContainer};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorIcon};
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorIconHover};
       }
     }
 
     .incompatible-count {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.dark2};
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 2}px;
-    &>sup.antd5-badge-count {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
-      line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
-      box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
-    }
+    margin-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -314,6 +304,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           data-test="applied-filter-count"
           className="applied-count"
           count={filterCount}
+          size="small"
           showZero
         />
       </StyledFilterCount>

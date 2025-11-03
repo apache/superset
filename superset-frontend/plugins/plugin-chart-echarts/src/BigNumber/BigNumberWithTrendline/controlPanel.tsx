@@ -31,6 +31,8 @@ import {
   subheaderFontSize,
   subtitleFontSize,
   subtitleControl,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
 } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -141,6 +143,8 @@ const config: ControlPanelConfig = {
         [subheaderFontSize],
         [subtitleControl],
         [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         ['y_axis_format'],
         ['currency_format'],
         [

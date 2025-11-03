@@ -22,13 +22,13 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql_parse import ParsedQuery
+from superset.sql.parse import LimitMethod
 from superset.utils.core import GenericDataType
 
 
@@ -106,7 +106,6 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
-    limit_method = LimitMethod.WRAP_SQL
     engine = "kustokql"
     engine_name = "KustoKQL"
     time_groupby_inline = True
@@ -154,15 +153,3 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
-        return not parsed_query.sql.startswith(".")
-
-    @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        """
-        Kusto supports a single query statement, but it could include sub queries
-        and variables declared via let keyword.
-        """
-        return [sql]

@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormItem } from 'src/components/Form';
+import { FormItem } from '@superset-ui/core/components';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 
 const MODAL_BODY_HEIGHT = 180.5;
-const antIconHeight = 12;
 
 export const StyledFormItem = styled(FormItem)`
   ${({ theme }) => css`
     flex: 1;
     margin-top: 0;
-    margin-bottom: ${theme.gridUnit * 2.5}px;
+    margin-bottom: ${theme.sizeUnit * 2.5}px;
   }
   `}
 `;
@@ -37,31 +36,8 @@ export const StyledSwitchContainer = styled.div`
   margin-top: 0;
 `;
 
-export const antdCollapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-header {
-    padding-top: ${theme.gridUnit * 3.5}px;
-    padding-bottom: ${theme.gridUnit * 2.5}px;
-    .anticon.ant-collapse-arrow {
-      top: calc(50% - ${antIconHeight / 2}px);
-    }
-    .helper {
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.s}px;
-    }
-  }
-  h4 {
-    font-size: ${theme.typography.sizes.l}px;
-    margin-top: 0;
-    margin-bottom: ${theme.gridUnit}px;
-  }
-  p.helper {
-    margin-bottom: 0;
-    padding: 0;
-  }
-`;
-
 export const antDModalNoPaddingStyles = css`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -70,27 +46,27 @@ export const antDModalNoPaddingStyles = css`
 
 export const formStyles = (theme: SupersetTheme) => css`
   .switch-label {
-    color: ${theme.colors.grayscale.base};
-    margin-left: ${theme.gridUnit * 4}px;
+    color: ${theme.colorTextSecondary};
+    margin-left: ${theme.sizeUnit * 4}px;
   }
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .antd5-modal-header {
-    padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 4}px;
+  .ant-modal-header {
+    padding: ${theme.sizeUnit * 4.5}px ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 4}px;
   }
 
-  .antd5-modal-close-x .close {
+  .ant-modal-close-x .close {
     opacity: 1;
   }
 
-  .antd5-modal-body {
-    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
+  .ant-modal-body {
+    height: ${theme.sizeUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .antd5-modal-footer {
-    height: ${theme.gridUnit * 16.25}px;
+  .ant-modal-footer {
+    height: ${theme.sizeUnit * 16.25}px;
   }
 
   .info-solid-small {

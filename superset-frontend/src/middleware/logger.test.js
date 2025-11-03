@@ -25,6 +25,7 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
   const dashboardId = 123;
   const next = sinon.spy();
@@ -61,7 +62,7 @@ describe('logger middleware', () => {
     timeSandbox.clock.reset();
   });
 
-  it('should listen to LOG_EVENT action type', () => {
+  test('should listen to LOG_EVENT action type', () => {
     const action1 = {
       type: 'ACTION_TYPE',
       payload: {
@@ -72,7 +73,7 @@ describe('logger middleware', () => {
     expect(next.callCount).toBe(1);
   });
 
-  it('should POST an event to /superset/log/ when called', () => {
+  test('should POST an event to /superset/log/ when called', () => {
     logger(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
@@ -83,7 +84,7 @@ describe('logger middleware', () => {
     );
   });
 
-  it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+  test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
     const fetchLog = logger(mockStore)(next);
     fetchLog({
       type: LOG_EVENT,
@@ -113,7 +114,7 @@ describe('logger middleware', () => {
     expect(typeof events[0].start_offset).toBe('number');
   });
 
-  it('should debounce a few log requests to one', () => {
+  test('should debounce a few log requests to one', () => {
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
     logger(mockStore)(next)(action);
@@ -125,7 +126,7 @@ describe('logger middleware', () => {
     ).toHaveLength(3);
   });
 
-  it('should use navigator.sendBeacon if it exists', () => {
+  test('should use navigator.sendBeacon if it exists', () => {
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,
@@ -141,7 +142,7 @@ describe('logger middleware', () => {
     expect(endpoint).toMatch('/superset/log/');
   });
 
-  it('should pass a guest token to sendBeacon if present', () => {
+  test('should pass a guest token to sendBeacon if present', () => {
     const beaconMock = jest.fn();
     Object.defineProperty(navigator, 'sendBeacon', {
       writable: true,

@@ -23,7 +23,7 @@ import pytest
 from flask import g
 import prison
 
-from superset import db, security_manager, app  # noqa: F401
+from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,
@@ -471,7 +471,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
-        assert status_code == 201
+        assert status_code == 200
 
         rls = (
             db.session.query(RowLevelSecurityFilter)
@@ -555,6 +555,30 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == len(db_tables)
         assert db_table_names == received_tables
 
+    def test_rls_tables_related_api_with_filter_matching_birth(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match 'birth_names'
+        params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = {table["text"] for table in result}
+        # Should only return tables with 'birth' in the name
+        assert all("birth" in table_name.lower() for table_name in received_tables)
+        assert len(result) >= 1  # At least birth_names should be returned
+
+    def test_rls_tables_related_api_with_filter_no_matches(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match nothing
+        params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 0
+        assert data["count"] == 0
+
     def test_rls_roles_related_api(self):
         self.login(ADMIN_USERNAME)
         params = prison.dumps({"page": 0, "page_size": 100})
@@ -601,15 +625,16 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         def _base_filter(query):
             return query.filter_by(name="Alpha")
 
-        with mock.patch.dict(
-            "superset.views.filters.current_app.config",
-            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
-        ):
+        original_conf = self.app.config.get("EXTRA_RELATED_QUERY_FILTERS", {}).copy()
+        try:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = {"role": _base_filter}
             rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
+        finally:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = original_conf
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

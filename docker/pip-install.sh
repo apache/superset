@@ -38,14 +38,14 @@ for arg in "$@"; do
 done
 
 # Install build-essential if required
-if $REQUIRES_BUILD_ESSENTIAL; then
+if ${REQUIRES_BUILD_ESSENTIAL}; then
   echo "Installing build-essential for package builds..."
   apt-get update -qq \
     && apt-get install -yqq --no-install-recommends build-essential
 fi
 
 # Choose whether to use pip cache
-if $USE_CACHE; then
+if ${USE_CACHE}; then
   echo "Using pip cache..."
   uv pip install "${ARGS[@]}"
 else
@@ -54,7 +54,7 @@ else
 fi
 
 # Remove build-essential if it was installed
-if $REQUIRES_BUILD_ESSENTIAL; then
+if ${REQUIRES_BUILD_ESSENTIAL}; then
   echo "Removing build-essential to keep the image lean..."
   apt-get autoremove -yqq --purge build-essential \
     && apt-get clean \

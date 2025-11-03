@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { AppliedTimeExtras, TimeRange } from './Time';
@@ -31,7 +32,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { GenericDataType, DataRecordValue } from './QueryResponse';
+import { DataRecordValue } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -71,6 +72,8 @@ export type QueryObjectExtras = Partial<{
   where?: string;
   /** Instant Time Comparison */
   instant_time_comparison_range?: string;
+
+  time_compare?: string;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -321,6 +324,7 @@ export type Query = {
   schema?: string;
   sql: string;
   sqlEditorId: string;
+  sqlEditorImmutableId: string;
   state: QueryState;
   tab: string | null;
   tempSchema: string | null;
@@ -370,6 +374,7 @@ export const testQuery: Query = {
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: 'dfsadfs',
+  sqlEditorImmutableId: 'immutableId2353',
   tab: 'unimportant',
   tempTable: '',
   ctas: false,

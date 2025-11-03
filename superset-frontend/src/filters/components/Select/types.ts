@@ -22,10 +22,10 @@ import {
   ChartProps,
   DataRecord,
   FilterState,
-  GenericDataType,
   QueryFormData,
   ChartDataResponseResult,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { RefObject } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
@@ -65,6 +65,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   inputRef?: RefObject<any>;
   filterBarOrientation?: FilterBarOrientation;
   isOverflowingFilterBar?: boolean;
+  clearAllTrigger?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {

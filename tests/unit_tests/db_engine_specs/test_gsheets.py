@@ -27,13 +27,28 @@ from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import OAuth2State
+
+# Skip these tests if shillelagh can't import pip
+# This happens in some environments where pip is not available as a module
+skip_reason = None
+try:
+    import shillelagh.functions  # noqa: F401
+except ImportError as e:
+    if "No module named 'pip'" in str(e):
+        skip_reason = (
+            "shillelagh requires 'pip' module which is not available in this "
+            "environment"
+        )
+
+if skip_reason:
+    pytestmark = pytest.mark.skip(reason=skip_reason)
 
 
 class ProgrammingError(Exception):
@@ -543,7 +558,7 @@ def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         new={"DATABASE_OAUTH2_CLIENTS": {}},
     )
 
@@ -557,7 +572,7 @@ def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         new={
             "DATABASE_OAUTH2_CLIENTS": {
                 "Google Sheets": {

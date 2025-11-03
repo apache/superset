@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { LabeledErrorBoundInput as ValidatedInput } from '@superset-ui/core/components';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 
 const FIELD_TEXT_MAP = {

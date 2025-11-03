@@ -44,7 +44,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
     ResultSetColumnType,

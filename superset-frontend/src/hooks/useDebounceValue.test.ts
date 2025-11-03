@@ -52,7 +52,7 @@ test('should update debounced value after delay', async () => {
   expect(result.current).toBe('world');
 });
 
-it('should cancel previous timeout when value changes', async () => {
+test('should cancel previous timeout when value changes', async () => {
   jest.useFakeTimers();
   const { result, rerender } = renderHook(
     ({ value, delay }) => useDebounceValue(value, delay),

@@ -1,0 +1,36 @@
+# .coveragerc to control coverage.py
+[run]
+branch = True
+source = superset
+# omit = bad_file.py
+
+[paths]
+source =
+    superset/
+    */site-packages/
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code:
+    def __repr__
+    if self\.debug
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+
+    # Ignore importlib backport
+    from importlib
+
+    if TYPE_CHECKING:
+
+#fail_under = 100
+show_missing = True

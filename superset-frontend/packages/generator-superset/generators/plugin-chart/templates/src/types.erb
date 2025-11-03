@@ -25,7 +25,7 @@ import {
 export interface <%= packageLabel %>StylesProps {
   height: number;
   width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
+  headerFontSize: 'fontSizeSM' | 'fontSize' | 'fontSizeLG' | 'fontSizeXL' | 'fontSizeHeading1' | 'fontSizeHeading2' | 'fontSizeHeading3' | 'fontSizeHeading4' | 'fontSizeHeading5';
   boldText: boolean;
 }
 

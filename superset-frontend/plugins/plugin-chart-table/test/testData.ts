@@ -20,12 +20,12 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DatasourceType,
-  GenericDataType,
   QueryMode,
   supersetTheme,
   ComparisonType,
   VizType,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -349,6 +349,27 @@ const empty = {
   ],
 };
 
+const bigint = {
+  ...advanced,
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['name', 'id'],
+      coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      data: [
+        {
+          name: 'Michael',
+          id: 4312,
+        },
+        {
+          name: 'John',
+          id: 1234567890123456789n,
+        },
+      ],
+    },
+  ],
+};
+
 export default {
   basic,
   advanced,
@@ -357,4 +378,5 @@ export default {
   comparisonWithConfig,
   empty,
   raw,
+  bigint,
 };

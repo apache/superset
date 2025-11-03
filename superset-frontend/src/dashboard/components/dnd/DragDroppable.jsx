@@ -81,14 +81,6 @@ const defaultProps = {
 const DragDroppableStyles = styled.div`
   ${({ theme }) => css`
     position: relative;
-    /*
-      Next line is a workaround for a bug in react-dnd where the drag
-      preview expands outside of the bounds of the drag source card, see:
-      https://github.com/react-dnd/react-dnd/issues/832#issuecomment-442071628
-    */
-    &.dragdroppable--edit-mode {
-      transform: translate3d(0, 0, 0);
-    }
 
     &.dragdroppable--dragging {
       opacity: 0.2;
@@ -105,14 +97,14 @@ const DragDroppableStyles = styled.div`
     & {
       .drop-indicator {
         display: block;
-        background-color: ${theme.colors.primary.base};
+        background-color: ${theme.colorPrimary};
         position: absolute;
         z-index: 10;
         opacity: 0.3;
         width: 100%;
         height: 100%;
         &.drop-indicator--forbidden {
-          background-color: ${theme.colors.error.light1};
+          background-color: ${theme.colorErrorBg};
         }
       }
     }

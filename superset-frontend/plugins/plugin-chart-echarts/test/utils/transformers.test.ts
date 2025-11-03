@@ -31,7 +31,7 @@ import {
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { OrientationType } from '@superset-ui/plugin-chart-echarts';
+import { OrientationType } from '../../src';
 import {
   transformEventAnnotation,
   transformFormulaAnnotation,
@@ -282,30 +282,13 @@ const mockTimeseriesAnnotationLayer: TimeseriesAnnotationLayer = {
 };
 
 const mockTimeseriesAnnotationData: AnnotationData = {
-  'Timeseries annotation layer': [
-    {
-      key: 'Key 1',
-      values: [
-        {
-          x: 10,
-          y: 12,
-        },
-      ],
-    },
-    {
-      key: 'Key 2',
-      values: [
-        {
-          x: 12,
-          y: 15,
-        },
-        {
-          x: 15,
-          y: 20,
-        },
-      ],
-    },
-  ],
+  'Timeseries annotation layer': {
+    records: [
+      { x: 10, y: 12 },
+      { x: 12, y: 15 },
+      { x: 15, y: 20 },
+    ],
+  },
 };
 
 describe('transformTimeseriesAnnotation', () => {
@@ -319,8 +302,8 @@ describe('transformTimeseriesAnnotation', () => {
         CategoricalColorNamespace.getScale(''),
       ).map(annotation => annotation.data),
     ).toEqual([
-      [[10, 12]],
       [
+        [10, 12],
         [12, 15],
         [15, 20],
       ],
@@ -339,8 +322,8 @@ describe('transformTimeseriesAnnotation', () => {
         OrientationType.Horizontal,
       ).map(annotation => annotation.data),
     ).toEqual([
-      [[12, 10]],
       [
+        [12, 10],
         [15, 12],
         [20, 15],
       ],

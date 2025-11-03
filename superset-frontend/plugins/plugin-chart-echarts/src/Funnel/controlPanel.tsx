@@ -19,7 +19,6 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  ControlStateMapping,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -197,15 +196,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  onInit(state: ControlStateMapping) {
-    return {
-      ...state,
-      row_limit: {
-        ...state.row_limit,
-        value: state.row_limit.default,
-      },
-    };
-  },
   formDataOverrides: formData => ({
     ...formData,
     metric: getStandardizedControls().shiftMetric(),

@@ -193,7 +193,9 @@ describe('Visualization > Table', () => {
     });
 
     // should display in raw records mode
-    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw records');
+    cy.get(
+      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
+    ).contains('Raw records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
@@ -201,8 +203,12 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="row-count-label"]').contains('100 rows');
 
     // should allow switch back to aggregate mode
-    cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
-    cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
+    cy.get('div[data-test="query_mode"] .ant-radio-button-wrapper')
+      .contains('Aggregate')
+      .click();
+    cy.get(
+      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
+    ).contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
   });
@@ -251,5 +257,218 @@ describe('Visualization > Table', () => {
       chartSelector: 'table',
     });
     cy.get('td').contains(/\d*%/);
+  });
+
+  it('Test row limit with server pagination toggle', () => {
+    const serverPaginationSelector =
+      '[data-test="server_pagination-header"] div.pull-left [type="checkbox"]';
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      row_limit: 100,
+    });
+
+    // Enable server pagination
+    cy.get(serverPaginationSelector).click();
+
+    // Click row limit control and select high value (200k)
+    cy.get('div[aria-label="Row limit"]').click();
+
+    // Type 200000 and press enter to select the option
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('200000{enter}');
+
+    // Verify that there is no error tooltip when server pagination is enabled
+    cy.get('[data-test="error-tooltip"]').should('not.exist');
+
+    // Disable server pagination
+    cy.get(serverPaginationSelector).click();
+
+    // Verify error tooltip appears
+    cy.get('[data-test="error-tooltip"]').should('be.visible');
+
+    // Trigger mouseover and verify tooltip text
+    cy.get('[data-test="error-tooltip"]').trigger('mouseover');
+
+    // Verify tooltip content
+    cy.get('.ant-tooltip-inner').should('be.visible');
+    cy.get('.ant-tooltip-inner').should(
+      'contain',
+      'Server pagination needs to be enabled for values over',
+    );
+
+    // Hide the tooltip by adding display:none style
+    cy.get('.ant-tooltip').invoke('attr', 'style', 'display: none');
+
+    // Enable server pagination again
+    cy.get(serverPaginationSelector).click();
+
+    cy.get('[data-test="error-tooltip"]').should('not.exist');
+
+    cy.get('div[aria-label="Row limit"]').click();
+
+    // Type 1000000
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('1000000');
+
+    // Wait for 1 second
+    cy.wait(1000);
+
+    // Press enter
+    cy.get('div[aria-label="Row limit"]')
+      .find('.ant-select-selection-search-input:visible')
+      .type('{enter}');
+
+    // Wait for error tooltip to appear and verify its content
+    cy.get('[data-test="error-tooltip"]')
+      .should('be.visible')
+      .trigger('mouseover');
+
+    // Wait for tooltip content and verify
+    cy.get('.ant-tooltip-inner').should('exist');
+    cy.get('.ant-tooltip-inner').should('be.visible');
+
+    // Verify tooltip content separately
+    cy.get('.ant-tooltip-inner').should('contain', 'Value cannot exceed');
+  });
+
+  it('Test sorting with server pagination enabled', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      groupby: ['name'],
+      row_limit: 100000,
+      server_pagination: true, // Enable server pagination
+    });
+
+    // Wait for the initial data load
+    cy.wait('@chartData');
+
+    // Get the first column header (name)
+    cy.get('.chart-container th').contains('name').as('nameHeader');
+
+    // Click to sort ascending
+    cy.get('@nameHeader').click();
+    cy.wait('@chartData');
+
+    // Verify first row starts with 'A'
+    cy.get('.chart-container td:first').invoke('text').should('match', /^[Aa]/);
+
+    // Click again to sort descending
+    cy.get('@nameHeader').click();
+    cy.wait('@chartData');
+
+    // Verify first row starts with 'Z'
+    cy.get('.chart-container td:first').invoke('text').should('match', /^[Zz]/);
+
+    // Test numeric sorting
+    cy.get('.chart-container th').contains('COUNT').as('countHeader');
+
+    // Click to sort ascending by count
+    cy.get('@countHeader').click();
+    cy.wait('@chartData');
+
+    // Get first two count values and verify ascending order
+    cy.get('.chart-container td:nth-child(2)').then($cells => {
+      const first = parseFloat($cells[0].textContent || '0');
+      const second = parseFloat($cells[1].textContent || '0');
+      expect(first).to.be.at.most(second);
+    });
+
+    // Click again to sort descending
+    cy.get('@countHeader').click();
+    cy.wait('@chartData');
+
+    // Get first two count values and verify descending order
+    cy.get('.chart-container td:nth-child(2)').then($cells => {
+      const first = parseFloat($cells[0].textContent || '0');
+      const second = parseFloat($cells[1].textContent || '0');
+      expect(first).to.be.at.least(second);
+    });
+  });
+
+  it('Test search with server pagination enabled', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: ['count'],
+      groupby: ['name', 'state'],
+      row_limit: 100000,
+      server_pagination: true,
+      include_search: true,
+    });
+
+    cy.wait('@chartData');
+
+    const searchInputSelector = '.dt-global-filter input';
+
+    // Basic search test
+    cy.get(searchInputSelector).should('be.visible');
+
+    cy.get(searchInputSelector).type('John');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/John/i);
+    });
+
+    // Clear and test case-insensitive search
+    cy.get(searchInputSelector).clear();
+
+    cy.wait('@chartData');
+
+    cy.get(searchInputSelector).type('mary');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/Mary/i);
+    });
+
+    // Test special characters
+    cy.get(searchInputSelector).clear();
+
+    cy.get(searchInputSelector).type('Nicole');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container tbody tr').each($row => {
+      cy.wrap($row).contains(/Nicole/i);
+    });
+
+    // Test no results
+    cy.get(searchInputSelector).clear();
+
+    cy.get(searchInputSelector).type('XYZ123');
+
+    cy.wait('@chartData');
+
+    cy.get('.chart-container').contains('No records found');
+
+    // Test column-specific search
+    cy.get('.search-select').should('be.visible');
+
+    cy.get('.search-select').click();
+
+    cy.get('.ant-select-dropdown').should('be.visible');
+
+    cy.get('.ant-select-item-option').contains('state').should('be.visible');
+
+    cy.get('.ant-select-item-option').contains('state').click();
+
+    cy.get(searchInputSelector).clear();
+
+    cy.get(searchInputSelector).type('CA');
+
+    cy.wait('@chartData');
+    cy.wait(1000);
+
+    cy.get('td[aria-labelledby="header-state"]').should('be.visible');
+
+    cy.get('td[aria-labelledby="header-state"]')
+      .first()
+      .should('contain', 'CA');
   });
 });

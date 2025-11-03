@@ -17,8 +17,12 @@
  * under the License.
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
-import { css, SafeMarkdown, styled, SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from './Tooltip';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
+import {
+  SafeMarkdown,
+  Tooltip,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
@@ -28,7 +32,6 @@ import {
   getColumnTypeTooltipNode,
 } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -40,7 +43,7 @@ const StyleOverrides = styled.span`
   display: flex;
   align-items: center;
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -82,7 +85,7 @@ export function ColumnOption({
         <span
           className="option-label column-option-label"
           css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.gridUnit}px;
+            margin-right: ${theme.sizeUnit}px;
           `}
           ref={labelRef}
         >
@@ -98,15 +101,13 @@ export function ColumnOption({
         />
       )}
       {warningMarkdown && (
-        <InfoTooltipWithTrigger
-          className="text-warning"
-          icon="warning"
+        <InfoTooltip
+          type="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${column.column_name}`}
-          iconsStyle={{ marginLeft: 0 }}
+          iconStyle={{ marginLeft: 0 }}
           {...(column.error_text && {
-            className: 'text-danger',
-            icon: 'exclamation-circle',
+            type: 'error',
           })}
         />
       )}

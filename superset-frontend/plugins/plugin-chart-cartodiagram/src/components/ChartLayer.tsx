@@ -52,6 +52,8 @@ export class ChartLayer extends Layer {
 
   theme: SupersetTheme;
 
+  locale: string;
+
   /**
    * Create a ChartLayer.
    *
@@ -89,6 +91,10 @@ export class ChartLayer extends Layer {
 
     if (options.theme) {
       this.theme = options.theme;
+    }
+
+    if (options.locale) {
+      this.locale = options.locale;
     }
 
     const spinner = document.createElement('img');
@@ -183,6 +189,7 @@ export class ChartLayer extends Layer {
         chartWidth,
         chartHeight,
         this.theme,
+        this.locale,
       );
       ReactDOM.render(chartComponent, container);
 
@@ -218,6 +225,7 @@ export class ChartLayer extends Layer {
         chartWidth,
         chartHeight,
         this.theme,
+        this.locale,
       );
       ReactDOM.render(chartComponent, chart.htmlElement);
 

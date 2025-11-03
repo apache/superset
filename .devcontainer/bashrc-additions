@@ -1,0 +1,62 @@
+# Superset Codespaces environment setup
+# This file is appended to ~/.bashrc during Codespace setup
+
+# Find the workspace directory (handles both 'superset' and 'superset-2' names)
+WORKSPACE_DIR=$(find /workspaces -maxdepth 1 -name "superset*" -type d | head -1)
+
+if [ -n "$WORKSPACE_DIR" ]; then
+    # Check if virtual environment exists
+    if [ -d "$WORKSPACE_DIR/.venv" ]; then
+        # Activate the virtual environment
+        source "$WORKSPACE_DIR/.venv/bin/activate"
+        echo "✅ Python virtual environment activated"
+
+        # Verify pre-commit is installed and set up
+        if command -v pre-commit &> /dev/null; then
+            echo "✅ pre-commit is available ($(pre-commit --version))"
+            # Install git hooks if not already installed
+            if [ -d "$WORKSPACE_DIR/.git" ] && [ ! -f "$WORKSPACE_DIR/.git/hooks/pre-commit" ]; then
+                echo "🪝 Installing pre-commit hooks..."
+                cd "$WORKSPACE_DIR" && pre-commit install
+            fi
+        else
+            echo "⚠️  pre-commit not found. Run: pip install pre-commit"
+        fi
+    else
+        echo "⚠️  Python virtual environment not found at $WORKSPACE_DIR/.venv"
+        echo "   Run: cd $WORKSPACE_DIR && .devcontainer/setup-dev.sh"
+    fi
+
+    # Always cd to the workspace directory for convenience
+    cd "$WORKSPACE_DIR"
+fi
+
+# Add helpful aliases for Superset development
+alias start-superset="$WORKSPACE_DIR/.devcontainer/start-superset.sh"
+alias setup-dev="$WORKSPACE_DIR/.devcontainer/setup-dev.sh"
+
+# Show helpful message on login
+echo ""
+echo "🚀 Superset Codespaces Environment"
+echo "=================================="
+
+# Check if Superset is running
+if docker ps 2>/dev/null | grep -q "superset"; then
+    echo "✅ Superset is running!"
+    echo "   - Check the 'Ports' tab for your live Superset URL"
+    echo "   - Initial startup takes 10-20 minutes"
+    echo "   - Login: admin/admin"
+else
+    echo "⚠️  Superset is not running. Use: start-superset"
+    # Check if there's a startup log
+    if [ -f "/tmp/superset-startup.log" ]; then
+        echo "   📋 Startup log found: cat /tmp/superset-startup.log"
+    fi
+fi
+
+echo ""
+echo "Quick commands:"
+echo "  start-superset - Start Superset with Docker Compose"
+echo "  setup-dev      - Set up Python environment (if not already done)"
+echo "  pre-commit run - Run pre-commit checks on staged files"
+echo ""

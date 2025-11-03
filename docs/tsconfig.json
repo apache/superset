@@ -2,12 +2,27 @@
   // This file is not used in compilation. It is here just for a nice editor experience.
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "strict": false,
+    "types": ["@docusaurus/module-type-aliases"]
   },
   "jsx": "react-jsx",
   "moduleResolution": "node",
   "baseUrl": "./",
   "paths": {
+    "@superset-ui/core": ["../superset-frontend/packages/superset-ui-core/src"],
+    "@superset-ui/core/*": ["../superset-frontend/packages/superset-ui-core/src/*"],
     "*": ["src/*", "node_modules/*"]
-  }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "../superset-frontend/**/*",
+    "src/webpack.extend.ts"
+  ]
 }

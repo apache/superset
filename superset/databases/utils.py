@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.commands.database.exceptions import DatabaseInvalidError
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (

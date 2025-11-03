@@ -20,10 +20,15 @@ from superset.migrations.shared.migrate_viz import MigrateHeatmapChart
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "any_other_key": "untouched",
-    "all_columns_x": ["category"],
-    "all_columns_y": ["product"],
-    "metric": ["sales"],
+    "all_columns_x": "category",
+    "all_columns_y": "product",
+    "metric": {
+        "label": "sales",
+        "expressionType": "SQL",
+        "sqlExpression": "max(sales)",
+    },
     "adhoc_filters": [],
     "row_limit": 100,
     "sort_by_metric": True,
@@ -47,10 +52,15 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "any_other_key": "untouched",
-    "x_axis": ["category"],
-    "groupby": ["product"],
-    "metric": ["sales"],
+    "x_axis": "category",
+    "groupby": "product",
+    "metric": {
+        "label": "sales",
+        "expressionType": "SQL",
+        "sqlExpression": "max(sales)",
+    },
     "adhoc_filters": [],
     "row_limit": 100,
     "legend_type": "continuous",

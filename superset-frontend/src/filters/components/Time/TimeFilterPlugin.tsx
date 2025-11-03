@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, NO_TIME_RANGE } from '@superset-ui/core';
+import {
+  styled,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
@@ -25,7 +29,7 @@ import { FilterPluginStyle } from '../common';
 const TimeFilterStyles = styled(FilterPluginStyle)`
   display: flex;
   align-items: center;
-  overflow-x: auto;
+  overflow-x: visible;
 
   & .ant-tag {
     margin-right: 0;
@@ -41,8 +45,28 @@ const ControlContainer = styled.div<{
   width: 100%;
   & > div,
   & > div:hover {
-    ${({ validateStatus, theme }) =>
-      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
+    ${({ validateStatus, theme }) => {
+      if (!validateStatus) return '';
+      switch (validateStatus) {
+        case 'error':
+          return `border-color: ${theme.colorError}`;
+        case 'warning':
+          return `border-color: ${theme.colorWarning}`;
+        case 'info':
+          return `border-color: ${theme.colorInfo}`;
+        default:
+          return `border-color: ${theme.colorError}`;
+      }
+    }}
+  }
+  & > div {
+    width: 100%;
+  }
+
+  &:focus > div {
+    border-color: ${({ theme }) => theme.colorPrimary};
+    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.controlOutline}`};
+    outline: 0;
   }
 `;
 
@@ -60,6 +84,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     inputRef,
     isOverflowingFilterBar = false,
   } = props;
+  const extensionsRegistry = getExtensionsRegistry();
+
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
   const handleTimeRangeChange = useCallback(
     (timeRange?: string): void => {
@@ -91,8 +121,9 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onBlur={unsetFocusedFilter}
         onMouseEnter={setHoveredFilter}
         onMouseLeave={unsetHoveredFilter}
+        tabIndex={-1}
       >
-        <DateFilterControl
+        <DateFilterComponent
           value={filterState.value || NO_TIME_RANGE}
           name={props.formData.nativeFilterId || 'time_range'}
           onChange={handleTimeRangeChange}

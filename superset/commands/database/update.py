@@ -80,9 +80,19 @@ class UpdateDatabaseCommand(BaseCommand):
             # existing personal tokens.
             self._handle_oauth2()
 
-        # build new DB
+        # Some DBs require running a query to get the default catalog.
+        # In these cases, if the current connection is broken then
+        # `get_default_catalog` would raise an exception. We need to
+        # gracefully handle that so that the connection can be fixed.
         original_database_name = self._model.database_name
-        original_catalog = self._model.get_default_catalog()
+        force_update: bool = False
+        try:
+            original_catalog = self._model.get_default_catalog()
+        except Exception:
+            original_catalog = None
+            force_update = True
+
+        # build new DB
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
@@ -92,7 +102,8 @@ class UpdateDatabaseCommand(BaseCommand):
         # configured with multi-catalog support; if it was enabled or is enabled in the
         # update we don't update the assets
         if (
-            new_catalog != original_catalog
+            force_update
+            or new_catalog != original_catalog
             and not self._model.allow_multi_catalog
             and not database.allow_multi_catalog
         ):

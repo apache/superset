@@ -25,6 +25,7 @@ import {
   autozoom,
   extruded,
   filterNulls,
+  generateDeckGLColorSchemeControls,
   gridSize,
   jsColumns,
   jsDataMutator,
@@ -33,7 +34,10 @@ import {
   mapboxStyle,
   spatial,
   viewport,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -46,13 +50,19 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
         [mapboxStyle],
-        ['color_scheme', viewport],
+        ...generateDeckGLColorSchemeControls({
+          defaultSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
+          disableCategoricalColumn: true,
+        }),
+        [viewport],
         [autozoom],
         [gridSize],
         [extruded],

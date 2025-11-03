@@ -23,7 +23,7 @@ from flask_babel import lazy_gettext as _
 
 from superset.extensions import stats_logger_manager
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import parse_js_uri_path_item
 from superset.views.base_api import BaseSupersetModelRestApi
 

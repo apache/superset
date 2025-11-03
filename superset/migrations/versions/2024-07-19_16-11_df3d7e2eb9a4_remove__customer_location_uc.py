@@ -34,7 +34,7 @@ from superset.utils.core import generic_find_uq_constraint_name
 revision = "df3d7e2eb9a4"
 down_revision = "48cbb571fa3a"
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 
 
 def upgrade():

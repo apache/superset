@@ -39,7 +39,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     width,
     echartOptions,
     setDataMask,
-    labelMap,
     selectedValues,
     formData,
     onContextMenu,
@@ -52,45 +51,47 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
   const getCrossFilterDataMask = useCallback(
     (treePathInfo: TreePathInfo[]) => {
       const treePath = extractTreePathInfo(treePathInfo);
-      const name = treePath.join(',');
-      const selected = Object.values(selectedValues);
-      let values: string[];
-      if (selected.includes(name)) {
-        values = selected.filter(v => v !== name);
-      } else {
-        values = [name];
+      const joinedTreePath = treePath.join(',');
+      const value = treePath[treePath.length - 1];
+
+      const isCurrentValueSelected =
+        Object.values(selectedValues).includes(joinedTreePath);
+
+      if (!columns?.length || isCurrentValueSelected) {
+        return {
+          dataMask: {
+            extraFormData: {
+              filters: [],
+            },
+            filterState: {
+              value: null,
+              selectedValues: [],
+            },
+          },
+          isCurrentValueSelected,
+        };
       }
-      const labels = values.map(value => labelMap[value]);
 
       return {
         dataMask: {
           extraFormData: {
-            filters:
-              values.length === 0 || !columns
-                ? []
-                : columns.slice(0, treePath.length).map((col, idx) => {
-                    const val = labels.map(v => v[idx]);
-                    if (val === null || val === undefined)
-                      return {
-                        col,
-                        op: 'IS NULL' as const,
-                      };
-                    return {
-                      col,
-                      op: 'IN' as const,
-                      val: val as (string | number | boolean)[],
-                    };
-                  }),
+            filters: [
+              {
+                col: columns[treePath.length - 1],
+                op: '==' as const,
+                val: value,
+              },
+            ],
           },
           filterState: {
-            value: labels.length ? labels : null,
-            selectedValues: values.length ? values : null,
+            value,
+            selectedValues: [joinedTreePath],
           },
         },
-        isCurrentValueSelected: selected.includes(name),
+        isCurrentValueSelected,
       };
     },
-    [columns, labelMap, selectedValues],
+    [columns, selectedValues],
   );
 
   const handleChange = useCallback(
@@ -101,7 +102,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
 
       setDataMask(getCrossFilterDataMask(treePathInfo).dataMask);
     },
-    [emitCrossFilters, setDataMask, getCrossFilterDataMask],
+    [emitCrossFilters, columns?.length, setDataMask, getCrossFilterDataMask],
   );
 
   const eventHandlers: EventHandlers = {

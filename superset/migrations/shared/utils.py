@@ -22,7 +22,17 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import Column, inspect
+from sqlalchemy import (
+    Column,
+    inspect,
+    JSON,
+    MetaData,
+    select,
+    String,
+    Table,
+    text,
+    update,
+)
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
@@ -39,7 +49,7 @@ YELLOW = "\033[33m"
 RED = "\033[31m"
 LRED = "\033[91m"
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
@@ -217,7 +227,13 @@ def drop_fks_for_table(
 
         for fk_name in foreign_key_names:
             logger.info(
-                f"Dropping foreign key {GREEN}{fk_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
+                "Dropping foreign key %s%s%s from table %s%s%s...",  # noqa: E501
+                GREEN,
+                fk_name,
+                RESET,
+                GREEN,
+                table_name,
+                RESET,
             )
             op.drop_constraint(fk_name, table_name, type_="foreignkey")
 
@@ -236,12 +252,12 @@ def create_table(table_name: str, *columns: SchemaItem, **kwargs: Any) -> None:
     just like when calling alembic's method create_table()
     """
     if has_table(table_name=table_name):
-        logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
+        logger.info("Table %s%s%s already exists. Skipping...", LRED, table_name, RESET)
         return
 
-    logger.info(f"Creating table {GREEN}{table_name}{RESET}...")
+    logger.info("Creating table %s%s%s...", GREEN, table_name, RESET)
     op.create_table(table_name, *columns, **kwargs)
-    logger.info(f"Table {GREEN}{table_name}{RESET} created.")
+    logger.info("Table %s%s%s created.", GREEN, table_name, RESET)
 
 
 def drop_table(table_name: str) -> None:
@@ -257,13 +273,13 @@ def drop_table(table_name: str) -> None:
     """  # noqa: E501
 
     if not has_table(table_name=table_name):
-        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
+        logger.info("Table %s%s%s doesn't exist. Skipping...", GREEN, table_name, RESET)
         return
 
-    logger.info(f"Dropping table {GREEN}{table_name}{RESET}...")
+    logger.info("Dropping table %s%s%s...", GREEN, table_name, RESET)
     drop_fks_for_table(table_name)
     op.drop_table(table_name=table_name)
-    logger.info(f"Table {GREEN}{table_name}{RESET} dropped.")
+    logger.info("Table %s%s%s dropped.", GREEN, table_name, RESET)
 
 
 def batch_operation(
@@ -285,17 +301,31 @@ def batch_operation(
     """  # noqa: E501
     if count <= 0:
         logger.info(
-            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."  # noqa: E501
+            "No records to process in batch %s(count <= 0)%s for callable %sother_callable_example%s. Skipping...",  # noqa: E501
+            LRED,
+            RESET,
+            LRED,
+            RESET,
         )
         return
     for offset in range(0, count, batch_size):
         percentage = (offset / count) * 100 if count else 0
-        logger.info(f"Progress: {offset:,}/{count:,} ({percentage:.2f}%)")
+        logger.info(
+            "Progress: %s/%s (%.2f%%)",
+            "{:,}".format(offset),
+            "{:,}".format(count),
+            percentage,
+        )
         callable(offset, min(offset + batch_size, count))
 
-    logger.info(f"Progress: {count:,}/{count:,} (100%)")
+    logger.info("Progress: %s/%s (100%%)", "{:,}".format(count), "{:,}".format(count))
     logger.info(
-        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}successfully{RESET} executed."  # noqa: E501
+        "End: %s%s%s batch operation %ssuccessfully%s executed.",  # noqa: E501
+        GREEN,
+        callable.__name__,
+        RESET,
+        GREEN,
+        RESET,
     )
 
 
@@ -303,7 +333,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exist, it logs an informational message and skips the adding process.
+    If a column already exist, or the table doesn't exist, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -316,7 +346,13 @@ def add_columns(table_name: str, *columns: Column) -> None:
     for col in columns:
         if table_has_column(table_name=table_name, column_name=col.name):
             logger.info(
-                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
+                "Column %s%s%s already present on table %s%s%s. Skipping...",  # noqa: E501
+                LRED,
+                col.name,
+                RESET,
+                LRED,
+                table_name,
+                RESET,
             )
         else:
             cols_to_add.append(col)
@@ -324,7 +360,13 @@ def add_columns(table_name: str, *columns: Column) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_add:
             logger.info(
-                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."  # noqa: E501
+                "Adding column %s%s%s to table %s%s%s...",  # noqa: E501
+                GREEN,
+                col.name,
+                RESET,
+                GREEN,
+                table_name,
+                RESET,
             )
             batch_op.add_column(col)
 
@@ -333,7 +375,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    If a column does not exist, it logs an informational message and skips the dropping process.
+    If a column or table does not exist, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds to remove the column from the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -346,7 +388,13 @@ def drop_columns(table_name: str, *columns: str) -> None:
     for col in columns:
         if not table_has_column(table_name=table_name, column_name=col):
             logger.info(
-                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
+                "Column %s%s%s is not present on table %s%s%s. Skipping...",  # noqa: E501
+                LRED,
+                col,
+                RESET,
+                LRED,
+                table_name,
+                RESET,
             )
         else:
             cols_to_drop.append(col)
@@ -354,7 +402,13 @@ def drop_columns(table_name: str, *columns: str) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_drop:
             logger.info(
-                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
+                "Dropping column %s%s%s from table %s%s%s...",  # noqa: E501
+                GREEN,
+                col,
+                RESET,
+                GREEN,
+                table_name,
+                RESET,
             )
             batch_op.drop_column(col)
 
@@ -376,12 +430,24 @@ def create_index(
 
     if table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
+            "Table %s%s%s already has index %s%s%s. Skipping...",  # noqa: E501
+            LRED,
+            table_name,
+            RESET,
+            LRED,
+            index_name,
+            RESET,
         )
         return
 
     logger.info(
-        f"Creating index {GREEN}{index_name}{RESET} on table {GREEN}{table_name}{RESET}"
+        "Creating index %s%s%s on table %s%s%s",
+        GREEN,
+        index_name,
+        RESET,
+        GREEN,
+        table_name,
+        RESET,
     )
 
     op.create_index(
@@ -405,12 +471,24 @@ def drop_index(table_name: str, index_name: str) -> None:
 
     if not table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
+            "Table %s%s%s doesn't have index %s%s%s. Skipping...",  # noqa: E501
+            LRED,
+            table_name,
+            RESET,
+            LRED,
+            index_name,
+            RESET,
         )
         return
 
     logger.info(
-        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
+        "Dropping index %s%s%s from table %s%s%s...",  # noqa: E501
+        GREEN,
+        index_name,
+        RESET,
+        GREEN,
+        table_name,
+        RESET,
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)
@@ -438,7 +516,10 @@ def create_fks_for_table(
 
     if not has_table(table_name):
         logger.warning(
-            f"Table {LRED}{table_name}{RESET} does not exist. Skipping foreign key creation."  # noqa: E501
+            "Table %s%s%s does not exist. Skipping foreign key creation.",  # noqa: E501
+            LRED,
+            table_name,
+            RESET,
         )
         return
 
@@ -446,7 +527,13 @@ def create_fks_for_table(
         # SQLite requires batch mode since ALTER TABLE is limited
         with op.batch_alter_table(table_name) as batch_op:
             logger.info(
-                f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET} (SQLite mode)..."  # noqa: E501
+                "Creating foreign key %s%s%s on table %s%s%s (SQLite mode)...",  # noqa: E501
+                GREEN,
+                foreign_key_name,
+                RESET,
+                GREEN,
+                table_name,
+                RESET,
             )
             batch_op.create_foreign_key(
                 foreign_key_name,
@@ -458,7 +545,13 @@ def create_fks_for_table(
     else:
         # Standard FK creation for other databases
         logger.info(
-            f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET}..."  # noqa: E501
+            "Creating foreign key %s%s%s on table %s%s%s...",  # noqa: E501
+            GREEN,
+            foreign_key_name,
+            RESET,
+            GREEN,
+            table_name,
+            RESET,
         )
         op.create_foreign_key(
             foreign_key_name,
@@ -468,3 +561,139 @@ def create_fks_for_table(
             remote_cols,
             ondelete=ondelete,
         )
+
+
+def cast_text_column_to_json(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+) -> None:
+    """
+    Cast a text column to JSON.
+
+    SQLAlchemy now has a nice abstraction for JSON columns, even if the underlying
+    database doesn't support the type natively. We should always use it when storing
+    JSON payloads.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+CREATE OR REPLACE FUNCTION safe_to_jsonb(input text)
+  RETURNS jsonb
+  LANGUAGE plpgsql
+  IMMUTABLE
+AS $$
+BEGIN
+  RETURN input::jsonb;
+EXCEPTION WHEN invalid_text_representation THEN
+  RETURN NULL;
+END;
+$$;
+
+ALTER TABLE {table}
+ALTER COLUMN {column} TYPE jsonb
+USING safe_to_jsonb({column});
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, JSON(), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        try:
+            json.loads(value)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Invalid JSON value in column %s for %s=%s: %s",
+                column,
+                pk,
+                row_pk,
+                value,
+            )
+            continue
+        stmt_update = update(t).where(t.c[pk] == row_pk).values({tmp_column: value})
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(table, tmp_column, existing_type=JSON(), new_column_name=column)
+
+    return
+
+
+def cast_json_column_to_text(
+    table: str,
+    column: str,
+    pk: str = "id",
+    nullable: bool = True,
+    suffix: str = "_tmp",
+    length: int = 128,
+) -> None:
+    """
+    Cast a JSON column back to text.
+
+    :param table: The name of the table.
+    :param column: The name of the column to be cast.
+    :param pk: The name of the primary key column.
+    :param nullable: Whether the new column should be nullable.
+    :param suffix: The suffix to be added to the temporary column name.
+    :param length: The length of the text column.
+    """
+    conn = op.get_bind()
+
+    if isinstance(conn.dialect, PGDialect):
+        conn.execute(
+            text(
+                f"""
+                ALTER TABLE {table}
+                ALTER COLUMN {column} TYPE text
+                USING {column}::text
+                """
+            )
+        )
+        return
+
+    tmp_column = column + suffix
+    op.add_column(
+        table,
+        Column(tmp_column, String(length=length), nullable=nullable),
+    )
+
+    meta = MetaData()
+    t = Table(table, meta, autoload_with=conn)
+    stmt_select = select(t.c[pk], t.c[column]).where(t.c[column].is_not(None))
+
+    for row_pk, value in conn.execute(stmt_select):
+        stmt_update = (
+            update(t).where(t.c[pk] == row_pk).values({tmp_column: json.dumps(value)})
+        )
+        conn.execute(stmt_update)
+
+    op.drop_column(table, column)
+    op.alter_column(
+        table,
+        tmp_column,
+        existing_type=String(length=length),
+        new_column_name=column,
+    )
+
+    return

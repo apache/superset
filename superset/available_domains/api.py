@@ -16,10 +16,9 @@
 # under the License.
 import logging
 
-from flask import Response
+from flask import current_app as app, Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset import conf
 from superset.available_domains.schemas import AvailableDomainsSchema
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
@@ -70,6 +69,6 @@ class AvailableDomainsRestApi(BaseSupersetApi):
               $ref: '#/components/responses/403'
         """
         result = self.available_domains_schema.dump(
-            {"domains": conf.get("SUPERSET_WEBSERVER_DOMAINS")}
+            {"domains": app.config.get("SUPERSET_WEBSERVER_DOMAINS")}
         )
         return self.response(200, result=result)

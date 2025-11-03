@@ -26,7 +26,7 @@ const ResizableWrapper = styled.div`
   height: 100%;
 
   :hover .sidebar-resizer::after {
-    background-color: ${({ theme }) => theme.colors.primary.base};
+    background-color: ${({ theme }) => theme.colorPrimary};
   }
 
   .sidebar-resizer {

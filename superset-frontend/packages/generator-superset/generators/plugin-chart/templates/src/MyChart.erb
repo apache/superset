@@ -25,29 +25,14 @@ import { <%= packageLabel %>Props, <%= packageLabel %>StylesProps } from './type
 
 // Theming variables are provided for your use via a ThemeProvider
 // imported from @superset-ui/core. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
+// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/theme/index.ts
 
 const Styles = styled.div<<%= packageLabel %>StylesProps>`
-  background-color: ${({ theme }) => theme.colors.secondary.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-radius: ${({ theme }) => theme.gridUnit * 2}px;
+  background-color: ${({ theme }) => theme.colorPrimaryBg};
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
-
-  h3 {
-    /* You can use your props to control CSS! */
-    margin-top: 0;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-    font-size: ${({ theme, headerFontSize }) =>
-      theme.typography.sizes[headerFontSize]}px;
-    font-weight: ${({ theme, boldText }) =>
-      theme.typography.weights[boldText ? 'bold' : 'normal']};
-  }
-
-  pre {
-    height: ${({ theme, headerFontSize, height }) =>
-      height - theme.gridUnit * 12 - theme.typography.sizes[headerFontSize]}px;
-  }
 `;
 
 /**

@@ -1,0 +1,55 @@
+---
+sidebar_position: 6
+version: 1
+---
+
+# Miscellaneous
+
+## Reporting a Security Vulnerability
+
+Please report security vulnerabilities to private@superset.apache.org.
+
+In the event a community member discovers a security flaw in Superset, it is important to follow the [Apache Security Guidelines](https://www.apache.org/security/committers.html) and release a fix as quickly as possible before public disclosure. Reporting security vulnerabilities through the usual GitHub Issues channel is not ideal as it will publicize the flaw before a fix can be applied.
+
+## SQL Lab Async
+
+It's possible to configure a local database to operate in `async` mode,
+to work on `async` related features.
+
+To do this, you'll need to:
+
+- Add an additional database entry. We recommend you copy the connection
+  string from the database labeled `main`, and then enable `SQL Lab` and the
+  features you want to use. Don't forget to check the `Async` box
+- Configure a results backend, here's a local `FileSystemCache` example,
+  not recommended for production,
+  but perfect for testing (stores cache in `/tmp`)
+
+  ```python
+  from flask_caching.backends.filesystemcache import FileSystemCache
+  RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
+  ```
+
+- Start up a celery worker
+
+  ```shell script
+  celery --app=superset.tasks.celery_app:app worker -O fair
+  ```
+
+Note that:
+
+- for changes that affect the worker logic, you'll have to
+  restart the `celery worker` process for the changes to be reflected.
+- The message queue used is a `sqlite` database using the `SQLAlchemy`
+  experimental broker. Ok for testing, but not recommended in production
+- In some cases, you may want to create a context that is more aligned
+  to your production environment, and use the similar broker as well as
+  results backend configuration
+
+## Async Chart Queries
+
+It's possible to configure database queries for charts to operate in `async` mode. This is especially useful for dashboards with many charts that may otherwise be affected by browser connection limits. To enable async queries for dashboards and Explore, the following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes [Redis Streams](https://redis.io/topics/streams-intro))
+- Cache backends enabled via the `CACHE_CONFIG` and `DATA_CACHE_CONFIG` config settings
+- Celery workers configured and running to process async tasks

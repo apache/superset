@@ -18,8 +18,7 @@
  */
 import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
   ToastProps,
@@ -27,28 +26,20 @@ import withToasts, {
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colorPrimary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  padding: 4px 0 16px 0;
+  color: ${({ theme }) => theme.colorTextLabel};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  padding-top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const StyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 24px;
-  }
-
-  pre {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    line-height: ${({ theme }) => theme.typography.sizes.l}px;
-    height: 375px;
-    border: none;
   }
 `;
 
@@ -92,11 +83,13 @@ const SavedQueryPreviewModal: FunctionComponent<
         onHide={onHide}
         show={show}
         title={t('Query preview')}
+        width={800}
         footer={
           <>
             <Button
               data-test="previous-saved-query"
               key="previous-saved-query"
+              buttonStyle="secondary"
               disabled={disablePrevious}
               onClick={() => handleDataChange(true)}
             >
@@ -105,6 +98,7 @@ const SavedQueryPreviewModal: FunctionComponent<
             <Button
               data-test="next-saved-query"
               key="next-saved-query"
+              buttonStyle="secondary"
               disabled={disableNext}
               onClick={() => handleDataChange(false)}
             >
@@ -113,7 +107,6 @@ const SavedQueryPreviewModal: FunctionComponent<
             <Button
               data-test="open-in-sql-lab"
               key="open-in-sql-lab"
-              buttonStyle="primary"
               onClick={({ metaKey }) =>
                 openInSqlLab(savedQuery.id, Boolean(metaKey))
               }

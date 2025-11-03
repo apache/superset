@@ -37,7 +37,7 @@ const ModalContentContainer = styled.div`
     display: flex;
     height: 100%;
     & > div {
-      padding: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -58,7 +58,7 @@ export const ScopingModalContent = ({
       <div
         css={css`
           width: 35%;
-          border-right: 1px solid ${theme.colors.grayscale.light2};
+          border-right: 1px solid ${theme.colorSplit};
         `}
         data-test="scoping-list-panel"
       >

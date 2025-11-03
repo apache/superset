@@ -36,9 +36,9 @@ import {
 import rison from 'rison';
 import { isEqual } from 'lodash';
 import {
-  FetchDataConfig,
-  Filter,
-  FilterValue,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilter as Filter,
+  ListViewFilterValue as FilterValue,
   InnerFilterValue,
   InternalFilter,
   SortColumn,
@@ -48,22 +48,31 @@ import {
 // Define custom RisonParam for proper encoding/decoding; note that
 // %, &, +, and # must be encoded to avoid breaking the url
 const RisonParam: QueryParamConfig<string, any> = {
-  encode: (data?: any | null) =>
-    data === undefined
-      ? undefined
-      : rison
-          .encode(data)
-          .replace(/%/g, '%25')
-          .replace(/&/g, '%26')
-          .replace(/\+/g, '%2B')
-          .replace(/#/g, '%23'),
+  encode: (data?: any | null) => {
+    if (data === undefined || data === null) return undefined;
+
+    const cleanData = JSON.parse(
+      JSON.stringify(data, (key, value) =>
+        value === undefined ? null : value,
+      ),
+    );
+
+    return rison
+      .encode(cleanData)
+      .replace(/%/g, '%25')
+      .replace(/&/g, '%26')
+      .replace(/\+/g, '%2B')
+      .replace(/#/g, '%23');
+  },
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
       ? undefined
       : rison.decode(dataStr),
 };
 
-export const SELECT_WIDTH = 200;
+export const SELECT_WIDTH = 175;
+export const RANGE_WIDTH = 300;
+export const WIDER_DROPDOWN_WIDTH = '300px';
 
 export class ListViewError extends Error {
   name = 'ListViewError';
@@ -264,23 +273,23 @@ export function useListViewState({
   } = useTable(
     {
       columns: columnsWithSelect,
-      count,
       data,
       disableFilters: true,
       disableSortRemove: true,
-      initialState,
+      initialState: initialState as any,
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
+      ...({ count } as any),
     },
     useFilters,
     useSortBy,
     usePagination,
     useRowState,
     useRowSelect,
-  );
+  ) as any;
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length
@@ -317,7 +326,7 @@ export function useListViewState({
       filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
-    if (sortBy[0]) {
+    if (sortBy?.[0]?.id !== undefined && sortBy[0].id !== null) {
       queryParams.sortColumn = sortBy[0].id;
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
     }

@@ -20,6 +20,7 @@ from superset.migrations.shared.migrate_viz import MigratePivotTable
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "any_other_key": "untouched",
     "columns": ["state"],
     "combine_metric": True,
@@ -33,6 +34,7 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "any_other_key": "untouched",
     "aggregateFunction": "Sum",
     "colTotals": True,

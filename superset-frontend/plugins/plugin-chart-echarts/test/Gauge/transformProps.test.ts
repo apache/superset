@@ -75,35 +75,24 @@ describe('Echarts Gauge transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsGaugeChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                {
-                  value: 16595,
-                  name: '',
-                  itemStyle: {
-                    color: '#1f77b4',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '20%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '32.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-              ],
-            }),
-          ]),
-        }),
-      }),
-    );
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+
+    // Test core properties
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+
+    // Test series data
+    const seriesData = (result.echartOptions as any).series[0].data;
+    expect(seriesData).toHaveLength(1);
+    expect(seriesData[0].value).toBe(16595);
+    expect(seriesData[0].name).toBe('');
+    expect(seriesData[0].itemStyle.color).toBe('#1f77b4');
+
+    // Test detail and title positions
+    expect(seriesData[0].title.offsetCenter).toEqual(['0%', '20%']);
+    expect(seriesData[0].title.fontSize).toBe(14);
+    expect(seriesData[0].detail.offsetCenter).toEqual(['0%', '32.6%']);
+    expect(seriesData[0].detail.fontSize).toBe(16.8);
   });
 
   it('should transform chart props for single group by column', () => {
@@ -136,50 +125,33 @@ describe('Echarts Gauge transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsGaugeChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                {
-                  value: 15,
-                  name: 'year: 1988',
-                  itemStyle: {
-                    color: '#1f77b4',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '20%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '32.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-                {
-                  value: 219,
-                  name: 'year: 1995',
-                  itemStyle: {
-                    color: '#ff7f0e',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '48%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '60.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-              ],
-            }),
-          ]),
-        }),
-      }),
-    );
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+
+    // Test core properties
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+
+    // Test series data
+    const seriesData = (result.echartOptions as any).series[0].data;
+    expect(seriesData).toHaveLength(2);
+
+    // First data point
+    expect(seriesData[0].value).toBe(15);
+    expect(seriesData[0].name).toBe('year: 1988');
+    expect(seriesData[0].itemStyle.color).toBe('#1f77b4');
+    expect(seriesData[0].title.offsetCenter).toEqual(['0%', '20%']);
+    expect(seriesData[0].title.fontSize).toBe(14);
+    expect(seriesData[0].detail.offsetCenter).toEqual(['0%', '32.6%']);
+    expect(seriesData[0].detail.fontSize).toBe(16.8);
+
+    // Second data point
+    expect(seriesData[1].value).toBe(219);
+    expect(seriesData[1].name).toBe('year: 1995');
+    expect(seriesData[1].itemStyle.color).toBe('#ff7f0e');
+    expect(seriesData[1].title.offsetCenter).toEqual(['0%', '48%']);
+    expect(seriesData[1].title.fontSize).toBe(14);
+    expect(seriesData[1].detail.offsetCenter).toEqual(['0%', '60.6%']);
+    expect(seriesData[1].detail.fontSize).toBe(16.8);
   });
 
   it('should transform chart props for multiple group by columns', () => {
@@ -214,50 +186,33 @@ describe('Echarts Gauge transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsGaugeChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                {
-                  value: 140,
-                  name: 'year: 2011, platform: PC',
-                  itemStyle: {
-                    color: '#1f77b4',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '20%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '32.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-                {
-                  value: 76,
-                  name: 'year: 2008, platform: PC',
-                  itemStyle: {
-                    color: '#ff7f0e',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '48%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '60.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-              ],
-            }),
-          ]),
-        }),
-      }),
-    );
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+
+    // Test core properties
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+
+    // Test series data
+    const seriesData = (result.echartOptions as any).series[0].data;
+    expect(seriesData).toHaveLength(2);
+
+    // First data point
+    expect(seriesData[0].value).toBe(140);
+    expect(seriesData[0].name).toBe('year: 2011, platform: PC');
+    expect(seriesData[0].itemStyle.color).toBe('#1f77b4');
+    expect(seriesData[0].title.offsetCenter).toEqual(['0%', '20%']);
+    expect(seriesData[0].title.fontSize).toBe(14);
+    expect(seriesData[0].detail.offsetCenter).toEqual(['0%', '32.6%']);
+    expect(seriesData[0].detail.fontSize).toBe(16.8);
+
+    // Second data point
+    expect(seriesData[1].value).toBe(76);
+    expect(seriesData[1].name).toBe('year: 2008, platform: PC');
+    expect(seriesData[1].itemStyle.color).toBe('#ff7f0e');
+    expect(seriesData[1].title.offsetCenter).toEqual(['0%', '48%']);
+    expect(seriesData[1].title.fontSize).toBe(14);
+    expect(seriesData[1].detail.offsetCenter).toEqual(['0%', '60.6%']);
+    expect(seriesData[1].detail.fontSize).toBe(16.8);
   });
 
   it('should transform chart props for intervals', () => {
@@ -295,60 +250,34 @@ describe('Echarts Gauge transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsGaugeChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              axisLine: {
-                lineStyle: {
-                  width: 14,
-                  color: [
-                    [0.5, '#1f77b4'],
-                    [1, '#ff7f0e'],
-                  ],
-                },
-                roundCap: false,
-              },
-              data: [
-                {
-                  value: 140,
-                  name: 'year: 2011, platform: PC',
-                  itemStyle: {
-                    color: '#1f77b4',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '20%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '32.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-                {
-                  value: 76,
-                  name: 'year: 2008, platform: PC',
-                  itemStyle: {
-                    color: '#ff7f0e',
-                  },
-                  title: {
-                    offsetCenter: ['0%', '48%'],
-                    fontSize: 14,
-                  },
-                  detail: {
-                    offsetCenter: ['0%', '60.6%'],
-                    fontSize: 16.8,
-                  },
-                },
-              ],
-            }),
-          ]),
-        }),
-      }),
-    );
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+
+    // Test core properties
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+
+    // Test axisLine intervals
+    const { axisLine } = (result.echartOptions as any).series[0];
+    expect(axisLine.roundCap).toBe(false);
+    expect(axisLine.lineStyle.width).toBe(14);
+    expect(axisLine.lineStyle.color).toEqual([
+      [0.5, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+
+    // Test series data
+    const seriesData = (result.echartOptions.series as any)[0].data;
+    expect(seriesData).toHaveLength(2);
+
+    // First data point
+    expect(seriesData[0].value).toBe(140);
+    expect(seriesData[0].name).toBe('year: 2011, platform: PC');
+    expect(seriesData[0].itemStyle.color).toBe('#1f77b4');
+
+    // Second data point
+    expect(seriesData[1].value).toBe(76);
+    expect(seriesData[1].name).toBe('year: 2008, platform: PC');
+    expect(seriesData[1].itemStyle.color).toBe('#ff7f0e');
   });
 });
 

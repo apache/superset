@@ -1,18 +1,26 @@
 {
-  "compilerOptions": {
-    "declarationDir": "lib",
-    "outDir": "lib",
-    "rootDir": "src"
-  },
-  "exclude": ["lib", "test"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "types/**/*", "../../types/**/*"],
+  "compilerOptions": {
+    // Path Resolution: Override baseUrl to maintain correct path mappings from parent config
+    // (e.g., "@apache-superset/core" -> "./packages/superset-core/src")
+    "baseUrl": "../..",
+
+    // Directory Overrides: Parent config paths are relative to frontend root,
+    // but packages need paths relative to their own directory
+    "outDir": "lib",
+    "rootDir": "src",
+    "declarationDir": "lib"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "types/**/*"],
+  "exclude": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.test.*",
+    "src/**/*.stories.*"
+  ],
   "references": [
-    {
-      "path": "../../packages/superset-ui-chart-controls"
-    },
-    {
-      "path": "../../packages/superset-ui-core"
-    }
+    { "path": "../../packages/superset-core" },
+    { "path": "../../packages/superset-ui-core" },
+    { "path": "../../packages/superset-ui-chart-controls" }
   ]
 }

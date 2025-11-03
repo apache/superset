@@ -20,10 +20,14 @@ import fetchMock from 'fetch-mock';
 import { FeatureFlag, isFeatureEnabled, QueryState } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import QueryHistory from 'src/SqlLab/components/QueryHistory';
-import { initialState } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  defaultQueryEditor,
+  extraQueryEditor3,
+} from 'src/SqlLab/fixtures';
 
 const mockedProps = {
-  queryEditorId: 123,
+  queryEditorId: defaultQueryEditor.id,
   displayLimit: 1000,
   latestQueryId: 'yhMUZCGb',
 };
@@ -77,6 +81,8 @@ const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />
 );
 
+afterEach(() => fetchMock.reset());
+
 test('Renders an empty state for query history', () => {
   render(setup(), { useRedux: true, initialState });
 
@@ -95,6 +101,31 @@ test('fetches the query history when the persistence mode is enabled', async () 
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
   render(setup(), { useRedux: true, initialState });
+  await waitFor(() =>
+    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+  );
+  const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
+  expect(queryResultText).toBeInTheDocument();
+  isFeatureEnabledMock.mockClear();
+});
+
+test('fetches the query history by the tabViewId', async () => {
+  const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
+
+  const editorQueryApiRoute = `glob:*/api/v1/query/?q=*sql_editor_id*${extraQueryEditor3.tabViewId}*`;
+  fetchMock.get(editorQueryApiRoute, fakeApiResult);
+  render(setup({ queryEditorId: extraQueryEditor3.id }), {
+    useRedux: true,
+    initialState: {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queryEditors: [...initialState.sqlLab.queryEditors, extraQueryEditor3],
+      },
+    },
+  });
   await waitFor(() =>
     expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
   );

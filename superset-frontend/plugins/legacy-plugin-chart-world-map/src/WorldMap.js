@@ -24,7 +24,7 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Datamap from 'datamaps/dist/datamaps.world.min';
+import Datamap from 'datamaps/dist/datamaps.all.min';
 import { ColorBy } from './utils';
 
 const propTypes = {
@@ -203,14 +203,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: theme.colors.grayscale.light2,
+      defaultFill: theme.colorBorder,
     },
     geographyConfig: {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
-      highlightBorderColor: theme.colors.grayscale.light5,
+      borderColor: theme.colorSplit,
+      highlightBorderColor: theme.colorIcon,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -232,7 +232,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: !inContextMenu,
       highlightFillColor: color,
-      highlightBorderColor: theme.colors.grayscale.dark2,
+      highlightBorderColor: theme.colorTextSecondary,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,
@@ -265,7 +265,7 @@ function WorldMap(element, props) {
         countryFeature =>
           !filterState.selectedValues.includes(countryFeature.id),
       )
-      .style('fill-opacity', theme.opacity.mediumLight);
+      .style('fill-opacity', 0.35);
 
     // hack to ensure that the clicked country's color is preserved
     // sometimes the fill color would get default grey value after applying cross filter

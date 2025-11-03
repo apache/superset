@@ -18,11 +18,11 @@
  */
 import {
   ChartDataResponseResult,
-  GenericDataType,
   QueryFormMetric,
   t,
   validateNumber,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,

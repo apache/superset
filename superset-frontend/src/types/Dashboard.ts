@@ -35,4 +35,9 @@ export interface Dashboard {
   charts: string[]; // just chart names, unfortunately...
   owners: Owner[];
   roles: Role[];
+  theme?: {
+    id: number;
+    theme_name: string;
+    json_data: string;
+  } | null;
 }

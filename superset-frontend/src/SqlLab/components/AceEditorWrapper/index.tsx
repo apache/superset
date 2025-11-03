@@ -19,12 +19,12 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+import { css, usePrevious, useTheme } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
-import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
+import { FullSQLEditor as AceEditor } from '@superset-ui/core/components';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
@@ -48,18 +48,6 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
-const StyledAceEditor = styled(AceEditor)`
-  ${({ theme }) => css`
-    && {
-      // double class is better than !important
-      border: 1px solid ${theme.colors.grayscale.light2};
-      font-feature-settings:
-        'liga' off,
-        'calt' off;
-    }
-  `}
-`;
-
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
@@ -77,6 +65,7 @@ const AceEditorWrapper = ({
     'catalog',
     'schema',
     'templateParams',
+    'tabViewId',
   ]);
   // Prevent a maximum update depth exceeded error
   // by skipping access the unsaved query editor state
@@ -184,6 +173,7 @@ const AceEditorWrapper = ({
       dbId: queryEditor.dbId,
       catalog: queryEditor.catalog,
       schema: queryEditor.schema,
+      tabViewId: queryEditor.tabViewId,
     },
     !autocomplete,
   );
@@ -200,7 +190,12 @@ const AceEditorWrapper = ({
           .ace_autocomplete {
             // Use !important because Ace Editor applies extra CSS at the last second
             // when opening the autocomplete.
-            width: ${theme.gridUnit * 130}px !important;
+            width: ${theme.sizeUnit * 130}px !important;
+          }
+
+          .ace_completion-highlight {
+            color: ${theme.colorPrimaryText} !important;
+            background-color: ${theme.colorPrimaryBgHover};
           }
 
           .ace_tooltip {
@@ -208,11 +203,11 @@ const AceEditorWrapper = ({
           }
 
           .ace_scroller {
-            background-color: ${theme.colors.grayscale.light4};
+            background-color: ${theme.colorBgLayout};
           }
         `}
       />
-      <StyledAceEditor
+      <AceEditor
         keywords={keywords}
         onLoad={onEditorLoad}
         onBlur={onBlurSql}

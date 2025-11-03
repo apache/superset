@@ -17,8 +17,6 @@
 import logging
 from functools import partial
 
-from requests_cache import Optional
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
@@ -37,12 +35,13 @@ logger = logging.getLogger(__name__)
 class AddFavoriteChartCommand(BaseCommand):
     def __init__(self, chart_id: int) -> None:
         self._chart_id = chart_id
-        self._chart: Optional[Slice] = None
+        self._chart: Slice | None = None
 
     @transaction(on_error=partial(on_error, reraise=ChartFaveError))
     def run(self) -> None:
         self.validate()
-        return ChartDAO.add_favorite(self._chart)
+        if self._chart:
+            return ChartDAO.add_favorite(self._chart)
 
     def validate(self) -> None:
         chart = ChartDAO.find_by_id(self._chart_id)

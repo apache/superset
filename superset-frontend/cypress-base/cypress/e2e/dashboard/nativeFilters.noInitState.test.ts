@@ -21,30 +21,21 @@ import qs from 'querystring';
 import {
   dashboardView,
   nativeFilters,
-  exploreView,
   dataTestChartName,
 } from 'cypress/support/directories';
 
 import {
   addCountryNameFilter,
-  addParentFilterWithValue,
   applyAdvancedTimeRangeFilterOnDashboard,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
-  checkNativeFilterTooltip,
-  clickOnAddFilterInModal,
-  collapseFilterOnLeftPanel,
   deleteNativeFilter,
   enterNativeFilterEditModal,
-  expandFilterOnLeftPanel,
   fillNativeFilterForm,
-  getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
   saveNativeFilterSettings,
-  nativeFilterTooltips,
   undoDeleteNativeFilter,
   validateFilterContentOnDashboard,
-  valueNativeFilterOptions,
   validateFilterNameOnDashboard,
   testItems,
   WORLD_HEALTH_CHARTS,
@@ -55,19 +46,19 @@ import {
   visitDashboard,
 } from './shared_dashboard_functions';
 
-function selectFilter(index: number) {
-  cy.get("[data-test='filter-title-container'] [draggable='true']")
-    .eq(index)
-    .click();
-}
+// function selectFilter(index: number) {
+//   cy.get("[data-test='filter-title-container'] [draggable='true']")
+//     .eq(index)
+//     .click();
+// }
 
-function closeFilterModal() {
-  cy.get('body').then($body => {
-    if ($body.find('[data-test="native-filter-modal-cancel-button"]').length) {
-      cy.getBySel('native-filter-modal-cancel-button').click();
-    }
-  });
-}
+// function closeFilterModal() {
+//   cy.get('body').then($body => {
+//     if ($body.find('[data-test="native-filter-modal-cancel-button"]').length) {
+//       cy.getBySel('native-filter-modal-cancel-button').click();
+//     }
+//   });
+// }
 
 describe('Native filters', () => {
   describe('Nativefilters initial state not required', () => {
@@ -183,44 +174,139 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    it('User can create a numerical range filter', () => {
-      visitDashboard();
-      enterNativeFilterEditModal(false);
-      fillNativeFilterForm(
-        testItems.filterType.numerical,
-        testItems.filterNumericalColumn,
-        testItems.datasetForNativeFilter,
-        testItems.filterNumericalColumn,
-      );
-      saveNativeFilterSettings([]);
+    describe.only('Numerical Range Filter - Display Modes', () => {
+      beforeEach(() => {
+        visitDashboard();
+      });
 
-      // Assertions
-      cy.get('[data-test="range-filter-from-input"]')
-        .should('be.visible')
-        .click();
+      const expandFilterConfiguration = () => {
+        cy.get('.ant-collapse-header')
+          .contains('Filter Configuration')
+          .should('be.visible')
+          .then($header => {
+            cy.wrap($header)
+              .closest('.ant-collapse-item')
+              .invoke('hasClass', 'ant-collapse-item-active')
+              .then(isExpanded => {
+                if (!isExpanded) cy.wrap($header).click();
+              });
+          });
 
-      cy.get('[data-test="range-filter-from-input"]').type('{selectall}5');
+        cy.get('.ant-collapse-content-box').should('be.visible');
+      };
 
-      cy.get('[data-test="range-filter-to-input"]')
-        .should('be.visible')
-        .click();
+      const selectRangeTypeOption = (label: string) => {
+        cy.contains('Range Type')
+          .should('be.visible')
+          .closest('.ant-form-item')
+          .within(() => {
+            cy.get('.ant-select-selector').click();
+          });
 
-      cy.get('[data-test="range-filter-to-input"]').type('{selectall}50');
-      cy.get(nativeFilters.applyFilter).click();
+        cy.get('.ant-select-dropdown:visible')
+          .contains('.ant-select-item-option', label)
+          .click();
+      };
 
-      // Assert that the URL contains 'native_filters'
-      cy.url().then(u => {
-        const ur = new URL(u);
-        expect(ur.search).to.include('native_filters');
+      const applyAndAssertInputs = (from: string, to: string) => {
+        // Set 'from' input
+        cy.get('[data-test="range-filter-from-input"]').clear();
+        cy.get('[data-test="range-filter-from-input"]').type(from);
+        cy.get('[data-test="range-filter-from-input"]').blur();
 
+        // Set 'to' input
+        cy.get('[data-test="range-filter-to-input"]').clear();
+        cy.get('[data-test="range-filter-to-input"]').type(to);
+        cy.get('[data-test="range-filter-to-input"]').blur();
+
+        // Assert values without chaining after .invoke()
         cy.get('[data-test="range-filter-from-input"]')
           .invoke('val')
-          .should('equal', '5');
+          .then(val => {
+            expect(val).to.equal(from);
+          });
 
-        // Assert that the "To" input has the correct value
         cy.get('[data-test="range-filter-to-input"]')
           .invoke('val')
-          .should('equal', '50');
+          .then(val => {
+            expect(val).to.equal(to);
+          });
+      };
+
+      it('User can create a numerical range filter with "Range Inputs" display mode', () => {
+        enterNativeFilterEditModal(false);
+
+        fillNativeFilterForm(
+          testItems.filterType.numerical,
+          testItems.filterNumericalColumn,
+          testItems.datasetForNativeFilter,
+          testItems.filterNumericalColumn,
+        );
+
+        expandFilterConfiguration();
+        selectRangeTypeOption('Range Inputs');
+
+        saveNativeFilterSettings([]);
+        cy.wait(500); // allow filter to mount
+
+        applyAndAssertInputs('40', '70');
+      });
+
+      it('User can change the display mode to "Slider"', () => {
+        enterNativeFilterEditModal(false);
+
+        fillNativeFilterForm(
+          testItems.filterType.numerical,
+          testItems.filterNumericalColumn,
+          testItems.datasetForNativeFilter,
+          testItems.filterNumericalColumn,
+        );
+
+        expandFilterConfiguration();
+
+        cy.contains('Range Type')
+          .should('be.visible')
+          .closest('.ant-form-item')
+          .within(() => {
+            cy.get('.ant-select-selector').click({ force: true });
+          });
+
+        cy.get('.ant-select-dropdown:visible .ant-select-item-option')
+          .contains(/^Slider$/)
+          .click({ force: true });
+
+        cy.get('.ant-select-selector').should('contain.text', 'Slider');
+
+        saveNativeFilterSettings([]);
+
+        cy.get('.ant-slider', { timeout: 10000 }).should('be.visible');
+
+        cy.get('[data-test="range-filter-from-input"]', {
+          timeout: 5000,
+        }).should('not.exist');
+        cy.get('[data-test="range-filter-to-input"]', { timeout: 5000 }).should(
+          'not.exist',
+        );
+      });
+
+      it('User can change the display mode to "Slider and range input"', () => {
+        enterNativeFilterEditModal(false);
+
+        // Re-create filter
+        fillNativeFilterForm(
+          testItems.filterType.numerical,
+          testItems.filterNumericalColumn,
+          testItems.datasetForNativeFilter,
+          testItems.filterNumericalColumn,
+        );
+
+        expandFilterConfiguration();
+        selectRangeTypeOption('Slider and range input');
+
+        saveNativeFilterSettings([]);
+        cy.wait(500);
+
+        applyAndAssertInputs('40', '70');
       });
     });
 

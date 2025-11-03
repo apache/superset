@@ -31,8 +31,8 @@ import fetchMock from 'fetch-mock';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 
-jest.mock('src/components', () => ({
-  ...jest.requireActual('src/components'),
+jest.mock('@superset-ui/core/components/Select', () => ({
+  ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }) => (
     <input
       data-test="mock-async-select"

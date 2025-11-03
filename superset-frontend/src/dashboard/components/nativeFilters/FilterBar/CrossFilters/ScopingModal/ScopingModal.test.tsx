@@ -158,14 +158,14 @@ afterEach(() => {
   fetchMock.restore();
 });
 
-it('renders modal', () => {
+test('renders modal', () => {
   setup();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });
 
-it('switch currently edited chart scoping', async () => {
+test('switch currently edited chart scoping', async () => {
   setup();
   const withinScopingList = within(screen.getByTestId('scoping-list-panel'));
   expect(withinScopingList.getByText('All charts/global scoping')).toHaveClass(
@@ -180,7 +180,7 @@ it('switch currently edited chart scoping', async () => {
   });
 });
 
-it('scoping tree global and custom checks', () => {
+test('scoping tree global and custom checks', () => {
   setup();
 
   expect(
@@ -200,7 +200,7 @@ it('scoping tree global and custom checks', () => {
   ).toHaveLength(2);
 });
 
-it('add new custom scoping', async () => {
+test('add new custom scoping', async () => {
   setup();
 
   userEvent.click(screen.getByText('Add custom scoping'));
@@ -226,7 +226,7 @@ it('add new custom scoping', async () => {
   ).toHaveLength(2);
 });
 
-it('edit scope and save', async () => {
+test('edit scope and save', async () => {
   setup();
 
   // unselect chart 2 in global scoping

@@ -188,7 +188,7 @@ class NullValueException(SupersetException):
 
 
 class SupersetTemplateException(SupersetException):
-    pass
+    status = 422
 
 
 class SpatialException(SupersetException):
@@ -334,6 +334,9 @@ class SupersetParseError(SupersetErrorException):
         )
         super().__init__(error)
 
+    def __str__(self) -> str:
+        return self.error.message
+
 
 class OAuth2RedirectError(SupersetErrorException):
     """
@@ -381,7 +384,7 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
-class DisallowedSQLFunction(SupersetErrorException):
+class SupersetDisallowedSQLFunctionException(SupersetErrorException):
     """
     Disallowed function found on SQL statement
     """
@@ -432,3 +435,58 @@ class TableNotFoundException(SupersetErrorException):
                 level=ErrorLevel.ERROR,
             )
         )
+
+
+class SupersetDMLNotAllowedException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "This database does not allow for DDL/DML, but the query mutates "
+                "data. Please contact your administrator for more assistance."
+            ),
+            error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetInvalidCTASException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "CTAS (create table as select) can only be run with a query where "
+                "the last statement is a SELECT. Please make sure your query has "
+                "a SELECT as its last statement. Then, try running your query again."
+            ),
+            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetInvalidCVASException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "CVAS (create view as select) can only be run with a query with "
+                "a single SELECT statement. Please make sure your query has only "
+                "a SELECT statement. Then, try running your query again."
+            ),
+            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetResultsBackendNotConfigureException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_("Results backend is not configured."),
+            error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class ScreenshotImageNotAvailableException(SupersetException):
+    status = 404

@@ -84,7 +84,7 @@ export default function transformProps(
     .filter(key => !groupbySet.has(key))
     .map(key => {
       const array = key.split(' - ').map(value => parseFloat(value));
-      return `${xAxisFormatter(array[0])} '-' ${xAxisFormatter(array[1])}`;
+      return `${xAxisFormatter(array[0])} - ${xAxisFormatter(array[1])}`;
     });
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =

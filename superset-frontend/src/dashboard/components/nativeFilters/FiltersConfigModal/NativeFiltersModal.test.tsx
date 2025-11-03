@@ -59,6 +59,13 @@ function setup(overridesProps?: any) {
   return render(<FiltersConfigModal {...mockedProps} {...overridesProps} />, {
     useDnd: true,
     useRedux: true,
+    initialState: {
+      dashboardLayout: {
+        present: {},
+        past: [],
+        future: [],
+      },
+    },
   });
 }
 
@@ -78,6 +85,7 @@ test('the form validates required fields', async () => {
   expect(onSave).toHaveBeenCalledTimes(0);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
   test('does not show alert when there is no unsaved filters', async () => {
     const onCancel = jest.fn();

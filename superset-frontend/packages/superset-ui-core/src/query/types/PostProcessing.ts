@@ -97,6 +97,7 @@ interface _PostProcessingContribution {
     orientation?: 'row' | 'column';
     columns?: string[];
     rename_columns?: string[];
+    contribution_totals?: Record<string, number>;
   };
 }
 export type PostProcessingContribution =

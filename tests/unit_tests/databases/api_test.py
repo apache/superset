@@ -40,7 +40,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
@@ -67,7 +67,7 @@ def test_filter_by_uuid(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -135,7 +135,7 @@ def test_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -191,7 +191,7 @@ def test_database_connection(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -355,7 +355,7 @@ def test_update_with_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -502,7 +502,7 @@ def test_delete_ssh_tunnel(
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -580,7 +580,7 @@ def test_delete_ssh_tunnel_not_found(
         from superset.databases.ssh_tunnel.models import SSHTunnel
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -658,7 +658,7 @@ def test_apply_dynamic_database_filter(
         from superset.databases.api import DatabaseRestApi
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -721,19 +721,24 @@ def test_apply_dynamic_database_filter(
         # Ensure that the filter has not been called because it's not in our config
         assert base_filter_mock.call_count == 0
 
-        original_config = current_app.config.copy()
-        original_config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {"databases": base_filter_mock}
+        # Temporarily update the config
+        original_filters = current_app.config.get("EXTRA_DYNAMIC_QUERY_FILTERS", {})
+        current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {
+            "databases": base_filter_mock
+        }
+        try:
+            # Get filtered list
+            response_databases = DatabaseDAO.find_all()
+            assert response_databases
+            expected_db_names = ["second-database"]
+            actual_db_names = [db.database_name for db in response_databases]
+            assert actual_db_names == expected_db_names
 
-        mocker.patch("superset.views.filters.current_app.config", new=original_config)
-        # Get filtered list
-        response_databases = DatabaseDAO.find_all()
-        assert response_databases
-        expected_db_names = ["second-database"]
-        actual_db_names = [db.database_name for db in response_databases]
-        assert actual_db_names == expected_db_names
-
-        # Ensure that the filter has been called once
-        assert base_filter_mock.call_count == 1
+            # Ensure that the filter has been called once
+            assert base_filter_mock.call_count == 1
+        finally:
+            # Restore original config
+            current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = original_filters
 
 
 def test_oauth2_happy_path(
@@ -748,7 +753,7 @@ def test_oauth2_happy_path(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -817,7 +822,7 @@ def test_oauth2_permissions(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -883,7 +888,7 @@ def test_oauth2_multiple_tokens(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member

@@ -17,42 +17,45 @@
  * under the License.
  */
 import { ScatterplotLayer } from '@deck.gl/layers';
-import {
-  Datasource,
-  getMetricLabel,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
+import { createTooltipContent } from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
-import { TooltipProps } from '../../components/Tooltip';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
-function getPoints(data: JsonObject[]) {
-  return data.map(d => d.position);
+function getMetricLabel(metric: any) {
+  if (typeof metric === 'string') {
+    return metric;
+  }
+  if (metric?.label) {
+    return metric.label;
+  }
+  if (metric?.verbose_name) {
+    return metric.verbose_name;
+  }
+  return metric?.value || 'Metric';
 }
 
 function setTooltipContent(
   formData: QueryFormData,
   verboseMap?: Record<string, string>,
 ) {
-  return (o: JsonObject) => {
+  const defaultTooltipGenerator = (o: JsonObject) => {
     const label =
       verboseMap?.[formData.point_radius_fixed.value] ||
       getMetricLabel(formData.point_radius_fixed?.value);
     return (
       <div className="deckgl-tooltip">
         <TooltipRow
-          // eslint-disable-next-line prefer-template
-          label={t('Longitude and Latitude') + ': '}
+          label={`${t('Longitude and Latitude')}: `}
           value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
         />
         {o.object?.cat_color && (
           <TooltipRow
-            // eslint-disable-next-line prefer-template
-            label={t('Category') + ': '}
+            label={`${t('Category')}: `}
             value={`${o.object?.cat_color}`}
           />
         )}
@@ -62,15 +65,31 @@ function setTooltipContent(
       </div>
     );
   };
+
+  return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  datasource: Datasource,
-) {
+interface ScatterDataItem {
+  color: number[];
+  radius: number;
+  position: number[];
+  [key: string]: unknown;
+}
+
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
+}
+
+export const getLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  datasource,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map((d: JsonObject) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
@@ -90,17 +109,58 @@ export function getLayer(
     id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
-    getFillColor: (d: any) => d.color,
+    getFillColor: (d: ScatterDataItem): [number, number, number, number] =>
+      d.color as [number, number, number, number],
+    getRadius: (d: ScatterDataItem): number => d.radius,
+    radiusMinPixels: Number(fd.min_radius) || undefined,
+    radiusMaxPixels: Number(fd.max_radius) || undefined,
+    stroked: false,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd, datasource?.verboseMap),
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
+    opacity: filterState?.value ? 0.3 : 1,
+  });
+};
+
+export const getHighlightLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const dataWithRadius = payload.data.features.map((d: JsonObject) => {
+    let radius = unitToRadius(fd.point_unit, d.radius) || 10;
+    if (fd.multiplier) {
+      radius *= fd.multiplier;
+    }
+
+    return { ...d, radius };
+  });
+
+  const dataInside = dataWithRadius.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  return new ScatterplotLayer({
+    id: `scatter-highlight-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    fp64: true,
+    getFillColor: () => HIGHLIGHT_COLOR_ARRAY,
     getRadius: (d: any) => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
-    ...commonLayerProps(
-      fd,
-      setTooltip,
-      setTooltipContent(fd, datasource?.verboseMap),
-    ),
   });
-}
+};
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);

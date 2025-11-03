@@ -19,6 +19,7 @@
 
 import {
   buildCustomFormatters,
+  Currency,
   CurrencyFormatter,
   getCustomFormatter,
   getNumberFormatter,
@@ -114,6 +115,19 @@ test('buildCustomFormatters uses dataset d3 format if not provided in control pa
   expect((customFormatters.sum__num as CurrencyFormatter).d3Format).toEqual(
     ',.2',
   );
+});
+
+test('buildCustomFormatters returns NumberFormatter for a d3format with currency set to {}', () => {
+  const customFormatters: Record<string, ValueFormatter> =
+    buildCustomFormatters(
+      ['count'],
+      { count: {} as Currency },
+      { count: ',.2%' },
+      undefined,
+      undefined,
+    );
+
+  expect(customFormatters.count).toBeInstanceOf(NumberFormatter);
 });
 
 test('getCustomFormatter', () => {

@@ -23,11 +23,15 @@ import { FixedSizeList as List } from 'react-window';
 // @ts-ignore
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Select } from 'src/components';
-import Loading from 'src/components/Loading';
-import Button from 'src/components/Button';
-import { Icons } from 'src/components/Icons';
+import {
+  Button,
+  Checkbox,
+  InfoTooltip,
+  Input,
+  Loading,
+  Select,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   LocalStorageKeys,
   getItem,
@@ -42,12 +46,11 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { debounce, pickBy } from 'lodash';
-import Checkbox from 'src/components/Checkbox';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { withTheme, Theme } from '@emotion/react';
 import { navigateTo } from 'src/utils/navigationUtils';
+import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
@@ -97,15 +100,15 @@ const Controls = styled.div`
     display: flex;
     flex-direction: row;
     padding:
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 3}px
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 3}px;
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 3}px
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 3}px;
   `}
 `;
 
 const StyledSelect = styled(Select)<{ id?: string }>`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
   min-width: 150px;
 `;
 
@@ -113,7 +116,7 @@ const NewChartButtonContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     justify-content: flex-end;
-    padding-right: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -121,7 +124,7 @@ const NewChartButton = styled(Button)`
   ${({ theme }) => css`
     height: auto;
     & > .anticon > span {
-      margin: auto -${theme.gridUnit}px auto 0;
+      margin: auto -${theme.sizeUnit}px auto 0;
     }
     & > [role='img']:first-of-type {
       padding-bottom: 1px;
@@ -152,6 +155,23 @@ export function sortByComparator(attr: keyof Slice) {
   };
 }
 
+function getFilteredSortedSlices(
+  slices: SliceAdderProps['slices'],
+  searchTerm: string,
+  sortBy: keyof Slice,
+  showOnlyMyCharts: boolean,
+  userId: number,
+) {
+  return Object.values(slices)
+    .filter(slice =>
+      showOnlyMyCharts
+        ? slice?.owners?.find(owner => owner.id === userId) ||
+          slice?.created_by?.id === userId
+        : true,
+    )
+    .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
+    .sort(sortByComparator(sortBy));
+}
 class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   private slicesRequest?: AbortController | Promise<void>;
 
@@ -192,19 +212,20 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: SliceAdderProps) {
+  componentDidUpdate(prevProps: SliceAdderProps) {
     const nextState: SliceAdderState = {} as SliceAdderState;
-    if (nextProps.lastUpdated !== this.props.lastUpdated) {
-      nextState.filteredSlices = this.getFilteredSortedSlices(
-        nextProps.slices,
+    if (this.props.lastUpdated !== prevProps.lastUpdated) {
+      nextState.filteredSlices = getFilteredSortedSlices(
+        this.props.slices,
         this.state.searchTerm,
         this.state.sortBy,
         this.state.showOnlyMyCharts,
+        this.props.userId,
       );
     }
 
-    if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
-      nextState.selectedSliceIdsSet = new Set(nextProps.selectedSliceIds);
+    if (prevProps.selectedSliceIds !== this.props.selectedSliceIds) {
+      nextState.selectedSliceIdsSet = new Set(this.props.selectedSliceIds);
     }
 
     if (Object.keys(nextState).length) {
@@ -224,23 +245,6 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     }
   }
 
-  getFilteredSortedSlices(
-    slices: SliceAdderProps['slices'],
-    searchTerm: string,
-    sortBy: keyof Slice,
-    showOnlyMyCharts: boolean,
-  ) {
-    return Object.values(slices)
-      .filter(slice =>
-        showOnlyMyCharts
-          ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
-            slice?.created_by?.id === this.props.userId
-          : true,
-      )
-      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(sortByComparator(sortBy));
-  }
-
   handleChange = debounce(value => {
     this.searchUpdated(value);
     this.slicesRequest = this.props.fetchSlices(
@@ -253,11 +257,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   searchUpdated(searchTerm: string) {
     this.setState(prevState => ({
       searchTerm,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         searchTerm,
         prevState.sortBy,
         prevState.showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
   }
@@ -265,11 +270,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   handleSelect(sortBy: keyof Slice) {
     this.setState(prevState => ({
       sortBy,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         prevState.searchTerm,
         sortBy,
         prevState.showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
     this.slicesRequest = this.props.fetchSlices(
@@ -310,7 +316,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
         // actual style should be applied to nested AddSliceCard component
         style={{}}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
           <AddSliceCard
             innerRef={dragSourceRef}
             style={style}
@@ -327,7 +333,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  onShowOnlyMyCharts(showOnlyMyCharts: boolean) {
+  onShowOnlyMyCharts = (showOnlyMyCharts: boolean) => {
     if (!showOnlyMyCharts) {
       this.slicesRequest = this.props.fetchSlices(
         undefined,
@@ -337,15 +343,16 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     }
     this.setState(prevState => ({
       showOnlyMyCharts,
-      filteredSlices: this.getFilteredSortedSlices(
+      filteredSlices: getFilteredSortedSlices(
         this.props.slices,
         prevState.searchTerm,
         prevState.sortBy,
         showOnlyMyCharts,
+        this.props.userId,
       ),
     }));
     setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
-  }
+  };
 
   render() {
     const { theme } = this.props;
@@ -364,16 +371,15 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           <NewChartButton
             buttonStyle="link"
             buttonSize="xsmall"
+            icon={
+              <Icons.PlusOutlined iconSize="m" iconColor={theme.colorPrimary} />
+            }
             onClick={() =>
               navigateTo(`/chart/add?dashboard_id=${this.props.dashboardId}`, {
                 newWindow: true,
               })
             }
           >
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.dark1}
-            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>
@@ -405,17 +411,17 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             flex-direction: row;
             justify-content: flex-start;
             align-items: center;
-            gap: ${theme.gridUnit}px;
-            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
-              ${theme.gridUnit * 3}px;
+            gap: ${theme.sizeUnit}px;
+            padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
+              ${theme.sizeUnit * 3}px;
           `}
         >
           <Checkbox
-            onChange={this.onShowOnlyMyCharts}
+            onChange={e => this.onShowOnlyMyCharts(e.target.checked)}
             checked={this.state.showOnlyMyCharts}
           />
           {t('Show only my charts')}
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             placement="top"
             tooltip={t(
               `You can choose to display all charts that you have access to or only the ones you own.

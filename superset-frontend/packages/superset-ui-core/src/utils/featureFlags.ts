@@ -26,13 +26,16 @@ export enum FeatureFlag {
   AlertReports = 'ALERT_REPORTS',
   AlertReportTabs = 'ALERT_REPORT_TABS',
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
+  AlertReportsFilter = 'ALERT_REPORTS_FILTER',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  CssTemplates = 'CSS_TEMPLATES',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
+  DateRangeTimeshiftsEnabled = 'DATE_RANGE_TIMESHIFTS_ENABLED',
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
@@ -40,13 +43,16 @@ export enum FeatureFlag {
   EmbeddableCharts = 'EMBEDDABLE_CHARTS',
   EmbeddedSuperset = 'EMBEDDED_SUPERSET',
   EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
+  EnableExtensions = 'ENABLE_EXTENSIONS',
   /** @deprecated */
   EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
   SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
@@ -58,6 +64,8 @@ export enum FeatureFlag {
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+  TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
+  AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
 }
 
 export type ScheduleQueriesProps = {

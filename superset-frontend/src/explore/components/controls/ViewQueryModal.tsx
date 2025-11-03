@@ -23,13 +23,14 @@ import {
   ensureIsArray,
   t,
   getClientErrorObject,
+  QueryFormData,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
-  latestQueryFormData: object;
+  latestQueryFormData: QueryFormData;
 }
 
 type Result = {
@@ -41,9 +42,10 @@ const ViewQueryModalContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = props => {
+const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ const ViewQueryModal: FC<Props> = props => {
   const loadChartData = (resultType: string) => {
     setIsLoading(true);
     getChartDataRequest({
-      formData: props.latestQueryFormData,
+      formData: latestQueryFormData,
       resultFormat: 'json',
       resultType,
     })
@@ -74,7 +76,7 @@ const ViewQueryModal: FC<Props> = props => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [JSON.stringify(props.latestQueryFormData)]);
+  }, [JSON.stringify(latestQueryFormData)]);
 
   if (isLoading) {
     return <Loading />;
@@ -85,9 +87,14 @@ const ViewQueryModal: FC<Props> = props => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map(item =>
+      {result.map((item, index) =>
         item.query ? (
-          <ViewQuery sql={item.query} language={item.language || undefined} />
+          <ViewQuery
+            key={`query-${index}`}
+            datasource={latestQueryFormData.datasource}
+            sql={item.query}
+            language="sql"
+          />
         ) : null,
       )}
     </ViewQueryModalContainer>

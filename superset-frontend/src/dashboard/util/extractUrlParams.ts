@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import querystring from 'query-string';
 import { JsonObject } from '@superset-ui/core';
 
 const reservedQueryParams = new Set(['standalone', 'edit']);
@@ -29,8 +28,8 @@ export type UrlParamType = 'reserved' | 'regular' | 'all';
 export default function extractUrlParams(
   urlParamType: UrlParamType,
 ): JsonObject {
-  const queryParams = querystring.parse(window.location.search);
-  return Object.entries(queryParams).reduce((acc, [key, value]) => {
+  const queryParams = new URLSearchParams(window.location.search);
+  return [...queryParams.entries()].reduce((acc, [key, value]) => {
     if (
       (urlParamType === 'regular' && reservedQueryParams.has(key)) ||
       (urlParamType === 'reserved' && !reservedQueryParams.has(key))

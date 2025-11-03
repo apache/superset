@@ -44,7 +44,7 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
 
 _logger = logging.getLogger()
 

@@ -17,12 +17,11 @@
  * under the License.
  */
 import { Fragment, useMemo, useCallback, RefObject, createRef } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useDispatch } from 'react-redux';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useInView } from 'react-intersection-observer';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import { DashboardState } from 'src/dashboard/types';
 import {
   saveDashboardRequest,
@@ -36,14 +35,14 @@ const STICKY_HEADER_HEIGHT = 32;
 
 const StyledTitle = styled.h2`
   ${({ theme }) => `
-     color:  ${theme.colors.grayscale.dark1}
+     color:  ${theme.colorText}
    `}
 `;
 
 const StyledEditor = styled.div`
   ${({ theme }) => `
      table {
-       border: 1px ${theme.colors.grayscale.light2} solid;
+       border: 1px ${theme.colorBorder} solid;
      }
      pre {
        font-size: 11px;
@@ -59,7 +58,7 @@ const StackableHeader = styled(Button)<{ top: number }>`
   ${({ theme, top }) => `
      position: sticky;
      top: ${top}px;
-     background-color: ${theme.colors.grayscale.light5};
+     background-color: ${theme.colorBgContainer};
      margin: 0px;
      padding: 8px 4px;
      z-index: 1;
@@ -67,7 +66,7 @@ const StackableHeader = styled(Button)<{ top: number }>`
      border-radius: 0px;
      width: 100%;
      justify-content: flex-start;
-     border-bottom: 1px ${theme.colors.grayscale.light1} solid;
+     border-bottom: 1px ${theme.colorSplit} solid;
      &::before {
        display: inline-block;
        position: relative;
@@ -169,7 +168,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                   <div ref={anchors[index]} />
                   <StackableHeader
                     top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
-                    buttonStyle="tertiary"
+                    buttonStyle="secondary"
                     onClick={() => onAnchorClicked(index)}
                   >
                     {keyPath}

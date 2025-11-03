@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  AnnotationData,
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
@@ -128,21 +127,7 @@ describe('extractAnnotationLabels', () => {
         showLabel: true,
       },
     ];
-    const results: AnnotationData = {
-      'My Interval': {
-        records: [{ col: 1 }],
-      },
-      'My Line': [
-        { key: 'Line 1', values: [] },
-        { key: 'Line 2', values: [] },
-      ],
-    };
-
-    expect(extractAnnotationLabels(layers, results)).toEqual([
-      'My Formula',
-      'Line 1',
-      'Line 2',
-    ]);
+    expect(extractAnnotationLabels(layers)).toEqual(['My Formula', 'My Line']);
   });
 });
 

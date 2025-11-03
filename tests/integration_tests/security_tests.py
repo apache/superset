@@ -31,13 +31,13 @@ from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import app, appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
     backend,
@@ -1495,6 +1495,9 @@ class TestRolePermission(SupersetTestCase):
             ("menu_access", "SQL Lab"),
             ("can_read", "SqlLabPermalinkRestApi"),
             ("can_write", "SqlLabPermalinkRestApi"),
+            ("can_post", "TableSchemaView"),
+            ("can_expanded", "TableSchemaView"),
+            ("can_delete", "TableSchemaView"),
         }
 
         self.assert_cannot_alpha(sql_lab_set)
@@ -1538,6 +1541,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
@@ -1552,6 +1556,10 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
+            ["SupersetAuthView", "login"],
+            ["SupersetAuthView", "logout"],
+            ["SupersetRegisterUserView", "register"],
+            ["SupersetRegisterUserView", "activation"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1951,13 +1959,11 @@ class TestSecurityManager(SupersetTestCase):
 
 class TestDatasources(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_admin(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.SupersetSecurityManager.session")
+    def test_get_user_datasources_admin(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = True
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1976,13 +1982,11 @@ class TestDatasources(SupersetTestCase):
                 ]
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_gamma(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.SupersetSecurityManager.session")
+    def test_get_user_datasources_gamma(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1997,14 +2001,14 @@ class TestDatasources(SupersetTestCase):
                 assert datasources == []
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
+    @patch("superset.security.SupersetSecurityManager.session")
     def test_get_user_datasources_gamma_with_schema(
-        self, mock_get_session, mock_can_access_database
+        self, mock_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
 
-        mock_get_session.query.return_value.filter.return_value.all.return_value = [
+        mock_session.query.return_value.filter.return_value.all.return_value = [
             Datasource("database1", "schema1", "table1"),
             Datasource("database1", "schema1", "table2"),
         ]
@@ -2182,7 +2186,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_create_guest_access_token_callable_audience(self, get_time_mock):
         now = time.time()
         get_time_mock.return_value = now
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
 
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
@@ -2195,7 +2199,7 @@ class TestGuestTokens(SupersetTestCase):
             algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
             audience="cool_code",
         )
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
         assert "cool_code" == decoded_token["aud"]
         assert "guest" == decoded_token["type"]
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None

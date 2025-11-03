@@ -46,7 +46,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         db_file_name = get_filename(
             model.database.database_name, model.database.id, skip_id=True
         )
-        ds_file_name = get_filename(model.table_name, model.id, skip_id=True)
+        ds_file_name = get_filename(model.table_name, model.id)
         return f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
     @staticmethod

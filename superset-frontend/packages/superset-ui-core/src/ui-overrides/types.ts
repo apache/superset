@@ -23,8 +23,13 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
-import { BaseFormData } from '../query';
-import { JsonResponse } from '../connection';
+import type { QueryData } from '../chart/types/QueryResponse';
+import type {
+  BaseFormData,
+  LatestQueryFormData,
+  QueryFormData,
+} from '../query';
+import type { JsonResponse } from '../connection';
 
 /**
  * A function which returns text (or marked-up text)
@@ -51,7 +56,7 @@ export type LoadDrillByOptions = (
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
@@ -209,6 +214,29 @@ export interface CustomAutocomplete extends AutocompleteItem {
   insertMatch?: (editor: Editor, data: AutocompleteItem) => void;
 }
 
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
+}
+
+export interface ExploreChartHeaderProps {
+  chartId: number;
+  queriesResponse: QueryData[] | null;
+  sliceFormData: QueryFormData | null;
+  queryFormData: QueryFormData;
+  lastRendered: number;
+  latestQueryFormData: LatestQueryFormData;
+  chartUpdateEndTime: number | null;
+  chartUpdateStartTime: number;
+  queryController: AbortController | null;
+  triggerQuery: boolean;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
   'load.drillby.options': LoadDrillByOptions;
@@ -240,4 +268,6 @@ export type Extensions = Partial<{
     string,
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
+  'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

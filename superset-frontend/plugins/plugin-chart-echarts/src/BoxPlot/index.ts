@@ -21,7 +21,9 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import example from './images/BoxPlot.jpg';
+import exampleDark from './images/BoxPlot-dark.jpg';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import { BoxPlotQueryFormData, EchartsBoxPlotChartProps } from './types';
 import { EchartsChartPlugin } from '../types';
 
@@ -55,10 +57,11 @@ export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
         description: t(
           'Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.',
         ),
-        exampleGallery: [{ url: example }],
+        exampleGallery: [{ url: example, urlDark: exampleDark }],
         name: t('Box Plot'),
         tags: [t('ECharts'), t('Range'), t('Statistical'), t('Featured')],
         thumbnail,
+        thumbnailDark,
       },
       transformProps,
     });

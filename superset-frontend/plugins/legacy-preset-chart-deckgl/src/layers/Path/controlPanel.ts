@@ -30,6 +30,8 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
@@ -55,6 +57,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {

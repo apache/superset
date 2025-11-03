@@ -157,6 +157,7 @@ export type Indicator = {
   value?: any;
   status?: IndicatorStatus;
   path?: string[];
+  customColumnLabel?: string;
 };
 
 export type CrossFilterIndicator = Indicator & { emitterId: number };
@@ -170,6 +171,7 @@ export const getCrossFilterIndicator = (
   const filters = dataMask?.extraFormData?.filters;
   const label = extractLabel(filterState);
   const filtersState = filterState?.filters;
+  const customColumnLabel = filterState?.customColumnLabel;
   const column =
     filters?.[0]?.col || (filtersState && Object.keys(filtersState)[0]);
 
@@ -185,6 +187,7 @@ export const getCrossFilterIndicator = (
       '',
     path: [...(chartLayoutItem?.parents ?? []), chartLayoutItem?.id || ''],
     value: label,
+    customColumnLabel,
   };
   return filterObject;
 };
@@ -342,6 +345,7 @@ const cachedNativeFilterDataForChart: Record<
     rejectedColumns: Set<string>;
   }
 > = {};
+
 export const selectNativeIndicatorsForChart = (
   nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
@@ -355,17 +359,16 @@ export const selectNativeIndicatorsForChart = (
 
   const cachedFilterData = cachedNativeFilterDataForChart[chartId];
   if (
-    cachedNativeIndicatorsForChart[chartId] &&
-    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
-    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
-    cachedFilterData?.nativeFilters === nativeFilters &&
-    cachedFilterData?.chartLayoutItems === chartLayoutItems &&
-    cachedFilterData?.chartConfiguration === chartConfiguration &&
-    cachedFilterData?.dataMask === dataMask
+    cachedNativeIndicatorsForChart[chartId]?.length &&
+    areObjectsEqual(cachedFilterData.appliedColumns, appliedColumns) &&
+    areObjectsEqual(cachedFilterData.rejectedColumns, rejectedColumns) &&
+    areObjectsEqual(cachedFilterData.nativeFilters, nativeFilters) &&
+    areObjectsEqual(cachedFilterData.chartLayoutItems, chartLayoutItems) &&
+    areObjectsEqual(cachedFilterData.chartConfiguration, chartConfiguration) &&
+    areObjectsEqual(cachedFilterData.dataMask, dataMask)
   ) {
     return cachedNativeIndicatorsForChart[chartId];
   }
-
   const nativeFilterIndicators =
     nativeFilters &&
     Object.values(nativeFilters)

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
+import json  # noqa: TID251
 from datetime import datetime
 from unittest.mock import patch
 from uuid import UUID
@@ -64,6 +64,7 @@ def test_log_data_with_chart(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": None,
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -94,6 +95,7 @@ def test_log_data_with_dashboard(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": None,
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -128,6 +130,7 @@ def test_log_data_with_email_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": [],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -162,6 +165,7 @@ def test_log_data_with_slack_recipients(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -195,6 +199,7 @@ def test_log_data_no_owners(mocker: MockerFixture) -> None:
         "dashboard_id": 123,
         "owners": [],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
@@ -230,28 +235,29 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
         "dashboard_id": None,
         "owners": [1, 2],
         "slack_channels": ["channel_1", "channel_2"],
+        "execution_id": "execution_id_example",
     }
 
     assert result == expected_result
 
 
 @pytest.mark.parametrize(
-    "anchors, permalink_side_effect, expected_uris",
+    "anchors, permalink_side_effect, expected_paths",
     [
         # Test user select multiple tabs to export in a dashboard report
         (
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "http://0.0.0.0:8080/superset/dashboard/p/url1/",
-                "http://0.0.0.0:8080/superset/dashboard/p/url2/",
+                "superset/dashboard/p/url1/",
+                "superset/dashboard/p/url2/",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["http://0.0.0.0:8080/superset/dashboard/p/url1/"],
+            ["superset/dashboard/p/url1/"],
         ),
     ],
 )
@@ -260,7 +266,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
 )
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_multiple_tabs(
-    mock_run, mocker: MockerFixture, anchors, permalink_side_effect, expected_uris
+    mock_run, mocker: MockerFixture, anchors, permalink_side_effect, expected_paths, app
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
@@ -287,6 +293,12 @@ def test_get_dashboard_urls_with_multiple_tabs(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
+    # Build expected URIs using the app's configured WEBDRIVER_BASEURL
+    # Use urljoin to handle proper URL joining (handles double slashes)
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    expected_uris = [urllib.parse.urljoin(base_url, path) for path in expected_paths]
     assert result == expected_uris
 
 
@@ -297,6 +309,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
 def test_get_dashboard_urls_with_exporting_dashboard_only(
     mock_run,
     mocker: MockerFixture,
+    app,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
@@ -323,7 +336,11 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
-    assert "http://0.0.0.0:8080/superset/dashboard/p/url1/" == result[0]
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    expected_url = urllib.parse.urljoin(base_url, "superset/dashboard/p/url1/")
+    assert expected_url == result[0]
 
 
 @patch(
@@ -332,6 +349,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 def test_get_tab_urls(
     mock_run,
     mocker: MockerFixture,
+    app,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
@@ -343,9 +361,12 @@ def test_get_tab_urls(
     mock_run.side_effect = ["uri1", "uri2"]
     tab_anchors = ["1", "2"]
     result: list[str] = class_instance._get_tabs_urls(tab_anchors)
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        "http://0.0.0.0:8080/superset/dashboard/p/uri1/",
-        "http://0.0.0.0:8080/superset/dashboard/p/uri2/",
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/"),
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/"),
     ]
 
 
@@ -355,6 +376,7 @@ def test_get_tab_urls(
 def test_get_tab_url(
     mock_run,
     mocker: MockerFixture,
+    app,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
@@ -371,7 +393,10 @@ def test_get_tab_url(
         urlParams=None,
     )
     result: str = class_instance._get_tab_url(dashboard_state)
-    assert result == "http://0.0.0.0:8080/superset/dashboard/p/uri/"
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
 
 
 def create_report_schedule(

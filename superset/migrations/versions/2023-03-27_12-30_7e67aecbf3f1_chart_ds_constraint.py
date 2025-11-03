@@ -37,7 +37,7 @@ from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 
 
 class Slice(Base):  # type: ignore

@@ -19,6 +19,7 @@
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Header, { DEFAULT_TITLE } from 'src/features/datasets/AddDataset/Header';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Header', () => {
   const mockSetDataset = jest.fn();
 

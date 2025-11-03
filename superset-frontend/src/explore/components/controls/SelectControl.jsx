@@ -19,7 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, isEqualArray, t } from '@superset-ui/core';
-import Select from 'src/components/Select/Select';
+import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -87,6 +87,44 @@ const defaultProps = {
   valueKey: 'value',
 };
 
+const numberComparator = (a, b) => a.value - b.value;
+
+export const areAllValuesNumbers = (items, valueKey = 'value') => {
+  if (!items || items.length === 0) {
+    return false;
+  }
+  return items.every(item => {
+    if (Array.isArray(item)) {
+      const [value] = item;
+      return typeof value === 'number';
+    }
+    if (typeof item === 'object' && item !== null) {
+      return typeof item[valueKey] === 'number';
+    }
+    return typeof item === 'number';
+  });
+};
+
+export const getSortComparator = (
+  choices,
+  options,
+  valueKey,
+  explicitComparator,
+) => {
+  if (explicitComparator) {
+    return explicitComparator;
+  }
+
+  if (
+    (options && areAllValuesNumbers(options, valueKey)) ||
+    (choices && areAllValuesNumbers(choices, valueKey))
+  ) {
+    return numberComparator;
+  }
+
+  return undefined;
+};
+
 export const innerGetOptions = props => {
   const { choices, optionRenderer, valueKey } = props;
   let options = [];
@@ -94,8 +132,7 @@ export const innerGetOptions = props => {
     options = props.options.map(o => ({
       ...o,
       value: o[valueKey],
-      label: o.label || o[valueKey],
-      customLabel: optionRenderer ? optionRenderer(o) : undefined,
+      label: optionRenderer ? optionRenderer(o) : o.label || o[valueKey],
     }));
   } else if (choices) {
     // Accepts different formats of input
@@ -130,12 +167,12 @@ export default class SelectControl extends PureComponent {
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  componentDidUpdate(prevProps) {
     if (
-      !isEqualArray(nextProps.choices, this.props.choices) ||
-      !isEqualArray(nextProps.options, this.props.options)
+      !isEqualArray(this.props.choices, prevProps.choices) ||
+      !isEqualArray(this.props.options, prevProps.options)
     ) {
-      const options = this.getOptions(nextProps);
+      const options = this.getOptions(this.props);
       this.setState({ options });
     }
   }
@@ -253,7 +290,12 @@ export default class SelectControl extends PureComponent {
       onDeselect,
       options: this.state.options,
       placeholder,
-      sortComparator: this.props.sortComparator,
+      sortComparator: getSortComparator(
+        this.props.choices,
+        this.props.options,
+        this.props.valueKey,
+        this.props.sortComparator,
+      ),
       value: getValue(),
       tokenSeparators,
       notFoundContent,
@@ -263,7 +305,7 @@ export default class SelectControl extends PureComponent {
       <div
         css={theme => css`
           .type-label {
-            margin-right: ${theme.gridUnit * 2}px;
+            margin-right: ${theme.sizeUnit * 2}px;
           }
           .Select__multi-value__label > span,
           .Select__option > span,

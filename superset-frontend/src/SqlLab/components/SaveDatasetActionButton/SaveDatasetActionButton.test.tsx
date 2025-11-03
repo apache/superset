@@ -17,15 +17,14 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
 const overlayMenu = (
-  <Menu>
-    <Menu.Item>Save dataset</Menu.Item>
-  </Menu>
+  <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
     render(
