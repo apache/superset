@@ -89,6 +89,18 @@ export default defineConfig({
         testIdAttribute: 'data-test',
       },
     },
+    {
+      // Separate project for unauthenticated tests (login, signup, etc.)
+      // These tests need a clean slate without pre-loaded authentication
+      name: 'chromium-unauth',
+      testMatch: '**/tests/auth/**/*.spec.ts',
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        // Override global storageState - start with no authentication
+        storageState: undefined,
+      },
+    },
   ],
 
   // Web server setup - disabled in CI (Flask started separately in workflow)
