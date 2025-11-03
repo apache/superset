@@ -334,18 +334,24 @@ test.skip('validates the default value', async () => {
 
 test('validates the pre-filter value', async () => {
   jest.useFakeTimers();
+  try {
+    defaultRender();
 
-  defaultRender();
+    await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+    await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+    jest.runAllTimers();
+  } finally {
+    jest.useRealTimers();
+  }
 
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
 
-  expect(
-    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-  ).toBeInTheDocument();
+  // Wait for validation to complete after timer switch
+  await waitFor(() => {
+    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+  });
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests

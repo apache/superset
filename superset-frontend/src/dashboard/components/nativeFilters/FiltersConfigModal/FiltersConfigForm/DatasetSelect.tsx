@@ -68,9 +68,12 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
         const list: {
           label: string | ReactNode;
           value: string | number;
+          table_name: string;
         }[] = response.json.result.map((item: Dataset) => ({
+          ...item,
           label: DatasetSelectLabel(item),
           value: item.id,
+          table_name: item.table_name,
         }));
         return {
           data: list,
@@ -89,6 +92,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       value={value}
       options={loadDatasetOptions}
       onChange={onChange}
+      optionFilterProps={['table_name']}
       notFoundContent={t('No compatible datasets found')}
       placeholder={t('Select a dataset')}
     />
