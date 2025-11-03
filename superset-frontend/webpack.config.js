@@ -197,6 +197,7 @@ if (!isDevMode) {
       async: isDevMode,
       typescript: {
         memoryLimit: 4096, // Increase memory for faster checking
+        mode: 'write-references',
         configOverwrite: {
           compilerOptions: {
             skipLibCheck: true,
@@ -207,6 +208,11 @@ if (!isDevMode) {
       },
       issue: {
         include: [{ severity: 'error' }],
+        exclude: [
+          { file: '**/node_modules/**/*' },
+          { file: '**/*.test.ts' },
+          { file: '**/*.test.tsx' },
+        ],
       },
       logger: {
         infrastructure: 'silent',
