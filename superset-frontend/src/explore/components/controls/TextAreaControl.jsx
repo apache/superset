@@ -132,7 +132,7 @@ class TextAreaControl extends Component {
         style.resize = this.props.resize;
       }
       if (this.props.readOnly) {
-        style.backgroundColor = '#f2f2f2';
+        style.backgroundColor = this.props.theme.colorBgMask;
       }
       const onEditorLoad = editor => {
         this.props.hotkeys.forEach(keyConfig => {
@@ -208,8 +208,7 @@ class TextAreaControl extends Component {
                 buttonSize="small"
                 style={{ marginTop: this.props.theme.sizeUnit }}
               >
-                {t('Edit')} <strong>{this.props.language}</strong>{' '}
-                {t('in modal')}
+                {t('Edit %s in modal', this.props.language)}
               </Button>
             }
             modalBody={this.renderModalBody(true)}

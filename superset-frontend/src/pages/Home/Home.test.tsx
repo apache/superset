@@ -134,12 +134,10 @@ const mockedProps = {
 };
 
 const mockedPropsWithoutSqlRole = {
-  ...{
-    ...mockedProps,
-    user: {
-      ...mockedProps.user,
-      roles: {},
-    },
+  ...mockedProps,
+  user: {
+    ...mockedProps.user,
+    roles: {},
   },
 };
 

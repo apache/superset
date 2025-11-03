@@ -86,6 +86,7 @@ import {
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
@@ -148,6 +149,7 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
+  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ResultSetButtons = styled.div`
@@ -198,6 +200,7 @@ const ResultSet = ({
         'sql',
         'executedSql',
         'sqlEditorId',
+        'sqlEditorImmutableId',
         'templateParams',
         'schema',
         'rows',
@@ -283,9 +286,8 @@ const ResultSet = ({
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
-        ...{
-          all_columns: results.columns.map(column => column.column_name),
-        },
+
+        all_columns: results.columns.map(column => column.column_name),
       });
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -301,7 +303,7 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    `/api/v1/sqllab/export/${clientId}/`;
+    ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
 
   const renderControls = () => {
     if (search || visualize || csv) {
@@ -668,6 +670,7 @@ const ResultSet = ({
                   css={css`
                     display: flex;
                     justify-content: space-between;
+                    padding-left: ${theme.sizeUnit * 4}px;
                     align-items: center;
                     gap: ${GAP}px;
                   `}
@@ -703,6 +706,7 @@ const ResultSet = ({
             <div
               css={css`
                 flex: 1 1 auto;
+                padding-left: ${theme.sizeUnit * 4}px;
               `}
             >
               <AutoSizer disableWidth>
