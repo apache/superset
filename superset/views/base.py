@@ -67,7 +67,10 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
-from ..utils.datasets import get_datasets_authorized_for_user_roles
+from ..utils.datasets import (
+    get_datasets_authorized_for_owners,
+    get_datasets_authorized_for_user_roles,
+)
 from .utils import bootstrap_user_data
 
 FRONTEND_CONF_KEYS = (
@@ -452,11 +455,17 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database.id == self.model.database_id,
         )
 
-        # Select datasets authorized for this user's roles
+        # Display the datasets for which the current user is the owner
+        # or authorized for one of the user's groups.
         feature_flagged_filters = []
         if is_feature_enabled("DATASET_RBAC"):
+            # Role access
             roles_based_query = get_datasets_authorized_for_user_roles()
             feature_flagged_filters.append(SqlaTable.id.in_(roles_based_query))
+
+            # Owner
+            owners_based_query = get_datasets_authorized_for_owners()
+            feature_flagged_filters.append(SqlaTable.id.in_(owners_based_query))
 
         return query.filter(
             or_(get_dataset_access_filters(self.model), *feature_flagged_filters)

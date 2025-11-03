@@ -27,8 +27,11 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
+from superset.utils.charts import get_charts_authorized_for_owners
 from superset.utils.core import get_user_id
-from superset.utils.datasets import get_datasets_authorized_for_user_roles
+from superset.utils.datasets import (
+    get_datasets_authorized_for_user_roles,
+)
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -111,11 +114,17 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database, table_alias.database_id == models.Database.id
         )
 
-        # Select datasets authorized for this user's roles
+        # Display the charts for which the current user is the owner
+        # or authorized by dataset rights for one of the user's groups.
         feature_flagged_filters = []
         if is_feature_enabled("DATASET_RBAC"):
+            # Roles access
             roles_based_query = get_datasets_authorized_for_user_roles()
             feature_flagged_filters.append(SqlaTable.id.in_(roles_based_query))
+
+            # Owners access
+            owners_based_query = get_charts_authorized_for_owners()
+            feature_flagged_filters.append(Slice.id.in_(owners_based_query))
 
         return query.filter(
             or_(get_dataset_access_filters(self.model), *feature_flagged_filters)

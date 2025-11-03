@@ -58,16 +58,16 @@ fetchMock.get('glob:*/api/v1/chart/318', {
       viz_type: 'Viz Type',
     },
     result: {
-      cache_timeout: null,
-      certified_by: 'John Doe',
-      certification_details: 'Sample certification',
+      cache_timeout: '1000',
+      certified_by: 'Test certified by',
+      certification_details: 'Test certification details',
       dashboards: [
         {
           dashboard_title: 'FCC New Coder Survey 2018',
           id: 23,
         },
       ],
-      description: null,
+      description: 'Test description',
       owners: [
         {
           first_name: 'Superset',
@@ -78,8 +78,9 @@ fetchMock.get('glob:*/api/v1/chart/318', {
       ],
       params:
         '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
-      slice_name: 'Age distribution of respondents',
+      slice_name: 'Test chart new name',
       viz_type: VizType.Histogram,
+      show_title: 'Show Slice',
     },
     show_columns: [
       'cache_timeout',

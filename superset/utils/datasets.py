@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable, sqlatable_roles
-from superset.utils.core import QueryObjectFilterClause
+from superset.connectors.sqla.models import SqlaTable, sqlatable_roles, sqlatable_user
+from superset.utils.core import get_user_id, QueryObjectFilterClause
 
 
 def get_datasets_authorized_for_user_roles() -> list[QueryObjectFilterClause]:
@@ -34,4 +34,18 @@ def get_datasets_authorized_for_user_roles() -> list[QueryObjectFilterClause]:
                 [x.id for x in security_manager.get_user_roles()]
             ),
         )
+    )
+
+
+def get_datasets_authorized_for_owners() -> list[QueryObjectFilterClause]:
+    """
+    Function that returns the list of datasets where user is owner
+    """
+    return (
+        db.session.query(sqlatable_user.c.table_id)
+        .join(
+            SqlaTable,
+            SqlaTable.id == sqlatable_user.c.table_id,
+        )
+        .filter(sqlatable_user.c.user_id == get_user_id())
     )

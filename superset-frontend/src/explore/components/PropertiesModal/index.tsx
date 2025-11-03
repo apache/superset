@@ -174,20 +174,19 @@ function PropertiesModal({
     }
 
     try {
-      const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+      // Retrieving the code from the following issue:
+      // https://github.com/apache/superset/pull/33392
+      const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
+      await SupersetClient.put({
+        endpoint: chartEndpoint,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      // update the redux state
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: selectedOwners,
-      };
-      onSave(updatedChart);
+
+      const res = await SupersetClient.get({
+        endpoint: chartEndpoint,
+      });
+      onSave(res.json.result);
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
