@@ -34,7 +34,13 @@ Once a test has proven stable (no false positives/negatives over sufficient time
 
 1. Move the test file out of `experimental/` to the appropriate feature directory:
    ```bash
-   git mv playwright/tests/experimental/dashboard/test.spec.ts playwright/tests/dashboard/
+   # From the repository root:
+   git mv superset-frontend/playwright/tests/experimental/dashboard/test.spec.ts \
+          superset-frontend/playwright/tests/dashboard/
+
+   # Or from the superset-frontend/ directory:
+   git mv playwright/tests/experimental/dashboard/test.spec.ts \
+          playwright/tests/dashboard/
    ```
 
 2. The test will automatically become required for merge

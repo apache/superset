@@ -248,7 +248,9 @@ playwright-run() {
       return 0
     fi
     echo "Running tests: ${TEST_PATH}"
-    npx playwright test ${TEST_PATH} --reporter=github --output=playwright-results
+    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
+    export INCLUDE_EXPERIMENTAL=true
+    npx playwright test "${TEST_PATH}" --reporter=github --output=playwright-results
   else
     echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
     npx playwright test --reporter=github --output=playwright-results

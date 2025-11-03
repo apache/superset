@@ -26,8 +26,10 @@ export default defineConfig({
   // Test directory
   testDir: './playwright/tests',
 
-  // Ignore experimental tests by default (run separately in CI with continue-on-error)
-  testIgnore: '**/experimental/**',
+  // Conditionally ignore experimental tests based on env var
+  // When INCLUDE_EXPERIMENTAL=true, experimental tests are included
+  // Otherwise, they are excluded (default for required tests)
+  testIgnore: process.env.INCLUDE_EXPERIMENTAL ? undefined : '**/experimental/**',
 
   // Timeout settings
   timeout: 30000,
