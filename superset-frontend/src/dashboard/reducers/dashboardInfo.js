@@ -90,15 +90,15 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         metadata: {
           ...state.metadata,
-          native_filter_configuration: [
-            ...(state.metadata?.native_filter_configuration || []).filter(
-              item =>
-                !(
-                  item.type === 'CHART_CUSTOMIZATION' &&
-                  item.id === 'chart_customization_groupby'
-                ),
-            ),
-          ],
+          native_filter_configuration: (
+            state.metadata?.native_filter_configuration || []
+          ).filter(
+            item =>
+              !(
+                item.type === 'CHART_CUSTOMIZATION' &&
+                item.id === 'chart_customization_groupby'
+              ),
+          ),
           chart_customization_config: action.chartCustomization,
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),
@@ -108,15 +108,15 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         metadata: {
           ...state.metadata,
-          native_filter_configuration: [
-            ...(state.metadata?.native_filter_configuration || []).filter(
-              item =>
-                !(
-                  item.type === 'CHART_CUSTOMIZATION' &&
-                  item.id === 'chart_customization_groupby'
-                ),
-            ),
-          ],
+          native_filter_configuration: (
+            state.metadata?.native_filter_configuration || []
+          ).filter(
+            item =>
+              !(
+                item.type === 'CHART_CUSTOMIZATION' &&
+                item.id === 'chart_customization_groupby'
+              ),
+          ),
           chart_customization_config: action.chartCustomization,
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),

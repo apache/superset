@@ -37,7 +37,7 @@ const alertEndpoint = 'glob:*/api/v1/report/*';
 const alertsInfoEndpoint = 'glob:*/api/v1/report/_info*';
 const alertsCreatedByEndpoint = 'glob:*/api/v1/report/related/created_by*';
 
-const mockalerts = [...new Array(3)].map((_, i) => ({
+const mockalerts = new Array(3).fill().map((_, i) => ({
   active: true,
   changed_by: {
     first_name: `user ${i}`,
