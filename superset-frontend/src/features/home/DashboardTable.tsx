@@ -242,8 +242,8 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
-            getData(activeTab);
             setDashboardToDelete(null);
           }}
           onHide={() => setDashboardToDelete(null)}
