@@ -27,7 +27,9 @@ import { APIRequestContext, Page } from '@playwright/test';
  * @returns CSRF access token string
  */
 export async function getCSRFToken(page: Page): Promise<string> {
-  const token = await page.evaluate(() => window.localStorage.getItem('access_token'));
+  const token = await page.evaluate(() =>
+    window.localStorage.getItem('access_token'),
+  );
 
   if (!token) {
     throw new Error(

@@ -30,7 +30,10 @@ import { AuthPage } from './pages/AuthPage';
 /**
  * Global setup function that runs once before all tests.
  * Authenticates as admin user and saves the authentication state
- * to be reused by all tests, avoiding repeated UI logins.
+ * to be reused by tests in the 'chromium' project (E2E tests).
+ *
+ * Auth tests (chromium-unauth project) don't use this - they login
+ * per-test via beforeEach for isolation and simplicity.
  */
 async function globalSetup(config: FullConfig) {
   // Get baseURL with fallback to default
