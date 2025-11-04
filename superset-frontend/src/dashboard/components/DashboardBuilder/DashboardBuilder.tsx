@@ -96,14 +96,19 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
+const StyledHeader = styled.div<{
+  filterBarWidth: number;
+  showVerticalFilterBar: boolean;
+}>`
+  ${({ theme, filterBarWidth, showVerticalFilterBar }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: 100vw;
+    max-width: ${showVerticalFilterBar
+      ? `calc(100vw - ${filterBarWidth}px)`
+      : '100vw'};
 
     .empty-droptarget:before {
       position: absolute;
@@ -561,6 +566,15 @@ const DashboardBuilder = () => {
     ? theme.sizeUnit * 4
     : theme.sizeUnit * 8;
 
+  // Calculate filter bar width for header max-width
+  const showVerticalFilterBar =
+    showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
+  const headerFilterBarWidth = showVerticalFilterBar
+    ? dashboardFiltersOpen
+      ? OPEN_FILTER_BAR_WIDTH // Use default open width for header calculation
+      : CLOSED_FILTER_BAR_WIDTH
+    : 0;
+
   const renderChild = useCallback(
     adjustedWidth => {
       const filterBarWidth = dashboardFiltersOpen
@@ -614,7 +628,11 @@ const DashboardBuilder = () => {
             </ResizableSidebar>
           </>
         )}
-      <StyledHeader ref={headerRef}>
+      <StyledHeader
+        ref={headerRef}
+        filterBarWidth={headerFilterBarWidth}
+        showVerticalFilterBar={showVerticalFilterBar}
+      >
         {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
