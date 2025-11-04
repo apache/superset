@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 """Semantic layer models."""
 
 from __future__ import annotations
@@ -39,7 +40,6 @@ class SemanticLayer(AuditMixinNullable, Model):
 
     __tablename__ = "semantic_layers"
 
-    # UUID primary key (following new model guidelines)
     uuid = Column(UUIDType(binary=True), primary_key=True, default=uuid.uuid4)
 
     # Core fields
@@ -47,10 +47,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     description = Column(Text, nullable=True)
     type = Column(String(250), nullable=False)
 
-    # JSON configuration
     configuration = Column(utils.MediumText(), default="{}")
-
-    # Cache configuration
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic views relationship
@@ -74,16 +71,12 @@ class SemanticView(AuditMixinNullable, Model):
 
     __tablename__ = "semantic_views"
 
-    # UUID primary key (following new model guidelines)
     uuid = Column(UUIDType(binary=True), primary_key=True, default=uuid.uuid4)
 
     # Core fields
     name = Column(String(250), nullable=False)
 
-    # JSON configuration
     configuration = Column(utils.MediumText(), default="{}")
-
-    # Cache configuration
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic layer relationship
