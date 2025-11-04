@@ -34,7 +34,14 @@ import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
+let originalLocation: Location;
+
+beforeEach(() => {
+  originalLocation = window.location;
+});
+
 afterEach(() => {
+  window.location = originalLocation;
   cleanup();
   fetchMock.reset();
   fetchMock.restore();
