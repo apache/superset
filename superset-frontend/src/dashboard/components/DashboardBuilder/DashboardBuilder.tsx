@@ -96,14 +96,14 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
+const StyledHeader = styled.div<{ filterBarWidth: number }>`
+  ${({ theme, filterBarWidth }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: 100vw;
+    max-width: calc(100vw - ${filterBarWidth}px);
 
     .empty-droptarget:before {
       position: absolute;
@@ -426,6 +426,7 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
+  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(0);
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -523,6 +524,7 @@ const DashboardBuilder = () => {
             shouldFocus={shouldFocusTabs}
             menuItems={[
               <IconButton
+                key="collapse-tabs"
                 icon={<Icons.FallOutlined iconSize="xl" />}
                 label={t('Collapse tab content')}
                 onClick={handleDeleteTopLevelTabs}
@@ -566,6 +568,7 @@ const DashboardBuilder = () => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
+      setCurrentFilterBarWidth(filterBarWidth);
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -614,7 +617,15 @@ const DashboardBuilder = () => {
             </ResizableSidebar>
           </>
         )}
-      <StyledHeader ref={headerRef}>
+      <StyledHeader
+        ref={headerRef}
+        filterBarWidth={
+          showFilterBar &&
+          filterBarOrientation === FilterBarOrientation.Vertical
+            ? currentFilterBarWidth
+            : 0
+        }
+      >
         {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
