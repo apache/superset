@@ -23,23 +23,32 @@ jest.mock('ag-grid-community', () => ({
   ModuleRegistry: {
     registerModules: jest.fn(),
   },
-  ColumnAutoSizeModule: { moduleName: 'ColumnAutoSizeModule' },
-  ColumnHoverModule: { moduleName: 'ColumnHoverModule' },
-  RowAutoHeightModule: { moduleName: 'RowAutoHeightModule' },
-  RowStyleModule: { moduleName: 'RowStyleModule' },
-  PaginationModule: { moduleName: 'PaginationModule' },
-  CellStyleModule: { moduleName: 'CellStyleModule' },
-  TextFilterModule: { moduleName: 'TextFilterModule' },
-  NumberFilterModule: { moduleName: 'NumberFilterModule' },
-  DateFilterModule: { moduleName: 'DateFilterModule' },
-  ExternalFilterModule: { moduleName: 'ExternalFilterModule' },
-  CsvExportModule: { moduleName: 'CsvExportModule' },
-  ColumnApiModule: { moduleName: 'ColumnApiModule' },
-  RowApiModule: { moduleName: 'RowApiModule' },
-  CellApiModule: { moduleName: 'CellApiModule' },
-  RenderApiModule: { moduleName: 'RenderApiModule' },
-  ClientSideRowModelModule: { moduleName: 'ClientSideRowModelModule' },
-  CustomFilterModule: { moduleName: 'CustomFilterModule' },
+  ColumnAutoSizeModule: {
+    moduleName: 'ColumnAutoSizeModule',
+    version: '1.0.0',
+  },
+  ColumnHoverModule: { moduleName: 'ColumnHoverModule', version: '1.0.0' },
+  RowAutoHeightModule: { moduleName: 'RowAutoHeightModule', version: '1.0.0' },
+  RowStyleModule: { moduleName: 'RowStyleModule', version: '1.0.0' },
+  PaginationModule: { moduleName: 'PaginationModule', version: '1.0.0' },
+  CellStyleModule: { moduleName: 'CellStyleModule', version: '1.0.0' },
+  TextFilterModule: { moduleName: 'TextFilterModule', version: '1.0.0' },
+  NumberFilterModule: { moduleName: 'NumberFilterModule', version: '1.0.0' },
+  DateFilterModule: { moduleName: 'DateFilterModule', version: '1.0.0' },
+  ExternalFilterModule: {
+    moduleName: 'ExternalFilterModule',
+    version: '1.0.0',
+  },
+  CsvExportModule: { moduleName: 'CsvExportModule', version: '1.0.0' },
+  ColumnApiModule: { moduleName: 'ColumnApiModule', version: '1.0.0' },
+  RowApiModule: { moduleName: 'RowApiModule', version: '1.0.0' },
+  CellApiModule: { moduleName: 'CellApiModule', version: '1.0.0' },
+  RenderApiModule: { moduleName: 'RenderApiModule', version: '1.0.0' },
+  ClientSideRowModelModule: {
+    moduleName: 'ClientSideRowModelModule',
+    version: '1.0.0',
+  },
+  CustomFilterModule: { moduleName: 'CustomFilterModule', version: '1.0.0' },
 }));
 
 beforeEach(() => {
@@ -65,8 +74,14 @@ test('setupAGGridModules registers default modules when called without arguments
 });
 
 test('setupAGGridModules registers default + additional modules when provided', () => {
-  const mockEnterpriseModule1 = { moduleName: 'MultiFilterModule' };
-  const mockEnterpriseModule2 = { moduleName: 'PivotModule' };
+  const mockEnterpriseModule1 = {
+    moduleName: 'MultiFilterModule' as any,
+    version: '1.0.0',
+  };
+  const mockEnterpriseModule2 = {
+    moduleName: 'PivotModule' as any,
+    version: '1.0.0',
+  };
   const additionalModules = [mockEnterpriseModule1, mockEnterpriseModule2];
 
   setupAGGridModules(additionalModules);
@@ -77,7 +92,7 @@ test('setupAGGridModules registers default + additional modules when provided', 
     .calls[0][0];
 
   // Should contain all default modules
-  defaultModules.forEach(module => {
+  defaultModules.forEach((module: any) => {
     expect(registeredModules).toContain(module);
   });
 
@@ -100,7 +115,10 @@ test('setupAGGridModules handles empty additional modules array', () => {
 
 test('setupAGGridModules does not mutate defaultModules array', () => {
   const originalLength = defaultModules.length;
-  const mockEnterpriseModule = { moduleName: 'EnterpriseModule' };
+  const mockEnterpriseModule = {
+    moduleName: 'EnterpriseModule' as any,
+    version: '1.0.0',
+  };
 
   setupAGGridModules([mockEnterpriseModule]);
 
