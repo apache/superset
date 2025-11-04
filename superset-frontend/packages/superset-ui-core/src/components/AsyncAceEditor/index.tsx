@@ -207,6 +207,44 @@ export function AsyncAceEditor(
           }
         }, [keywords, setCompleters]);
 
+        // Move autocomplete popup to the nearest parent container with data-ace-container
+        useEffect(() => {
+          const editorInstance = (ref as any)?.current?.editor;
+          if (!editorInstance) return;
+
+          const moveAutocompleteToContainer = () => {
+            const autocompletePopup = document.querySelector(
+              '.ace_autocomplete',
+            ) as HTMLElement;
+
+            if (autocompletePopup) {
+              const editorContainer = editorInstance.container;
+
+              const targetContainer = editorContainer?.parentElement;
+
+              if (targetContainer && targetContainer !== document.body) {
+                targetContainer.appendChild(autocompletePopup);
+                autocompletePopup.setAttribute('data-ace-autocomplete', 'true');
+              }
+            }
+          };
+
+          // Hook into Ace's command execution to detect when autocomplete starts
+          const handleAfterExec = (e: any) => {
+            if (e.command.name === 'insertstring') {
+              moveAutocompleteToContainer();
+            }
+          };
+
+          editorInstance.commands.on('afterExec', handleAfterExec);
+
+          return () => {
+            if (editorInstance.commands) {
+              editorInstance.commands.off('afterExec', handleAfterExec);
+            }
+          };
+        }, [ref]);
+
         return (
           <>
             <Global
