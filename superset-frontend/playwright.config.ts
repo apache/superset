@@ -83,6 +83,8 @@ export default defineConfig({
 
   projects: [
     {
+      // Default project - uses global authentication for speed
+      // E2E tests login once via global-setup.ts and reuse auth state
       name: 'chromium',
       use: {
         browserName: 'chromium',
@@ -91,7 +93,8 @@ export default defineConfig({
     },
     {
       // Separate project for unauthenticated tests (login, signup, etc.)
-      // These tests need a clean slate without pre-loaded authentication
+      // These tests use beforeEach for per-test navigation - no global auth
+      // This hybrid approach: simple auth tests, fast E2E tests
       name: 'chromium-unauth',
       testMatch: '**/tests/auth/**/*.spec.ts',
       use: {
