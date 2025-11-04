@@ -23,18 +23,23 @@ import { URL } from '../../utils/urls';
 import { TIMEOUT } from '../../utils/constants';
 
 /**
- * Auth/login tests run in the 'chromium-unauth' project (see playwright.config.ts)
- * which has storageState: undefined, so these tests start without authentication.
- * This allows us to test the actual login flow from an unauthenticated state.
+ * Auth/login tests use per-test navigation via beforeEach.
+ * Each test starts fresh on the login page without global authentication.
+ * This follows the Cypress pattern for auth testing - simple and isolated.
  */
+
+test.beforeEach(async ({ page }) => {
+  // Navigate to login page before each test (ensures clean state)
+  const authPage = new AuthPage(page);
+  await authPage.goto();
+  await authPage.waitForLoginForm();
+});
 
 test('should redirect to login with incorrect username and password', async ({
   page,
 }) => {
-  // Create page object and navigate to login
+  // Create page object (already on login page from beforeEach)
   const authPage = new AuthPage(page);
-  await authPage.goto();
-  await authPage.waitForLoginForm();
 
   // Setup request interception before login attempt
   const loginRequestPromise = authPage.waitForLoginRequest();
@@ -62,10 +67,8 @@ test('should redirect to login with incorrect username and password', async ({
 });
 
 test('should login with correct username and password', async ({ page }) => {
-  // Create page object and navigate to login
+  // Create page object (already on login page from beforeEach)
   const authPage = new AuthPage(page);
-  await authPage.goto();
-  await authPage.waitForLoginForm();
 
   // Setup request interception before login attempt
   const loginRequestPromise = authPage.waitForLoginRequest();
