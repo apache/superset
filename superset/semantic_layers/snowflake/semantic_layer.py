@@ -32,6 +32,11 @@ if TYPE_CHECKING:
 
 
 class SnowflakeSemanticLayer:
+
+    id = "snowflake"
+    name = "Snowflake Semantic Layer"
+    description = "Connect to semantic views stored in Snowflake."
+
     configuration_schema = SnowflakeConfiguration
 
     @classmethod
