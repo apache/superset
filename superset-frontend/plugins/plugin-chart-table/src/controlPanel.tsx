@@ -39,6 +39,7 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ConditionalFormattingConfig,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -767,6 +768,26 @@ const config: ControlPanelConfig = {
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
+                const value = _?.value ?? [];
+                if (value && Array.isArray(value)) {
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        !['Green', 'Red'].includes(item.colorScheme)
+                      ) {
+                        if (!item.toAllRow || !item.toTextColor) {
+                          // eslint-disable-next-line no-param-reassign
+                          array[index] = {
+                            ...item,
+                            toAllRow: item.toAllRow ?? false,
+                            toTextColor: item.toTextColor ?? false,
+                          };
+                        }
+                      }
+                    },
+                  );
+                }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -801,6 +822,10 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  conditionalFormattingFlag: {
+                    toAllRowCheck: true,
+                    toColorTextCheck: true,
+                  },
                 };
               },
             },

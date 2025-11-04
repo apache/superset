@@ -48,6 +48,7 @@ import type {
   DatabaseValue,
   DatabaseObject,
 } from './types';
+import { StyledFormLabel } from './styles';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -56,7 +57,6 @@ const DatabaseSelectorWrapper = styled.div`
       align-items: center;
       width: 30px;
       margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -372,23 +372,27 @@ export function DatabaseSelector({
         tooltipContent={t('Force refresh catalog list')}
       />
     );
-    return renderSelectRow(
-      <Select
-        ariaLabel={t('Select catalog or type to search catalogs')}
-        disabled={!currentDb || readOnly}
-        header={<FormLabel>{t('Catalog')}</FormLabel>}
-        labelInValue
-        loading={loadingCatalogs}
-        name="select-catalog"
-        notFoundContent={t('No compatible catalog found')}
-        placeholder={t('Select catalog or type to search catalogs')}
-        onChange={item => changeCatalog(item as CatalogOption)}
-        options={catalogOptions}
-        showSearch
-        value={currentCatalog || undefined}
-        allowClear
-      />,
-      refreshIcon,
+    return (
+      <>
+        <StyledFormLabel>{t('Catalog')}</StyledFormLabel>
+        {renderSelectRow(
+          <Select
+            ariaLabel={t('Select catalog or type to search catalogs')}
+            disabled={!currentDb || readOnly}
+            labelInValue
+            loading={loadingCatalogs}
+            name="select-catalog"
+            notFoundContent={t('No compatible catalog found')}
+            placeholder={t('Select catalog or type to search catalogs')}
+            onChange={item => changeCatalog(item as CatalogOption)}
+            options={catalogOptions}
+            showSearch
+            value={currentCatalog || undefined}
+            allowClear
+          />,
+          refreshIcon,
+        )}
+      </>
     );
   }
 
@@ -399,23 +403,27 @@ export function DatabaseSelector({
         tooltipContent={t('Force refresh schema list')}
       />
     );
-    return renderSelectRow(
-      <Select
-        ariaLabel={t('Select schema or type to search schemas')}
-        disabled={!currentDb || readOnly}
-        header={<FormLabel>{t('Schema')}</FormLabel>}
-        labelInValue
-        loading={loadingSchemas}
-        name="select-schema"
-        notFoundContent={t('No compatible schema found')}
-        placeholder={t('Select schema or type to search schemas')}
-        onChange={item => changeSchema(item as SchemaOption)}
-        options={schemaOptions}
-        showSearch
-        value={currentSchema}
-        allowClear
-      />,
-      refreshIcon,
+    return (
+      <>
+        <StyledFormLabel>{t('Schema')}</StyledFormLabel>
+        {renderSelectRow(
+          <Select
+            ariaLabel={t('Select schema or type to search schemas')}
+            disabled={!currentDb || readOnly}
+            labelInValue
+            loading={loadingSchemas}
+            name="select-schema"
+            notFoundContent={t('No compatible schema found')}
+            placeholder={t('Select schema or type to search schemas')}
+            onChange={item => changeSchema(item as SchemaOption)}
+            options={schemaOptions}
+            showSearch
+            value={currentSchema}
+            allowClear
+          />,
+          refreshIcon,
+        )}
+      </>
     );
   }
 
