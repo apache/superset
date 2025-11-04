@@ -424,7 +424,7 @@ test('should render the plus menu (+) when user is not anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  expect(await screen.findByTestId('new-dropdown')).toBeInTheDocument();
+  expect(await screen.findByTestId('new-dropdown-icon')).toBeInTheDocument();
 });
 
 test('should NOT render the plus menu (+) when user is anonymous', async () => {

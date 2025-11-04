@@ -43,7 +43,7 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
-const mockDashboards = [...new Array(3)].map((_, i) => ({
+const mockDashboards = new Array(3).fill().map((_, i) => ({
   id: i,
   url: 'url',
   dashboard_title: `title ${i}`,

@@ -378,7 +378,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.25
+holidays==0.82
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -451,10 +451,6 @@ kombu==5.5.3
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-korean-lunar-calendar==0.3.1
-    # via
-    #   -c requirements/base-constraint.txt
-    #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 limits==5.1.0
@@ -641,7 +637,7 @@ prompt-toolkit==3.0.51
     # via
     #   -c requirements/base-constraint.txt
     #   click-repl
-prophet==1.1.5
+prophet==1.2.0
     # via apache-superset
 proto-plus==1.25.0
     # via
@@ -861,7 +857,7 @@ setuptools==80.7.1
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.3.5
+shillelagh==1.4.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
