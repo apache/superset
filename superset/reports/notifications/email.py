@@ -119,11 +119,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         domain = self._get_smtp_domain()
         images = {}
 
-        if self._content.screenshots:
-            images = {
-                make_msgid(domain)[1:-1]: screenshot
-                for screenshot in self._content.screenshots
-            }
+        # Attachments are disabled - screenshots will not be included
+        # if self._content.screenshots:
+        #     images = {
+        #         make_msgid(domain)[1:-1]: screenshot
+        #         for screenshot in self._content.screenshots
+        #     }
 
         # Strip any malicious HTML from the description
         # pylint: disable=no-member
@@ -147,14 +148,15 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
+        # Inline images are disabled - no image tags will be generated
         img_tags = []
-        for msgid in images.keys():
-            img_tags.append(
-                f"""<div class="image">
-                    <img width="1000" src="cid:{msgid}">
-                </div>
-                """
-            )
+        # for msgid in images.keys():
+        #     img_tags.append(
+        #         f"""<div class="image">
+        #             <img width="1000" src="cid:{msgid}">
+        #         </div>
+        #         """
+        #     )
         img_tag = "".join(img_tags)
         call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
@@ -184,19 +186,20 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
+        # Attachments are disabled - CSV and PDF will not be included
         csv_data = None
-        if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+        # if self._content.csv:
+        #     csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
 
         pdf_data = None
-        if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
+        # if self._content.pdf:
+        #     pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
 
         return EmailContent(
             body=body,
-            images=images,
-            pdf=pdf_data,
-            data=csv_data,
+            images=None,  # No images attached
+            pdf=None,  # No PDF attachments
+            data=None,  # No CSV attachments
             header_data=self._content.header_data,
         )
 
