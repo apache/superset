@@ -29,7 +29,9 @@ export default defineConfig({
   // Conditionally ignore experimental tests based on env var
   // When INCLUDE_EXPERIMENTAL=true, experimental tests are included
   // Otherwise, they are excluded (default for required tests)
-  testIgnore: process.env.INCLUDE_EXPERIMENTAL ? undefined : '**/experimental/**',
+  testIgnore: process.env.INCLUDE_EXPERIMENTAL
+    ? undefined
+    : '**/experimental/**',
 
   // Timeout settings
   timeout: 30000,

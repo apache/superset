@@ -250,13 +250,13 @@ playwright-run() {
     echo "Running tests: ${TEST_PATH}"
     # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
     export INCLUDE_EXPERIMENTAL=true
-    npx playwright test "${TEST_PATH}" --reporter=github --output=playwright-results
+    npx playwright test "${TEST_PATH}" --output=playwright-results
     local status=$?
     # Unset to prevent leaking into subsequent commands
     unset INCLUDE_EXPERIMENTAL
   else
     echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
-    npx playwright test --reporter=github --output=playwright-results
+    npx playwright test --output=playwright-results
     local status=$?
   fi
   say "::endgroup::"
