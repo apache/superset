@@ -185,20 +185,16 @@ test('renders correct column headers', async () => {
   await waitFor(() => {
     const chartHeader = screen
       .getAllByText('Chart')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'));
     const ownersHeader = screen
       .getAllByText('Chart owners')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'));
     const lastModifiedHeader = screen
       .getAllByText('Last modified')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'));
     const dashboardHeader = screen
       .getAllByText('Dashboard usage')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'));
 
     expect(chartHeader).toBeInTheDocument();
     expect(ownersHeader).toBeInTheDocument();
@@ -231,20 +227,23 @@ test('enables sorting for Chart and Last modified columns', async () => {
   await waitFor(() => {
     const chartHeader = screen
       .getAllByText('Chart')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
     const lastModifiedHeader = screen
       .getAllByText('Last modified')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
     const ownersHeader = screen
       .getAllByText('Chart owners')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
     const dashboardHeader = screen
       .getAllByText('Dashboard usage')
-      .map(el => el.closest('th'))
-      .find(Boolean);
+      .find(el => el.closest('th'))
+      ?.closest('th');
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
