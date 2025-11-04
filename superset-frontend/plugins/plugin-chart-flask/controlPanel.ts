@@ -36,7 +36,7 @@ export default {
             config: {
               type: 'SelectControl',
               label: 'Modo',
-              default: 'claro',
+              default: '',
               choices: [
                 ['', 'Padrão'],
                 ['dark', 'Escuro'],
