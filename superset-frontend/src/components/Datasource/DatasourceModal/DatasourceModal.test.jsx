@@ -125,15 +125,17 @@ describe('DatasourceModal', () => {
     jest
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
+
     await act(async () => {
       const saveButton = screen.getByTestId('datasource-modal-save');
       fireEvent.click(saveButton);
       const okButton = await screen.findByRole('button', { name: 'OK' });
       okButton.click();
     });
+
     await act(async () => {
       const errorElements = await screen.findAllByText('Error saving dataset');
-      const errorDiv = errorElements.map(el => el.closest('div')).find(Boolean);
+      const errorDiv = errorElements.find(el => el.closest('div'));
       expect(errorDiv).toBeInTheDocument();
     });
   });

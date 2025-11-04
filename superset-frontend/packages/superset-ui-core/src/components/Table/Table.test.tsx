@@ -71,8 +71,7 @@ test('renders with default props', async () => {
       expect(
         screen
           .getAllByText(column.title as string)
-          .map(el => el.closest('th'))
-          .find(Boolean),
+          .find(el => el.closest('th')),
       ).toBeInTheDocument(),
     ),
   );
