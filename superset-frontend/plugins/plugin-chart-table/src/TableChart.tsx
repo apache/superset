@@ -144,8 +144,9 @@ function cellWidth({
 /**
  * Sanitize a column identifier for use in HTML id attributes and CSS selectors.
  * Replaces characters that are invalid in CSS selectors with safe alternatives.
+ * Exported for testing.
  */
-function sanitizeHeaderId(columnId: string): string {
+export function sanitizeHeaderId(columnId: string): string {
   return columnId
     .replace(/%/g, 'percent')
     .replace(/#/g, 'hash')
@@ -857,6 +858,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
+      // Cache sanitized header ID to avoid recomputing it multiple times
+      const headerId = sanitizeHeaderId(column.originalLabel || column.key);
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -982,7 +986,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           const cellProps = {
-            'aria-labelledby': `header-${sanitizeHeaderId(column.originalLabel || column.key)}`,
+            'aria-labelledby': `header-${headerId}`,
             role: 'cell',
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -1069,7 +1073,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${sanitizeHeaderId(column.originalLabel || column.key)}`}
+            id={`header-${headerId}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{

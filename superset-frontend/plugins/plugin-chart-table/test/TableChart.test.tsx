@@ -19,11 +19,49 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
-import TableChart from '../src/TableChart';
+import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+
+describe('sanitizeHeaderId', () => {
+  test('should sanitize percent sign', () => {
+    expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
+  });
+
+  test('should sanitize hash/pound sign', () => {
+    expect(sanitizeHeaderId('# metric_1')).toBe('hash_metric_1');
+  });
+
+  test('should sanitize delta symbol', () => {
+    expect(sanitizeHeaderId('△ delta')).toBe('delta_delta');
+  });
+
+  test('should replace spaces with underscores', () => {
+    expect(sanitizeHeaderId('Main metric_1')).toBe('Main_metric_1');
+    expect(sanitizeHeaderId('multiple  spaces')).toBe('multiple_spaces');
+  });
+
+  test('should handle multiple special characters', () => {
+    expect(sanitizeHeaderId('% #△ test')).toBe('percent_hashdelta_test');
+    expect(sanitizeHeaderId('% # △ test')).toBe('percent_hash_delta_test');
+  });
+
+  test('should preserve alphanumeric, underscore, and hyphen', () => {
+    expect(sanitizeHeaderId('valid-name_123')).toBe('valid-name_123');
+  });
+
+  test('should replace other special characters with underscore', () => {
+    expect(sanitizeHeaderId('col@name!test')).toBe('col_name_test');
+    expect(sanitizeHeaderId('test.column')).toBe('test_column');
+  });
+
+  test('should handle edge cases', () => {
+    expect(sanitizeHeaderId('')).toBe('');
+    expect(sanitizeHeaderId('simple')).toBe('simple');
+  });
+});
 
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
