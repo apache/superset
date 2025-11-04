@@ -1,0 +1,63 @@
+# Azure DevOps Pipeline for Superset
+# Reuses templates and scripts from oee-intellisuite project
+
+trigger:
+  - main
+
+pool:
+  name: "Default" # Reuse oee-intellisuite agent pool
+
+variables:
+  # Reuse oee-intellisuite variable groups
+  - group: "common-variables"
+  - name: dockerRegistryServiceConnection
+    value: "acr-connection"
+  - name: imageRepository
+    value: "superset"
+  - name: containerRegistry
+    value: "youracr.azurecr.io"
+  - name: dockerfilePath
+    value: "Dockerfile"
+  - name: buildContext
+    value: "."
+
+stages:
+  - stage: Build
+    displayName: "Build and Push Container"
+    jobs:
+      - job: Build
+        displayName: "Build Superset Container"
+        steps:
+          # Reuse oee-intellisuite build template
+          - template: templates/build-container.yml@oee-intellisuite
+            parameters:
+              dockerRegistryServiceConnection: $(dockerRegistryServiceConnection)
+              containerRegistry: $(containerRegistry)
+              imageRepository: $(imageRepository)
+              dockerfilePath: $(dockerfilePath)
+              buildContext: $(buildContext)
+              tags: |
+                $(Build.BuildNumber)
+                latest
+
+  - stage: Deploy
+    displayName: "Deploy to Environment"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        displayName: "Deploy Superset"
+        environment: "production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Reuse oee-intellisuite deployment template
+                - template: templates/deploy-docker-compose.yml@oee-intellisuite
+                  parameters:
+                    # Reuse oee-intellisuite deployment script
+                    - template: scripts/deploy-superset.sh@oee-intellisuite
+                      parameters:
+                        environment: "production"
+                        registry: $(containerRegistry)
+                        image: $(imageRepository):$(Build.BuildNumber)
