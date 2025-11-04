@@ -25,7 +25,8 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Loading } from '@superset-ui/core/components';
+import { Loading, Alert } from '@superset-ui/core/components';
+import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
@@ -34,8 +35,9 @@ interface Props {
 }
 
 type Result = {
-  query: string;
-  language: string;
+  query?: string;
+  language: SupportedLanguage;
+  error?: string;
 };
 
 const ViewQueryModalContainer = styled.div`
@@ -88,12 +90,19 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
   return (
     <ViewQueryModalContainer>
       {result.map((item, index) =>
-        item.query ? (
+        item.error ? (
+          <Alert
+            key={`error-${index}`}
+            type="error"
+            message={item.error}
+            closable={false}
+          />
+        ) : item.query ? (
           <ViewQuery
             key={`query-${index}`}
             datasource={latestQueryFormData.datasource}
             sql={item.query}
-            language="sql"
+            language={item.language}
           />
         ) : null,
       )}
