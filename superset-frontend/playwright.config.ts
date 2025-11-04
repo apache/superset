@@ -70,9 +70,6 @@ export default defineConfig({
 
     viewport: { width: 1280, height: 1024 },
 
-    // Reuse authentication state from global setup
-    storageState: 'playwright/.auth/user.json',
-
     // Screenshots and videos on failure
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -85,10 +82,14 @@ export default defineConfig({
     {
       // Default project - uses global authentication for speed
       // E2E tests login once via global-setup.ts and reuse auth state
+      // Explicitly ignore auth tests (they run in chromium-unauth project)
       name: 'chromium',
+      testIgnore: '**/tests/auth/**/*.spec.ts',
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
+        // Reuse authentication state from global setup (fast E2E tests)
+        storageState: 'playwright/.auth/user.json',
       },
     },
     {
@@ -100,8 +101,7 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
-        // Override global storageState - start with no authentication
-        storageState: undefined,
+        // No storageState = clean browser with no cached cookies
       },
     },
   ],
