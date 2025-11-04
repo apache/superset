@@ -18,6 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
+import { cloneDeep } from 'lodash';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -286,10 +287,7 @@ describe('plugin-chart-table', () => {
 
       it('render advanced data', () => {
         render(
-          <>
-            <TableChart {...transformProps(testData.advanced)} sticky={false} />
-            ,
-          </>,
+          <TableChart {...transformProps(testData.advanced)} sticky={false} />,
         );
         const secondColumnHeader = screen.getByText('Sum of Num');
         expect(secondColumnHeader).toBeInTheDocument();
@@ -467,7 +465,7 @@ describe('plugin-chart-table', () => {
       });
 
       it('render cell without color', () => {
-        const dataWithEmptyCell = testData.advanced.queriesData[0];
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({
           __timestamp: null,
           name: 'Noah',
@@ -520,6 +518,141 @@ describe('plugin-chart-table', () => {
               header.textContent.includes('Metric')),
         );
         expect(hasMetricHeaders).toBe(true);
+      });
+
+      it('should set meaningful header IDs for time-comparison columns', () => {
+        // Test time-comparison columns have proper IDs
+        // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
+        const props = transformProps(testData.comparison);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        const headers = screen.getAllByRole('columnheader');
+
+        // All headers should have IDs
+        const headersWithIds = headers.filter(header => header.id);
+        expect(headersWithIds.length).toBeGreaterThan(0);
+
+        // None should have "header-undefined"
+        const undefinedHeaders = headersWithIds.filter(header =>
+          header.id.includes('undefined'),
+        );
+        expect(undefinedHeaders).toHaveLength(0);
+
+        // Should have IDs based on sanitized originalLabel (e.g., "metric_1")
+        const hasMetricHeaders = headersWithIds.some(
+          header =>
+            header.id.includes('metric_1') || header.id.includes('metric_2'),
+        );
+        expect(hasMetricHeaders).toBe(true);
+
+        // CRITICAL: Verify sanitization - no spaces or special chars in any header ID
+        headersWithIds.forEach(header => {
+          // IDs must not contain spaces (would break CSS selectors and ARIA)
+          expect(header.id).not.toMatch(/\s/);
+          // IDs must not contain special chars like %, #, △
+          expect(header.id).not.toMatch(/[%#△]/);
+          // IDs should only contain valid characters: alphanumeric, underscore, hyphen
+          expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
+        });
+
+        // CRITICAL: Verify ALL cells reference valid headers (no broken ARIA)
+        const cellsWithLabels = container.querySelectorAll(
+          'td[aria-labelledby]',
+        );
+        cellsWithLabels.forEach(cell => {
+          const labelledBy = cell.getAttribute('aria-labelledby');
+          if (labelledBy) {
+            // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
+            expect(labelledBy).not.toMatch(/\s/);
+            // Check that the ID doesn't contain special characters
+            expect(labelledBy).not.toMatch(/[%#△]/);
+            // Verify the referenced header actually exists
+            const referencedHeader = container.querySelector(
+              `#${CSS.escape(labelledBy)}`,
+            );
+            expect(referencedHeader).toBeTruthy();
+          }
+        });
+      });
+
+      it('should set meaningful header IDs for regular table columns', () => {
+        // Test regular (non-time-comparison) columns have proper IDs
+        // Uses fallback to column.key since originalLabel is undefined
+        const props = transformProps(testData.advanced);
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        const headers = screen.getAllByRole('columnheader');
+
+        // Test 1: "name" column (regular string column)
+        const nameHeader = headers.find(header =>
+          header.textContent?.includes('name'),
+        );
+        expect(nameHeader).toBeDefined();
+        expect(nameHeader?.id).toBe('header-name'); // Falls back to column.key
+
+        // Verify cells reference this header correctly
+        const nameCells = container.querySelectorAll(
+          'td[aria-labelledby="header-name"]',
+        );
+        expect(nameCells.length).toBeGreaterThan(0);
+
+        // Test 2: "sum__num" column (metric with verbose map "Sum of Num")
+        const sumHeader = headers.find(header =>
+          header.textContent?.includes('Sum of Num'),
+        );
+        expect(sumHeader).toBeDefined();
+        expect(sumHeader?.id).toBe('header-sum__num'); // Falls back to column.key, not verbose label
+
+        // Verify cells reference this header correctly
+        const sumCells = container.querySelectorAll(
+          'td[aria-labelledby="header-sum__num"]',
+        );
+        expect(sumCells.length).toBeGreaterThan(0);
+
+        // Test 3: Verify NO headers have "undefined" in their ID
+        const undefinedHeaders = headers.filter(header =>
+          header.id?.includes('undefined'),
+        );
+        expect(undefinedHeaders).toHaveLength(0);
+
+        // Test 4: Verify ALL headers have proper IDs (no missing IDs)
+        const headersWithIds = headers.filter(header => header.id);
+        expect(headersWithIds.length).toBe(headers.length);
+
+        // Test 5: Verify ALL header IDs are properly sanitized
+        headersWithIds.forEach(header => {
+          // IDs must not contain spaces
+          expect(header.id).not.toMatch(/\s/);
+          // IDs must not contain special chars like % (from %pct_nice column)
+          expect(header.id).not.toMatch(/[%#△]/);
+          // IDs should only contain valid CSS selector characters
+          expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
+        });
+
+        // Test 6: Verify ALL cells reference valid headers (no broken ARIA)
+        const cellsWithLabels = container.querySelectorAll(
+          'td[aria-labelledby]',
+        );
+        cellsWithLabels.forEach(cell => {
+          const labelledBy = cell.getAttribute('aria-labelledby');
+          if (labelledBy) {
+            // Verify no spaces (would be interpreted as multiple IDs)
+            expect(labelledBy).not.toMatch(/\s/);
+            // Verify no special characters
+            expect(labelledBy).not.toMatch(/[%#△]/);
+            // Verify the referenced header actually exists
+            const referencedHeader = container.querySelector(
+              `#${CSS.escape(labelledBy)}`,
+            );
+            expect(referencedHeader).toBeTruthy();
+          }
+        });
       });
 
       it('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {

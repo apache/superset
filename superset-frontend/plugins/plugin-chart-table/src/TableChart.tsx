@@ -142,6 +142,19 @@ function cellWidth({
 }
 
 /**
+ * Sanitize a column identifier for use in HTML id attributes and CSS selectors.
+ * Replaces characters that are invalid in CSS selectors with safe alternatives.
+ */
+function sanitizeHeaderId(columnId: string): string {
+  return columnId
+    .replace(/%/g, 'percent')
+    .replace(/#/g, 'hash')
+    .replace(/△/g, 'delta')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+/**
  * Cell left margin (offset) calculation for horizontal bar chart elements
  * when alignPositiveNegative is not set
  */
@@ -969,7 +982,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           const cellProps = {
-            'aria-labelledby': `header-${column.key}`,
+            'aria-labelledby': `header-${sanitizeHeaderId(column.originalLabel || column.key)}`,
             role: 'cell',
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -1056,7 +1069,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.originalLabel}`}
+            id={`header-${sanitizeHeaderId(column.originalLabel || column.key)}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
