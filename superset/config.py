@@ -1739,6 +1739,25 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # The text for call-to-action link in Alerts & Reports emails
 EMAIL_REPORTS_CTA = "Explore in Superset"
 
+# Azure Blob Storage configuration for report attachments
+# Connection string for Azure Blob Storage account
+# Example: "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net"
+AZURE_BLOB_CONNECTION_STRING: str | None = None
+
+# Container name for storing report attachments
+AZURE_BLOB_REPORTS_CONTAINER = "superset-reports"
+
+# Enable Azure Blob Storage for report attachments
+# When enabled, attachments will be uploaded to Azure Blob instead of being sent via email
+AZURE_BLOB_REPORTS_ENABLED = False
+
+# Include links to Azure Blob attachments in email notifications
+# When enabled, emails will include download links for attachments stored in Azure Blob
+AZURE_BLOB_REPORTS_INCLUDE_LINKS = True
+
+# SAS token expiry time in hours for Azure Blob attachment links (default: 7 days)
+AZURE_BLOB_REPORTS_SAS_EXPIRY_HOURS = 168
+
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None

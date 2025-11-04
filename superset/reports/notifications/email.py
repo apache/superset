@@ -113,18 +113,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_content(self) -> EmailContent:
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
-        # Get the domain from the 'From' address ..
-        # and make a message id without the < > in the end
-
-        domain = self._get_smtp_domain()
-        images = {}
-
-        # Attachments are disabled - screenshots will not be included
-        # if self._content.screenshots:
-        #     images = {
-        #         make_msgid(domain)[1:-1]: screenshot
-        #         for screenshot in self._content.screenshots
-        #     }
 
         # Strip any malicious HTML from the description
         # pylint: disable=no-member
@@ -148,16 +136,59 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        # Inline images are disabled - no image tags will be generated
-        img_tags = []
-        # for msgid in images.keys():
-        #     img_tags.append(
-        #         f"""<div class="image">
-        #             <img width="1000" src="cid:{msgid}">
-        #         </div>
-        #         """
-        #     )
-        img_tag = "".join(img_tags)
+        # Handle Azure Blob Storage for attachments
+        azure_links_html = ""
+        if current_app.config.get("AZURE_BLOB_REPORTS_ENABLED", False):
+            # Upload attachments to Azure Blob Storage
+            from superset.utils.azure_blob import upload_report_attachments
+
+            blob_urls = upload_report_attachments(
+                csv_data=self._content.csv,
+                pdf_data=self._content.pdf,
+                screenshots=self._content.screenshots,
+                report_name=self._name,
+            )
+
+            # Generate download links section if configured
+            if blob_urls and current_app.config.get(
+                "AZURE_BLOB_REPORTS_INCLUDE_LINKS", True
+            ):
+                links = []
+                if "csv" in blob_urls:
+                    links.append(
+                        f'<li><a href="{blob_urls["csv"]}">Download CSV</a></li>'
+                    )
+                if "pdf" in blob_urls:
+                    links.append(
+                        f'<li><a href="{blob_urls["pdf"]}">Download PDF</a></li>'
+                    )
+                if "screenshots" in blob_urls:
+                    for idx, url in enumerate(blob_urls["screenshots"], 1):
+                        links.append(
+                            f'<li><a href="{url}">Download Screenshot {idx}</a></li>'
+                        )
+
+                if links:
+                    azure_links_html = """
+                    <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+                        <h3 style="margin-top: 0; color: #42526E;">Report Attachments</h3>
+                        <ul style="list-style-type: none; padding-left: 0;">
+                            {}
+                        </ul>
+                        <p style="font-size: 12px; color: #6B778C; margin-bottom: 0;">
+                            <em>Links expire in {} days</em>
+                        </p>
+                    </div>
+                    """.format(
+                        "".join(links),
+                        int(
+                            current_app.config.get(
+                                "AZURE_BLOB_REPORTS_SAS_EXPIRY_HOURS", 168
+                            )
+                            / 24
+                        ),
+                    )
+
         call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
             f"""
@@ -170,9 +201,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     color: rgb(42, 63, 95);
                     padding: 4px 8px;
                   }}
-                  .image{{
-                      margin-bottom: 18px;
-                      min-width: 1000px;
+                  a {{
+                    color: #0052CC;
+                    text-decoration: none;
+                  }}
+                  a:hover {{
+                    text-decoration: underline;
                   }}
                 </style>
               </head>
@@ -181,20 +215,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 <br>
                 <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
                 {html_table}
-                {img_tag}
+                {azure_links_html}
               </body>
             </html>
             """
         )
-        # Attachments are disabled - CSV and PDF will not be included
-        csv_data = None
-        # if self._content.csv:
-        #     csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
 
-        pdf_data = None
-        # if self._content.pdf:
-        #     pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
-
+        # Attachments are not sent via email - either stored in Azure Blob or disabled
         return EmailContent(
             body=body,
             images=None,  # No images attached
