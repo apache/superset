@@ -1129,7 +1129,8 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
 
 def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
     """
-    Test that adhoc_column_to_sqla properly quotes column identifiers when isColumnReference is true.
+    Test that adhoc_column_to_sqla
+    properly quotes column identifiers when isColumnReference is true.
 
     This tests the fix for column names with spaces being properly quoted
     before being processed by SQLGlot to prevent "column AS alias" misinterpretation.
