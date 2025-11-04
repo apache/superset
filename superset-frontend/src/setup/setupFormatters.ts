@@ -29,6 +29,7 @@ import {
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
+  createIndianNumberFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -91,6 +92,44 @@ export default function setupFormatters(
     .registerValue(
       'MEMORY_TRANSFER_RATE_BINARY',
       createMemoryFormatter({ binary: true, transfer: true }),
+    );
+
+  // Override default smart number to use Indian units (L/CR)
+  getNumberFormatterRegistry()
+    .registerValue(
+      NumberFormats.SMART_NUMBER,
+      createIndianNumberFormatter({
+        locale: getNumberFormatterRegistry().d3Format,
+        id: NumberFormats.SMART_NUMBER,
+        label: 'Adaptive (Indian)',
+      }),
+    )
+    .registerValue(
+      NumberFormats.SMART_NUMBER_SIGNED,
+      createIndianNumberFormatter({
+        signed: true,
+        locale: getNumberFormatterRegistry().d3Format,
+        id: NumberFormats.SMART_NUMBER_SIGNED,
+        label: 'Adaptive (Indian, signed)',
+      }),
+    )
+    // Explicit aliases for selection
+    .registerValue(
+      'SMART_NUMBER_IN',
+      createIndianNumberFormatter({
+        locale: getNumberFormatterRegistry().d3Format,
+        id: 'SMART_NUMBER_IN',
+        label: 'Adaptive (Indian)',
+      }),
+    )
+    .registerValue(
+      'SMART_NUMBER_IN_SIGNED',
+      createIndianNumberFormatter({
+        signed: true,
+        locale: getNumberFormatterRegistry().d3Format,
+        id: 'SMART_NUMBER_IN_SIGNED',
+        label: 'Adaptive (Indian, signed)',
+      }),
     );
 
   const timeFormatterRegistry = getTimeFormatterRegistry();
