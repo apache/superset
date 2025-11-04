@@ -329,6 +329,9 @@ export function AsyncAceEditor(
                 }
 
                 & .tooltip-detail {
+                  display: flex;
+                  flex-direction: row;
+                  align-items: center;
                   background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
@@ -352,6 +355,11 @@ export function AsyncAceEditor(
                   & .tooltip-detail-body {
                     word-break: break-word;
                     color: ${token.colorTextSecondary};
+
+                    & .tooltip-detail-body-element {
+                      background-color: ${token.colorBgLayout};
+                      padding: ${token.paddingXS}px;
+                    }
                   }
 
                   & .tooltip-detail-head,
