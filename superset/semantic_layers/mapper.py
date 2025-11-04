@@ -19,22 +19,26 @@
 Functions for mapping `QueryObject` to semantic layers.
 
 These functions validate and convert a `QueryObject` into one or more `SemanticQuery`,
-which are then passed to semantic layer implementations for execution.
+which are then passed to semantic layer implementations for execution, returning a
+single dataframe.
 
 """
 
 from datetime import datetime
+from typing import Any, cast, Sequence, TypeGuard
 
 import numpy as np
 
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
+from superset.connectors.sqla.models import BaseDatasource
 from superset.semantic_layers.types import (
     AdhocExpression,
     AdhocFilter,
     DateGrain,
     Dimension,
     Filter,
+    FilterValues,
     GroupLimit,
     Metric,
     Operator,
@@ -46,8 +50,40 @@ from superset.semantic_layers.types import (
     SemanticViewFeature,
     TimeGrain,
 )
-from superset.utils.core import FilterOperator, TIME_COMPARISON
+from superset.utils.core import (
+    FilterOperator,
+    QueryObjectFilterClause,
+    TIME_COMPARISON,
+)
 from superset.utils.date_parser import get_past_or_future
+
+
+class ValidatedQueryObjectFilterClause(QueryObjectFilterClause):
+    """
+    A validated QueryObject filter clause with a string column name.
+
+    The `col` in a `QueryObjectFilterClause` can be either a string (column name) or an
+    adhoc column, but we only support the former in semantic layers.
+    """
+
+    # overwrite to narrow type; mypy complains about more restrictive typed dicts,
+    # but the alternative would be to redefine the object
+    col: str  # type: ignore[misc]
+    op: str  # type: ignore[misc]
+
+
+class ValidatedQueryObject(QueryObject):
+    """
+    A query object that has a datasource defined.
+    """
+
+    datasource: BaseDatasource
+
+    # overwrite to narrow type; mypy complains about the assignment since the base type
+    # allows adhoc filters, but we only support validated filters here
+    filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
+    series_columns: Sequence[str]  # type: ignore[assignment]
+    series_limit_metric: str | None
 
 
 def get_results(query_object: QueryObject) -> SemanticResult:
@@ -57,7 +93,8 @@ def get_results(query_object: QueryObject) -> SemanticResult:
     :param query_object: The QueryObject containing query specifications
     :return: SemanticResult with combined DataFrame and all requests
     """
-    validate_query_object(query_object)
+    if not validate_query_object(query_object):
+        raise ValueError("QueryObject must have a datasource defined.")
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -163,7 +200,7 @@ def get_results(query_object: QueryObject) -> SemanticResult:
     return SemanticResult(requests=all_requests, results=main_df)
 
 
-def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
+def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     """
     Convert a `QueryObject` into a list of `SemanticQuery`.
 
@@ -177,10 +214,14 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
         dimension.name: dimension for dimension in semantic_view.dimensions
     }
 
-    metrics = {all_metrics[metric] for metric in query_object.metrics}
+    metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
-    grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
-    dimensions = {
+    grain = (
+        _convert_time_grain(query_object.extras["time_grain_sqla"])
+        if "time_grain_sqla" in query_object.extras
+        else None
+    )
+    dimensions = [
         dimension
         for dimension in semantic_view.dimensions
         if dimension.name in query_object.columns
@@ -191,7 +232,7 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
             or dimension.name != query_object.granularity
             or dimension.grain == grain
         )
-    }
+    ]
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
     limit = query_object.row_limit
@@ -227,7 +268,7 @@ def map_query_object(query_object: QueryObject) -> list[SemanticQuery]:
 
 
 def _get_filters_from_query_object(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
 ) -> set[Filter | AdhocFilter]:
@@ -269,7 +310,7 @@ def _get_filters_from_query_object(
     return filters
 
 
-def _get_filters_from_extras(extras: dict) -> set[AdhocFilter]:
+def _get_filters_from_extras(extras: dict[str, Any]) -> set[AdhocFilter]:
     """
     Extract filters from the extras dict.
 
@@ -310,7 +351,7 @@ def _get_filters_from_extras(extras: dict) -> set[AdhocFilter]:
 
 
 def _get_time_filter(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
 ) -> set[Filter]:
@@ -354,7 +395,7 @@ def _get_time_filter(
 
 
 def _get_time_bounds(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     time_offset: str | None,
 ) -> tuple[datetime | None, datetime | None]:
     """
@@ -390,32 +431,34 @@ def _get_time_bounds(
 
 
 def _convert_query_object_filter(
-    filter_: dict,
+    filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
 ) -> Filter | AdhocFilter | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter or AdhocFilter.
     """
-    # Handle adhoc filters (SQL expressions)
-    if filter_.get("expressionType") == "SQL":
-        return AdhocFilter(
-            type=PredicateType.WHERE,
-            definition=filter_.get("sqlExpression", ""),
-        )
+    operator_str = filter_["op"]
 
     # Handle TEMPORAL_RANGE filters (these are already handled by _get_time_filter)
-    if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value:
+    if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         # Skip - already handled in _get_time_filter
         return None
 
     # Handle simple column filters
     col = filter_.get("col")
-    if not col or col not in all_dimensions:
+    if col not in all_dimensions:
         return None
 
     dimension = all_dimensions[col]
-    operator_str = filter_.get("op")
-    value = filter_.get("val")
+
+    val_str = filter_["val"]
+    value: FilterValues | set[FilterValues]
+    if val_str is None:
+        value = None
+    elif isinstance(val_str, (list, tuple)):
+        value = set(val_str)
+    else:
+        value = val_str
 
     # Map QueryObject operators to semantic layer operators
     operator_mapping = {
@@ -447,43 +490,50 @@ def _convert_query_object_filter(
 
 
 def _get_order_from_query_object(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     all_metrics: dict[str, Metric],
     all_dimensions: dict[str, Dimension],
 ) -> list[OrderTuple]:
-    order = []
+    order: list[OrderTuple] = []
     for element, ascending in query_object.orderby:
         direction = OrderDirection.ASC if ascending else OrderDirection.DESC
 
+        # adhoc
         if isinstance(element, dict):
-            order.append(
-                (
-                    AdhocExpression(
-                        id=element["label"],
-                        definition=element["sqlExpression"],
-                    ),
-                    direction,
+            if element["sqlExpression"] is not None:
+                order.append(
+                    (
+                        AdhocExpression(
+                            id=element["label"] or element["sqlExpression"],
+                            definition=element["sqlExpression"],
+                        ),
+                        direction,
+                    )
                 )
-            )
         elif element in all_dimensions:
-            order.append((all_dimensions.get(element), direction))
+            order.append((all_dimensions[element], direction))
         elif element in all_metrics:
-            order.append((all_metrics.get(element), direction))
+            order.append((all_metrics[element], direction))
 
     return order
 
 
 def _get_group_limit_from_query_object(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     all_metrics: dict[str, Metric],
     all_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
-    if not query_object.columns:
+    # no limit
+    if query_object.series_limit == 0 or not query_object.columns:
         return None
 
     dimensions = [all_dimensions[dim_id] for dim_id in query_object.series_columns]
     top = query_object.series_limit
-    metric = all_metrics.get(query_object.series_limit_metric)
+    metric = (
+        all_metrics[query_object.series_limit_metric]
+        if query_object.series_limit_metric
+        else None
+    )
     direction = OrderDirection.DESC if query_object.order_desc else OrderDirection.ASC
     group_others = query_object.group_others_when_limit_reached
 
@@ -502,7 +552,7 @@ def _get_group_limit_from_query_object(
 
 
 def _get_group_limit_filters(
-    query_object: QueryObject,
+    query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
 ) -> set[Filter | AdhocFilter] | None:
     """
@@ -596,35 +646,45 @@ def _convert_time_grain(time_grain: str) -> TimeGrain | DateGrain | None:
     return None
 
 
-def validate_query_object(query_object: QueryObject) -> None:
+def validate_query_object(
+    query_object: QueryObject,
+) -> TypeGuard[ValidatedQueryObject]:
     """
     Validate that the `QueryObject` is compatible with the `SemanticView`.
 
     If some semantic view implementation supports these features we should add an
     attribute to the `SemanticViewImplementation` to indicate support for them.
     """
+    if not query_object.datasource:
+        return False
+
+    query_object = cast(ValidatedQueryObject, query_object)
+
     _validate_metrics(query_object)
     _validate_dimensions(query_object)
+    _validate_filters(query_object)
     _validate_granularity(query_object)
     _validate_group_limit(query_object)
     _validate_orderby(query_object)
 
+    return True
 
-def _validate_metrics(query_object: QueryObject) -> None:
+
+def _validate_metrics(query_object: ValidatedQueryObject) -> None:
     """
     Make sure metrics are defined in the semantic view.
     """
     semantic_view = query_object.datasource.implementation
 
-    if any(not isinstance(metric, str) for metric in query_object.metrics):
+    if any(not isinstance(metric, str) for metric in (query_object.metrics or [])):
         raise ValueError("Adhoc metrics are not supported in Semantic Views.")
 
     metric_names = {metric.name for metric in semantic_view.metrics}
-    if not set(query_object.metrics) <= metric_names:
+    if not set(query_object.metrics or []) <= metric_names:
         raise ValueError("All metrics must be defined in the Semantic View.")
 
 
-def _validate_dimensions(query_object: QueryObject) -> None:
+def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
     """
     Make sure all dimensions are defined in the semantic view.
     """
@@ -638,7 +698,20 @@ def _validate_dimensions(query_object: QueryObject) -> None:
         raise ValueError("All dimensions must be defined in the Semantic View.")
 
 
-def _validate_granularity(query_object: QueryObject) -> None:
+def _validate_filters(query_object: ValidatedQueryObject) -> None:
+    """
+    Make sure all filters are valid.
+    """
+    for filter_ in query_object.filter:
+        if isinstance(filter_["col"], dict):
+            raise ValueError(
+                "Adhoc columns are not supported in Semantic View filters."
+            )
+        if not filter_.get("op"):
+            raise ValueError("All filters must have an operator defined.")
+
+
+def _validate_granularity(query_object: ValidatedQueryObject) -> None:
     """
     Make sure time column and time grain are valid.
     """
@@ -669,17 +742,33 @@ def _validate_granularity(query_object: QueryObject) -> None:
             )
 
 
-def _validate_group_limit(query_object: QueryObject) -> None:
+def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
     """
     Validate group limit related features in the query object.
     """
     semantic_view = query_object.datasource.implementation
+
+    # no limit
+    if query_object.series_limit == 0:
+        return
 
     if (
         query_object.series_columns
         and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
     ):
         raise ValueError("Group limit is not supported in this Semantic View.")
+
+    if any(not isinstance(col, str) for col in query_object.series_columns):
+        raise ValueError("Adhoc dimensions are not supported in series columns.")
+
+    metric_names = {metric.name for metric in semantic_view.metrics}
+    if query_object.series_limit_metric and (
+        not isinstance(query_object.series_limit_metric, str)
+        or query_object.series_limit_metric not in metric_names
+    ):
+        raise ValueError(
+            "The series limit metric must be defined in the Semantic View."
+        )
 
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}
     if not set(query_object.series_columns) <= dimension_names:
@@ -695,7 +784,7 @@ def _validate_group_limit(query_object: QueryObject) -> None:
         )
 
 
-def _validate_orderby(query_object: QueryObject) -> None:
+def _validate_orderby(query_object: ValidatedQueryObject) -> None:
     """
     Validate order by elements in the query object.
     """
@@ -710,11 +799,7 @@ def _validate_orderby(query_object: QueryObject) -> None:
             "Adhoc expressions in order by are not supported in this Semantic View."
         )
 
-    elements = {
-        element.name
-        for element, _ in query_object.orderby
-        if not isinstance(element, str)
-    }
+    elements = set(query_object.orderby)
     metric_names = {metric.name for metric in semantic_view.metrics}
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}
     if not elements <= metric_names | dimension_names:

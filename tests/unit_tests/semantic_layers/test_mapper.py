@@ -22,7 +22,6 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.common.query_object import QueryObject
 from superset.semantic_layers.mapper import (
     _convert_query_object_filter,
     _convert_time_grain,
@@ -36,6 +35,8 @@ from superset.semantic_layers.mapper import (
     get_results,
     map_query_object,
     validate_query_object,
+    ValidatedQueryObject,
+    ValidatedQueryObjectFilterClause,
 )
 from superset.semantic_layers.types import (
     AdhocExpression,
@@ -234,7 +235,7 @@ def test_get_time_bounds_no_offset(mock_datasource: MagicMock) -> None:
     from_dttm = datetime(2025, 10, 15, 0, 0, 0)
     to_dttm = datetime(2025, 10, 22, 23, 59, 59)
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=from_dttm,
         to_dttm=to_dttm,
@@ -252,7 +253,7 @@ def test_get_time_filter_no_granularity(mock_datasource: MagicMock) -> None:
     """
     Test that no time filter is created without granularity.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -277,7 +278,7 @@ def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
     from_dttm = datetime(2025, 10, 15, 0, 0, 0)
     to_dttm = datetime(2025, 10, 22, 23, 59, 59)
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=from_dttm,
         to_dttm=to_dttm,
@@ -308,30 +309,12 @@ def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
     }
 
 
-def test_convert_query_object_filter_sql() -> None:
-    """
-    Test conversion of SQL adhoc filter.
-    """
-    all_dimensions = {}
-    filter_ = {
-        "expressionType": "SQL",
-        "sqlExpression": "customer_id > 100",
-    }
-
-    result = _convert_query_object_filter(filter_, all_dimensions)
-
-    assert result == AdhocFilter(
-        type=PredicateType.WHERE,
-        definition="customer_id > 100",
-    )
-
-
 def test_convert_query_object_filter_temporal_range() -> None:
     """
     Test that TEMPORAL_RANGE filters are skipped.
     """
-    all_dimensions = {}
-    filter_ = {
+    all_dimensions: dict[str, Dimension] = {}
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.TEMPORAL_RANGE.value,
         "col": "order_date",
         "val": "Last 7 days",
@@ -349,8 +332,7 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     all_dimensions = {
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
-
-    filter_ = {
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.IN.value,
         "col": "category",
         "val": ["Electronics", "Books"],
@@ -362,7 +344,7 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
         type=PredicateType.WHERE,
         column=all_dimensions["category"],
         operator=Operator.IN,
-        value=["Electronics", "Books"],
+        value={"Electronics", "Books"},
     )
 
 
@@ -373,10 +355,10 @@ def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None
     all_dimensions = {
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
-
-    filter_ = {
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.IS_NULL.value,
         "col": "region",
+        "val": None,
     }
 
     result = _convert_query_object_filter(filter_, all_dimensions)
@@ -393,7 +375,7 @@ def test_get_filters_from_query_object_basic(mock_datasource: MagicMock) -> None
     """
     Test basic filter extraction from query object.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -428,7 +410,7 @@ def test_get_filters_from_query_object_with_extras(mock_datasource: MagicMock) -
     """
     Test filter extraction with extras.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -472,7 +454,7 @@ def test_get_filters_from_query_object_with_fetch_values(
     """
     mock_datasource.fetch_values_predicate = "tenant_id = 123"
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -519,7 +501,7 @@ def test_get_order_from_query_object_metric(mock_datasource: MagicMock) -> None:
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
@@ -542,7 +524,7 @@ def test_get_order_from_query_object_dimension(mock_datasource: MagicMock) -> No
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
@@ -565,7 +547,7 @@ def test_get_order_from_query_object_adhoc(mock_datasource: MagicMock) -> None:
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
@@ -596,7 +578,7 @@ def test_get_group_limit_from_query_object_none(mock_datasource: MagicMock) -> N
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=[],  # No columns
@@ -622,7 +604,7 @@ def test_get_group_limit_from_query_object_basic(mock_datasource: MagicMock) -> 
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category", "region"],
@@ -661,7 +643,7 @@ def test_get_group_limit_from_query_object_with_group_others(
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["category"],
@@ -689,7 +671,7 @@ def test_get_group_limit_filters_no_inner_bounds(mock_datasource: MagicMock) -> 
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -715,7 +697,7 @@ def test_get_group_limit_filters_same_bounds(mock_datasource: MagicMock) -> None
     from_dttm = datetime(2025, 10, 15)
     to_dttm = datetime(2025, 10, 22)
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=from_dttm,
         to_dttm=to_dttm,
@@ -739,7 +721,7 @@ def test_get_group_limit_filters_different_bounds(mock_datasource: MagicMock) ->
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -776,7 +758,7 @@ def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -814,7 +796,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
     """
     Test basic query object mapping.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -829,7 +811,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
 
     assert result == [
         SemanticQuery(
-            metrics={
+            metrics=[
                 Metric(
                     id="orders.total_sales",
                     name="total_sales",
@@ -837,8 +819,8 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                     definition="SUM(amount)",
                     description="Total sales",
                 ),
-            },
-            dimensions={
+            ],
+            dimensions=[
                 Dimension(
                     id="products.category",
                     name="category",
@@ -847,7 +829,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
                     description="Product category",
                     grain=None,
                 ),
-            },
+            ],
             filters={
                 Filter(
                     type=PredicateType.WHERE,
@@ -879,14 +861,7 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
             order=[],
             limit=100,
             offset=10,
-            group_limit=GroupLimit(
-                dimensions=[],
-                top=0,
-                metric=None,
-                direction=OrderDirection.DESC,
-                group_others=False,
-                filters=None,
-            ),
+            group_limit=None,
         )
     ]
 
@@ -895,7 +870,7 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
     """
     Test mapping with time offsets.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1005,7 +980,7 @@ def test_convert_query_object_filter_unknown_operator(
         dim.name: dim for dim in mock_datasource.implementation.dimensions
     }
 
-    filter_ = {
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": "UNKNOWN_OPERATOR",
         "col": "category",
         "val": "Electronics",
@@ -1022,7 +997,7 @@ def test_validate_query_object_undefined_metric_error(
     """
     Test validation error for undefined metrics.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["undefined_metric"],
         columns=["order_date"],
@@ -1038,7 +1013,7 @@ def test_validate_query_object_undefined_dimension_error(
     """
     Test validation error for undefined dimensions.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["undefined_dimension"],
@@ -1054,7 +1029,7 @@ def test_validate_query_object_time_grain_without_column_error(
     """
     Test validation error when time grain provided without time column.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
@@ -1072,7 +1047,7 @@ def test_validate_query_object_unsupported_time_grain_error(
     """
     Test validation error for unsupported time grain.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
@@ -1104,7 +1079,7 @@ def test_validate_query_object_group_limit_not_supported_error(
     mock_datasource.implementation.metrics = {sales_metric}
     mock_datasource.implementation.features = frozenset()  # No GROUP_LIMIT feature
 
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
@@ -1122,7 +1097,7 @@ def test_validate_query_object_undefined_series_column_error(
     """
     Test validation error for undefined series columns.
     """
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         metrics=["total_sales"],
         columns=["order_date", "category"],
@@ -1156,7 +1131,7 @@ def test_convert_query_object_filter(
         "category": Dimension("category", "category", STRING, "category", "Category")
     }
 
-    filter_ = {
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": filter_op,
         "col": "category",
         "val": "Electronics",
@@ -1178,7 +1153,7 @@ def test_convert_query_object_filter_like() -> None:
     """
     all_dimensions = {"name": Dimension("name", "name", STRING, "name", "Name")}
 
-    filter_ = {
+    filter_: ValidatedQueryObjectFilterClause = {
         "op": "LIKE",
         "col": "name",
         "val": "%test%",
@@ -1223,7 +1198,7 @@ def test_get_results_without_time_offsets(
     mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
 
     # Create query object without time offsets
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1299,7 +1274,7 @@ def test_get_results_with_single_time_offset(
     )
 
     # Create query object with time offset
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1378,7 +1353,7 @@ def test_get_results_with_multiple_time_offsets(
     )
 
     # Create query object with multiple time offsets
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1447,7 +1422,7 @@ def test_get_results_with_empty_offset_result(
     )
 
     # Create query object with time offset
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1508,7 +1483,7 @@ def test_get_results_with_partial_offset_match(
     )
 
     # Create query object
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1573,7 +1548,7 @@ def test_get_results_with_multiple_dimensions(
     )
 
     # Create query object with multiple dimensions
-    query_object = QueryObject(
+    query_object = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),

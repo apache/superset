@@ -974,6 +974,45 @@ WITH top_groups AS (
             OFFSET 5
             """,
         ),
+        # Test 7: Group limit with metric=None (order by dimension instead)
+        (
+            ["TOTALSALESPRICE"],
+            ["CATEGORY"],
+            None,
+            None,
+            10,
+            None,
+            {
+                "dimensions": ["CATEGORY"],
+                "top": 5,
+                "metric": None,
+                "direction": OrderDirection.ASC,
+                "group_others": False,
+                "filters": None,
+            },
+            """
+WITH top_groups AS (
+    SELECT "ITEM.CATEGORY"
+    FROM SEMANTIC_VIEW(
+        "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+        DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+
+    )
+    ORDER BY
+        "ITEM.CATEGORY" ASC
+    LIMIT 5
+)
+            SELECT * FROM SEMANTIC_VIEW(
+                "SAMPLE_DATA"."TPCDS_SF10TCL"."TPCDS_SEMANTIC_VIEW_SM"
+                DIMENSIONS ITEM.CATEGORY AS "ITEM.CATEGORY"
+                METRICS STORESALES.TOTALSALESPRICE AS "STORESALES.TOTALSALESPRICE"
+
+            ) AS subquery
+            WHERE "ITEM.CATEGORY" IN (SELECT "ITEM.CATEGORY" FROM top_groups)
+
+            LIMIT 10
+            """,
+        ),
     ],
 )
 def test_get_query_with_group_limit(
@@ -1000,7 +1039,9 @@ def test_get_query_with_group_limit(
     group_limit = GroupLimit(
         dimensions=[dimension_map[name] for name in group_limit_config["dimensions"]],
         top=group_limit_config["top"],
-        metric=metric_map[group_limit_config["metric"]],
+        metric=metric_map[group_limit_config["metric"]]
+        if group_limit_config["metric"]
+        else None,
         direction=group_limit_config["direction"],
         group_others=group_limit_config["group_others"],
         filters=group_limit_config["filters"],

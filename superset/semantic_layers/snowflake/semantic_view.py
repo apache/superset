@@ -223,7 +223,7 @@ class SnowflakeSemanticView:
                 if filter_.operator not in unary_operators:
                     parameters.extend(
                         [filter_.value]
-                        if not isinstance(filter_.value, frozenset)
+                        if not isinstance(filter_.value, (set, frozenset))
                         else filter_.value
                     )
 
@@ -284,7 +284,7 @@ class SnowflakeSemanticView:
 
         # Handle IN and NOT IN operators (set values)
         if operator in {Operator.IN, Operator.NOT_IN}:
-            parameter_count = len(value) if isinstance(value, frozenset) else 1
+            parameter_count = len(value) if isinstance(value, (set, frozenset)) else 1
             formatted_values = ", ".join("?" for _ in range(parameter_count))
             return f"{column_name} {operator.value} ({formatted_values})"
 
@@ -547,19 +547,49 @@ class SnowflakeSemanticView:
             group_where_clause = where_clause
             cte_params = ()  # No additional params - using main query params
 
+        # Build METRICS clause and ORDER BY based on whether metric is provided
+        if group_limit.metric is not None:
+            metrics_clause = (
+                f"METRICS {group_limit.metric.id}"
+                f" AS {self._quote(group_limit.metric.id)}"
+            )
+            order_by_clause = (
+                f"{self._quote(group_limit.metric.id)} {group_limit.direction.value}"
+            )
+        else:
+            # No metric provided - order by first dimension
+            metrics_clause = ""
+            order_by_clause = (
+                f"{self._quote(group_limit.dimensions[0].id)} "
+                f"{group_limit.direction.value}"
+            )
+
+        # Build SEMANTIC_VIEW arguments
+        semantic_view_args = [
+            f"DIMENSIONS {limited_dimension_arguments}",
+        ]
+        if metrics_clause:
+            semantic_view_args.append(metrics_clause)
+        if group_where_clause:
+            semantic_view_args.append(f"WHERE {group_where_clause}")
+
+        semantic_view_args_str = "\n                    ".join(semantic_view_args)
+
+        # Add trailing blank line if there's no WHERE clause
+        # This matches the original template behavior
+        if not group_where_clause:
+            semantic_view_args_str += "\n"
+
         cte_sql = dedent(
             f"""
             WITH top_groups AS (
                 SELECT {limited_dimension_names}
                 FROM SEMANTIC_VIEW(
                     {self.uid()}
-                    DIMENSIONS {limited_dimension_arguments}
-                    METRICS {group_limit.metric.id}
-                        AS {self._quote(group_limit.metric.id)}
-                    {"WHERE " + group_where_clause if group_where_clause else ""}
+                    {semantic_view_args_str}
                 )
                 ORDER BY
-                    {self._quote(group_limit.metric.id)} {group_limit.direction.value}
+                    {order_by_clause}
                 LIMIT {group_limit.top}
             )
             """

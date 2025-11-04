@@ -289,7 +289,7 @@ class SemanticViewFeature(enum.Enum):
     GROUP_OTHERS = "GROUP_OTHERS"
 
 
-ConfigT = TypeVar("ConfigT", bound=BaseModel, covariant=True)
+ConfigT = TypeVar("ConfigT", bound=BaseModel)
 
 
 @runtime_checkable
