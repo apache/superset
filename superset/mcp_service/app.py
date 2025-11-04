@@ -77,6 +77,40 @@ Available Prompts:
 - superset_quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
+Common Chart Types (viz_type) and Behaviors:
+
+Interactive Charts (support sorting, filtering, drill-down):
+- table: Standard table view with sorting and filtering
+- pivot_table_v2: Pivot table with grouping and aggregations
+- echarts_timeseries_line: Time series line chart
+- echarts_timeseries_bar: Time series bar chart
+- echarts_timeseries_area: Time series area chart
+- echarts_timeseries_scatter: Time series scatter plot
+- mixed_timeseries: Combined line/bar time series
+
+Common Visualization Types:
+- big_number: Single metric display
+- big_number_total: Total value display
+- pie: Pie chart for proportions
+- echarts_timeseries: Generic time series chart
+- funnel: Funnel chart for conversion analysis
+- gauge_chart: Gauge/speedometer visualization
+- heatmap_v2: Heat map for correlation analysis
+- sankey_v2: Sankey diagram for flow visualization
+- sunburst_v2: Sunburst chart for hierarchical data
+- treemap_v2: Tree map for hierarchical proportions
+- word_cloud: Word cloud visualization
+- world_map: Geographic world map
+- box_plot: Box plot for distribution analysis
+- bubble: Bubble chart for 3-dimensional data
+
+Query Examples:
+- List all interactive tables:
+  filters=[{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}]
+- List time series charts:
+  filters=[{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}]
+- Search by name: search="sales"
+
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use 'filters' parameter for advanced queries (see *_available_filters tools)
@@ -202,13 +236,56 @@ def create_mcp_app(
 
 # Create default MCP instance for backward compatibility
 # Tool modules can import this and use @mcp.tool decorators
-mcp = create_mcp_app()
+mcp = create_mcp_app(stateless_http=True)
 
-from superset.mcp_service.chart.tool import (  # noqa: F401, E402
-    get_chart_info,
-    list_charts,
+# Import all MCP tools to register them with the mcp instance
+# NOTE: Always add new tool imports here when creating new MCP tools.
+# Tools use @mcp.tool decorators and register automatically on import.
+# Import prompts and resources to register them with the mcp instance
+# NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
+# Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
+# They register automatically on import, similar to tools.
+from superset.mcp_service.chart import (  # noqa: F401, E402
+    prompts as chart_prompts,
+    resources as chart_resources,
 )
-from superset.mcp_service.system.tool import health_check  # noqa: F401, E402
+from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    generate_chart,
+    get_chart_available_filters,
+    get_chart_data,
+    get_chart_info,
+    get_chart_preview,
+    list_charts,
+    update_chart,
+    update_chart_preview,
+)
+from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
+    add_chart_to_existing_dashboard,
+    generate_dashboard,
+    get_dashboard_available_filters,
+    get_dashboard_info,
+    list_dashboards,
+)
+from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    get_dataset_available_filters,
+    get_dataset_info,
+    list_datasets,
+)
+from superset.mcp_service.explore.tool import (  # noqa: F401, E402
+    generate_explore_link,
+)
+from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
+    execute_sql,
+    open_sql_lab_with_context,
+)
+from superset.mcp_service.system import (  # noqa: F401, E402
+    prompts as system_prompts,
+    resources as system_resources,
+)
+from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    get_superset_instance_info,
+    health_check,
+)
 
 
 def init_fastmcp_server(
