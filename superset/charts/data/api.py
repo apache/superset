@@ -178,19 +178,12 @@ class ChartDataRestApi(ChartRestApi):
         except (TypeError, json.JSONDecodeError):
             form_data = {}
 
-        result, response = self._get_data_response(
-            command=command, form_data=form_data, datasource=query_context.datasource
+        return self._get_data_response(
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
-
-        # Add is_cached to event logs
-        if result and "queries" in result:
-            is_cached_values = [query.get("is_cached") for query in result["queries"]]
-            if len(is_cached_values) == 1:
-                add_extra_log_payload(is_cached=is_cached_values[0])
-            elif is_cached_values:
-                add_extra_log_payload(is_cached=is_cached_values)
-
-        return response
 
     @expose("/data", methods=("POST",))
     @protect()
@@ -275,19 +268,12 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-        result, response = self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+        return self._get_data_response(
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
-
-        # Add is_cached to event logs
-        if result and "queries" in result:
-            is_cached_values = [query.get("is_cached") for query in result["queries"]]
-            if len(is_cached_values) == 1:
-                add_extra_log_payload(is_cached=is_cached_values[0])
-            elif is_cached_values:
-                add_extra_log_payload(is_cached=is_cached_values)
-
-        return response
 
     @expose("/data/<cache_key>", methods=("GET",))
     @protect()
@@ -345,8 +331,7 @@ class ChartDataRestApi(ChartRestApi):
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
 
-        _result, response = self._get_data_response(command, True)
-        return response
+        return self._get_data_response(command, True)
 
     def _run_async(
         self, form_data: dict[str, Any], command: ChartDataCommand
@@ -446,16 +431,25 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
-    ) -> tuple[dict[str, Any] | None, Response]:
-        """Get data response and return both result dict and response for logging."""
+        add_extra_log_payload: Callable[..., None] | None = None,
+    ) -> Response:
+        """Get data response and optionally log is_cached information."""
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
-            return None, self.response_422(message=exc.message)
+            return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
-            return None, self.response_400(message=exc.message)
+            return self.response_400(message=exc.message)
 
-        return result, self._send_chart_response(result, form_data, datasource)
+        # Log is_cached if extra payload callback is provided
+        if add_extra_log_payload and result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
+
+        return self._send_chart_response(result, form_data, datasource)
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
