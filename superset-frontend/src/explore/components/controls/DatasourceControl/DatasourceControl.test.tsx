@@ -91,25 +91,7 @@ const createProps = (overrides: JsonObject = {}) => ({
   ...overrides,
 });
 
-type TestDataset = {
-  id?: number;
-  name?: string;
-  type?: DatasetObject['type'] | string;
-  main_dttm_col?: string | null;
-  columns?: Array<{
-    column_name?: string;
-    is_dttm?: boolean;
-    [key: string]: unknown;
-  }>;
-  metrics?: Array<{
-    id?: number;
-    metric_name?: string;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
-};
-
-async function openAndSaveChanges(datasource: TestDataset) {
+async function openAndSaveChanges(datasource: Partial<DatasetObject>) {
   fetchMock.get(
     'glob:*/api/v1/database/?q=*',
     { result: [] },
@@ -416,7 +398,7 @@ test('should set the default temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource);
+  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -452,7 +434,7 @@ test('should set the first available temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource);
+  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -488,7 +470,7 @@ test('should not set the temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource);
+  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
