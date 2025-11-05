@@ -289,11 +289,12 @@ class SemanticViewFeature(enum.Enum):
     GROUP_OTHERS = "GROUP_OTHERS"
 
 
-LayerConfigT = TypeVar("LayerConfigT", bound=BaseModel)
+ConfigT = TypeVar("ConfigT", bound=BaseModel, contravariant=True)
+SemanticViewT = TypeVar("SemanticViewT", bound="SemanticViewImplementation")
 
 
 @runtime_checkable
-class SemanticLayerImplementation(Protocol[LayerConfigT]):
+class SemanticLayerImplementation(Protocol[ConfigT, SemanticViewT]):
     """
     A protocol for semantic layers.
     """
@@ -302,7 +303,7 @@ class SemanticLayerImplementation(Protocol[LayerConfigT]):
     def from_configuration(
         cls,
         configuration: dict[str, Any],
-    ) -> SemanticLayerImplementation[LayerConfigT]:
+    ) -> SemanticLayerImplementation[ConfigT, SemanticViewT]:
         """
         Create a semantic layer from its configuration.
         """
@@ -310,7 +311,7 @@ class SemanticLayerImplementation(Protocol[LayerConfigT]):
     @classmethod
     def get_configuration_schema(
         cls,
-        configuration: LayerConfigT | None = None,
+        configuration: ConfigT | None = None,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
@@ -334,7 +335,7 @@ class SemanticLayerImplementation(Protocol[LayerConfigT]):
     @classmethod
     def get_runtime_schema(
         cls,
-        configuration: LayerConfigT,
+        configuration: ConfigT,
         runtime_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
@@ -361,7 +362,7 @@ class SemanticLayerImplementation(Protocol[LayerConfigT]):
     def get_semantic_views(
         self,
         runtime_configuration: dict[str, Any],
-    ) -> set[SemanticViewImplementation]:
+    ) -> set[SemanticViewT]:
         """
         Get the semantic views available in the semantic layer.
 
@@ -373,7 +374,7 @@ class SemanticLayerImplementation(Protocol[LayerConfigT]):
         self,
         name: str,
         additional_configuration: dict[str, Any],
-    ) -> SemanticViewImplementation:
+    ) -> SemanticViewT:
         """
         Get a specific semantic view by its name and additional configuration.
         """

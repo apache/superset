@@ -27,6 +27,7 @@ from collections.abc import Hashable
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
+from superset.common.query_object import QueryObject
 from superset.models.helpers import QueryResult
 from superset.superset_typing import QueryObjectDict
 
@@ -50,25 +51,15 @@ class Explorable(Protocol):
     # Core Query Interface
     # =========================================================================
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
         Execute a query and return results.
 
         This is the primary method for data retrieval. It takes a query
-        object dictionary describing what data to fetch (columns, metrics,
-        filters, time range, etc.) and returns a QueryResult containing
-        a pandas DataFrame with the results.
+        object describing what data to fetch (columns, metrics, filters, time range,
+        etc.) and returns a QueryResult containing a pandas DataFrame with the results.
 
-        :param query_obj: Dictionary describing the query with keys like:
-            - columns: list of column names to select
-            - metrics: list of metrics to compute
-            - filter: list of filter clauses
-            - from_dttm/to_dttm: time range
-            - granularity: time column for grouping
-            - groupby: columns to group by
-            - orderby: ordering specification
-            - row_limit/row_offset: pagination
-            - extras: additional parameters
+        :param query_obj: QueryObject describing the query
 
         :return: QueryResult containing:
             - df: pandas DataFrame with query results
@@ -77,7 +68,6 @@ class Explorable(Protocol):
             - status: QueryStatus (SUCCESS/FAILED)
             - error_message: error details if query failed
         """
-        ...
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         """
@@ -90,7 +80,6 @@ class Explorable(Protocol):
         :param query_obj: Dictionary describing the query
         :return: String representation of the query (SQL, GraphQL, etc.)
         """
-        ...
 
     # =========================================================================
     # Identity & Metadata
@@ -109,7 +98,6 @@ class Explorable(Protocol):
 
         :return: Unique identifier string
         """
-        ...
 
     @property
     def type(self) -> str:
@@ -121,7 +109,6 @@ class Explorable(Protocol):
 
         :return: Type identifier string
         """
-        ...
 
     @property
     def columns(self) -> list[Any]:
@@ -137,7 +124,6 @@ class Explorable(Protocol):
 
         :return: List of column metadata objects
         """
-        ...
 
     @property
     def column_names(self) -> list[str]:
@@ -149,7 +135,36 @@ class Explorable(Protocol):
 
         :return: List of column name strings
         """
-        ...
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """
+        Full metadata representation sent to the frontend.
+
+        This property returns a dictionary containing all the metadata
+        needed by the Explore UI, including columns, metrics, and
+        other configuration.
+
+        Required keys in the returned dictionary:
+        - id: unique identifier (int or str)
+        - uid: unique string identifier
+        - name: display name
+        - type: explorable type ('table', 'query', 'semantic_view', etc.)
+        - columns: list of column metadata dicts (with column_name, type, etc.)
+        - metrics: list of metric metadata dicts (with metric_name, expression, etc.)
+        - database: database metadata dict (with id, backend, etc.)
+
+        Optional keys:
+        - description: human-readable description
+        - schema: schema name (if applicable)
+        - catalog: catalog name (if applicable)
+        - cache_timeout: default cache timeout
+        - offset: timezone offset
+        - owners: list of owner IDs
+        - verbose_map: dict mapping column/metric names to display names
+
+        :return: Dictionary with complete explorable metadata
+        """
 
     # =========================================================================
     # Caching
@@ -165,7 +180,6 @@ class Explorable(Protocol):
 
         :return: Cache timeout in seconds, or None for system default
         """
-        ...
 
     @property
     def changed_on(self) -> datetime | None:
@@ -177,7 +191,6 @@ class Explorable(Protocol):
 
         :return: Datetime of last modification, or None
         """
-        ...
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         """
@@ -191,7 +204,6 @@ class Explorable(Protocol):
         :param query_obj: The query being executed
         :return: List of additional hashable values for cache key
         """
-        ...
 
     # =========================================================================
     # Security
@@ -208,7 +220,6 @@ class Explorable(Protocol):
 
         :return: Permission identifier string
         """
-        ...
 
     @property
     def schema_perm(self) -> str | None:
@@ -220,7 +231,6 @@ class Explorable(Protocol):
 
         :return: Schema permission string, or None
         """
-        ...
 
     # =========================================================================
     # Time/Date Handling
@@ -236,4 +246,3 @@ class Explorable(Protocol):
 
         :return: Timezone offset in seconds (0 for UTC)
         """
-        ...

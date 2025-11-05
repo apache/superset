@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import Any, Literal
+from typing import Any, Literal, TYPE_CHECKING
 
 from pydantic import create_model, Field
 from snowflake.connector import connect
@@ -28,11 +28,15 @@ from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
 from superset.semantic_layers.snowflake.utils import get_connection_parameters
 from superset.semantic_layers.types import (
     SemanticLayerImplementation,
-    SemanticViewImplementation,
 )
 
+if TYPE_CHECKING:
+    from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
 
-class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]):
+
+class SnowflakeSemanticLayer(
+    SemanticLayerImplementation[SnowflakeConfiguration, SnowflakeSemanticView]
+):
     id = "snowflake"
     name = "Snowflake Semantic Layer"
     description = "Connect to semantic views stored in Snowflake."
@@ -204,7 +208,7 @@ class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]
     def get_semantic_views(
         self,
         runtime_configuration: dict[str, Any],
-    ) -> set[SemanticViewImplementation]:
+    ) -> set[SnowflakeSemanticView]:
         """
         Get the semantic views available in the semantic layer.
         """

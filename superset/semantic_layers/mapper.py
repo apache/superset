@@ -24,14 +24,17 @@ single dataframe.
 
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import time
 from typing import Any, cast, Sequence, TypeGuard
 
 import numpy as np
 
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.sqla.models import BaseDatasource
+from superset.models.helpers import QueryResult
 from superset.semantic_layers.types import (
     AdhocExpression,
     AdhocFilter,
@@ -86,15 +89,18 @@ class ValidatedQueryObject(QueryObject):
     series_limit_metric: str | None
 
 
-def get_results(query_object: QueryObject) -> SemanticResult:
+def get_results(query_object: QueryObject) -> QueryResult:
     """
     Run 1+ queries based on `QueryObject` and return the results.
 
     :param query_object: The QueryObject containing query specifications
-    :return: SemanticResult with combined DataFrame and all requests
+    :return: QueryResult compatible with Superset's query interface
     """
     if not validate_query_object(query_object):
         raise ValueError("QueryObject must have a datasource defined.")
+
+    # Track execution time
+    start_time = time()
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -126,9 +132,15 @@ def get_results(query_object: QueryObject) -> SemanticResult:
 
     # If no time offsets, return the main result as-is
     if not query_object.time_offsets or len(queries) <= 1:
-        return SemanticResult(
+        semantic_result = SemanticResult(
             requests=all_requests,
             results=main_df,
+        )
+        duration = timedelta(seconds=time() - start_time)
+        return map_semantic_result_to_query_result(
+            semantic_result,
+            query_object,
+            duration,
         )
 
     # Get metric names from the main query
@@ -197,7 +209,58 @@ def get_results(query_object: QueryObject) -> SemanticResult:
             if duplicate_cols:
                 main_df = main_df.drop(columns=duplicate_cols)
 
-    return SemanticResult(requests=all_requests, results=main_df)
+    # Convert final result to QueryResult
+    semantic_result = SemanticResult(requests=all_requests, results=main_df)
+    duration = timedelta(seconds=time() - start_time)
+    return map_semantic_result_to_query_result(
+        semantic_result,
+        query_object,
+        duration,
+    )
+
+
+def map_semantic_result_to_query_result(
+    semantic_result: SemanticResult,
+    query_object: ValidatedQueryObject,
+    duration: timedelta,
+) -> QueryResult:
+    """
+    Convert a SemanticResult to a QueryResult.
+
+    :param semantic_result: Result from the semantic layer
+    :param query_object: Original QueryObject (for passthrough attributes)
+    :param duration: Time taken to execute the query
+    :return: QueryResult compatible with Superset's query interface
+    """
+    # Get the query string from requests (typically one or more SQL queries)
+    query_str = ""
+    if semantic_result.requests:
+        # Join all requests for display (could be multiple for time comparisons)
+        query_str = "\n\n".join(
+            f"-- {req.type}\n{req.definition}" for req in semantic_result.requests
+        )
+
+    return QueryResult(
+        # Core data
+        df=semantic_result.results,
+        query=query_str,
+        duration=duration,
+        # Template filters - not applicable to semantic layers
+        # (semantic layers don't use Jinja templates)
+        applied_template_filters=None,
+        # Filter columns - not applicable to semantic layers
+        # (semantic layers handle filter validation internally)
+        applied_filter_columns=None,
+        rejected_filter_columns=None,
+        # Status - always success if we got here
+        # (errors would raise exceptions before reaching this point)
+        status=QueryStatus.SUCCESS,
+        error_message=None,
+        errors=None,
+        # Time range - pass through from original query_object
+        from_dttm=query_object.from_dttm,
+        to_dttm=query_object.to_dttm,
+    )
 
 
 def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:

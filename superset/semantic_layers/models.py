@@ -28,11 +28,14 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
-from superset.models.helpers import AuditMixinNullable
+from superset.common.query_object import QueryObject
+from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.types import (
     SemanticLayerImplementation,
     SemanticViewImplementation,
 )
+from superset.superset_typing import QueryObjectDict
 from superset.utils import core as utils
 
 
@@ -69,7 +72,9 @@ class SemanticLayer(AuditMixinNullable, Model):
         return self.name or str(self.uuid)
 
     @property
-    def implementation(self) -> SemanticLayerImplementation[Any]:
+    def implementation(
+        self,
+    ) -> SemanticLayerImplementation[Any, SemanticViewImplementation]:
         """
         Return semantic layer implementation.
         """
@@ -138,3 +143,17 @@ class SemanticView(AuditMixinNullable, Model):
     # =========================================================================
     # Explorable protocol implementation
     # =========================================================================
+
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+        return get_results(query_object)
+
+    def get_query_str(self, query_obj: QueryObjectDict) -> str:
+        return "Not implemented for semantic layers"
+
+    @property
+    def uid(self) -> str:
+        return self.implementation.uid()
+
+    @property
+    def type(self) -> str:
+        return "semantic_view"
