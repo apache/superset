@@ -16,3 +16,11 @@
 # under the License.
 
 """System tools for MCP service."""
+
+from .get_superset_instance_info import get_superset_instance_info
+from .health_check import health_check
+
+__all__ = [
+    "health_check",
+    "get_superset_instance_info",
+]
