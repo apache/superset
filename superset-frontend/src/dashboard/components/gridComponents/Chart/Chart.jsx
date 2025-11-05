@@ -612,18 +612,18 @@ export default memo(Chart, (prevProps, nextProps) => {
     return false;
   }
   return (
-    !nextProps.isComponentVisible ||
-    (prevProps.isInView === nextProps.isInView &&
-      prevProps.componentId === nextProps.componentId &&
-      prevProps.id === nextProps.id &&
-      prevProps.dashboardId === nextProps.dashboardId &&
-      prevProps.extraControls === nextProps.extraControls &&
-      prevProps.handleToggleFullSize === nextProps.handleToggleFullSize &&
-      prevProps.isFullSize === nextProps.isFullSize &&
-      prevProps.setControlValue === nextProps.setControlValue &&
-      prevProps.sliceName === nextProps.sliceName &&
-      prevProps.updateSliceName === nextProps.updateSliceName &&
-      prevProps.width === nextProps.width &&
-      prevProps.height === nextProps.height)
+    prevProps.isComponentVisible === nextProps.isComponentVisible &&
+    prevProps.isInView === nextProps.isInView &&
+    prevProps.componentId === nextProps.componentId &&
+    prevProps.id === nextProps.id &&
+    prevProps.dashboardId === nextProps.dashboardId &&
+    prevProps.extraControls === nextProps.extraControls &&
+    prevProps.handleToggleFullSize === nextProps.handleToggleFullSize &&
+    prevProps.isFullSize === nextProps.isFullSize &&
+    prevProps.setControlValue === nextProps.setControlValue &&
+    prevProps.sliceName === nextProps.sliceName &&
+    prevProps.updateSliceName === nextProps.updateSliceName &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height
   );
 });
