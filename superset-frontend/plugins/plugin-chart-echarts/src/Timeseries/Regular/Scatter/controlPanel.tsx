@@ -117,14 +117,18 @@ const config: ControlPanelConfig = {
                 const xAxisColumn = controls?.x_axis?.value;
                 const xAxisOptions = controls?.x_axis?.options;
 
-                if (!xAxisColumn || !Array.isArray(xAxisOptions))
-                {
+                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
                   return false;
                 }
 
-                const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
+                const xAxisType = xAxisOptions.find(
+                  option => option.column_name === xAxisColumn,
+                )?.type;
 
-                return typeof xAxisType === 'string' && xAxisType.toUpperCase().includes('TIME');
+                return (
+                  typeof xAxisType === 'string' &&
+                  xAxisType.toUpperCase().includes('TIME')
+                );
               },
             },
           },
@@ -137,24 +141,26 @@ const config: ControlPanelConfig = {
                 const xAxisColumn = controls?.x_axis?.value;
                 const xAxisOptions = controls?.x_axis?.options;
 
-                if (!xAxisColumn || !Array.isArray(xAxisOptions))
-                {
+                if (!xAxisColumn || !Array.isArray(xAxisOptions)) {
                   return false;
                 }
 
-                const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
+                const xAxisType = xAxisOptions.find(
+                  option => option.column_name === xAxisColumn,
+                )?.type;
 
-                if (typeof xAxisType !== 'string')
-                {
+                if (typeof xAxisType !== 'string') {
                   return false;
                 }
 
                 const typeUpper = xAxisType.toUpperCase();
 
-                return ['FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'DECIMAL'].some(t => typeUpper.includes(t));
+                return ['FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'DECIMAL'].some(
+                  t => typeUpper.includes(t),
+                );
               },
             },
-          }
+          },
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],

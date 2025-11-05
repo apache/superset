@@ -487,8 +487,8 @@ export default function transformProps(
     xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
       : xAxisDataType === GenericDataType.Numeric
-      ? getNumberFormatter(xAxisNumberFormat)
-      : String;
+        ? getNumberFormatter(xAxisNumberFormat)
+        : String;
 
   const {
     setDataMask = () => {},

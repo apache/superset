@@ -342,28 +342,30 @@ const x_axis_time_format: SharedControlConfig<
     option.label.includes(search) || option.value.includes(search),
 };
 
-const x_axis_number_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
-  {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('X Axis Number Format'),
-    renderTrigger: true,
-    default: DEFAULT_NUMBER_FORMAT,
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-    tokenSeparators: ['\n', '\t', ';'],
-    filterOption: ({ data: option }, search) =>
-      option.label.includes(search) || option.value.includes(search),
-    mapStateToProps: state => {
-      const isPercentage =
-        state.controls?.comparison_type?.value === ComparisonType.Percentage;
-      return {
-        choices: isPercentage
-          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
-          : D3_FORMAT_OPTIONS,
-      };
-    },
-  };
+const x_axis_number_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
+  type: 'SelectControl',
+  freeForm: true,
+  label: t('X Axis Number Format'),
+  renderTrigger: true,
+  default: DEFAULT_NUMBER_FORMAT,
+  choices: D3_FORMAT_OPTIONS,
+  description: D3_FORMAT_DOCS,
+  tokenSeparators: ['\n', '\t', ';'],
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
+  mapStateToProps: state => {
+    const isPercentage =
+      state.controls?.comparison_type?.value === ComparisonType.Percentage;
+    return {
+      choices: isPercentage
+        ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+        : D3_FORMAT_OPTIONS,
+    };
+  },
+};
 
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',

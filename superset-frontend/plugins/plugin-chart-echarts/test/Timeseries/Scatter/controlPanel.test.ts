@@ -41,21 +41,26 @@ describe('Scatter Chart Control Panel', () => {
     }
 
     return null;
-  }
+  };
 
-  const mockControls = (xAxisColumn: string | null, xAxisType: string | null): ControlPanelsContainerProps => {
-        const options = xAxisType ? [{ column_name: xAxisColumn, type: xAxisType }] : [];
+  const mockControls = (
+    xAxisColumn: string | null,
+    xAxisType: string | null,
+  ): ControlPanelsContainerProps => {
+    const options = xAxisType
+      ? [{ column_name: xAxisColumn, type: xAxisType }]
+      : [];
 
-        return {
-          controls: {
-            // @ts-ignore
-            x_axis: {
-              value: xAxisColumn,
-              options: options,
-            },
-          },
-        };
-      };
+    return {
+      controls: {
+        // @ts-ignore
+        x_axis: {
+          value: xAxisColumn,
+          options: options,
+        },
+      },
+    };
+  };
 
   describe('x_axis_time_format control', () => {
     const timeFormatControl: any = getControl('x_axis_time_format');
@@ -80,23 +85,28 @@ describe('Scatter Chart Control Panel', () => {
     });
 
     describe('x_axis_time_format control visibility', () => {
-      const isVisible = (xAxisColumn: string | null, xAxisType: string | null): boolean => {
+      const isVisible = (
+        xAxisColumn: string | null,
+        xAxisType: string | null,
+      ): boolean => {
         const props = mockControls(xAxisColumn, xAxisType);
         const visibilityFn = timeFormatControl?.config?.visibility;
         return visibilityFn ? visibilityFn(props) : false;
       };
 
       it('should be visible for any data types include TIME', () => {
-        expect(isVisible("time_column", "TIME")).toBe(true);
-        expect(isVisible("time_column", "TIME WITH TIME ZONE")).toBe(true);
-        expect(isVisible("time_column", "TIMESTAMP WITH TIME ZONE")).toBe(true);
-        expect(isVisible("time_column", "TIMESTAMP WITHOUT TIME ZONE")).toBe(true);
+        expect(isVisible('time_column', 'TIME')).toBe(true);
+        expect(isVisible('time_column', 'TIME WITH TIME ZONE')).toBe(true);
+        expect(isVisible('time_column', 'TIMESTAMP WITH TIME ZONE')).toBe(true);
+        expect(isVisible('time_column', 'TIMESTAMP WITHOUT TIME ZONE')).toBe(
+          true,
+        );
       });
 
       it('should be hidden for any data types include TIME', () => {
-        expect(isVisible("null", "null")).toBe(false);
+        expect(isVisible('null', 'null')).toBe(false);
         expect(isVisible(null, null)).toBe(false);
-        expect(isVisible("float_column", "FLOAT")).toBe(false);
+        expect(isVisible('float_column', 'FLOAT')).toBe(false);
       });
     });
   });
@@ -124,25 +134,30 @@ describe('Scatter Chart Control Panel', () => {
     });
 
     describe('x_axis_number_format control visibility', () => {
-      const isVisible = (xAxisColumn: string | null, xAxisType: string | null): boolean => {
+      const isVisible = (
+        xAxisColumn: string | null,
+        xAxisType: string | null,
+      ): boolean => {
         const props = mockControls(xAxisColumn, xAxisType);
         const visibilityFn = numberFormatControl?.config?.visibility;
         return visibilityFn ? visibilityFn(props) : false;
       };
 
       it('should be visible for any floating-point data types', () => {
-        expect(isVisible("float_column", 'FLOAT')).toBe(true);
-        expect(isVisible("double_column", "DOUBLE")).toBe(true);
-        expect(isVisible("real_column", "REAL")).toBe(true);
-        expect(isVisible("numeric_column", "NUMERIC")).toBe(true);
-        expect(isVisible("decimal_column", "DECIMAL")).toBe(true);
+        expect(isVisible('float_column', 'FLOAT')).toBe(true);
+        expect(isVisible('double_column', 'DOUBLE')).toBe(true);
+        expect(isVisible('real_column', 'REAL')).toBe(true);
+        expect(isVisible('numeric_column', 'NUMERIC')).toBe(true);
+        expect(isVisible('decimal_column', 'DECIMAL')).toBe(true);
       });
 
       it('should be hidden for any non-floating-point data types', () => {
-        expect(isVisible("string_column", "VARCHAR")).toBe(false);
-        expect(isVisible("null", "null")).toBe(false);
+        expect(isVisible('string_column', 'VARCHAR')).toBe(false);
+        expect(isVisible('null', 'null')).toBe(false);
         expect(isVisible(null, null)).toBe(false);
-        expect(isVisible("time_column", "TIMESTAMP WITHOUT TIME ZONE")).toBe(false);
+        expect(isVisible('time_column', 'TIMESTAMP WITHOUT TIME ZONE')).toBe(
+          false,
+        );
       });
     });
   });

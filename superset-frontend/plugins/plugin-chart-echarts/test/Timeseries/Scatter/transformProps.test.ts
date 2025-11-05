@@ -20,9 +20,16 @@
 import { ChartProps, SMART_DATE_ID, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
-import { EchartsTimeseriesSeriesType, EchartsTimeseriesFormData, EchartsTimeseriesChartProps } from '../../../src/Timeseries/types';
+import {
+  EchartsTimeseriesSeriesType,
+  EchartsTimeseriesFormData,
+  EchartsTimeseriesChartProps,
+} from '../../../src/Timeseries/types';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { D3_FORMAT_OPTIONS, D3_TIME_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
+import {
+  D3_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_OPTIONS,
+} from '@superset-ui/chart-controls';
 
 describe('Scatter Chart X-axis Time Formatting', () => {
   const baseFormData: EchartsTimeseriesFormData = {
@@ -71,7 +78,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(xAxis.axisLabel.formatter).toBeUndefined();
   });
 
-  it.each(D3_TIME_FORMAT_OPTIONS)('should handle %s format', (format) => {
+  it.each(D3_TIME_FORMAT_OPTIONS)('should handle %s format', format => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: {
@@ -88,8 +95,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(xAxis.axisLabel).toHaveProperty('formatter');
     if (format === SMART_DATE_ID) {
       expect(xAxis.axisLabel.formatter).toBeUndefined();
-    }
-    else {
+    } else {
       expect(typeof xAxis.axisLabel.formatter).toBe('function');
       expect(xAxis.axisLabel.formatter.id).toBe(format);
     }
@@ -144,7 +150,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     expect(xAxis.axisLabel.formatter.id).toBe('SMART_NUMBER');
   });
 
-  it.each(D3_FORMAT_OPTIONS)('should handle %s format', (format) => {
+  it.each(D3_FORMAT_OPTIONS)('should handle %s format', format => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: {
