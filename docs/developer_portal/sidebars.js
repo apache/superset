@@ -22,24 +22,10 @@ module.exports = {
     'index',
     {
       type: 'category',
-      label: 'Getting Started',
-      items: [
-        'getting-started/index',
-      ],
-    },
-    {
-      type: 'category',
       label: 'Contributing',
       collapsed: true,
       items: [
         'contributing/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Architecture',
-      items: [
-        'architecture/overview',
       ],
     },
     {
@@ -65,27 +51,6 @@ module.exports = {
       collapsed: true,
       items: [
         'testing/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'API Reference',
-      items: [
-        'api/frontend',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'CLI',
-      items: [
-        'cli/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Examples',
-      items: [
-        'examples/index',
       ],
     },
   ],
