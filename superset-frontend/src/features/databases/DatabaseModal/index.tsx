@@ -1050,6 +1050,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      if (!selectedDbModel) return;
       const {
         engine,
         parameters,
