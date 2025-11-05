@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
@@ -70,8 +70,13 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def get_data(self, pk: int) -> Response:
+    def get_data(  # noqa: C901
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Take a chart ID and uses the query context stored when the chart was saved
         to return payload data response.
@@ -173,9 +178,19 @@ class ChartDataRestApi(ChartRestApi):
         except (TypeError, json.JSONDecodeError):
             form_data = {}
 
-        return self._get_data_response(
+        result, response = self._get_data_response(
             command=command, form_data=form_data, datasource=query_context.datasource
         )
+
+        # Add is_cached to event logs
+        if result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
+
+        return response
 
     @expose("/data", methods=("POST",))
     @protect()
@@ -183,8 +198,11 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def data(self) -> Response:
+    def data(  # noqa: C901
+        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+    ) -> Response:
         """
         Take a query context constructed in the client and return payload
         data response for the given query
@@ -257,9 +275,19 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-        return self._get_data_response(
+        result, response = self._get_data_response(
             command, form_data=form_data, datasource=query_context.datasource
         )
+
+        # Add is_cached to event logs
+        if result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
+
+        return response
 
     @expose("/data/<cache_key>", methods=("GET",))
     @protect()
@@ -317,7 +345,8 @@ class ChartDataRestApi(ChartRestApi):
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
 
-        return self._get_data_response(command, True)
+        _result, response = self._get_data_response(command, True)
+        return response
 
     def _run_async(
         self, form_data: dict[str, Any], command: ChartDataCommand
@@ -417,15 +446,16 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
-    ) -> Response:
+    ) -> tuple[dict[str, Any] | None, Response]:
+        """Get data response and return both result dict and response for logging."""
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
+            return None, self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
+            return None, self.response_400(message=exc.message)
 
-        return self._send_chart_response(result, form_data, datasource)
+        return result, self._send_chart_response(result, form_data, datasource)
 
     # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
