@@ -306,23 +306,19 @@ This command automatically:
 
 ## Step 8: Deploy to Superset
 
-To deploy your extension, configure Superset to load it from a directory accessible to the Superset instance.
+To deploy your extension, you need to enable extensions support and configure where Superset should load them from.
 
-**Enable Extensions Feature Flag**
+**Configure Superset**
 
-First, enable the extensions feature flag in your `superset_config.py`:
+Add the following to your `superset_config.py`:
 
 ```python
+# Enable extensions feature
 FEATURE_FLAGS = {
     "EXTENSIONS": True,
 }
-```
 
-**Configure Extensions Path**
-
-Add the extensions path to your `superset_config.py`:
-
-```python
+# Set the directory where extensions are stored
 EXTENSIONS_PATH = "/path/to/extensions/folder"
 ```
 
