@@ -45,7 +45,7 @@ afterEach(() => {
   cleanup();
   fetchMock.reset();
   fetchMock.restore();
-  jest.restoreAllMocks();
+  jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
 const mockDatasource = {
