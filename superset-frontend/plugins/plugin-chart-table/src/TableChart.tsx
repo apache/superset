@@ -70,6 +70,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -176,7 +177,7 @@ function cellBackground({
   theme: SupersetTheme;
 }) {
   if (!colorPositiveNegative) {
-    return `${theme.colorFillSecondary}50`;
+    return `${theme.colorFill}`;
   }
 
   if (value < 0) {
@@ -375,7 +376,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getCrossFilterDataMask = useCallback(
     (key: string, value: DataRecordValue) => {
-      let updatedFilters = { ...(filters || {}) };
+      let updatedFilters = { ...filters };
       if (filters && isActiveFilterValue(key, value)) {
         updatedFilters = {};
       } else {
@@ -855,6 +856,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
+          let color;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
@@ -867,17 +869,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           if (hasColumnColorFormatters) {
-            columnColorFormatters!
+            const applyFormatter = (
+              formatter: ColorFormatters[number],
+              valueToFormat: any,
+            ) => {
+              const hasValue =
+                valueToFormat !== undefined && valueToFormat !== null;
+              if (!hasValue) return;
+
+              const formatterResult =
+                formatter.getColorFromValue(valueToFormat);
+              if (!formatterResult) return;
+
+              if (formatter.toTextColor) {
+                color = formatterResult.slice(0, -2);
+              } else {
+                backgroundColor = formatterResult;
+              }
+            };
+            columnColorFormatters
               .filter(formatter => formatter.column === column.key)
-              .forEach(formatter => {
-                const formatterResult =
-                  value || value === 0
-                    ? formatter.getColorFromValue(value as number)
-                    : false;
-                if (formatterResult) {
-                  backgroundColor = formatterResult;
-                }
-              });
+              .forEach(formatter => applyFormatter(formatter, value));
+
+            columnColorFormatters
+              .filter(formatter => formatter.toAllRow)
+              .forEach(formatter =>
+                applyFormatter(formatter, row.original[formatter.column]),
+              );
           }
 
           if (
@@ -893,7 +911,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 : '';
           }
           const StyledCell = styled.td`
-            color: ${theme.colorText};
+            color: ${color ? `${color}FF` : theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -1252,7 +1270,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSearch = (searchText: string) => {
     const modifiedOwnState = {
-      ...(serverPaginationData || {}),
+      ...serverPaginationData,
       searchColumn:
         serverPaginationData?.searchColumn || searchOptions[0]?.value,
       searchText,
@@ -1266,7 +1284,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
       const modifiedOwnState = {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
       };
