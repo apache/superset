@@ -544,6 +544,5 @@ When adding features:
 ## Related Documentation
 
 - [Extension Manifest](/developer_portal/references/manifest)
-- [Lifecycle Management](/developer_portal/extensions/lifecycle-management)
 - [Contribution Points](/developer_portal/references/contribution-points)
 - [Architecture Overview](/developer_portal/architecture/overview)
