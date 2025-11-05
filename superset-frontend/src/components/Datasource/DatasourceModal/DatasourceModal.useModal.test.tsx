@@ -79,11 +79,7 @@ test('DatasourceModal - should handle sync columns state without imperative moda
   });
 
   // Should show confirmation modal
-  const confirmElement = screen
-    .getAllByText('Confirm save')
-    .find(el => el.closest('span'));
-
-  expect(confirmElement).toBeInTheDocument();
+  expect(screen.getByText('Confirm save')).toBeInTheDocument();
 
   // Should show the confirmation message
   expect(
