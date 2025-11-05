@@ -167,14 +167,7 @@ class RLSTransformer:
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
-            return (
-                exp.And(
-                    this=predicates[0],
-                    expressions=predicates[1:],
-                )
-                if len(predicates) > 1
-                else predicates[0]
-            )
+            return sqlglot.and_(*predicates)
 
         return None
 
