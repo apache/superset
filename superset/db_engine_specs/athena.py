@@ -104,16 +104,18 @@ class AthenaEngineSpec(BaseEngineSpec):
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
         """
-        Adjust the SQLAlchemy URI for Athena with a provided schema.
+        Adjust the SQLAlchemy URI for Athena with a provided catalog and schema.
 
         For AWS Athena the SQLAlchemy URI looks like this:
 
-            awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com:443/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+            awsathena+rest://athena.{region_name}.amazonaws.com:443/{schema_name}?catalog_name={catalog_name}&s3_staging_dir={s3_staging_dir}
         """
-        if not schema:
-            return uri, connect_args
+        if catalog:
+            uri = uri.update_query_dict({"catalog_name": catalog})
 
-        uri = uri.set(database=schema)
+        if schema:
+            uri = uri.set(database=schema)
+
         return uri, connect_args
 
     @classmethod
@@ -127,6 +129,6 @@ class AthenaEngineSpec(BaseEngineSpec):
 
         For AWS Athena the SQLAlchemy URI looks like this:
 
-            awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com:443/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+            awsathena+rest://athena.{region_name}.amazonaws.com:443/{schema_name}?catalog_name={catalog_name}&s3_staging_dir={s3_staging_dir}
         """
         return sqlalchemy_uri.database

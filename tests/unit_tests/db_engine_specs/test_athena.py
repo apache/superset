@@ -131,24 +131,37 @@ def test_adjust_engine_params() -> None:
     """
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
-    url = make_url(
-        "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fathena-staging"
-    )
+    url = make_url("awsathena+rest://athena.us-east-1.amazonaws.com:443/default")
 
     uri = AthenaEngineSpec.adjust_engine_params(url, {})[0]
-    assert (
-        str(uri)
-        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fathena-staging"
-    )
+    assert str(uri) == "awsathena+rest://athena.us-east-1.amazonaws.com:443/default"
 
     uri = AthenaEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
+    assert str(uri) == "awsathena+rest://athena.us-east-1.amazonaws.com:443/new_schema"
+
+    uri = AthenaEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
     assert (
         str(uri)
-        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/new_schema?s3_staging_dir=s3%3A%2F%2Fathena-staging"
+        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?catalog_name=new_catalog"
+    )
+
+    uri = AthenaEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert (
+        str(uri)
+        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/new_schema?catalog_name=new_catalog"
     )
 
 
