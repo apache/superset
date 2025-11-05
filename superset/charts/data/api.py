@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
@@ -70,8 +70,13 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def get_data(self, pk: int) -> Response:
+    def get_data(  # noqa: C901
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Take a chart ID and uses the query context stored when the chart was saved
         to return payload data response.
@@ -174,7 +179,10 @@ class ChartDataRestApi(ChartRestApi):
             form_data = {}
 
         return self._get_data_response(
-            command=command, form_data=form_data, datasource=query_context.datasource
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
 
     @expose("/data", methods=("POST",))
@@ -183,8 +191,11 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def data(self) -> Response:
+    def data(  # noqa: C901
+        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+    ) -> Response:
         """
         Take a query context constructed in the client and return payload
         data response for the given query
@@ -258,7 +269,10 @@ class ChartDataRestApi(ChartRestApi):
 
         form_data = json_body.get("form_data")
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -417,13 +431,23 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        add_extra_log_payload: Callable[..., None] | None = None,
     ) -> Response:
+        """Get data response and optionally log is_cached information."""
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
+
+        # Log is_cached if extra payload callback is provided
+        if add_extra_log_payload and result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
 
         return self._send_chart_response(result, form_data, datasource)
 
