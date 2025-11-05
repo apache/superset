@@ -425,14 +425,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       }
     }
   }, [
-    defaultToFirstItem,
-    updateDataMask,
-    formData,
-    data,
-    JSON.stringify(filterState.value),
-    isChangedByUser.current,
-    clearAllTrigger,
-  ]);
+	defaultToFirstItem,
+	updateDataMask,
+	formData,
+	data,
+	JSON.stringify(filterState.value),
+	clearAllTrigger
+]);
 
   useEffect(() => {
     setDataMask(dataMask);
