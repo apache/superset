@@ -44,7 +44,6 @@ const StyledHeader = styled.header`
   ${({ theme }) => css`
     background-color: ${theme.colorBgContainer};
     border-bottom: 1px solid ${theme.colorBorderSecondary};
-    min-height: ${theme.sizeUnit * 13}px;
     padding: 0 ${theme.sizeUnit * 4}px;
     z-index: 10;
 
@@ -116,17 +115,18 @@ const { SubMenu } = MainNav;
 const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     &.ant-menu-submenu.ant-menu-submenu-horizontal {
-      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       display: flex;
       align-items: center;
       height: 100%;
+      padding: 0;
 
       .ant-menu-submenu-title {
         display: flex;
         gap: ${theme.sizeUnit * 2}px;
         flex-direction: row-reverse;
         align-items: center;
-        padding: 0;
+        height: 100%;
+        padding: 0 ${theme.sizeUnit * 4}px;
       }
 
       &:hover,
@@ -151,7 +151,8 @@ const StyledSubMenu = styled(SubMenu)`
         transition: 0.2s all ease-out;
       }
 
-      &:hover::after {
+      &:hover::after,
+      &.ant-menu-submenu-open::after {
         transform: scale(1);
       }
     }
@@ -159,6 +160,13 @@ const StyledSubMenu = styled(SubMenu)`
     &.ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
+  `}
+`;
+
+const StyledBrandWrapper = styled.div<{ margin?: string }>`
+  ${({ margin }) => css`
+    height: ${margin ? 'auto' : '100%'};
+    margin: ${margin ?? 0};
   `}
 `;
 
@@ -281,10 +289,10 @@ export function Menu({
       <StyledSubMenu
         key={label}
         title={label}
+        popupOffset={[0, -8]}
         icon={
           showMenu === 'inline' ? <></> : <Icons.DownOutlined iconSize="xs" />
         }
-        popupOffset={[10, 3]}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
@@ -318,14 +326,16 @@ export function Menu({
     let link;
     if (theme.brandLogoUrl) {
       link = (
-        <StyledBrandLink href={theme.brandLogoHref}>
-          <Image
-            preview={false}
-            src={theme.brandLogoUrl}
-            alt={theme.brandLogoAlt || 'Apache Superset'}
-            height={theme.brandLogoHeight}
-          />
-        </StyledBrandLink>
+        <StyledBrandWrapper margin={theme.brandLogoMargin}>
+          <StyledBrandLink href={theme.brandLogoHref}>
+            <Image
+              preview={false}
+              src={theme.brandLogoUrl}
+              alt={theme.brandLogoAlt || 'Apache Superset'}
+              height={theme.brandLogoHeight}
+            />
+          </StyledBrandLink>
+        </StyledBrandWrapper>
       );
     } else if (isFrontendRoute(window.location.pathname)) {
       // ---------------------------------------------------------------------------------

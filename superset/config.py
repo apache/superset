@@ -752,6 +752,7 @@ THEME_DEFAULT: Theme = {
         # Brand
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
+        "brandLogoMargin": "18px 0",
         "brandLogoHref": "/",
         "brandLogoHeight": "24px",
         # Spinner
@@ -1868,8 +1869,7 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-# TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
-TALISMAN_ENABLED = False
+TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to

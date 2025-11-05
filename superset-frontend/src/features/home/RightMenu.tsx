@@ -69,7 +69,6 @@ const StyledDiv = styled.div<{ align: string }>`
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
-  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const StyledMenuItemWithIcon = styled.div`
