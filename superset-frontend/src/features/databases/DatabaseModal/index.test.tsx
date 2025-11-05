@@ -56,7 +56,7 @@ const dbProps = {
   show: true,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
-  onHide: () => { },
+  onHide: () => {},
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
