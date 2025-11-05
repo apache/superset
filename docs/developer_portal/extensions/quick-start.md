@@ -29,8 +29,9 @@ This guide walks you through creating your first Superset extension - a simple "
 ## Prerequisites
 
 Before starting, ensure you have:
-- Node.js 18+ and npm installed
-- Python 3.9+ installed
+
+- Node.js and npm compatible with your Superset version
+- Python compatible with your Superset version
 - A running Superset development environment
 - Basic knowledge of React, TypeScript, and Flask
 
@@ -44,7 +45,7 @@ pip install apache-superset-extensions-cli
 
 ## Step 2: Create a New Extension
 
-Use the CLI to scaffold a new extension project:
+Use the CLI to scaffold a new extension project. Extensions can include frontend functionality, backend functionality, or both, depending on your needs. This quickstart demonstrates a full-stack extension with both frontend UI components and backend API endpoints to show the complete integration pattern.
 
 ```bash
 superset-extensions init
@@ -114,8 +115,9 @@ The generated `extension.json` contains basic metadata. Update it to register yo
 ```
 
 **Key fields:**
+
 - `frontend.contributions.views.sqllab.panels`: Registers your panel in SQL Lab
-- `backend.entryPoints`: Python module to load when extension starts
+- `backend.entryPoints`: Python modules to load eagerly when extension starts
 
 ## Step 4: Create Backend API
 
@@ -145,6 +147,7 @@ class HelloWorldAPI(RestApi):
 ```
 
 **Key points:**
+
 - Extends `RestApi` from `superset_core.api.types.rest_api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
@@ -228,13 +231,15 @@ const HelloWorldPanel: React.FC = () => {
   return (
     <div style={{ padding: '20px' }}>
       <h3>Hello World Extension</h3>
-      <div style={{
-        padding: '16px',
-        backgroundColor: '#f6ffed',
-        border: '1px solid #b7eb8f',
-        borderRadius: '4px',
-        marginBottom: '16px'
-      }}>
+      <div
+        style={{
+          padding: '16px',
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          borderRadius: '4px',
+          marginBottom: '16px',
+        }}
+      >
         <strong>{message}</strong>
       </div>
       <p>This message was fetched from the backend API! 🎉</p>
@@ -264,6 +269,7 @@ export const deactivate = () => {};
 ```
 
 **Key patterns:**
+
 - `activate` function is called when the extension loads
 - `core.registerViewProvider` registers the component with ID `hello_world.main` (matching `extension.json`)
 - `authentication.getCSRFToken()` retrieves the CSRF token for API calls
@@ -289,6 +295,7 @@ superset-extensions bundle
 ```
 
 This command automatically:
+
 - Builds frontend assets using Webpack with Module Federation
 - Collects backend Python source files
 - Creates a `dist/` directory with:
@@ -301,9 +308,19 @@ This command automatically:
 
 To deploy your extension, configure Superset to load it from a directory accessible to the Superset instance.
 
+**Enable Extensions Feature Flag**
+
+First, enable the extensions feature flag in your `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "EXTENSIONS": True,
+}
+```
+
 **Configure Extensions Path**
 
-Add to your `superset_config.py`:
+Add the extensions path to your `superset_config.py`:
 
 ```python
 EXTENSIONS_PATH = "/path/to/extensions/folder"
