@@ -123,7 +123,7 @@ const config: ControlPanelConfig = {
                 }
 
                 const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
-                
+
                 return typeof xAxisType === 'string' && xAxisType.toUpperCase().includes('TIME');
               },
             },
@@ -141,7 +141,7 @@ const config: ControlPanelConfig = {
                 {
                   return false;
                 }
-                
+
                 const xAxisType = xAxisOptions.find(option => option.column_name === xAxisColumn)?.type;
 
                 if (typeof xAxisType !== 'string')
@@ -150,7 +150,7 @@ const config: ControlPanelConfig = {
                 }
 
                 const typeUpper = xAxisType.toUpperCase();
-                
+
                 return ['FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'DECIMAL'].some(t => typeUpper.includes(t));
               },
             },
