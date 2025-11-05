@@ -65,7 +65,7 @@ from superset.semantic_layers.types import (
 REQUEST_TYPE = "snowflake"
 
 
-class SnowflakeSemanticView(SemanticViewImplementation[SnowflakeConfiguration]):
+class SnowflakeSemanticView(SemanticViewImplementation):
     features = frozenset(
         {
             SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,

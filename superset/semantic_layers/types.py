@@ -289,26 +289,28 @@ class SemanticViewFeature(enum.Enum):
     GROUP_OTHERS = "GROUP_OTHERS"
 
 
-ConfigT = TypeVar("ConfigT", bound=BaseModel)
+LayerConfigT = TypeVar("LayerConfigT", bound=BaseModel)
 
 
 @runtime_checkable
-class SemanticLayerImplementation(Protocol[ConfigT]):
+class SemanticLayerImplementation(Protocol[LayerConfigT]):
     """
     A protocol for semantic layers.
     """
 
-    configuration_schema: type[ConfigT]
-
-    def __init__(self, configuration: ConfigT) -> None:
+    @classmethod
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+    ) -> SemanticLayerImplementation[LayerConfigT]:
         """
-        Initialize the semantic layer with the given configuration.
+        Create a semantic layer from its configuration.
         """
 
     @classmethod
     def get_configuration_schema(
         cls,
-        configuration: ConfigT | None = None,
+        configuration: LayerConfigT | None = None,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
@@ -332,7 +334,7 @@ class SemanticLayerImplementation(Protocol[ConfigT]):
     @classmethod
     def get_runtime_schema(
         cls,
-        configuration: ConfigT,
+        configuration: LayerConfigT,
         runtime_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
@@ -359,7 +361,7 @@ class SemanticLayerImplementation(Protocol[ConfigT]):
     def get_semantic_views(
         self,
         runtime_configuration: dict[str, Any],
-    ) -> set[SemanticViewImplementation[Any]]:
+    ) -> set[SemanticViewImplementation]:
         """
         Get the semantic views available in the semantic layer.
 
@@ -371,24 +373,19 @@ class SemanticLayerImplementation(Protocol[ConfigT]):
         self,
         name: str,
         additional_configuration: dict[str, Any],
-    ) -> SemanticViewImplementation[Any]:
+    ) -> SemanticViewImplementation:
         """
         Get a specific semantic view by its name and additional configuration.
         """
 
 
 @runtime_checkable
-class SemanticViewImplementation(Protocol[ConfigT]):
+class SemanticViewImplementation(Protocol):
     """
     A protocol for semantic views.
     """
 
     features: frozenset[SemanticViewFeature]
-
-    def __init__(self, name: str, configuration: ConfigT):
-        """
-        Initialize the semantic view with the given name and configuration.
-        """
 
     def uid(self) -> str:
         """

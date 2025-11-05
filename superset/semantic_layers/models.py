@@ -82,10 +82,14 @@ class SemanticLayer(AuditMixinNullable, Model):
             )
         )
         implementation_class = entry_point.load()
-        schema = implementation_class.configuration_schema()
-        configuration = schema.model_validate(self.configuration)
 
-        return implementation_class(configuration)
+        if not issubclass(implementation_class, SemanticLayerImplementation):
+            raise TypeError(
+                f"Entry point for semantic layer type '{self.type}' "
+                "must be a subclass of SemanticLayerImplementation"
+            )
+
+        return implementation_class.from_configuration(self.configuration)
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -122,7 +126,7 @@ class SemanticView(AuditMixinNullable, Model):
         return self.name or str(self.uuid)
 
     @property
-    def implementation(self) -> SemanticViewImplementation[Any]:
+    def implementation(self) -> SemanticViewImplementation:
         """
         Return semantic view implementation.
         """
@@ -130,3 +134,7 @@ class SemanticView(AuditMixinNullable, Model):
             self.name,
             self.configuration,
         )
+
+    # =========================================================================
+    # Explorable protocol implementation
+    # =========================================================================

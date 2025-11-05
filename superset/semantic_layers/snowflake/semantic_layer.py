@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import Any, Literal, TYPE_CHECKING
+from typing import Any, Literal
 
 from pydantic import create_model, Field
 from snowflake.connector import connect
@@ -26,10 +26,10 @@ from snowflake.connector.connection import SnowflakeConnection
 
 from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
 from superset.semantic_layers.snowflake.utils import get_connection_parameters
-from superset.semantic_layers.types import SemanticLayerImplementation
-
-if TYPE_CHECKING:
-    from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
+from superset.semantic_layers.types import (
+    SemanticLayerImplementation,
+    SemanticViewImplementation,
+)
 
 
 class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]):
@@ -37,7 +37,16 @@ class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]
     name = "Snowflake Semantic Layer"
     description = "Connect to semantic views stored in Snowflake."
 
-    configuration_schema = SnowflakeConfiguration
+    @classmethod
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+    ) -> SnowflakeSemanticLayer:
+        """
+        Create a SnowflakeSemanticLayer from a configuration dictionary.
+        """
+        config = SnowflakeConfiguration.model_validate(configuration)
+        return cls(config)
 
     @classmethod
     def get_configuration_schema(
@@ -56,7 +65,7 @@ class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]
         added to Superset; the user will then have to provide them when loading
         semantic views.
         """
-        schema = cls.configuration_schema.model_json_schema()
+        schema = SnowflakeConfiguration.model_json_schema()
         properties = schema["properties"]
 
         if configuration is None:
@@ -195,7 +204,7 @@ class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]
     def get_semantic_views(
         self,
         runtime_configuration: dict[str, Any],
-    ) -> set[SnowflakeSemanticView]:
+    ) -> set[SemanticViewImplementation]:
         """
         Get the semantic views available in the semantic layer.
         """
@@ -216,7 +225,8 @@ class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]
                     ->> SELECT "name" FROM $1;
                 """
             ).strip()
-            return {
+            views = {
                 SnowflakeSemanticView(row[0], configuration)
                 for row in cursor.execute(query)
             }
+            return views
