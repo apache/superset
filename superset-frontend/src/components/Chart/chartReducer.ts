@@ -67,8 +67,9 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      if (state.queryController) {
-        state.queryController.abort();
+      const controller = state.queryController;
+      if (controller) {
+        controller.abort();
       }
       return {
         ...state,
