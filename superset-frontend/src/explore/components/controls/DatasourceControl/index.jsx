@@ -316,7 +316,6 @@ class DatasourceControl extends PureComponent {
       datasourceKey: `${datasource.id}__${datasource.type}`,
       sql: datasource.sql,
     };
-
     const defaultDatasourceMenuItems = [];
     if (this.props.isEditable && !isMissingDatasource) {
       defaultDatasourceMenuItems.push({
