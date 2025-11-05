@@ -140,6 +140,27 @@ class HelloWorldAPI(RestApi):
     @protect()
     @safe
     def get_message(self) -> Response:
+        """Gets a hello world message
+        ---
+        get:
+          description: >-
+            Get a hello world message from the backend
+          responses:
+            200:
+              description: Hello world message
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+            401:
+              $ref: '#/components/responses/401'
+        """
         return self.response(
             200,
             result={"message": "Hello from the backend!"}
@@ -152,6 +173,7 @@ class HelloWorldAPI(RestApi):
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
 - The endpoint will be accessible at `/extensions/hello_world/message`
+- OpenAPI docstrings are crucial - Flask-AppBuilder uses them to automatically generate interactive API documentation at `/swagger/v1`, allowing developers to explore endpoints, understand schemas, and test the API directly from the browser
 
 **Update `backend/src/hello_world/entrypoint.py`**
 
