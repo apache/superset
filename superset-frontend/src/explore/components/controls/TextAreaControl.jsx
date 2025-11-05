@@ -132,7 +132,7 @@ class TextAreaControl extends Component {
         style.resize = this.props.resize;
       }
       if (this.props.readOnly) {
-        style.backgroundColor = '#f2f2f2';
+        style.backgroundColor = this.props.theme.colorBgMask;
       }
       const onEditorLoad = editor => {
         this.props.hotkeys.forEach(keyConfig => {
