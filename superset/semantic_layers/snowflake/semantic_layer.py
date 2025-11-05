@@ -20,18 +20,19 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import Any, Literal, TYPE_CHECKING
 
-from pydantic import BaseModel, create_model, Field
+from pydantic import create_model, Field
 from snowflake.connector import connect
 from snowflake.connector.connection import SnowflakeConnection
 
 from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
 from superset.semantic_layers.snowflake.utils import get_connection_parameters
+from superset.semantic_layers.types import SemanticLayerImplementation
 
 if TYPE_CHECKING:
     from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
 
 
-class SnowflakeSemanticLayer:
+class SnowflakeSemanticLayer(SemanticLayerImplementation[SnowflakeConfiguration]):
     id = "snowflake"
     name = "Snowflake Semantic Layer"
     description = "Connect to semantic views stored in Snowflake."
@@ -193,7 +194,7 @@ class SnowflakeSemanticLayer:
 
     def get_semantic_views(
         self,
-        runtime_configuration: BaseModel,
+        runtime_configuration: dict[str, Any],
     ) -> set[SnowflakeSemanticView]:
         """
         Get the semantic views available in the semantic layer.
@@ -204,9 +205,7 @@ class SnowflakeSemanticLayer:
         )
 
         # create a new configuration with the runtime parameters
-        configuration = self.configuration.model_copy(
-            update=runtime_configuration.model_dump()
-        )
+        configuration = self.configuration.model_copy(update=runtime_configuration)
 
         connection_parameters = get_connection_parameters(configuration)
         with connect(**connection_parameters) as connection:
@@ -218,6 +217,6 @@ class SnowflakeSemanticLayer:
                 """
             ).strip()
             return {
-                SnowflakeSemanticView(configuration, row[0])
+                SnowflakeSemanticView(row[0], configuration)
                 for row in cursor.execute(query)
             }

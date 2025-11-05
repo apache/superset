@@ -56,6 +56,7 @@ from superset.semantic_layers.types import (
     SemanticRequest,
     SemanticResult,
     SemanticViewFeature,
+    SemanticViewImplementation,
     STRING,
     TIME,
     Type,
@@ -64,7 +65,7 @@ from superset.semantic_layers.types import (
 REQUEST_TYPE = "snowflake"
 
 
-class SnowflakeSemanticView:
+class SnowflakeSemanticView(SemanticViewImplementation[SnowflakeConfiguration]):
     features = frozenset(
         {
             SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,
@@ -73,7 +74,7 @@ class SnowflakeSemanticView:
         }
     )
 
-    def __init__(self, configuration: SnowflakeConfiguration, name: str):
+    def __init__(self, name: str, configuration: SnowflakeConfiguration):
         self.configuration = configuration
         self.name = name
 

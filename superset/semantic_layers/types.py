@@ -300,6 +300,11 @@ class SemanticLayerImplementation(Protocol[ConfigT]):
 
     configuration_schema: type[ConfigT]
 
+    def __init__(self, configuration: ConfigT) -> None:
+        """
+        Initialize the semantic layer with the given configuration.
+        """
+
     @classmethod
     def get_configuration_schema(
         cls,
@@ -353,20 +358,37 @@ class SemanticLayerImplementation(Protocol[ConfigT]):
 
     def get_semantic_views(
         self,
-        runtime_configuration: BaseModel,
-    ) -> set[SemanticViewImplementation]:
+        runtime_configuration: dict[str, Any],
+    ) -> set[SemanticViewImplementation[Any]]:
         """
         Get the semantic views available in the semantic layer.
+
+        The runtime configuration can provide information like a given project or
+        schema, used to restrict the semantic views returned.
+        """
+
+    def get_semantic_view(
+        self,
+        name: str,
+        additional_configuration: dict[str, Any],
+    ) -> SemanticViewImplementation[Any]:
+        """
+        Get a specific semantic view by its name and additional configuration.
         """
 
 
 @runtime_checkable
-class SemanticViewImplementation(Protocol):
+class SemanticViewImplementation(Protocol[ConfigT]):
     """
     A protocol for semantic views.
     """
 
     features: frozenset[SemanticViewFeature]
+
+    def __init__(self, name: str, configuration: ConfigT):
+        """
+        Initialize the semantic view with the given name and configuration.
+        """
 
     def uid(self) -> str:
         """

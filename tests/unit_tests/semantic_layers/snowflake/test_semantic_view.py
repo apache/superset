@@ -210,7 +210,7 @@ def semantic_view(
         metric_rows,
     ]
 
-    return SnowflakeSemanticView(configuration, "TPCDS_SEMANTIC_VIEW_SM")
+    return SnowflakeSemanticView("TPCDS_SEMANTIC_VIEW_SM", configuration)
 
 
 def test_get_dimensions(
@@ -1039,9 +1039,11 @@ def test_get_query_with_group_limit(
     group_limit = GroupLimit(
         dimensions=[dimension_map[name] for name in group_limit_config["dimensions"]],
         top=group_limit_config["top"],
-        metric=metric_map[group_limit_config["metric"]]
-        if group_limit_config["metric"]
-        else None,
+        metric=(
+            metric_map[group_limit_config["metric"]]
+            if group_limit_config["metric"]
+            else None
+        ),
         direction=group_limit_config["direction"],
         group_others=group_limit_config["group_others"],
         filters=group_limit_config["filters"],

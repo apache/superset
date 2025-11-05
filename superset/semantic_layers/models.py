@@ -20,6 +20,8 @@
 from __future__ import annotations
 
 import uuid
+from importlib.metadata import entry_points
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
@@ -27,6 +29,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
 from superset.models.helpers import AuditMixinNullable
+from superset.semantic_layers.types import (
+    SemanticLayerImplementation,
+    SemanticViewImplementation,
+)
 from superset.utils import core as utils
 
 
@@ -47,6 +53,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     description = Column(Text, nullable=True)
     type = Column(String(250), nullable=False)
 
+    # XXX: encrypt at rest
     configuration = Column(utils.MediumText(), default="{}")
     cache_timeout = Column(Integer, nullable=True)
 
@@ -60,6 +67,25 @@ class SemanticLayer(AuditMixinNullable, Model):
 
     def __repr__(self) -> str:
         return self.name or str(self.uuid)
+
+    @property
+    def implementation(self) -> SemanticLayerImplementation[Any]:
+        """
+        Return semantic layer implementation.
+        """
+        entry_point = next(
+            iter(
+                entry_points(
+                    group="superset.semantic_layers",
+                    name=self.type,
+                )
+            )
+        )
+        implementation_class = entry_point.load()
+        schema = implementation_class.configuration_schema()
+        configuration = schema.model_validate(self.configuration)
+
+        return implementation_class(configuration)
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -76,6 +102,7 @@ class SemanticView(AuditMixinNullable, Model):
     # Core fields
     name = Column(String(250), nullable=False)
 
+    # XXX: encrypt at rest
     configuration = Column(utils.MediumText(), default="{}")
     cache_timeout = Column(Integer, nullable=True)
 
@@ -93,3 +120,13 @@ class SemanticView(AuditMixinNullable, Model):
 
     def __repr__(self) -> str:
         return self.name or str(self.uuid)
+
+    @property
+    def implementation(self) -> SemanticViewImplementation[Any]:
+        """
+        Return semantic view implementation.
+        """
+        return self.semantic_layer.implementation.get_semantic_view(
+            self.name,
+            self.configuration,
+        )
