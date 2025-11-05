@@ -953,10 +953,9 @@ export function mergeTable(table, query, prepend) {
 export function addTable(queryEditor, tableName, catalogName, schemaName, expanded = true) {
   return function (dispatch, getState) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     const table = {
       dbId,
-      queryEditorId,
+      queryEditorId: queryEditor.tabViewId ?? queryEditor.id,
       catalog: catalogName,
       schema: schemaName,
       name: tableName,
