@@ -222,7 +222,9 @@ export function AsyncAceEditor(
               ) as HTMLElement) ||
               (document.querySelector('.ace_autocomplete') as HTMLElement);
             if (autocompletePopup) {
-              const targetContainer = editorContainer?.closest('#ace-editor') || editorContainer?.parentElement;
+              const targetContainer =
+                editorContainer?.closest('#ace-editor') ||
+                editorContainer?.parentElement;
               if (targetContainer && targetContainer !== document.body) {
                 targetContainer.appendChild(autocompletePopup);
                 autocompletePopup.setAttribute('data-ace-autocomplete', 'true');
