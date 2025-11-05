@@ -950,12 +950,13 @@ export function mergeTable(table, query, prepend) {
   return { type: MERGE_TABLE, table, query, prepend };
 }
 
-export function addTable(queryEditor, tableName, catalogName, schemaName) {
+export function addTable(queryEditor, tableName, catalogName, schemaName, expanded = true) {
   return function (dispatch, getState) {
     const { dbId } = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
+    const queryEditorId = queryEditor.tabViewId ?? queryEditor.id;
     const table = {
       dbId,
-      queryEditorId: queryEditor.tabViewId ?? queryEditor.id,
+      queryEditorId,
       catalog: catalogName,
       schema: schemaName,
       name: tableName,
@@ -964,7 +965,7 @@ export function addTable(queryEditor, tableName, catalogName, schemaName) {
       mergeTable({
         ...table,
         id: nanoid(11),
-        expanded: true,
+        expanded,
       }),
     );
   };
