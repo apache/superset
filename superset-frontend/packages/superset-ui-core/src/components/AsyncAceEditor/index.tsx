@@ -26,6 +26,7 @@ import type {
 } from 'brace';
 import type AceEditor from 'react-ace';
 import type { IAceEditorProps } from 'react-ace';
+import type { Ace } from 'ace-builds';
 
 import {
   AsyncEsmComponent,
@@ -209,19 +210,19 @@ export function AsyncAceEditor(
 
         // Move autocomplete popup to the nearest parent container with data-ace-container
         useEffect(() => {
-          const editorInstance = (ref as any)?.current?.editor;
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+            ?.editor;
           if (!editorInstance) return;
 
           const moveAutocompleteToContainer = () => {
-            const autocompletePopup = document.querySelector(
-              '.ace_autocomplete',
-            ) as HTMLElement;
-
+            const editorContainer = editorInstance.container;
+            const autocompletePopup =
+              (editorContainer?.querySelector(
+                '.ace_autocomplete',
+              ) as HTMLElement) ||
+              (document.querySelector('.ace_autocomplete') as HTMLElement);
             if (autocompletePopup) {
-              const editorContainer = editorInstance.container;
-
-              const targetContainer = editorContainer?.parentElement;
-
+              const targetContainer = editorContainer?.closest('#ace-editor') || editorContainer?.parentElement;
               if (targetContainer && targetContainer !== document.body) {
                 targetContainer.appendChild(autocompletePopup);
                 autocompletePopup.setAttribute('data-ace-autocomplete', 'true');
@@ -230,8 +231,11 @@ export function AsyncAceEditor(
           };
 
           // Hook into Ace's command execution to detect when autocomplete starts
-          const handleAfterExec = (e: any) => {
-            if (e.command.name === 'insertstring') {
+          const handleAfterExec = (e: Ace.Operation) => {
+            if (
+              e.command.name &&
+              ['insertstring', 'startAutocomplete'].includes(e.command.name)
+            ) {
               moveAutocompleteToContainer();
             }
           };
