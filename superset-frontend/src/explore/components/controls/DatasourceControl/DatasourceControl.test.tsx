@@ -398,7 +398,9 @@ test('should set the default temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
+  await openAndSaveChanges(
+    overrideProps.datasource as unknown as Partial<DatasetObject>,
+  );
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -434,7 +436,9 @@ test('should set the first available temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
+  await openAndSaveChanges(
+    overrideProps.datasource as unknown as Partial<DatasetObject>,
+  );
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -470,7 +474,9 @@ test('should not set the temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(overrideProps.datasource as unknown as Partial<DatasetObject>);
+  await openAndSaveChanges(
+    overrideProps.datasource as unknown as Partial<DatasetObject>,
+  );
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -589,29 +595,20 @@ test('should allow creating new metrics in dataset editor', async () => {
   await userEvent.click(screen.getByText('Metrics'));
 
   // Click add new metric button
-  await waitFor(async () => {
-    const addButton = screen.getByTestId('crud-add-table-item');
-    expect(addButton).toBeInTheDocument();
-    await userEvent.click(addButton);
-  });
+  const addButton = await screen.findByTestId('crud-add-table-item');
+  await userEvent.click(addButton);
 
   // Find and fill in the metric name
-  await waitFor(async () => {
-    const nameInput = screen.getByTestId('textarea-editable-title-input');
-    expect(nameInput).toBeInTheDocument();
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, newMetricName);
-  });
+  const nameInput = await screen.findByTestId('textarea-editable-title-input');
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, newMetricName);
 
   // Save the modal
   await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(async () => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    await userEvent.click(okButton);
-  });
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -669,26 +666,21 @@ test('should allow deleting metrics in dataset editor', async () => {
   await userEvent.click(screen.getByText('Metrics'));
 
   // Find existing metric and delete it
-  await waitFor(async () => {
-    const metricRow = screen.getByText(existingMetricName).closest('tr');
-    expect(metricRow).toBeInTheDocument();
+  const metricRow = (await screen.findByText(existingMetricName)).closest('tr');
+  expect(metricRow).toBeInTheDocument();
 
-    const deleteButton = metricRow?.querySelector(
-      '[data-test="crud-delete-icon"]',
-    );
-    expect(deleteButton).toBeInTheDocument();
-    await userEvent.click(deleteButton!);
-  });
+  const deleteButton = metricRow?.querySelector(
+    '[data-test="crud-delete-icon"]',
+  );
+  expect(deleteButton).toBeInTheDocument();
+  await userEvent.click(deleteButton!);
 
   // Save the changes
   await userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
-  await waitFor(async () => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    await userEvent.click(okButton);
-  });
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -732,11 +724,8 @@ test('should handle metric save confirmation modal', async () => {
   await userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Save without making changes
-  await waitFor(async () => {
-    const saveButton = screen.getByTestId('datasource-modal-save');
-    expect(saveButton).toBeInTheDocument();
-    await userEvent.click(saveButton);
-  });
+  const saveButton = await screen.findByTestId('datasource-modal-save');
+  await userEvent.click(saveButton);
 
   // Verify confirmation modal appears
   await waitFor(() => {
@@ -805,11 +794,8 @@ test('should verify real DatasourceControl callback fires on save', async () => 
 
   // Save without making changes (this should still trigger the callback)
   await userEvent.click(screen.getByTestId('datasource-modal-save'));
-  await waitFor(async () => {
-    const okButton = screen.getByText('OK');
-    expect(okButton).toBeInTheDocument();
-    await userEvent.click(okButton);
-  });
+  const okButton = await screen.findByText('OK');
+  await userEvent.click(okButton);
 
   // Verify the REAL component called the callback
   // This tests that the integration point works (regardless of what data is passed)
