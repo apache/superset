@@ -38,12 +38,12 @@ function getBaseUrl(_page: Page): string {
 
 /**
  * Get CSRF token from the API endpoint
- * Superset provides a CSRF token via /api/v1/security/csrf_token/
+ * Superset provides a CSRF token via api/v1/security/csrf_token/
  * The session cookie is automatically included by page.request
  */
 async function getCsrfToken(page: Page): Promise<string> {
   try {
-    const response = await page.request.get('/api/v1/security/csrf_token/', {
+    const response = await page.request.get('api/v1/security/csrf_token/', {
       failOnStatusCode: false,
     });
 
