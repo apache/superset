@@ -23,10 +23,13 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp import tool
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
@@ -103,24 +106,11 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     try:
         from superset.daos.dataset import DatasetDAO
 
-        def _serialize_dataset(obj: Any, cols: Any) -> DatasetInfo | None:
-            """Serialize dataset object with column selection."""
-            full_dataset = serialize_dataset_object(obj)
-            if not full_dataset:
-                return None
-
-            # If columns were specified, exclude fields not in the selection
-            # Always include 'id' as it's the primary identifier
-            if cols and isinstance(cols, list):
-                all_fields = set(DatasetInfo.model_fields.keys())
-                requested_fields = set(cols) | {"id"}  # Always include id
-                exclude_fields = all_fields - requested_fields
-
-                # Create new model instance with excluded fields removed
-                dumped = full_dataset.model_dump(exclude=exclude_fields)
-                return DatasetInfo(**dumped)
-
-            return full_dataset
+        def _serialize_dataset(
+            obj: "SqlaTable | None", cols: list[str] | None
+        ) -> DatasetInfo | None:
+            """Serialize dataset (filtering via model_serializer)."""
+            return serialize_dataset_object(obj)
 
         # Create tool with standard serialization
         tool = ModelListCore(
@@ -154,7 +144,20 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             )
         )
 
-        return result
+        # Apply field filtering via serialization context if select_columns specified
+        # This triggers DatasetInfo._filter_fields_by_context for each dataset
+        if request.select_columns:
+            await ctx.debug(
+                "Applying field filtering via serialization context: select_columns=%s"
+                % (request.select_columns,)
+            )
+            # Return dict with context - FastMCP will serialize it
+            return result.model_dump(
+                mode="json", context={"select_columns": request.select_columns}
+            )
+
+        # No filtering - return full result as dict
+        return result.model_dump(mode="json")
 
     except Exception as e:
         await ctx.error(
