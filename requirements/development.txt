@@ -58,10 +58,16 @@ backoff==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+backports-tarfile==1.2.0
+    # via jaraco-context
 bcrypt==4.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
+beartype==0.22.5
+    # via
+    #   py-key-value-aio
+    #   py-key-value-shared
 billiard==4.2.1
     # via
     #   -c requirements/base-constraint.txt
@@ -87,6 +93,7 @@ cachetools==6.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   google-auth
+    #   py-key-value-aio
 cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
@@ -167,6 +174,7 @@ cryptography==44.0.3
     #   apache-superset
     #   authlib
     #   paramiko
+    #   pyjwt
     #   pyopenssl
 cycler==0.12.1
     # via matplotlib
@@ -188,6 +196,8 @@ deprecation==2.1.0
     #   apache-superset
 dill==0.4.0
     # via pylint
+diskcache==5.6.3
+    # via py-key-value-aio
 distlib==0.3.8
     # via virtualenv
 dnspython==2.7.0
@@ -406,6 +416,8 @@ idna==3.10
     #   requests
     #   trio
     #   url-normalize
+importlib-metadata==8.7.0
+    # via keyring
 importlib-resources==6.5.2
     # via prophet
 iniconfig==2.0.0
@@ -421,6 +433,12 @@ itsdangerous==2.2.0
     #   -c requirements/base-constraint.txt
     #   flask
     #   flask-wtf
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==6.0.1
+    # via keyring
+jaraco-functools==4.3.0
+    # via keyring
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -439,12 +457,16 @@ jsonschema==4.23.0
     #   openapi-schema-validator
     #   openapi-spec-validator
 jsonschema-path==0.3.4
-    # via openapi-spec-validator
+    # via
+    #   fastmcp
+    #   openapi-spec-validator
 jsonschema-specifications==2025.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   openapi-schema-validator
+keyring==25.6.0
+    # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
 kombu==5.5.3
@@ -502,6 +524,10 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
+more-itertools==10.8.0
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
 msgpack==1.0.8
     # via
     #   -c requirements/base-constraint.txt
@@ -598,6 +624,8 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
+pathvalidate==3.3.1
+    # via py-key-value-aio
 pgsanity==0.2.9
     # via
     #   -c requirements/base-constraint.txt
@@ -612,6 +640,7 @@ pip==25.1.1
 platformdirs==4.3.8
     # via
     #   -c requirements/base-constraint.txt
+    #   fastmcp
     #   pylint
     #   requests-cache
     #   virtualenv
@@ -654,6 +683,10 @@ psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
+py-key-value-aio==0.2.8
+    # via fastmcp
+py-key-value-shared==0.2.8
+    # via py-key-value-aio
 pyarrow==16.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -709,6 +742,7 @@ pyjwt==2.10.1
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
+    #   mcp
 pylint==3.3.7
     # via apache-superset
 pynacl==1.5.0
@@ -950,6 +984,7 @@ typing-extensions==4.15.0
     #   cattrs
     #   exceptiongroup
     #   limits
+    #   py-key-value-shared
     #   pydantic
     #   pydantic-core
     #   pyopenssl
@@ -1004,6 +1039,8 @@ websocket-client==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
+websockets==15.0.1
+    # via fastmcp
 werkzeug==3.1.3
     # via
     #   -c requirements/base-constraint.txt
@@ -1039,6 +1076,8 @@ xlsxwriter==3.0.9
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   pandas
+zipp==3.23.0
+    # via importlib-metadata
 zope-event==5.0
     # via gevent
 zope-interface==5.4.0
