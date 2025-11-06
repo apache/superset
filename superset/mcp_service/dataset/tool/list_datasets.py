@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -102,11 +103,30 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     try:
         from superset.daos.dataset import DatasetDAO
 
+        def _serialize_dataset(obj: Any, cols: Any) -> DatasetInfo | None:
+            """Serialize dataset object with column selection."""
+            full_dataset = serialize_dataset_object(obj)
+            if not full_dataset:
+                return None
+
+            # If columns were specified, exclude fields not in the selection
+            # Always include 'id' as it's the primary identifier
+            if cols and isinstance(cols, list):
+                all_fields = set(DatasetInfo.model_fields.keys())
+                requested_fields = set(cols) | {"id"}  # Always include id
+                exclude_fields = all_fields - requested_fields
+
+                # Create new model instance with excluded fields removed
+                dumped = full_dataset.model_dump(exclude=exclude_fields)
+                return DatasetInfo(**dumped)
+
+            return full_dataset
+
         # Create tool with standard serialization
         tool = ModelListCore(
             dao_class=DatasetDAO,
             output_schema=DatasetInfo,
-            item_serializer=lambda obj, cols: serialize_dataset_object(obj),
+            item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
             search_columns=["schema", "sql", "table_name", "uuid"],

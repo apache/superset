@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -72,10 +73,29 @@ async def list_dashboards(
     """
     from superset.daos.dashboard import DashboardDAO
 
+    def _serialize_dashboard(obj: Any, cols: Any) -> DashboardInfo | None:
+        """Serialize dashboard object with column selection."""
+        full_dashboard = serialize_dashboard_object(obj)
+        if not full_dashboard:
+            return None
+
+        # If columns were specified, exclude fields not in the selection
+        # Always include 'id' as it's the primary identifier
+        if cols and isinstance(cols, list):
+            all_fields = set(DashboardInfo.model_fields.keys())
+            requested_fields = set(cols) | {"id"}  # Always include id
+            exclude_fields = all_fields - requested_fields
+
+            # Create new model instance with excluded fields removed
+            dumped = full_dashboard.model_dump(exclude=exclude_fields)
+            return DashboardInfo(**dumped)
+
+        return full_dashboard
+
     tool = ModelListCore(
         dao_class=DashboardDAO,
         output_schema=DashboardInfo,
-        item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
+        item_serializer=_serialize_dashboard,
         filter_type=DashboardFilter,
         default_columns=DEFAULT_DASHBOARD_COLUMNS,
         search_columns=[

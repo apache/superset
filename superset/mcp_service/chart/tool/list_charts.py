@@ -95,8 +95,23 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     from superset.daos.chart import ChartDAO
 
     def _serialize_chart(obj: "Slice | None", cols: Any) -> ChartInfo | None:
-        """Serialize chart object with proper type casting."""
-        return serialize_chart_object(cast(ChartLike | None, obj))
+        """Serialize chart object with proper type casting and column selection."""
+        full_chart = serialize_chart_object(cast(ChartLike | None, obj))
+        if not full_chart:
+            return None
+
+        # If columns were specified, exclude fields not in the selection
+        # Always include 'id' as it's the primary identifier
+        if cols and isinstance(cols, list):
+            all_fields = set(ChartInfo.model_fields.keys())
+            requested_fields = set(cols) | {"id"}  # Always include id
+            exclude_fields = all_fields - requested_fields
+
+            # Create new model instance with excluded fields removed
+            dumped = full_chart.model_dump(exclude=exclude_fields)
+            return ChartInfo(**dumped)
+
+        return full_chart
 
     tool = ModelListCore(
         dao_class=ChartDAO,
