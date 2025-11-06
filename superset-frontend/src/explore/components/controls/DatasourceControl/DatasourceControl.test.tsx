@@ -28,7 +28,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
-import type { DatasetObject } from 'src/features/datasets/types';
+import type { DatasetObject, ColumnObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -52,7 +52,7 @@ type TestDatasource = Omit<
 > & {
   name: string;
   database: { name: string };
-  columns?: any[];
+  columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
 };
