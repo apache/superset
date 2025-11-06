@@ -29,10 +29,21 @@ from fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
-# Default instructions for the Superset MCP service
-DEFAULT_INSTRUCTIONS = """
-You are connected to the Apache Superset MCP (Model Context Protocol) service.
-This service provides programmatic access to Superset dashboards, charts, datasets,
+
+def get_default_instructions(branding: str = "Apache Superset") -> str:
+    """
+    Get default instructions with configurable branding.
+
+    Args:
+        branding: Product name to use in instructions
+            (e.g., "Preset", "Apache Superset")
+
+    Returns:
+        Formatted instructions string with branding applied
+    """
+    return f"""
+You are connected to the {branding} MCP (Model Context Protocol) service.
+This service provides programmatic access to {branding} dashboards, charts, datasets,
 SQL Lab, and instance metadata via a comprehensive set of tools.
 
 Available tools:
@@ -122,6 +133,10 @@ General usage tips:
 If you are unsure which tool to use, start with get_instance_info
 or use the superset_quickstart prompt for an interactive guide.
 """
+
+
+# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding
+DEFAULT_INSTRUCTIONS = get_default_instructions()
 
 
 def _build_mcp_kwargs(
@@ -290,7 +305,7 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
 
 
 def init_fastmcp_server(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
     auth: Any | None = None,
     lifespan: Callable[..., Any] | None = None,
@@ -308,16 +323,31 @@ def init_fastmcp_server(
     a new instance will be created with those settings.
 
     Args:
-        Same as create_mcp_app()
+        name: Server name (defaults to MCP_SERVICE_NAME from config)
+        instructions: Custom instructions (defaults to branded DEFAULT_INSTRUCTIONS)
+        auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
+        **kwargs: Additional FastMCP configuration
 
     Returns:
         FastMCP instance (either the global one or a new custom one)
     """
+    # Read branding from Flask config if available
+    from superset.mcp_service.flask_singleton import app as flask_app
+
+    branding = flask_app.config.get("MCP_SERVICE_BRANDING", "Apache Superset")
+    default_name = flask_app.config.get("MCP_SERVICE_NAME", "Superset MCP Server")
+
+    # Apply branding defaults if not explicitly provided
+    if name is None:
+        name = default_name
+    if instructions is None:
+        instructions = get_default_instructions(branding)
+
     # If any custom parameters are provided, create a new instance
     custom_params_provided = any(
         [
-            name != "Superset MCP Server",
-            instructions is not None,
+            name != default_name,
+            instructions != get_default_instructions(branding),
             auth is not None,
             lifespan is not None,
             tools is not None,

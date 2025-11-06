@@ -60,10 +60,15 @@ MCP_CSRF_CONFIG = {
     "WTF_CSRF_TIME_LIMIT": None,
 }
 
+# Branding Configuration
+# These values can be overridden in superset_config.py to customize branding
+MCP_SERVICE_NAME = "Superset MCP Server"  # Display name shown to AI clients
+MCP_SERVICE_BRANDING = "Apache Superset"  # Product name used in documentation
+
 # FastMCP Factory Configuration
 MCP_FACTORY_CONFIG = {
-    "name": "Superset MCP Server",
-    "instructions": None,  # Will use default from app.py
+    "name": MCP_SERVICE_NAME,
+    "instructions": None,  # Will use default from app.py (parameterized with branding)
     "auth": None,  # No authentication by default
     "lifespan": None,  # No custom lifespan
     "tools": None,  # Auto-discover tools
