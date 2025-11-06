@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, Fragment, useEffect, useState } from 'react';
 
 import {
   ensureIsArray,
@@ -89,23 +89,26 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map((item, index) =>
-        item.error ? (
-          <Alert
-            key={`error-${index}`}
-            type="error"
-            message={item.error}
-            closable={false}
-          />
-        ) : item.query ? (
-          <ViewQuery
-            key={`query-${index}`}
-            datasource={latestQueryFormData.datasource}
-            sql={item.query}
-            language={item.language}
-          />
-        ) : null,
-      )}
+      {result.map((item, index) => (
+        <Fragment key={index}>
+          {item.error && (
+            <Alert
+              key={`error-${index}`}
+              type="error"
+              message={item.error}
+              closable={false}
+            />
+          )}
+          {item.query && (
+            <ViewQuery
+              key={`query-${index}`}
+              datasource={latestQueryFormData.datasource}
+              sql={item.query}
+              language={item.language}
+            />
+          )}
+        </Fragment>
+      ))}
     </ViewQueryModalContainer>
   );
 };
