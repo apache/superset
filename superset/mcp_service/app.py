@@ -36,7 +36,7 @@ def get_default_instructions(branding: str = "Apache Superset") -> str:
 
     Args:
         branding: Product name to use in instructions
-            (e.g., "Preset", "Apache Superset")
+            (e.g., "ACME Analytics", "Apache Superset")
 
     Returns:
         Formatted instructions string with branding applied

@@ -1,14 +1,14 @@
 # MCP Service Branding Configuration
 
-This document explains how to customize the branding of the Superset MCP service for deployments like Preset or other white-labeled versions.
+This document explains how to customize the branding of the Superset MCP service for white-labeled or enterprise deployments.
 
 ## Overview
 
 The MCP service supports customizable branding to allow deployments to present their own product name and server identity to AI clients. This is useful for:
 
-- **Preset deployments**: Show "Preset MCP Server" instead of "Superset MCP Server"
-- **White-label deployments**: Use custom product names
-- **Multi-tenant deployments**: Different branding per tenant
+- **Enterprise deployments**: Show custom company branding instead of "Apache Superset"
+- **White-label deployments**: Use custom product names for OEM partners
+- **Multi-tenant deployments**: Different branding per tenant or customer
 
 ## Configuration Options
 
@@ -16,8 +16,8 @@ Add these to your `superset_config.py`:
 
 ```python
 # MCP Service Branding
-MCP_SERVICE_NAME = "Preset MCP Server"  # Server name shown to AI clients
-MCP_SERVICE_BRANDING = "Preset"  # Product name used in LLM instructions
+MCP_SERVICE_NAME = "ACME Analytics MCP Server"  # Server name shown to AI clients
+MCP_SERVICE_BRANDING = "ACME Analytics"  # Product name used in LLM instructions
 ```
 
 ### MCP_SERVICE_NAME
@@ -28,9 +28,9 @@ MCP_SERVICE_BRANDING = "Preset"  # Product name used in LLM instructions
 The display name of the MCP server as shown to AI clients and in server listings.
 
 **Examples**:
-- `"Preset MCP Server"` - For Preset deployments
-- `"Acme Corp BI Server"` - For custom deployments
-- `"MyCompany Superset MCP"` - Hybrid branding
+- `"ACME Analytics MCP Server"` - For ACME Corp deployment
+- `"Enterprise BI Server"` - Generic enterprise branding
+- `"DataViz Platform MCP"` - Custom platform name
 
 ### MCP_SERVICE_BRANDING
 
@@ -40,9 +40,9 @@ The display name of the MCP server as shown to AI clients and in server listings
 The product name used throughout LLM instructions and documentation. This replaces "Apache Superset" in all default instructions sent to AI assistants.
 
 **Examples**:
-- `"Preset"` - For Preset deployments
-- `"Acme BI Platform"` - For custom platforms
-- `"MyCompany Analytics"` - Custom branding
+- `"ACME Analytics"` - For ACME Corp platform
+- `"Enterprise BI"` - Generic enterprise branding
+- `"DataViz Platform"` - Custom platform branding
 
 ## How It Works
 
@@ -65,11 +65,11 @@ The server name is used in:
 }
 ```
 
-**After** (with `MCP_SERVICE_NAME = "Preset MCP Server"`):
+**After** (with `MCP_SERVICE_NAME = "ACME Analytics MCP Server"`):
 ```json
 {
   "mcpServers": {
-    "Preset MCP Server": {
+    "ACME Analytics MCP Server": {
       "command": "superset",
       "args": ["mcp", "run"]
     }
@@ -91,29 +91,29 @@ This service provides programmatic access to Apache Superset dashboards, charts,
 SQL Lab, and instance metadata via a comprehensive set of tools.
 ```
 
-**After** (with `MCP_SERVICE_BRANDING = "Preset"`):
+**After** (with `MCP_SERVICE_BRANDING = "ACME Analytics"`):
 ```
-You are connected to the Preset MCP (Model Context Protocol) service.
-This service provides programmatic access to Preset dashboards, charts, datasets,
+You are connected to the ACME Analytics MCP (Model Context Protocol) service.
+This service provides programmatic access to ACME Analytics dashboards, charts, datasets,
 SQL Lab, and instance metadata via a comprehensive set of tools.
 ```
 
 ## Example Configurations
 
-### Preset Deployment
+### Enterprise Deployment
 
 ```python
 # superset_config.py
-MCP_SERVICE_NAME = "Preset MCP Server"
-MCP_SERVICE_BRANDING = "Preset"
+MCP_SERVICE_NAME = "ACME Analytics MCP Server"
+MCP_SERVICE_BRANDING = "ACME Analytics"
 ```
 
-### White-Label Deployment
+### White-Label/OEM Deployment
 
 ```python
 # superset_config.py
-MCP_SERVICE_NAME = "Acme Analytics MCP Server"
-MCP_SERVICE_BRANDING = "Acme Analytics"
+MCP_SERVICE_NAME = "DataViz Platform MCP Server"
+MCP_SERVICE_BRANDING = "DataViz Platform"
 ```
 
 ### Keep Apache Superset Branding (Default)
