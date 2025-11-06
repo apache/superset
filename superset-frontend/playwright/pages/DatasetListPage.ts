@@ -30,6 +30,9 @@ export class DatasetListPage {
 
   private static readonly SELECTORS = {
     DATASET_LINK: '[data-test="internal-link"]',
+    DELETE_ACTION: '.action-button svg[data-icon="delete"]',
+    EXPORT_ACTION: '.action-button svg[data-icon="upload"]',
+    DUPLICATE_ACTION: '.action-button svg[data-icon="copy"]',
   } as const;
 
   constructor(page: Page) {
@@ -74,6 +77,39 @@ export class DatasetListPage {
     await this.table.clickRowLink(
       datasetName,
       DatasetListPage.SELECTORS.DATASET_LINK,
+    );
+  }
+
+  /**
+   * Clicks the delete action button for a dataset
+   * @param datasetName - The name of the dataset to delete
+   */
+  async clickDeleteAction(datasetName: string): Promise<void> {
+    await this.table.clickRowAction(
+      datasetName,
+      DatasetListPage.SELECTORS.DELETE_ACTION,
+    );
+  }
+
+  /**
+   * Clicks the export action button for a dataset
+   * @param datasetName - The name of the dataset to export
+   */
+  async clickExportAction(datasetName: string): Promise<void> {
+    await this.table.clickRowAction(
+      datasetName,
+      DatasetListPage.SELECTORS.EXPORT_ACTION,
+    );
+  }
+
+  /**
+   * Clicks the duplicate action button for a dataset (virtual datasets only)
+   * @param datasetName - The name of the dataset to duplicate
+   */
+  async clickDuplicateAction(datasetName: string): Promise<void> {
+    await this.table.clickRowAction(
+      datasetName,
+      DatasetListPage.SELECTORS.DUPLICATE_ACTION,
     );
   }
 }
