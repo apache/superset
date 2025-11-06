@@ -42,7 +42,7 @@ cachelib==0.13.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==5.5.2
+cachetools==6.2.1
     # via google-auth
 cattrs==25.1.1
     # via requests-cache

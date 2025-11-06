@@ -83,7 +83,7 @@ cachelib==0.13.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==5.5.2
+cachetools==6.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   google-auth
