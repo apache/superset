@@ -496,7 +496,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mcp==1.14.1
+mcp==1.20.0
     # via fastmcp
 mdurl==0.1.2
     # via
