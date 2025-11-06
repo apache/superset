@@ -70,7 +70,7 @@ const RisonParam: QueryParamConfig<string, any> = {
       : rison.decode(dataStr),
 };
 
-export const SELECT_WIDTH = 175;
+export const SELECT_WIDTH = 176;
 export const RANGE_WIDTH = 300;
 export const WIDER_DROPDOWN_WIDTH = '300px';
 

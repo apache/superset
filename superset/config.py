@@ -744,7 +744,6 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #       ... # other theme properties
 # }
 
-
 # Default theme configuration
 # Leave empty to use Superset's default theme
 THEME_DEFAULT: Theme = {"algorithm": "default"}

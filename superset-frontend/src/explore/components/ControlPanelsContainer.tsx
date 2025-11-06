@@ -574,7 +574,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
           </Tooltip>
         )}
       </span>
@@ -699,9 +699,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="query-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
