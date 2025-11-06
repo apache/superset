@@ -44,6 +44,22 @@ const mockGetChartDataRequest = getChartDataRequest as jest.Mock;
 const mockWaitForAsyncData = waitForAsyncData as jest.Mock;
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+// Type for chart data response structure
+type MockChartDataResponse = {
+  response: { status: number };
+  json: {
+    result: Array<{
+      status?: string;
+      data?: unknown[];
+      applied_filters?: unknown[];
+      channel_id?: string;
+      job_id?: string;
+      user_id?: string;
+      errors?: unknown[];
+    }>;
+  };
+};
+
 // Register filter plugins
 class FilterPreset extends Preset {
   constructor() {
@@ -74,7 +90,9 @@ const defaultState = () => ({
   },
 });
 
-function createMockChartResponse(data = [{ name: 'Aaron', count: 453 }]) {
+function createMockChartResponse(
+  data = [{ name: 'Aaron', count: 453 }],
+): MockChartDataResponse {
   return {
     response: { status: 200 },
     json: {
@@ -89,7 +107,7 @@ function createMockChartResponse(data = [{ name: 'Aaron', count: 453 }]) {
   };
 }
 
-function createMockAsyncChartResponse() {
+function createMockAsyncChartResponse(): MockChartDataResponse {
   return {
     response: { status: 202 },
     json: {
@@ -107,14 +125,14 @@ function createMockAsyncChartResponse() {
 }
 
 function createFormInstance(): FormInstance {
-  const formData: any = {};
+  const formData: Record<string, unknown> = {};
 
   const formInstance = {
-    getFieldValue: jest.fn((path: any) => {
+    getFieldValue: jest.fn((path: string | string[]) => {
       const keys = Array.isArray(path) ? path : [path];
-      let value = formData;
+      let value: unknown = formData;
       for (const key of keys) {
-        value = value?.[key];
+        value = (value as Record<string, unknown>)?.[key];
       }
       // Return a deep copy to ensure new object references
       return value ? JSON.parse(JSON.stringify(value)) : value;
@@ -128,29 +146,31 @@ function createFormInstance(): FormInstance {
     isFieldValidating: jest.fn(() => false),
     isFieldsValidating: jest.fn(() => false),
     resetFields: jest.fn(),
-    setFields: jest.fn((fields: any[]) => {
-      fields.forEach(field => {
-        const keys = Array.isArray(field.name) ? field.name : [field.name];
-        let target = formData;
-        // eslint-disable-next-line no-plusplus
-        for (let i = 0; i < keys.length - 1; i++) {
-          if (!target[keys[i]]) target[keys[i]] = {};
-          target = target[keys[i]];
-        }
-        target[keys[keys.length - 1]] = field.value;
-      });
-    }),
-    setFieldValue: jest.fn((path: any, value: any) => {
+    setFields: jest.fn(
+      (fields: Array<{ name: string | string[]; value: unknown }>) => {
+        fields.forEach(field => {
+          const keys = Array.isArray(field.name) ? field.name : [field.name];
+          let target: Record<string, unknown> = formData;
+          // eslint-disable-next-line no-plusplus
+          for (let i = 0; i < keys.length - 1; i++) {
+            if (!target[keys[i]]) target[keys[i]] = {};
+            target = target[keys[i]] as Record<string, unknown>;
+          }
+          target[keys[keys.length - 1]] = field.value;
+        });
+      },
+    ),
+    setFieldValue: jest.fn((path: string | string[], value: unknown) => {
       const keys = Array.isArray(path) ? path : [path];
-      let target = formData;
+      let target: Record<string, unknown> = formData;
       // eslint-disable-next-line no-plusplus
       for (let i = 0; i < keys.length - 1; i++) {
         if (!target[keys[i]]) target[keys[i]] = {};
-        target = target[keys[i]];
+        target = target[keys[i]] as Record<string, unknown>;
       }
       target[keys[keys.length - 1]] = value;
     }),
-    setFieldsValue: jest.fn((values: any) => {
+    setFieldsValue: jest.fn((values: Record<string, unknown>) => {
       Object.assign(formData, values);
     }),
     validateFields: jest.fn().mockResolvedValue({}),
@@ -171,7 +191,9 @@ function createFormInstance(): FormInstance {
     __INTERNAL__: {
       name: 'test-form',
     },
-  } as any as FormInstance;
+    focusField: jest.fn(),
+    getFieldInstance: jest.fn(),
+  } as FormInstance;
 
   return formInstance;
 }
@@ -194,715 +216,699 @@ function createDefaultProps(form: FormInstance): FiltersConfigFormProps {
   };
 }
 
-// eslint-disable-next-line no-restricted-globals
-describe('FiltersConfigForm - Refresh Mechanism', () => {
-  let form: FormInstance;
+let form: FormInstance;
 
-  beforeAll(() => {
-    // Register filter plugins for the test suite
-    new FilterPreset().register();
+beforeAll(() => {
+  // Register filter plugins for the test suite
+  new FilterPreset().register();
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  form = createFormInstance();
+  // Default to synchronous queries (no GlobalAsyncQueries)
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag !== FeatureFlag.GlobalAsyncQueries,
+  );
+  // Default mock response
+  mockGetChartDataRequest.mockResolvedValue(createMockChartResponse());
+});
+
+test('should render without crashing with required props', () => {
+  const props = createDefaultProps(form);
+  const { container } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    form = createFormInstance();
-    // Default to synchronous queries (no GlobalAsyncQueries)
-    mockIsFeatureEnabled.mockImplementation(
-      (flag: FeatureFlag) => flag !== FeatureFlag.GlobalAsyncQueries,
-    );
-    // Default mock response
-    mockGetChartDataRequest.mockResolvedValue(createMockChartResponse());
-  });
+  expect(container).toBeInTheDocument();
+});
 
-  test('should render without crashing with required props', () => {
-    const props = createDefaultProps(form);
-    const { container } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
+test('should handle synchronous query responses correctly', async () => {
+  const testData = [
+    { name: 'Alice', count: 100 },
+    { name: 'Bob', count: 200 },
+  ];
+  mockGetChartDataRequest.mockResolvedValue(createMockChartResponse(testData));
+
+  const props = createDefaultProps(form);
+  const { filterId } = props;
+
+  // Set up form with dataset and column to trigger refresh
+  act(() => {
+    form.setFieldsValue({
+      filters: {
+        [filterId]: {
+          filterType: 'filter_select',
+          dataset: { value: id }, // numeric ID: 7
+          column: 'name',
+        },
+      },
     });
-
-    expect(container).toBeInTheDocument();
   });
 
-  test('should handle synchronous query responses correctly', async () => {
-    const testData = [
-      { name: 'Alice', count: 100 },
-      { name: 'Bob', count: 200 },
+  render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Wait for the refresh to complete
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+
+  // Verify waitForAsyncData was NOT called for sync response
+  expect(mockWaitForAsyncData).not.toHaveBeenCalled();
+
+  // Verify form was updated with the response data
+  const formValues = form.getFieldValue('filters')?.[filterId];
+  expect(formValues.defaultValueQueriesData).toBeDefined();
+});
+
+test('should refresh filter data when dataset changes without default value enabled', async () => {
+  const filterId = 'NATIVE_FILTER-1';
+
+  // Test with dataset A (use numeric ID, not datasourceId string)
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'name',
+        controlValues: {
+          enableEmptyFilter: false,
+          defaultToFirstItem: false,
+        },
+      },
+    },
+  });
+
+  const propsA = createDefaultProps(form);
+  const { unmount } = render(<FiltersConfigForm {...propsA} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Wait for initial refresh with dataset A
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+
+  // Verify correct dataset ID in the API call for dataset A
+  const firstCall = mockGetChartDataRequest.mock.calls[0];
+  expect(firstCall[0].formData.datasource).toBe(datasourceId);
+
+  const callsAfterDatasetA = mockGetChartDataRequest.mock.calls.length;
+  unmount();
+
+  // Now test with dataset B - creates new component instance
+  const newDatasetNumericId = id + 1; // 8
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: newDatasetNumericId }, // Pass numeric ID
+        column: 'name',
+        controlValues: {
+          enableEmptyFilter: false,
+          defaultToFirstItem: false,
+        },
+      },
+    },
+  });
+
+  const propsB = createDefaultProps(form);
+  render(<FiltersConfigForm {...propsB} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Verify refresh called again with correct dataset B
+  await waitFor(() => {
+    expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
+      callsAfterDatasetA,
+    );
+  });
+
+  // Verify the new call has the updated dataset ID
+  const lastCallB =
+    mockGetChartDataRequest.mock.calls[
+      mockGetChartDataRequest.mock.calls.length - 1
     ];
-    mockGetChartDataRequest.mockResolvedValue(
-      createMockChartResponse(testData),
-    );
+  expect(lastCallB[0].formData.datasource).toBe(
+    `${newDatasetNumericId}__table`,
+  );
+});
 
-    const props = createDefaultProps(form);
-    const { filterId } = props;
+test('should refresh when dataset changes even with default value enabled', async () => {
+  const filterId = 'NATIVE_FILTER-1';
 
-    // Set up form with dataset and column to trigger refresh
-    act(() => {
-      form.setFieldsValue({
-        filters: {
-          [filterId]: {
-            filterType: 'filter_select',
-            dataset: { value: id }, // numeric ID: 7
-            column: 'name',
+  // Test with dataset A WITH default value
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'name',
+        controlValues: {
+          enableEmptyFilter: true, // This enables "Filter has default value"
+          defaultToFirstItem: false,
+        },
+        defaultDataMask: {
+          filterState: {
+            value: ['Aaron'],
           },
         },
-      });
+      },
+    },
+  });
+
+  const propsA = createDefaultProps(form);
+  const { unmount } = render(<FiltersConfigForm {...propsA} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Wait for initial refresh
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+
+  const callsAfterDatasetA = mockGetChartDataRequest.mock.calls.length;
+  unmount();
+
+  // CRITICAL TEST: Change to dataset B - verifies the bug fix
+  // Before fix: hasDefaultValue would block refresh
+  // After fix: refresh happens regardless of hasDefaultValue
+  const newDatasetNumericId = id + 1; // 8
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: newDatasetNumericId }, // numeric ID: 8
+        column: 'name',
+        controlValues: {
+          enableEmptyFilter: true,
+          defaultToFirstItem: false,
+        },
+        defaultDataMask: {
+          filterState: {
+            value: ['Aaron'],
+          },
+        },
+      },
+    },
+  });
+
+  const propsB = createDefaultProps(form);
+  render(<FiltersConfigForm {...propsB} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Verify refresh called again with dataset B
+  await waitFor(() => {
+    expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
+      callsAfterDatasetA,
+    );
+  });
+});
+
+test('should refresh when column changes and verify isDataDirty state transition', async () => {
+  const filterId = 'NATIVE_FILTER-1';
+
+  // Initial setup with column 'name'
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'name',
+      },
+    },
+  });
+
+  const propsA = createDefaultProps(form);
+  const { unmount } = render(<FiltersConfigForm {...propsA} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Wait for initial refresh
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+
+  // Verify column 'name' in first call
+  const firstCall = mockGetChartDataRequest.mock.calls[0];
+  expect(firstCall[0].formData.groupby).toEqual(['name']);
+
+  const initialCallCount = mockGetChartDataRequest.mock.calls.length;
+  unmount();
+
+  // Change to column 'gender' - should set isDataDirty
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'gender',
+        isDataDirty: true, // useBackendFormUpdate hook would set this
+      },
+    },
+  });
+
+  const propsB = createDefaultProps(form);
+  render(<FiltersConfigForm {...propsB} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Verify refresh called again after column change
+  await waitFor(() => {
+    expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
+      initialCallCount,
+    );
+  });
+
+  // Verify the new call has updated column
+  const lastCall =
+    mockGetChartDataRequest.mock.calls[
+      mockGetChartDataRequest.mock.calls.length - 1
+    ];
+  expect(lastCall[0].formData.groupby).toEqual(['gender']);
+
+  // Verify isDataDirty was reset to false after refresh completed
+  await waitFor(() => {
+    const finalFormValues = form.getFieldValue('filters')?.[filterId];
+    // After refreshHandler completes, isDataDirty should be false
+    expect(finalFormValues.isDataDirty).toBe(false);
+  });
+});
+
+test('should handle async query responses with polling', async () => {
+  // Enable GlobalAsyncQueries feature flag
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
+  );
+
+  // Mock async response (202)
+  mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
+
+  // Mock successful polling result
+  const asyncData = [
+    {
+      status: 'success',
+      data: [{ name: 'Async Result', count: 999 }],
+      applied_filters: [],
+    },
+  ];
+  mockWaitForAsyncData.mockResolvedValue(asyncData);
+
+  const props = createDefaultProps(form);
+  const { filterId } = props;
+
+  act(() => {
+    form.setFieldsValue({
+      filters: {
+        [filterId]: {
+          filterType: 'filter_select',
+          dataset: { value: id }, // numeric ID: 7
+          column: 'name',
+        },
+      },
     });
+  });
 
-    render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
+  render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    // Wait for the refresh to complete
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
+  // Verify async flow
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
 
-    // Verify waitForAsyncData was NOT called for sync response
-    expect(mockWaitForAsyncData).not.toHaveBeenCalled();
+  await waitFor(() => {
+    expect(mockWaitForAsyncData).toHaveBeenCalled();
+  });
 
-    // Verify form was updated with the response data
+  // Verify final data is set
+  await waitFor(() => {
     const formValues = form.getFieldValue('filters')?.[filterId];
-    expect(formValues.defaultValueQueriesData).toBeDefined();
+    expect(formValues.defaultValueQueriesData).toEqual(asyncData);
+  });
+});
+
+test('should display error when API request fails', async () => {
+  // Mock API error with a simple error object
+  const mockError = {
+    error: 'Internal Server Error',
+    message: 'An error occurred',
+    statusText: 'Internal Server Error',
+  };
+  mockGetChartDataRequest.mockRejectedValue(mockError);
+
+  const filterId = 'NATIVE_FILTER-1';
+
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'name',
+      },
+    },
   });
 
-  test('should refresh filter data when dataset changes without default value enabled', async () => {
-    const filterId = 'NATIVE_FILTER-1';
+  const props = createDefaultProps(form);
+  const { container } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    // Test with dataset A (use numeric ID, not datasourceId string)
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+
+  // Wait a bit for error handling to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Component should still be rendered (no crash)
+  expect(container).toBeInTheDocument();
+
+  // defaultValueQueriesData should remain null on error
+  const formValues = form.getFieldValue('filters')?.[filterId];
+  expect(formValues.defaultValueQueriesData).toBeNull();
+
+  // Verify API was called with correct parameters
+  expect(mockGetChartDataRequest).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        datasource: datasourceId,
+        groupby: ['name'],
+      }),
+    }),
+  );
+
+  // Note: setErroredFilters is only called during form validation, NOT during refresh errors
+  // The refresh error handler calls setError/setErrorWrapper instead
+  // Verify error UI is displayed
+  await waitFor(() => {
+    const formValues = form.getFieldValue('filters')?.[filterId];
+    // The component sets error through setError() which isn't reflected in form state
+    // But we've verified the component didn't crash and defaultValueQueriesData is null
+    expect(formValues.defaultValueQueriesData).toBeNull();
+  });
+
+  // TODO: Once component properly renders error state, add this assertion:
+  // const errorAlert = await screen.findByRole('alert');
+  // expect(errorAlert).toHaveTextContent('An error occurred');
+});
+
+test('should cleanup when unmounted during async operation', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
+  );
+
+  mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
+
+  // Mock a slow async operation
+  let asyncResolve!: (value: MockChartDataResponse) => void;
+  const asyncPromise = new Promise<MockChartDataResponse>(resolve => {
+    asyncResolve = resolve;
+  });
+  mockWaitForAsyncData.mockReturnValue(asyncPromise);
+
+  const props = createDefaultProps(form);
+  const { filterId } = props;
+
+  // Spy on console errors to catch React warnings about state updates after unmount
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+
+  act(() => {
     form.setFieldsValue({
       filters: {
         [filterId]: {
           filterType: 'filter_select',
           dataset: { value: id }, // numeric ID: 7
           column: 'name',
-          controlValues: {
-            enableEmptyFilter: false,
-            defaultToFirstItem: false,
-          },
         },
       },
     });
+  });
 
-    const propsA = createDefaultProps(form);
-    const { unmount } = render(<FiltersConfigForm {...propsA} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
+  const { unmount } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    // Wait for initial refresh with dataset A
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
+  // Wait for async operation to start
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockWaitForAsyncData).toHaveBeenCalled();
+  });
 
-    // Verify correct dataset ID in the API call for dataset A
-    const firstCall = mockGetChartDataRequest.mock.calls[0];
-    expect(firstCall[0].formData.datasource).toBe(datasourceId);
+  // Unmount before async completes
+  unmount();
 
-    const callsAfterDatasetA = mockGetChartDataRequest.mock.calls.length;
-    unmount();
+  // Now resolve the async operation after unmount
+  asyncResolve(createMockChartResponse([{ name: 'Delayed', count: 1 }]));
 
-    // Now test with dataset B - creates new component instance
-    const newDatasetNumericId = id + 1; // 8
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: newDatasetNumericId }, // Pass numeric ID
-          column: 'name',
-          controlValues: {
-            enableEmptyFilter: false,
-            defaultToFirstItem: false,
-          },
-        },
+  // Wait a bit to ensure any state updates would have happened
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Verify no React warnings about state updates after unmount
+  const stateUpdateWarnings = consoleErrorSpy.mock.calls.filter(
+    call =>
+      call[0]?.toString &&
+      (call[0].toString().includes('unmounted component') ||
+        call[0].toString().includes('memory leak')),
+  );
+
+  // Component should properly cleanup - no warnings expected
+  expect(stateUpdateWarnings.length).toBe(0);
+
+  consoleErrorSpy.mockRestore();
+});
+
+test('should debounce rapid dataset changes', async () => {
+  const filterId = 'NATIVE_FILTER-1';
+
+  // Set initial dataset
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id }, // numeric ID: 7
+        column: 'name',
       },
-    });
+    },
+  });
 
-    const propsB = createDefaultProps(form);
-    render(<FiltersConfigForm {...propsB} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
+  const props = createDefaultProps(form);
+  const { unmount } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    // Verify refresh called again with correct dataset B
-    await waitFor(() => {
-      expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
-        callsAfterDatasetA,
-      );
-    });
+  // Wait for initial refresh
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
 
-    // Verify the new call has the updated dataset ID
-    const lastCallB =
-      mockGetChartDataRequest.mock.calls[
-        mockGetChartDataRequest.mock.calls.length - 1
-      ];
-    expect(lastCallB[0].formData.datasource).toBe(
-      `${newDatasetNumericId}__table`,
+  const initialCallCount = mockGetChartDataRequest.mock.calls.length;
+  unmount();
+
+  // Rapidly change dataset multiple times
+  const dataset2Id = id + 1; // 8
+  const dataset3Id = id + 2; // 9
+
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: dataset2Id },
+        column: 'name',
+      },
+    },
+  });
+
+  const props2 = createDefaultProps(form);
+  const { unmount: unmount2 } = render(<FiltersConfigForm {...props2} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
+
+  // Immediately change again before first completes
+  await waitFor(() => {
+    expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
+      initialCallCount,
     );
   });
 
-  test('should refresh when dataset changes even with default value enabled', async () => {
-    const filterId = 'NATIVE_FILTER-1';
+  unmount2();
 
-    // Test with dataset A WITH default value
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id }, // numeric ID: 7
-          column: 'name',
-          controlValues: {
-            enableEmptyFilter: true, // This enables "Filter has default value"
-            defaultToFirstItem: false,
-          },
-          defaultDataMask: {
-            filterState: {
-              value: ['Aaron'],
-            },
-          },
-        },
+  // Change to dataset 3
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: dataset3Id },
+        column: 'name',
       },
-    });
-
-    const propsA = createDefaultProps(form);
-    const { unmount } = render(<FiltersConfigForm {...propsA} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Wait for initial refresh
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
-
-    const callsAfterDatasetA = mockGetChartDataRequest.mock.calls.length;
-    unmount();
-
-    // CRITICAL TEST: Change to dataset B - verifies the bug fix
-    // Before fix: hasDefaultValue would block refresh
-    // After fix: refresh happens regardless of hasDefaultValue
-    const newDatasetNumericId = id + 1; // 8
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: newDatasetNumericId }, // numeric ID: 8
-          column: 'name',
-          controlValues: {
-            enableEmptyFilter: true,
-            defaultToFirstItem: false,
-          },
-          defaultDataMask: {
-            filterState: {
-              value: ['Aaron'],
-            },
-          },
-        },
-      },
-    });
-
-    const propsB = createDefaultProps(form);
-    render(<FiltersConfigForm {...propsB} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Verify refresh called again with dataset B
-    await waitFor(() => {
-      expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
-        callsAfterDatasetA,
-      );
-    });
+    },
   });
 
-  test('should refresh when column changes and verify isDataDirty state transition', async () => {
-    const filterId = 'NATIVE_FILTER-1';
+  const props3 = createDefaultProps(form);
+  render(<FiltersConfigForm {...props3} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    // Initial setup with column 'name'
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id }, // numeric ID: 7
-          column: 'name',
-        },
-      },
-    });
-
-    const propsA = createDefaultProps(form);
-    const { unmount } = render(<FiltersConfigForm {...propsA} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Wait for initial refresh
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
-
-    // Verify column 'name' in first call
-    const firstCall = mockGetChartDataRequest.mock.calls[0];
-    expect(firstCall[0].formData.groupby).toEqual(['name']);
-
-    const initialCallCount = mockGetChartDataRequest.mock.calls.length;
-    unmount();
-
-    // Change to column 'gender' - should set isDataDirty
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id }, // numeric ID: 7
-          column: 'gender',
-          isDataDirty: true, // useBackendFormUpdate hook would set this
-        },
-      },
-    });
-
-    const propsB = createDefaultProps(form);
-    render(<FiltersConfigForm {...propsB} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Verify refresh called again after column change
-    await waitFor(() => {
-      expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
-        initialCallCount,
-      );
-    });
-
-    // Verify the new call has updated column
+  // Verify final dataset is used
+  await waitFor(() => {
     const lastCall =
       mockGetChartDataRequest.mock.calls[
         mockGetChartDataRequest.mock.calls.length - 1
       ];
-    expect(lastCall[0].formData.groupby).toEqual(['gender']);
+    expect(lastCall[0].formData.datasource).toBe(`${dataset3Id}__table`);
+  });
+});
 
-    // Verify isDataDirty was reset to false after refresh completed
-    await waitFor(() => {
-      const finalFormValues = form.getFieldValue('filters')?.[filterId];
-      // After refreshHandler completes, isDataDirty should be false
-      expect(finalFormValues.isDataDirty).toBe(false);
-    });
+// Note: This test is skipped because properly testing the race condition requires
+// triggering two refreshHandler calls in quick succession, which is difficult in unit tests
+// since refreshHandler is internal and triggered by useEffect dependencies.
+// The component fix (latestRequestIdRef) is in place and will work in production.
+// Integration tests or manual testing should verify this behavior.
+test.skip('should handle out-of-order async responses', async () => {
+  const filterId = 'NATIVE_FILTER-1';
+
+  // Mock two slow requests that we can control
+  let resolveFirst!: (value: MockChartDataResponse) => void;
+  let resolveSecond!: (value: MockChartDataResponse) => void;
+
+  const firstPromise = new Promise<MockChartDataResponse>(resolve => {
+    resolveFirst = resolve;
+  });
+  const secondPromise = new Promise<MockChartDataResponse>(resolve => {
+    resolveSecond = resolve;
   });
 
-  test('should handle async query responses with polling', async () => {
-    // Enable GlobalAsyncQueries feature flag
-    mockIsFeatureEnabled.mockImplementation(
-      (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
-    );
+  // Queue up the two mocked responses
+  mockGetChartDataRequest
+    .mockReturnValueOnce(firstPromise)
+    .mockReturnValueOnce(secondPromise);
 
-    // Mock async response (202)
-    mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
-
-    // Mock successful polling result
-    const asyncData = [
-      {
-        status: 'success',
-        data: [{ name: 'Async Result', count: 999 }],
-        applied_filters: [],
+  // Initial render with dataset A
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id },
+        column: 'name',
+        isDataDirty: true,
       },
-    ];
-    mockWaitForAsyncData.mockResolvedValue(asyncData);
-
-    const props = createDefaultProps(form);
-    const { filterId } = props;
-
-    act(() => {
-      form.setFieldsValue({
-        filters: {
-          [filterId]: {
-            filterType: 'filter_select',
-            dataset: { value: id }, // numeric ID: 7
-            column: 'name',
-          },
-        },
-      });
-    });
-
-    render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Verify async flow
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(mockWaitForAsyncData).toHaveBeenCalled();
-    });
-
-    // Verify final data is set
-    await waitFor(() => {
-      const formValues = form.getFieldValue('filters')?.[filterId];
-      expect(formValues.defaultValueQueriesData).toEqual(asyncData);
-    });
+    },
   });
 
-  test('should display error when API request fails', async () => {
-    // Mock API error with a simple error object
-    const mockError = {
-      error: 'Internal Server Error',
-      message: 'An error occurred',
-      statusText: 'Internal Server Error',
-    };
-    mockGetChartDataRequest.mockRejectedValue(mockError);
+  const props = createDefaultProps(form);
+  const { rerender } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
+  });
 
-    const filterId = 'NATIVE_FILTER-1';
+  // Wait for first request
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1);
+  });
 
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id }, // numeric ID: 7
-          column: 'name',
-        },
+  // Trigger second refresh by changing dataset
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id + 1 },
+        column: 'name',
+        isDataDirty: true,
       },
-    });
+    },
+  });
 
-    const props = createDefaultProps(form);
-    const { container } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
+  rerender(<FiltersConfigForm {...props} />);
 
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
+  // Wait for second request
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalledTimes(2);
+  });
 
-    // Wait a bit for error handling to complete
-    await new Promise(resolve => setTimeout(resolve, 100));
+  // Resolve SECOND request first (newer, should win)
+  resolveSecond(createMockChartResponse([{ name: 'Dataset2', count: 999 }]));
 
-    // Component should still be rendered (no crash)
-    expect(container).toBeInTheDocument();
-
-    // defaultValueQueriesData should remain null on error
+  await waitFor(() => {
     const formValues = form.getFieldValue('filters')?.[filterId];
-    expect(formValues.defaultValueQueriesData).toBeNull();
-
-    // Verify API was called with correct parameters
-    expect(mockGetChartDataRequest).toHaveBeenCalledWith(
-      expect.objectContaining({
-        formData: expect.objectContaining({
-          datasource: datasourceId,
-          groupby: ['name'],
-        }),
-      }),
-    );
-
-    // Note: setErroredFilters is only called during form validation, NOT during refresh errors
-    // The refresh error handler calls setError/setErrorWrapper instead
-    // Verify error UI is displayed
-    await waitFor(() => {
-      const formValues = form.getFieldValue('filters')?.[filterId];
-      // The component sets error through setError() which isn't reflected in form state
-      // But we've verified the component didn't crash and defaultValueQueriesData is null
-      expect(formValues.defaultValueQueriesData).toBeNull();
-    });
-
-    // TODO: Once component properly renders error state, add this assertion:
-    // const errorAlert = await screen.findByRole('alert');
-    // expect(errorAlert).toHaveTextContent('An error occurred');
+    expect(formValues.defaultValueQueriesData).toBeDefined();
+    expect(formValues.defaultValueQueriesData[0].data[0].name).toBe('Dataset2');
   });
 
-  test('should cleanup when unmounted during async operation', async () => {
-    mockIsFeatureEnabled.mockImplementation(
-      (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
-    );
+  // Resolve FIRST request late (older, should be ignored)
+  resolveFirst(createMockChartResponse([{ name: 'Dataset1', count: 111 }]));
 
-    mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
+  // Wait for late response to be processed
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Mock a slow async operation
-    let asyncResolve: any;
-    const asyncPromise = new Promise(resolve => {
-      asyncResolve = resolve;
-    });
-    mockWaitForAsyncData.mockReturnValue(asyncPromise);
+  // Verify Dataset2 is still there (late Dataset1 was ignored)
+  const finalFormValues = form.getFieldValue('filters')?.[filterId];
+  expect(finalFormValues.defaultValueQueriesData[0].data[0].name).toBe(
+    'Dataset2',
+  );
+});
 
-    const props = createDefaultProps(form);
-    const { filterId } = props;
+test('should handle async query error during polling', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
+  );
 
-    // Spy on console errors to catch React warnings about state updates after unmount
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
+  mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
 
-    act(() => {
-      form.setFieldsValue({
-        filters: {
-          [filterId]: {
-            filterType: 'filter_select',
-            dataset: { value: id }, // numeric ID: 7
-            column: 'name',
-          },
-        },
-      });
-    });
+  // Mock polling failure
+  const pollingError = new Error('Async query failed');
+  mockWaitForAsyncData.mockRejectedValue(pollingError);
 
-    const { unmount } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
+  const filterId = 'NATIVE_FILTER-1';
 
-    // Wait for async operation to start
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-      expect(mockWaitForAsyncData).toHaveBeenCalled();
-    });
-
-    // Unmount before async completes
-    unmount();
-
-    // Now resolve the async operation after unmount
-    asyncResolve([
-      {
-        status: 'success',
-        data: [{ name: 'Delayed', count: 1 }],
-        applied_filters: [],
+  form.setFieldsValue({
+    filters: {
+      [filterId]: {
+        filterType: 'filter_select',
+        dataset: { value: id },
+        column: 'name',
       },
-    ]);
-
-    // Wait a bit to ensure any state updates would have happened
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Verify no React warnings about state updates after unmount
-    const stateUpdateWarnings = consoleErrorSpy.mock.calls.filter(
-      call =>
-        call[0]?.toString &&
-        (call[0].toString().includes('unmounted component') ||
-          call[0].toString().includes('memory leak')),
-    );
-
-    // Component should properly cleanup - no warnings expected
-    if (stateUpdateWarnings.length > 0) {
-      console.log('Unexpected state update warnings:', stateUpdateWarnings);
-    }
-    expect(stateUpdateWarnings.length).toBe(0);
-
-    consoleErrorSpy.mockRestore();
+    },
   });
 
-  test('should debounce rapid dataset changes', async () => {
-    const filterId = 'NATIVE_FILTER-1';
-
-    // Set initial dataset
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id }, // numeric ID: 7
-          column: 'name',
-        },
-      },
-    });
-
-    const props = createDefaultProps(form);
-    const { unmount } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Wait for initial refresh
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-    });
-
-    const initialCallCount = mockGetChartDataRequest.mock.calls.length;
-    unmount();
-
-    // Rapidly change dataset multiple times
-    const dataset2Id = id + 1; // 8
-    const dataset3Id = id + 2; // 9
-
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: dataset2Id },
-          column: 'name',
-        },
-      },
-    });
-
-    const props2 = createDefaultProps(form);
-    const { unmount: unmount2 } = render(<FiltersConfigForm {...props2} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Immediately change again before first completes
-    await waitFor(() => {
-      expect(mockGetChartDataRequest.mock.calls.length).toBeGreaterThan(
-        initialCallCount,
-      );
-    });
-
-    unmount2();
-
-    // Change to dataset 3
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: dataset3Id },
-          column: 'name',
-        },
-      },
-    });
-
-    const props3 = createDefaultProps(form);
-    render(<FiltersConfigForm {...props3} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Verify final dataset is used
-    await waitFor(() => {
-      const lastCall =
-        mockGetChartDataRequest.mock.calls[
-          mockGetChartDataRequest.mock.calls.length - 1
-        ];
-      expect(lastCall[0].formData.datasource).toBe(`${dataset3Id}__table`);
-    });
+  const props = createDefaultProps(form);
+  const { container } = render(<FiltersConfigForm {...props} />, {
+    initialState: defaultState(),
+    useRedux: true,
   });
 
-  // Note: This test is skipped because properly testing the race condition requires
-  // triggering two refreshHandler calls in quick succession, which is difficult in unit tests
-  // since refreshHandler is internal and triggered by useEffect dependencies.
-  // The component fix (latestRequestIdRef) is in place and will work in production.
-  // Integration tests or manual testing should verify this behavior.
-  test.skip('should handle out-of-order async responses', async () => {
-    const filterId = 'NATIVE_FILTER-1';
-
-    // Mock two slow requests that we can control
-    let resolveFirst: any;
-    let resolveSecond: any;
-
-    const firstPromise = new Promise(resolve => {
-      resolveFirst = resolve;
-    });
-    const secondPromise = new Promise(resolve => {
-      resolveSecond = resolve;
-    });
-
-    // Queue up the two mocked responses
-    mockGetChartDataRequest
-      .mockReturnValueOnce(firstPromise as any)
-      .mockReturnValueOnce(secondPromise as any);
-
-    // Initial render with dataset A
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id },
-          column: 'name',
-          isDataDirty: true,
-        },
-      },
-    });
-
-    const props = createDefaultProps(form);
-    const { rerender } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Wait for first request
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1);
-    });
-
-    // Trigger second refresh by changing dataset
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id + 1 },
-          column: 'name',
-          isDataDirty: true,
-        },
-      },
-    });
-
-    rerender(<FiltersConfigForm {...props} />);
-
-    // Wait for second request
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalledTimes(2);
-    });
-
-    // Resolve SECOND request first (newer, should win)
-    resolveSecond(createMockChartResponse([{ name: 'Dataset2', count: 999 }]));
-
-    await waitFor(() => {
-      const formValues = form.getFieldValue('filters')?.[filterId];
-      expect(formValues.defaultValueQueriesData).toBeDefined();
-      expect(formValues.defaultValueQueriesData[0].data[0].name).toBe(
-        'Dataset2',
-      );
-    });
-
-    // Resolve FIRST request late (older, should be ignored)
-    resolveFirst(createMockChartResponse([{ name: 'Dataset1', count: 111 }]));
-
-    // Wait for late response to be processed
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Verify Dataset2 is still there (late Dataset1 was ignored)
-    const finalFormValues = form.getFieldValue('filters')?.[filterId];
-    expect(finalFormValues.defaultValueQueriesData[0].data[0].name).toBe(
-      'Dataset2',
-    );
+  // Wait for async flow to initiate
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockWaitForAsyncData).toHaveBeenCalled();
   });
 
-  test('should handle async query error during polling', async () => {
-    mockIsFeatureEnabled.mockImplementation(
-      (flag: FeatureFlag) => flag === FeatureFlag.GlobalAsyncQueries,
-    );
+  // Wait for error handling
+  await new Promise(resolve => setTimeout(resolve, 200));
 
-    mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
+  // Component should still be rendered (no crash)
+  expect(container).toBeInTheDocument();
 
-    // Mock polling failure
-    const pollingError = new Error('Async query failed');
-    mockWaitForAsyncData.mockRejectedValue(pollingError);
-
-    const filterId = 'NATIVE_FILTER-1';
-
-    form.setFieldsValue({
-      filters: {
-        [filterId]: {
-          filterType: 'filter_select',
-          dataset: { value: id },
-          column: 'name',
-        },
-      },
-    });
-
-    const props = createDefaultProps(form);
-    const { container } = render(<FiltersConfigForm {...props} />, {
-      initialState: defaultState(),
-      useRedux: true,
-    });
-
-    // Wait for async flow to initiate
-    await waitFor(() => {
-      expect(mockGetChartDataRequest).toHaveBeenCalled();
-      expect(mockWaitForAsyncData).toHaveBeenCalled();
-    });
-
-    // Wait for error handling
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    // Component should still be rendered (no crash)
-    expect(container).toBeInTheDocument();
-
-    // defaultValueQueriesData should remain null after async error
-    const formValues = form.getFieldValue('filters')?.[filterId];
-    expect(formValues.defaultValueQueriesData).toBeNull();
-  });
+  // defaultValueQueriesData should remain null after async error
+  const formValues = form.getFieldValue('filters')?.[filterId];
+  expect(formValues.defaultValueQueriesData).toBeNull();
 });

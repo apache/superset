@@ -44,6 +44,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
   memo,
@@ -273,8 +274,8 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const isMountedRef = useState({ current: true })[0];
-  const latestRequestIdRef = useState({ current: 0 })[0];
+  const isMountedRef = useRef(true);
+  const latestRequestIdRef = useRef(0);
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -284,7 +285,7 @@ const FiltersConfigForm = (
     () => () => {
       isMountedRef.current = false;
     },
-    [isMountedRef],
+    [],
   );
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
@@ -704,14 +705,7 @@ const FiltersConfigForm = (
     if (hasDataset && hasFilledDataset && isDataDirty) {
       refreshHandler();
     }
-  }, [
-    hasDataset,
-    hasFilledDataset,
-    hasDefaultValue,
-    isDataDirty,
-    refreshHandler,
-    showDataset,
-  ]);
+  }, [hasDataset, hasFilledDataset, isDataDirty, refreshHandler, showDataset]);
 
   const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
