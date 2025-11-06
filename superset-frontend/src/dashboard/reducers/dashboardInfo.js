@@ -22,19 +22,43 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
-  SET_DASHBOARD_THEME,
 } from '../actions/dashboardInfo';
+import {
+  SAVE_CHART_CUSTOMIZATION_COMPLETE,
+  INITIALIZE_CHART_CUSTOMIZATION,
+  SET_CHART_CUSTOMIZATION_DATA_LOADING,
+  SET_CHART_CUSTOMIZATION_DATA,
+  SET_PENDING_CHART_CUSTOMIZATION,
+  CLEAR_PENDING_CHART_CUSTOMIZATION,
+  CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
+  CLEAR_ALL_CHART_CUSTOMIZATIONS,
+} from '../actions/chartCustomizationActions';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   switch (action.type) {
-    case DASHBOARD_INFO_UPDATED:
-      return {
+    case DASHBOARD_INFO_UPDATED: {
+      const { theme_id: themeId, ...otherInfo } = action.newInfo;
+      const updatedState = {
         ...state,
-        ...action.newInfo,
+        ...otherInfo,
         // server-side compare last_modified_time in second level
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
+
+      // Handle theme_id conversion to theme object
+      if (themeId !== undefined) {
+        if (themeId === null) {
+          updatedState.theme = null;
+        } else {
+          // Convert theme_id to theme object
+          // If we have theme name from themes cache, use it, otherwise create placeholder
+          updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
+        }
+      }
+
+      return updatedState;
+    }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
       return {
         ...state,
@@ -61,10 +85,93 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         crossFiltersEnabled: action.crossFiltersEnabled,
       };
-    case SET_DASHBOARD_THEME:
+    case SAVE_CHART_CUSTOMIZATION_COMPLETE:
       return {
         ...state,
-        theme: action.theme,
+        metadata: {
+          ...state.metadata,
+          native_filter_configuration: (
+            state.metadata?.native_filter_configuration || []
+          ).filter(
+            item =>
+              !(
+                item.type === 'CHART_CUSTOMIZATION' &&
+                item.id === 'chart_customization_groupby'
+              ),
+          ),
+          chart_customization_config: action.chartCustomization,
+        },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
+      };
+    case INITIALIZE_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          native_filter_configuration: (
+            state.metadata?.native_filter_configuration || []
+          ).filter(
+            item =>
+              !(
+                item.type === 'CHART_CUSTOMIZATION' &&
+                item.id === 'chart_customization_groupby'
+              ),
+          ),
+          chart_customization_config: action.chartCustomization,
+        },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
+      };
+    case SET_CHART_CUSTOMIZATION_DATA_LOADING:
+      return {
+        ...state,
+        chartCustomizationLoading: {
+          ...state.chartCustomizationLoading,
+          [action.itemId]: action.isLoading,
+        },
+      };
+    case SET_CHART_CUSTOMIZATION_DATA:
+      return {
+        ...state,
+        chartCustomizationData: {
+          ...state.chartCustomizationData,
+          [action.itemId]: action.data,
+        },
+      };
+    case SET_PENDING_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        pendingChartCustomizations: {
+          ...state.pendingChartCustomizations,
+          [action.pendingCustomization.id]: action.pendingCustomization,
+        },
+      };
+    case CLEAR_PENDING_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        pendingChartCustomizations: {
+          ...state.pendingChartCustomizations,
+          [action.itemId]: undefined,
+        },
+      };
+    case CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS:
+      return {
+        ...state,
+        pendingChartCustomizations: {},
+      };
+    case CLEAR_ALL_CHART_CUSTOMIZATIONS:
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          chart_customization_config:
+            state.metadata?.chart_customization_config?.map(customization => ({
+              ...customization,
+              customization: {
+                ...customization.customization,
+                column: null,
+              },
+            })) || [],
+        },
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     default:

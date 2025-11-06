@@ -30,6 +30,7 @@ import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
+  isMatrixifyEnabled,
 } from '@superset-ui/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
@@ -246,6 +247,28 @@ function setSidebarWidths(key, dimension) {
   setItem(key, newDimension);
 }
 
+// Chart types that use aggregation and can have multiple values in tooltips
+const AGGREGATED_CHART_TYPES = [
+  // Deck.gl aggregated charts
+  'deck_screengrid',
+  'deck_heatmap',
+  'deck_contour',
+  'deck_hex',
+  'deck_grid',
+  // Other aggregated chart types can be added here
+  'heatmap',
+  'treemap',
+  'sunburst',
+  'pie',
+  'donut',
+  'histogram',
+  'table',
+];
+
+function isAggregatedChartType(vizType) {
+  return AGGREGATED_CHART_TYPES.includes(vizType);
+}
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -323,10 +346,30 @@ function ExploreViewContainer(props) {
 
   const onQuery = useCallback(() => {
     props.actions.setForceQuery(false);
+
+    // Skip main query if Matrixify is enabled
+    if (isMatrixifyEnabled(props.form_data)) {
+      // Set chart to success state since Matrixify will handle its own queries
+      props.actions.chartUpdateSucceeded([], props.chart.id);
+      props.actions.chartRenderingSucceeded(props.chart.id);
+
+      // Update history and controls
+      addHistory();
+      setLastQueriedControls(props.controls);
+      return;
+    }
+
+    // Normal behavior for non-Matrixify
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
     setLastQueriedControls(props.controls);
-  }, [props.controls, addHistory, props.actions, props.chart.id]);
+  }, [
+    props.controls,
+    addHistory,
+    props.actions,
+    props.chart.id,
+    props.form_data,
+  ]);
 
   const handleKeydown = useCallback(
     event => {
@@ -467,6 +510,53 @@ function ExploreViewContainer(props) {
           ),
       );
 
+      if (changedControlKeys.includes('tooltip_contents')) {
+        const tooltipContents = props.controls.tooltip_contents?.value || [];
+        const currentTemplate = props.controls.tooltip_template?.value || '';
+
+        if (tooltipContents.length > 0) {
+          const getFieldName = item => {
+            if (typeof item === 'string') return item;
+            if (item?.item_type === 'column') return item.column_name;
+            if (item?.item_type === 'metric') {
+              return item.metric_name || item.label;
+            }
+            return null;
+          };
+
+          const vizType = props.form_data?.viz_type || '';
+          const isAggregatedChart = isAggregatedChartType(vizType);
+
+          const DEFAULT_TOOLTIP_LIMIT = 10; // Maximum number of values to show in aggregated tooltips
+
+          const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
+          const missingVariables = fieldNames.filter(
+            fieldName =>
+              !currentTemplate.includes(`{{ ${fieldName} }}`) &&
+              !currentTemplate.includes(`{{ limit ${fieldName}`),
+          );
+
+          if (missingVariables.length > 0) {
+            const newVariables = missingVariables.map(fieldName => {
+              const item = tooltipContents[fieldNames.indexOf(fieldName)];
+              const isColumn =
+                item?.item_type === 'column' || typeof item === 'string';
+
+              if (isAggregatedChart && isColumn) {
+                return `{{ limit ${fieldName} ${DEFAULT_TOOLTIP_LIMIT} }}`;
+              }
+              return `{{ ${fieldName} }}`;
+            });
+            const updatedTemplate =
+              currentTemplate +
+              (currentTemplate ? ' ' : '') +
+              newVariables.join(' ');
+
+            props.actions.setControlValue('tooltip_template', updatedTemplate);
+          }
+        }
+      }
+
       // this should also be handled by the actions that are actually changing the controls
       const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,
@@ -524,6 +614,7 @@ function ExploreViewContainer(props) {
   }
 
   const errorMessage = useMemo(() => {
+    // Include all controls with validation errors (for button disabling)
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -541,7 +632,11 @@ function ExploreViewContainer(props) {
       .map(message => {
         const matchingLabels = controlsWithErrors
           .filter(control => control.validationErrors?.includes(message))
-          .map(control => control.label);
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
         return [matchingLabels, message];
       })
       .map(([labels, message]) => (
@@ -559,11 +654,62 @@ function ExploreViewContainer(props) {
     return errorMessage;
   }, [props.controls]);
 
+  // Error message for Data tab only (excludes matrixify controls)
+  const dataTabErrorMessage = useMemo(() => {
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors &&
+        control.validationErrors.length > 0 &&
+        control.tabOverride !== 'matrixify', // Exclude matrixify controls from Data tab
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control =>
+            typeof control.label === 'function'
+              ? control.label(props.exploreState)
+              : control.label,
+          );
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
+        </div>
+      ));
+
+    let dataTabErrorMessage;
+    if (errors.length > 0) {
+      dataTabErrorMessage = (
+        <div
+          css={css`
+            text-align: 'left';
+          `}
+        >
+          {errors}
+        </div>
+      );
+    }
+    return dataTabErrorMessage;
+  }, [props.controls]);
+
   function renderChartContainer() {
     return (
       <ExploreChartPanel
         {...props}
-        errorMessage={errorMessage}
+        errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
         onQuery={onQuery}
       />
@@ -709,7 +855,8 @@ function ExploreViewContainer(props) {
             onQuery={onQuery}
             onStop={onStop}
             canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={errorMessage}
+            errorMessage={dataTabErrorMessage}
+            buttonErrorMessage={errorMessage}
             chartIsStale={chartIsStale}
           />
         </Resizable>
@@ -765,7 +912,7 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls.query_mode?.value;
+  const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
@@ -810,6 +957,7 @@ function mapStateToProps(state) {
   }
 
   if (
+    controls &&
     form_data.viz_type === 'big_number_total' &&
     slice?.form_data?.subheader &&
     (!controls.subtitle?.value || controls.subtitle.value === '')

@@ -47,6 +47,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
 import { RootState } from '../types';
@@ -112,7 +113,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
-  const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
+  const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
@@ -135,9 +136,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
-  // Get CSS from Redux state (updated by updateCss action) instead of API
+  // Get CSS from dashboardInfo (unified properties location)
   const css =
-    useSelector((state: RootState) => state.dashboardState.css) ||
+    useSelector((state: RootState) => state.dashboardInfo.css) ||
     dashboard?.css;
 
   useEffect(() => {
@@ -174,10 +175,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
       let activeTabs: string[] | undefined;
+      let chartStates: DashboardChartStates | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {
-          ({ dataMask, activeTabs } = permalinkValue.state);
+          ({ dataMask, activeTabs, chartStates } = permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -197,6 +199,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             charts,
             activeTabs,
             dataMask,
+            chartStates,
           }),
         );
       }

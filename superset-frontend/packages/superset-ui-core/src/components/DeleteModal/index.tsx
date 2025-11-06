@@ -27,7 +27,7 @@ const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorTextLabel};
   }
 `;
 

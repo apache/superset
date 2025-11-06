@@ -79,7 +79,7 @@ const StyledVisibleItem = styled.span`
 
 const StyledTooltipItem = styled.div`
   .link {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
+    color: ${({ theme }) => theme.colorTextTertiary};
     display: block;
     text-decoration: underline;
   }

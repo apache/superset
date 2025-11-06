@@ -20,11 +20,11 @@ import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
   supersetTheme as theme,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -490,6 +490,43 @@ describe('extractSeries', () => {
       ],
       totalStackedValues,
       1,
+    ]);
+  });
+
+  it('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+    const data = [
+      {
+        browser: 'Firefox',
+        count: 5,
+      },
+      {
+        browser: null,
+        count: 10,
+      },
+      {
+        browser: 'Chrome',
+        count: 8,
+      },
+    ];
+    expect(
+      extractSeries(data, {
+        xAxis: 'browser',
+        xAxisType: AxisType.Category,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'count',
+          name: 'count',
+          data: [
+            ['Firefox', 5],
+            [NULL_STRING, 10],
+            ['Chrome', 8],
+          ],
+        },
+      ],
+      [],
+      5,
     ]);
   });
 

@@ -40,7 +40,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   align-items: center;
   position: relative;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
-    ${({ theme }) => theme.sizeUnit * 5}px;
+    ${({ theme }) => theme.sizeUnit * 4}px;
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   .header {
     font-weight: ${({ theme }) => theme.fontWeightStrong};
@@ -53,10 +53,10 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   .nav-right {
     display: flex;
     align-items: center;
-    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
+    /* margin-right: ${({ theme }) => theme.sizeUnit * 3}px; */
     float: right;
     position: absolute;
-    right: 0;
+    right: ${({ theme }) => theme.sizeUnit * 4}px;
     ul.ant-menu-root {
       padding: 0px;
     }
@@ -114,15 +114,15 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorTextDisabled};
   cursor: not-allowed;
 
   &:hover {
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextDisabled};
   }
 
   .ant-menu-item-selected {
-    background-color: ${theme.colors.grayscale.light1};
+    background-color: ${theme.colorBgContainerDisabled};
   }
 `;
 

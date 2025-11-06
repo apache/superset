@@ -27,11 +27,13 @@ import {
   css,
   FeatureFlag,
   isFeatureEnabled,
+  useTheme,
 } from '@superset-ui/core';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -63,6 +65,11 @@ const QueryHistory = ({
   displayLimit,
   latestQueryId,
 }: QueryHistoryProps) => {
+  const { id, tabViewId } = useQueryEditor(String(queryEditorId), [
+    'tabViewId',
+  ]);
+  const theme = useTheme();
+  const editorId = tabViewId ?? id;
   const [ref, hasReachedBottom] = useInView({ threshold: 0 });
   const [pageIndex, setPageIndex] = useState(0);
   const queries = useSelector(
@@ -74,7 +81,7 @@ const QueryHistory = ({
     isLoading,
     isFetching,
   } = useEditorQueriesQuery(
-    { editorId: `${queryEditorId}`, pageIndex },
+    { editorId, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },
@@ -87,12 +94,12 @@ const QueryHistory = ({
               queries,
               data.result.map(({ id }) => id),
             ),
-            queryEditorId,
+            editorId,
           )
             .concat(data.result)
             .reverse()
-        : getEditorQueries(queries, queryEditorId),
-    [queries, data, queryEditorId],
+        : getEditorQueries(queries, editorId),
+    [queries, data, editorId],
   );
 
   const loadNext = useEffectEvent(() => {
@@ -113,7 +120,11 @@ const QueryHistory = ({
   }
 
   return editorQueries.length > 0 ? (
-    <>
+    <div
+      css={css`
+        padding-left: ${theme.sizeUnit * 4}px;
+      `}
+    >
       <QueryTable
         columns={[
           'state',
@@ -139,7 +150,7 @@ const QueryHistory = ({
         />
       )}
       {isFetching && <Skeleton active />}
-    </>
+    </div>
   ) : (
     <StyledEmptyStateWrapper>
       <EmptyState

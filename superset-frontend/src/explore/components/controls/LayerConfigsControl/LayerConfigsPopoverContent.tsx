@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, JsonValue, styled, t } from '@superset-ui/core';
+import { css, JsonValue, styled, t, useTheme } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { mix } from 'polished';
 import { Data as GsData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';
 import WfsDataParser, {
@@ -59,7 +58,7 @@ export const StyledCloseButton = styled(Button)`
     margin-right: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.primary.light4};
+    background-color: ${theme.colorPrimaryBg};
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
@@ -71,11 +70,7 @@ export const StyledCloseButton = styled(Button)`
     border-style: none;
     border-color: transparent;
     &:hover {
-      background-color: ${mix(
-        0.1,
-        theme.colorPrimary,
-        theme.colors.primary.light4,
-      )};
+      background-color: ${theme.colorPrimaryBgHover};
       color: ${theme.colorPrimaryText};
     }
   `}
@@ -113,7 +108,7 @@ export const StyledSaveButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colorPrimary};
-    color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorTextLightSolid};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
     text-transform: uppercase;
@@ -132,6 +127,7 @@ export const StyledSaveButton = styled(Button)`
 export const LayerConfigsPopoverContent: FC<
   LayerConfigsPopoverContentProps
 > = ({ onClose = () => {}, onSave = () => {}, layerConf }) => {
+  const theme = useTheme();
   const [currentLayerConf, setCurrentLayerConf] =
     useState<LayerConf>(layerConf);
   const initialWmsVersion =
@@ -184,20 +180,17 @@ export const LayerConfigsPopoverContent: FC<
               symbolizers: [
                 {
                   kind: 'Line',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                   width: 2,
                 },
                 {
                   kind: 'Mark',
                   wellKnownName: 'circle',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                 },
                 {
                   kind: 'Fill',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                 },
               ],
             },

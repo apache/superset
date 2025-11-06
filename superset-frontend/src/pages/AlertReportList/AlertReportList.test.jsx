@@ -37,7 +37,7 @@ const alertEndpoint = 'glob:*/api/v1/report/*';
 const alertsInfoEndpoint = 'glob:*/api/v1/report/_info*';
 const alertsCreatedByEndpoint = 'glob:*/api/v1/report/related/created_by*';
 
-const mockalerts = [...new Array(3)].map((_, i) => ({
+const mockalerts = new Array(3).fill().map((_, i) => ({
   active: true,
   changed_by: {
     first_name: `user ${i}`,
@@ -96,27 +96,28 @@ const renderAlertList = (props = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AlertList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderAlertList();
     expect(await screen.findByText('Alerts & reports')).toBeInTheDocument();
   });
 
-  it('renders a SubMenu', async () => {
+  test('renders a SubMenu', async () => {
     renderAlertList();
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderAlertList();
     expect(await screen.findByTestId('alerts-list-view')).toBeInTheDocument();
   });
 
-  it('renders switches', async () => {
+  test('renders switches', async () => {
     renderAlertList();
     // Wait for the list to load first
     await screen.findByTestId('alerts-list-view');
@@ -124,7 +125,7 @@ describe('AlertList', () => {
     expect(switches).toHaveLength(3);
   });
 
-  it('deletes', async () => {
+  test('deletes', async () => {
     renderAlertList();
 
     // Wait for list to load
@@ -148,7 +149,7 @@ describe('AlertList', () => {
     });
   }, 15000);
 
-  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+  test('shows/hides bulk actions when bulk actions is clicked', async () => {
     renderAlertList();
 
     // Wait for list to load and initial state
@@ -167,7 +168,7 @@ describe('AlertList', () => {
     ).toBeInTheDocument();
   }, 15000);
 
-  it('hides bulk actions when switch between alert and report list', async () => {
+  test('hides bulk actions when switch between alert and report list', async () => {
     // Start with alert list
     renderAlertList();
 
@@ -233,7 +234,7 @@ describe('AlertList', () => {
     );
   }, 15000);
 
-  it('renders listview table correctly', async () => {
+  test('renders listview table correctly', async () => {
     renderAlertList();
     await screen.findByTestId('alerts-list-view');
 
@@ -242,35 +243,35 @@ describe('AlertList', () => {
     expect(table).toBeVisible();
   }, 15000);
 
-  it('renders correct column headers for alerts', async () => {
+  test('renders correct column headers for alerts', async () => {
     renderAlertList();
     await screen.findByTestId('alerts-list-view');
 
-    expect(screen.getByText('Last run')).toBeInTheDocument();
+    expect(screen.getByTitle('Last run')).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /name/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Schedule')).toBeInTheDocument();
-    expect(screen.getByText('Notification method')).toBeInTheDocument();
-    expect(screen.getByText('Owners')).toBeInTheDocument();
-    expect(screen.getByText('Last modified')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Schedule')).toBeInTheDocument();
+    expect(screen.getByTitle('Notification method')).toBeInTheDocument();
+    expect(screen.getByTitle('Owners')).toBeInTheDocument();
+    expect(screen.getByTitle('Last modified')).toBeInTheDocument();
+    expect(screen.getByTitle('Active')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
   }, 15000);
 
-  it('renders correct column headers for reports', async () => {
+  test('renders correct column headers for reports', async () => {
     renderAlertList({ isReportEnabled: true });
     await screen.findByTestId('alerts-list-view');
 
-    expect(screen.getByText('Last run')).toBeInTheDocument();
+    expect(screen.getByTitle('Last run')).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /name/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Schedule')).toBeInTheDocument();
-    expect(screen.getByText('Notification method')).toBeInTheDocument();
-    expect(screen.getByText('Owners')).toBeInTheDocument();
-    expect(screen.getByText('Last modified')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Schedule')).toBeInTheDocument();
+    expect(screen.getByTitle('Notification method')).toBeInTheDocument();
+    expect(screen.getByTitle('Owners')).toBeInTheDocument();
+    expect(screen.getByTitle('Last modified')).toBeInTheDocument();
+    expect(screen.getByTitle('Active')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
   }, 15000);
 });

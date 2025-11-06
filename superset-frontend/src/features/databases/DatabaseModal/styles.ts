@@ -171,7 +171,7 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
   .helper {
     display: block;
     padding: ${theme.sizeUnit}px 0;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
     font-size: ${theme.fontSizeSM}px;
     text-align: left;
   }
@@ -200,7 +200,7 @@ export const formStyles = (theme: SupersetTheme) => css`
     }
   }
   .helper {
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
     font-size: ${theme.fontSizeSM}px;
     margin-top: ${theme.sizeUnit * 1.5}px;
   }
@@ -261,7 +261,7 @@ export const StyledInputContainer = styled.div`
 
     input::placeholder,
     textarea::placeholder {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextPlaceholder};
     }
 
     textarea,
@@ -346,7 +346,7 @@ export const TabHeader = styled.div`
   padding: 0px;
 
   .helper {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorTextSecondary};
     font-size: ${({ theme }) => theme.fontSizeSM}px;
     margin: 0px;
   }
@@ -364,7 +364,7 @@ export const CreateHeaderSubtitle = styled.div`
 `;
 
 export const EditHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
@@ -386,7 +386,7 @@ export const CredentialInfoForm = styled.div`
   }
 
   .label-paste {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextSecondary};
     font-size: 11px;
     line-height: 16px;
   }
@@ -406,7 +406,7 @@ export const CredentialInfoForm = styled.div`
     padding: ${({ theme }) => theme.sizeUnit * 1.5}px
       ${({ theme }) => theme.sizeUnit * 2}px;
     &::placeholder {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+      color: ${({ theme }) => theme.colorTextPlaceholder};
     }
   }
 

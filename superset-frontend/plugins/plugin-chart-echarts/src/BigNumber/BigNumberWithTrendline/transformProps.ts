@@ -20,7 +20,6 @@ import {
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
-  GenericDataType,
   getMetricLabel,
   getXAxisLabel,
   Metric,
@@ -28,6 +27,7 @@ import {
   t,
   tooltipHtml,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
 import {
@@ -78,9 +78,9 @@ export default function transformProps(
     queriesData,
     formData,
     rawFormData,
-    theme,
     hooks,
     inContextMenu,
+    theme,
     datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
@@ -281,7 +281,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: theme.colors.grayscale.light5,
+                  color: theme.colorBgContainer,
                 },
               ]),
             },

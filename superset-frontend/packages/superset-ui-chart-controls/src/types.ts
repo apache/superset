@@ -190,7 +190,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
 
-export type TabOverride = 'data' | 'customize' | boolean;
+export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all
@@ -317,7 +317,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => Boolean)
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
     | null;
 }
 
@@ -458,6 +458,10 @@ export enum Comparator {
   BetweenOrEqual = '≤ x ≤',
   BetweenOrLeftEqual = '≤ x <',
   BetweenOrRightEqual = '< x ≤',
+  BeginsWith = 'begins with',
+  EndsWith = 'ends with',
+  Containing = 'containing',
+  NotContaining = 'not containing',
 }
 
 export const MultipleValueComparators = [
@@ -469,16 +473,20 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number;
+  targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
 };
 
 export type ColorFormatters = {
   column: string;
-  getColorFromValue: (value: number) => string | undefined;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  getColorFromValue: (value: number | string) => string | undefined;
 }[];
 
 export default {};

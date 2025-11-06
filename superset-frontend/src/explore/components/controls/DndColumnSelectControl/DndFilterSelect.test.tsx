@@ -19,13 +19,9 @@
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
-import {
-  ensureIsArray,
-  GenericDataType,
-  QueryFormData,
-} from '@superset-ui/core';
+import { ensureIsArray, QueryFormData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-
 import {
   fireEvent,
   render,
@@ -323,6 +319,7 @@ test('onChange is not called when close is clicked and canDelete is string, warn
   expect(await screen.findByText('Test warning')).toBeInTheDocument();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('when disallow_adhoc_metrics is set', () => {
   test('can drop a column type from the simple column selection', () => {
     const adhocMetric = new AdhocMetric({

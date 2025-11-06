@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo } from 'react';
-import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { ensureIsArray, styled, t } from '@superset-ui/core';
 import {
   TableView,
   TableSize,
@@ -25,6 +25,7 @@ import {
   Loading,
   EmptyWrapperType,
 } from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   useFilteredTableData,
   useTableColumns,
@@ -104,6 +105,11 @@ export const SamplesPane = ({
   );
   const filteredData = useFilteredTableData(filterText, data);
 
+  const handleInputChange = useCallback(
+    (input: string) => setFilterText(input),
+    [],
+  );
+
   if (isLoading) {
     return <Loading />;
   }
@@ -117,7 +123,7 @@ export const SamplesPane = ({
           columnTypes={coltypes}
           rowcount={rowcount}
           datasourceId={datasourceId}
-          onInputChange={input => setFilterText(input)}
+          onInputChange={handleInputChange}
           isLoading={isLoading}
           canDownload={canDownload}
         />
@@ -139,7 +145,7 @@ export const SamplesPane = ({
         columnTypes={coltypes}
         rowcount={rowcount}
         datasourceId={datasourceId}
-        onInputChange={input => setFilterText(input)}
+        onInputChange={handleInputChange}
         isLoading={isLoading}
         canDownload={canDownload}
       />

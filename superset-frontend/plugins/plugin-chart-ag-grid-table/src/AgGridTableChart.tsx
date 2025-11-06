@@ -19,10 +19,10 @@
 import {
   DataRecord,
   DataRecordValue,
-  GenericDataType,
   getTimeFormatterForGranularity,
   t,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
@@ -82,6 +82,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     columnColorFormatters,
     basicColorFormatters,
     width,
+    onChartStateChange,
+    chartState,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -109,6 +111,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
     comparisonColumns?.[0]?.key,
   ]);
+
+  const handleColumnStateChange = useCallback(
+    agGridState => {
+      if (onChartStateChange) {
+        onChartStateChange(agGridState);
+      }
+    },
+    [onChartStateChange],
+  );
 
   const filteredColumns = useMemo(() => {
     if (!isUsingTimeComparison) {
@@ -216,7 +227,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
       const modifiedOwnState = {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
       };
@@ -227,7 +238,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleSearch = useCallback(
     (searchText: string) => {
       const modifiedOwnState = {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         searchColumn:
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
@@ -289,6 +300,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         cleanedTotals={totals || {}}
         showTotals={showTotals}
         width={width}
+        onColumnStateChange={handleColumnStateChange}
+        chartState={chartState}
       />
     </StyledChartContainer>
   );

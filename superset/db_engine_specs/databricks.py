@@ -25,6 +25,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
+from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -72,16 +73,32 @@ class DatabricksStringType(types.TypeDecorator):
 
 def monkeypatch_dialect() -> None:
     """
-    Monkeypatch dialect to correctly escape single quotes.
+    Monkeypatch dialect to correctly escape single quotes for Databricks.
 
-    The Databricks SQLAlchemy dialect we currently use does not escape single quotes
-    correctly -- it doubles the single quotes, instead of adding a backslash. The fixed
-    version requires SQLAlchemy 2.0, which is not yet available in Superset.
+    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
+    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
+    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+
+    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
+    we can't patch it without affecting other Hive-based dialects. The solution is to
+    introduce a dialect-aware string type so that the change applies only to Databricks.
     """
     try:
-        from sqlalchemy_databricks._dialect import DatabricksDialect
+        from pyhive.sqlalchemy_hive import HiveDialect
 
-        DatabricksDialect.colspecs[types.String] = DatabricksStringType
+        class ContextAwareStringType(types.TypeDecorator):
+            impl = types.String
+            cache_ok = True
+
+            def literal_processor(
+                self, dialect: DefaultDialect
+            ) -> Callable[[Any], str]:
+                if dialect.__class__.__name__ == "DatabricksDialect":
+                    return DatabricksStringType().literal_processor(dialect)
+                return super().literal_processor(dialect)
+
+        HiveDialect.colspecs[types.String] = ContextAwareStringType
+
     except ImportError:
         pass
 
@@ -279,11 +296,15 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
     @classmethod
     def extract_errors(
-        cls, ex: Exception, context: dict[str, Any] | None = None
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
     ) -> list[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
+
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
@@ -291,7 +312,14 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        for regex, (message, error_type, extra) in cls.custom_errors.items():
+        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
+        if not isinstance(db_engine_custom_errors, dict):
+            db_engine_custom_errors = {}
+
+        for regex, (message, error_type, extra) in [
+            *db_engine_custom_errors.items(),
+            *cls.custom_errors.items(),
+        ]:
             match = regex.search(raw_message)
             if match:
                 params = {**context, **match.groupdict()}
@@ -643,5 +671,5 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         return uri, connect_args
 
 
-# remove once we've upgraded to SQLAlchemy 2.0 and the 2.x databricks-sqlalchemy lib
+# TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x
 monkeypatch_dialect()

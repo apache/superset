@@ -160,6 +160,57 @@ describe('Native filters', () => {
       );
     });
 
+    it('user cannot create bi-directional dependencies between filters', () => {
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_code', column: 'country_code', datasetId: 2 },
+        { name: 'year', column: 'year', datasetId: 2 },
+      ]);
+      enterNativeFilterEditModal();
+
+      // First, make country_name dependent on region
+      selectFilter(1);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
+
+      // Second, make country_code dependent on country_name
+      selectFilter(2);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      addParentFilterWithValue(0, testItems.topTenChart.filterColumn);
+
+      // Now select region filter and try to add dependency
+      selectFilter(0);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+
+          // Verify that only 'year' is available as dependency for region
+          // 'country_name' and 'country_code' should not be available (would create circular dependency)
+          cy.get('input[aria-label^="Limit type"]').click({ force: true });
+          cy.get('[role="listbox"]').should('be.visible');
+          cy.get('[role="listbox"]').should('contain', 'year');
+          cy.get('[role="listbox"]').should('not.contain', 'country_name');
+          cy.get('[role="listbox"]').should('not.contain', 'country_code');
+          cy.get('[role="listbox"]').contains('year').click();
+        },
+      );
+    });
+
     it('Dependent filter selects first item based on parent filter selection', () => {
       prepareDashboardFilters([
         { name: 'region', column: 'region', datasetId: 2 },

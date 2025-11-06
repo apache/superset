@@ -89,6 +89,7 @@ const addFilterFlow = async () => {
   // await screen.findByText('All filters (1)');
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterBar', () => {
   new MainPreset().register();
   const toggleFiltersBar = jest.fn();
@@ -178,39 +179,39 @@ describe('FilterBar', () => {
       },
     );
 
-  it('should render', () => {
+  test('should render', () => {
     const { container } = renderWrapper();
     expect(container).toBeInTheDocument();
   });
 
-  it('should render the "Filters" heading', () => {
+  test('should render the "Actions" heading', () => {
     renderWrapper();
-    expect(screen.getByText('Filters')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
   });
 
-  it('should render the "Clear all" option', () => {
+  test('should render the "Clear all" option', () => {
     renderWrapper();
     expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
-  it('should render the "Apply filters" option', () => {
+  test('should render the "Apply filters" option', () => {
     renderWrapper();
     expect(screen.getByText('Apply filters')).toBeInTheDocument();
   });
 
-  it('should render the collapse icon', () => {
+  test('should render the collapse icon', () => {
     renderWrapper();
     expect(
       screen.getByRole('img', { name: 'vertical-align' }),
     ).toBeInTheDocument();
   });
 
-  it('should render the filter icon', () => {
+  test('should render the filter icon', () => {
     renderWrapper();
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  it('should toggle', () => {
+  test('should toggle', () => {
     renderWrapper();
     const collapse = screen.getByRole('img', {
       name: 'vertical-align',
@@ -220,7 +221,7 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalled();
   });
 
-  it('open filter bar', () => {
+  test('open filter bar', () => {
     renderWrapper();
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
     expect(screen.getByTestId(getTestId('expand-button'))).toBeInTheDocument();
@@ -229,7 +230,7 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalledWith(true);
   });
 
-  it('no edit filter button by disabled permissions', () => {
+  test('no edit filter button by disabled permissions', () => {
     renderWrapper(openedBarProps, {
       ...stateWithoutNativeFilters,
       dashboardInfo: { metadata: {} },
@@ -240,7 +241,7 @@ describe('FilterBar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('close filter bar', () => {
+  test('close filter bar', () => {
     renderWrapper(openedBarProps);
     const collapseButton = screen.getByTestId(getTestId('collapse-button'));
 
@@ -250,14 +251,14 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalledWith(false);
   });
 
-  it('no filters', () => {
+  test('no filters', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  it('renders dividers', async () => {
+  test('renders dividers', async () => {
     const divider = {
       id: 'NATIVE_FILTER_DIVIDER-1',
       type: 'DIVIDER',
@@ -295,7 +296,7 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  it('create filter and apply it flow', async () => {
+  test('create filter and apply it flow', async () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
@@ -304,7 +305,7 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  it('should render without errors with proper state setup', () => {
+  test('should render without errors with proper state setup', () => {
     const stateWithFilter = {
       ...stateWithoutNativeFilters,
       dashboardInfo: {

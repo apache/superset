@@ -161,6 +161,7 @@ export type { CustomCellRendererProps } from 'ag-grid-react';
 export type {
   ColDef,
   Column,
+  ColumnState,
   GridOptions,
   GridState,
   GridReadyEvent,
@@ -186,5 +187,5 @@ export {
 // Re-export AgGridReact for ref types
 export { AgGridReact } from 'ag-grid-react';
 
-// Export the setup function for AG-Grid modules
-export { setupAGGridModules } from './setupAGGridModules';
+// Export the setup function and default modules for AG-Grid
+export { setupAGGridModules, defaultModules } from './setupAGGridModules';

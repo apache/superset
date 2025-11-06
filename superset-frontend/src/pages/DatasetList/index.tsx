@@ -91,7 +91,7 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIcon};
 
     .disabled {
       svg,
@@ -102,12 +102,15 @@ const Actions = styled.div`
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
+      &:hover {
+        cursor: not-allowed;
+      }
       .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextDisabled};
       }
     }
   `}
@@ -275,12 +278,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDuplicating(dataset);
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+  const handleBulkDatasetExport = async (datasetsToExport: Dataset[]) => {
     const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dataset', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected datasets'));
+    }
   };
 
   const columns = useMemo(
@@ -348,7 +356,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxl',
         id: 'table_name',
       },
       {
@@ -475,7 +482,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditOutlined iconSize="l" />

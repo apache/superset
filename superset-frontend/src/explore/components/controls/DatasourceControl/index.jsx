@@ -127,7 +127,7 @@ const Styles = styled.div`
     flex: none;
   }
   span[aria-label='dataset-physical'] {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
   }
   span[aria-label='more'] {
     color: ${({ theme }) => theme.colorPrimary};
@@ -316,7 +316,6 @@ class DatasourceControl extends PureComponent {
       datasourceKey: `${datasource.id}__${datasource.type}`,
       sql: datasource.sql,
     };
-
     const defaultDatasourceMenuItems = [];
     if (this.props.isEditable && !isMissingDatasource) {
       defaultDatasourceMenuItems.push({
@@ -333,7 +332,7 @@ class DatasourceControl extends PureComponent {
           editText
         ),
         disabled: !allowEdit,
-        ...{ 'data-test': 'edit-dataset' },
+        'data-test': 'edit-dataset',
       });
     }
 

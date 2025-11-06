@@ -24,7 +24,6 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
-  GenericDataType,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -33,6 +32,7 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
@@ -272,6 +272,7 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
+    xAxisType?: AxisType;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -286,11 +287,15 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
+    xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
     ...datum,
-    [xAxis]: datum[xAxis],
+    [xAxis]:
+      datum[xAxis] === null && xAxisType === AxisType.Category
+        ? NULL_STRING
+        : datum[xAxis],
   }));
   const sortedSeries = sortAndFilterSeries(
     rows,

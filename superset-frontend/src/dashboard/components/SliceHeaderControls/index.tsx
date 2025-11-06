@@ -54,7 +54,7 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
-import { useDrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
+import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
@@ -184,6 +184,7 @@ const SliceHeaderControls = (
     props.slice.datasource,
     props.dashboardId,
     props.formData,
+    !canDrillToDetail,
   );
 
   const datasetWithVerboseMap =
@@ -271,7 +272,11 @@ const SliceHeaderControls = (
         break;
       }
       case MenuKeys.ExportPivotXlsx: {
-        props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
+        const sliceSelector = `#chart-id-${props.slice.slice_id}`;
+        props.exportPivotExcel?.(
+          `${sliceSelector} .pvtTable`,
+          props.slice.slice_name,
+        );
         break;
       }
       case MenuKeys.CrossFilterScoping: {
@@ -315,10 +320,10 @@ const SliceHeaderControls = (
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-    extendedDayjs.utc(itemCachedDttm).fromNow(),
+    (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
   const updatedWhen = updatedDttm
-    ? extendedDayjs.utc(updatedDttm).fromNow()
+    ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
@@ -361,8 +366,8 @@ const SliceHeaderControls = (
       ),
       disabled: props.chartStatus === 'loading',
       style: { height: 'auto', lineHeight: 'initial' },
-      ...{ 'data-test': 'refresh-chart-menu-item' }, // Typescript hack to get around MenuItem type
-    },
+      'data-test': 'refresh-chart-menu-item', // Typescript hack to get around MenuItem type
+    } as any,
     {
       key: MenuKeys.Fullscreen,
       label: fullscreenLabel,
@@ -389,8 +394,8 @@ const SliceHeaderControls = (
           {t('Edit chart')}
         </Tooltip>
       ),
-      ...{ 'data-test-edit-chart-name': slice.slice_name },
-    });
+      'data-test-edit-chart-name': slice.slice_name,
+    } as any);
   }
 
   if (canEditCrossFilters) {
@@ -450,14 +455,13 @@ const SliceHeaderControls = (
     });
   }
 
-  const { drillToDetailMenuItem, drillToDetailByMenuItem } =
-    useDrillDetailMenuItems({
-      formData: props.formData,
-      filters: modalFilters,
-      setFilters,
-      setShowModal: setDrillModalIsOpen,
-      key: MenuKeys.DrillToDetail,
-    });
+  const drillDetailMenuItems = useDrillDetailMenuItems({
+    formData: props.formData,
+    filters: modalFilters,
+    setFilters,
+    setShowModal: setDrillModalIsOpen,
+    key: MenuKeys.DrillToDetail,
+  });
 
   const shareMenuItems = useShareMenuItems({
     dashboardId,
@@ -472,10 +476,7 @@ const SliceHeaderControls = (
   });
 
   if (isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail) {
-    newMenuItems.push(drillToDetailMenuItem);
-    if (drillToDetailByMenuItem) {
-      newMenuItems.push(drillToDetailByMenuItem);
-    }
+    newMenuItems.push(...drillDetailMenuItems);
   }
 
   if (slice.description || canExplore) {

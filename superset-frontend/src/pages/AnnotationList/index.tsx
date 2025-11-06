@@ -26,7 +26,7 @@ import {
   SupersetClient,
   getClientErrorObject,
 } from '@superset-ui/core';
-import dayjs from 'dayjs';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import rison from 'rison';
 
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';

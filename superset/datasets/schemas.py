@@ -150,6 +150,7 @@ class DatasetPostSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     template_params = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -176,6 +177,7 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
     def handle_error(
         self,
@@ -291,6 +293,7 @@ class ImportV1DatasetSchema(Schema):
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
+        And fixed bug when exporting template_params as empty string.
         """
         if isinstance(data.get("extra"), str):
             try:
@@ -298,6 +301,9 @@ class ImportV1DatasetSchema(Schema):
                 data["extra"] = json.loads(extra) if extra.strip() else None
             except ValueError:
                 data["extra"] = None
+
+        if "template_params" in data and data["template_params"] == "":
+            data["template_params"] = None
 
         return data
 

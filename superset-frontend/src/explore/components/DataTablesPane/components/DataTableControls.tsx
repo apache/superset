@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, GenericDataType } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
 import {

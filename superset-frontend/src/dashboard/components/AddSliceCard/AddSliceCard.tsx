@@ -96,7 +96,7 @@ const MetadataItem: FC<{
     <span
       css={(theme: Theme) => css`
         margin-right: ${theme.sizeUnit * 4}px;
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
       `}
     >
       {label}
@@ -170,7 +170,9 @@ const SliceAddedBadge: FC<{ placeholder?: HTMLDivElement }> = ({
 const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
-  innerRef?: RefObject<HTMLDivElement>;
+  innerRef?:
+    | RefObject<HTMLDivElement>
+    | ((node: HTMLDivElement | null) => void);
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;
@@ -214,7 +216,7 @@ const AddSliceCard: FC<{
           color: ${theme.colorText};
 
           &:hover {
-            //background: ${theme.colors.grayscale.light4};
+            //background: ${theme.colorFillTertiary};
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};

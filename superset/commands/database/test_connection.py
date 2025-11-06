@@ -163,7 +163,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             if not alive:
                 raise DBAPIError(ex_str or None, None, None)
 
-            # Log succesful connection test with engine
+            # Log successful connection test with engine
             event_logger.log_with_context(
                 action=get_log_connection_action("test_connection_success", ssh_tunnel),
                 engine=database.db_engine_spec.__name__,
@@ -189,7 +189,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(ex, self._context)
+            errors = database.db_engine_spec.extract_errors(
+                ex, self._context, database_name=database.unique_name
+            )
             raise SupersetErrorsException(errors, status=400) from ex
         except OAuth2RedirectError:
             raise

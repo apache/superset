@@ -170,7 +170,7 @@ function getCheckboxState(name: string): CheckboxState {
   const fill = svgPath.getAttribute('fill');
   return fill === supersetTheme.colorPrimary
     ? CHECKED
-    : fill === supersetTheme.colors.grayscale.light1
+    : fill === supersetTheme.colorTextSecondary
       ? INDETERMINATE
       : UNCHECKED;
 }

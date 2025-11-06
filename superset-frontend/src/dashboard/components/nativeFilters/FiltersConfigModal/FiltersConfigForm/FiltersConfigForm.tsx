@@ -26,7 +26,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   Filter,
-  GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
   NativeFilterType,
@@ -39,6 +38,7 @@ import {
   css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,
@@ -183,7 +183,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
     margin:
       ${theme.sizeUnit * 2}px
       0px
@@ -584,7 +584,10 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  const availableFilters = getAvailableFilters(filterId);
+  const availableFilters = useMemo(
+    () => getAvailableFilters(filterId),
+    [getAvailableFilters, filterId, filters],
+  );
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
@@ -918,7 +921,8 @@ const FiltersConfigForm = (
                             children: (
                               <>
                                 {canDependOnOtherFilters &&
-                                  hasAvailableFilters && (
+                                  (hasAvailableFilters ||
+                                    dependencies.length > 0) && (
                                     <StyledRowFormItem
                                       expanded={expanded}
                                       name={[

@@ -31,6 +31,7 @@ export type RunQueryButtonProps = {
   canStopQuery: boolean;
   chartIsStale: boolean;
 };
+
 export const RunQueryButton = ({
   loading,
   onQuery,
@@ -43,7 +44,7 @@ export const RunQueryButton = ({
   const theme = useTheme();
   return loading ? (
     <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
-      <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
+      <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />
       {t('Stop')}
     </Button>
   ) : (

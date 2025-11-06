@@ -28,14 +28,17 @@ export default {
   component: BaseIconComponent,
 };
 
-const palette: Record<string, string | null> = { Default: null };
-Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
-  Object.entries(family as Record<string, string>).forEach(
-    ([colorName, colorValue]) => {
-      palette[`${familyName} / ${colorName}`] = colorValue;
-    },
-  );
-});
+const palette: Record<string, string | null> = {
+  Default: null,
+  Primary: supersetTheme.colorPrimary,
+  Success: supersetTheme.colorSuccess,
+  Warning: supersetTheme.colorWarning,
+  Error: supersetTheme.colorError,
+  Info: supersetTheme.colorInfo,
+  Text: supersetTheme.colorText,
+  'Text Secondary': supersetTheme.colorTextSecondary,
+  Icon: supersetTheme.colorIcon,
+};
 
 const IconSet = styled.div`
   display: grid;

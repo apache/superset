@@ -73,8 +73,9 @@ const renderComponent = (props: Partial<Props> = {}) =>
     useDnd: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterControl', () => {
-  it('should render with default props', () => {
+  test('should render with default props', () => {
     renderComponent();
     expect(screen.getByText('Add filter')).toBeInTheDocument();
     expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
@@ -111,13 +112,13 @@ describe('AdhocFilterControl', () => {
     expect(onChange).toHaveBeenCalledWith([]);
   });
 
-  it('should show add filter button when no filters exist', () => {
+  test('should show add filter button when no filters exist', () => {
     renderComponent();
     const addButton = screen.getByTestId('add-filter-button');
     expect(addButton).toBeInTheDocument();
   });
 
-  it('should handle partition column data', async () => {
+  test('should handle partition column data', async () => {
     const mockPartitionColumn = 'date_column';
     const mockResponse = {
       partitions: {

@@ -130,13 +130,13 @@ export const MenuContainer = styled.div`
       gap: ${theme.sizeUnit * 2}px;
 
       &:hover {
-        background-color: ${theme.colors.primary.light4};
+        background-color: ${theme.colorPrimaryBgHover};
       }
     }
 
     .menu-divider {
       height: 1px;
-      background-color: ${theme.colors.grayscale.light2};
+      background-color: ${theme.colorBorderSecondary};
       margin: ${theme.sizeUnit}px 0;
     }
   `}
@@ -165,12 +165,12 @@ export const PopoverContainer = styled.div`
 
 export const PaginationContainer = styled.div`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
+    border: 1px solid ${theme.colorBorderSecondary};
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
+    border-top: 1px solid ${theme.colorBorderSecondary};
     font-size: ${theme.fontSize}px;
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
@@ -222,7 +222,7 @@ export const PageButton = styled.div<{ disabled?: boolean }>`
     svg {
       height: ${theme.sizeUnit * 3}px;
       width: ${theme.sizeUnit * 3}px;
-      fill: ${disabled ? theme.colors.grayscale.light1 : theme.colors.grayscale.dark2};
+      fill: ${disabled ? theme.colorTextQuaternary : theme.colorTextSecondary};
     }
   `}
 `;
@@ -239,14 +239,14 @@ export const InfoText = styled.div`
   max-width: 242px;
   ${({ theme }) => `
     padding: 0 ${theme.sizeUnit * 2}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextBase};
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
 export const ColumnLabel = styled.span`
   ${({ theme }) => `
-    color: ${theme.colors.grayscale.dark2};
+    color: ${theme.colorTextLabel};
   `}
 `;
 
@@ -292,7 +292,7 @@ export const StyledChartContainer = styled.div<{
     }
 
     .dt-is-active-filter {
-      background: ${theme.colors.primary.light3};
+      background: ${theme.colorPrimaryBg};
       :hover {
         background-color: ${theme.colorPrimaryBgHover};
       }
@@ -386,7 +386,7 @@ export const StyledChartContainer = styled.div<{
     .input-wrapper svg {
       pointer-events: none;
       transform: translate(${theme.sizeUnit * 7}px, ${theme.sizeUnit / 2}px);
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextBase};
     }
 
     .input-wrapper input {
@@ -396,16 +396,16 @@ export const StyledChartContainer = styled.div<{
         ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 8}px;
       line-height: 1.8;
       border-radius: ${theme.borderRadius}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.colorBorderSecondary};
       background-color: transparent;
       outline: none;
 
       &:focus {
-        border-color: ${theme.colors.primary.base};
+        border-color: ${theme.colorPrimary};
       }
 
       &::placeholder {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextQuaternary};
       }
     }
   `}
