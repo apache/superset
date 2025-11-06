@@ -24,13 +24,13 @@ import {
   normalizeThemeConfig,
   getAntdConfig,
   getSystemColors,
-} from './utils';
+} from '.';
 import {
   type AnyThemeConfig,
   type SerializableThemeConfig,
   type AntdThemeConfig,
   ThemeAlgorithm,
-} from './types';
+} from '../types';
 
 test('isSerializableConfig returns true when algorithm is undefined', () => {
   const config: AnyThemeConfig = {

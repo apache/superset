@@ -25,7 +25,7 @@ import type {
   ColorVariants,
   AnyThemeConfig,
 } from '../types';
-import { normalizeThemeConfig } from '../utils';
+import { normalizeThemeConfig } from '.';
 
 const fontSizeMap: Record<FontSizeKey, keyof SupersetTheme> = {
   xs: 'fontSizeXS',
