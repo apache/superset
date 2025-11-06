@@ -112,7 +112,8 @@ const datasetResult = (
   {
     tableName = 'birth_names',
     columnName = 'Column A',
-  }: { tableName?: string; columnName?: string } = {},
+    databaseName = 'main',
+  }: { tableName?: string; columnName?: string; databaseName?: string } = {},
 ) => ({
   description_columns: {},
   id: datasetId,
@@ -130,6 +131,9 @@ const datasetResult = (
     ],
     table_name: tableName,
     id: datasetId,
+    database: {
+      database_name: databaseName,
+    },
   },
   show_columns: ['id', 'table_name'],
 });
