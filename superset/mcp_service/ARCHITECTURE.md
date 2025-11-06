@@ -85,14 +85,22 @@ def get_flask_app() -> Flask:
 
 The MCP service uses **Option B: Shared Process with Tenant Isolation**:
 
-```
-Multiple Tenants → Single MCP Process → Superset Database
-                         ↓
-                    Isolation via:
-                    - User authentication (JWT or dev user)
-                    - Flask-AppBuilder RBAC
-                    - Dataset access filters
-                    - Row-level security
+```mermaid
+graph LR
+    T1[Tenant 1]
+    T2[Tenant 2]
+    T3[Tenant 3]
+    MCP[Single MCP Process]
+    DB[(Superset Database)]
+
+    T1 --> MCP
+    T2 --> MCP
+    T3 --> MCP
+    MCP --> DB
+
+    MCP -.->|Isolation via| ISO[User authentication JWT or dev user<br/>Flask-AppBuilder RBAC<br/>Dataset access filters<br/>Row-level security]
+
+    style ISO fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 ### Tenant Isolation Mechanisms
@@ -550,68 +558,65 @@ mcp_memory_usage_bytes
 
 ### Request Flow
 
-```
-MCP Client (Claude/automation tool)
-    ↓
-    | MCP Protocol (HTTP/SSE)
-    ↓
-FastMCP Server (Starlette/Uvicorn)
-    ↓
-    | @mcp.tool decorator
-    ↓
-MCP Auth Hook (@mcp_auth_hook)
-    ↓
-    | Sets g.user, manages session
-    ↓
-Tool Implementation (e.g., list_charts)
-    ↓
-    | Uses DAO pattern
-    ↓
-Superset DAO Layer (ChartDAO, DashboardDAO, etc.)
-    ↓
-    | SQLAlchemy ORM
-    ↓
-Database (PostgreSQL/MySQL/etc.)
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client<br/>(Claude/automation)
+    participant FastMCP as FastMCP Server<br/>(Starlette/Uvicorn)
+    participant Auth as MCP Auth Hook
+    participant Tool as Tool Implementation<br/>(e.g., list_charts)
+    participant DAO as Superset DAO Layer<br/>(ChartDAO, DashboardDAO)
+    participant DB as Database<br/>(PostgreSQL/MySQL)
+
+    Client->>FastMCP: MCP Protocol (HTTP/SSE)
+    FastMCP->>Auth: @mcp.tool decorator
+    Auth->>Auth: Sets g.user, manages session
+    Auth->>Tool: Execute tool
+    Tool->>DAO: Uses DAO pattern
+    DAO->>DB: SQLAlchemy ORM
+    DB-->>DAO: Query results
+    DAO-->>Tool: Processed data
+    Tool-->>Auth: Tool response
+    Auth-->>FastMCP: Response with cleanup
+    FastMCP-->>Client: MCP response
 ```
 
 ### Multi-Instance Deployment
 
-```
-                    Load Balancer (Nginx/K8s Service)
-                              ↓
-              ┌───────────────┼───────────────┐
-              ↓               ↓               ↓
-         MCP Instance 1  MCP Instance 2  MCP Instance 3
-         (port 5008)     (port 5008)     (port 5008)
-              ↓               ↓               ↓
-              └───────────────┼───────────────┘
-                              ↓
-                    Superset Database
-                    (shared connection pool)
+```mermaid
+graph TD
+    LB[Load Balancer<br/>Nginx/K8s Service]
+    MCP1[MCP Instance 1<br/>port 5008]
+    MCP2[MCP Instance 2<br/>port 5008]
+    MCP3[MCP Instance 3<br/>port 5008]
+    DB[(Superset Database<br/>shared connection pool)]
+
+    LB --> MCP1
+    LB --> MCP2
+    LB --> MCP3
+    MCP1 --> DB
+    MCP2 --> DB
+    MCP3 --> DB
 ```
 
 ### Tenant Isolation
 
-```
-User A (JWT: tenant=acme)    User B (JWT: tenant=beta)
-         ↓                              ↓
-         └──────────┬───────────────────┘
-                    ↓
-            MCP Service (single process)
-                    ↓
-            @mcp_auth_hook
-                    ↓
-         Sets g.user from JWT
-                    ↓
-    ┌───────────────┴───────────────┐
-    ↓                               ↓
-Flask-AppBuilder RBAC        Dataset Access Filters
-    ↓                               ↓
-User A sees only            User A queries filtered
-acme dashboards             by RLS rules for acme
-    ↓                               ↓
-         Superset Database
-    (single schema, filtered by permissions)
+```mermaid
+graph TD
+    UserA[User A<br/>JWT: tenant=acme]
+    UserB[User B<br/>JWT: tenant=beta]
+    MCP[MCP Service<br/>single process]
+    Auth[@mcp_auth_hook<br/>Sets g.user from JWT]
+    RBAC[Flask-AppBuilder<br/>RBAC]
+    Filters[Dataset Access<br/>Filters]
+    DB[(Superset Database<br/>single schema, filtered by permissions)]
+
+    UserA --> MCP
+    UserB --> MCP
+    MCP --> Auth
+    Auth --> RBAC
+    Auth --> Filters
+    RBAC --> |User A sees only<br/>acme dashboards| DB
+    Filters --> |User A queries filtered<br/>by RLS rules for acme| DB
 ```
 
 ## Comparison with Alternative Architectures

@@ -350,6 +350,62 @@ locust -f locustfile.py --host https://mcp.yourcompany.com
 # - < 1% error rate
 ```
 
+## Deployment Architecture
+
+### Production Deployment Overview
+
+```mermaid
+graph TB
+    subgraph "External"
+        Clients[MCP Clients<br/>Claude, Automation Tools]
+        AuthProvider[Auth Provider<br/>Auth0, Okta, Cognito]
+    end
+
+    subgraph "DMZ / Edge"
+        LB[Load Balancer<br/>Nginx / ALB]
+        WAF[WAF<br/>Optional]
+    end
+
+    subgraph "Application Tier"
+        MCP1[MCP Instance 1]
+        MCP2[MCP Instance 2]
+        MCP3[MCP Instance 3]
+        Superset[Superset Web Server]
+    end
+
+    subgraph "Data Tier"
+        DB[(PostgreSQL<br/>Superset Metadata)]
+        Redis[(Redis<br/>Cache)]
+    end
+
+    subgraph "Monitoring"
+        Prometheus[Prometheus]
+        Grafana[Grafana]
+        Logs[Log Aggregator<br/>ELK, Splunk]
+    end
+
+    Clients --> |HTTPS| WAF
+    WAF --> LB
+    Clients --> |Get JWT| AuthProvider
+    LB --> MCP1
+    LB --> MCP2
+    LB --> MCP3
+    MCP1 --> DB
+    MCP2 --> DB
+    MCP3 --> DB
+    MCP1 --> Redis
+    MCP2 --> Redis
+    MCP3 --> Redis
+    Superset --> DB
+    MCP1 -.->|Metrics| Prometheus
+    MCP2 -.->|Metrics| Prometheus
+    MCP3 -.->|Metrics| Prometheus
+    Prometheus --> Grafana
+    MCP1 -.->|Logs| Logs
+    MCP2 -.->|Logs| Logs
+    MCP3 -.->|Logs| Logs
+```
+
 ## Deployment Guide
 
 ### Installation Requirements

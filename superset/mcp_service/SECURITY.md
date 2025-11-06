@@ -117,14 +117,30 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - Reduces risk of token theft
 
 **Refresh Token Pattern**:
-```
-Client requests access → Auth Provider returns:
-  - access_token (15 min expiration)
-  - refresh_token (30 day expiration)
 
-Access token expires → Client uses refresh_token to get new access_token
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthProvider as Auth Provider
+    participant MCP as MCP Service
 
-Refresh token expires → User must re-authenticate
+    Client->>AuthProvider: Request access
+    AuthProvider-->>Client: access_token (15 min)<br/>refresh_token (30 days)
+
+    Client->>MCP: Request with access_token
+    MCP-->>Client: Response
+
+    Note over Client,MCP: Access token expires
+
+    Client->>AuthProvider: Request new token with refresh_token
+    AuthProvider-->>Client: New access_token (15 min)
+
+    Client->>MCP: Request with new access_token
+    MCP-->>Client: Response
+
+    Note over Client,AuthProvider: Refresh token expires
+
+    Client->>AuthProvider: User must re-authenticate
 ```
 
 **MCP Service Responsibility**:
@@ -217,13 +233,25 @@ department = '{{ current_user().department }}'
 ```
 
 **How RLS Works with MCP**:
-1. User authenticated via JWT or dev username
-2. `g.user` set by `@mcp_auth_hook`
-3. MCP tool calls Superset DAO (e.g., `ChartDAO.get_chart_data()`)
-4. DAO executes query with dataset's configured RLS rules
-5. RLS template variables replaced with `g.user` attributes
-6. Database query includes RLS filters in WHERE clause
-7. Only permitted rows returned
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Auth as @mcp_auth_hook
+    participant Tool as MCP Tool
+    participant DAO as Superset DAO
+    participant DB as Database
+
+    Client->>Auth: Request with JWT/dev username
+    Auth->>Auth: Set g.user
+    Auth->>Tool: Execute tool
+    Tool->>DAO: Call ChartDAO.get_chart_data()
+    DAO->>DAO: Apply RLS rules<br/>Replace template variables<br/>with g.user attributes
+    DAO->>DB: Query with RLS filters in WHERE clause
+    DB-->>DAO: Only permitted rows
+    DAO-->>Tool: Filtered data
+    Tool-->>Client: Response
+```
 
 **RLS Configuration**:
 
@@ -401,12 +429,24 @@ MCP_CSRF_CONFIG = {
 - Validate token on state-changing operations
 
 **CSRF Token Flow** (if enabled):
-```
-1. Client requests CSRF token
-2. MCP service generates token, stores in session
-3. Client includes token in subsequent requests
-4. MCP service validates token matches session
-5. Reject request if token invalid/missing
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant MCP as MCP Service
+    participant Session as Session Store
+
+    Client->>MCP: Request CSRF token
+    MCP->>Session: Generate and store token
+    MCP-->>Client: Return CSRF token
+
+    Client->>MCP: Request with CSRF token
+    MCP->>Session: Validate token matches session
+    alt Token valid
+        MCP-->>Client: Process request
+    else Token invalid/missing
+        MCP-->>Client: Reject request (403)
+    end
 ```
 
 ### Production Security Recommendations
