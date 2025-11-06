@@ -79,8 +79,8 @@ beforeEach(() => {
 test('Headers should be visible', () => {
   render(<TableCollection {...defaultProps} />);
 
-  expect(screen.getByText('Column 1')).toBeVisible();
-  expect(screen.getByText('Column 2')).toBeVisible();
+  expect(screen.getByLabelText('Column 1')).toBeVisible();
+  expect(screen.getByLabelText('Column 2')).toBeVisible();
 });
 
 test('Body should be visible', () => {
@@ -226,7 +226,7 @@ test('should call setSortBy when clicking sortable column header', () => {
   render(<TableCollection {...sortingProps} />);
 
   // Target the nested field column (the column that needs the array-to-dot conversion)
-  const nestedFieldHeader = screen.getByText('Nested Field');
+  const nestedFieldHeader = screen.getAllByText('Nested Field')[0];
   expect(nestedFieldHeader).toBeInTheDocument();
 
   // Click on the nested field column header to trigger sorting

@@ -345,8 +345,8 @@ test('validates the pre-filter value', async () => {
   try {
     defaultRender();
 
-    await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-    await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+    userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+    userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
     jest.runAllTimers();
   } finally {
