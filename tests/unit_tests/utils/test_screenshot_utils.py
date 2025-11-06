@@ -365,5 +365,8 @@ class TestTakeTiledScreenshot:
                 # Should log warning about skipped tile
                 mock_logger.warning.assert_called_once()
                 warning_call = mock_logger.warning.call_args
-                assert "Skipping tile 2/2" in warning_call[0][0]
+                # Check the format string
                 assert "invalid clip dimensions" in warning_call[0][0]
+                # Check the arguments (tile 2/2)
+                assert warning_call[0][1] == 2  # tile number (i + 1)
+                assert warning_call[0][2] == 2  # num_tiles
