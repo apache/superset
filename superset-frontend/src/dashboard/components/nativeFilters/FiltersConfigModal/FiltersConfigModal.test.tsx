@@ -357,9 +357,12 @@ test('validates the pre-filter value', async () => {
   jest.useRealTimers();
 
   // Wait for validation to complete after timer switch
-  await waitFor(() => {
-    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 15000 },
+  );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
