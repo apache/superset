@@ -813,9 +813,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={t('This section contains validation errors')}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="matrixify-validation-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
