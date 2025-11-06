@@ -46,13 +46,25 @@ afterEach(() => {
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
-const mockDatasource = {
+type TestDatasource = Omit<
+  Partial<DatasetObject>,
+  'columns' | 'main_dttm_col'
+> & {
+  name: string;
+  database: { name: string };
+  columns?: any[];
+  type?: DatasourceType;
+  main_dttm_col?: string | null;
+};
+
+const mockDatasource: TestDatasource = {
   id: 25,
   database: {
     name: 'examples',
   },
   name: 'channels',
-  type: 'table',
+  datasource_name: 'channels',
+  type: DatasourceType.Table,
   columns: [],
   owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
@@ -89,7 +101,7 @@ const createProps = (overrides: JsonObject = {}) => ({
   ...overrides,
 });
 
-async function openAndSaveChanges(datasource: Partial<DatasetObject>) {
+async function openAndSaveChanges(datasource: TestDatasource) {
   fetchMock.get(
     'glob:*/api/v1/database/?q=*',
     { result: [] },
@@ -396,9 +408,7 @@ test('should set the default temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(
-    overrideProps.datasource as unknown as Partial<DatasetObject>,
-  );
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -434,9 +444,7 @@ test('should set the first available temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(
-    overrideProps.datasource as unknown as Partial<DatasetObject>,
-  );
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -472,9 +480,7 @@ test('should not set the temporal column', async () => {
     useRouter: true,
   });
 
-  await openAndSaveChanges(
-    overrideProps.datasource as unknown as Partial<DatasetObject>,
-  );
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
