@@ -68,6 +68,40 @@ test('sanitizeHeaderId should collapse consecutive underscores', () => {
   expect(sanitizeHeaderId('test@@name')).toBe('test_name');
 });
 
+test('sanitizeHeaderId should remove leading underscores', () => {
+  expect(sanitizeHeaderId('@col')).toBe('col');
+  expect(sanitizeHeaderId('!revenue')).toBe('revenue');
+  expect(sanitizeHeaderId('@@test')).toBe('test');
+  expect(sanitizeHeaderId('   leading_spaces')).toBe('leading_spaces');
+});
+
+test('sanitizeHeaderId should remove trailing underscores', () => {
+  expect(sanitizeHeaderId('col@')).toBe('col');
+  expect(sanitizeHeaderId('revenue!')).toBe('revenue');
+  expect(sanitizeHeaderId('test@@')).toBe('test');
+  expect(sanitizeHeaderId('trailing_spaces   ')).toBe('trailing_spaces');
+});
+
+test('sanitizeHeaderId should remove leading and trailing underscores', () => {
+  expect(sanitizeHeaderId('@col@')).toBe('col');
+  expect(sanitizeHeaderId('!test!')).toBe('test');
+  expect(sanitizeHeaderId('  spaced  ')).toBe('spaced');
+  expect(sanitizeHeaderId('@@multiple@@')).toBe('multiple');
+});
+
+test('sanitizeHeaderId should handle inputs with only special characters', () => {
+  expect(sanitizeHeaderId('@')).toBe('');
+  expect(sanitizeHeaderId('@@')).toBe('');
+  expect(sanitizeHeaderId('   ')).toBe('');
+  expect(sanitizeHeaderId('!@$')).toBe('');
+  expect(sanitizeHeaderId('!@#$')).toBe('hash'); // # → 'hash' is preserved (semantic replacement)
+  // Semantic replacements should be preserved even when alone
+  expect(sanitizeHeaderId('%')).toBe('percent');
+  expect(sanitizeHeaderId('#')).toBe('hash');
+  expect(sanitizeHeaderId('△')).toBe('delta');
+  expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
+});
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
     it('should parse pageLength to pageSize', () => {

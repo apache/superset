@@ -151,13 +151,19 @@ function cellWidth({
  * Exported for testing.
  */
 export function sanitizeHeaderId(columnId: string): string {
-  return columnId
-    .replace(/%/g, 'percent')
-    .replace(/#/g, 'hash')
-    .replace(/△/g, 'delta')
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9_-]/g, '_')
-    .replace(/_+/g, '_'); // Collapse consecutive underscores
+  return (
+    columnId
+      // Semantic replacements first: preserve meaning in IDs for readability
+      // (e.g., 'percentpct_nice' instead of '_pct_nice')
+      .replace(/%/g, 'percent')
+      .replace(/#/g, 'hash')
+      .replace(/△/g, 'delta')
+      // Generic sanitization for remaining special characters
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_') // Collapse consecutive underscores
+      .replace(/^_+|_+$/g, '') // Trim leading/trailing underscores
+  );
 }
 
 /**
