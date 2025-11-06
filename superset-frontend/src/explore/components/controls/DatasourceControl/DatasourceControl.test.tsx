@@ -26,7 +26,6 @@ import {
   act,
   userEvent,
   waitFor,
-  cleanup,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import type { DatasetObject } from 'src/features/datasets/types';
@@ -42,7 +41,6 @@ beforeEach(() => {
 
 afterEach(() => {
   window.location = originalLocation;
-  cleanup();
   fetchMock.reset();
   fetchMock.restore();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
