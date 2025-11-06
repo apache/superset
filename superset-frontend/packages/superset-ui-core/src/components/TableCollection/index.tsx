@@ -105,6 +105,15 @@ const StyledTable = styled(Table)<{
       white-space: nowrap;
     }
 
+    .ant-table-tbody > tr > td {
+      height: ${theme.sizeUnit * 12}px;
+    }
+
+    .ant-table-tbody > tr > td.ant-table-cell:has(.ant-avatar-group) {
+      padding-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
+    }
+
     .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
     }
