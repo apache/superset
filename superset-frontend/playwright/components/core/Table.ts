@@ -69,4 +69,14 @@ export class Table {
   async waitForVisible(options?: { timeout?: number }): Promise<void> {
     await this.element.waitFor({ state: 'visible', ...options });
   }
+
+  /**
+   * Clicks an action button in a row by selector
+   * @param rowText - Text to identify the row
+   * @param selector - CSS selector for the action element
+   */
+  async clickRowAction(rowText: string, selector: string): Promise<void> {
+    const row = this.getRow(rowText);
+    await row.locator(selector).first().click();
+  }
 }
