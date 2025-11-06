@@ -423,13 +423,15 @@ export class TableRenderer extends Component {
     const rows = pivotData.rowKeys;
     rows.forEach(rowKey => {
       let current = groups;
+      let sumGroup = 0;
       rowKey.forEach(key => {
         if (!current[key]) {
           current[key] = { currentVal: 0 };
         }
-        current[key].currentVal += pivotData
+        sumGroup += pivotData
           .getAggregator(rowKey, visibleColKey[columnIndex])
           .value();
+        current[key].currentVal = sumGroup;
         current = current[key];
       });
     });
@@ -451,23 +453,21 @@ export class TableRenderer extends Component {
     );
   }
 
-  updateSortingOrder(sortingOrder, columnIndex) {
-    const newSortingOrder = [...sortingOrder];
-    newSortingOrder[columnIndex] =
-      sortingOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
-    return newSortingOrder;
-  }
-
-  sortData(columnIndex, visibleColKey, pivotData, maxRowIndex) {
+  sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex) {
     this.setState(state => {
-      const { sortingOrder } = state;
-      const newSortingOrder = this.updateSortingOrder(
-        sortingOrder,
-        columnIndex,
-      );
+      const { sortingOrder, activeSortColumn } = state;
+
+      let newSortingOrder = {};
+      let newDirection = 'asc';
+
+      if (activeSortColumn === columnIndex) {
+        newDirection = sortingOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
+      }
+
+      newSortingOrder[columnIndex] = newDirection;
       const groups = this.calculateGroups(
         pivotData,
-        visibleColKey,
+        visibleColKeys,
         columnIndex,
       );
       const sortedRowKeys = this.sortAndCacheData(
@@ -479,6 +479,7 @@ export class TableRenderer extends Component {
       this.cachedBasePivotSettings.rowKeys = sortedRowKeys;
       return {
         sortingOrder: newSortingOrder,
+        activeSortColumn: columnIndex,
       };
     });
   }
@@ -577,13 +578,19 @@ export class TableRenderer extends Component {
         const onArrowClick = needToggle ? this.toggleColKey(flatColKey) : null;
 
         const getSortIcon = key => {
-          const SortIcon =
-            {
-              asc: FaSortAsc,
-              desc: FaSortDesc,
-              default: FaSort,
-            }[sortingOrder[key]] || FaSort;
+          const { activeSortColumn, sortingOrder } = this.state;
 
+          if (activeSortColumn !== key) {
+            return (
+              <FaSort
+                onClick={() =>
+                  this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
+                }
+              />
+            );
+          }
+
+          const SortIcon = sortingOrder[key] === 'asc' ? FaSortAsc : FaSortDesc;
           return (
             <SortIcon
               onClick={() =>
