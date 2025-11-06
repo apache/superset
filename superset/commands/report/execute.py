@@ -423,11 +423,13 @@ class BaseReportState:
             timeout = self._report_schedule.working_timeout or app.config.get(
                 "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
             )
-            error_msg = (
-                f"CSV timeout: chart_id={chart_id}, "
-                f"execution_id={self._execution_id}, timeout={timeout}s"
+            logger.error(
+                "CSV timeout: chart_id=%s, execution_id=%s, timeout=%ss",
+                chart_id,
+                self._execution_id,
+                timeout,
             )
-            raise ReportScheduleCsvTimeout(error_msg) from ex
+            raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             raise ReportScheduleCsvFailedError(
                 f"Failed generating csv {str(ex)}"
@@ -461,11 +463,13 @@ class BaseReportState:
             timeout = self._report_schedule.working_timeout or app.config.get(
                 "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT", 3600
             )
-            error_msg = (
-                f"DataFrame timeout: chart_id={chart_id}, "
-                f"execution_id={self._execution_id}, timeout={timeout}s"
+            logger.error(
+                "DataFrame timeout: chart_id=%s, execution_id=%s, timeout=%ss",
+                chart_id,
+                self._execution_id,
+                timeout,
             )
-            raise ReportScheduleDataFrameTimeout(error_msg) from ex
+            raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
             raise ReportScheduleDataFrameFailedError(
                 f"Failed generating dataframe {str(ex)}"
