@@ -319,7 +319,7 @@ google-api-core==2.23.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.40.3
+google-auth==2.43.0
     # via
     #   -c requirements/base-constraint.txt
     #   google-api-core
