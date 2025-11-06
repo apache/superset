@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_default_instructions(branding: str = "Apache Superset") -> str:
-    """
-    Get default instructions with configurable branding.
+    """Get default instructions with configurable branding.
 
     Args:
         branding: Product name to use in instructions
@@ -118,9 +117,9 @@ Common Visualization Types:
 
 Query Examples:
 - List all interactive tables:
-  filters=[{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}]
+  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
 - List time series charts:
-  filters=[{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}]
+  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
 - Search by name: search="sales"
 
 General usage tips:
@@ -200,6 +199,7 @@ def _log_instance_creation(
 def create_mcp_app(
     name: str = "Superset MCP Server",
     instructions: str | None = None,
+    branding: str | None = None,
     auth: Any | None = None,
     lifespan: Callable[..., Any] | None = None,
     tools: List[Any] | None = None,
@@ -218,6 +218,7 @@ def create_mcp_app(
     Args:
         name: Human-readable server name
         instructions: Server description and usage instructions
+        branding: Product name for instructions (e.g., "ACME Analytics")
         auth: Authentication provider for securing HTTP transports
         lifespan: Async context manager for startup/shutdown logic
         tools: List of tools or functions to add to the server
@@ -231,7 +232,11 @@ def create_mcp_app(
     """
     # Use default instructions if none provided
     if instructions is None:
-        instructions = DEFAULT_INSTRUCTIONS
+        # If branding is provided, use it to generate instructions
+        if branding is not None:
+            instructions = get_default_instructions(branding)
+        else:
+            instructions = DEFAULT_INSTRUCTIONS
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(

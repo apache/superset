@@ -69,6 +69,7 @@ MCP_SERVICE_BRANDING = "Apache Superset"  # Product name used in documentation
 # FastMCP Factory Configuration
 MCP_FACTORY_CONFIG = {
     "name": MCP_SERVICE_NAME,
+    "branding": MCP_SERVICE_BRANDING,  # Product name for LLM instructions
     "instructions": None,  # Will use default from app.py (parameterized with branding)
     "auth": None,  # No authentication by default
     "lifespan": None,  # No custom lifespan
