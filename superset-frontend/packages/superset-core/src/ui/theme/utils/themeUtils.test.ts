@@ -32,46 +32,44 @@ jest.mock('@emotion/cache', () => ({
   default: jest.fn().mockReturnValue({}),
 }));
 
-describe('themeUtils', () => {
-  let lightTheme: Theme;
-  let darkTheme: Theme;
+let lightTheme: Theme;
+let darkTheme: Theme;
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
 
-    // Create actual theme instances for testing
-    lightTheme = Theme.fromConfig({
-      token: {
-        colorPrimary: '#1890ff',
-        fontSizeXS: '8',
-        fontSize: '14',
-        fontSizeLG: '16',
-      },
-    });
-
-    darkTheme = Theme.fromConfig({
-      algorithm: ThemeAlgorithm.DARK,
-      token: {
-        colorPrimary: '#1890ff',
-        fontSizeXS: '8',
-        fontSize: '14',
-        fontSizeLG: '16',
-      },
-    });
+  // Create actual theme instances for testing
+  lightTheme = Theme.fromConfig({
+    token: {
+      colorPrimary: '#1890ff',
+      fontSizeXS: '8',
+      fontSize: '14',
+      fontSizeLG: '16',
+    },
   });
 
-  describe('getFontSize', () => {
-    it('returns correct font size for given key', () => {
+  darkTheme = Theme.fromConfig({
+    algorithm: ThemeAlgorithm.DARK,
+    token: {
+      colorPrimary: '#1890ff',
+      fontSizeXS: '8',
+      fontSize: '14',
+      fontSizeLG: '16',
+    },
+  });
+});
+
+test('getFontSize returns correct font size for given key', () => {
       expect(getFontSize(lightTheme.theme, 'xs')).toBe('8');
       expect(getFontSize(lightTheme.theme, 'm')).toBe('14');
       expect(getFontSize(lightTheme.theme, 'l')).toBe('16');
     });
 
-    it('defaults to medium font size when no key is provided', () => {
+test('getFontSize defaults to medium font size when no key is provided', () => {
       expect(getFontSize(lightTheme.theme)).toBe('14');
     });
 
-    it('uses antd default when specific size not overridden', () => {
+test('getFontSize uses antd default when specific size not overridden', () => {
       // Create theme with minimal config - antd will provide defaults
       const minimalTheme = Theme.fromConfig({
         token: { fontSize: '14' },
@@ -80,20 +78,18 @@ describe('themeUtils', () => {
       expect(getFontSize(minimalTheme.theme, 'xs')).toBe('14');
       expect(getFontSize(minimalTheme.theme, 'm')).toBe('14');
     });
-  });
+});
 
-  describe('isThemeDark', () => {
-    it('returns false for light theme', () => {
+test('isThemeDark returns false for light theme', () => {
       expect(isThemeDark(lightTheme.theme)).toBe(false);
     });
 
-    it('returns true for dark theme', () => {
+test('isThemeDark returns true for dark theme', () => {
       expect(isThemeDark(darkTheme.theme)).toBe(true);
     });
-  });
+});
 
-  describe('getColorVariants', () => {
-    it('returns correct variants for primary color', () => {
+test('getColorVariants returns correct variants for primary color', () => {
       const variants = getColorVariants(lightTheme.theme, 'primary');
 
       expect(variants.text).toBeDefined();
@@ -102,7 +98,7 @@ describe('themeUtils', () => {
       expect(variants.active).toBeDefined();
     });
 
-    it('returns grayscale variants for default color in light theme', () => {
+test('getColorVariants returns grayscale variants for default color in light theme', () => {
       const variants = getColorVariants(lightTheme.theme, 'default');
 
       expect(variants.active).toBe('#222');
@@ -111,7 +107,7 @@ describe('themeUtils', () => {
       expect(variants.bg).toBe('#F4F4F4');
     });
 
-    it('returns inverted grayscale variants for default color in dark theme', () => {
+test('getColorVariants returns inverted grayscale variants for default color in dark theme', () => {
       const variants = getColorVariants(darkTheme.theme, 'default');
 
       // In dark theme, colors should be inverted
@@ -120,14 +116,14 @@ describe('themeUtils', () => {
       expect(variants.text).toBe('#aaaaaa'); // Inverted #555
     });
 
-    it('returns same variants for grayscale color as default', () => {
+test('getColorVariants returns same variants for grayscale color as default', () => {
       const defaultVariants = getColorVariants(lightTheme.theme, 'default');
       const grayscaleVariants = getColorVariants(lightTheme.theme, 'grayscale');
 
       expect(defaultVariants).toEqual(grayscaleVariants);
     });
 
-    it('handles missing color tokens gracefully', () => {
+test('getColorVariants handles missing color tokens gracefully', () => {
       const variants = getColorVariants(lightTheme.theme, 'nonexistent');
 
       // Should return undefined for missing tokens
@@ -135,31 +131,30 @@ describe('themeUtils', () => {
       expect(variants.text).toBeUndefined();
       expect(variants.bg).toBeUndefined();
     });
-  });
+});
 
-  describe('isThemeConfigDark', () => {
-    it('returns true for config with dark algorithm', () => {
+test('isThemeConfigDark returns true for config with dark algorithm', () => {
       const config = {
         algorithm: antdTheme.darkAlgorithm,
       };
       expect(isThemeConfigDark(config)).toBe(true);
     });
 
-    it('returns true for config with dark algorithm in array', () => {
+test('isThemeConfigDark returns true for config with dark algorithm in array', () => {
       const config = {
         algorithm: [antdTheme.darkAlgorithm, antdTheme.compactAlgorithm],
       };
       expect(isThemeConfigDark(config)).toBe(true);
     });
 
-    it('returns false for config without dark algorithm', () => {
+test('isThemeConfigDark returns false for config without dark algorithm', () => {
       const config = {
         algorithm: antdTheme.defaultAlgorithm,
       };
       expect(isThemeConfigDark(config)).toBe(false);
     });
 
-    it('returns false for config with no algorithm', () => {
+test('isThemeConfigDark returns false for config with no algorithm', () => {
       const config = {
         token: {
           colorPrimary: '#1890ff',
@@ -168,7 +163,7 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(config)).toBe(false);
     });
 
-    it('detects manually-created dark theme without dark algorithm', () => {
+test('isThemeConfigDark detects manually-created dark theme without dark algorithm', () => {
       // This is the edge case: dark colors without dark algorithm
       const config = {
         token: {
@@ -180,7 +175,7 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(config)).toBe(true);
     });
 
-    it('does not false-positive on light theme with custom colors', () => {
+test('isThemeConfigDark does not false-positive on light theme with custom colors', () => {
       const config = {
         token: {
           colorBgContainer: '#ffffff', // Light background
@@ -191,7 +186,7 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(config)).toBe(false);
     });
 
-    it('handles partial color tokens gracefully', () => {
+test('isThemeConfigDark handles partial color tokens gracefully', () => {
       // With actual theme computation, a dark colorBgContainer results in a dark theme
       const config = {
         token: {
@@ -202,7 +197,7 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(config)).toBe(true);
     });
 
-    it('respects colorBgContainer as the primary indicator', () => {
+test('isThemeConfigDark respects colorBgContainer as the primary indicator', () => {
       // The computed theme uses colorBgContainer as the main background
       const darkConfig = {
         token: {
@@ -221,7 +216,7 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(lightConfig)).toBe(false);
     });
 
-    it('handles non-string color tokens gracefully', () => {
+test('isThemeConfigDark handles non-string color tokens gracefully', () => {
       const config = {
         token: {
           colorBgContainer: undefined,
@@ -232,15 +227,14 @@ describe('themeUtils', () => {
       expect(isThemeConfigDark(config)).toBe(false);
     });
 
-    it('returns false for empty config', () => {
+test('isThemeConfigDark returns false for empty config', () => {
       expect(isThemeConfigDark({})).toBe(false);
     });
 
-    it('returns false for config with empty token object', () => {
+test('isThemeConfigDark returns false for config with empty token object', () => {
       const config = {
         token: {},
       };
       expect(isThemeConfigDark(config)).toBe(false);
     });
-  });
 });
