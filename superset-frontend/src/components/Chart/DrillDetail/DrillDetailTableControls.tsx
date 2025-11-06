@@ -61,7 +61,7 @@ export default function TableControls({
     colName => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
-      setFilters([...Object.values(updatedFilterMap)]);
+      setFilters(Object.values(updatedFilterMap));
     },
     [filterMap, setFilters],
   );

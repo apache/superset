@@ -89,7 +89,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           ),
         ),
       ),
-    [sqlKeywords],
+    [options],
   );
 
   const selectOptions = useMemo(
@@ -98,7 +98,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
         label: clause,
         value: clause,
       })),
-    [Clauses],
+    [],
   );
 
   return (

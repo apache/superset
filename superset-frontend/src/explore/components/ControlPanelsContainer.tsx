@@ -56,13 +56,13 @@ import { kebabCase, isEqual } from 'lodash';
 
 import {
   Collapse,
-  Modal,
   Loading,
   Label,
   Tooltip,
 } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { PluginContext } from 'src/components';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -282,7 +282,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const theme = useTheme();
   const pluginContext = useContext(PluginContext);
-  const [modal, contextHolder] = Modal.useModal();
+  const { showConfirm, ConfirmModal } = useConfirmModal();
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
@@ -320,12 +320,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           filter.subject === x_axis,
       );
       if (noFilter) {
-        modal.confirm({
+        showConfirm({
           title: t('The X-axis is not on the filters list'),
-          content:
-            t(`The X-axis is not on the filters list which will prevent it from being used in
-            time range filters in dashboards. Would you like to add it to the filters list?`),
-          onOk: () => {
+          body: t(
+            `The X-axis is not on the filters list which will prevent it from being used in time range filters in dashboards. Would you like to add it to the filters list?`,
+          ),
+          onConfirm: () => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
@@ -337,6 +337,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               },
             ]);
           },
+          confirmText: t('Yes'),
+          cancelText: t('No'),
         });
       }
     }
@@ -347,6 +349,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     defaultTimeFilter,
     previousXAxis,
     props.exploreState.datasource,
+    showConfirm,
   ]);
 
   useEffect(() => {
@@ -848,7 +851,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   return (
     <>
-      {contextHolder}
       <Styles ref={containerRef}>
         <Tabs
           id="controlSections"
@@ -866,7 +868,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     expandIconPosition="end"
                     ghost
                     bordered
-                    items={[...querySections.map(renderControlPanelSection)]}
+                    items={querySections.map(renderControlPanelSection)}
                   />
                 </>
               ),
@@ -882,9 +884,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         expandIconPosition="end"
                         ghost
                         bordered
-                        items={[
-                          ...customizeSections.map(renderControlPanelSection),
-                        ]}
+                        items={customizeSections.map(renderControlPanelSection)}
                       />
                     ),
                   },
@@ -930,12 +930,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                           )}
                         <Collapse
                           defaultActiveKey={expandedMatrixifySections}
-                          expandIconPosition="right"
+                          expandIconPosition="end"
                           ghost
                           bordered
-                          items={[
-                            ...matrixifySections.map(renderControlPanelSection),
-                          ]}
+                          items={matrixifySections.map(
+                            renderControlPanelSection,
+                          )}
                         />
                       </>
                     ),
@@ -956,6 +956,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           />
         </div>
       </Styles>
+      {ConfirmModal}
     </>
   );
 };

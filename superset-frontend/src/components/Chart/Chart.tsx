@@ -27,6 +27,7 @@ import {
   SqlaFormData,
   ClientErrorObject,
   type JsonObject,
+  type AgGridChartState,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
@@ -80,6 +81,7 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
+  onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
 export type Actions = {

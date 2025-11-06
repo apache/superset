@@ -118,6 +118,11 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const getAppliedThemeId = useCallback(
+    () => themeController.getAppliedThemeId(),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -133,6 +138,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      getAppliedThemeId,
     }),
     [
       currentTheme,
@@ -148,6 +154,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      getAppliedThemeId,
     ],
   );
 

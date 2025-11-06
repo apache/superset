@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Test comment for pre-commit
 import {
   forwardRef,
   ReactNode,
@@ -272,7 +273,7 @@ const ChartContextMenu = (
     setShowModal: setDrillModalIsOpen,
     dataset: filteredDataset,
     isLoadingDataset,
-    ...(additionalConfig?.drillToDetail || {}),
+    ...additionalConfig?.drillToDetail,
   });
 
   if (showCrossFilters) {

@@ -74,6 +74,7 @@ const ConditionalFormattingControl = ({
   verboseMap,
   removeIrrelevantConditions,
   extraColorChoices,
+  conditionalFormattingFlag,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
@@ -174,6 +175,7 @@ const ConditionalFormattingControl = ({
           onChange={onSave}
           destroyTooltipOnHide
           extraColorChoices={extraColorChoices}
+          conditionalFormattingFlag={conditionalFormattingFlag}
         >
           <AddControlLabel>
             <Icons.PlusOutlined

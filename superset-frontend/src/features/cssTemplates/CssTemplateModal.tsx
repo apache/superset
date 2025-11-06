@@ -37,7 +37,7 @@ interface CssTemplateModalProps {
 
 type CssTemplateStringKeys = keyof Pick<
   TemplateObject,
-  OnlyKeyWithType<TemplateObject, String>
+  OnlyKeyWithType<TemplateObject, string>
 >;
 
 const StyledCssTemplateTitle = styled.div(

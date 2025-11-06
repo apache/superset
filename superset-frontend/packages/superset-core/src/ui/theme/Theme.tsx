@@ -105,7 +105,7 @@ export class Theme {
     this.antdConfig = antdConfig;
     this.theme = {
       ...tokens, // First apply Ant Design computed tokens
-      ...(antdConfig.token || {}), // Then override with our custom tokens
+      ...antdConfig.token, // Then override with our custom tokens
     } as SupersetTheme;
 
     // Update the providers with the fully formed theme

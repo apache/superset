@@ -219,7 +219,7 @@ describe('ChartList - List View Tests', () => {
 
     // Verify all expected headers are present
     expectedHeaders.forEach(headerText => {
-      expect(within(table).getByText(headerText)).toBeInTheDocument();
+      expect(within(table).getByTitle(headerText)).toBeInTheDocument();
     });
   });
 
@@ -231,11 +231,15 @@ describe('ChartList - List View Tests', () => {
     });
 
     const table = screen.getByTestId('listview-table');
-    const sortableHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
+    const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
+
+    const sortableHeaders = Array.from(allHeaders).filter(
+      header => !header.closest('.ant-table-measure-cell-content'),
+    );
     expect(sortableHeaders).toHaveLength(3);
 
-    const nameHeader = within(table).getByText('Name');
+    const nameHeader = within(table).getByTitle('Name');
     fireEvent.click(nameHeader);
 
     await waitFor(() => {
@@ -248,7 +252,7 @@ describe('ChartList - List View Tests', () => {
       expect(sortCalls).toHaveLength(1);
     });
 
-    const typeHeader = within(table).getByText('Type');
+    const typeHeader = within(table).getByTitle('Type');
     fireEvent.click(typeHeader);
 
     await waitFor(() => {
@@ -261,7 +265,7 @@ describe('ChartList - List View Tests', () => {
       expect(typeSortCalls).toHaveLength(1);
     });
 
-    const lastModifiedHeader = within(table).getByText('Last modified');
+    const lastModifiedHeader = within(table).getByTitle('Last modified');
     fireEvent.click(lastModifiedHeader);
 
     await waitFor(() => {
@@ -602,7 +606,7 @@ describe('ChartList - List View Tests', () => {
 
     const testChart = mockCharts[0];
     const table = screen.getByTestId('listview-table');
-    expect(within(table).getByText('Tags')).toBeInTheDocument();
+    expect(within(table).getByTitle('Tags')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(within(table).getByText(testChart.slice_name)).toBeInTheDocument();
@@ -651,7 +655,7 @@ describe('ChartList - List View Tests', () => {
     });
 
     // Use the header checkbox to select all
-    const selectAllCheckbox = screen.getByLabelText('Select all');
+    const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
     expect(selectAllCheckbox).not.toBeChecked();
 
     fireEvent.click(selectAllCheckbox);
@@ -714,7 +718,7 @@ describe('ChartList - List View Tests', () => {
     });
 
     // Use select all to select multiple charts
-    const selectAllCheckbox = screen.getByLabelText('Select all');
+    const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
     fireEvent.click(selectAllCheckbox);
 
     await waitFor(() => {
@@ -763,7 +767,7 @@ describe('ChartList - List View Tests', () => {
     });
 
     // Use select all to select multiple charts
-    const selectAllCheckbox = screen.getByLabelText('Select all');
+    const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
     fireEvent.click(selectAllCheckbox);
 
     await waitFor(() => {

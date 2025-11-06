@@ -105,6 +105,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modal, contextHolder] = Modal.useModal();
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -272,7 +273,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             <Checkbox
               checked={syncColumns}
               onChange={() => {
-                setSyncColumns(!syncColumns);
+                setSyncColumns(prev => !prev);
               }}
             />
             <span
@@ -297,14 +298,17 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   }, [datasource.sql, currentDatasource.sql]);
 
   const onClickSave = () => {
-    modal.confirm({
-      title: t('Confirm save'),
-      content: getSaveDialog(),
-      onOk: onConfirmSave,
-      icon: null,
-      okText: t('OK'),
-      cancelText: t('Cancel'),
-    });
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmModalClose = () => {
+    setConfirmModalOpen(false);
+  };
+
+  const handleConfirmSave = async () => {
+    await onConfirmSave();
+    // Note: on success, onConfirmSave calls onHide() which closes parent modal
+    // On error, confirmModal stays open so user can see the error and try again or cancel
   };
 
   return (
@@ -368,6 +372,16 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         currencies={currencies}
       />
       {contextHolder}
+      <Modal
+        title={t('Confirm save')}
+        show={confirmModalOpen}
+        onHide={handleConfirmModalClose}
+        onHandledPrimaryAction={handleConfirmSave}
+        primaryButtonName={t('OK')}
+        primaryButtonLoading={isSaving}
+      >
+        {getSaveDialog()}
+      </Modal>
     </StyledDatasourceModal>
   );
 };

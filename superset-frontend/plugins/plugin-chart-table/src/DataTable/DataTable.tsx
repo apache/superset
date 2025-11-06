@@ -28,7 +28,6 @@ import {
   useEffect,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
 import {
   useTable,
   usePagination,
@@ -43,7 +42,7 @@ import {
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
 import { isEqual } from 'lodash';
-import { Space } from '@superset-ui/core/components';
+import { Flex, Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -78,7 +77,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   sticky?: boolean;
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
-  onColumnOrderChange: () => void;
+  onColumnOrderChange?: () => void;
   renderGroupingHeaders?: () => JSX.Element;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
@@ -98,24 +97,6 @@ export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
 const sortTypes = {
   alphanumeric: sortAlphanumericCaseInsensitive,
 };
-
-const StyledSpace = styled(Space)`
-  display: flex;
-  justify-content: flex-end;
-
-  .search-select-container {
-    display: flex;
-  }
-
-  .search-by-label {
-    align-self: center;
-    margin-right: 4px;
-  }
-`;
-
-const StyledRow = styled.div`
-  display: flex;
-`;
 
 // Be sure to pass our updateMyData and the skipReset option
 export default typedMemo(function DataTable<D extends object>({
@@ -337,8 +318,7 @@ export default typedMemo(function DataTable<D extends object>({
       const colToBeMoved = currentCols.splice(columnBeingDragged, 1);
       currentCols.splice(newPosition, 0, colToBeMoved[0]);
       setColumnOrder(currentCols);
-      // toggle value in TableChart to trigger column width recalc
-      onColumnOrderChange();
+      onColumnOrderChange?.();
     }
     e.preventDefault();
   };
@@ -451,30 +431,36 @@ export default typedMemo(function DataTable<D extends object>({
     >
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
-          <StyledRow className="row">
-            <StyledSpace size="middle">
-              {hasPagination ? (
-                <SelectPageSize
-                  total={resultsSize}
-                  current={resultCurrentPageSize}
-                  options={pageSizeOptions}
-                  selectRenderer={
-                    typeof selectPageSize === 'boolean'
-                      ? undefined
-                      : selectPageSize
-                  }
-                  onChange={setPageSize}
-                />
-              ) : null}
+          <Flex
+            wrap
+            className="row"
+            align="center"
+            justify="space-between"
+            gap="middle"
+          >
+            {hasPagination ? (
+              <SelectPageSize
+                total={resultsSize}
+                current={resultCurrentPageSize}
+                options={pageSizeOptions}
+                selectRenderer={
+                  typeof selectPageSize === 'boolean'
+                    ? undefined
+                    : selectPageSize
+                }
+                onChange={setPageSize}
+              />
+            ) : null}
+            <Flex wrap align="center" gap="middle">
               {serverPagination && (
-                <div className="search-select-container">
-                  <span className="search-by-label">Search by: </span>
+                <Space size="small" className="search-select-container">
+                  <span className="search-by-label">Search by:</span>
                   <SearchSelectDropdown
                     searchOptions={searchOptions}
                     value={serverPaginationData?.searchColumn || ''}
                     onChange={onSearchColChange}
                   />
-                </div>
+                </Space>
               )}
               {searchInput && (
                 <GlobalFilter<D>
@@ -494,8 +480,8 @@ export default typedMemo(function DataTable<D extends object>({
               {renderTimeComparisonDropdown
                 ? renderTimeComparisonDropdown()
                 : null}
-            </StyledSpace>
-          </StyledRow>
+            </Flex>
+          </Flex>
         </div>
       ) : null}
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}

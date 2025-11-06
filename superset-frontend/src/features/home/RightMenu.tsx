@@ -560,7 +560,6 @@ const RightMenu = ({
         className: 'submenu-with-caret',
         icon: <Icons.CaretDownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
-        ...{ 'data-test': 'new-dropdown' },
       });
     }
 
