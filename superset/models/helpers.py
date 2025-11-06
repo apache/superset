@@ -824,7 +824,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def columns(self) -> list[Any]:
         raise NotImplementedError()
 
-    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
@@ -974,7 +974,37 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         mutate: bool = True,
     ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
+        # Filter out keys that aren't parameters to get_sqla_query
+        sqla_query_keys = {
+            "apply_fetch_values_predicate",
+            "columns",
+            "extras",
+            "filter",
+            "from_dttm",
+            "granularity",
+            "groupby",
+            "inner_from_dttm",
+            "inner_to_dttm",
+            "is_rowcount",
+            "is_timeseries",
+            "metrics",
+            "orderby",
+            "order_desc",
+            "to_dttm",
+            "series_columns",
+            "series_limit",
+            "series_limit_metric",
+            "group_others_when_limit_reached",
+            "row_limit",
+            "row_offset",
+            "timeseries_limit",
+            "timeseries_limit_metric",
+            "time_shift",
+        }
+        filtered_query_obj = {
+            k: v for k, v in query_obj.items() if k in sqla_query_keys
+        }
+        sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -2491,7 +2521,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ]
 
                 # run prequery to get top groups
-                prequery_obj = {
+                prequery_obj: QueryObjectDict = {
                     "is_timeseries": False,
                     "row_limit": series_limit,
                     "metrics": metrics,
@@ -2499,7 +2529,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "groupby": groupby,
                     "from_dttm": inner_from_dttm or from_dttm,
                     "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter,
+                    "filter": filter or [],
                     "orderby": orderby,
                     "extras": extras,
                     "columns": get_non_base_axis_columns(columns),
