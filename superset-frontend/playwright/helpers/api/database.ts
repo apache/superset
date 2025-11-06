@@ -21,7 +21,7 @@ import { Page, APIResponse } from '@playwright/test';
 import { apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 const ENDPOINTS = {
-  DATABASE: '/api/v1/database/',
+  DATABASE: 'api/v1/database/',
 } as const;
 
 /**
