@@ -404,7 +404,7 @@ trio==0.30.0
     #   trio-websocket
 trio-websocket==0.12.2
     # via selenium
-typing-extensions==4.14.0
+typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
