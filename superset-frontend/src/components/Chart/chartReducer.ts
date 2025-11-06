@@ -69,7 +69,7 @@ export default function chartReducer(
     [actions.CHART_UPDATE_STARTED](state) {
       const controller = state.queryController;
       if (controller) {
-        controller.abort();
+        setTimeout(() => controller.abort(), 0);
       }
       return {
         ...state,
