@@ -25,42 +25,47 @@ import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
-describe('sanitizeHeaderId', () => {
-  test('should sanitize percent sign', () => {
-    expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
-  });
+test('sanitizeHeaderId should sanitize percent sign', () => {
+  expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
+});
 
-  test('should sanitize hash/pound sign', () => {
-    expect(sanitizeHeaderId('# metric_1')).toBe('hash_metric_1');
-  });
+test('sanitizeHeaderId should sanitize hash/pound sign', () => {
+  expect(sanitizeHeaderId('# metric_1')).toBe('hash_metric_1');
+});
 
-  test('should sanitize delta symbol', () => {
-    expect(sanitizeHeaderId('△ delta')).toBe('delta_delta');
-  });
+test('sanitizeHeaderId should sanitize delta symbol', () => {
+  expect(sanitizeHeaderId('△ delta')).toBe('delta_delta');
+});
 
-  test('should replace spaces with underscores', () => {
-    expect(sanitizeHeaderId('Main metric_1')).toBe('Main_metric_1');
-    expect(sanitizeHeaderId('multiple  spaces')).toBe('multiple_spaces');
-  });
+test('sanitizeHeaderId should replace spaces with underscores', () => {
+  expect(sanitizeHeaderId('Main metric_1')).toBe('Main_metric_1');
+  expect(sanitizeHeaderId('multiple  spaces')).toBe('multiple_spaces');
+});
 
-  test('should handle multiple special characters', () => {
-    expect(sanitizeHeaderId('% #△ test')).toBe('percent_hashdelta_test');
-    expect(sanitizeHeaderId('% # △ test')).toBe('percent_hash_delta_test');
-  });
+test('sanitizeHeaderId should handle multiple special characters', () => {
+  expect(sanitizeHeaderId('% #△ test')).toBe('percent_hashdelta_test');
+  expect(sanitizeHeaderId('% # △ test')).toBe('percent_hash_delta_test');
+});
 
-  test('should preserve alphanumeric, underscore, and hyphen', () => {
-    expect(sanitizeHeaderId('valid-name_123')).toBe('valid-name_123');
-  });
+test('sanitizeHeaderId should preserve alphanumeric, underscore, and hyphen', () => {
+  expect(sanitizeHeaderId('valid-name_123')).toBe('valid-name_123');
+});
 
-  test('should replace other special characters with underscore', () => {
-    expect(sanitizeHeaderId('col@name!test')).toBe('col_name_test');
-    expect(sanitizeHeaderId('test.column')).toBe('test_column');
-  });
+test('sanitizeHeaderId should replace other special characters with underscore', () => {
+  expect(sanitizeHeaderId('col@name!test')).toBe('col_name_test');
+  expect(sanitizeHeaderId('test.column')).toBe('test_column');
+});
 
-  test('should handle edge cases', () => {
-    expect(sanitizeHeaderId('')).toBe('');
-    expect(sanitizeHeaderId('simple')).toBe('simple');
-  });
+test('sanitizeHeaderId should handle edge cases', () => {
+  expect(sanitizeHeaderId('')).toBe('');
+  expect(sanitizeHeaderId('simple')).toBe('simple');
+});
+
+test('sanitizeHeaderId should collapse consecutive underscores', () => {
+  expect(sanitizeHeaderId('test @@ space')).toBe('test_space');
+  expect(sanitizeHeaderId('col___name')).toBe('col_name');
+  expect(sanitizeHeaderId('a  b  c')).toBe('a_b_c');
+  expect(sanitizeHeaderId('test@@name')).toBe('test_name');
 });
 
 describe('plugin-chart-table', () => {
@@ -645,11 +650,11 @@ describe('plugin-chart-table', () => {
           header.textContent?.includes('Sum of Num'),
         );
         expect(sumHeader).toBeDefined();
-        expect(sumHeader?.id).toBe('header-sum__num'); // Falls back to column.key, not verbose label
+        expect(sumHeader?.id).toBe('header-sum_num'); // Falls back to column.key, consecutive underscores collapsed
 
         // Verify cells reference this header correctly
         const sumCells = container.querySelectorAll(
-          'td[aria-labelledby="header-sum__num"]',
+          'td[aria-labelledby="header-sum_num"]',
         );
         expect(sumCells.length).toBeGreaterThan(0);
 

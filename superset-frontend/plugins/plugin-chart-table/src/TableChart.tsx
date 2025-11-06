@@ -144,6 +144,10 @@ function cellWidth({
 /**
  * Sanitize a column identifier for use in HTML id attributes and CSS selectors.
  * Replaces characters that are invalid in CSS selectors with safe alternatives.
+ *
+ * Note: The returned value should be prefixed with a string (e.g., "header-")
+ * to ensure it forms a valid HTML ID (IDs cannot start with a digit).
+ *
  * Exported for testing.
  */
 export function sanitizeHeaderId(columnId: string): string {
@@ -152,7 +156,8 @@ export function sanitizeHeaderId(columnId: string): string {
     .replace(/#/g, 'hash')
     .replace(/△/g, 'delta')
     .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9_-]/g, '_');
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_'); // Collapse consecutive underscores
 }
 
 /**
@@ -859,7 +864,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       }
 
       // Cache sanitized header ID to avoid recomputing it multiple times
-      const headerId = sanitizeHeaderId(column.originalLabel || column.key);
+      const headerId = sanitizeHeaderId(column.originalLabel ?? column.key);
 
       return {
         id: String(i), // to allow duplicate column keys
