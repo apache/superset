@@ -154,7 +154,7 @@ export function sanitizeHeaderId(columnId: string): string {
   return (
     columnId
       // Semantic replacements first: preserve meaning in IDs for readability
-      // (e.g., 'percentpct_nice' instead of '_pct_nice')
+      // (e.g., '%pct_nice' → 'percentpct_nice' instead of '_pct_nice')
       .replace(/%/g, 'percent')
       .replace(/#/g, 'hash')
       .replace(/△/g, 'delta')
