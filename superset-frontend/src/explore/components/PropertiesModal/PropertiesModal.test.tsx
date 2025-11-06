@@ -91,7 +91,7 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
       certification_details: 'Test certification details',
       certified_by: 'Test certified by',
       description: 'Test description',
-      cache_timeout: '1000',
+      cache_timeout: 1000,
       slice_name: 'Test chart new name',
     },
     show_columns: [
