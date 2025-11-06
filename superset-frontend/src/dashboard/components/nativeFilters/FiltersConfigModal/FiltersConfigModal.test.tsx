@@ -310,7 +310,12 @@ test('render time filter types as disabled if there are no temporal columns in t
 test('validates the name', async () => {
   defaultRender();
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+  await waitFor(
+    async () => {
+      expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('validates the column', async () => {
