@@ -32,6 +32,8 @@ from superset.daos.exceptions import DAOFindFailedError
 
 
 class MockModel(CoreModel):
+    __abstract__ = True  # Prevent SQLAlchemy from trying to create a table
+
     def __init__(self, id=1, name="test"):
         self.id = id
         self.name = name
