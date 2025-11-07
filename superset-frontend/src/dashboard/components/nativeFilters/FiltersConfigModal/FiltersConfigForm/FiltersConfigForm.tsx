@@ -515,16 +515,7 @@ const FiltersConfigForm = (
           }
         });
     },
-    [
-      filterId,
-      forceUpdate,
-      form,
-      formFilter,
-      hasDataset,
-      dependenciesText,
-      isMountedRef,
-      latestRequestIdRef,
-    ],
+    [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
   );
 
   // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
