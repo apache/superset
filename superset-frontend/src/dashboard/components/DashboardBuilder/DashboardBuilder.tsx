@@ -620,6 +620,7 @@ const DashboardBuilder = () => {
           </>
         )}
       <StyledHeader
+        data-test="dashboard-header-wrapper"
         ref={headerRef}
         filterBarWidth={
           showFilterBar &&
