@@ -21,6 +21,7 @@ import uuid as uuid_lib
 from enum import Enum
 from typing import (
     Any,
+    ClassVar,
     Dict,
     Generic,
     get_args,
@@ -165,17 +166,17 @@ class BaseDAO(Generic[T]):
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: type[T] | None = None
+    model_cls: ClassVar[type[Any] | None] = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
     """
-    base_filter: BaseFilter | None = None
+    base_filter: ClassVar[BaseFilter | None] = None
     """
     Child classes can register base filtering to be applied to all filter methods
     """
-    id_column_name = "id"
-    uuid_column_name = "uuid"
+    id_column_name: ClassVar[str] = "id"
+    uuid_column_name: ClassVar[str] = "uuid"
 
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(

@@ -25,12 +25,13 @@ import pytest
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
+from superset_core.models.base import CoreModel
 
 from superset.daos.base import BaseDAO, ColumnOperatorEnum
 from superset.daos.exceptions import DAOFindFailedError
 
 
-class MockModel:
+class MockModel(CoreModel):
     def __init__(self, id=1, name="test"):
         self.id = id
         self.name = name
