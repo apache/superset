@@ -62,9 +62,12 @@ import { useFilterOutlined } from '../useFilterOutlined';
 const HEIGHT = 32;
 
 // Overrides superset-ui height with min-height
-const StyledDiv = styled.div<{ orientation: FilterBarOrientation }>`
-  padding-bottom: ${({ theme, orientation }) =>
-    orientation === FilterBarOrientation.Horizontal
+const StyledDiv = styled.div<{
+  orientation: FilterBarOrientation;
+  overflow: boolean;
+}>`
+  padding-bottom: ${({ theme, orientation, overflow }) =>
+    orientation === FilterBarOrientation.Horizontal && !overflow
       ? 0
       : (theme?.sizeUnit ?? 4)}px;
 
@@ -358,7 +361,11 @@ const FilterValue: FC<FilterControlProps> = ({
   }
 
   return (
-    <StyledDiv data-test="form-item-value" orientation={orientation}>
+    <StyledDiv
+      data-test="form-item-value"
+      orientation={orientation}
+      overflow={overflow}
+    >
       {isLoading ? (
         <Loading position="inline-centered" size="s" muted />
       ) : (
