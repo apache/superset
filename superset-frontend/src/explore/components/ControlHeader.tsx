@@ -168,7 +168,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
               </Tooltip>{' '}
             </span>
           )}
