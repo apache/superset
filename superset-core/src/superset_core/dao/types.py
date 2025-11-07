@@ -18,10 +18,10 @@
 """Protocol interfaces for Data Access Objects."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, TypeVar, Union
 
 from flask_appbuilder.models.filters import BaseFilter
-from flask_sqlalchemy import BaseQuery
+from sqlalchemy.orm import Query
 
 from superset_core.models.base import CoreModel
 
@@ -36,7 +36,7 @@ class BaseDAO(Generic[T_Model], ABC):
     This interface defines the base that all DAOs should implement,
     providing consistent CRUD operations across Superset and extensions.
 
-    Extension developers should implement this protocol:
+    Extension developers should implement this base class:
 
     ```python
     from superset_core.dao import BaseDAO
@@ -46,82 +46,100 @@ class BaseDAO(Generic[T_Model], ABC):
         model_cls = MyCustomModel
 
         @classmethod
-        def find_by_id(cls, model_id: str | int) -> MyCustomModel | None:
+        def find_by_id(
+            cls,
+            model_id: str | int,
+            skip_base_filter: bool = False,
+            id_column: str | None = None,
+        ) -> MyCustomModel | None:
             # Implementation here
             pass
     ```
     """
 
     # Class attributes that implementations should define
-    model_cls: Optional[type[T_Model]]
-    base_filter: Optional[BaseFilter]
+    model_cls: type[T_Model] | None
+    base_filter: BaseFilter | None
     id_column_name: str
     uuid_column_name: str
 
+    @classmethod
     @abstractmethod
     def find_by_id(
-        self, model_id: Union[str, int], skip_base_filter: bool = False
-    ) -> Optional[T_Model]:
+        cls,
+        model_id: Union[str, int],
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
+    ) -> T_Model | None:
         """Find a model by ID."""
         ...
 
+    @classmethod
     @abstractmethod
     def find_by_id_or_uuid(
-        self,
+        cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
-    ) -> Optional[T_Model]:
+    ) -> T_Model | None:
         """Find a model by ID or UUID."""
         ...
 
+    @classmethod
     @abstractmethod
     def find_by_ids(
-        self,
+        cls,
         model_ids: Union[list[str], list[int]],
         skip_base_filter: bool = False,
     ) -> list[T_Model]:
         """Find models by list of IDs."""
         ...
 
+    @classmethod
     @abstractmethod
-    def find_all(self) -> list[T_Model]:
+    def find_all(cls) -> list[T_Model]:
         """Get all entities that fit the base_filter."""
         ...
 
+    @classmethod
     @abstractmethod
-    def find_one_or_none(self, **filter_by: Any) -> Optional[T_Model]:
+    def find_one_or_none(cls, **filter_by: Any) -> T_Model | None:
         """Get the first entity that fits the base_filter."""
         ...
 
+    @classmethod
     @abstractmethod
     def create(
-        self,
-        item: Optional[T_Model] = None,
-        attributes: Optional[dict[str, Any]] = None,
+        cls,
+        item: T_Model | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> T_Model:
         """Create an object from the specified item and/or attributes."""
         ...
 
+    @classmethod
     @abstractmethod
     def update(
-        self,
-        item: Optional[T_Model] = None,
-        attributes: Optional[dict[str, Any]] = None,
+        cls,
+        item: T_Model | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> T_Model:
         """Update an object from the specified item and/or attributes."""
         ...
 
+    @classmethod
     @abstractmethod
-    def delete(self, items: list[T_Model]) -> None:
+    def delete(cls, items: list[T_Model]) -> None:
         """Delete the specified items."""
         ...
 
+    @classmethod
     @abstractmethod
-    def query(self, query: BaseQuery) -> list[T_Model]:
+    def query(cls, query: Query) -> list[T_Model]:
         """Execute query with base_filter applied."""
         ...
 
+    @classmethod
     @abstractmethod
-    def filter_by(self, **filter_by: Any) -> list[T_Model]:
+    def filter_by(cls, **filter_by: Any) -> list[T_Model]:
         """Get all entries that fit the base_filter."""
         ...
