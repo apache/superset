@@ -32,11 +32,21 @@ from superset.common.query_object import QueryObject
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.types import (
+    DATE,
+    DATETIME,
     SemanticLayerImplementation,
     SemanticViewImplementation,
+    TIME,
 )
 from superset.superset_typing import QueryObjectDict
 from superset.utils import core as utils
+
+
+@dataclass(frozen=True)
+class ColumnMetadata:
+    column_name: str
+    type: str
+    is_dttm: bool
 
 
 class SemanticLayer(AuditMixinNullable, Model):
@@ -94,6 +104,7 @@ class SemanticLayer(AuditMixinNullable, Model):
                 "must be a subclass of SemanticLayerImplementation"
             )
 
+        # XXX store in self._implementation
         return implementation_class.from_configuration(self.configuration)
 
 
@@ -135,6 +146,7 @@ class SemanticView(AuditMixinNullable, Model):
         """
         Return semantic view implementation.
         """
+        # XXX store in self._implementation
         return self.semantic_layer.implementation.get_semantic_view(
             self.name,
             self.configuration,
@@ -157,3 +169,37 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     def type(self) -> str:
         return "semantic_view"
+
+    @property
+    def columns(self) -> list[ColumnMetadata]:
+        return [
+            ColumnMetadata(
+                column_name=dimension.name,
+                type=dimension.type.__name__,
+                is_dttm=dimension.type in {DATE, TIME, DATETIME},
+            )
+            for dimension in self.implementation.dimensions
+        ]
+
+    @property
+    def column_names(self) -> list[str]:
+        return [dimension.name for dimension in self.implementation.dimensions]
+
+    @property
+    def data(self) -> dict[str, Any]:
+        return {
+            "id": str(self.uuid),
+            "uid": self.uid,
+            "name": self.name,
+            "type": self.type,
+            "columns": [],
+            "metrics": [],
+            "database": [],
+            "description": self.description,
+            "schema": None,
+            "catalog": None,
+            "cache_timeout": self.cache_timeout,
+            "offset": None,  # XXX
+            "owners": [],  # XXX
+            "verbose_map": {},  # XXX
+        }
