@@ -151,12 +151,28 @@ def take_tiled_screenshot(
             remaining_content = dashboard_height - tile_start_in_element
             tile_content_height = min(viewport_height, remaining_content)
 
+            # Determine clip height (use visible element height in viewport)
+            clip_height = min(tile_content_height, current_element_box["height"])
+
+            # Skip tile if dimensions are invalid (width or height <= 0)
+            # This can happen if element is completely scrolled out of viewport
+            if clip_height <= 0:
+                logger.warning(
+                    "Skipping tile %s/%s due to invalid clip dimensions: "
+                    "width=%s, height=%s (element may be scrolled out of viewport)",
+                    i + 1,
+                    num_tiles,
+                    current_element_box["width"],
+                    clip_height,
+                )
+                continue
+
             # Clip to capture only the current tile portion of the element
             clip = {
                 "x": current_element_box["x"],
                 "y": current_element_box["y"],
                 "width": current_element_box["width"],
-                "height": min(tile_content_height, current_element_box["height"]),
+                "height": clip_height,
             }
 
             # Take screenshot with clipping to capture only this tile's content
