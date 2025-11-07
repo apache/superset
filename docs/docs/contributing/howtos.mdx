@@ -177,23 +177,23 @@ If you have your own Superset Docker image, the first line is most likely:
 `FROM apache/superset:latest` or something similar. You will need to compile
 your own `"lean"` image and replace this FROM line with your own image.
 
-1. publish your chart plugin to npm - it makes the build process simpler
+1. Publish your chart plugin to npm: it makes the build process simpler.
 
 Note: if your chart is not published to npm, then in the docker build below, you will need
 to edit the default Dockerfile to copy your plugin source code to the appropriate
 location in the container build environment.
 
-2. Install your chart in the frontend with `npm i <your_chart_package>`
-3. Start with a base superset release
+2. Install your chart in the frontend with `npm i <your_chart_package>`.
+3. Start with a base superset release.
 
 ```bash
 git checkout tags/X.0.0
 ```
 
 4. Install your chart with the instructions you followed during development.
-5. navigate to the root of your superset directory.
+5. Navigate to the root of your superset directory.
 6. Run `docker build -t apache/superset:mychart --target lean .`
-7. Rebuild your projection container using `FROM apache/superset:mychart`
+7. Rebuild your production container using `FROM apache/superset:mychart`.
 
 This will create a new productized superset container with your new chart compiled in.
 Then you can recreate your custom production container based on a superset built with your chart.
