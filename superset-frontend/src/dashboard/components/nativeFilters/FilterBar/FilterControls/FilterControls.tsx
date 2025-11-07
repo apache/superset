@@ -33,10 +33,8 @@ import {
   Divider,
   t,
   isNativeFilterWithDataMask,
-  useTheme,
-  styled,
 } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
 import {
   createHtmlPortalNode,
   InPortal,

@@ -23,7 +23,7 @@ import {
   t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css, Alert } from '@apache-superset/core/ui';
 import {
   Button,
   FormItem,
@@ -32,7 +32,6 @@ import {
   Modal,
   Loading,
   Form,
-  Alert,
   Space,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

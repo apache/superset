@@ -22,12 +22,12 @@ import {
   type ThemeControllerOptions,
   type ThemeStorage,
   isThemeConfigDark,
-  makeApi,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
+  normalizeThemeConfig,
 } from '@apache-superset/core/ui';
-import { normalizeThemeConfig } from '@apache-superset/core/ui';
+import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
