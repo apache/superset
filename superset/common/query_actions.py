@@ -92,8 +92,8 @@ def _get_query(
     except SupersetParseError as err:
         # Parsing errors (SQL optimization/parsing failed)
         # SQL was generated but couldn't be optimized - show both
-        if err.error.extra:
-            result["query"] = err.error.extra.get("sql")
+        if err.error.extra and (sql := err.error.extra.get("sql")) is not None:
+            result["query"] = sql
         result["error"] = err.error.message
     return result
 

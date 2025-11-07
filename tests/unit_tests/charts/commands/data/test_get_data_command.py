@@ -217,10 +217,6 @@ def test_get_query_catches_parsing_error() -> None:
     - SQL has already been compiled (stored in error.extra['sql'])
     - Error message describes the parsing failure
     - Both should be returned to the frontend for display
-
-    This is Phase 2 of the fix for GitHub Issue #35492.
-    Phase 1 fixed validation errors (before SQL generation).
-    Phase 2 fixes parsing errors (after SQL generation, during optimization).
     """
     from superset.common.query_actions import _get_query
     from superset.common.query_object import QueryObject
@@ -252,4 +248,78 @@ def test_get_query_catches_parsing_error() -> None:
         # Should return both query (from error.extra['sql']) and error message
         assert result["query"] == "SELECT SUM ( Open"
         assert result["error"] == "Error parsing near 'Open' at line 1:17"
+        assert result["language"] == "sql"
+
+
+def test_get_query_handles_parsing_error_with_missing_sql_key() -> None:
+    """
+    Test _get_query() when error.extra exists but 'sql' key is missing.
+
+    Edge case: error.extra = {"other_field": "value"} with no 'sql' key.
+    Should NOT set result["query"] - prevents null from reaching TypeScript.
+    Should still return error message for display.
+
+    Ensures defensive programming when extracting SQL from exception extra data.
+    """
+    from superset.common.query_actions import _get_query
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import SupersetParseError
+
+    mock_query_context = Mock()
+    mock_query_obj = Mock(spec=QueryObject)
+
+    parse_error = SupersetParseError(
+        sql="SELECT * FROM table",
+        message="Parsing error occurred",
+    )
+    # Mock error.extra to NOT have sql key
+    parse_error.error.extra = {"other_field": "some_value"}
+
+    with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
+        mock_datasource = Mock()
+        mock_datasource.query_language = "sql"
+        mock_datasource.get_query_str.side_effect = parse_error
+        mock_get_ds.return_value = mock_datasource
+
+        result = _get_query(mock_query_context, mock_query_obj, False)
+
+        assert "query" not in result
+        assert result["error"] == "Parsing error occurred"
+        assert result["language"] == "sql"
+
+
+def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
+    """
+    Test _get_query() when error.extra has 'sql': None explicitly set.
+
+    Edge case: error.extra = {"sql": None} with sql key present but value is None.
+    Should NOT set result["query"] - prevents null from reaching TypeScript.
+    Should still return error message for display.
+
+    Ensures defensive programming when extracting SQL from exception extra data.
+    """
+    from superset.common.query_actions import _get_query
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import SupersetParseError
+
+    mock_query_context = Mock()
+    mock_query_obj = Mock(spec=QueryObject)
+
+    parse_error = SupersetParseError(
+        sql="SELECT * FROM table",
+        message="Parsing error occurred",
+    )
+    # Mock error.extra to have sql key with None value
+    parse_error.error.extra = {"sql": None}
+
+    with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
+        mock_datasource = Mock()
+        mock_datasource.query_language = "sql"
+        mock_datasource.get_query_str.side_effect = parse_error
+        mock_get_ds.return_value = mock_datasource
+
+        result = _get_query(mock_query_context, mock_query_obj, False)
+
+        assert "query" not in result
+        assert result["error"] == "Parsing error occurred"
         assert result["language"] == "sql"
