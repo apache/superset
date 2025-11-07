@@ -42,6 +42,10 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from '../../../util/chartStateConverter';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -53,6 +57,7 @@ import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
+  updateChartState,
 } from '../../../actions/dashboardState';
 import { changeFilter } from '../../../actions/dashboardFilters';
 import { refreshChart } from '../../../../components/Chart/chartAction';
@@ -227,6 +232,16 @@ const Chart = props => {
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
   );
 
+  // Chart state handler for stateful charts
+  const handleChartStateChange = useCallback(
+    chartState => {
+      if (hasChartStateConverter(slice?.viz_type)) {
+        dispatch(updateChartState(props.id, slice.viz_type, chartState));
+      }
+    },
+    [dispatch, props.id, slice?.viz_type],
+  );
+
   useEffect(() => {
     if (isExpanded) {
       const descriptionHeight =
@@ -307,6 +322,9 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
+  const chartStates = useSelector(
+    state => state.dashboardState.chartStates || EMPTY_OBJECT,
+  );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
   );
@@ -442,13 +460,29 @@ const Chart = props => {
         const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
         filename = `${safeChartName}${timestamp}.csv`;
       }
+      let ownState = dataMask[props.id]?.ownState || {};
+
+      // Convert chart-specific state to backend format using registered converter
+      if (
+        hasChartStateConverter(slice.viz_type) &&
+        chartStates[props.id]?.state
+      ) {
+        const convertedState = convertChartStateToOwnState(
+          slice.viz_type,
+          chartStates[props.id].state,
+        );
+        ownState = {
+          ...ownState,
+          ...convertedState,
+        };
+      }
 
       exportChart({
         formData: exportFormData,
         resultType,
         resultFormat: format,
         force: true,
-        ownState: dataMask[props.id]?.ownState,
+        ownState,
         onStartStreamingExport: shouldUseStreaming
           ? exportParams => {
               setIsStreamingModalVisible(true);
@@ -463,10 +497,13 @@ const Chart = props => {
     },
     [
       slice.slice_id,
+      slice.viz_type,
       isCached,
       formData,
-      props.maxRows,
+      maxRows,
       dataMask[props.id]?.ownState,
+      chartStates,
+      props.id,
       boundActionCreators.logEvent,
       queriesResponse,
       startExport,
@@ -611,7 +648,19 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={dataMask[props.id]?.ownState}
+          ownState={{
+            ...dataMask[props.id]?.ownState,
+            ...(hasChartStateConverter(slice.viz_type) &&
+            chartStates[props.id]?.state
+              ? {
+                  ...convertChartStateToOwnState(
+                    slice.viz_type,
+                    chartStates[props.id].state,
+                  ),
+                  chartState: chartStates[props.id].state,
+                }
+              : {}),
+          }}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}
@@ -621,6 +670,7 @@ const Chart = props => {
           datasetsStatus={datasetsStatus}
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
 

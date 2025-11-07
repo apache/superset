@@ -52,6 +52,7 @@ import {
   tn,
   useTheme,
   SupersetTheme,
+  extractTextFromHTML,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
@@ -177,7 +178,7 @@ function cellBackground({
   theme: SupersetTheme;
 }) {
   if (!colorPositiveNegative) {
-    return `${theme.colorFillSecondary}50`;
+    return `${theme.colorFill}`;
   }
 
   if (value < 0) {
@@ -376,7 +377,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getCrossFilterDataMask = useCallback(
     (key: string, value: DataRecordValue) => {
-      let updatedFilters = { ...(filters || {}) };
+      let updatedFilters = { ...filters };
       if (filters && isActiveFilterValue(key, value)) {
         updatedFilters = {};
       } else {
@@ -514,7 +515,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            const dataRecordValue = value[col.key];
+            let dataRecordValue = value[col.key];
+            dataRecordValue = extractTextFromHTML(dataRecordValue);
+
             drillToDetailFilters.push({
               col: col.key,
               op: '==',
@@ -535,7 +538,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   {
                     col: cellPoint.key,
                     op: '==',
-                    val: cellPoint.value as string | number | boolean,
+                    val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
                 groupbyFieldName: 'groupby',
@@ -1270,7 +1273,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSearch = (searchText: string) => {
     const modifiedOwnState = {
-      ...(serverPaginationData || {}),
+      ...serverPaginationData,
       searchColumn:
         serverPaginationData?.searchColumn || searchOptions[0]?.value,
       searchText,
@@ -1284,7 +1287,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
       const modifiedOwnState = {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
       };

@@ -782,6 +782,40 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             patched_run.assert_called_once_with(force_cached=True)
             assert data == {"result": [{"query": "select * from foo"}]}
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.extensions.event_logger.log")
+    def test_chart_data_post_is_cached_in_event_logger(self, mock_event_logger):
+        """
+        Chart data API: Test that is_cached is logged to event logger for POST requests
+        """
+        # First request with force=True - should not be cached
+        payload_with_force = copy.deepcopy(self.query_context_payload)
+        payload_with_force["force"] = True
+        self.post_assert_metric(CHART_DATA_URI, payload_with_force, "data")
+
+        # Check that is_cached was logged as None (not from cache)
+        call_kwargs = mock_event_logger.call_args[1]
+        records = call_kwargs.get("records", [])
+        assert len(records) > 0
+        # is_cached should be None when force=True (bypasses cache)
+        assert "is_cached" in records[0]
+        assert records[0]["is_cached"] is None
+
+        # Reset mock for second request
+        mock_event_logger.reset_mock()
+
+        # Second request without force - should be cached
+        payload_without_force = copy.deepcopy(self.query_context_payload)
+        payload_without_force["force"] = False
+        self.post_assert_metric(CHART_DATA_URI, payload_without_force, "data")
+
+        # Check that is_cached was logged as True (from cache)
+        call_kwargs = mock_event_logger.call_args[1]
+        records = call_kwargs.get("records", [])
+        assert len(records) > 0
+        # is_cached should be True when retrieved from cache
+        assert records[0]["is_cached"] is True
+
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async_results_type(self):
@@ -1237,6 +1271,69 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         # should get response from the cache
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
         assert rv.json["result"][0]["is_cached"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.extensions.event_logger.log")
+    def test_chart_data_is_cached_in_event_logger(self, mock_event_logger):
+        """
+        Chart data API: Test that is_cached is logged to event logger
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        chart.query_context = json.dumps(
+            {
+                "datasource": {"id": chart.table.id, "type": "table"},
+                "force": False,
+                "queries": [
+                    {
+                        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                        "granularity": "ds",
+                        "filters": [],
+                        "extras": {
+                            "having": "",
+                            "where": "",
+                        },
+                        "applied_time_extras": {},
+                        "columns": ["gender"],
+                        "metrics": ["sum__num"],
+                        "orderby": [["sum__num", False]],
+                        "annotation_layers": [],
+                        "row_limit": 50000,
+                        "timeseries_limit": 0,
+                        "order_desc": True,
+                        "url_params": {},
+                        "custom_params": {},
+                        "custom_form_data": {},
+                    }
+                ],
+                "result_format": "json",
+                "result_type": "full",
+            }
+        )
+
+        # First request - should not be cached (force=true bypasses cache)
+        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/?force=true", "get_data")
+
+        # Check that is_cached was logged as None (not from cache)
+        call_kwargs = mock_event_logger.call_args[1]
+        records = call_kwargs.get("records", [])
+        assert len(records) > 0
+        # is_cached should be None when force=true (bypasses cache)
+        # The field should exist but be None
+        assert "is_cached" in records[0]
+        assert records[0]["is_cached"] is None
+
+        # Reset mock for second request
+        mock_event_logger.reset_mock()
+
+        # Second request - should be cached
+        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+
+        # Check that is_cached was logged as True (from cache)
+        call_kwargs = mock_event_logger.call_args[1]
+        records = call_kwargs.get("records", [])
+        assert len(records) > 0
+        # is_cached should be True when retrieved from cache
+        assert records[0]["is_cached"] is True
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)

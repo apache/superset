@@ -627,7 +627,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
           </Tooltip>
         )}
       </span>
@@ -752,9 +752,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="query-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
@@ -813,9 +813,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={t('This section contains validation errors')}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="matrixify-validation-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
@@ -871,7 +871,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     expandIconPosition="end"
                     ghost
                     bordered
-                    items={[...querySections.map(renderControlPanelSection)]}
+                    items={querySections.map(renderControlPanelSection)}
                   />
                 </>
               ),
@@ -887,9 +887,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         expandIconPosition="end"
                         ghost
                         bordered
-                        items={[
-                          ...customizeSections.map(renderControlPanelSection),
-                        ]}
+                        items={customizeSections.map(renderControlPanelSection)}
                       />
                     ),
                   },
@@ -935,12 +933,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                           )}
                         <Collapse
                           defaultActiveKey={expandedMatrixifySections}
-                          expandIconPosition="right"
+                          expandIconPosition="end"
                           ghost
                           bordered
-                          items={[
-                            ...matrixifySections.map(renderControlPanelSection),
-                          ]}
+                          items={matrixifySections.map(
+                            renderControlPanelSection,
+                          )}
                         />
                       </>
                     ),

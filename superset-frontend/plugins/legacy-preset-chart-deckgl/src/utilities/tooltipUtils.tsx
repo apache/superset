@@ -242,7 +242,7 @@ export function createHandlebarsTooltipData(
   formData: QueryFormData,
 ): Record<string, any> {
   const initialData: Record<string, any> = {
-    ...(o.object || {}),
+    ...o.object,
     coordinate: o.coordinate,
     index: o.index,
     picked: o.picked,
