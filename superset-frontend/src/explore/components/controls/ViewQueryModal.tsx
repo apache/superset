@@ -19,12 +19,12 @@
 import { FC, useEffect, useState } from 'react';
 
 import {
-  styled,
   ensureIsArray,
   t,
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';

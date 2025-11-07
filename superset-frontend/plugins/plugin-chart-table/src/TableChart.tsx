@@ -46,14 +46,11 @@ import {
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
-  styled,
-  css,
   t,
   tn,
-  useTheme,
-  SupersetTheme,
   extractTextFromHTML,
 } from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,

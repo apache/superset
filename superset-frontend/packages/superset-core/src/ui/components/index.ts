@@ -16,31 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert as AntdAlert } from 'antd';
-import type { AlertProps } from './types';
-
-export const Alert = (props: AlertProps) => {
-  const {
-    type = 'info',
-    description,
-    showIcon = true,
-    closable = true,
-    children,
-    ...rest
-  } = props;
-
-  return (
-    <AntdAlert
-      role="alert"
-      aria-live={type === 'error' ? 'assertive' : 'polite'}
-      type={type}
-      showIcon={showIcon}
-      closable={closable}
-      message={children || 'Default message'}
-      description={description}
-      {...rest}
-    />
-  );
-};
-
-export type { AlertProps };
+export * from './Alert';

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import {
   Badge,

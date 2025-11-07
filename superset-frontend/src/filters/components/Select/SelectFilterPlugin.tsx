@@ -28,8 +28,8 @@ import {
   finestTemporalGrainFormatter,
   t,
   tn,
-  styled,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
