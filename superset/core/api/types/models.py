@@ -33,7 +33,7 @@ class HostModelsApi(CoreModelsApi):
     @staticmethod
     def get_dataset_model() -> Type[Dataset]:
         """
-        Retrieve the Dataset (SqlaTable) protocol implementation.
+        Retrieve the Dataset (SqlaTable) type implementation.
         """
         from superset.connectors.sqla.models import SqlaTable
 
@@ -42,7 +42,7 @@ class HostModelsApi(CoreModelsApi):
     @staticmethod
     def get_database_model() -> Type[Database]:
         """
-        Retrieve the Database protocol implementation.
+        Retrieve the Database type implementation.
         """
         from superset.models.core import Database
 

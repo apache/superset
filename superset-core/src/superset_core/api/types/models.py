@@ -47,9 +47,10 @@ class CoreModelsApi(ABC):
     @abstractmethod
     def get_dataset_model() -> Type[Dataset]:
         """
-        Retrieve the Dataset (SqlaTable) implementation.
+        Retrieve the Dataset (SqlaTable) type implementation. At a minimum, this
+        class implements the contract defined in the core Dataset model.
 
-        :returns: The Dataset implementation class.
+        :returns: The Dataset type implementation.
         """
         ...
 
@@ -57,9 +58,10 @@ class CoreModelsApi(ABC):
     @abstractmethod
     def get_database_model() -> Type[Database]:
         """
-        Retrieve the Database implementation.
+        Retrieve the Database type implementation. At a minimum, this
+        class implements the contract defined in the core Database model.
 
-        :returns: The Database implementation class.
+        :returns: The Database type implementation.
         """
         ...
 

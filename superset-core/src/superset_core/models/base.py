@@ -27,7 +27,7 @@ class CoreModel(Model):
     """
     Abstract base class that extends Flask-AppBuilder's Model.
 
-    This class provides the interface contract for all Superset models.
+    This base class provides the interface contract for all Superset models.
     The host package provides concrete implementations.
     """
 
@@ -36,9 +36,9 @@ class CoreModel(Model):
 
 class Database(CoreModel):
     """
-    Interface for Database models.
+    Abstract class for Database models.
 
-    This interface defines the contract that database models should implement,
+    This abstract class defines the contract that database models should implement,
     providing consistent database connectivity and metadata operations.
     """
 
@@ -63,9 +63,9 @@ class Database(CoreModel):
 
 class Dataset(CoreModel):
     """
-    Interface for Dataset models.
+    Abstract class for Dataset models.
 
-    This Interface defines the contract that dataset models should implement,
+    This abstract class defines the contract that dataset models should implement,
     providing consistent data source operations and metadata.
 
     It provides the public API for Datasets implemented by the host application.

@@ -26,10 +26,10 @@ from sqlalchemy.orm import Query
 from superset_core.models.base import CoreModel
 
 # Type variable bound to our CoreModel
-T_Model = TypeVar("T_Model", bound=CoreModel)
+T = TypeVar("T", bound=CoreModel)
 
 
-class BaseDAO(Generic[T_Model], ABC):
+class BaseDAO(Generic[T], ABC):
     """
     Interface for Data Access Objects.
 
@@ -58,7 +58,7 @@ class BaseDAO(Generic[T_Model], ABC):
     """
 
     # Class attributes that implementations should define
-    model_cls: type[T_Model] | None
+    model_cls: type[T] | None
     base_filter: BaseFilter | None
     id_column_name: str
     uuid_column_name: str
@@ -70,7 +70,7 @@ class BaseDAO(Generic[T_Model], ABC):
         model_id: Union[str, int],
         skip_base_filter: bool = False,
         id_column: str | None = None,
-    ) -> T_Model | None:
+    ) -> T | None:
         """Find a model by ID."""
         ...
 
@@ -80,7 +80,7 @@ class BaseDAO(Generic[T_Model], ABC):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
-    ) -> T_Model | None:
+    ) -> T | None:
         """Find a model by ID or UUID."""
         ...
 
@@ -90,19 +90,19 @@ class BaseDAO(Generic[T_Model], ABC):
         cls,
         model_ids: Union[list[str], list[int]],
         skip_base_filter: bool = False,
-    ) -> list[T_Model]:
+    ) -> list[T]:
         """Find models by list of IDs."""
         ...
 
     @classmethod
     @abstractmethod
-    def find_all(cls) -> list[T_Model]:
+    def find_all(cls) -> list[T]:
         """Get all entities that fit the base_filter."""
         ...
 
     @classmethod
     @abstractmethod
-    def find_one_or_none(cls, **filter_by: Any) -> T_Model | None:
+    def find_one_or_none(cls, **filter_by: Any) -> T | None:
         """Get the first entity that fits the base_filter."""
         ...
 
@@ -110,9 +110,9 @@ class BaseDAO(Generic[T_Model], ABC):
     @abstractmethod
     def create(
         cls,
-        item: T_Model | None = None,
+        item: T | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> T_Model:
+    ) -> T:
         """Create an object from the specified item and/or attributes."""
         ...
 
@@ -120,26 +120,26 @@ class BaseDAO(Generic[T_Model], ABC):
     @abstractmethod
     def update(
         cls,
-        item: T_Model | None = None,
+        item: T | None = None,
         attributes: dict[str, Any] | None = None,
-    ) -> T_Model:
+    ) -> T:
         """Update an object from the specified item and/or attributes."""
         ...
 
     @classmethod
     @abstractmethod
-    def delete(cls, items: list[T_Model]) -> None:
+    def delete(cls, items: list[T]) -> None:
         """Delete the specified items."""
         ...
 
     @classmethod
     @abstractmethod
-    def query(cls, query: Query) -> list[T_Model]:
+    def query(cls, query: Query) -> list[T]:
         """Execute query with base_filter applied."""
         ...
 
     @classmethod
     @abstractmethod
-    def filter_by(cls, **filter_by: Any) -> list[T_Model]:
+    def filter_by(cls, **filter_by: Any) -> list[T]:
         """Get all entries that fit the base_filter."""
         ...
