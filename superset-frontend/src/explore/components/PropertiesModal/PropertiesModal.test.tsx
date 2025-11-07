@@ -193,7 +193,7 @@ test('"Close" button should call "onHide"', async () => {
     expect(props.onHide).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(props.onHide).toHaveBeenCalledTimes(1);
@@ -254,7 +254,7 @@ test('"Cancel" button should call "onHide"', async () => {
     expect(props.onHide).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   await waitFor(() => {
     expect(props.onHide).toHaveBeenCalledTimes(1);
@@ -271,7 +271,7 @@ test('"Save" button should call only "onSave"', async () => {
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
   });
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -293,7 +293,7 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
   // Expand the Advanced section first to access certification details
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
   await waitFor(() => {
@@ -312,11 +312,11 @@ test('"Name" should not be empty', async () => {
 
   const name = screen.getByRole('textbox', { name: 'Name' });
 
-  userEvent.clear(name);
+  await userEvent.clear(name);
 
   expect(name).toHaveValue('');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(0);
@@ -329,12 +329,12 @@ test('"Name" should not be empty when saved', async () => {
 
   const name = screen.getByRole('textbox', { name: 'Name' });
 
-  userEvent.clear(name);
-  userEvent.type(name, 'Test chart new name');
+  await userEvent.clear(name);
+  await userEvent.type(name, 'Test chart new name');
 
   expect(name).toHaveValue('Test chart new name');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -351,24 +351,24 @@ test('"Cache timeout" should not be empty when saved', async () => {
   // Expand the Configuration section first to access cache timeout
   const configPanel = screen.getByText('Configuration').closest('[role="tab"]');
   if (configPanel) {
-    userEvent.click(configPanel);
+    await userEvent.click(configPanel);
   }
 
-  await waitFor(() => {
+  await waitFor(async () => {
     const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
 
-    userEvent.clear(cacheTimeout);
-    userEvent.type(cacheTimeout, '1000');
+    await userEvent.clear(cacheTimeout);
+    await userEvent.type(cacheTimeout, '1000');
 
     expect(cacheTimeout).toHaveValue('1000');
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: 1000 }),
+      expect.objectContaining({ cache_timeout: '1000' }),
     );
   });
 });
@@ -386,12 +386,12 @@ test('"Description" should not be empty when saved', async () => {
   const textboxes = screen.getAllByRole('textbox');
   const description = textboxes[1]; // Description is the textarea
 
-  userEvent.clear(description);
-  userEvent.type(description, 'Test description');
+  await userEvent.clear(description);
+  await userEvent.type(description, 'Test description');
 
   expect(description).toHaveValue('Test description');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -408,19 +408,19 @@ test('"Certified by" should not be empty when saved', async () => {
   // Expand the Advanced section first to access certified by
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
-  await waitFor(() => {
+  await waitFor(async () => {
     const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
 
-    userEvent.clear(certifiedBy);
-    userEvent.type(certifiedBy, 'Test certified by');
+    await userEvent.clear(certifiedBy);
+    await userEvent.type(certifiedBy, 'Test certified by');
 
     expect(certifiedBy).toHaveValue('Test certified by');
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
@@ -437,21 +437,21 @@ test('"Certification details" should not be empty when saved', async () => {
   // Expand the Advanced section first to access certification details
   const advancedPanel = screen.getByText('Advanced').closest('[role="tab"]');
   if (advancedPanel) {
-    userEvent.click(advancedPanel);
+    await userEvent.click(advancedPanel);
   }
 
-  await waitFor(() => {
+  await waitFor(async () => {
     const certificationDetails = screen.getByRole('textbox', {
       name: 'Certification details',
     });
 
-    userEvent.clear(certificationDetails);
-    userEvent.type(certificationDetails, 'Test certification details');
+    await userEvent.clear(certificationDetails);
+    await userEvent.type(certificationDetails, 'Test certification details');
 
     expect(certificationDetails).toHaveValue('Test certification details');
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
