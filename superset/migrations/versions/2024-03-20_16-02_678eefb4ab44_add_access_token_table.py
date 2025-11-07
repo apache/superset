@@ -22,19 +22,23 @@ Create Date: 2024-03-20 16:02:58.515915
 
 """
 
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy_utils import EncryptedType
+
+from superset.migrations.shared.utils import (
+    create_index,
+    create_table,
+    drop_fks_for_table,
+)
+
 # revision identifiers, used by Alembic.
 revision = "678eefb4ab44"
 down_revision = "be1b217cd8cd"
 
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy_utils import EncryptedType  # noqa: E402
-
-from superset.migrations.shared.utils import drop_fks_for_table  # noqa: E402
-
 
 def upgrade():
-    op.create_table(
+    create_table(
         "database_user_oauth2_tokens",
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -74,9 +78,9 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "idx_user_id_database_id",
+    create_index(
         "database_user_oauth2_tokens",
+        "idx_user_id_database_id",
         ["user_id", "database_id"],
     )
 

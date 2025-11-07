@@ -19,9 +19,9 @@
 import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface TimeoutErrorExtra {
   issue_codes: {
@@ -32,7 +32,7 @@ interface TimeoutErrorExtra {
   timeout: number;
 }
 
-function TimeoutErrorMessage({
+export function TimeoutErrorMessage({
   error,
   source,
 }: ErrorMessageComponentProps<TimeoutErrorExtra>) {
@@ -97,5 +97,3 @@ function TimeoutErrorMessage({
     />
   );
 }
-
-export default TimeoutErrorMessage;

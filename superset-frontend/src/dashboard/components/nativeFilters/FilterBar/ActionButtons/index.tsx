@@ -26,7 +26,7 @@ import {
   SupersetTheme,
   styled,
 } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { rgba } from 'emotion-rgba';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -46,15 +46,15 @@ const containerStyle = (theme: SupersetTheme) => css`
   display: flex;
 
   && > .filter-clear-all-button {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextSecondary};
     margin-left: 0;
     &:hover {
-      color: ${theme.colors.primary.dark1};
+      color: ${theme.colorPrimaryText};
     }
 
     &[disabled],
     &[disabled]:hover {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
     }
   }
 `;
@@ -62,7 +62,6 @@ const containerStyle = (theme: SupersetTheme) => css`
 const verticalStyle = (theme: SupersetTheme, width: number) => css`
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
   position: fixed;
   z-index: 100;
 
@@ -70,20 +69,16 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
   width: ${width - 1}px;
   bottom: 0;
 
-  padding: ${theme.gridUnit * 4}px;
-  padding-top: ${theme.gridUnit * 6}px;
+  padding: ${theme.sizeUnit * 4}px;
+  padding-top: ${theme.sizeUnit * 6}px;
 
   background: linear-gradient(
-    ${rgba(theme.colors.grayscale.light5, 0)},
-    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    ${rgba(theme.colorBgLayout, 0)},
+    ${theme.colorBgElevated} 20%
   );
 
-  & > button {
-    pointer-events: auto;
-  }
-
   & > .filter-apply-button {
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
   }
 `;
 
@@ -92,14 +87,7 @@ const horizontalStyle = (theme: SupersetTheme) => css`
   margin-left: auto;
   && > .filter-clear-all-button {
     text-transform: capitalize;
-    font-weight: ${theme.typography.weights.normal};
-  }
-  & > .filter-apply-button {
-    &[disabled],
-    &[disabled]:hover {
-      color: ${theme.colors.grayscale.light1};
-      background: ${theme.colors.grayscale.light3};
-    }
+    font-weight: ${theme.fontWeightNormal};
   }
 `;
 

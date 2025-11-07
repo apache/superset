@@ -35,7 +35,7 @@ from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -58,17 +58,20 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
+    DatasetDrillInfoSchema,
     DatasetDuplicateSchema,
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
     get_delete_ids_schema,
+    get_drill_info_schema,
     get_export_ids_schema,
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
@@ -110,6 +113,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "duplicate",
         "get_or_create_dataset",
         "warm_up_cache",
+        "get_drill_info",
     }
     list_columns = [
         "id",
@@ -194,8 +198,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.id",
         "metrics.metric_name",
         "metrics.metric_type",
+        "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "folders",
         "datasource_type",
         "url",
         "extra",
@@ -219,7 +225,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",
@@ -276,6 +281,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
+        "uuid",
     ]
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}
@@ -621,9 +627,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
-                message=ex.normalized_messages()
-                if isinstance(ex, ValidationError)
-                else str(ex)
+                message=(
+                    ex.normalized_messages()
+                    if isinstance(ex, ValidationError)
+                    else str(ex)
+                )
             )
         except DatasetCreateFailedError as ex:
             logger.error(
@@ -1152,6 +1160,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response["id"] = pk
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
 
+        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # possible to inspect if the feature is supported or not
+        if (
+            not is_feature_enabled("DATASET_FOLDERS")
+            and "folders" in response[API_RESULT_RES_KEY]
+        ):
+            del response[API_RESULT_RES_KEY]["folders"]
+
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
                 processor = get_template_processor(database=item.database)
@@ -1161,6 +1177,104 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response_400(message=str(ex))
         return self.response(200, **response)
+
+    @expose("/<int:pk>/drill_info/", methods=("GET",))
+    @protect()
+    @rison(get_drill_info_schema)
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.get_drill_info",
+        log_to_statsd=False,
+    )
+    def get_drill_info(self, pk: int, **kwargs: Any) -> Response:
+        """Get dataset drill info.
+        ---
+        get:
+          summary: Get dataset drill info
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          responses:
+            200:
+              description: Dataset drill info
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard_id = kwargs["rison"].get("dashboard_id")
+        drill_info_select_columns = [
+            "id",
+            "table_name",
+            "owners.first_name",
+            "owners.last_name",
+            "created_by.first_name",
+            "created_by.last_name",
+            "created_on_humanized",
+            "changed_by.first_name",
+            "changed_by.last_name",
+            "changed_on_humanized",
+            "columns.column_name",
+            "columns.verbose_name",
+            "columns.groupby",
+        ]
+        dataset_schema = DatasetDrillInfoSchema()
+
+        # First try with regular access
+        dataset: SqlaTable | None = self.datamodel.get(
+            pk,
+            self._base_filters,
+            drill_info_select_columns,
+            self.show_outer_default_load,
+        )
+        if dataset:
+            return self.response(200, result=dataset_schema.dump(dataset))
+
+        # Embedded user must pass a dash ID
+        if not dashboard_id and security_manager.is_guest_user():
+            return self.response_403()
+        # RBAC user must pass a dash ID for fallback validation
+        if not dashboard_id:
+            return self.response_404()
+
+        # Lazy load the dashboard and dataset for RBAC/embedded access check
+        dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
+        dataset_ = DatasetDAO.find_by_id(pk, skip_base_filter=True)
+        if not (dashboard and dataset_):
+            return self.response_404()
+        if not security_manager.can_drill_dataset_via_dashboard_access(
+            dataset_,
+            dashboard,
+        ):
+            return self.response_403()
+        # Load dataset again skipping base filters
+        # We don't use `dataset_` to avoid lazy loading columns
+        dataset = self.datamodel.get(
+            pk,
+            None,
+            drill_info_select_columns,
+            self.show_outer_default_load,
+        )
+        return self.response(200, result=dataset_schema.dump(dataset))
 
     @staticmethod
     def render_dataset_fields(
@@ -1176,14 +1290,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [
-                {
-                    **item,
-                    "rendered_expression": processor.process_template(
-                        item["expression"]
-                    ),
-                }
-                if item.get("expression")
-                else item
+                (
+                    {
+                        **item,
+                        "rendered_expression": processor.process_template(
+                            item["expression"]
+                        ),
+                    }
+                    if item.get("expression")
+                    else item
+                )
                 for item in item_list
             ]
 

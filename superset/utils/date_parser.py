@@ -77,7 +77,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
 
 
 def normalize_time_delta(human_readable: str) -> dict[str, int]:
-    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # noqa: E501
     matched = re.match(x_unit, human_readable, re.IGNORECASE)
     if not matched:
         raise TimeDeltaAmbiguousError(human_readable)
@@ -362,13 +362,13 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         and time_range.startswith("previous calendar week")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("previous calendar month")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("previous calendar quarter")
@@ -376,44 +376,44 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     ):
         time_range = (
             "DATETRUNC(DATEADD(DATETIME('today'), -1, QUARTER), QUARTER) : "
-            "DATETRUNC(DATETIME('today'), QUARTER)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+            "DATETRUNC(DATETIME('today'), QUARTER)"  # noqa: E501
         )
     if (
         time_range
         and time_range.startswith("previous calendar year")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("Current day")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, DAY), DAY) : DATETRUNC(DATEADD(DATETIME('today'), 1, DAY), DAY)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, DAY), DAY) : DATETRUNC(DATEADD(DATETIME('today'), 1, DAY), DAY)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("Current week")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATEADD(DATETIME('today'), 1, WEEK), WEEK)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATEADD(DATETIME('today'), 1, WEEK), WEEK)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("Current month")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("Current quarter")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, QUARTER), QUARTER) : DATETRUNC(DATEADD(DATETIME('today'), 1, QUARTER), QUARTER)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, QUARTER), QUARTER) : DATETRUNC(DATEADD(DATETIME('today'), 1, QUARTER), QUARTER)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("Current year")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # noqa: E501
 
     if time_range and separator in time_range:
         time_range_lookup = [
@@ -421,7 +421,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 r"^(start of|beginning of|end of)\s+"
                 r"(this|last|next|prior)\s+"
                 r"([0-9]+)?\s*"
-                r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month" # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+                r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month" # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
                     scope,
@@ -433,13 +433,13 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(this|last|next|prior)\s+"
                 r"([0-9]+)?\s*"
-                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
             ),
             (
-                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",  # Matches date-related keywords # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",  # Matches date-related keywords # noqa: E501
                 lambda text: text,
             ),
         ]

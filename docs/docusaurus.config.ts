@@ -31,10 +31,13 @@ const config: Config = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
+  markdown: {
+    mermaid: true,
+  },
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
   projectName: 'superset',
-  themes: ['@saucelabs/theme-github-codeblock'],
+  themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
   plugins: [
     [
       'docusaurus-plugin-less',

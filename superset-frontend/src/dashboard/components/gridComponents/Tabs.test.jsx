@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import Modal from 'src/components/Modal';
+import { Modal } from '@superset-ui/core/components';
 import fetchMock from 'fetch-mock';
 import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';

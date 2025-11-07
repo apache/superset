@@ -27,9 +27,8 @@ import {
   t,
 } from '@superset-ui/core';
 import { CSSObject } from '@emotion/react';
-import { Select } from 'src/components';
+import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
-import { SelectProps } from 'src/components/Select/types';
 import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
@@ -47,7 +46,7 @@ const CurrencyControlContainer = styled.div`
     align-items: center;
 
     & > :first-child {
-      margin-right: ${theme.gridUnit * 4}px;
+      margin-right: ${theme.sizeUnit * 4}px;
       min-width: 0;
       flex: 1;
     }

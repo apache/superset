@@ -544,12 +544,20 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
 
-    const operatorValueField = screen.getByText('1 operator(s)');
+    const operatorValueField = screen.getByRole('combobox', {
+      name: 'Select operator',
+    });
+
+    userEvent.click(operatorValueField);
 
     await act(async () => {
       userEvent.type(operatorValueField, '{enter}');
     });
 
-    expect(screen.getByText('EQUALS')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Equal to (=)', {
+        selector: '.ant-select-selection-item',
+      }),
+    ).toBeInTheDocument();
   });
 });

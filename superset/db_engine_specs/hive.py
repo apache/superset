@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from flask import current_app, g
+from flask import current_app as app, g
 from sqlalchemy import Column, text, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -44,7 +44,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -66,7 +66,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     import boto3  # pylint: disable=all
     from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 
-    bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
+    bucket_path = app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
     if not bucket_path:
         logger.info("No upload bucket specified")
@@ -95,6 +95,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_hidden_orderby_agg = False
 
     supports_dynamic_schema = True
+    supports_cross_catalog_queries = False
 
     # When running `SHOW FUNCTIONS`, what is the name of the column with the
     # function names?
@@ -223,7 +224,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
         with tempfile.NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"], suffix=".parquet"
+            dir=app.config["UPLOAD_FOLDER"], suffix=".parquet"
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
@@ -242,9 +243,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                     ),
                     location=upload_to_s3(
                         filename=file.name,
-                        upload_prefix=current_app.config[
-                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                        ](database, g.user, table.schema),
+                        upload_prefix=app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+                            database, g.user, table.schema
+                        ),
                         table=table,
                     ),
                 )
@@ -400,12 +401,13 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     db.session.commit()  # pylint: disable=consider-using-transaction
-            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+            if sleep_interval := app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
-                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"  # noqa: E501
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. "
+                    "Please use DB_POLL_INTERVAL_SECONDS instead"
                 )
             else:
-                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
             time.sleep(sleep_interval)
@@ -497,6 +499,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
+        # remove catalog from table name if it exists
+        table = Table(table.table, table.schema, None)
+
         return super(PrestoEngineSpec, cls).select_star(
             database,
             table,

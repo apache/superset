@@ -23,7 +23,7 @@ import {
   waitFor,
   cleanup,
 } from 'spec/helpers/testing-library';
-import { FormInstance } from 'antd/lib/form';
+import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal, getTreeSwitcher } from './utils';
 
 describe('FilterScope TreeSelection', () => {

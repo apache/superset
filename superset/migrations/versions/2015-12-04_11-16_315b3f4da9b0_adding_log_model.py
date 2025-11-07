@@ -22,16 +22,18 @@ Create Date: 2015-12-04 11:16:58.226984
 
 """
 
+import sqlalchemy as sa
+from alembic import op
+
+from superset.migrations.shared.utils import create_table
+
 # revision identifiers, used by Alembic.
 revision = "315b3f4da9b0"
 down_revision = "1a48a5411020"
 
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-
 
 def upgrade():
-    op.create_table(
+    create_table(
         "logs",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("action", sa.String(length=512), nullable=True),

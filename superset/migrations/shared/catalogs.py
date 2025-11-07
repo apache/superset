@@ -37,7 +37,7 @@ from superset.migrations.shared.security_converge import (
 )
 from superset.models.core import Database
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 Base: Type[Any] = declarative_base()
 

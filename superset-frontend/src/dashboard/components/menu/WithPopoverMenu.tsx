@@ -54,15 +54,15 @@ const WithPopoverMenuStyles = styled.div`
       left: 0;
       width: 100%;
       height: 100%;
-      border: 2px solid ${theme.colors.primary.base};
+      border: 2px solid ${theme.colorPrimary};
       pointer-events: none;
     }
 
     .dashboard-component-tabs li &.with-popover-menu--focused:after {
-      top: ${theme.gridUnit * -3}px;
-      left: ${theme.gridUnit * -2}px;
-      width: calc(100% + ${theme.gridUnit * 4}px);
-      height: calc(100% + ${theme.gridUnit * 7}px);
+      top: ${theme.sizeUnit * -3}px;
+      left: ${theme.sizeUnit * -2}px;
+      width: calc(100% + ${theme.sizeUnit * 4}px);
+      height: calc(100% + ${theme.sizeUnit * 7}px);
     }
   `}
 `;
@@ -73,15 +73,11 @@ const PopoverMenuStyles = styled.div`
     flex-wrap: nowrap;
     left: 1px;
     top: -42px;
-    height: ${theme.gridUnit * 10}px;
-    padding: 0 ${theme.gridUnit * 4}px;
+    height: ${theme.sizeUnit * 10}px;
+    padding: 0 ${theme.sizeUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
-    box-shadow: 0 1px 2px 1px
-      ${addAlpha(
-        theme.colors.grayscale.dark2,
-        parseFloat(theme.opacity.mediumLight) / 100,
-      )};
-    font-size: ${theme.typography.sizes.m}px;
+    box-shadow: 0 1px 2px 1px ${addAlpha(theme.colors.grayscale.dark2, 0.35)};
+    font-size: ${theme.fontSize}px;
     cursor: default;
     z-index: 3000;
 
@@ -98,7 +94,7 @@ const PopoverMenuStyles = styled.div`
       width: 1px;
       height: 100%;
       background: ${theme.colors.grayscale.light2};
-      margin: 0 ${theme.gridUnit * 4}px;
+      margin: 0 ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -115,10 +111,12 @@ export default class WithPopoverMenu extends PureComponent<
     onChangeFocus: null,
     menuItems: [],
     isFocused: false,
-    shouldFocus: (event: any, container: ShouldFocusContainer) =>
-      container?.contains(event.target) ||
-      event.target.id === 'menu-item' ||
-      event.target.parentNode?.id === 'menu-item',
+    shouldFocus: (event: any, container: ShouldFocusContainer) => {
+      if (container?.contains(event.target)) return true;
+      if (event.target.id === 'menu-item') return true;
+      if (event.target.parentNode?.id === 'menu-item') return true;
+      return false;
+    },
     style: null,
   };
 
@@ -156,6 +154,9 @@ export default class WithPopoverMenu extends PureComponent<
     if (!this.props.editMode) {
       return;
     }
+
+    event.stopPropagation();
+
     const {
       onChangeFocus,
       shouldFocus: shouldFocusFunc,

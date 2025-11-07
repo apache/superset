@@ -21,15 +21,18 @@ Revises: 260bf0649a77
 Create Date: 2021-01-14 19:12:43.406230
 """
 
+import sqlalchemy as sa
+from alembic import op
+
+from superset.migrations.shared.utils import create_table
+
 # revision identifiers, used by Alembic.
 revision = "e11ccdd12658"
 down_revision = "260bf0649a77"
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
 
 
 def upgrade():
-    op.create_table(
+    create_table(
         "dashboard_roles",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("role_id", sa.Integer(), nullable=False),

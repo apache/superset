@@ -17,13 +17,15 @@
  * under the License.
  */
 import { ContourLayer } from '@deck.gl/aggregation-layers';
+import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent, getLayerType } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: any) {
   return (
@@ -39,12 +41,15 @@ function setTooltipContent(o: any) {
     </div>
   );
 }
-export const getLayer: getLayerType<unknown> = function (
+export const getLayer: GetLayerType<ContourLayer> = function ({
   formData,
   payload,
-  onAddFilter,
+  filterState,
+  setDataMask,
+  onContextMenu,
   setTooltip,
-) {
+  emitCrossFilters,
+}) {
   const fd = formData;
   const {
     aggregation = 'SUM',
@@ -93,12 +98,72 @@ export const getLayer: getLayerType<unknown> = function (
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
     getWeight: (d: { weight: number }) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
 };
 
-function getPoints(data: any[]) {
+export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<PolygonLayer> = function ({
+  formData,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  setTooltip,
+  emitCrossFilters,
+}) {
+  const fd = formData;
+
+  const fromLonLat = filterState?.value[0];
+  const toLonLat = filterState?.value[1];
+
+  const minLon = fromLonLat[0];
+  const maxLon = toLonLat[0];
+  const minLat = fromLonLat[1];
+  const maxLat = toLonLat[1];
+
+  const boxPolygon = [
+    [minLon, minLat],
+    [maxLon, minLat],
+    [maxLon, maxLat],
+    [minLon, maxLat],
+    [minLon, minLat],
+  ];
+
+  return new PolygonLayer({
+    id: `contour-highlight-layer-${fd.slice_id}`,
+    data: [{ polygon: boxPolygon }],
+    getPolygon: (d: any) => d.polygon,
+    getFillColor: [
+      HIGHLIGHT_COLOR_ARRAY[0],
+      HIGHLIGHT_COLOR_ARRAY[1],
+      HIGHLIGHT_COLOR_ARRAY[2],
+      100,
+    ],
+    getLineColor: HIGHLIGHT_COLOR_ARRAY,
+    getLineWidth: 4,
+    filled: true,
+    stroked: true,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

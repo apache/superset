@@ -41,6 +41,53 @@ import {
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
 
+// Aggregation choices with computation methods for plugins and controls
+export const aggregationChoices = {
+  raw: {
+    label: 'Overall value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  LAST_VALUE: {
+    label: 'Last Value',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
+  },
+  sum: {
+    label: 'Total (Sum)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) : null,
+  },
+  mean: {
+    label: 'Average (Mean)',
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) / data.length : null,
+  },
+  min: {
+    label: 'Minimum',
+    compute: (data: number[]) => (data.length ? Math.min(...data) : null),
+  },
+  max: {
+    label: 'Maximum',
+    compute: (data: number[]) => (data.length ? Math.max(...data) : null),
+  },
+  median: {
+    label: 'Median',
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      const sorted = [...data].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    },
+  },
+} as const;
+
 export const contributionModeControl = {
   name: 'contributionMode',
   config: {
@@ -57,18 +104,31 @@ export const contributionModeControl = {
 };
 
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  isSortable(controls) &&
-  ensureIsArray(controls?.groupby?.value).length === 0 &&
-  ensureIsArray(controls?.metrics?.value).length === 1;
+  isSortable(controls);
 
-const xAxisMultiSortVisibility = ({
-  controls,
-}: {
-  controls: ControlStateMapping;
-}) =>
-  isSortable(controls) &&
-  (!!ensureIsArray(controls?.groupby?.value).length ||
-    ensureIsArray(controls?.metrics?.value).length > 1);
+// TODO: Expand this aggregation options list to include all backend-supported aggregations.
+// TODO:  Migrate existing chart types (Pivot Table, etc.) to use this shared control.
+export const aggregationControl = {
+  name: 'aggregation',
+  config: {
+    type: 'SelectControl',
+    label: t('Aggregation Method'),
+    default: 'LAST_VALUE',
+    clearable: false,
+    renderTrigger: false,
+    choices: Object.entries(aggregationChoices).map(([value, { label }]) => [
+      value,
+      t(label),
+    ]),
+    description: t(
+      'Method to compute the displayed value. "Overall value" calculates a single metric across the entire filtered time period, ideal for non-additive metrics like ratios, averages, or distinct counts. Other methods operate over the time series data points.',
+    ),
+    provideFormDataToProps: true,
+    mapStateToProps: ({ form_data }: ControlPanelState) => ({
+      value: form_data.aggregation || 'LAST_VALUE',
+    }),
+  },
+};
 
 export const xAxisSortControl = {
   name: 'x_axis_sort',
@@ -78,7 +138,7 @@ export const xAxisSortControl = {
       state.form_data?.orientation === 'horizontal'
         ? t('Y-Axis Sort By')
         : t('X-Axis Sort By'),
-    description: t('Decides which column to sort the base axis by.'),
+    description: t('Decides which column or measure to sort the base axis by.'),
     shouldMapStateToProps: () => true,
     mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
       const { controls, datasource } = state;
@@ -86,23 +146,35 @@ export const xAxisSortControl = {
       const columns = [controls?.x_axis?.value as QueryFormColumn].filter(
         Boolean,
       );
+      const isSingleSortAvailable =
+        ensureIsArray(controls?.groupby?.value).length === 0;
+      const isMultiSortAvailable =
+        !!ensureIsArray(controls?.groupby?.value).length ||
+        ensureIsArray(controls?.metrics?.value).length > 1;
       const metrics = [
         ...ensureIsArray(controls?.metrics?.value as QueryFormMetric),
         controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
       const metricLabels = [...new Set(metrics.map(getMetricLabel))];
       const options = [
-        ...columns.map(column => {
-          const value = getColumnLabel(column);
-          return {
-            value,
-            label: dataset?.verbose_map?.[value] || value,
-          };
-        }),
-        ...metricLabels.map(value => ({
-          value,
-          label: dataset?.verbose_map?.[value] || value,
-        })),
+        ...(isSingleSortAvailable
+          ? [
+              ...columns.map(column => {
+                const value = getColumnLabel(column);
+                return { value, label: dataset?.verbose_map?.[value] || value };
+              }),
+              ...metricLabels.map(value => ({
+                value,
+                label: dataset?.verbose_map?.[value] || value,
+              })),
+            ]
+          : []),
+        ...(isMultiSortAvailable
+          ? SORT_SERIES_CHOICES.map(choice => ({
+              value: choice[0],
+              label: choice[1],
+            }))
+          : []),
       ];
 
       const shouldReset = !(
@@ -131,7 +203,7 @@ export const xAxisSortAscControl = {
       state.form_data?.orientation === 'horizontal'
         ? t('Y-Axis Sort Ascending')
         : t('X-Axis Sort Ascending'),
-    default: true,
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
     description: t('Whether to sort ascending or descending on the base Axis.'),
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       controls?.x_axis_sort?.value !== undefined &&
@@ -156,39 +228,5 @@ export const xAxisForceCategoricalControl = {
         [GenericDataType.Numeric],
       ),
     shouldMapStateToProps: () => true,
-  },
-};
-
-export const xAxisSortSeriesControl = {
-  name: 'x_axis_sort_series',
-  config: {
-    type: 'SelectControl',
-    freeForm: false,
-    label: (state: ControlPanelState) =>
-      state.form_data?.orientation === 'horizontal'
-        ? t('Y-Axis Sort By')
-        : t('X-Axis Sort By'),
-    choices: SORT_SERIES_CHOICES,
-    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_type,
-    renderTrigger: true,
-    description: t('Decides which measure to sort the base axis by.'),
-    visibility: xAxisMultiSortVisibility,
-  },
-};
-
-export const xAxisSortSeriesAscendingControl = {
-  name: 'x_axis_sort_series_ascending',
-  config: {
-    type: 'CheckboxControl',
-    label: (state: ControlPanelState) =>
-      state.form_data?.orientation === 'horizontal'
-        ? t('Y-Axis Sort Ascending')
-        : t('X-Axis Sort Ascending'),
-    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
-    description: t('Whether to sort ascending or descending on the base Axis.'),
-    renderTrigger: true,
-    visibility: ({ controls }: { controls: ControlStateMapping }) =>
-      controls?.x_axis_sort_series?.value !== undefined &&
-      xAxisMultiSortVisibility({ controls }),
   },
 };

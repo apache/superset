@@ -64,6 +64,7 @@ describe('chart actions', () => {
   let dispatch;
   let getExploreUrlStub;
   let getChartDataUriStub;
+  let buildV1ChartDataPayloadStub;
   let waitForAsyncDataStub;
   let fakeMetadata;
 
@@ -85,6 +86,13 @@ describe('chart actions', () => {
     getChartDataUriStub = sinon
       .stub(exploreUtils, 'getChartDataUri')
       .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
+    buildV1ChartDataPayloadStub = sinon
+      .stub(exploreUtils, 'buildV1ChartDataPayload')
+      .resolves({
+        some_param: 'fake query!',
+        result_type: 'full',
+        result_format: 'json',
+      });
     fakeMetadata = { useLegacyApi: true };
     getChartMetadataRegistry.mockImplementation(() => ({
       get: () => fakeMetadata,
@@ -104,6 +112,7 @@ describe('chart actions', () => {
   afterEach(() => {
     getExploreUrlStub.restore();
     getChartDataUriStub.restore();
+    buildV1ChartDataPayloadStub.restore();
     fetchMock.resetHistory();
     waitForAsyncDataStub.restore();
 
@@ -362,7 +371,7 @@ describe('chart actions timeout', () => {
     jest.clearAllMocks();
   });
 
-  it('should use the timeout from arguments when given', () => {
+  it('should use the timeout from arguments when given', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
     const timeout = 10; // Set the timeout value here
@@ -370,7 +379,7 @@ describe('chart actions timeout', () => {
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
-    store.dispatch(
+    await store.dispatch(
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',
@@ -394,14 +403,14 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 
-  it('should use the timeout from common.conf when not passed as an argument', () => {
+  it('should use the timeout from common.conf when not passed as an argument', async () => {
     const postSpy = jest.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(() => Promise.resolve({ json: { result: [] } }));
     const formData = { datasource: 'table__1' }; // Set the formData here
     const key = 'chartKey'; // Set the chart key here
 
     const store = mockStore(initialState);
-    store.dispatch(
+    await store.dispatch(
       actions.runAnnotationQuery({
         annotation: {
           value: 'annotationValue',

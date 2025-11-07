@@ -96,11 +96,11 @@ const ChartHolder = ({
   const theme = useTheme();
   const fullSizeStyle = css`
     && {
-      position: fixed;
+      position: fixed !important;
       z-index: 3000;
       left: 0;
       top: 0;
-      padding: ${theme.gridUnit * 2}px;
+      padding: ${theme.sizeUnit * 2}px;
     }
   `;
   const { chartId } = component.meta;

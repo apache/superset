@@ -18,9 +18,13 @@
  */
 import { useMemo, useRef, useCallback } from 'react';
 import { styled } from '@superset-ui/core';
+import { GridSize } from 'src/components/GridTable/constants';
+import { GridTable } from 'src/components/GridTable';
+import { type ColDef } from 'src/components/GridTable/types';
 import { useCellContentParser } from './useCellContentParser';
 import { renderResultCell } from './utils';
-import GridTable, { GridSize, ColDef } from '../GridTable';
+
+import type { FilterableTableProps, Datum, CellDataType } from './types';
 
 // This regex handles all possible number formats in javascript, including ints, floats,
 // exponential notation, NaN, and Infinity.
@@ -31,23 +35,6 @@ const StyledFilterableTable = styled.div`
   height: 100%;
   overflow: hidden;
 `;
-
-type CellDataType = string | number | null;
-type Datum = Record<string, CellDataType>;
-
-export interface FilterableTableProps {
-  orderedColumnKeys: string[];
-  data: Record<string, unknown>[];
-  height: number;
-  filterText?: string;
-  headerHeight?: number;
-  overscanColumnCount?: number;
-  overscanRowCount?: number;
-  rowHeight?: number;
-  striped?: boolean;
-  expandedColumns?: string[];
-  allowHTML?: boolean;
-}
 
 const parseNumberFromString = (value: string | number | null) => {
   if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
@@ -76,7 +63,7 @@ const sortResults = (valueA: string | number, valueB: string | number) => {
   return aValue < bValue ? -1 : 1;
 };
 
-const FilterableTable = ({
+export const FilterableTable = ({
   orderedColumnKeys,
   data,
   height,
@@ -159,4 +146,4 @@ const FilterableTable = ({
   );
 };
 
-export default FilterableTable;
+export type { FilterableTableProps };

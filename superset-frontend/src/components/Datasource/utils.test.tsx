@@ -51,6 +51,7 @@ describe('updateColumns', () => {
         'Added 1 new column to the virtual dataset',
         'Added %s new columns to the virtual dataset',
         2,
+        2,
       ),
     );
   });
@@ -88,6 +89,7 @@ describe('updateColumns', () => {
         'Modified 1 column in the virtual dataset',
         'Modified %s columns in the virtual dataset',
         1,
+        1,
       ),
     );
   });
@@ -113,6 +115,7 @@ describe('updateColumns', () => {
       tn(
         'Removed 1 column from the virtual dataset',
         'Removed %s columns from the virtual dataset',
+        1,
         1,
       ),
     );
@@ -146,6 +149,7 @@ describe('updateColumns', () => {
           'Modified 1 column in the virtual dataset',
           'Modified %s columns in the virtual dataset',
           1,
+          1,
         ),
       ],
       [
@@ -153,12 +157,14 @@ describe('updateColumns', () => {
           'Removed 1 column from the virtual dataset',
           'Removed %s columns from the virtual dataset',
           1,
+          1,
         ),
       ],
       [
         tn(
           'Added 1 new column to the virtual dataset',
           'Added %s new columns to the virtual dataset',
+          1,
           1,
         ),
       ],
@@ -194,6 +200,7 @@ describe('updateColumns', () => {
         tn(
           'Modified 1 column in the virtual dataset',
           'Modified %s columns in the virtual dataset',
+          1,
           1,
         ),
       ],

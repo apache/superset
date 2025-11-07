@@ -54,6 +54,7 @@ class TablesDatabaseCommand(BaseCommand):
 
     def run(self) -> dict[str, Any]:
         self.validate()
+        self._catalog_name = self._catalog_name or self._model.get_default_catalog()
         try:
             tables = security_manager.get_datasources_accessible_by_user(
                 database=self._model,

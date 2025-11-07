@@ -51,7 +51,7 @@ export type LoadDrillByOptions = (
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
@@ -209,6 +209,16 @@ export interface CustomAutocomplete extends AutocompleteItem {
   insertMatch?: (editor: Editor, data: AutocompleteItem) => void;
 }
 
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
   'load.drillby.options': LoadDrillByOptions;
@@ -240,4 +250,5 @@ export type Extensions = Partial<{
     string,
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
+  'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
 }>;

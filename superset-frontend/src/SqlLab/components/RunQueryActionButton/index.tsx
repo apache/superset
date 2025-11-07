@@ -20,9 +20,8 @@ import { useMemo, FC, ReactElement } from 'react';
 
 import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
-import { DropdownButton } from 'src/components/DropdownButton';
+import { Button, DropdownButton } from '@superset-ui/core/components';
+import { IconType, Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -41,23 +40,24 @@ export interface RunQueryActionButtonProps {
   overlayCreateAsMenu: ReactElement | null;
 }
 
-const buildText = (
+const buildTextAndIcon = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
   theme: SupersetTheme,
-): string | JSX.Element => {
-  if (shouldShowStopButton) {
-    return (
-      <>
-        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
-        {t('Stop')}
-      </>
-    );
-  }
+): { text: string; icon?: IconType } => {
+  let text = t('Run');
+  let icon: IconType | undefined;
   if (selectedText) {
-    return t('Run selection');
+    text = t('Run selection');
   }
-  return t('Run');
+  if (shouldShowStopButton) {
+    text = t('Stop');
+    icon = <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />;
+  }
+  return {
+    text,
+    icon,
+  };
 };
 
 const onClick = (
@@ -85,11 +85,11 @@ const StyledButton = styled.span`
     // this is to over ride a previous transition built into the component
     transition: background-color 0ms;
     &:last-of-type {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
     span[name='caret-down'] {
       display: flex;
-      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 1}px;
     }
   }
 `;
@@ -131,6 +131,11 @@ const RunQueryActionButton = ({
     [userOS],
   );
 
+  const { text, icon } = useMemo(
+    () => buildTextAndIcon(shouldShowStopBtn, selectedText, theme),
+    [shouldShowStopBtn, selectedText, theme],
+  );
+
   return (
     <StyledButton>
       <ButtonComponent
@@ -152,19 +157,18 @@ const RunQueryActionButton = ({
               icon: (
                 <Icons.DownOutlined
                   iconColor={
-                    isDisabled
-                      ? theme.colors.grayscale.base
-                      : theme.colors.grayscale.light5
+                    isDisabled ? theme.colorTextDisabled : theme.colorIcon
                   }
                 />
               ),
               trigger: 'click',
             }
           : {
-              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+              buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
+              icon,
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText, theme)}
+        {text}
       </ButtonComponent>
     </StyledButton>
   );

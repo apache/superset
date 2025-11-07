@@ -20,11 +20,11 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 
-from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import pandas_postprocessing, schema as utils
@@ -40,7 +40,25 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
 
-config = app.config
+
+def get_time_grain_choices() -> Any:
+    """Get time grain choices including addons from config"""
+    try:
+        # Try to get config from current app context
+        time_grain_addons = current_app.config.get("TIME_GRAIN_ADDONS", {})
+    except RuntimeError:
+        # Outside app context, use empty addons
+        time_grain_addons = {}
+
+    return [
+        i
+        for i in {
+            **builtin_time_grains,
+            **time_grain_addons,
+        }.keys()
+        if i
+    ]
+
 
 #
 # RISON/JSON schemas for query parameters
@@ -624,13 +642,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -989,13 +1001,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
-                if i
-            ]
-        ),
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
@@ -1255,6 +1261,14 @@ class ChartDataQueryObjectSchema(Schema):
             "description": "Metric used to limit timeseries queries by. "
             "Requires `series` and `series_limit` to be set."
         },
+        allow_none=True,
+    )
+    group_others_when_limit_reached = fields.Boolean(
+        metadata={
+            "description": "When true, groups remaining series into an 'Others' "
+            "category when series limit is reached. Prevents incomplete data."
+        },
+        load_default=False,
         allow_none=True,
     )
     timeseries_limit = fields.Integer(
@@ -1564,6 +1578,7 @@ class ImportV1ChartSchema(Schema):
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

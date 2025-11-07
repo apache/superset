@@ -25,13 +25,13 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestPrestoDbEngineSpec(TestDbEngineSpec):
-    @skipUnless(TestDbEngineSpec.is_module_installed("pyhive"), "pyhive not installed")
+class TestPrestoDbEngineSpec(SupersetTestCase):
+    @skipUnless(SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed")
     def test_get_datatype_presto(self):
         assert "STRING" == PrestoEngineSpec.get_datatype("string")
 

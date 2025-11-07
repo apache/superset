@@ -1,7 +1,7 @@
 ---
 title: PyPI
 hide_title: true
-sidebar_position: 3
+sidebar_position: 4
 version: 1
 ---
 
@@ -12,7 +12,7 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 <img src={useBaseUrl("/img/pypi.png" )} width="150" />
 <br /><br />
 
-This page describes how to install Superset using the `apache-superset` package [published on PyPI](https://pypi.org/project/apache-superset/).
+This page describes how to install Superset using the `apache_superset` package [published on PyPI](https://pypi.org/project/apache_superset/).
 
 ## OS Dependencies
 
@@ -21,6 +21,13 @@ the cryptography Python library to encrypt connection passwords. Unfortunately, 
 level dependencies.
 
 **Debian and Ubuntu**
+
+Ubuntu **24.04** uses python 3.12 per default, which currently is not supported by Superset. You need to add a second python installation of 3.11 and install the required additional dependencies.
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-dev python3.11-venv build-essential libssl-dev libffi-dev libsasl2-dev libldap2-dev default-libmysqlclient-dev
+```
 
 In Ubuntu **20.04 and 22.04** the following command will ensure that the required dependencies are installed:
 
@@ -94,14 +101,9 @@ These will now be available when pip installing requirements.
 
 ## Python Virtual Environment
 
-We highly recommend installing Superset inside of a virtual environment. Python ships with
-`virtualenv` out of the box. If you're using [pyenv](https://github.com/pyenv/pyenv), you can install [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv). Or you can install it with `pip`:
+We highly recommend installing Superset inside of a virtual environment.
 
-```bash
-pip install virtualenv
-```
-
-You can create and activate a virtual environment using:
+You can create and activate a virtual environment using the following commands. Ensure you are using a compatible version of python. You might have to explicitly use for example `python3.11` instead of `python3`.
 
 ```bash
 # virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
@@ -124,15 +126,15 @@ command line.
 
 ### Installing and Initializing Superset
 
-First, start by installing `apache-superset`:
+First, start by installing `apache_superset`:
 
 ```bash
-pip install apache-superset
+pip install apache_superset
 ```
 
 Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
 ```bash
-export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY
+export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY # For production use, make sure this is a strong key, for example generated using `openssl rand -base64 42`. See https://superset.apache.org/docs/configuration/configuring-superset#specifying-a-secret_key
 export FLASK_APP=superset
 ```
 

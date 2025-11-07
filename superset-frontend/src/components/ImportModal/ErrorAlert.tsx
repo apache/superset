@@ -21,7 +21,7 @@ import { FunctionComponent } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import Alert from 'src/components/Alert';
+import { Alert } from '@superset-ui/core/components';
 import { antdWarningAlertStyles } from './styles';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
@@ -34,7 +34,7 @@ export interface IProps {
   showDbInstallInstructions: boolean;
 }
 
-const ErrorAlert: FunctionComponent<IProps> = ({
+export const ErrorAlert: FunctionComponent<IProps> = ({
   errorMessage,
   showDbInstallInstructions,
 }) => (
@@ -67,5 +67,3 @@ const ErrorAlert: FunctionComponent<IProps> = ({
     }
   />
 );
-
-export default ErrorAlert;

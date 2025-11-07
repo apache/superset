@@ -36,6 +36,7 @@ export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
+  creatable: boolean;
   multiSelect: boolean;
   defaultToFirstItem: boolean;
   searchAllOptions: boolean;
@@ -64,6 +65,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   inputRef?: RefObject<any>;
   filterBarOrientation?: FilterBarOrientation;
   isOverflowingFilterBar?: boolean;
+  clearAllTrigger?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
@@ -71,6 +74,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   enableEmptyFilter: false,
   inverseSelection: false,
   defaultToFirstItem: false,
+  creatable: true,
   multiSelect: true,
   searchAllOptions: false,
   sortAscending: true,

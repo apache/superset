@@ -303,4 +303,50 @@ describe('FilterBar', () => {
 
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
+
+  it('should render without errors with proper state setup', () => {
+    const stateWithFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+      },
+      dataMask: {
+        'test-filter': {
+          id: 'test-filter',
+          filterState: { value: undefined },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'test-filter': {
+            id: 'test-filter',
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: undefined },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    const { container } = renderWrapper(openedBarProps, stateWithFilter);
+    expect(container).toBeInTheDocument();
+  });
 });

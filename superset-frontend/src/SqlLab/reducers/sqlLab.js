@@ -19,8 +19,8 @@
 import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
+import { now } from '@superset-ui/core/utils/dates';
 import * as actions from '../actions/sqlLab';
-import { now } from '../../utils/dates';
 import {
   addToObject,
   alterInObject,

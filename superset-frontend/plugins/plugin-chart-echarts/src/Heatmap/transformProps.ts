@@ -99,6 +99,7 @@ export default function transformProps(
     valueBounds,
     yAxisFormat,
     xAxisTimeFormat,
+    xAxisLabelRotation,
     currencyFormat,
   } = formData;
   const metricLabel = getMetricLabel(metric);
@@ -150,7 +151,7 @@ export default function transformProps(
       data: data.map(row =>
         colnames.map(col => {
           const value = row[col];
-          if (!value) {
+          if (value === null || value === undefined) {
             return NULL_STRING;
           }
           if (typeof value === 'boolean' || typeof value === 'bigint') {
@@ -251,6 +252,7 @@ export default function transformProps(
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
+        rotate: xAxisLabelRotation,
       },
     },
     yAxis: {

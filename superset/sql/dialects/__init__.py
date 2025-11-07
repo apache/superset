@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .dremio import Dremio
 from .firebolt import Firebolt, FireboltOld
 
-__all__ = ["Firebolt", "FireboltOld"]
+__all__ = ["Dremio", "Firebolt", "FireboltOld"]

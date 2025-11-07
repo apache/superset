@@ -17,13 +17,18 @@ jobs:
   check-python-deps:
     runs-on: ubuntu-22.04
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
-          depth: 1
+          fetch-depth: 1
+
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         if: steps.check.outputs.python
@@ -34,10 +39,20 @@ jobs:
         run: ./scripts/uv-pip-compile.sh
 
       - name: Check for uncommitted changes
+        if: steps.check.outputs.python
         run: |
-          if [[ -n "$(git diff)" ]]; then
+          echo "Full diff (for logging/debugging):"
+          git diff
+
+          echo "Filtered diff (excluding comments and whitespace):"
+          filtered_diff=$(git diff -U0 | grep '^[-+]' | grep -vE '^[-+]{3}' | grep -vE '^[-+][[:space:]]*#' | grep -vE '^[-+][[:space:]]*$' || true)
+          echo "$filtered_diff"
+
+          if [[ -n "$filtered_diff" ]]; then
+            echo
             echo "ERROR: The pinned dependencies are not up-to-date."
             echo "Please run './scripts/uv-pip-compile.sh' and commit the changes."
+            echo "More info: https://github.com/apache/superset/tree/master/requirements"
             exit 1
           else
             echo "Pinned dependencies are up-to-date."

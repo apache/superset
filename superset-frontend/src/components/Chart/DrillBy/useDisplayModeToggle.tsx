@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { DrillByType } from '../types';
 
 export const useDisplayModeToggle = () => {
@@ -31,7 +31,7 @@ export const useDisplayModeToggle = () => {
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          margin-bottom: ${theme.gridUnit * 6}px;
+          margin-bottom: ${theme.sizeUnit * 6}px;
         `}
         data-test="drill-by-display-toggle"
       >

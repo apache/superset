@@ -25,7 +25,7 @@ Create Date: 2024-08-13 15:23:28.768963
 import sqlalchemy as sa
 from alembic import op
 
-from superset.migrations.shared.utils import drop_fks_for_table, has_table
+from superset.migrations.shared.utils import create_table, drop_fks_for_table, has_table
 
 # revision identifiers, used by Alembic.
 revision = "38f4144e8558"
@@ -41,7 +41,7 @@ def upgrade():
 
 
 def downgrade():
-    op.create_table(
+    create_table(
         table_name,
         sa.Column("dataset_id", sa.Integer(), nullable=False),
         sa.Column("table_id", sa.Integer(), nullable=False),

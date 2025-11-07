@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from colorama import Fore, Style
 
@@ -105,5 +105,27 @@ try:
         def gauge(self, key: str, value: float) -> None:
             self.client.gauge(key, value)
 
-except Exception:  # pylint: disable=broad-except  # noqa: S110
-    pass
+except Exception as e:  # pylint: disable=broad-except  # noqa: S110
+    # e can only be accessed in the catch and not later during class instantiation.
+    # We have to save it to a separate variable.
+    _saved_exception = e
+
+    class StatsdStatsLogger(BaseStatsLogger):  # type:ignore[no-redef] # the redefinition only happens when the original definition failed
+        def __init__(  # pylint: disable=super-init-not-called
+            self,
+            host: str = "localhost",
+            port: int = 8125,
+            prefix: str = "superset",
+            statsd_client: Any = None,
+        ) -> None:
+            """
+            Initializes from either params or a supplied, pre-constructed statsd client.
+
+            If statsd_client argument is given, all other arguments are ignored and the
+            supplied client will be used to emit metrics.
+
+            If an exception is raised while creating the StatsdStatsLogger class, for
+            example because the statsd package is not installed, it will be re-raised
+            on instantiation of the StatsdStatsLogger.
+            """
+            raise _saved_exception

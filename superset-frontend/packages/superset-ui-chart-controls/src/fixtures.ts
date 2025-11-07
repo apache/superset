@@ -21,7 +21,6 @@ import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
   column_formats: {},
-  currency_formats: {},
   columns: [
     {
       advanced_data_type: undefined,
@@ -121,6 +120,7 @@ export const TestDataset: Dataset = {
   main_dttm_col: 'ds',
   metrics: [
     {
+      uuid: '123',
       certification_details: null,
       certified_by: null,
       d3format: null,

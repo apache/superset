@@ -18,7 +18,7 @@
  */
 describe('Visualization > Pivot Table', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data**').as('chartData');
+    cy.intercept('POST', '**/api/v1/chart/data**').as('chartData');
   });
 
   const PIVOT_TABLE_FORM_DATA = {

@@ -420,7 +420,7 @@ const getDashboardSlicesReturnValue = [21, 22, 23];
  * Tests getSliceDashboards action
  */
 
-const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(columns:!(dashboards.id))`;
+const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(select_columns:!(dashboards.id))`;
 test('getSliceDashboards with slice handles success', async () => {
   fetchMock.reset();
   fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);
@@ -491,8 +491,8 @@ describe('getSlicePayload', () => {
     dashboards: [],
   };
 
-  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', () => {
-    const result = getSlicePayload(
+  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
+    const result = await getSlicePayload(
       sliceName,
       formDataWithNativeFilters,
       dashboards,
@@ -515,7 +515,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
+  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
     const formDataWithAdhocFilters: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -528,7 +528,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
@@ -551,7 +551,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -564,7 +564,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -587,7 +587,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters_b: [
@@ -625,7 +625,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -641,7 +641,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', () => {
+  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters: [],
@@ -672,7 +672,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -688,5 +688,41 @@ describe('getSlicePayload', () => {
     );
 
     expect(hasTemporalRange).toBe(true);
+  });
+
+  test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
+    const formDataWithTemporalFilterWithExtra: QueryFormData = {
+      ...formDataWithNativeFilters,
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          subject: 'year',
+          operator: 'TEMPORAL_RANGE',
+          comparator: '2004 : ',
+          expressionType: 'SIMPLE',
+          isExtra: true,
+        },
+      ],
+    };
+
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithTemporalFilterWithExtra,
+      dashboards,
+      owners as [],
+      {} as QueryFormData,
+    );
+
+    const savedFilters = JSON.parse(result.params as string).adhoc_filters;
+
+    expect(savedFilters).toHaveLength(1);
+    expect(savedFilters[0]).toMatchObject({
+      clause: 'WHERE',
+      subject: 'year',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'No filter',
+      expressionType: 'SIMPLE',
+      isExtra: false,
+    });
   });
 });

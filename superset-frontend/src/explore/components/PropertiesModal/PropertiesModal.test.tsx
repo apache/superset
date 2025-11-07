@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -25,7 +24,13 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 const createProps = () =>
   ({
@@ -44,59 +49,51 @@ const createProps = () =>
     addSuccessToast: jest.fn(),
   }) as PropertiesModalProps;
 
-fetchMock.get('glob:*/api/v1/chart/318', {
+fetchMock.get('glob:*/api/v1/chart/318*', {
   body: {
     description_columns: {},
     id: 318,
     label_columns: {
-      cache_timeout: 'Cache Timeout',
-      'dashboards.dashboard_title': 'Dashboards Dashboard Title',
-      'dashboards.id': 'Dashboards Id',
-      description: 'Description',
       'owners.first_name': 'Owners First Name',
       'owners.id': 'Owners Id',
       'owners.last_name': 'Owners Last Name',
-      'owners.username': 'Owners Username',
-      params: 'Params',
-      slice_name: 'Slice Name',
-      viz_type: 'Viz Type',
+      'tags.id': 'Tags Id',
+      'tags.name': 'Tags Name',
+      'tags.type': 'Tags Type',
     },
     result: {
-      cache_timeout: null,
-      certified_by: 'John Doe',
-      certification_details: 'Sample certification',
-      dashboards: [
-        {
-          dashboard_title: 'FCC New Coder Survey 2018',
-          id: 23,
-        },
-      ],
-      description: null,
       owners: [
         {
           first_name: 'Superset',
           id: 1,
           last_name: 'Admin',
-          username: 'admin',
         },
       ],
-      params:
-        '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
-      slice_name: 'Age distribution of respondents',
-      viz_type: VizType.Histogram,
+      tags: [
+        {
+          id: 1,
+          name: 'type:chart',
+          type: 2,
+        },
+        {
+          id: 2,
+          name: 'owner:1',
+          type: 3,
+        },
+        {
+          id: 3,
+          name: 'my test tag',
+          type: 1,
+        },
+      ],
     },
     show_columns: [
-      'cache_timeout',
-      'dashboards.dashboard_title',
-      'dashboards.id',
-      'description',
-      'owners.first_name',
       'owners.id',
+      'owners.first_name',
       'owners.last_name',
-      'owners.username',
-      'params',
-      'slice_name',
-      'viz_type',
+      'tags.id',
+      'tags.name',
+      'tags.type',
     ],
     show_title: 'Show Slice',
   },
@@ -176,7 +173,7 @@ test('Should have modal header', async () => {
 
   await waitFor(() => {
     expect(screen.getByText('Edit Chart Properties')).toBeVisible();
-    expect(screen.getByText('×')).toBeVisible();
+    expect(screen.getByTestId('close-modal-btn')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
   });
 });
@@ -421,4 +418,33 @@ test('"Certification details" should not be empty when saved', async () => {
       }),
     );
   });
+});
+
+test('Should display only custom tags when tagging system is enabled', async () => {
+  const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+    typeof isFeatureEnabled
+  >;
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.TaggingSystem,
+  );
+
+  const props = createProps();
+  renderModal(props);
+
+  await waitFor(async () => {
+    expect(
+      await screen.findByRole('heading', { name: 'Tags' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('combobox', { name: 'Tags' }),
+    ).toBeInTheDocument();
+  });
+
+  await waitFor(async () => {
+    expect(await screen.findByText('my test tag')).toBeInTheDocument();
+    expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
+    expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
+  });
+
+  mockIsFeatureEnabled.mockRestore();
 });

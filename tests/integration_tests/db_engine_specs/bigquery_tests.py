@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest.mock as mock
+from contextlib import contextmanager
 
 import pytest
 from pandas import DataFrame
@@ -24,15 +25,24 @@ from superset.connectors.sqla.models import TableColumn
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from superset.sql.parse import Table
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 
 
-class TestBigQueryDbEngineSpec(TestDbEngineSpec):
+@contextmanager
+def mock_engine_with_credentials(*args, **kwargs):
+    engine_mock = mock.Mock()
+    engine_mock.dialect.credentials_info = {
+        "key": "value"
+    }  # Add the credentials_info attribute
+    yield engine_mock
+
+
+class TestBigQueryDbEngineSpec(SupersetTestCase):
     def test_bigquery_sqla_column_label(self):
         """
         DB Eng Specs (bigquery): Test column label
@@ -111,108 +121,45 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             result = BigQueryEngineSpec.fetch_data(None, 0)
         assert result == [1, 2]
 
-    def test_get_extra_table_metadata(self):
+    @mock.patch.object(
+        BigQueryEngineSpec, "get_engine", side_effect=mock_engine_with_credentials
+    )
+    @mock.patch.object(BigQueryEngineSpec, "get_time_partition_column")
+    @mock.patch.object(BigQueryEngineSpec, "get_max_partition_id")
+    @mock.patch.object(BigQueryEngineSpec, "quote_table", return_value="`table_name`")
+    def test_get_extra_table_metadata(
+        self,
+        mock_quote_table,
+        mock_get_max_partition_id,
+        mock_get_time_partition_column,
+        mock_get_engine,
+    ):
         """
         DB Eng Specs (bigquery): Test extra table metadata
         """
         database = mock.Mock()
+        sql = "SELECT * FROM `table_name`"
+        database.compile_sqla_query.return_value = sql
+        tbl = Table("some_table", "some_schema")
+
         # Test no indexes
-        database.get_indexes = mock.MagicMock(return_value=None)
-        result = BigQueryEngineSpec.get_extra_table_metadata(
-            database,
-            Table("some_table", "some_schema"),
-        )
+        mock_get_time_partition_column.return_value = None
+        mock_get_max_partition_id.return_value = None
+        result = BigQueryEngineSpec.get_extra_table_metadata(database, tbl)
         assert result == {}
 
-        index_metadata = [
-            {
-                "name": "clustering",
-                "column_names": ["c_col1", "c_col2", "c_col3"],
+        mock_get_time_partition_column.return_value = "ds"
+        mock_get_max_partition_id.return_value = "19690101"
+        result = BigQueryEngineSpec.get_extra_table_metadata(database, tbl)
+        print(result)
+        assert result == {
+            "indexes": [{"cols": ["ds"], "name": "partitioned", "type": "partitioned"}],
+            "partitions": {
+                "cols": ["ds"],
+                "latest": {"ds": "19690101"},
+                "partitionQuery": sql,
             },
-            {
-                "name": "partition",
-                "column_names": ["p_col1", "p_col2", "p_col3"],
-            },
-        ]
-        expected_result = {
-            "partitions": {"cols": [["p_col1", "p_col2", "p_col3"]]},
-            "clustering": {"cols": [["c_col1", "c_col2", "c_col3"]]},
         }
-        database.get_indexes = mock.MagicMock(return_value=index_metadata)
-        result = BigQueryEngineSpec.get_extra_table_metadata(
-            database,
-            Table("some_table", "some_schema"),
-        )
-        assert result == expected_result
-
-    def test_get_indexes(self):
-        database = mock.Mock()
-        inspector = mock.Mock()
-        schema = "foo"
-        table_name = "bar"
-
-        inspector.get_indexes = mock.Mock(
-            return_value=[
-                {
-                    "name": "partition",
-                    "column_names": [None],
-                    "unique": False,
-                }
-            ]
-        )
-
-        assert (
-            BigQueryEngineSpec.get_indexes(
-                database,
-                inspector,
-                Table(table_name, schema),
-            )
-            == []
-        )
-
-        inspector.get_indexes = mock.Mock(
-            return_value=[
-                {
-                    "name": "partition",
-                    "column_names": ["dttm"],
-                    "unique": False,
-                }
-            ]
-        )
-
-        assert BigQueryEngineSpec.get_indexes(
-            database,
-            inspector,
-            Table(table_name, schema),
-        ) == [
-            {
-                "name": "partition",
-                "column_names": ["dttm"],
-                "unique": False,
-            }
-        ]
-
-        inspector.get_indexes = mock.Mock(
-            return_value=[
-                {
-                    "name": "partition",
-                    "column_names": ["dttm", None],
-                    "unique": False,
-                }
-            ]
-        )
-
-        assert BigQueryEngineSpec.get_indexes(
-            database,
-            inspector,
-            Table(table_name, schema),
-        ) == [
-            {
-                "name": "partition",
-                "column_names": ["dttm"],
-                "unique": False,
-            }
-        ]
 
     @mock.patch("superset.db_engine_specs.bigquery.BigQueryEngineSpec.get_engine")
     @mock.patch("superset.db_engine_specs.bigquery.pandas_gbq")

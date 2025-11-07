@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
 from superset.app import create_app  # noqa: F401
@@ -35,9 +34,7 @@ from superset.security import SupersetSecurityManager  # noqa: F401
 # to declare "global" dependencies is to define it in extensions.py,
 # then initialize it in app.create_app(). These fields will be removed
 # in subsequent PRs as things are migrated towards the factory pattern
-app: Flask = current_app
 cache = cache_manager.cache
-conf = LocalProxy(lambda: current_app.config)
 get_feature_flags = feature_flag_manager.get_feature_flags
 get_manifest_files = manifest_processor.get_manifest_files
 is_feature_enabled = feature_flag_manager.is_feature_enabled

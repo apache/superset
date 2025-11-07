@@ -28,14 +28,14 @@ import {
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
-import { DatasourceModal } from 'src/components/Datasource';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import { DatasourceModal } from '.';
 
 // Define your constants here
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
-const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
-const GET_DATASOURCE_ENDPOINT = SAVE_DATASOURCE_ENDPOINT;
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7?override_columns=*';
+const GET_DATASOURCE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const GET_DATABASE_ENDPOINT = 'glob:*/api/v1/database/?q=*';
 
 const mockedProps = {
@@ -49,11 +49,15 @@ const mockedProps = {
 };
 
 let container;
-
+const routeProps = {
+  history: {},
+  location: {},
+  match: {},
+};
 async function renderAndWait(props = mockedProps) {
   const { container: renderedContainer } = render(
-    <DatasourceModal {...props} />,
-    { store },
+    <DatasourceModal {...props} {...routeProps} />,
+    { store, useRouter: true },
   );
 
   container = renderedContainer;

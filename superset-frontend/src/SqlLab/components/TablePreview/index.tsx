@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
@@ -25,17 +23,23 @@ import {
   ClientErrorObject,
   css,
   getExtensionsRegistry,
-  SafeMarkdown,
   styled,
   t,
 } from '@superset-ui/core';
+import {
+  SafeMarkdown,
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  Dropdown,
+  Skeleton,
+} from '@superset-ui/core/components';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
-import { Dropdown } from 'src/components/Dropdown';
-import FilterableTable from 'src/components/FilterableTable';
-import Tabs from 'src/components/Tabs';
+import { CopyToClipboard, FilterableTable } from 'src/components';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   tableApiUtil,
   TableMetaData,
@@ -43,10 +47,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
-import Alert from 'src/components/Alert';
-import { Menu } from 'src/components/Menu';
-import Card from 'src/components/Card';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { Menu } from '@superset-ui/core/components/Menu';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 
@@ -60,7 +61,13 @@ type Props = {
 const extensionsRegistry = getExtensionsRegistry();
 
 const COLUMN_KEYS = ['column_name', 'column_type', 'keys', 'comment'];
-// TODO: Remove fa-icon
+
+const TABS_KEYS = {
+  COLUMNS: 'columns',
+  METADATA: 'metadata',
+  INDEXES: 'indexes',
+  SAMPLE: 'sample',
+};
 const MENUS = [
   {
     key: 'refresh-table',
@@ -83,14 +90,15 @@ const PREVIEW_TOP_ACTION_HEIGHT = 30;
 const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  column-gap: ${({ theme }) => theme.gridUnit}px;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+  `}
 `;
-
 const renderWell = (partitions: TableMetaData['partitions']) => {
   if (!partitions) {
     return null;
@@ -309,7 +317,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         <Icons.InsertRowAboveOutlined iconSize="l" />
         {tableName}
         <Dropdown
-          dropdownRender={() => (
+          popupRender={() => (
             <Menu
               onClick={({ key }) => {
                 if (key === 'refresh-table') {
@@ -327,7 +335,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
           )}
           trigger={['click']}
         >
-          <Button buttonSize="xsmall" type="link">
+          <Button buttonSize="xsmall" buttonStyle="link">
             <Icons.DownSquareOutlined
               iconSize="m"
               style={{ marginTop: 2, marginLeft: 4 }}
@@ -348,79 +356,98 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             `}
           >
             <AutoSizer disableWidth>
-              {({ height }) => (
-                <Tabs
-                  fullWidth={false}
-                  onTabClick={onTabSwitch}
-                  css={css`
-                    height: ${height}px;
-                  `}
-                >
-                  <Tabs.TabPane
-                    tab={t('Columns (%s)', data.length)}
-                    key="columns"
-                  >
+              {({ height }) => {
+                const tabItems = [];
+
+                tabItems.push({
+                  key: TABS_KEYS.COLUMNS,
+                  label: t('Columns (%s)', data.length),
+                  children: (
                     <ResultTable
                       queryId="table-columns"
                       height={height - TAB_HEADER_HEIGHT}
                       data={data}
                       orderedColumnKeys={columns}
                     />
-                  </Tabs.TabPane>
-                  {tableData?.selectStar && !disableDataPreview && (
-                    <Tabs.TabPane tab={t('Data preview')} key="sample">
-                      {previewQueryId && (
-                        <ResultSet
-                          queryId={previewQueryId}
-                          visualize={false}
-                          csv={false}
-                          cache
-                          height={
-                            height -
-                            TAB_HEADER_HEIGHT -
-                            PREVIEW_TOP_ACTION_HEIGHT
-                          }
-                          displayLimit={PREVIEW_QUERY_LIMIT}
-                          defaultQueryLimit={PREVIEW_QUERY_LIMIT}
-                        />
-                      )}
-                    </Tabs.TabPane>
-                  )}
-                  {tableData?.indexes && tableData.indexes.length > 0 && (
-                    <Tabs.TabPane
-                      tab={t('Indexes (%s)', tableData.indexes.length)}
-                      key="indexes"
-                    >
-                      {tableData.indexes.map((ix, i) => (
-                        <pre className="code" key={i}>
-                          {JSON.stringify(ix, null, '  ')}
-                        </pre>
-                      ))}
-                    </Tabs.TabPane>
-                  )}
-                  {tableData?.metadata && (
-                    <Tabs.TabPane tab={t('Metadata')} key="metadata">
+                  ),
+                });
+
+                if (tableData?.selectStar && !disableDataPreview) {
+                  tabItems.push({
+                    key: TABS_KEYS.SAMPLE,
+                    label: t('Data preview'),
+                    children: previewQueryId && (
+                      <ResultSet
+                        queryId={previewQueryId}
+                        visualize={false}
+                        csv={false}
+                        cache
+                        height={
+                          height - TAB_HEADER_HEIGHT - PREVIEW_TOP_ACTION_HEIGHT
+                        }
+                        displayLimit={PREVIEW_QUERY_LIMIT}
+                        defaultQueryLimit={PREVIEW_QUERY_LIMIT}
+                      />
+                    ),
+                  });
+                }
+
+                if (tableData?.indexes && tableData.indexes.length > 0) {
+                  tabItems.push({
+                    key: TABS_KEYS.INDEXES,
+                    label: t('Indexes (%s)', tableData.indexes.length),
+                    children: tableData.indexes.map((ix, i) => (
+                      <pre className="code" key={i}>
+                        {JSON.stringify(ix, null, '  ')}
+                      </pre>
+                    )),
+                  });
+                }
+
+                if (tableData?.metadata) {
+                  tabItems.push({
+                    key: TABS_KEYS.METADATA,
+                    label: t('Metadata'),
+                    children: (
                       <ResultTable
                         queryId="table-metadata"
                         height={height - TAB_HEADER_HEIGHT}
                         data={Object.entries(tableData.metadata).map(
-                          ([name, value]) => ({ name, value }),
+                          ([name, value]) => ({
+                            name,
+                            value,
+                          }),
                         )}
                         orderedColumnKeys={['name', 'value']}
                       />
-                    </Tabs.TabPane>
-                  )}
-                  {customTabs.map(([title, ExtComponent]) => (
-                    <Tabs.TabPane tab={title} key={title}>
+                    ),
+                  });
+                }
+
+                customTabs.forEach(([title, ExtComponent]) => {
+                  tabItems.push({
+                    key: title,
+                    label: title,
+                    children: (
                       <ExtComponent
                         dbId={Number(dbId)}
                         schema={schema ?? ''}
                         tableName={tableName}
                       />
-                    </Tabs.TabPane>
-                  ))}
-                </Tabs>
-              )}
+                    ),
+                  });
+                });
+
+                return (
+                  <Tabs
+                    onTabClick={onTabSwitch}
+                    css={css`
+                      height: ${height}px;
+                    `}
+                    items={tabItems}
+                  />
+                );
+              }}
             </AutoSizer>
           </div>
         </>

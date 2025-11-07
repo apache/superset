@@ -33,6 +33,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
     exportFullXLSX: jest.fn(),
+    exportPivotExcel: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
@@ -254,6 +255,20 @@ test('Should not show export full Excel if report is not table', async () => {
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
 });
 
+test('Should export to pivoted Excel if report is pivot table', async () => {
+  const props = createProps(VizType.PivotTable);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Pivoted Excel'));
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
+  expect(props.exportPivotExcel).toHaveBeenCalledWith(
+    '.pvtTable',
+    props.slice.slice_name,
+  );
+});
+
 test('Should "Show chart description"', () => {
   const props = createProps();
   renderWrapper(props);
@@ -295,7 +310,7 @@ test('Drill to detail modal is under featureflag', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_explore`, `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -305,13 +320,14 @@ test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', (
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -324,13 +340,14 @@ test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () 
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -342,7 +359,9 @@ test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_
   renderWrapper(props, {
     Admin: [
       ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
@@ -365,7 +384,7 @@ test('Should not show "Drill to detail" with neither of required perms', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should not show "Drill to detail" only `can_dril` perm', () => {
+test('Should not show "Drill to detail" only `can_drill` perm', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -376,6 +395,64 @@ test('Should not show "Drill to detail" only `can_dril` perm', () => {
   props.slice.slice_id = 18;
   renderWrapper(props, {
     Admin: [['can_drill', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_drill', 'Dashboard'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore`, `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
   });
   openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();

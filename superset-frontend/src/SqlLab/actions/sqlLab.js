@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import { invert, mapKeys } from 'lodash';
 
-import { now } from 'src/utils/dates';
+import { now } from '@superset-ui/core/utils/dates';
 import {
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
@@ -252,28 +252,30 @@ export function querySuccess(query, results) {
   return { type: QUERY_SUCCESS, query, results };
 }
 
-export function queryFailed(query, msg, link, errors) {
+export function logFailedQuery(query, errors) {
   return function (dispatch) {
     const eventData = {
       has_err: true,
       start_offset: query.startDttm,
       ts: new Date().getTime(),
     };
-    errors?.forEach(({ error_type: errorType, extra }) => {
-      const messages = extra?.issue_codes?.map(({ message }) => message) || [
-        errorType,
-      ];
-      messages.forEach(message => {
-        dispatch(
-          logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
-            ...eventData,
-            error_type: errorType,
-            error_details: message,
-          }),
-        );
-      });
+    errors?.forEach(({ error_type: errorType, message, extra }) => {
+      const issueCodes = extra?.issue_codes?.map(({ code }) => code) || [-1];
+      dispatch(
+        logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
+          ...eventData,
+          error_type: errorType,
+          issue_codes: issueCodes,
+          error_details: message,
+        }),
+      );
     });
+  };
+}
 
+export function queryFailed(query, msg, link, errors) {
+  return function (dispatch) {
+    dispatch(logFailedQuery(query, errors));
     dispatch({ type: QUERY_FAILED, query, msg, link, errors });
   };
 }
@@ -1292,7 +1294,8 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
-    const { dbId, catalog, schema, datasourceName, sql } = vizOptions;
+    const { dbId, catalog, schema, datasourceName, sql, templateParams } =
+      vizOptions;
     return SupersetClient.post({
       endpoint: '/api/v1/dataset/',
       headers: { 'Content-Type': 'application/json' },
@@ -1304,6 +1307,7 @@ export function createDatasource(vizOptions) {
         table_name: datasourceName,
         is_managed_externally: false,
         external_url: null,
+        template_params: templateParams,
       }),
     })
       .then(({ json }) => {

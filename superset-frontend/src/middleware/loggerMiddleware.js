@@ -28,6 +28,7 @@ import {
   LOG_ACTIONS_SPA_NAVIGATION,
 } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
+import { ensureAppRoot } from '../utils/pathUtils';
 
 const LOG_ENDPOINT = '/superset/log/?explode=events';
 const sendBeacon = events => {
@@ -51,7 +52,7 @@ const sendBeacon = events => {
       // if we have a guest token, we need to send it for auth via the form
       formData.append('guest_token', SupersetClient.getGuestToken());
     }
-    navigator.sendBeacon(endpoint, formData);
+    navigator.sendBeacon(ensureAppRoot(endpoint), formData);
   } else {
     SupersetClient.post({
       endpoint,

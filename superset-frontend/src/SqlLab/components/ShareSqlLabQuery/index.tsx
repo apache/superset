@@ -18,15 +18,14 @@
  */
 import {
   t,
-  useTheme,
   getClientErrorObject,
   SupersetClient,
   css,
 } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Button } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';
@@ -40,7 +39,6 @@ const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
 }: ShareSqlLabQueryProps) => {
-  const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
     queryEditorId,
@@ -77,6 +75,7 @@ const ShareSqlLabQuery = ({
     return (
       <Button
         buttonSize="small"
+        buttonStyle="secondary"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {
@@ -84,10 +83,7 @@ const ShareSqlLabQuery = ({
           }
         `}
       >
-        <Icons.LinkOutlined
-          iconColor={theme.colors.primary.base}
-          iconSize="m"
-        />
+        <Icons.LinkOutlined iconSize="m" />
         {t('Copy link')}
       </Button>
     );

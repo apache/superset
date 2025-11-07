@@ -132,9 +132,9 @@ export type CsrfPromise = Promise<string | undefined>;
 export type Protocol = 'http:' | 'https:';
 
 export interface ClientConfig {
-  baseUrl?: string;
   host?: Host;
   protocol?: Protocol;
+  appRoot?: string;
   credentials?: Credentials;
   csrfToken?: CsrfToken;
   guestToken?: string;

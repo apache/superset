@@ -18,16 +18,20 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { RangePicker } from 'src/components/DatePicker';
-import { extendedDayjs } from 'src/utils/dates';
-import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
+import {
+  Input,
+  JsonEditor,
+  Modal,
+  RangePicker,
+} from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -41,40 +45,24 @@ interface AnnotationModalProps {
 }
 
 const StyledAnnotationTitle = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px auto
+    ${({ theme }) => theme.sizeUnit * 4}px auto;
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  /* Border is already applied by AceEditor itself */
 `;
 
 const AnnotationContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 5}px;
 
   .control-label {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
-
-  textarea {
-    flex: 1 1 auto;
-    height: ${({ theme }) => theme.gridUnit * 17}px;
-    resize: none;
-    width: 100%;
-  }
-
-  textarea,
-  input[type='text'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
+    color: ${({ theme }) => theme.colorError};
   }
 
   input[type='text'] {
@@ -91,11 +79,15 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   onHide,
   show,
 }) => {
-  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAnnotation, setCurrentAnnotation] =
     useState<AnnotationObject | null>(null);
   const isEditMode = annotation !== null;
+
+  // JSON validation for metadata
+  const jsonAnnotations = useJsonValidation(currentAnnotation?.json_metadata, {
+    errorPrefix: 'Invalid JSON metadata',
+  });
 
   // annotation fetch logic
   const {
@@ -276,25 +268,13 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
+      name={isEditMode ? t('Edit annotation') : t('Add annotation')}
       title={
-        <h4 data-test="annotation-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit annotation') : t('Add annotation')}
-        </h4>
+        <ModalTitleWithIcon
+          data-test="annotation-modal-title"
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit annotation') : t('Add annotation')}
+        />
       }
     >
       <StyledAnnotationTitle>
@@ -305,7 +285,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           {t('Name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="short_descr"
           onChange={onAnnotationTextChange}
           type="text"
@@ -339,7 +319,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">{t('description')}</div>
-        <textarea
+        <Input.TextArea
           name="long_descr"
           value={currentAnnotation ? currentAnnotation.long_descr : ''}
           placeholder={t('Description (this can be seen in the list)')}
@@ -357,6 +337,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           }
           width="100%"
           height="120px"
+          annotations={jsonAnnotations}
         />
       </AnnotationContainer>
     </Modal>

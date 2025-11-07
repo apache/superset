@@ -41,10 +41,9 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
-jest.mock(
-  'src/components/ErrorMessage/ErrorMessageWithStackTrace',
-  () => () => <div data-test="error-message">Error</div>,
-);
+jest.mock('src/components/ErrorMessage', () => ({
+  ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
+}));
 
 const mockedProps = {
   cache: true,

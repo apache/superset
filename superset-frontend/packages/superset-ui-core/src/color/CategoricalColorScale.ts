@@ -27,6 +27,8 @@ import getLabelsColorMap, {
 import { getAnalogousColors } from './utils';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
 interface CategoricalColorScale {

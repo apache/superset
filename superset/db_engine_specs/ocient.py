@@ -28,9 +28,8 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
+    from flask import current_app as app
     from shapely import wkt
-
-    from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
@@ -225,7 +224,6 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 class OcientEngineSpec(BaseEngineSpec):
     engine = "ocient"
     engine_name = "Ocient"
-    # limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 

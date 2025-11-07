@@ -30,9 +30,13 @@ import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
-
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import ChartPage from '.';
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
 jest.mock('re-resizable', () => ({
   Resizable: () => <div data-test="mock-re-resizable" />,
 }));
@@ -46,8 +50,22 @@ jest.mock(
     ),
 );
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
+jest.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
+  getParsedExploreURLParams: jest.fn(),
+}));
 
 describe('ChartPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+    });
+  });
+
   afterEach(() => {
     fetchMock.reset();
   });
@@ -73,6 +91,91 @@ describe('ChartPage', () => {
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
       JSON.stringify({ show_cell_bars: true }).slice(1, -1),
     );
+  });
+
+  test('displays the dataset name and error when it is prohibited', async () => {
+    const chartApiRoute = `glob:*/api/v1/chart/*`;
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+    const expectedDatasourceName = 'failed datasource name';
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['datasource_id', 1]]),
+    );
+    fetchMock.get(exploreApiRoute, () => {
+      class Extra {
+        datasource = 123;
+
+        datasource_name = expectedDatasourceName;
+      }
+      class SupersetSecurityError {
+        message = 'You do not have a permission to the table';
+
+        extra = new Extra();
+      }
+      throw new SupersetSecurityError();
+    });
+    fetchMock.get(chartApiRoute, 200);
+    const { getByTestId } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+    await waitFor(
+      () =>
+        expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+          JSON.stringify({ datasource_name: expectedDatasourceName }).slice(
+            1,
+            -1,
+          ),
+        ),
+      {
+        timeout: 5000,
+      },
+    );
+    expect(fetchMock.calls(chartApiRoute).length).toEqual(0);
+    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('fetches the chart api when explore metadata is prohibited and access from the chart link', async () => {
+    const expectedChartId = 7;
+    const expectedChartName = 'Unauthorized dataset owned chart name';
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['slice_id', expectedChartId]]),
+    );
+    const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+
+    fetchMock.get(exploreApiRoute, () => {
+      class Extra {
+        datasource = 123;
+      }
+      class SupersetSecurityError {
+        message = 'You do not have a permission to the table';
+
+        extra = new Extra();
+      }
+      throw new SupersetSecurityError();
+    });
+    fetchMock.get(chartApiRoute, {
+      result: {
+        id: expectedChartId,
+        slice_name: expectedChartName,
+        url: 'chartid',
+      },
+    });
+    const { getByTestId, getByText } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+    await waitFor(() => expect(fetchMock.calls(chartApiRoute).length).toBe(1), {
+      timeout: 5000,
+    });
+    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+    expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
+    expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
+      JSON.stringify({ datasource: 123 }).slice(1, -1),
+    );
+    expect(getByText(expectedChartName)).toBeInTheDocument();
   });
 
   describe('with dashboardContextFormData', () => {

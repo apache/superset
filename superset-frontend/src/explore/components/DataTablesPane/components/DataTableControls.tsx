@@ -16,24 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled, css, GenericDataType } from '@superset-ui/core';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
-    margin-bottom: ${theme.gridUnit * 2}px;
 
     span {
       flex-shrink: 0;

@@ -128,9 +128,10 @@ describe('BigNumberWithTrendline', () => {
       expect(lastDatum?.[0]).toStrictEqual(100);
       expect(lastDatum?.[1]).toBeNull();
 
-      // should note this is a fallback
+      // should get the last non-null value
       expect(transformed.bigNumber).toStrictEqual(1.2345);
-      expect(transformed.bigNumberFallback).not.toBeNull();
+      // bigNumberFallback is only set when bigNumber is null after aggregation
+      expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
       // @ts-ignore
@@ -149,6 +150,7 @@ describe('BigNumberWithTrendline', () => {
               label: 'value',
               metric_name: 'value',
               d3format: '.2f',
+              uuid: '1',
             },
           ],
         },
@@ -174,6 +176,7 @@ describe('BigNumberWithTrendline', () => {
               metric_name: 'value',
               d3format: '.2f',
               currency: { symbol: 'USD', symbolPosition: 'prefix' },
+              uuid: '1',
             },
           ],
         },
@@ -184,5 +187,190 @@ describe('BigNumberWithTrendline', () => {
         '$ 1.23',
       );
     });
+  });
+});
+
+describe('BigNumberWithTrendline - Aggregation Tests', () => {
+  const baseProps = {
+    width: 800,
+    height: 600,
+    formData: {
+      colorPicker: { r: 0, g: 0, b: 0, a: 1 },
+      metric: 'metric',
+      aggregation: 'LAST_VALUE',
+    },
+    queriesData: [
+      {
+        data: [
+          { __timestamp: 1607558400000, metric: 10 },
+          { __timestamp: 1607558500000, metric: 30 },
+          { __timestamp: 1607558600000, metric: 50 },
+          { __timestamp: 1607558700000, metric: 60 },
+        ],
+        colnames: ['__timestamp', 'metric'],
+        coltypes: ['TIMESTAMP', 'BIGINT'],
+      },
+    ],
+    hooks: {},
+    filterState: {},
+    datasource: {
+      columnFormats: {},
+      currencyFormats: {},
+    },
+    rawDatasource: {},
+    rawFormData: {},
+    theme: {
+      colors: {
+        grayscale: {
+          light5: '#fafafa',
+        },
+      },
+    },
+  } as unknown as BigNumberWithTrendlineChartProps;
+
+  const propsWithEvenData = {
+    ...baseProps,
+    queriesData: [
+      {
+        data: [
+          { __timestamp: 1607558400000, metric: 10 },
+          { __timestamp: 1607558500000, metric: 20 },
+          { __timestamp: 1607558600000, metric: 30 },
+          { __timestamp: 1607558700000, metric: 40 },
+        ],
+        colnames: ['__timestamp', 'metric'],
+        coltypes: ['TIMESTAMP', 'BIGINT'],
+      },
+    ],
+  } as unknown as BigNumberWithTrendlineChartProps;
+
+  it('should correctly calculate SUM', () => {
+    const props = {
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'sum' },
+      queriesData: [
+        baseProps.queriesData[0],
+        {
+          data: [{ metric: 150 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(150);
+  });
+
+  it('should correctly calculate AVG', () => {
+    const props = {
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'mean' },
+      queriesData: [
+        baseProps.queriesData[0],
+        {
+          data: [{ metric: 37.5 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(37.5);
+  });
+
+  it('should correctly calculate MIN', () => {
+    const props = {
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'min' },
+      queriesData: [
+        baseProps.queriesData[0],
+        {
+          data: [{ metric: 10 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(10);
+  });
+
+  it('should correctly calculate MAX', () => {
+    const props = {
+      ...baseProps,
+      formData: { ...baseProps.formData, aggregation: 'max' },
+      queriesData: [
+        baseProps.queriesData[0],
+        {
+          data: [{ metric: 60 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(60);
+  });
+
+  it('should correctly calculate MEDIAN (odd count)', () => {
+    const oddCountProps = {
+      ...baseProps,
+      queriesData: [
+        {
+          data: [
+            { __timestamp: 1607558300000, metric: 10 },
+            { __timestamp: 1607558400000, metric: 20 },
+            { __timestamp: 1607558500000, metric: 30 },
+            { __timestamp: 1607558600000, metric: 40 },
+            { __timestamp: 1607558700000, metric: 50 },
+          ],
+          colnames: ['__timestamp', 'metric'],
+          coltypes: ['TIMESTAMP', 'BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const props = {
+      ...oddCountProps,
+      formData: { ...oddCountProps.formData, aggregation: 'median' },
+      queriesData: [
+        oddCountProps.queriesData[0],
+        {
+          data: [{ metric: 30 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(30);
+  });
+
+  it('should correctly calculate MEDIAN (even count)', () => {
+    const props = {
+      ...propsWithEvenData,
+      formData: { ...propsWithEvenData.formData, aggregation: 'median' },
+      queriesData: [
+        propsWithEvenData.queriesData[0],
+        {
+          data: [{ metric: 25 }],
+          colnames: ['metric'],
+          coltypes: ['BIGINT'],
+        },
+      ],
+    } as unknown as BigNumberWithTrendlineChartProps;
+
+    const transformed = transformProps(props);
+    expect(transformed.bigNumber).toStrictEqual(25);
+  });
+
+  it('should return the LAST_VALUE correctly', () => {
+    const transformed = transformProps(baseProps);
+    expect(transformed.bigNumber).toStrictEqual(10);
   });
 });

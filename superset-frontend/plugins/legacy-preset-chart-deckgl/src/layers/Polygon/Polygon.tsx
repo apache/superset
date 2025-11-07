@@ -23,20 +23,29 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ContextMenuFilters,
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
   t,
 } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
 
+import { Color } from '@deck.gl/core';
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
-import { getBuckets, getBreakPointColorScaler } from '../../utils';
+import {
+  getBuckets,
+  getBreakPointColorScaler,
+  getColorBreakpointsBuckets,
+  TRANSPARENT_COLOR_ARRAY,
+} from '../../utils';
 
-import { commonLayerProps } from '../common';
+import { commonLayerProps, getColorForBreakpoints } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
@@ -45,8 +54,10 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
-
-const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
+import { GetLayerType } from '../../factory';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { Point } from '../../types';
 
 function getElevation(
   d: JsonObject,
@@ -90,17 +101,22 @@ function setTooltipContent(formData: PolygonFormData) {
   };
 }
 
-export function getLayer(
-  formData: PolygonFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  selected: JsonObject[],
-  onSelect: (value: JsonValue) => void,
-) {
-  const fd = formData;
-  const fc = fd.fill_color_picker;
-  const sc = fd.stroke_color_picker;
+export const getLayer: GetLayerType<PolygonLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  onSelect,
+  emitCrossFilters,
+}) {
+  const fd = formData as PolygonFormData;
+  const fc: { r: number; g: number; b: number; a: number } =
+    fd.fill_color_picker;
+  const sc: { r: number; g: number; b: number; a: number } =
+    fd.stroke_color_picker;
+  const defaultBreakpointColor = fd.deafult_breakpoint_color;
   let data = [...payload.data.features];
 
   if (fd.js_data_mutator) {
@@ -109,24 +125,74 @@ export function getLayer(
     data = jsFnMutator(data);
   }
 
+  const colorSchemeType = fd.color_scheme_type;
+
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
-  // base color for the polygons
-  const baseColorScaler =
-    fd.metric === null
-      ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-      : getBreakPointColorScaler(fd, data, accessor);
+  let baseColorScaler: (d: JsonObject) => Color;
+
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.fixed_color: {
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
+    }
+    case COLOR_SCHEME_TYPES.linear_palette: {
+      baseColorScaler =
+        fd.metric === null
+          ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
+          : getBreakPointColorScaler(fd, data, accessor);
+      break;
+    }
+    case COLOR_SCHEME_TYPES.color_breakpoints: {
+      const colorBreakpoints = fd.color_breakpoints;
+      baseColorScaler = data => {
+        const breakpointIndex = getColorForBreakpoints(
+          accessor,
+          data as number[],
+          colorBreakpoints,
+        );
+        const breakpointColor =
+          breakpointIndex !== undefined &&
+          colorBreakpoints[breakpointIndex - 1]?.color;
+        return breakpointColor
+          ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
+          : defaultBreakpointColor
+            ? [
+                defaultBreakpointColor.r,
+                defaultBreakpointColor.g,
+                defaultBreakpointColor.b,
+                defaultBreakpointColor.a * 255,
+              ]
+            : [
+                DEFAULT_DECKGL_COLOR.r,
+                DEFAULT_DECKGL_COLOR.g,
+                DEFAULT_DECKGL_COLOR.b,
+                DEFAULT_DECKGL_COLOR.a * 255,
+              ];
+      };
+      break;
+    }
+
+    default:
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
+  }
 
   // when polygons are selected, reduce the opacity of non-selected polygons
-  const colorScaler = (d: JsonObject): [number, number, number, number] => {
-    const baseColor = (baseColorScaler?.(d) as [
-      number,
-      number,
-      number,
-      number,
-    ]) || [0, 0, 0, 0];
-    if (selected.length > 0 && !selected.includes(d[fd.line_column])) {
-      baseColor[3] /= 2;
+  const colorScaler = (d: {
+    polygon: Point[];
+  }): [number, number, number, number] => {
+    const baseColor =
+      (baseColorScaler(d) as [number, number, number, number]) ||
+      TRANSPARENT_COLOR_ARRAY;
+    const polygonPoints = getPointsFromPolygon(d);
+
+    const isPolygonFilterSelected =
+      JSON.stringify(polygonPoints).replaceAll(' ', '') ===
+      filterState?.value?.[0];
+
+    if (filterState?.value && !isPolygonFilterSelected) {
+      baseColor[3] /= 3;
     }
 
     return baseColor;
@@ -146,16 +212,26 @@ export function getLayer(
     stroked: fd.stroked,
     getPolygon: getPointsFromPolygon,
     getFillColor: colorScaler,
-    getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
+    getLineColor: sc ? [sc.r, sc.g, sc.b, 255 * sc.a] : undefined,
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: (d: any) => getElevation(d, colorScaler),
+    getElevation: (d: JsonObject) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
+    opacity: fd.opacity ? fd.opacity / 100 : 1,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: tooltipContentGenerator,
+      onSelect,
+      filterState,
+      onContextMenu,
+      setDataMask,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export type PolygonFormData = QueryFormData & {
   break_points: string[];
@@ -171,7 +247,19 @@ export type DeckGLPolygonProps = {
   onAddFilter: HandlerFunction;
   width: number;
   height: number;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  setDataMask?: SetDataMaskHook;
+  filterState?: FilterState;
+  emitCrossFilters?: boolean;
 };
+
+export function getPoints(data: JsonObject[]) {
+  return data.flatMap(getPointsFromPolygon);
+}
 
 const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
@@ -183,7 +271,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       viewport = fitViewport(viewport, {
         width: props.width,
         height: props.height,
-        points: features.flatMap(getPointsFromPolygon),
+        points: getPoints(features),
       });
     }
     if (viewport.zoom < 0) {
@@ -192,18 +280,14 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     return viewport;
   }, [props]);
 
-  const [lastClick, setLastClick] = useState(0);
   const [viewport, setViewport] = useState(getAdjustedViewport());
   const [stateFormData, setStateFormData] = useState(props.payload.form_data);
-  const [selected, setSelected] = useState<JsonObject[]>([]);
 
   useEffect(() => {
     const { payload } = props;
 
     if (payload.form_data !== stateFormData) {
       setViewport(getAdjustedViewport());
-      setSelected([]);
-      setLastClick(0);
       setStateFormData(payload.form_data);
     }
   }, [getAdjustedViewport, props, stateFormData, viewport]);
@@ -215,60 +299,34 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     }
   }, []);
 
-  const onSelect = useCallback(
-    (polygon: JsonObject) => {
-      const { formData, onAddFilter } = props;
-
-      const now = new Date().getDate();
-      const doubleClick = now - lastClick <= DOUBLE_CLICK_THRESHOLD;
-
-      // toggle selected polygons
-      const selectedCopy = [...selected];
-      if (doubleClick) {
-        selectedCopy.splice(0, selectedCopy.length, polygon);
-      } else if (formData.toggle_polygons) {
-        const i = selectedCopy.indexOf(polygon);
-        if (i === -1) {
-          selectedCopy.push(polygon);
-        } else {
-          selectedCopy.splice(i, 1);
-        }
-      } else {
-        selectedCopy.splice(0, 1, polygon);
-      }
-
-      setSelected(selectedCopy);
-      setLastClick(now);
-      if (formData.table_filter) {
-        onAddFilter(formData.line_column, selected, false, true);
-      }
-    },
-    [lastClick, props, selected],
-  );
-
   const getLayers = useCallback(() => {
+    const {
+      formData,
+      payload,
+      onAddFilter,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    } = props;
+
     if (props.payload.data.features === undefined) {
       return [];
     }
 
-    const layer = getLayer(
-      props.formData,
-      props.payload,
-      props.onAddFilter,
+    const layer = getLayer({
+      formData,
+      payload,
+      onAddFilter,
       setTooltip,
-      selected,
-      onSelect,
-    );
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    });
 
     return [layer];
-  }, [
-    onSelect,
-    props.formData,
-    props.onAddFilter,
-    props.payload,
-    selected,
-    setTooltip,
-  ]);
+  }, [setTooltip, props]);
 
   const { payload, formData, setControlValue } = props;
 
@@ -277,7 +335,10 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     : null;
   const accessor = (d: JsonObject) => d[metricLabel];
 
-  const buckets = getBuckets(formData, payload.data.features, accessor);
+  const colorSchemeType = formData.color_scheme_type;
+  const buckets = colorSchemeType
+    ? getColorBreakpointsBuckets(formData.color_breakpoints)
+    : getBuckets(formData, payload.data.features, accessor);
 
   return (
     <div style={{ position: 'relative' }}>

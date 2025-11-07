@@ -21,13 +21,20 @@ import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 import SchemaForm, { FormProps } from '@rjsf/core';
 import { FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
-import { Row, Col } from 'src/components';
-import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import { parseDate } from 'chrono-node';
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import { Form, FormItem } from 'src/components/Form';
-import Button from 'src/components/Button';
+import {
+  ModalTrigger,
+  ModalTriggerRef,
+} from '@superset-ui/core/components/ModalTrigger';
+import {
+  Input,
+  Button,
+  Form,
+  FormItem,
+  Row,
+  Col,
+} from '@superset-ui/core/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const bootstrapData = getBootstrapData();
@@ -92,7 +99,7 @@ interface ScheduleQueryButtonProps {
 }
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 export const StyledButtonComponent = styled(Button)`
@@ -100,17 +107,14 @@ export const StyledButtonComponent = styled(Button)`
     background: none;
     text-transform: none;
     padding: 0px;
-    color: ${theme.colors.grayscale.dark2};
     font-size: 14px;
-    font-weight: ${theme.typography.weights.normal};
+    font-weight: ${theme.fontWeightNormal};
     margin-left: 0;
     &:disabled {
       margin-left: 0;
       background: none;
-      color: ${theme.colors.grayscale.dark2};
       &:hover {
         background: none;
-        color: ${theme.colors.grayscale.dark2};
       }
     }
   `}
@@ -185,7 +189,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       <StyledRow>
         <Col xs={24}>
           <FormItem label={t('Description')}>
-            <TextArea
+            <Input.TextArea
               rows={4}
               placeholder={t('Write a description for your query')}
               value={description}

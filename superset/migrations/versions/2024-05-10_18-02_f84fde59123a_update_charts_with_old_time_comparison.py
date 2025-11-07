@@ -41,7 +41,7 @@ from superset.utils.date_parser import get_since_until
 revision = "f84fde59123a"
 down_revision = "9621c6d56ffb"
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 Base = declarative_base()
 
 

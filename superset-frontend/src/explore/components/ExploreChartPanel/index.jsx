@@ -38,7 +38,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import Alert from 'src/components/Alert';
+import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
@@ -93,31 +93,15 @@ const Styles = styled.div`
   }
 
   .gutter {
-    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    width: ${({ theme }) => theme.gridUnit * 9}px;
-    margin: ${({ theme }) => theme.gridUnit * GUTTER_SIZE_FACTOR}px auto;
+    border-top: 1px solid ${({ theme }) => theme.colorSplit};
+    border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+    width: ${({ theme }) => theme.sizeUnit * 9}px;
+    margin: ${({ theme }) => theme.sizeUnit * GUTTER_SIZE_FACTOR}px auto;
   }
 
   .gutter.gutter-vertical {
     display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
-  }
-
-  .ant-collapse {
-    .ant-tabs {
-      height: 100%;
-      .ant-tabs-nav {
-        padding-left: ${({ theme }) => theme.gridUnit * 5}px;
-        margin: 0;
-      }
-      .ant-tabs-content-holder {
-        overflow: hidden;
-        .ant-tabs-content {
-          height: 100%;
-        }
-      }
-    }
   }
 `;
 
@@ -140,8 +124,8 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }) => {
   const theme = useTheme();
-  const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
+  const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+  const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const {
     ref: chartPanelRef,
     observerRef: resizeObserverRef,
@@ -176,7 +160,7 @@ const ExploreChartPanel = ({
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {
-        const queryContext = buildV1ChartDataPayload({
+        const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,
           force,
           resultFormat: 'json',
@@ -307,6 +291,7 @@ const ExploreChartPanel = ({
         css={css`
           display: flex;
           flex-direction: column;
+          padding-top: ${theme.sizeUnit * 2}px;
         `}
         ref={resizeObserverRef}
       >
@@ -315,7 +300,7 @@ const ExploreChartPanel = ({
             message={t('Chart type requires a dataset')}
             type="error"
             css={theme => css`
-              margin: 0 0 ${theme.gridUnit * 4}px 0;
+              margin: 0 0 ${theme.sizeUnit * 4}px 0;
             `}
             description={
               <>
@@ -359,7 +344,7 @@ const ExploreChartPanel = ({
             }
             type="warning"
             css={theme => css`
-              margin: 0 0 ${theme.gridUnit * 4}px 0;
+              margin: 0 0 ${theme.sizeUnit * 4}px 0;
             `}
           />
         )}
@@ -427,10 +412,7 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles
-      className="panel panel-default chart-container"
-      showSplite={showSplite}
-    >
+    <Styles className="chart-container" showSplite={showSplite}>
       <Split
         sizes={splitSizes}
         minSize={MIN_SIZES}
