@@ -170,12 +170,12 @@ npm run dev-server
 
 Once your plugin is complete, you will need to deploy it to your superset instance.
 
-This step assumes your are running your own docker image as described [here](https://superset.apache.org/docs/installation/docker-builds/#building-your-own-production-docker-image).
+This step assumes you are running your own Docker image as described [here](https://superset.apache.org/docs/installation/docker-builds/#building-your-own-production-docker-image).
 Instructions may vary for other kinds of deployments.
 
-If you have your own superset docker image, your first line is most likely:
+If you have your own Superset Docker image, the first line is most likely:
 `FROM apache/superset:latest` or something similar. You will need to compile
-your own `lean` image and replace this FROM line with your own image.
+your own `"lean"` image and replace this FROM line with your own image.
 
 1. publish your chart plugin to npm - it makes the build process simpler
 
@@ -211,7 +211,7 @@ It's because your local nodejs/npm version is different than the one being used 
 
 You can resolve this by running npm install with the same version used by the container build process
 
-Replace XYZ in the following command with the node tag used in the Dockerfile (search for "node:" in the dockerfile to find the tag).
+Replace XYZ in the following command with the node tag used in the Dockerfile (search for "node:" in the Dockerfile to find the tag).
 ```bash
 docker run --rm -v $PWD/superset-frontend:/app node:XYZ /bin/bash -c "cd /app && npm i"
 ```
