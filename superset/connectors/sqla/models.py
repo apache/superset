@@ -1506,11 +1506,7 @@ class SqlaTable(
 
             # For column references, conditionally quote identifiers that need it
             if col.get("isColumnReference"):
-                # Check if already quoted to avoid double-quoting
-                if not (
-                    sql_expression.startswith('"') and sql_expression.endswith('"')
-                ):
-                    sql_expression = self.database.quote_identifier(sql_expression)
+                sql_expression = self.database.quote_identifier(sql_expression)
 
             expression = self._process_select_expression(
                 expression=sql_expression,

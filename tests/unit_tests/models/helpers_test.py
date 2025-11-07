@@ -476,9 +476,9 @@ def test_apply_series_others_grouping_sql_compilation(database: Database) -> Non
     has_single_quotes = "'Others'" in select_sql and "'Others'" in groupby_sql
     has_double_quotes = '"Others"' in select_sql and '"Others"' in groupby_sql
 
-    assert has_single_quotes or has_double_quotes, (
-        "Others literal should be quoted with either single or double quotes"
-    )
+    assert (
+        has_single_quotes or has_double_quotes
+    ), "Others literal should be quoted with either single or double quotes"
 
     # Verify the structure of the generated SQL
     assert "CASE WHEN" in select_sql
@@ -1120,13 +1120,13 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
         # sqlglot may normalize the SQL slightly, so we check the result exists
         # and doesn't contain the SELECT prefix
         assert result is not None, f"Failed to process: {expression}"
-        assert not result.upper().startswith("SELECT"), (
-            f"Result still has SELECT prefix: {result}"
-        )
+        assert not result.upper().startswith(
+            "SELECT"
+        ), f"Result still has SELECT prefix: {result}"
         # The result should contain the core expression (case-insensitive check)
-        assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
-            f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
-        )
+        assert (
+            expected.replace(" ", "").lower() in result.replace(" ", "").lower()
+        ), f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
 
 
 def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
@@ -1158,35 +1158,3 @@ def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
     result_str = str(result)
 
     assert '"Customer Name"' in result_str
-
-
-def test_adhoc_column_to_sqla_column_reference_already_quoted(
-    database: Database,
-) -> None:
-    """
-    Test that adhoc_column_to_sqla handles already quoted column names correctly.
-
-    When isColumnReference is true but the column is already quoted,
-    it should not be double-quoted.
-    """
-    from superset.connectors.sqla.models import SqlaTable
-
-    table = SqlaTable(
-        table_name="test_table",
-        database=database,
-    )
-
-    # Test already quoted column
-    already_quoted_col: AdhocColumn = {
-        "sqlExpression": '"Already Quoted"',
-        "label": "Already Quoted",
-        "isColumnReference": True,
-    }
-
-    result = table.adhoc_column_to_sqla(already_quoted_col)
-
-    # Should not be double-quoted
-    assert result is not None
-    result_str = str(result)
-    assert '""' not in result_str  # No double quotes
-    assert '"Already Quoted"' in result_str
