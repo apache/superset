@@ -635,8 +635,8 @@ test('should cleanup when unmounted during async operation', async () => {
   mockGetChartDataRequest.mockResolvedValue(createMockAsyncChartResponse());
 
   // Mock a slow async operation
-  let asyncResolve!: (value: MockChartDataResponse) => void;
-  const asyncPromise = new Promise<MockChartDataResponse>(resolve => {
+  let asyncResolve!: (value: unknown[]) => void;
+  const asyncPromise = new Promise<unknown[]>(resolve => {
     asyncResolve = resolve;
   });
   mockWaitForAsyncData.mockReturnValue(asyncPromise);
@@ -676,7 +676,13 @@ test('should cleanup when unmounted during async operation', async () => {
   unmount();
 
   // Now resolve the async operation after unmount
-  asyncResolve(createMockChartResponse([{ name: 'Delayed', count: 1 }]));
+  asyncResolve([
+    {
+      status: 'success',
+      data: [{ name: 'Delayed', count: 1 }],
+      applied_filters: [],
+    },
+  ]);
 
   // Wait a bit to ensure any state updates would have happened
   await new Promise(resolve => setTimeout(resolve, 100));
