@@ -35,6 +35,62 @@ import { ChartSource } from 'src/types/ChartSource';
 import { setItem, getItem } from 'src/utils/localStorageHelpers';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
+// Global pathname tracker to detect page navigation
+let globalCleanupPathname = '';
+
+/**
+ * Clean up ALL chart legend states from localStorage (including unmounted charts)
+ */
+export function cleanupAllChartLegendStates() {
+  try {
+    // Get all localStorage keys
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+      if (
+        key &&
+        (key.startsWith('chart_legend_state_') ||
+          key.startsWith('chart_legend_index_'))
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    // Remove all chart legend state keys
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+  } catch (e) {
+    console.warn(
+      'Failed to clean up all chart legend states from localStorage:',
+      e,
+    );
+  }
+}
+
+/**
+ * Check if we should clean up all chart legend states based on pathname change
+ */
+function checkAndCleanupAll(pathname) {
+  // If pathname changed, we're navigating to a different page - clean up all chart legend states
+  if (pathname !== globalCleanupPathname) {
+    cleanupAllChartLegendStates();
+    // Update the tracked pathname for the new page
+    globalCleanupPathname = pathname;
+  }
+}
+
+// Global handlers that work independently of component instances
+function globalBeforeUnloadHandler() {
+  // Browser is closing/navigating away - always clean up
+  cleanupAllChartLegendStates();
+}
+
+function globalRouteChangeHandler() {
+  // Handle all route changes (popstate, hashchange, SPA navigation)
+  const currentPathname = window.location.pathname;
+  checkAndCleanupAll(currentPathname);
+}
+
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
@@ -102,7 +158,7 @@ class ChartRenderer extends Component {
       const savedIndex = getItem(legendIndexKey);
       if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
     } catch (e) {
-      // do nothing
+      console.warn('Failed to load legend state from localStorage:', e);
     }
 
     this.state = {
@@ -115,6 +171,14 @@ class ChartRenderer extends Component {
       legendIndex: savedLegendIndex,
     };
     this.hasQueryResponseChange = false;
+    // Initialize global cleanup tracking on first mount
+    // If pathname changed (new page), trigger cleanup check immediately
+    const currentPathname = window.location.pathname;
+    if (globalCleanupPathname === '') {
+      globalCleanupPathname = currentPathname;
+    } else {
+      checkAndCleanupAll(currentPathname);
+    }
 
     this.contextMenuRef = createRef();
 
@@ -150,6 +214,25 @@ class ChartRenderer extends Component {
     // the plugins, hence we need to clone it to avoid state mutation
     // until we change the reducers to use Redux Toolkit with Immer
     this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
+  }
+
+  componentDidMount() {
+    // Only set up global listeners once (shared across all ChartRenderer instances)
+    // Cleans up ALL chart legend states even charts out of view and unmounted
+    if (!window.__chartLegendCleanupListenersSetup) {
+      // Listen for browser navigation (close tab, navigate away)
+      window.addEventListener('beforeunload', globalBeforeUnloadHandler);
+      // Listen for browser back/forward navigation
+      window.addEventListener('popstate', globalRouteChangeHandler);
+      // Listen for hash changes (manual URL changes)
+      window.addEventListener('hashchange', globalRouteChangeHandler);
+      // Check periodically to catch route changes (including SPA navigation via tabs/links)
+      window.__chartLegendCleanupInterval = setInterval(
+        globalRouteChangeHandler,
+        100,
+      );
+      window.__chartLegendCleanupListenersSetup = true;
+    }
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -283,7 +366,7 @@ class ChartRenderer extends Component {
         JSON.stringify(legendState),
       );
     } catch (e) {
-      // do nothing
+      console.warn('Failed to save legend state to localStorage:', e);
     }
   }
 
@@ -304,8 +387,14 @@ class ChartRenderer extends Component {
         JSON.stringify(legendIndex),
       );
     } catch (e) {
-      // do nothing
+      console.warn('Failed to save legend index to localStorage:', e);
     }
+  }
+
+  componentWillUnmount() {
+    // If pathname changed when unmounting, we're navigating away
+    // If scrolling out of view, pathname is the same, so no cleanup happens
+    checkAndCleanupAll(window.location.pathname);
   }
 
   render() {
