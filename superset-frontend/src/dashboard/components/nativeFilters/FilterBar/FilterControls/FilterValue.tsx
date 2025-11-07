@@ -64,7 +64,9 @@ const HEIGHT = 32;
 // Overrides superset-ui height with min-height
 const StyledDiv = styled.div<{ orientation: FilterBarOrientation }>`
   padding-bottom: ${({ theme, orientation }) =>
-    orientation === FilterBarOrientation.Horizontal ? 0 : theme.sizeUnit}px;
+    orientation === FilterBarOrientation.Horizontal
+      ? 0
+      : (theme?.sizeUnit ?? 4)}px;
 
   & > div {
     height: auto !important;
