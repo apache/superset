@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
@@ -460,14 +460,13 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-                # Log is_cached if extra payload callback is provided
+            # Log is_cached if extra payload callback is provided
         if add_extra_log_payload and result and "queries" in result:
             is_cached_values = [query.get("is_cached") for query in result["queries"]]
             if len(is_cached_values) == 1:
                 add_extra_log_payload(is_cached=is_cached_values[0])
             elif is_cached_values:
                 add_extra_log_payload(is_cached=is_cached_values)
-
 
         return self._send_chart_response(
             result, form_data, datasource, filename, expected_rows
