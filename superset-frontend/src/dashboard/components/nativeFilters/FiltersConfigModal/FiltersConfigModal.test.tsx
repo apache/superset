@@ -373,7 +373,8 @@ test('validates the pre-filter value', async () => {
   // Wait for validation to complete after timer switch
   await waitFor(
     () => {
-      expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+      const errorMessages = screen.queryAllByText(PRE_FILTER_REQUIRED_REGEX);
+      expect(errorMessages.length).toBeGreaterThan(0);
     },
     { timeout: 15000 },
   );

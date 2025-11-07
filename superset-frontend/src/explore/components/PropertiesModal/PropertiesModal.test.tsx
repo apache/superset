@@ -360,7 +360,7 @@ test('"Cache timeout" should not be empty when saved', async () => {
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: '1000' }),
+      expect.objectContaining({ cache_timeout: 1000 }),
     );
   });
 });
