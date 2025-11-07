@@ -28,7 +28,8 @@ import {
   Input,
   Modal,
 } from '@superset-ui/core/components';
-import { t, styled, SupersetClient, useTheme } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';

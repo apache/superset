@@ -19,15 +19,8 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  addAlpha,
-  css,
-  JsonObject,
-  styled,
-  t,
-  useTheme,
-  useElementOnScreen,
-} from '@superset-ui/core';
+import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';

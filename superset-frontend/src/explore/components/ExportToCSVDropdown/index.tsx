@@ -18,7 +18,8 @@
  */
 import { ReactChild, useCallback, Key } from 'react';
 
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dropdown } from '@superset-ui/core/components';
 

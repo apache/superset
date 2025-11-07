@@ -29,7 +29,8 @@ import {
   FC,
 } from 'react';
 
-import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
+import { t, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Tooltip, ImageLoader } from '@superset-ui/core/components';
 import { GenericLink, usePluginContext } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';

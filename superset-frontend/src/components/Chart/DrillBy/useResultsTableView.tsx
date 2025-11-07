@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
+import { isDefined, QueryData, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import Tabs from '@superset-ui/core/components/Tabs';
 

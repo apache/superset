@@ -22,13 +22,15 @@ import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
 import type {
   AnyThemeConfig,
+  SerializableThemeConfig,
+} from '@apache-superset/core/ui';
+import type {
   ColorSchemeConfig,
   FeatureFlagMap,
   JsonObject,
   LanguagePack,
   Locale,
   SequentialSchemeConfig,
-  SerializableThemeConfig,
 } from '@superset-ui/core';
 
 export type User = {
