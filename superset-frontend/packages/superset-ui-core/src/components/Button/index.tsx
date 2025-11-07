@@ -19,7 +19,7 @@
 import { Children, ReactElement, Fragment } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '../Tooltip';
 import type {
   ButtonColorType,
@@ -132,11 +132,12 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
-        ':not(:hover)': effectiveButtonStyle === 'secondary' && {
-          // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
-          // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
-          color: `${theme.colorPrimaryTextHover} !important`,
-        },
+        ':not(:hover)': effectiveButtonStyle === 'secondary' &&
+          !disabled && {
+            // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
+            // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
+            color: `${theme.colorPrimaryTextHover} !important`,
+          },
       }}
       icon={icon}
       {...restProps}

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, css, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Comparator } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -53,11 +54,12 @@ export const FormatterContainer = styled(OptionControlContainer)`
 
 export const CloseButton = styled.button`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.light1};
+    background: ${theme.colorBgLayout};
+    color: ${theme.colorIcon};
     height: 100%;
     width: ${theme.sizeUnit * 6}px;
     border: none;
-    border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
+    border-right: solid 1px ${theme.colorBorder};
     padding: 0;
     outline: none;
     border-bottom-left-radius: 3px;
@@ -72,6 +74,7 @@ const ConditionalFormattingControl = ({
   verboseMap,
   removeIrrelevantConditions,
   extraColorChoices,
+  conditionalFormattingFlag,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
@@ -172,6 +175,7 @@ const ConditionalFormattingControl = ({
           onChange={onSave}
           destroyTooltipOnHide
           extraColorChoices={extraColorChoices}
+          conditionalFormattingFlag={conditionalFormattingFlag}
         >
           <AddControlLabel>
             <Icons.PlusOutlined

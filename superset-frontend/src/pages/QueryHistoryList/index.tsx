@@ -12,20 +12,14 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  QueryState,
-  styled,
-  SupersetClient,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { QueryState, SupersetClient, t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -98,7 +92,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -190,30 +184,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
           ) {
             statusConfig.name = (
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colorPrimary} />
+              <Icons.LoadingOutlined
+                iconSize="m"
+                iconColor={theme.colorPrimary}
+              />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconSize="m" iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = <Icons.Queued />;
+            statusConfig.name = <Icons.Queued iconSize="m" />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -256,15 +253,18 @@ function QueryList({ addDangerToast }: QueryListProps) {
         size: 'lg',
         Cell: ({
           row: {
-            original: { status, start_time, end_time },
+            original: { status, start_time, start_running_time, end_time },
           },
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
-          const timerTime = end_time
-            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
-                TIME_WITH_MS,
-              )
-            : '00:00:00.000';
+          // Use start_running_time if available for more accurate duration
+          const startTime = start_running_time || start_time;
+          const timerTime =
+            end_time && startTime
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
+              : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
               {timerTime}

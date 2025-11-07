@@ -220,13 +220,14 @@ test('keeps apply disabled when missing required fields', async () => {
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
   userEvent.click(screen.getByText('Chart A'));
   await screen.findByText(/title column/i);
-  userEvent.click(screen.getByRole('button', { name: 'Automatic color' }));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer title column' }),
   );
   expect(await screen.findByText(/none/i)).toBeInTheDocument();
   userEvent.click(screen.getByText('None'));
   userEvent.click(screen.getByText('Style'));
+  // The checkbox for automatic color is in the Style tab
+  userEvent.click(screen.getByText('Use automatic color'));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer stroke' }),
   );

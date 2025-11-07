@@ -18,13 +18,8 @@
  */
 import { CSSProperties, ReactNode, useCallback } from 'react';
 
-import {
-  css,
-  styled,
-  t,
-  useCSSTextTruncation,
-  useTheme,
-} from '@superset-ui/core';
+import { t, useCSSTextTruncation } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
@@ -200,9 +195,9 @@ const DatasourcePanelItem = ({
             <SectionHeaderTextContainer>
               <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
               {collapsedFolderIds.has(folder.id) ? (
-                <Icons.DownOutlined iconSize="s" />
+                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
               ) : (
-                <Icons.UpOutlined iconSize="s" />
+                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
               )}
             </SectionHeaderTextContainer>
           </Tooltip>

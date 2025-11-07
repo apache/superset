@@ -29,19 +29,22 @@ x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
+  - ./superset-core:/app/superset-core
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
+  - superset_data:/app/data
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
+    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   nginx:
@@ -107,6 +110,8 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
+    environment:
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
 
   superset-websocket:
     container_name: superset_websocket
@@ -132,9 +137,9 @@ services:
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
 
-      # Mounting a config file that contains a dummy secret required to boot up.
-      # do not use this docker compose in production
-      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
+      # Mount config file. Create your own docker/superset-websocket/config.json
+      # for custom settings, then point to it here. Do not use this example in production.
+      - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro
     environment:
       - PORT=8080
       - REDIS_HOST=redis
@@ -158,6 +163,8 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
+    environment:
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
     healthcheck:
       disable: true
 
@@ -268,4 +275,6 @@ volumes:
   db_home:
     external: false
   redis:
+    external: false
+  superset_data:
     external: false

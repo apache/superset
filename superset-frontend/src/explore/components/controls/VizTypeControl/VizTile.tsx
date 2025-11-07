@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
@@ -90,7 +91,7 @@ export const VizTile = ({
         css={css`
           display: flex;
           align-items: center;
-          color: ${theme.colors.grayscale.base};
+          color: ${theme.colorText};
           font-weight: ${theme.fontWeightStrong};
           border-radius: 6px;
           white-space: nowrap;
@@ -111,7 +112,7 @@ export const VizTile = ({
           ${isActive &&
           css`
             width: 100%;
-            background-color: ${theme.colors.grayscale.light4};
+            background-color: ${theme.colorBgLayout};
             transition:
               width ${TILE_TRANSITION_TIME} ease-out,
               background-color ${TILE_TRANSITION_TIME} ease-out;

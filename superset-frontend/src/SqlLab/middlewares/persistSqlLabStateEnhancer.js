@@ -117,7 +117,7 @@ const sqlLabPersistStateConfig = {
         ...initialState,
         ...persistedState,
         sqlLab: {
-          ...(persistedState?.sqlLab || {}),
+          ...persistedState?.sqlLab,
           // Overwrite initialState over persistedState for sqlLab
           // since a logic in getInitialState overrides the value from persistedState
           ...initialState.sqlLab,

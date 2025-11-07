@@ -18,7 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   Input,
   Button,
@@ -65,7 +66,7 @@ const Styles = styled.span`
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     svg {
       vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
@@ -147,14 +148,14 @@ const SaveQuery = ({
 
   const close = () => setShowSave(false);
 
-  const onSaveWrapper = () => {
+  const onSaveWrapper = async () => {
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
-    onSave(queryPayload(), query.id);
+    await onSave(queryPayload(), query.id);
     close();
   };
 
-  const onUpdateWrapper = () => {
-    onUpdate(queryPayload(), query.id);
+  const onUpdateWrapper = async () => {
+    await onUpdate(queryPayload(), query.id);
     close();
   };
 
@@ -220,9 +221,7 @@ const SaveQuery = ({
       />
       <Modal
         className="save-query-modal"
-        onHandledPrimaryAction={onSaveWrapper}
         onHide={close}
-        primaryButtonName={isSaved ? t('Save') : t('Save as')}
         width="620px"
         show={showSave}
         name={t('Save query')}

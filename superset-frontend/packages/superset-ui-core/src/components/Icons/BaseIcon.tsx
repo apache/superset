@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { css, useTheme, getFontSize } from '../..';
+import { css, useTheme, getFontSize } from '@apache-superset/core/ui';
 import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {
   const name = fileName.replace(/_/g, '-'); // Replace underscores with dashes
-  const words = name.split(/(?=[A-Z])/); // Split at uppercase letters
+  const words = name.split(/(?<=[a-z])(?=[A-Z])/); // Split at lowercase-to-uppercase transitions
 
   if (words.length === 2) {
     return words[0].toLowerCase();

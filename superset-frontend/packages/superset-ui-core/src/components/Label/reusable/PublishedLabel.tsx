@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Label } from '..';
 
 // Define props for the PublishedLabel component
@@ -40,7 +41,14 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
   const labelType = isPublished ? 'success' : 'primary';
 
   return (
-    <Label type={labelType} icon={icon} onClick={onClick}>
+    <Label
+      type={labelType}
+      icon={icon}
+      onClick={onClick}
+      style={{
+        color: isPublished ? theme.colorSuccessText : theme.colorPrimaryText,
+      }}
+    >
       {label}
     </Label>
   );

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import {
   colorSchemeDark,
   colorSchemeLight,
   themeQuartz,
-} from 'ag-grid-community';
+} from '@superset-ui/core/components/ThemedAgGridReact';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import tinycolor from 'tinycolor2';
 
@@ -30,7 +30,7 @@ export const useIsDark = () => {
   return tinycolor(theme.colorBgContainer).isDark();
 };
 
-const useTableTheme = () => {
+const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
   const baseTheme = themeQuartz;
   const isDarkTheme = useIsDark();
   const tableTheme = isDarkTheme

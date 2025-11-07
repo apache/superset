@@ -471,7 +471,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
 
-        assert status_code == 201
+        assert status_code == 200
 
         rls = (
             db.session.query(RowLevelSecurityFilter)

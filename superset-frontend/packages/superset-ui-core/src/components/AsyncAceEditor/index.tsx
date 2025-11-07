@@ -31,7 +31,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@superset-ui/core';
+import { useTheme, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -123,21 +123,33 @@ export function AsyncAceEditor(
     const cssWorkerUrlPromise = import(
       'ace-builds/src-min-noconflict/worker-css'
     );
+    const javascriptWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-javascript'
+    );
+    const htmlWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-html'
+    );
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
       { default: ReactAceEditor },
       { config },
       { default: cssWorkerUrl },
+      { default: javascriptWorkerUrl },
+      { default: htmlWorkerUrl },
       { require: acequire },
     ] = await Promise.all([
       reactAcePromise,
       aceBuildsConfigPromise,
       cssWorkerUrlPromise,
+      javascriptWorkerUrlPromise,
+      htmlWorkerUrlPromise,
       acequirePromise,
     ]);
 
     config.setModuleUrl('ace/mode/css_worker', cssWorkerUrl);
+    config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
+    config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
 
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
 
@@ -375,7 +387,9 @@ export const FullSQLEditor = AsyncAceEditor(
   {
     // a custom placeholder in SQL lab for less jumpy re-renders
     placeholder: () => {
-      const gutterBackground = '#e8e8e8'; // from ace-github theme
+      // Use a hook to get theme colors
+      const theme = useTheme();
+      const gutterBackground = theme.colorBgElevated;
       return (
         <div
           style={{
@@ -393,10 +407,7 @@ export const FullSQLEditor = AsyncAceEditor(
   },
 );
 
-export const MarkdownEditor = AsyncAceEditor([
-  'mode/markdown',
-  'theme/textmate',
-]);
+export const MarkdownEditor = AsyncAceEditor(['mode/markdown', 'theme/github']);
 
 export const TextAreaEditor = AsyncAceEditor([
   'mode/markdown',

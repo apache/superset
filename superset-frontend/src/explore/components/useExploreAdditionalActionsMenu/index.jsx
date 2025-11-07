@@ -19,15 +19,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import {
-  css,
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-  VizType,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, VizType } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
   Icons,
   ModalTrigger,
@@ -257,7 +250,7 @@ export const useExploreAdditionalActionsMenu = (
           <Input
             allowClear
             placeholder={t('Search')}
-            prefix={<Icons.StarOutlined iconSize="l" />}
+            prefix={<Icons.SearchOutlined iconSize="l" />}
             css={css`
               width: 220px;
               margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
@@ -333,8 +326,9 @@ export const useExploreAdditionalActionsMenu = (
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
           onClick: () => {
+            const sliceSelector = `#chart-id-${slice?.slice_id}`;
             exportPivotExcel(
-              '.pvtTable',
+              `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
             );
             setIsDropdownVisible(false);
@@ -392,6 +386,7 @@ export const useExploreAdditionalActionsMenu = (
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
             true,
+            theme,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(

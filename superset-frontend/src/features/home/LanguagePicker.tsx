@@ -18,7 +18,8 @@
  */
 import { useMemo } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -79,6 +80,7 @@ export const useLanguageMenuItems = ({
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,
       children: items,
+      className: 'submenu-with-caret',
       popupClassName: 'language-picker-popup',
     };
   }, [languages, locale]);

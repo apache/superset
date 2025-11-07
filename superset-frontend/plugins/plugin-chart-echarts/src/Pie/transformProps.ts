@@ -151,6 +151,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     metric = '',
     numberFormat,
     currencyFormat,
@@ -435,7 +436,12 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: transformedData.map(datum => datum.name),
+      data: transformedData
+        .map(datum => datum.name)
+        .sort((a: string, b: string) => {
+          if (!legendSort) return 0;
+          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+        }),
     },
     graphic: showTotal
       ? {

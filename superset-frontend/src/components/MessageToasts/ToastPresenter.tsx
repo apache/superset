@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
 
@@ -63,7 +63,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     .toast > button {
-      color: ${theme.colors.grayscale.light5};
+      color: ${theme.colorTextLightSolid};
       opacity: 1;
     }
 

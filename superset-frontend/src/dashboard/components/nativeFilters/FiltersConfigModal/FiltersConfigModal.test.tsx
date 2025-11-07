@@ -58,6 +58,11 @@ class MainPreset extends Preset {
 const defaultState = () => ({
   datasources: { ...mockDatasource },
   charts: chartQueries,
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
 });
 
 const noTemporalColumnsState = () => {
@@ -178,6 +183,9 @@ beforeAll(() => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// Set timeout for all tests in this file to prevent CI timeouts
+jest.setTimeout(60000);
 
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
@@ -302,7 +310,12 @@ test('render time filter types as disabled if there are no temporal columns in t
 test('validates the name', async () => {
   defaultRender();
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+  await waitFor(
+    async () => {
+      expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('validates the column', async () => {
@@ -329,18 +342,27 @@ test.skip('validates the default value', async () => {
 
 test('validates the pre-filter value', async () => {
   jest.useFakeTimers();
+  try {
+    defaultRender();
 
-  defaultRender();
+    userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+    userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+    jest.runAllTimers();
+  } finally {
+    jest.useRealTimers();
+  }
 
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
 
-  await waitFor(() => {
-    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
-  });
+  // Wait for validation to complete after timer switch
+  await waitFor(
+    () => {
+      expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 15000 },
+  );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests

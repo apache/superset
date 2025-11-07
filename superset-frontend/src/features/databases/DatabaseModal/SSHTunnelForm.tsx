@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   Form,
   FormLabel,
@@ -34,7 +35,7 @@ import { AuthType } from '.';
 const StyledDiv = styled.div`
   padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;

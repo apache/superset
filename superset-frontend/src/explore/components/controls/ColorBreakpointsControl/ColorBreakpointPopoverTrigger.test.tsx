@@ -53,6 +53,7 @@ const renderComponent = (
     </ColorBreakpointPopoverTrigger>,
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointPopoverTrigger', () => {
   beforeEach(() => {
     jest.clearAllMocks();

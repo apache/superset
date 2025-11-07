@@ -27,6 +27,8 @@ import {
 } from 'spec/helpers/testing-library';
 import SelectControl, {
   innerGetOptions,
+  areAllValuesNumbers,
+  getSortComparator,
 } from 'src/explore/components/controls/SelectControl';
 
 const defaultProps = {
@@ -64,15 +66,17 @@ const renderSelectControl = (props = {}) => {
   return container;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectControl', () => {
-  it('calls props.onChange when select', async () => {
+  test('calls props.onChange when select', async () => {
     renderSelectControl();
     defaultProps.onChange(50);
     expect(defaultProps.onChange).toHaveBeenCalledWith(50);
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('render', () => {
-    it('renders with Select by default', () => {
+    test('renders with Select by default', () => {
       renderSelectControl();
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -85,7 +89,7 @@ describe('SelectControl', () => {
       expect(selectorInput).toBeInTheDocument();
     });
 
-    it('renders as mode multiple', () => {
+    test('renders as mode multiple', () => {
       renderSelectControl({ multi: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -100,7 +104,7 @@ describe('SelectControl', () => {
       expect(screen.getByText('Select all (3)')).toBeInTheDocument();
     });
 
-    it('renders with allowNewOptions when freeForm', () => {
+    test('renders with allowNewOptions when freeForm', () => {
       renderSelectControl({ freeForm: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -121,7 +125,7 @@ describe('SelectControl', () => {
       );
     });
 
-    it('renders with allowNewOptions=false when freeForm=false', () => {
+    test('renders with allowNewOptions=false when freeForm=false', () => {
       const container = renderSelectControl({ freeForm: false });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -146,7 +150,7 @@ describe('SelectControl', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders with tokenSeparators', () => {
+    test('renders with tokenSeparators', () => {
       renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
       const selectorWrapper = screen.getByLabelText('Row Limit', {
         selector: 'div',
@@ -172,9 +176,11 @@ describe('SelectControl', () => {
       expect(weekOption?.getAttribute('aria-selected')).toEqual('true');
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('empty placeholder', () => {
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('withMulti', () => {
-        it('does not show a placeholder if there are no choices', () => {
+        test('does not show a placeholder if there are no choices', () => {
           renderSelectControl({
             choices: [],
             multi: true,
@@ -183,8 +189,9 @@ describe('SelectControl', () => {
           expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
       });
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('withSingleChoice', () => {
-        it('does not show a placeholder if there are no choices', async () => {
+        test('does not show a placeholder if there are no choices', async () => {
           const container = renderSelectControl({
             choices: [],
             multi: false,
@@ -195,8 +202,9 @@ describe('SelectControl', () => {
           ).not.toBeInTheDocument();
         });
       });
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('all choices selected', () => {
-        it('does not show a placeholder', () => {
+        test('does not show a placeholder', () => {
           const container = renderSelectControl({
             multi: true,
             value: ['today', '1 year ago'],
@@ -208,8 +216,9 @@ describe('SelectControl', () => {
         });
       });
     });
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('when select is multi', () => {
-      it('does not render the placeholder when a selection has been made', () => {
+      test('does not render the placeholder when a selection has been made', () => {
         renderSelectControl({
           multi: true,
           value: ['today'],
@@ -218,8 +227,9 @@ describe('SelectControl', () => {
         expect(screen.queryByText('add something')).not.toBeInTheDocument();
       });
     });
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('when select is single', () => {
-      it('does not render the placeholder when a selection has been made', () => {
+      test('does not render the placeholder when a selection has been made', () => {
         renderSelectControl({
           multi: true,
           value: 50,
@@ -230,9 +240,219 @@ describe('SelectControl', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getOptions', () => {
-    it('returns the correct options', () => {
+    test('returns the correct options', () => {
       expect(innerGetOptions(defaultProps)).toEqual(options);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('areAllValuesNumbers', () => {
+    test('returns true when all values are numbers (array format)', () => {
+      const items = [
+        [1, 'One'],
+        [2, 'Two'],
+        [3, 'Three'],
+      ];
+      expect(areAllValuesNumbers(items)).toBe(true);
+    });
+
+    test('returns false when some values are not numbers (array format)', () => {
+      const items = [
+        [1, 'One'],
+        ['two', 'Two'],
+        [3, 'Three'],
+      ];
+      expect(areAllValuesNumbers(items)).toBe(false);
+    });
+
+    test('returns true when all values are numbers (object format)', () => {
+      const items = [
+        { value: 1, label: 'One' },
+        { value: 2, label: 'Two' },
+        { value: 3, label: 'Three' },
+      ];
+      expect(areAllValuesNumbers(items)).toBe(true);
+    });
+
+    test('returns false when some values are not numbers (object format)', () => {
+      const items = [
+        { value: 1, label: 'One' },
+        { value: 'two', label: 'Two' },
+        { value: 3, label: 'Three' },
+      ];
+      expect(areAllValuesNumbers(items)).toBe(false);
+    });
+
+    test('returns true when all values are numbers (primitive format)', () => {
+      const items = [1, 2, 3];
+      expect(areAllValuesNumbers(items)).toBe(true);
+    });
+
+    test('returns false when some values are not numbers (primitive format)', () => {
+      const items = [1, 'two', 3];
+      expect(areAllValuesNumbers(items)).toBe(false);
+    });
+
+    test('works with custom valueKey', () => {
+      const items = [
+        { id: 1, label: 'One' },
+        { id: 2, label: 'Two' },
+        { id: 3, label: 'Three' },
+      ];
+      expect(areAllValuesNumbers(items, 'id')).toBe(true);
+    });
+
+    test('returns false for empty items', () => {
+      expect(areAllValuesNumbers([])).toBe(false);
+      expect(areAllValuesNumbers(null)).toBe(false);
+      expect(areAllValuesNumbers(undefined)).toBe(false);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('getSortComparator', () => {
+    const mockExplicitComparator = (a, b) => a.label.localeCompare(b.label);
+
+    test('returns explicit comparator when provided', () => {
+      const choices = [
+        [1, 'One'],
+        [2, 'Two'],
+      ];
+      const result = getSortComparator(
+        choices,
+        null,
+        'value',
+        mockExplicitComparator,
+      );
+      expect(result).toBe(mockExplicitComparator);
+    });
+
+    test('returns number comparator for numeric choices', () => {
+      const choices = [
+        [1, 'One'],
+        [2, 'Two'],
+      ];
+      const result = getSortComparator(choices, null, 'value', null);
+      expect(typeof result).toBe('function');
+      expect(result).not.toBe(mockExplicitComparator);
+    });
+
+    test('returns number comparator for numeric options', () => {
+      const options = [
+        { value: 1, label: 'One' },
+        { value: 2, label: 'Two' },
+      ];
+      const result = getSortComparator(null, options, 'value', null);
+      expect(typeof result).toBe('function');
+      expect(result).not.toBe(mockExplicitComparator);
+    });
+
+    test('prioritizes options over choices when both are numeric', () => {
+      const choices = [
+        [1, 'One'],
+        [2, 'Two'],
+      ];
+      const options = [
+        { value: 3, label: 'Three' },
+        { value: 4, label: 'Four' },
+      ];
+      const result = getSortComparator(choices, options, 'value', null);
+      expect(typeof result).toBe('function');
+    });
+
+    test('returns undefined for non-numeric choices', () => {
+      const choices = [
+        ['one', 'One'],
+        ['two', 'Two'],
+      ];
+      const result = getSortComparator(choices, null, 'value', null);
+      expect(result).toBeUndefined();
+    });
+
+    test('returns undefined for non-numeric options', () => {
+      const options = [
+        { value: 'one', label: 'One' },
+        { value: 'two', label: 'Two' },
+      ];
+      const result = getSortComparator(null, options, 'value', null);
+      expect(result).toBeUndefined();
+    });
+
+    test('returns undefined when no choices or options provided', () => {
+      const result = getSortComparator(null, null, 'value', null);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('numeric sorting integration', () => {
+    test('applies numeric sorting to choices automatically', () => {
+      const numericChoices = [
+        [3, 'Three'],
+        [1, 'One'],
+        [2, 'Two'],
+      ];
+      renderSelectControl({ choices: numericChoices });
+
+      // The SelectControl should receive a sortComparator for numeric values
+      // This is tested by verifying the component renders without errors
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      expect(selectorWrapper).toBeInTheDocument();
+    });
+
+    test('applies numeric sorting to options automatically', () => {
+      const numericOptions = [
+        { value: 3, label: 'Three' },
+        { value: 1, label: 'One' },
+        { value: 2, label: 'Two' },
+      ];
+      renderSelectControl({ options: numericOptions, choices: undefined });
+
+      // The SelectControl should receive a sortComparator for numeric values
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      expect(selectorWrapper).toBeInTheDocument();
+    });
+
+    test('does not apply numeric sorting to mixed-type choices', () => {
+      const mixedChoices = [
+        [1, 'One'],
+        ['two', 'Two'],
+        [3, 'Three'],
+      ];
+      renderSelectControl({ choices: mixedChoices });
+
+      // Should render without errors and not apply numeric sorting
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      expect(selectorWrapper).toBeInTheDocument();
+    });
+
+    test('respects explicit sortComparator over automatic numeric sorting', () => {
+      const numericChoices = [
+        [3, 'Three'],
+        [1, 'One'],
+        [2, 'Two'],
+      ];
+      const explicitComparator = jest.fn((a, b) =>
+        a.label.localeCompare(b.label),
+      );
+
+      renderSelectControl({
+        choices: numericChoices,
+        sortComparator: explicitComparator,
+      });
+
+      const selectorWrapper = screen.getByLabelText('Row Limit', {
+        selector: 'div',
+      });
+      expect(selectorWrapper).toBeInTheDocument();
     });
   });
 });

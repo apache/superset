@@ -18,28 +18,26 @@
  * under the License.
  */
 import { PathLayer } from '@deck.gl/layers';
-import { JsonObject } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
-import TooltipRow from '../../TooltipRow';
 import { Point } from '../../types';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
-function setTooltipContent(o: JsonObject) {
-  return (
-    o.object?.extraProps && (
-      <div className="deckgl-tooltip">
-        {Object.keys(o.object.extraProps).map((prop, index) => (
-          <TooltipRow
-            key={`prop-${index}`}
-            label={`${prop}: `}
-            value={`${o.object.extraProps[prop]}`}
-          />
-        ))}
-      </div>
-    )
+function setTooltipContent(formData: QueryFormData) {
+  const defaultTooltipGenerator = (o: JsonObject) => (
+    <div className="deckgl-tooltip">
+      {CommonTooltipRows.position(o)}
+      {CommonTooltipRows.category(o)}
+    </div>
   );
+
+  return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
 export const getLayer: GetLayerType<PathLayer> = function ({
@@ -78,7 +76,7 @@ export const getLayer: GetLayerType<PathLayer> = function ({
     ...commonLayerProps({
       formData: fd,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: setTooltipContent(fd),
       setDataMask,
       filterState,
       onContextMenu,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { List, type ListItemProps } from '@superset-ui/core/components';
 
 export interface CustomListItemProps extends ListItemProps {
@@ -42,7 +42,7 @@ export default function CustomListItem(props: CustomListItemProps) {
   if (selectable) {
     css['&:hover'] = {
       cursor: 'pointer',
-      backgroundColor: theme.colors.grayscale.light4,
+      backgroundColor: theme.colorFillSecondary,
     };
   }
 

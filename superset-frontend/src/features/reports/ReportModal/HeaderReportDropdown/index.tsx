@@ -20,13 +20,12 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   t,
-  styled,
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
   usePrevious,
-  css,
 } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';
 import { AlertObject } from 'src/features/alerts/types';
@@ -86,18 +85,6 @@ export const useHeaderReportMenuItems = ({
     const reportsState = state.reports || {};
     const resourceTypeReports = reportsState[resourceType] || {};
     const reportData = resourceTypeReports[resourceId];
-
-    // Debug logging to understand what's happening
-    console.log('Report selector called:', {
-      resourceId,
-      resourceType,
-      reportsState: Object.keys(reportsState),
-      resourceTypeReports: Object.keys(resourceTypeReports),
-      reportData: reportData
-        ? { id: reportData.id, name: reportData.name }
-        : null,
-    });
-
     return reportData || null;
   });
 

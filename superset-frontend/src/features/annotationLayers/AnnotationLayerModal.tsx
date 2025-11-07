@@ -18,7 +18,8 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -81,7 +82,7 @@ const LayerContainer = styled.div`
 
   input::placeholder,
   textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextPlaceholder};
   }
 `;
 
@@ -251,7 +252,9 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       }
     >
       <StyledAnnotationLayerTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledAnnotationLayerTitle>
       <LayerContainer>
         <div className="control-label">

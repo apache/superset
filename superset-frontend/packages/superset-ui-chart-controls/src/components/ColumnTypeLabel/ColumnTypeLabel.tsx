@@ -18,7 +18,9 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css, GenericDataType, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ClockCircleOutlined,
   QuestionOutlined,

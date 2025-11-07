@@ -26,6 +26,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
+from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -39,6 +40,17 @@ from superset.utils.webdriver import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Import Playwright availability and install message
+try:
+    from superset.utils.webdriver import (
+        PLAYWRIGHT_AVAILABLE,
+        PLAYWRIGHT_INSTALL_MESSAGE,
+    )
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
+
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
 DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
@@ -121,10 +133,10 @@ class ScreenshotCachePayload:
         self.update_timestamp()
         self.status = StatusValues.ERROR
 
-    def get_image(self) -> BytesIO | None:
-        if not self._image:
-            return None
-        return BytesIO(self._image)
+    def get_image(self) -> BytesIO:
+        if self._image is None:
+            raise ScreenshotImageNotAvailableException()
+        return BytesIO(cast(bytes, self._image))
 
     def get_timestamp(self) -> str:
         return self._timestamp
@@ -168,7 +180,19 @@ class BaseScreenshot:
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            return WebDriverPlaywright(self.driver_type, window_size)
+            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
+            if PLAYWRIGHT_AVAILABLE:
+                return WebDriverPlaywright(self.driver_type, window_size)
+
+            # Playwright not available, falling back to Selenium
+            logger.info(
+                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
+                "installed. Falling back to Selenium (WebGL/Canvas charts may "
+                "not render correctly). %s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+
+        # Use Selenium as default/fallback
         return WebDriverSelenium(self.driver_type, window_size)
 
     def get_screenshot(

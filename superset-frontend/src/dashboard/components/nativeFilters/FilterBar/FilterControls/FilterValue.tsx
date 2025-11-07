@@ -35,12 +35,12 @@ import {
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
-  styled,
   SuperChart,
   t,
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -355,7 +355,7 @@ const FilterValue: FC<FilterControlProps> = ({
   return (
     <StyledDiv data-test="form-item-value">
       {isLoading ? (
-        <Loading position="inline-centered" />
+        <Loading position="inline-centered" size="s" muted />
       ) : (
         <SuperChart
           height={HEIGHT}

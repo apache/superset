@@ -71,7 +71,7 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
         return output.getvalue()
 
     except Exception as e:
-        logger.exception(f"Failed to combine screenshot tiles: {e}")
+        logger.exception("Failed to combine screenshot tiles: %s", e)
         # Return the first tile as fallback
         return screenshot_tiles[0]
 
@@ -113,13 +113,16 @@ def take_tiled_screenshot(
         dashboard_width = element_info["width"]
 
         logger.info(
-            f"Dashboard: {dashboard_width}x{dashboard_height}px at "
-            f"({dashboard_left}, {dashboard_top})"
+            "Dashboard: %sx%spx at (%s, %s)",
+            dashboard_width,
+            dashboard_height,
+            dashboard_left,
+            dashboard_top,
         )
 
         # Calculate number of tiles needed
         num_tiles = max(1, (dashboard_height + viewport_height - 1) // viewport_height)
-        logger.info(f"Taking {num_tiles} screenshot tiles")
+        logger.info("Taking %s screenshot tiles", num_tiles)
 
         screenshot_tiles = []
 
@@ -129,7 +132,9 @@ def take_tiled_screenshot(
 
             # Scroll the window to the desired position
             page.evaluate(f"window.scrollTo(0, {scroll_y})")
-            logger.debug(f"Scrolled window to {scroll_y} for tile {i + 1}/{num_tiles}")
+            logger.debug(
+                "Scrolled window to %s for tile %s/%s", scroll_y, i + 1, num_tiles
+            )
 
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(2000)  # 2 second wait per tile
@@ -151,19 +156,35 @@ def take_tiled_screenshot(
             remaining_content = dashboard_height - tile_start_in_element
             tile_content_height = min(viewport_height, remaining_content)
 
+            # Determine clip height (use visible element height in viewport)
+            clip_height = min(tile_content_height, current_element_box["height"])
+
+            # Skip tile if dimensions are invalid (width or height <= 0)
+            # This can happen if element is completely scrolled out of viewport
+            if clip_height <= 0:
+                logger.warning(
+                    "Skipping tile %s/%s due to invalid clip dimensions: "
+                    "width=%s, height=%s (element may be scrolled out of viewport)",
+                    i + 1,
+                    num_tiles,
+                    current_element_box["width"],
+                    clip_height,
+                )
+                continue
+
             # Clip to capture only the current tile portion of the element
             clip = {
                 "x": current_element_box["x"],
                 "y": current_element_box["y"],
                 "width": current_element_box["width"],
-                "height": min(tile_content_height, current_element_box["height"]),
+                "height": clip_height,
             }
 
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot = page.screenshot(type="png", clip=clip)
             screenshot_tiles.append(tile_screenshot)
 
-            logger.debug(f"Captured tile {i + 1}/{num_tiles} with clip {clip}")
+            logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
 
         # Combine all tiles
         logger.info("Combining screenshot tiles...")
@@ -175,5 +196,5 @@ def take_tiled_screenshot(
         return combined_screenshot
 
     except Exception as e:
-        logger.exception(f"Tiled screenshot failed: {e}")
+        logger.exception("Tiled screenshot failed: %s", e)
         return None

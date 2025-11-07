@@ -19,7 +19,7 @@
  */
 import { RefObject, ReactNode, PureComponent } from 'react';
 
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import cx from 'classnames';
 
 interface HoverMenuProps {
@@ -58,7 +58,7 @@ const HoverStyleOverrides = styled.div`
     top: ${({ theme }) => theme.sizeUnit * -6}px;
     left: 50%;
     transform: translate(-50%);
-    padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: 0;
     display: flex;
     flex-direction: row;
     justify-content: center;

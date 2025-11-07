@@ -31,7 +31,6 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import {
-  styled,
   t,
   SupersetClient,
   JsonResponse,
@@ -41,9 +40,11 @@ import {
   VizType,
   FeatureFlag,
   isFeatureEnabled,
+  getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
-import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -104,33 +105,47 @@ interface SaveDatasetModalProps {
 
 const Styles = styled.div`
   ${({ theme }) => `
-  .sdm-body {
-    margin: 0 ${theme.sizeUnit * 2}px;
-  }
-  .sdm-input {
-    margin-left: ${theme.sizeUnit * 10}px;
-    width: 401px;
-  }
-  .sdm-autocomplete {
-    width: 401px;
-    align-self: center;
-    margin-left: ${theme.sizeUnit}px;
-  }
-  .sdm-radio {
-    height: 30px;
-    margin: 10px 0px;
-    line-height: 30px;
-  }
-  .sdm-radio span {
-    display: inline-flex;
-    padding-right: 0px;
-  }
-  .sdm-overwrite-msg {
-    margin: ${theme.sizeUnit * 2}px;
-  }
-  .sdm-overwrite-container {
-    flex: 1 1 auto;
-    display: flex;
+    .sdm-body {
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+    }
+
+    .sdm-prompt {
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      color: ${theme.colorTextSecondary};
+    }
+
+    .sdm-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 6}px;
+    }
+
+    .sdm-radio-option {
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 3}px;
+    }
+
+    .sdm-radio {
+      margin: 0;
+      .ant-radio {
+        margin-right: ${theme.sizeUnit * 2}px;
+      }
+      .ant-radio-wrapper {
+        color: ${theme.colorText};
+      }
+    }
+
+    .sdm-form-field {
+      margin-left: 0;
+      max-width: 400px;
+    }
+
+    .sdm-overwrite-msg {
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+      text-align: center;
+      color: ${theme.colorText};
+    }
   `}
 `;
 const updateDataset = async (
@@ -203,7 +218,7 @@ export const SaveDatasetModal = ({
   };
   const formDataWithDefaults = {
     ...EXPLORE_CHART_DEFAULT,
-    ...(formData || {}),
+    ...formData,
   };
   const handleOverwriteDataset = async () => {
     // if user wants to overwrite a dataset we need to prompt them
@@ -213,39 +228,50 @@ export const SaveDatasetModal = ({
     }
     setLoading(true);
 
-    const [, key] = await Promise.all([
-      updateDataset(
-        datasource?.dbId,
-        datasetToOverwrite?.datasetid,
-        datasource?.sql,
-        datasource?.columns?.map(
-          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.column_name,
-            type: d.type,
-            is_dttm: d.is_dttm,
-          }),
+    try {
+      const [, key] = await Promise.all([
+        updateDataset(
+          datasource?.dbId,
+          datasetToOverwrite?.datasetid,
+          datasource?.sql,
+          datasource?.columns?.map(
+            (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+              column_name: d.column_name,
+              type: d.type,
+              is_dttm: d.is_dttm,
+            }),
+          ),
+          datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          true,
         ),
-        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
-        true,
-      ),
-      postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...formDataWithDefaults,
-        datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === VizType.Table && {
-          all_columns: datasource?.columns?.map(column => column.column_name),
+        postFormData(datasetToOverwrite.datasetid, 'table', {
+          ...formDataWithDefaults,
+          datasource: `${datasetToOverwrite.datasetid}__table`,
+          ...(defaultVizType === VizType.Table && {
+            all_columns: datasource?.columns?.map(column => column.column_name),
+          }),
         }),
-      }),
-    ]);
-    setLoading(false);
+      ]);
+      setLoading(false);
 
-    const url = mountExploreUrl(null, {
-      [URL_PARAMS.formDataKey.name]: key,
-    });
-    createWindow(url);
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      createWindow(url);
 
-    setShouldOverwriteDataset(false);
-    setDatasetName(getDefaultDatasetName());
-    onHide();
+      setShouldOverwriteDataset(false);
+      setDatasetName(getDefaultDatasetName());
+      onHide();
+    } catch (error) {
+      setLoading(false);
+      getClientErrorObject(error).then((e: { error: string }) => {
+        dispatch(
+          addDangerToast(
+            e.error || t('An error occurred while overwriting the dataset'),
+          ),
+        );
+      });
+    }
   };
 
   const loadDatasetOverwriteOptions = useCallback(
@@ -438,21 +464,27 @@ export const SaveDatasetModal = ({
                 setNewOrOverwrite(Number(e.target.value));
               }}
               value={newOrOverwrite}
+              className="sdm-radio-group"
             >
-              <Radio className="sdm-radio" value={1}>
-                {t('Save as new')}
-                <Input
-                  className="sdm-input"
-                  value={datasetName}
-                  onChange={handleDatasetNameChange}
-                  disabled={newOrOverwrite !== 1}
-                />
-              </Radio>
-              <div className="sdm-overwrite-container">
+              <div className="sdm-radio-option">
+                <Radio className="sdm-radio" value={1}>
+                  {t('Save as new')}
+                </Radio>
+                <div className="sdm-form-field">
+                  <Input
+                    value={datasetName}
+                    onChange={handleDatasetNameChange}
+                    disabled={newOrOverwrite !== 1}
+                    placeholder={t('Dataset name')}
+                  />
+                </div>
+              </div>
+
+              <div className="sdm-radio-option">
                 <Radio className="sdm-radio" value={2}>
                   {t('Overwrite existing')}
                 </Radio>
-                <div className="sdm-autocomplete">
+                <div className="sdm-form-field">
                   <AsyncSelect
                     allowClear
                     showSearch

@@ -19,7 +19,7 @@
 /* eslint-disable react/no-array-index-key */
 import PropTypes from 'prop-types';
 import { PureComponent } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import TTestTable, { dataPropType } from './TTestTable';
 
 const propTypes = {
@@ -70,7 +70,7 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data tr:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
     }
 
     .reactable-data tr .false {
@@ -90,14 +90,14 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data .control td {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
     }
 
     .reactable-header-sortable:hover,
     .reactable-header-sortable:focus,
     .reactable-header-sort-asc,
     .reactable-header-sort-desc {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
       position: relative;
     }
 

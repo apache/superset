@@ -21,12 +21,8 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import {
-  type SupersetThemeConfig,
-  makeApi,
-  t,
-  logging,
-} from '@superset-ui/core';
+import { makeApi, t, logging } from '@superset-ui/core';
+import { type SupersetThemeConfig } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -38,6 +34,7 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
   getThemeController,
@@ -46,6 +43,7 @@ import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
+setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -89,14 +87,14 @@ const EmbededLazyDashboardPage = () => {
 };
 
 const EmbeddedRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <EmbeddedContextProviders>
+  <EmbeddedContextProviders>
+    <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
-    </EmbeddedContextProviders>
-  </Suspense>
+    </Suspense>
+  </EmbeddedContextProviders>
 );
 
 const EmbeddedApp = () => (
@@ -248,6 +246,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
     Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {

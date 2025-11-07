@@ -19,12 +19,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   makeApi,
-  styled,
   SupersetApiError,
   t,
-  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, css, Alert } from '@apache-superset/core/ui';
 import {
   Button,
   FormItem,
@@ -33,6 +32,7 @@ import {
   Modal,
   Loading,
   Form,
+  Space,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
@@ -64,6 +64,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
   const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
   const [allowedDomains, setAllowedDomains] = useState<string>('');
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
   const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
   // whether saveable changes have been made to the config
@@ -100,35 +101,33 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   }, [endpoint, allowedDomains]);
 
   const disableEmbedded = useCallback(() => {
-    Modal.confirm({
-      title: t('Disable embedding?'),
-      content: t('This will remove your current embed configuration.'),
-      okType: 'danger',
-      onOk: () => {
-        setLoading(true);
-        makeApi<{}>({ method: 'DELETE', endpoint })({})
-          .then(
-            () => {
-              setEmbedded(null);
-              setAllowedDomains('');
-              addInfoToast(t('Embedding deactivated.'));
-              onHide();
-            },
-            err => {
-              console.error(err);
-              addDangerToast(
-                t(
-                  'Sorry, something went wrong. Embedding could not be deactivated.',
-                ),
-              );
-            },
-          )
-          .finally(() => {
-            setLoading(false);
-          });
-      },
-    });
-  }, [endpoint]);
+    setShowDeactivateConfirm(true);
+  }, []);
+
+  const confirmDeactivate = useCallback(() => {
+    setLoading(true);
+    makeApi<{}>({ method: 'DELETE', endpoint })({})
+      .then(
+        () => {
+          setEmbedded(null);
+          setAllowedDomains('');
+          setShowDeactivateConfirm(false);
+          addInfoToast(t('Embedding deactivated.'));
+          onHide();
+        },
+        err => {
+          console.error(err);
+          addDangerToast(
+            t(
+              'Sorry, something went wrong. Embedding could not be deactivated.',
+            ),
+          );
+        },
+      )
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [endpoint, addInfoToast, addDangerToast, onHide]);
 
   useEffect(() => {
     setReady(false);
@@ -218,39 +217,71 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           />
         </FormItem>
       </Form>
-      <ButtonRow
-        css={theme => css`
-          margin-top: ${theme.margin}px;
-        `}
-      >
-        {embedded ? (
-          <>
-            <Button
-              onClick={disableEmbedded}
-              buttonStyle="secondary"
-              loading={loading}
-            >
-              {t('Deactivate')}
-            </Button>
+      {showDeactivateConfirm ? (
+        <Alert
+          closable={false}
+          type="warning"
+          message={t('Disable embedding?')}
+          description={t('This will remove your current embed configuration.')}
+          css={{
+            textAlign: 'left',
+            marginTop: '16px',
+          }}
+          action={
+            <Space>
+              <Button
+                key="cancel"
+                buttonStyle="secondary"
+                onClick={() => setShowDeactivateConfirm(false)}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
+                key="deactivate"
+                buttonStyle="danger"
+                onClick={confirmDeactivate}
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+            </Space>
+          }
+        />
+      ) : (
+        <ButtonRow
+          css={theme => css`
+            margin-top: ${theme.margin}px;
+          `}
+        >
+          {embedded ? (
+            <>
+              <Button
+                onClick={disableEmbedded}
+                buttonStyle="secondary"
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+              <Button
+                onClick={enableEmbedded}
+                buttonStyle="primary"
+                disabled={!isDirty}
+                loading={loading}
+              >
+                {t('Save changes')}
+              </Button>
+            </>
+          ) : (
             <Button
               onClick={enableEmbedded}
               buttonStyle="primary"
-              disabled={!isDirty}
               loading={loading}
             >
-              {t('Save changes')}
+              {t('Enable embedding')}
             </Button>
-          </>
-        ) : (
-          <Button
-            onClick={enableEmbedded}
-            buttonStyle="primary"
-            loading={loading}
-          >
-            {t('Enable embedding')}
-          </Button>
-        )}
-      </ButtonRow>
+          )}
+        </ButtonRow>
+      )}
     </>
   );
 };

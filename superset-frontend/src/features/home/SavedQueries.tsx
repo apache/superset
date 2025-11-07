@@ -18,7 +18,8 @@
  */
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import CodeSyntaxHighlighter, {
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
@@ -332,7 +333,7 @@ export const SavedQueries = ({
                           height: theme.sizeUnit * 40,
                           border: 'none',
                           overflow: 'hidden',
-                          color: theme.colors.grayscale.dark2,
+                          color: theme.colorText,
                           wordBreak: 'break-all',
                           whiteSpace: 'pre-wrap',
                         }}

@@ -39,10 +39,10 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ConditionalFormattingConfig,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
-  GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
@@ -53,7 +53,7 @@ import {
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
-
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
@@ -111,8 +111,8 @@ const allColumnsControl: typeof sharedControls.groupby = {
   freeForm: true,
   allowAll: true,
   commaChoosesOption: false,
-  optionRenderer: c => <ColumnOption showType column={c} />,
-  valueRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption showType column={c as ColumnMeta} />,
+  valueRenderer: c => <ColumnOption column={c as ColumnMeta} />,
   valueKey: 'column_name',
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     options: datasource?.columns || [],
@@ -768,21 +768,46 @@ const config: ControlPanelConfig = {
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
+                const value = _?.value ?? [];
+                if (value && Array.isArray(value)) {
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        !['Green', 'Red'].includes(item.colorScheme)
+                      ) {
+                        if (!item.toAllRow || !item.toTextColor) {
+                          // eslint-disable-next-line no-param-reassign
+                          array[index] = {
+                            ...item,
+                            toAllRow: item.toAllRow ?? false,
+                            toTextColor: item.toTextColor ?? false,
+                          };
+                        }
+                      }
+                    },
+                  );
+                }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames
-                        .filter(
-                          (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
-                        )
-                        .map((colname: string) => ({
-                          value: colname,
-                          label: Array.isArray(verboseMap)
-                            ? colname
-                            : (verboseMap[colname] ?? colname),
-                        }))
+                    ? colnames.reduce((acc, colname, index) => {
+                        if (
+                          coltypes[index] === GenericDataType.Numeric ||
+                          (!explore?.controls?.time_compare?.value &&
+                            coltypes[index] === GenericDataType.String)
+                        ) {
+                          acc.push({
+                            value: colname,
+                            label: Array.isArray(verboseMap)
+                              ? colname
+                              : (verboseMap[colname] ?? colname),
+                            dataType: coltypes[index],
+                          });
+                        }
+                        return acc;
+                      }, [])
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value
                   ? processComparisonColumns(
@@ -797,6 +822,10 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  conditionalFormattingFlag: {
+                    toAllRowCheck: true,
+                    toColorTextCheck: true,
+                  },
                 };
               },
             },
@@ -812,6 +841,9 @@ const config: ControlPanelConfig = {
       }),
       visibility: isAggMode,
     },
+    sections.matrixifyRowSection,
+    sections.matrixifyColumnSection,
+    sections.matrixifySection,
   ],
   formDataOverrides: formData => ({
     ...formData,

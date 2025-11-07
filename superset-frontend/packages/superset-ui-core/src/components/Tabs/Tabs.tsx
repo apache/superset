@@ -16,32 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, useTheme } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 // eslint-disable-next-line no-restricted-imports
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
+import type { SerializedStyles } from '@emotion/react';
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
+  contentStyle?: SerializedStyles;
 }
 
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
+  tabBarStyle,
+  contentStyle,
   ...props
 }: TabsProps) => {
   const theme = useTheme();
+  const defaultTabBarStyle = { paddingLeft: theme.sizeUnit * 4 };
+  const mergedStyle = { ...defaultTabBarStyle, ...tabBarStyle };
+
   return (
     <AntdTabs
       animated={animated}
       {...props}
-      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
+      tabBarStyle={mergedStyle}
       css={theme => css`
         overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
         .ant-tabs-content-holder {
           overflow: ${allowOverflow ? 'visible' : 'auto'};
+          ${contentStyle}
         }
         .ant-tabs-tab {
           flex: 1 1 auto;
@@ -81,9 +89,10 @@ const Tabs = Object.assign(StyledTabs, {
 });
 
 const StyledEditableTabs = styled(StyledTabs)`
-  ${({ theme }) => `
+  ${({ theme, contentStyle }) => `
     .ant-tabs-content-holder {
-      background: ${theme.colors.grayscale.light5};
+      background: ${theme.colorBgContainer};
+      ${contentStyle}
     }
 
     & > .ant-tabs-nav {
@@ -99,7 +108,7 @@ const StyledEditableTabs = styled(StyledTabs)`
 `;
 
 const StyledCloseOutlined = styled(Icons.CloseOutlined)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,

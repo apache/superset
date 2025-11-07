@@ -33,3 +33,11 @@ class ThemeNotFoundError(CommandException):
 
 class SystemThemeProtectedError(CommandException):
     message = _("Cannot modify system themes.")
+
+
+class SystemThemeInUseError(CommandException):
+    message = _("Cannot delete theme that is set as system default or dark theme.")
+
+
+class ThemeAdministrationDisabledError(CommandException):
+    message = _("UI theme administration is not enabled.")

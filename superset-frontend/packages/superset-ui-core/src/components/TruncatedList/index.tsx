@@ -19,7 +19,8 @@
 
 import { ReactNode, Key, useMemo } from 'react';
 
-import { styled, t, useTruncation } from '@superset-ui/core';
+import { t, useTruncation } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
 
 export type TruncatedListProps<ListItemType> = {
@@ -79,7 +80,7 @@ const StyledVisibleItem = styled.span`
 
 const StyledTooltipItem = styled.div`
   .link {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
+    color: ${({ theme }) => theme.colorTextTertiary};
     display: block;
     text-decoration: underline;
   }

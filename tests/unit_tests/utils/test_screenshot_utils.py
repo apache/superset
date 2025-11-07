@@ -263,10 +263,12 @@ class TestTakeTiledScreenshot:
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
                 take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
-                # Should log dashboard dimensions
-                mock_logger.info.assert_any_call("Dashboard: 800x5000px at (50, 100)")
-                # Should log number of tiles
-                mock_logger.info.assert_any_call("Taking 3 screenshot tiles")
+                # Should log dashboard dimensions with lazy logging format
+                mock_logger.info.assert_any_call(
+                    "Dashboard: %sx%spx at (%s, %s)", 800, 5000, 50, 100
+                )
+                # Should log number of tiles with lazy logging format
+                mock_logger.info.assert_any_call("Taking %s screenshot tiles", 3)
 
     def test_exception_handling_returns_none(self):
         """Test that exceptions are handled and None is returned."""
@@ -277,9 +279,10 @@ class TestTakeTiledScreenshot:
             result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
 
             assert result is None
-            mock_logger.exception.assert_called_once_with(
-                "Tiled screenshot failed: Unexpected error"
-            )
+            # The exception object is passed, not the string
+            call_args = mock_logger.exception.call_args
+            assert call_args[0][0] == "Tiled screenshot failed: %s"
+            assert str(call_args[0][1]) == "Unexpected error"
 
     def test_wait_timeouts_between_tiles(self, mock_page):
         """Test that there are appropriate waits between tiles."""
@@ -312,3 +315,58 @@ class TestTakeTiledScreenshot:
                 assert clip["width"] == 800
                 # Height should be min of viewport_height and remaining content
                 assert clip["height"] <= 600  # Element height from mock
+
+    def test_skips_tiles_with_zero_height(self):
+        """Test that tiles with zero height are skipped."""
+        mock_page = MagicMock()
+
+        # Mock element locator
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        # Mock element info - 4000px tall dashboard
+        element_info = {"height": 4000, "top": 100, "left": 50, "width": 800}
+
+        # First tile: valid clip region
+        valid_element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+
+        # Second tile: element scrolled completely out (zero height)
+        invalid_element_box = {"x": 50, "y": -100, "width": 800, "height": 0}
+
+        # For 2 tiles (4000px / 2000px = 2):
+        # 1 initial + 2 scroll + 2 element box + 1 reset = 6 calls
+        mock_page.evaluate.side_effect = [
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll call
+            valid_element_box,  # First element box (valid)
+            None,  # Second scroll call
+            invalid_element_box,  # Second element box (zero height)
+            None,  # Reset scroll call
+        ]
+
+        mock_page.screenshot.return_value = b"fake_screenshot"
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine:
+                mock_combine.return_value = b"combined"
+
+                result = take_tiled_screenshot(
+                    mock_page, "dashboard", viewport_height=2000
+                )
+
+                # Should still succeed with partial tiles
+                assert result == b"combined"
+
+                # Should only take 1 screenshot (second tile skipped)
+                assert mock_page.screenshot.call_count == 1
+
+                # Should log warning about skipped tile
+                mock_logger.warning.assert_called_once()
+                warning_call = mock_logger.warning.call_args
+                # Check the format string
+                assert "invalid clip dimensions" in warning_call[0][0]
+                # Check the arguments (tile 2/2)
+                assert warning_call[0][1] == 2  # tile number (i + 1)
+                assert warning_call[0][2] == 2  # num_tiles

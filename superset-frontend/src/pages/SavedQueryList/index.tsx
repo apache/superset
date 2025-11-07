@@ -20,10 +20,10 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -61,6 +61,7 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -99,7 +100,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({
@@ -229,6 +230,15 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    copyTextToClipboard(() =>
+      Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    )
+      .then(() => {
+        addSuccessToast(t('Link Copied!'));
+      })
+      .catch(() => {
+        addDangerToast(t('Sorry, your browser does not support copying.'));
+      });
     if (openInNewWindow) {
       window.open(`/sqllab?savedQueryId=${id}`);
     } else {
@@ -281,14 +291,19 @@ function SavedQueryList({
     );
   };
 
-  const handleBulkSavedQueryExport = (
+  const handleBulkSavedQueryExport = async (
     savedQueriesToExport: SavedQueryObject[],
   ) => {
     const ids = savedQueriesToExport.map(({ id }) => id);
-    handleResourceExport('saved_query', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('saved_query', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected queries'));
+    }
   };
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {

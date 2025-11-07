@@ -21,7 +21,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
@@ -35,7 +35,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql.parse import SQLScript
+from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
 
@@ -99,6 +99,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -280,6 +281,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         cls,
         database: Database,
         query: Query,
+        template_params: Optional[dict[str, Any]] = None,
     ) -> str | None:
         """
         Return the default schema for a given query.
@@ -287,7 +289,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        script = SQLScript(query.sql, engine=cls.engine)
+        script = process_jinja_sql(query.sql, database, template_params).script
         settings = script.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(
@@ -300,7 +302,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 )
             )
 
-        return super().get_default_schema_for_query(database, query)
+        return super().get_default_schema_for_query(database, query, template_params)
 
     @classmethod
     def adjust_engine_params(
