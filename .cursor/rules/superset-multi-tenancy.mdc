@@ -1,0 +1,36 @@
+---
+alwaysApply: true
+---
+
+# Planning Gate – Superset Multi-Tenant (Schema/Connection Isolation)
+
+Before writing code, produce these docs in /docs/multitenancy/:
+
+1) tenant-discovery.md
+   - Chosen discovery pattern (subdomain as "{tenant}.mydomain.com")
+   - Tenants table (columns: slug, oauth_issuer, client_id, client_secret, scopes, db_sqlalchemy_uri, default_schema)
+   - Request flow: incoming URL → lookup → set g.tenant → pick OAuth provider → authorize
+
+2) auth-design.md
+   - CustomSecurityManager responsibilities:
+     - Select OAuth provider dynamically from Tenants
+     - oauth_user_info mapping (claims→username/email/roles)
+   - Session/CSRF handling for API calls
+   - Fallback/error UX if tenant not found
+
+3) provisioning.md
+   - API calls for:
+     - POST /api/v1/database (create tenant connection)
+     - POST /api/v1/assets/import (bundle: databases/, datasets/, charts/, dashboards/, metadata.yaml)
+   - Idempotency & overwrite semantics
+   - Rollback on failure
+
+4) rbac.md
+   - Role model (viewer/editor/admin per tenant)
+   - Where roles come from (IdP claims vs FAB Security API)
+   - Data isolation guarantees (connection+schema boundaries)
+
+5) runbook.md
+   - Add tenant, rotate client_secret, deprovision tenant
+   - Health checks & monitoring
+
