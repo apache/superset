@@ -184,9 +184,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// Set timeout for all tests in this file to prevent CI timeouts
-jest.setTimeout(60000);
-
 function defaultRender(initialState: any = defaultState(), modalProps = props) {
   return render(<FiltersConfigModal {...modalProps} />, {
     initialState,
@@ -228,7 +225,9 @@ test('renders a numerical range filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const numericalRangeOption = await waitFor(() => screen.getByText(NUMERICAL_RANGE_REGEX));
+  const numericalRangeOption = await waitFor(() =>
+    screen.getByText(NUMERICAL_RANGE_REGEX),
+  );
   await userEvent.click(numericalRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -253,7 +252,9 @@ test('renders a time range filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeRangeOption = await waitFor(() => screen.getByText(TIME_RANGE_REGEX));
+  const timeRangeOption = await waitFor(() =>
+    screen.getByText(TIME_RANGE_REGEX),
+  );
   await userEvent.click(timeRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -269,7 +270,9 @@ test('renders a time column filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeColumnOption = await waitFor(() => screen.getByText(TIME_COLUMN_REGEX));
+  const timeColumnOption = await waitFor(() =>
+    screen.getByText(TIME_COLUMN_REGEX),
+  );
   await userEvent.click(timeColumnOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -285,7 +288,9 @@ test('renders a time grain filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeGrainOption = await waitFor(() => screen.getByText(TIME_GRAIN_REGEX));
+  const timeGrainOption = await waitFor(() =>
+    screen.getByText(TIME_GRAIN_REGEX),
+  );
   await userEvent.click(timeGrainOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -353,6 +358,11 @@ test('validates the pre-filter value', async () => {
     await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
     jest.runAllTimers();
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByText(PRE_FILTER_REQUIRED_REGEX);
+      expect(errorMessages.length).toBeGreaterThan(0);
+    });
   } finally {
     jest.useRealTimers();
   }
@@ -598,47 +608,51 @@ test('rearranges three filters and deletes one of them', async () => {
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
-  const nativeFilterState = [
-    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-  ];
+  try {
+    const nativeFilterState = [
+      buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    ];
 
-  const state = {
-    ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
-    },
-    dashboardLayout,
-  };
+    const state = {
+      ...defaultState(),
+      dashboardInfo: {
+        metadata: { native_filter_configuration: nativeFilterState },
+      },
+      dashboardLayout,
+    };
 
-  const onSave = jest.fn();
+    const onSave = jest.fn();
 
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
-  });
+    defaultRender(state, {
+      ...props,
+      createNewOnOpen: false,
+      onSave,
+    });
 
-  const filterNameInput = screen.getByRole('textbox', {
-    name: FILTER_NAME_REGEX,
-  });
+    const filterNameInput = screen.getByRole('textbox', {
+      name: FILTER_NAME_REGEX,
+    });
 
-  await userEvent.clear(filterNameInput);
-  await userEvent.type(filterNameInput, 'New Filter Name');
+    await userEvent.clear(filterNameInput);
+    await userEvent.type(filterNameInput, 'New Filter Name');
 
-  jest.runAllTimers();
+    jest.runAllTimers();
 
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modified: expect.arrayContaining([
-          expect.objectContaining({ name: 'New Filter Name' }),
-        ]),
-      }),
-    ),
-  );
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({ name: 'New Filter Name' }),
+          ]),
+        }),
+      ),
+    );
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test('renders a filter with a chart containing BigInt values', async () => {

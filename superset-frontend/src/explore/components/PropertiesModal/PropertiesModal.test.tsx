@@ -153,12 +153,6 @@ test('Should render null when show:false', async () => {
   });
 });
 
-// Add cleanup after each test
-afterEach(async () => {
-  // Wait for any pending effects to complete
-  await new Promise(resolve => setTimeout(resolve, 0));
-});
-
 test('Should render when show:true', async () => {
   const props = createProps();
   renderModal(props);
@@ -354,14 +348,12 @@ test('"Cache timeout" should not be empty when saved', async () => {
     await userEvent.click(configPanel);
   }
 
-  await waitFor(async () => {
-    const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
-
-    await userEvent.clear(cacheTimeout);
-    await userEvent.type(cacheTimeout, '1000');
-
-    expect(cacheTimeout).toHaveValue('1000');
+  const cacheTimeout = await screen.findByRole('textbox', {
+    name: 'Cache timeout',
   });
+  await userEvent.clear(cacheTimeout);
+  await userEvent.type(cacheTimeout, '1000');
+  expect(cacheTimeout).toHaveValue('1000');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -411,14 +403,12 @@ test('"Certified by" should not be empty when saved', async () => {
     await userEvent.click(advancedPanel);
   }
 
-  await waitFor(async () => {
-    const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
-
-    await userEvent.clear(certifiedBy);
-    await userEvent.type(certifiedBy, 'Test certified by');
-
-    expect(certifiedBy).toHaveValue('Test certified by');
+  const certifiedBy = await screen.findByRole('textbox', {
+    name: 'Certified by',
   });
+  await userEvent.clear(certifiedBy);
+  await userEvent.type(certifiedBy, 'Test certified by');
+  expect(certifiedBy).toHaveValue('Test certified by');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -440,16 +430,12 @@ test('"Certification details" should not be empty when saved', async () => {
     await userEvent.click(advancedPanel);
   }
 
-  await waitFor(async () => {
-    const certificationDetails = screen.getByRole('textbox', {
-      name: 'Certification details',
-    });
-
-    await userEvent.clear(certificationDetails);
-    await userEvent.type(certificationDetails, 'Test certification details');
-
-    expect(certificationDetails).toHaveValue('Test certification details');
+  const certificationDetails = await screen.findByRole('textbox', {
+    name: 'Certification details',
   });
+  await userEvent.clear(certificationDetails);
+  await userEvent.type(certificationDetails, 'Test certification details');
+  expect(certificationDetails).toHaveValue('Test certification details');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -474,18 +460,14 @@ test('Should display only custom tags when tagging system is enabled', async () 
   const props = createProps();
   renderModal(props);
 
-  await waitFor(async () => {
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('combobox', { name: 'Tags' }),
-    ).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Tags')).toBeInTheDocument();
+  expect(
+    await screen.findByRole('combobox', { name: 'Tags' }),
+  ).toBeInTheDocument();
 
-  await waitFor(async () => {
-    expect(await screen.findByText('my test tag')).toBeInTheDocument();
-    expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
-    expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
-  });
+  expect(await screen.findByText('my test tag')).toBeInTheDocument();
+  expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
+  expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
 
   mockIsFeatureEnabled.mockRestore();
 });
