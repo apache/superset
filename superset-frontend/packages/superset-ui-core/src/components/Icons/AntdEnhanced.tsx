@@ -144,9 +144,11 @@ import {
   GoogleOutlined,
   DesktopOutlined,
   FormatPainterOutlined,
+  GroupOutlined,
   ExportOutlined,
   CompressOutlined,
   HistoryOutlined,
+  SlackOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -220,6 +222,7 @@ const AntdIcons = {
   FunctionOutlined,
   GithubOutlined,
   GoogleOutlined,
+  GroupOutlined,
   HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
@@ -283,6 +286,7 @@ const AntdIcons = {
   ExportOutlined,
   CompressOutlined,
   HistoryOutlined,
+  SlackOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;

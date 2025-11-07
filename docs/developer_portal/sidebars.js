@@ -22,37 +22,35 @@ module.exports = {
     'index',
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Contributing',
+      collapsed: true,
       items: [
-        'getting-started/index',
+        'contributing/overview',
       ],
     },
     {
       type: 'category',
-      label: 'Architecture',
+      label: 'Extensions',
+      collapsed: true,
       items: [
-        'architecture/overview',
+        'extensions/overview',
+        'extensions/quick-start',
+        'extensions/architecture',
+        'extensions/extension-project-structure',
+        'extensions/extension-metadata',
+        'extensions/frontend-contribution-types',
+        'extensions/interacting-with-host',
+        'extensions/deploying-extension',
+        'extensions/development-mode',
+        'extensions/security-implications',
       ],
     },
     {
       type: 'category',
-      label: 'API Reference',
+      label: 'Testing',
+      collapsed: true,
       items: [
-        'api/frontend',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'CLI',
-      items: [
-        'cli/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Examples',
-      items: [
-        'examples/index',
+        'testing/overview',
       ],
     },
   ],
