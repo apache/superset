@@ -1,0 +1,62 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# -----------------------------------------------------------------------
+# Docker-out-of-Docker (DoD) Configuration for WSL2
+# 
+# This override file mounts the Docker socket from the host (WSL2) into
+# containers, allowing them to use Docker commands without Docker-in-Docker.
+# 
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose-override.yml up
+#
+# Or simply:
+#   docker compose up  (Docker Compose automatically loads override files)
+#
+# Prerequisites:
+#   1. Docker Desktop with WSL2 backend enabled
+#   2. WSL2 integration enabled in Docker Desktop settings
+#   3. Access Docker socket at /var/run/docker.sock (should be available by default)
+# -----------------------------------------------------------------------
+
+services:
+  superset:
+    volumes:
+      # Mount Docker socket from WSL2 host
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Set Docker host to use the mounted socket
+      DOCKER_HOST: unix:///var/run/docker.sock
+
+  superset-worker:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+
+  superset-init:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+
+  superset-tests-worker:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+
