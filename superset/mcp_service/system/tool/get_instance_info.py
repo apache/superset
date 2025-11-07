@@ -233,7 +233,7 @@ _instance_info_core = InstanceInfoCore(
 
 @mcp.tool
 @mcp_auth_hook
-def get_superset_instance_info(
+def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
     """Get Superset instance statistics.

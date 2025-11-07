@@ -82,7 +82,7 @@ I'll help you through these steps:
 5. 🚀 **Learn Advanced Features** - Discover filters, SQL Lab, and more
 
 To get started, I'll use these tools:
-- `get_superset_instance_info` - Overview of your Superset instance
+- `get_instance_info` - Overview of your Superset instance
 - `list_datasets` - Find available datasets
 - `get_dataset_info` - Explore dataset details
 - `generate_chart` - Create visualizations
