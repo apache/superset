@@ -24,8 +24,8 @@ import {
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { Loading, Alert } from '@superset-ui/core/components';
+import { styled, Alert } from '@apache-superset/core/ui';
+import { Loading } from '@superset-ui/core/components';
 import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
@@ -89,26 +89,24 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map((item, index) => (
-        <Fragment key={index}>
-          {item.error && (
-            <Alert
-              key={`error-${index}`}
-              type="error"
-              message={item.error}
-              closable={false}
-            />
-          )}
-          {item.query && (
-            <ViewQuery
-              key={`query-${index}`}
-              datasource={latestQueryFormData.datasource}
-              sql={item.query}
-              language={item.language}
-            />
-          )}
-        </Fragment>
-      ))}
+      {result.map((item, index) => {
+        // Use content-based key when available, fall back to index
+        const key = item.query || item.error || `result-${index}`;
+        return (
+          <Fragment key={key}>
+            {item.error && (
+              <Alert type="error" message={item.error} closable={false} />
+            )}
+            {item.query && (
+              <ViewQuery
+                datasource={latestQueryFormData.datasource}
+                sql={item.query}
+                language={item.language}
+              />
+            )}
+          </Fragment>
+        );
+      })}
     </ViewQueryModalContainer>
   );
 };
