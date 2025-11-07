@@ -89,24 +89,21 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map((item, index) => {
-        // Use content-based key when available, fall back to index
-        const key = item.query || item.error || `result-${index}`;
-        return (
-          <Fragment key={key}>
-            {item.error && (
-              <Alert type="error" message={item.error} closable={false} />
-            )}
-            {item.query && (
-              <ViewQuery
-                datasource={latestQueryFormData.datasource}
-                sql={item.query}
-                language={item.language}
-              />
-            )}
-          </Fragment>
-        );
-      })}
+      {result.map((item, index) => (
+        // Static API response data - index is appropriate for keys
+        <Fragment key={index}>
+          {item.error && (
+            <Alert type="error" message={item.error} closable={false} />
+          )}
+          {item.query && (
+            <ViewQuery
+              datasource={latestQueryFormData.datasource}
+              sql={item.query}
+              language={item.language}
+            />
+          )}
+        </Fragment>
+      ))}
     </ViewQueryModalContainer>
   );
 };
