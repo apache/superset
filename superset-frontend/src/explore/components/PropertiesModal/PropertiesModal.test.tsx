@@ -47,6 +47,7 @@ const createProps = () =>
     onHide: jest.fn(),
     onSave: jest.fn(),
     addSuccessToast: jest.fn(),
+    addDangerToast: jest.fn(),
   }) as PropertiesModalProps;
 
 fetchMock.get('glob:*/api/v1/chart/318*', {
@@ -86,6 +87,12 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
           type: 1,
         },
       ],
+      show_title: 'Show Slice',
+      certification_details: 'Test certification details',
+      certified_by: 'Test certified by',
+      description: 'Test description',
+      cache_timeout: 1000,
+      slice_name: 'Test chart new name',
     },
     show_columns: [
       'owners.id',

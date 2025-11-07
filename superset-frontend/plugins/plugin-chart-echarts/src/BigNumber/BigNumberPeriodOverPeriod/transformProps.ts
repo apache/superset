@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
@@ -27,6 +25,8 @@ import {
   SimpleAdhocFilter,
   ensureIsArray,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import 'dayjs/plugin/utc';
 import {
   getComparisonFontSize,
   getHeaderFontSize,
@@ -34,8 +34,6 @@ import {
 } from './utils';
 
 import { getOriginalLabel } from '../utils';
-
-dayjs.extend(utc);
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {

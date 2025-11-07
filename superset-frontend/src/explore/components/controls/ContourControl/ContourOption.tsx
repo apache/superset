@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { ContourOptionProps } from './types';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
@@ -52,7 +53,7 @@ const ContourOption = ({
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
-    : 'rgba(0,0,0,0)';
+    : 'transparent';
 
   const formatIsoline = (threshold: number, width: number) =>
     `${t('Threshold')}: ${threshold}, ${t('color')}: ${formattedColor}, ${t(

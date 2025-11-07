@@ -64,6 +64,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
+  onChartStateChange: PropTypes.func,
 };
 
 const BLANK = {};
@@ -126,6 +127,7 @@ class ChartRenderer extends Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
+      onChartStateChange: this.props.onChartStateChange,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -153,7 +155,10 @@ class ChartRenderer extends Component {
 
       // Check if any matrixify-related properties have changed
       const hasMatrixifyChanges = () => {
-        if (!nextProps.formData.matrixify_enabled) return false;
+        const isMatrixifyEnabled =
+          nextProps.formData.matrixify_enable_vertical_layout === true ||
+          nextProps.formData.matrixify_enable_horizontal_layout === true;
+        if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties
         const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>

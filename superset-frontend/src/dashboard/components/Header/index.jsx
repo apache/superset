@@ -20,13 +20,12 @@
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  styled,
-  css,
   isFeatureEnabled,
   FeatureFlag,
   t,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -100,7 +99,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = theme => css`
-  border-bottom: 1px solid ${theme.colorSplit};
+  border-bottom: 1px solid ${theme.colorBorder};
 `;
 
 const editButtonStyle = theme => css`

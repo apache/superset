@@ -18,7 +18,8 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import { nanoid } from 'nanoid';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
 import Table, {
@@ -52,10 +53,6 @@ const StyledButtonWrapper = styled.span`
 `;
 
 type CollectionItem = { id: string | number; [key: string]: any };
-
-function createCollectionArray(collection: Record<PropertyKey, any>) {
-  return Object.keys(collection).map(k => collection[k] as CollectionItem);
-}
 
 function createKeyedCollection(arr: Array<object>) {
   const collectionArray = arr.map(
@@ -104,11 +101,12 @@ export default class CRUDCollection extends PureComponent<
     this.toggleExpand = this.toggleExpand.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
-    if (nextProps.collection !== this.props.collection) {
+  componentDidUpdate(prevProps: CRUDCollectionProps) {
+    if (this.props.collection !== prevProps.collection) {
       const { collection, collectionArray } = createKeyedCollection(
-        nextProps.collection,
+        this.props.collection,
       );
+
       this.setState(prevState => ({
         collection,
         collectionArray,
@@ -197,7 +195,26 @@ export default class CRUDCollection extends PureComponent<
   }
 
   changeCollection(collection: any) {
-    const newCollectionArray = createCollectionArray(collection);
+    // Preserve existing order instead of recreating from Object.keys()
+    const existingIds = new Set(
+      this.state.collectionArray.map(item => item.id),
+    );
+    const newCollectionArray: CollectionItem[] = [];
+
+    // First pass: preserve existing order and update items
+    for (const existingItem of this.state.collectionArray) {
+      if (collection[existingItem.id]) {
+        newCollectionArray.push(collection[existingItem.id]);
+      }
+    }
+
+    // Second pass: add new items
+    for (const item of Object.values(collection) as CollectionItem[]) {
+      if (!existingIds.has(item.id)) {
+        newCollectionArray.push(item);
+      }
+    }
+
     this.setState({ collection, collectionArray: newCollectionArray });
 
     if (this.props.onChange) {

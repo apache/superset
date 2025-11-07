@@ -18,6 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
+import { debounce } from 'lodash';
 import {
   Input,
   Tooltip,
@@ -25,7 +26,10 @@ import {
   TextAreaEditor,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { t, withTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
+
+import 'ace-builds/src-min-noconflict/mode-handlebars';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -44,6 +48,7 @@ const propTypes = {
     'sql',
     'markdown',
     'javascript',
+    'handlebars',
   ]),
   aboveEditorSection: PropTypes.node,
   readOnly: PropTypes.bool,
@@ -59,6 +64,7 @@ const propTypes = {
   textAreaStyles: PropTypes.object,
   tooltipOptions: PropTypes.object,
   hotkeys: PropTypes.array,
+  debounceDelay: PropTypes.number,
 };
 
 const defaultProps = {
@@ -73,16 +79,45 @@ const defaultProps = {
   textAreaStyles: {},
   tooltipOptions: {},
   hotkeys: [],
+  debounceDelay: null,
 };
 
 class TextAreaControl extends Component {
-  onControlChange(event) {
-    const { value } = event.target;
-    this.props.onChange(value);
+  constructor(props) {
+    super(props);
+    if (props.debounceDelay) {
+      this.debouncedOnChange = debounce(props.onChange, props.debounceDelay);
+    }
   }
 
-  onAreaEditorChange(value) {
-    this.props.onChange(value);
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.onChange !== prevProps.onChange &&
+      this.props.debounceDelay
+    ) {
+      if (this.debouncedOnChange) {
+        this.debouncedOnChange.cancel();
+      }
+      this.debouncedOnChange = debounce(
+        this.props.onChange,
+        this.props.debounceDelay,
+      );
+    }
+  }
+
+  handleChange(value) {
+    const finalValue = typeof value === 'object' ? value.target.value : value;
+    if (this.debouncedOnChange) {
+      this.debouncedOnChange(finalValue);
+    } else {
+      this.props.onChange(finalValue);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.debouncedOnChange) {
+      this.debouncedOnChange.cancel();
+    }
   }
 
   renderEditor(inModal = false) {
@@ -98,7 +133,7 @@ class TextAreaControl extends Component {
         style.resize = this.props.resize;
       }
       if (this.props.readOnly) {
-        style.backgroundColor = '#f2f2f2';
+        style.backgroundColor = this.props.theme.colorBgMask;
       }
       const onEditorLoad = editor => {
         this.props.hotkeys.forEach(keyConfig => {
@@ -122,7 +157,7 @@ class TextAreaControl extends Component {
             readOnly={this.props.readOnly}
             key={this.props.name}
             {...this.props}
-            onChange={this.onAreaEditorChange.bind(this)}
+            onChange={this.handleChange.bind(this)}
           />
         </div>
       );
@@ -137,7 +172,7 @@ class TextAreaControl extends Component {
       <div>
         <Input.TextArea
           placeholder={t('textarea')}
-          onChange={this.onControlChange.bind(this)}
+          onChange={this.handleChange.bind(this)}
           defaultValue={this.props.initialValue}
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}
@@ -174,8 +209,7 @@ class TextAreaControl extends Component {
                 buttonSize="small"
                 style={{ marginTop: this.props.theme.sizeUnit }}
               >
-                {t('Edit')} <strong>{this.props.language}</strong>{' '}
-                {t('in modal')}
+                {t('Edit %s in modal', this.props.language)}
               </Button>
             }
             modalBody={this.renderModalBody(true)}

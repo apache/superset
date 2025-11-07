@@ -43,6 +43,7 @@ const mockState = {
   databases: mockDatabases,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryAutoRefresh', () => {
   const runningQueries: QueryDictionary = { [runningQuery.id]: runningQuery };
   const successfulQueries: QueryDictionary = {
@@ -62,15 +63,15 @@ describe('QueryAutoRefresh', () => {
     jest.useRealTimers();
   });
 
-  it('isQueryRunning returns true for valid running query', () => {
+  test('isQueryRunning returns true for valid running query', () => {
     expect(isQueryRunning(runningQuery)).toBe(true);
   });
 
-  it('isQueryRunning returns false for valid not-running query', () => {
+  test('isQueryRunning returns false for valid not-running query', () => {
     expect(isQueryRunning(successfulQuery)).toBe(false);
   });
 
-  it('isQueryRunning returns false for invalid query', () => {
+  test('isQueryRunning returns false for invalid query', () => {
     // @ts-ignore
     expect(isQueryRunning(null)).toBe(false);
     // @ts-ignore
@@ -81,15 +82,15 @@ describe('QueryAutoRefresh', () => {
     expect(isQueryRunning({ state: { badFormat: true } })).toBe(false);
   });
 
-  it('shouldCheckForQueries is true for valid running query', () => {
+  test('shouldCheckForQueries is true for valid running query', () => {
     expect(shouldCheckForQueries(runningQueries)).toBe(true);
   });
 
-  it('shouldCheckForQueries is false for valid completed query', () => {
+  test('shouldCheckForQueries is false for valid completed query', () => {
     expect(shouldCheckForQueries(successfulQueries)).toBe(false);
   });
 
-  it('shouldCheckForQueries is false for invalid inputs', () => {
+  test('shouldCheckForQueries is false for invalid inputs', () => {
     // @ts-ignore
     expect(shouldCheckForQueries(null)).toBe(false);
     // @ts-ignore
@@ -109,7 +110,7 @@ describe('QueryAutoRefresh', () => {
     ).toBe(false);
   });
 
-  it('Attempts to refresh when given pending query', async () => {
+  test('Attempts to refresh when given pending query', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -135,7 +136,7 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
-  it('Attempts to clear inactive queries when updated queries are empty', async () => {
+  test('Attempts to clear inactive queries when updated queries are empty', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, { result: [] });
@@ -164,7 +165,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(1);
   });
 
-  it('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
+  test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -191,7 +192,7 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
-  it('Does NOT Attempt to refresh when given only completed queries', async () => {
+  test('Does NOT Attempt to refresh when given only completed queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {
@@ -219,7 +220,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(0);
   });
 
-  it('logs the failed error for async queries', async () => {
+  test('logs the failed error for async queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, {

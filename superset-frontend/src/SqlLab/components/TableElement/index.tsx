@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import type { Table } from 'src/SqlLab/types';
+import { useDispatch, useSelector } from 'react-redux';
+import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   ButtonGroup,
   Card,
@@ -31,7 +31,8 @@ import {
   type CollapseProps,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 
 import {
@@ -103,6 +104,19 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     },
     { skip: !expanded },
   );
+  const tableData = {
+    ...tableMetadata,
+    ...tableExtendedMetadata,
+  };
+  const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
+    state => state.sqlLab.queryEditors,
+  );
+  const currentTable = { ...tableData, ...table };
+  const { queryEditorId } = currentTable;
+  const queryEditor = queryEditors.find(
+    qe => qe.id === queryEditorId || qe.tabViewId === queryEditorId,
+  );
+  const currentQueryEditorId = queryEditor?.tabViewId || queryEditorId;
 
   useEffect(() => {
     if (hasMetadataError || hasExtendedMetadataError) {
@@ -112,16 +126,16 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     }
   }, [hasMetadataError, hasExtendedMetadataError, dispatch]);
 
-  const tableData = {
-    ...tableMetadata,
-    ...tableExtendedMetadata,
-  };
-
   // TODO: migrate syncTable logic by SIP-93
   const syncTableMetadata = useEffectEvent(() => {
     const { initialized } = table;
-    if (!initialized) {
-      dispatch(syncTable(table, tableData));
+    // if not a valid number, wait for backend to assign one
+    const hasFinalQueryEditorId =
+      currentQueryEditorId &&
+      !Number.isNaN(Number(currentQueryEditorId)) &&
+      currentTable.queryEditorId !== currentQueryEditorId;
+    if (!initialized && hasFinalQueryEditorId) {
+      dispatch(syncTable(currentTable, tableData, currentQueryEditorId));
     }
   });
 
@@ -129,7 +143,12 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     if (isMetadataSuccess && isExtraMetadataSuccess) {
       syncTableMetadata();
     }
-  }, [isMetadataSuccess, isExtraMetadataSuccess, syncTableMetadata]);
+  }, [
+    isMetadataSuccess,
+    isExtraMetadataSuccess,
+    currentQueryEditorId,
+    syncTableMetadata,
+  ]);
 
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);

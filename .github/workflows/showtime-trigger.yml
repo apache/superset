@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Security Check - Authorize Maintainers Only
         id: auth
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -61,17 +61,8 @@ jobs:
             console.log(`📊 Permission level for ${actor}: ${permission.permission}`);
             const authorized = ['write', 'admin'].includes(permission.permission);
 
-            if (!authorized) {
-              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
-              core.setOutput('authorized', 'false');
-              return;
-            }
-
-            console.log(`✅ Authorized maintainer: ${actor}`);
-            core.setOutput('authorized', 'true');
-
-            // If this is a synchronize event, check if Showtime is active and set blocked label
-            if (context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
+            // If this is a synchronize event from unauthorized user, check if Showtime is active and set blocked label
+            if (!authorized && context.eventName === 'pull_request_target' && context.payload.action === 'synchronize') {
               console.log(`🔒 Synchronize event detected - checking if Showtime is active`);
 
               // Check if PR has any circus tent labels (Showtime is in use)
@@ -98,6 +89,15 @@ jobs:
                 console.log(`ℹ️ No circus labels found - Showtime not in use, skipping block`);
               }
             }
+
+            if (!authorized) {
+              console.log(`🚨 Unauthorized user ${actor} - skipping all operations`);
+              core.setOutput('authorized', 'false');
+              return;
+            }
+
+            console.log(`✅ Authorized maintainer: ${actor}`);
+            core.setOutput('authorized', 'true');
 
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'

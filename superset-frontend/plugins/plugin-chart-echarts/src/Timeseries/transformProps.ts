@@ -26,7 +26,6 @@ import {
   CurrencyFormatter,
   ensureIsArray,
   tooltipHtml,
-  GenericDataType,
   getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
@@ -41,13 +40,17 @@ import {
   TimeseriesChartDataResponseResult,
   NumberFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
-import type { LineStyleOption } from 'echarts/types/src/util/types';
+import type {
+  LineStyleOption,
+  CallbackDataParams,
+} from 'echarts/types/src/util/types';
 import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
@@ -197,6 +200,7 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
   const labelMap: { [key: string]: string[] } = Object.entries(
@@ -298,7 +302,24 @@ export default function transformProps(
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
-    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    let colorScaleKey = getOriginalSeries(seriesName, array);
+
+    // If this series name exactly matches a time compare value, it's a time-shifted series
+    // and we need to find the corresponding original series for color matching
+    if (array && array.includes(seriesName)) {
+      // Find the original series (first non-time-compare series)
+      const originalSeries = rawSeries.find(s => {
+        const sName = inverted[String(s.name || '')] || String(s.name || '');
+        return !array.includes(sName);
+      });
+      if (originalSeries) {
+        const originalSeriesName =
+          inverted[String(originalSeries.name || '')] ||
+          String(originalSeries.name || '');
+        colorScaleKey = getOriginalSeries(originalSeriesName, array);
+      }
+    }
 
     const transformedSeries = transformSeries(
       entry,
@@ -575,15 +596,30 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
-        const forecastValue: any[] = richTooltip ? params : [params];
+        const forecastValue: CallbackDataParams[] = richTooltip
+          ? params
+          : [params];
         const sortedKeys = extractTooltipKeys(
           forecastValue,
           yIndex,
           richTooltip,
           tooltipSortByMetric,
         );
+        const filteredForecastValue = forecastValue.filter(
+          (item: CallbackDataParams) =>
+            !annotationLayers.some(
+              (annotation: AnnotationLayer) =>
+                item.seriesName === annotation.name,
+            ),
+        );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
+
+        const filteredForecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(
+            filteredForecastValue,
+            isHorizontal,
+          );
 
         const isForecast = Object.values(forecastValues).some(
           value =>
@@ -595,7 +631,7 @@ export default function transformProps(
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
 
         const rows: string[][] = [];
-        const total = Object.values(forecastValues).reduce(
+        const total = Object.values(filteredForecastValues).reduce(
           (acc, value) =>
             value.observation !== undefined ? acc + value.observation : acc,
           0,
@@ -617,7 +653,16 @@ export default function transformProps(
               seriesName: key,
               formatter,
             });
-            if (showPercentage && value.observation !== undefined) {
+
+            const annotationRow = annotationLayers.some(
+              item => item.name === key,
+            );
+
+            if (
+              showPercentage &&
+              value.observation !== undefined &&
+              !annotationRow
+            ) {
               row.push(
                 percentFormatter.format(value.observation / (total || 1)),
               );

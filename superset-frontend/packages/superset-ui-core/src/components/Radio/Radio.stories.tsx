@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Space } from '../Space';
 import { Radio, type RadioProps, type RadioGroupWrapperProps } from '.';

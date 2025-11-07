@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, JsonValue, styled, t } from '@superset-ui/core';
+import { JsonValue, t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 // eslint-disable-next-line no-restricted-imports
 import { Button } from '@superset-ui/core/components/Button';
 import { Form } from '@superset-ui/core/components/Form';
@@ -127,6 +128,7 @@ export const StyledSaveButton = styled(Button)`
 export const LayerConfigsPopoverContent: FC<
   LayerConfigsPopoverContentProps
 > = ({ onClose = () => {}, onSave = () => {}, layerConf }) => {
+  const theme = useTheme();
   const [currentLayerConf, setCurrentLayerConf] =
     useState<LayerConf>(layerConf);
   const initialWmsVersion =
@@ -179,20 +181,17 @@ export const LayerConfigsPopoverContent: FC<
               symbolizers: [
                 {
                   kind: 'Line',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                   width: 2,
                 },
                 {
                   kind: 'Mark',
                   wellKnownName: 'circle',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                 },
                 {
                   kind: 'Fill',
-                  // eslint-disable-next-line theme-colors/no-literal-colors
-                  color: '#000000',
+                  color: theme.colorTextBase,
                 },
               ],
             },

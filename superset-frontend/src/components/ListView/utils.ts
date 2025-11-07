@@ -70,7 +70,7 @@ const RisonParam: QueryParamConfig<string, any> = {
       : rison.decode(dataStr),
 };
 
-export const SELECT_WIDTH = 175;
+export const SELECT_WIDTH = 176;
 export const RANGE_WIDTH = 300;
 export const WIDER_DROPDOWN_WIDTH = '300px';
 
@@ -273,23 +273,23 @@ export function useListViewState({
   } = useTable(
     {
       columns: columnsWithSelect,
-      count,
       data,
       disableFilters: true,
       disableSortRemove: true,
-      initialState,
+      initialState: initialState as any,
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
+      ...({ count } as any),
     },
     useFilters,
     useSortBy,
     usePagination,
     useRowState,
     useRowSelect,
-  );
+  ) as any;
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length

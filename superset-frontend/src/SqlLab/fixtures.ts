@@ -23,10 +23,10 @@ import {
   DatasourceType,
   denormalizeTimestamp,
   ErrorTypeEnum,
-  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
@@ -238,6 +238,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'BkA1CLrJg',
+    sqlEditorImmutableId: 'BkA1CLrJg_immutable',
     progress: 100,
     startDttm: 1476910566092.96,
     state: QueryState.Success,
@@ -297,6 +298,7 @@ export const queries = [
     ctas: false,
     cached: false,
     id: 'S1zeAISkx',
+    sqlEditorImmutableId: 'S1zeAISkx_immutable',
     progress: 100,
     startDttm: 1476910570802.2,
     state: QueryState.Success,
@@ -331,6 +333,7 @@ export const queryWithNoQueryLimit = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -589,6 +592,7 @@ const baseQuery: QueryResponse = {
   ctas: false,
   cached: false,
   id: 'BkA1CLrJg',
+  sqlEditorImmutableId: 'BkA1CLrJg_immutable',
   progress: 100,
   startDttm: 1476910566092.96,
   state: QueryState.Success,
@@ -672,6 +676,7 @@ export const runningQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 90,
   state: QueryState.Running,
   startDttm: Date.now() - 500,
@@ -683,6 +688,7 @@ export const successfulQuery: QueryResponse = {
   cached: false,
   ctas: false,
   id: 'ryhMUZCGb',
+  sqlEditorImmutableId: 'ryhMUZCGb_immutable',
   progress: 100,
   state: QueryState.Success,
   startDttm: Date.now() - 500,
@@ -768,7 +774,7 @@ export const testQuery: ISaveableDatasource = {
   ],
 };
 
-export const mockdatasets = [...new Array(3)].map((_, i) => ({
+export const mockdatasets = new Array(3).fill(undefined).map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',

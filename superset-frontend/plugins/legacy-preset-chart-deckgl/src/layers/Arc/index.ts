@@ -18,8 +18,11 @@
  */
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
-import transformProps from '../../transformProps';
+import exampleDark from './images/example-dark.png';
+import transformProps from './transformProps';
+import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -35,14 +38,15 @@ const metadata = new ChartMetadata({
   ),
   name: t('deck.gl Arc'),
   thumbnail,
-  exampleGallery: [{ url: example }],
-  useLegacyApi: true,
+  thumbnailDark,
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   tags: [t('deckGL'), t('Geo'), t('3D'), t('Relational'), t('Web')],
 });
 
 export default class ArcChartPlugin extends ChartPlugin {
   constructor() {
     super({
+      buildQuery,
       loadChart: () => import('./Arc'),
       controlPanel,
       metadata,

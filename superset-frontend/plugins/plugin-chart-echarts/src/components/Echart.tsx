@@ -27,11 +27,10 @@ import {
   Ref,
   useState,
 } from 'react';
-import { merge } from 'lodash';
-
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme } from '@superset-ui/core';
+import { mergeReplaceArrays } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -81,6 +80,7 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+// eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
   CanvasRenderer,
   BarChart,
@@ -116,8 +116,8 @@ const loadLocale = async (locale: string) => {
   let lang;
   try {
     lang = await import(`echarts/lib/i18n/lang${locale}`);
-  } catch (e) {
-    console.error(`Locale ${locale} not supported in ECharts`, e);
+  } catch {
+    // Locale not supported in ECharts
   }
   return lang?.default;
 };
@@ -131,6 +131,7 @@ function Echart(
     zrEventHandlers,
     selectedValues = {},
     refs,
+    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
@@ -178,7 +179,7 @@ function Echart(
       handleSizeChange({ width, height });
       setDidMount(true);
     });
-  }, [locale]);
+  }, [locale, width, height, handleSizeChange]);
 
   useEffect(() => {
     if (didMount) {
@@ -237,14 +238,22 @@ function Echart(
         return echartsTheme;
       };
 
-      const themedEchartOptions = merge(
-        {},
-        getEchartsTheme(echartOptions),
+      const baseTheme = getEchartsTheme(echartOptions);
+      const globalOverrides = theme.echartsOptionsOverrides || {};
+      const chartOverrides = vizType
+        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+        : {};
+
+      const themedEchartOptions = mergeReplaceArrays(
+        baseTheme,
         echartOptions,
+        globalOverrides,
+        chartOverrides,
       );
+
       chartRef.current?.setOption(themedEchartOptions, true);
     }
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
@@ -264,7 +273,7 @@ function Echart(
       });
     }
     previousSelection.current = currentSelection;
-  }, [currentSelection, chartRef.current]);
+  }, [currentSelection]);
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });
