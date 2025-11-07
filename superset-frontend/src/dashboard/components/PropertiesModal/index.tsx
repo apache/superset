@@ -586,26 +586,26 @@ const PropertiesModal = ({
     sections: modalSections,
   });
 
-  // Validate basic section when title changes
+  // Validate basic section when title changes or data loads
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && dashboardInfo) {
       validateSection('basic');
     }
-  }, [dashboardTitle, validateSection, isLoading]);
+  }, [dashboardTitle, validateSection, isLoading, dashboardInfo]);
 
-  // Validate advanced section when JSON changes
+  // Validate advanced section when JSON changes or data loads
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && dashboardInfo) {
       validateSection('advanced');
     }
-  }, [jsonMetadata, validateSection, isLoading]);
+  }, [jsonMetadata, validateSection, isLoading, dashboardInfo]);
 
-  // Validate refresh section when refresh frequency changes
+  // Validate refresh section when frequency changes or data loads
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && dashboardInfo) {
       validateSection('refresh');
     }
-  }, [refreshFrequency, validateSection, isLoading]);
+  }, [refreshFrequency, validateSection, isLoading, dashboardInfo]);
 
   return (
     <StandardModal
@@ -636,8 +636,8 @@ const PropertiesModal = ({
         onFinish={onFinish}
         onFieldsChange={() => {
           // Re-validate sections when form fields change
-          if (!isLoading) {
-            setTimeout(() => validateSection('basic'), 100);
+          if (!isLoading && dashboardInfo) {
+            validateSection('basic');
           }
         }}
         data-test="dashboard-edit-properties-form"
