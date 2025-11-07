@@ -53,6 +53,7 @@ import {
   tn,
   useTheme,
   SupersetTheme,
+  extractTextFromHTML,
 } from '@superset-ui/core';
 import {
   Input,
@@ -514,7 +515,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            const dataRecordValue = value[col.key];
+            let dataRecordValue = value[col.key];
+            dataRecordValue = extractTextFromHTML(dataRecordValue);
+
             drillToDetailFilters.push({
               col: col.key,
               op: '==',
@@ -535,7 +538,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   {
                     col: cellPoint.key,
                     op: '==',
-                    val: cellPoint.value as string | number | boolean,
+                    val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
                 groupbyFieldName: 'groupby',
