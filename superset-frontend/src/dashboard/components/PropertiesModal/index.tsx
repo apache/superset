@@ -588,18 +588,24 @@ const PropertiesModal = ({
 
   // Validate basic section when title changes
   useEffect(() => {
-    validateSection('basic');
-  }, [dashboardTitle, validateSection]);
+    if (!isLoading) {
+      validateSection('basic');
+    }
+  }, [dashboardTitle, validateSection, isLoading]);
 
   // Validate advanced section when JSON changes
   useEffect(() => {
-    validateSection('advanced');
-  }, [jsonMetadata, validateSection]);
+    if (!isLoading) {
+      validateSection('advanced');
+    }
+  }, [jsonMetadata, validateSection, isLoading]);
 
   // Validate refresh section when refresh frequency changes
   useEffect(() => {
-    validateSection('refresh');
-  }, [refreshFrequency, validateSection]);
+    if (!isLoading) {
+      validateSection('refresh');
+    }
+  }, [refreshFrequency, validateSection, isLoading]);
 
   return (
     <StandardModal
@@ -630,7 +636,9 @@ const PropertiesModal = ({
         onFinish={onFinish}
         onFieldsChange={() => {
           // Re-validate sections when form fields change
-          setTimeout(() => validateSection('basic'), 100);
+          if (!isLoading) {
+            setTimeout(() => validateSection('basic'), 100);
+          }
         }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
