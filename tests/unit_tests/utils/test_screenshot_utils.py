@@ -315,3 +315,58 @@ class TestTakeTiledScreenshot:
                 assert clip["width"] == 800
                 # Height should be min of viewport_height and remaining content
                 assert clip["height"] <= 600  # Element height from mock
+
+    def test_skips_tiles_with_zero_height(self):
+        """Test that tiles with zero height are skipped."""
+        mock_page = MagicMock()
+
+        # Mock element locator
+        element = MagicMock()
+        mock_page.locator.return_value = element
+
+        # Mock element info - 4000px tall dashboard
+        element_info = {"height": 4000, "top": 100, "left": 50, "width": 800}
+
+        # First tile: valid clip region
+        valid_element_box = {"x": 50, "y": 200, "width": 800, "height": 600}
+
+        # Second tile: element scrolled completely out (zero height)
+        invalid_element_box = {"x": 50, "y": -100, "width": 800, "height": 0}
+
+        # For 2 tiles (4000px / 2000px = 2):
+        # 1 initial + 2 scroll + 2 element box + 1 reset = 6 calls
+        mock_page.evaluate.side_effect = [
+            element_info,  # Initial call for dashboard dimensions
+            None,  # First scroll call
+            valid_element_box,  # First element box (valid)
+            None,  # Second scroll call
+            invalid_element_box,  # Second element box (zero height)
+            None,  # Reset scroll call
+        ]
+
+        mock_page.screenshot.return_value = b"fake_screenshot"
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine:
+                mock_combine.return_value = b"combined"
+
+                result = take_tiled_screenshot(
+                    mock_page, "dashboard", viewport_height=2000
+                )
+
+                # Should still succeed with partial tiles
+                assert result == b"combined"
+
+                # Should only take 1 screenshot (second tile skipped)
+                assert mock_page.screenshot.call_count == 1
+
+                # Should log warning about skipped tile
+                mock_logger.warning.assert_called_once()
+                warning_call = mock_logger.warning.call_args
+                # Check the format string
+                assert "invalid clip dimensions" in warning_call[0][0]
+                # Check the arguments (tile 2/2)
+                assert warning_call[0][1] == 2  # tile number (i + 1)
+                assert warning_call[0][2] == 2  # num_tiles
