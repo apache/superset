@@ -73,6 +73,39 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
+# Response Caching Configuration (FastMCP 2.13+)
+# Enables TTL-based caching for tool/resource/prompt responses
+# See: https://github.com/jlowin/fastmcp/releases/tag/v2.13.0
+MCP_CACHE_CONFIG = {
+    # Enable response caching middleware
+    "enabled": True,
+    # Maximum size of cached items (1MB default)
+    "max_item_size": 1024 * 1024,
+    # Cache backend - None uses in-memory cache, can be customized with AsyncKeyValue
+    "cache_storage": None,
+    # List operations caching (5 minutes default)
+    "list_tools_ttl": 300,
+    "list_resources_ttl": 300,
+    "list_prompts_ttl": 300,
+    # Individual item caching (1 hour default)
+    "read_resource_ttl": 3600,
+    "get_prompt_ttl": 3600,
+    "call_tool_ttl": 3600,
+    # Tool-specific caching control
+    # Cache all tools except these expensive/mutable operations
+    "excluded_tools": [
+        # Skip caching for tools that execute SQL or modify data
+        "execute_sql",
+        "generate_dashboard",
+        "generate_chart",
+        "update_chart",
+        "update_chart_preview",
+        "add_chart_to_existing_dashboard",
+    ],
+    # Only cache these tools (if specified, overrides excluded_tools)
+    "included_tools": None,
+}
+
 
 def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     """Default MCP auth factory using app.config values."""
@@ -188,6 +221,97 @@ def get_mcp_config_with_overrides(
 
     # Start with defaults, then overlay any app_config values
     return {**defaults, **app_config}
+
+
+def create_response_caching_middleware(
+    app_config: Dict[str, Any] | None = None,
+) -> Optional[Any]:
+    """
+    Create ResponseCachingMiddleware with configuration from app.config.
+
+    Args:
+        app_config: Optional Flask app configuration dict
+
+    Returns:
+        ResponseCachingMiddleware instance or None if caching is disabled
+    """
+    app_config = app_config or {}
+
+    # Get cache config from app.config or use defaults
+    cache_config = {**MCP_CACHE_CONFIG, **app_config.get("MCP_CACHE_CONFIG", {})}
+
+    if not cache_config.get("enabled", True):
+        logger.info("Response caching middleware disabled")
+        return None
+
+    try:
+        from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+        # Build settings dictionaries for each operation type
+        list_tools_settings = {
+            "ttl": cache_config.get("list_tools_ttl", 300),
+            "enabled": True,
+        }
+        list_resources_settings = {
+            "ttl": cache_config.get("list_resources_ttl", 300),
+            "enabled": True,
+        }
+        list_prompts_settings = {
+            "ttl": cache_config.get("list_prompts_ttl", 300),
+            "enabled": True,
+        }
+        read_resource_settings = {
+            "ttl": cache_config.get("read_resource_ttl", 3600),
+            "enabled": True,
+        }
+        get_prompt_settings = {
+            "ttl": cache_config.get("get_prompt_ttl", 3600),
+            "enabled": True,
+        }
+
+        # Tool caching with include/exclude lists
+        call_tool_settings: Dict[str, Any] = {
+            "ttl": cache_config.get("call_tool_ttl", 3600),
+            "enabled": True,
+        }
+        if cache_config.get("included_tools"):
+            call_tool_settings["included_tools"] = cache_config["included_tools"]
+        if cache_config.get("excluded_tools"):
+            call_tool_settings["excluded_tools"] = cache_config["excluded_tools"]
+
+        middleware = ResponseCachingMiddleware(
+            cache_storage=cache_config.get("cache_storage"),
+            list_tools_settings=list_tools_settings,
+            list_resources_settings=list_resources_settings,
+            list_prompts_settings=list_prompts_settings,
+            read_resource_settings=read_resource_settings,
+            get_prompt_settings=get_prompt_settings,
+            call_tool_settings=call_tool_settings,
+            max_item_size=cache_config.get("max_item_size", 1024 * 1024),
+        )
+
+        logger.info(
+            "Created ResponseCachingMiddleware with TTLs: list=%ds, read=%ds, call=%ds",
+            cache_config.get("list_tools_ttl", 300),
+            cache_config.get("read_resource_ttl", 3600),
+            cache_config.get("call_tool_ttl", 3600),
+        )
+
+        if cache_config.get("excluded_tools"):
+            logger.info(
+                "Excluded tools from caching: %s", cache_config["excluded_tools"]
+            )
+
+        return middleware
+
+    except ImportError:
+        logger.warning(
+            "ResponseCachingMiddleware not available - requires fastmcp 2.13+"
+        )
+        return None
+    except Exception as e:
+        logger.error("Failed to create response caching middleware: %s", e)
+        return None
 
 
 def get_mcp_factory_config() -> Dict[str, Any]:
