@@ -349,17 +349,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
 
     // Handle the default to first Value case
-    if (defaultToFirstItem) {
-      // Set to first item if defaultToFirstItem is true
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+    // Skip default values when clearAllTrigger is active to prevent
+    // defaults from being applied during Clear All operation
+    if (!clearAllTrigger) {
+      if (defaultToFirstItem) {
+        // Set to first item if defaultToFirstItem is true
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (formData?.defaultValue) {
+        // Handle defalut value case
+        updateDataMask(formData.defaultValue);
       }
-    } else if (formData?.defaultValue) {
-      // Handle defalut value case
-      updateDataMask(formData.defaultValue);
     }
   }, [
     isDisabled,
@@ -370,6 +374,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     groupby,
     col,
     inverseSelection,
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
@@ -406,7 +411,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
+    // Skip default value update when clearAllTrigger is active
     if (
+      !clearAllTrigger &&
       defaultToFirstItem &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
@@ -423,6 +430,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     formData,
     data,
     JSON.stringify(filterState.value),
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
