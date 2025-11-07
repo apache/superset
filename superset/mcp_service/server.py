@@ -22,7 +22,7 @@ MCP server for Apache Superset
 import logging
 import os
 
-from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.app import create_mcp_app
 from superset.mcp_service.mcp_config import get_mcp_factory_config
 
 
@@ -82,9 +82,20 @@ def run_server(
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
     else:
-        # Use default initialization
+        # Use default initialization with response caching middleware
         logging.info("Creating MCP app with default configuration...")
-        mcp_instance = init_fastmcp_server()
+
+        # Import here to avoid circular imports
+        from superset.mcp_service.mcp_config import create_response_caching_middleware
+
+        # Create middleware list - response caching is enabled by default
+        middleware_list = []
+        caching_middleware = create_response_caching_middleware()
+        if caching_middleware:
+            middleware_list.append(caching_middleware)
+
+        # Create MCP instance with middleware
+        mcp_instance = create_mcp_app(middleware=middleware_list or None)
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
