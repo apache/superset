@@ -434,12 +434,31 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ownState.agGridSimpleFilters &&
         ownState.agGridSimpleFilters.length > 0
       ) {
+        // Get columns that have AG Grid filters
+        const agGridFilterColumns = new Set(
+          ownState.agGridSimpleFilters.map((filter: any) => filter.col),
+        );
+
+        // Remove existing TEMPORAL_RANGE filters for columns that have new AG Grid filters
+        // This prevents duplicate filters like "No filter" and actual date ranges
+        const existingFilters = (queryObject.filters || []).filter(
+          (filter: any) => {
+            // Keep filter if it doesn't have the expected structure
+            if (!filter || typeof filter !== 'object' || !filter.col) {
+              return true;
+            }
+            // Keep filter if it's not a temporal range filter
+            if (filter.op !== 'TEMPORAL_RANGE') {
+              return true;
+            }
+            // Remove if this column has an AG Grid filter
+            return !agGridFilterColumns.has(filter.col);
+          },
+        );
+
         queryObject = {
           ...queryObject,
-          filters: [
-            ...(queryObject.filters || []),
-            ...ownState.agGridSimpleFilters,
-          ],
+          filters: [...existingFilters, ...ownState.agGridSimpleFilters],
         };
       }
 

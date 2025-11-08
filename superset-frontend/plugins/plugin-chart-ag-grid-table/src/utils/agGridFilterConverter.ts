@@ -65,6 +65,7 @@ export const SQL_OPERATORS = {
   IS_NULL: 'IS NULL',
   IS_NOT_NULL: 'IS NOT NULL',
   IN: 'IN',
+  TEMPORAL_RANGE: 'TEMPORAL_RANGE',
 } as const;
 
 export type FilterValue = string | number | boolean | Date | null;
@@ -76,6 +77,9 @@ export interface AgGridSimpleFilter {
   type: AgGridFilterOperator;
   filter?: FilterValue;
   filterTo?: FilterValue;
+  // Date filter properties
+  dateFrom?: string | null;
+  dateTo?: string | null;
 }
 
 export interface AgGridCompoundFilter {
@@ -212,10 +216,74 @@ function formatValueForOperator(
   return value;
 }
 
+/**
+ * Convert a date filter to a WHERE clause
+ * @param columnName - Column name
+ * @param filter - AG Grid date filter
+ * @returns WHERE clause string for date filter
+ */
+function dateFilterToWhereClause(
+  columnName: string,
+  filter: AgGridSimpleFilter,
+): string {
+  const { type, dateFrom, dateTo } = filter;
+
+  if (!dateFrom && !dateTo) {
+    return '';
+  }
+
+  // Convert based on operator type
+  switch (type) {
+    case FILTER_OPERATORS.EQUALS:
+      if (!dateFrom) return '';
+      // For equals, check if date is within the full day range
+      return `(${columnName} >= '${getStartOfDay(dateFrom)}' AND ${columnName} <= '${getEndOfDay(dateFrom)}')`;
+
+    case FILTER_OPERATORS.NOT_EQUAL:
+      if (!dateFrom) return '';
+      // For not equals, exclude the full day range
+      return `(${columnName} < '${getStartOfDay(dateFrom)}' OR ${columnName} > '${getEndOfDay(dateFrom)}')`;
+
+    case FILTER_OPERATORS.LESS_THAN:
+      if (!dateFrom) return '';
+      return `${columnName} < '${getStartOfDay(dateFrom)}'`;
+
+    case FILTER_OPERATORS.LESS_THAN_OR_EQUAL:
+      if (!dateFrom) return '';
+      return `${columnName} <= '${getEndOfDay(dateFrom)}'`;
+
+    case FILTER_OPERATORS.GREATER_THAN:
+      if (!dateFrom) return '';
+      return `${columnName} > '${getEndOfDay(dateFrom)}'`;
+
+    case FILTER_OPERATORS.GREATER_THAN_OR_EQUAL:
+      if (!dateFrom) return '';
+      return `${columnName} >= '${getStartOfDay(dateFrom)}'`;
+
+    case FILTER_OPERATORS.IN_RANGE:
+      if (!dateFrom || !dateTo) return '';
+      return `(${columnName} >= '${getStartOfDay(dateFrom)}' AND ${columnName} <= '${getEndOfDay(dateTo)}')`;
+
+    case FILTER_OPERATORS.BLANK:
+      return `${columnName} ${SQL_OPERATORS.IS_NULL}`;
+
+    case FILTER_OPERATORS.NOT_BLANK:
+      return `${columnName} ${SQL_OPERATORS.IS_NOT_NULL}`;
+
+    default:
+      return '';
+  }
+}
+
 function simpleFilterToWhereClause(
   columnName: string,
   filter: AgGridSimpleFilter,
 ): string {
+  // Check if this is a date filter and handle it specially
+  if (filter.filterType === 'date') {
+    return dateFilterToWhereClause(columnName, filter);
+  }
+
   const { type, filter: value, filterTo } = filter;
 
   const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
@@ -281,7 +349,11 @@ function compoundFilterToWhereClause(
 
   if (conditions && conditions.length > 0) {
     const clauses = conditions
-      .map(cond => simpleFilterToWhereClause(columnName, cond))
+      .map((cond, index) => {
+        const clause = simpleFilterToWhereClause(columnName, cond);
+
+        return clause;
+      })
       .filter(clause => clause !== '');
 
     if (clauses.length === 0) {
@@ -292,7 +364,9 @@ function compoundFilterToWhereClause(
       return clauses[0];
     }
 
-    return `(${clauses.join(` ${operator} `)})`;
+    const result = `(${clauses.join(` ${operator} `)})`;
+
+    return result;
   }
 
   const clause1 = simpleFilterToWhereClause(columnName, condition1);
@@ -310,7 +384,151 @@ function compoundFilterToWhereClause(
     return clause1;
   }
 
-  return `(${clause1} ${operator} ${clause2})`;
+  const result = `(${clause1} ${operator} ${clause2})`;
+  return result;
+}
+
+/**
+ * Format a date string to ISO format expected by Superset, preserving local timezone
+ * @param dateStr - Date string from AG Grid filter
+ * @returns ISO formatted date string in local timezone
+ */
+function formatDateForSuperset(dateStr: string): string {
+  // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
+  // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) {
+    return dateStr; // Return as-is if invalid
+  }
+
+  // Format date in local timezone, not UTC
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return formatted;
+}
+
+/**
+ * Get the start of day for a given date string
+ * @param dateStr - Date string from AG Grid filter
+ * @returns ISO formatted date string at 00:00:00
+ */
+function getStartOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  return formatDateForSuperset(date.toISOString());
+}
+
+/**
+ * Get the end of day for a given date string
+ * @param dateStr - Date string from AG Grid filter
+ * @returns ISO formatted date string at 23:59:59
+ */
+function getEndOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(23, 59, 59, 999);
+  return formatDateForSuperset(date.toISOString());
+}
+
+/**
+ * Check if a filter is a date filter and convert to TEMPORAL_RANGE format
+ * @param columnName - Column name
+ * @param filter - AG Grid filter
+ * @returns SQLAlchemy filter or null if not a date filter
+ */
+function convertDateFilter(
+  columnName: string,
+  filter: AgGridSimpleFilter,
+): SQLAlchemyFilter | null {
+  if (filter.filterType !== 'date') {
+    return null;
+  }
+
+  const { type, dateFrom, dateTo } = filter;
+
+  // Handle null/blank checks for date columns
+  if (type === FILTER_OPERATORS.BLANK || type === FILTER_OPERATORS.NOT_BLANK) {
+    return null; // Let the standard logic handle these
+  }
+
+  // Validate we have at least one date
+  if (!dateFrom && !dateTo) {
+    return null;
+  }
+
+  let temporalRangeValue: string;
+
+  // Convert based on operator type
+  switch (type) {
+    case FILTER_OPERATORS.EQUALS:
+      if (!dateFrom) {
+        return null;
+      }
+      // For equals, create a range for the entire day (00:00:00 to 23:59:59)
+      temporalRangeValue = `${getStartOfDay(dateFrom)} : ${getEndOfDay(dateFrom)}`;
+      break;
+
+    case FILTER_OPERATORS.NOT_EQUAL:
+      // NOT EQUAL for dates is complex, skip for now
+      return null;
+
+    case FILTER_OPERATORS.LESS_THAN:
+      if (!dateFrom) {
+        return null;
+      }
+      // Everything before the start of this date
+      temporalRangeValue = ` : ${getStartOfDay(dateFrom)}`;
+      break;
+
+    case FILTER_OPERATORS.LESS_THAN_OR_EQUAL:
+      if (!dateFrom) {
+        return null;
+      }
+      // Everything up to and including the end of this date
+      temporalRangeValue = ` : ${getEndOfDay(dateFrom)}`;
+      break;
+
+    case FILTER_OPERATORS.GREATER_THAN:
+      if (!dateFrom) {
+        return null;
+      }
+      // Everything after the end of this date
+      temporalRangeValue = `${getEndOfDay(dateFrom)} : `;
+      break;
+
+    case FILTER_OPERATORS.GREATER_THAN_OR_EQUAL:
+      if (!dateFrom) {
+        return null;
+      }
+      // Everything from the start of this date onwards
+      temporalRangeValue = `${getStartOfDay(dateFrom)} : `;
+      break;
+
+    case FILTER_OPERATORS.IN_RANGE:
+      // Range between two dates
+      if (!dateFrom || !dateTo) {
+        return null;
+      }
+      // From start of first date to end of second date
+      temporalRangeValue = `${getStartOfDay(dateFrom)} : ${getEndOfDay(dateTo)}`;
+      break;
+
+    default:
+      return null;
+  }
+
+  const result = {
+    col: columnName,
+    op: SQL_OPERATORS.TEMPORAL_RANGE,
+    val: temporalRangeValue,
+  };
+
+  return result;
 }
 
 /**
@@ -381,6 +599,16 @@ export function convertAgGridFiltersToSQL(
     }
 
     const simpleFilter = filter as AgGridSimpleFilter;
+
+    // Check if this is a date filter and handle it specially
+    if (simpleFilter.filterType === 'date') {
+      const dateFilter = convertDateFilter(columnName, simpleFilter);
+      if (dateFilter) {
+        simpleFilters.push(dateFilter);
+        return;
+      }
+    }
+
     const { type, filter: value } = simpleFilter;
 
     if (!type) {
@@ -452,9 +680,11 @@ export function convertAgGridFiltersToSQL(
     havingClause = `(${complexHavingClauses.join(' AND ')})`;
   }
 
-  return {
+  const result = {
     simpleFilters,
     complexWhere,
     havingClause,
   };
+
+  return result;
 }
