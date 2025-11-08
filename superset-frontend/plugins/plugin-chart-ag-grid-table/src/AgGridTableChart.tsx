@@ -137,9 +137,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Sync chartState immediately with the new filter model to prevent stale state
       // This ensures chartState and ownState are in sync
       if (onChartStateChange && chartState) {
+        const filterModel =
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined;
         const updatedChartState = {
           ...chartState,
-          filterModel: completeFilterState.originalFilterModel,
+          filterModel,
           timestamp: Date.now(),
         };
         onChartStateChange(updatedChartState);
@@ -148,7 +153,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Prepare modified own state for server pagination
       const modifiedOwnState = {
         ...serverPaginationData,
-        agGridFilterModel: completeFilterState.originalFilterModel,
+        agGridFilterModel:
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined,
         agGridSimpleFilters: completeFilterState.simpleFilters,
         agGridComplexWhere: completeFilterState.complexWhere,
         agGridHavingClause: completeFilterState.havingClause,
