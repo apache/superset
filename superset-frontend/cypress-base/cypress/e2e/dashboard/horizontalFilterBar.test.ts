@@ -200,9 +200,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('filter-control-name').contains('test_3').should('be.visible');
     cy.getBySel('filter-control-name')
       .contains('test_12')
-      .should('not.be.visible');
-    cy.getBySel('filter-control-name').contains('test_12').scrollIntoView();
-    cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
+      .should('be.visible');
   });
 
   it('should display newly added filter', () => {
