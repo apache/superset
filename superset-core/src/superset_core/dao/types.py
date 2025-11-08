@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Protocol interfaces for Data Access Objects."""
+"""Base classes for Data Access Objects."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, Union
+from typing import Any, ClassVar, Generic, TypeVar, Union
 
 from flask_appbuilder.models.filters import BaseFilter
 from sqlalchemy.orm import Query
@@ -31,37 +31,18 @@ T = TypeVar("T", bound=CoreModel)
 
 class BaseDAO(Generic[T], ABC):
     """
-    Interface for Data Access Objects.
+    Abstract base class for DAOs.
 
-    This interface defines the base that all DAOs should implement,
+    This ABC defines the base that all DAOs should implement,
     providing consistent CRUD operations across Superset and extensions.
-
-    Extension developers should implement this base class:
-
-    ```python
-    from superset_core.dao import BaseDAO
-    from superset_core.models import CoreModel
-
-    class MyDAO(BaseDAO[MyCustomModel]):
-        model_cls = MyCustomModel
-
-        @classmethod
-        def find_by_id(
-            cls,
-            model_id: str | int,
-            skip_base_filter: bool = False,
-            id_column: str | None = None,
-        ) -> MyCustomModel | None:
-            # Implementation here
-            pass
     ```
     """
 
     # Class attributes that implementations should define
-    model_cls: type[T] | None
-    base_filter: BaseFilter | None
-    id_column_name: str
-    uuid_column_name: str
+    model_cls: ClassVar[type[Any] | None]
+    base_filter: ClassVar[BaseFilter | None]
+    id_column_name: ClassVar[str]
+    uuid_column_name: ClassVar[str]
 
     @classmethod
     @abstractmethod

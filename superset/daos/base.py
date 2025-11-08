@@ -29,7 +29,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    TYPE_CHECKING,
     TypeVar,
 )
 
@@ -50,12 +49,6 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-
-if TYPE_CHECKING:
-    # For static type checking, we can use a more specific type
-    BaseDAOType = CoreBaseDAO[CoreModel]
-else:
-    BaseDAOType = object
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -161,7 +154,7 @@ class ColumnOperator(BaseModel):
     value: Any = Field(None, description="Value for the filter")
 
 
-class BaseDAO(Generic[T]):
+class BaseDAO(CoreBaseDAO[T], Generic[T]):
     """
     Base DAO, implement base CRUD sqlalchemy operations
     """
