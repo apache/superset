@@ -226,43 +226,43 @@ function dateFilterToWhereClause(
   columnName: string,
   filter: AgGridSimpleFilter,
 ): string {
-  const { type, dateFrom, dateTo } = filter;
+  const { type, dateFrom, dateTo, filter: filterValue, filterTo } = filter;
 
-  if (!dateFrom && !dateTo) {
-    return '';
-  }
+  // Support both dateFrom/dateTo and filter/filterTo
+  const fromDate = dateFrom || (filterValue as string);
+  const toDate = dateTo || (filterTo as string);
 
   // Convert based on operator type
   switch (type) {
     case FILTER_OPERATORS.EQUALS:
-      if (!dateFrom) return '';
+      if (!fromDate) return '';
       // For equals, check if date is within the full day range
-      return `(${columnName} >= '${getStartOfDay(dateFrom)}' AND ${columnName} <= '${getEndOfDay(dateFrom)}')`;
+      return `(${columnName} >= '${getStartOfDay(fromDate)}' AND ${columnName} <= '${getEndOfDay(fromDate)}')`;
 
     case FILTER_OPERATORS.NOT_EQUAL:
-      if (!dateFrom) return '';
+      if (!fromDate) return '';
       // For not equals, exclude the full day range
-      return `(${columnName} < '${getStartOfDay(dateFrom)}' OR ${columnName} > '${getEndOfDay(dateFrom)}')`;
+      return `(${columnName} < '${getStartOfDay(fromDate)}' OR ${columnName} > '${getEndOfDay(fromDate)}')`;
 
     case FILTER_OPERATORS.LESS_THAN:
-      if (!dateFrom) return '';
-      return `${columnName} < '${getStartOfDay(dateFrom)}'`;
+      if (!fromDate) return '';
+      return `${columnName} < '${getStartOfDay(fromDate)}'`;
 
     case FILTER_OPERATORS.LESS_THAN_OR_EQUAL:
-      if (!dateFrom) return '';
-      return `${columnName} <= '${getEndOfDay(dateFrom)}'`;
+      if (!fromDate) return '';
+      return `${columnName} <= '${getEndOfDay(fromDate)}'`;
 
     case FILTER_OPERATORS.GREATER_THAN:
-      if (!dateFrom) return '';
-      return `${columnName} > '${getEndOfDay(dateFrom)}'`;
+      if (!fromDate) return '';
+      return `${columnName} > '${getEndOfDay(fromDate)}'`;
 
     case FILTER_OPERATORS.GREATER_THAN_OR_EQUAL:
-      if (!dateFrom) return '';
-      return `${columnName} >= '${getStartOfDay(dateFrom)}'`;
+      if (!fromDate) return '';
+      return `${columnName} >= '${getStartOfDay(fromDate)}'`;
 
     case FILTER_OPERATORS.IN_RANGE:
-      if (!dateFrom || !dateTo) return '';
-      return `(${columnName} >= '${getStartOfDay(dateFrom)}' AND ${columnName} <= '${getEndOfDay(dateTo)}')`;
+      if (!fromDate || !toDate) return '';
+      return `${columnName} ${SQL_OPERATORS.BETWEEN} '${getStartOfDay(fromDate)}' AND '${getEndOfDay(toDate)}'`;
 
     case FILTER_OPERATORS.BLANK:
       return `${columnName} ${SQL_OPERATORS.IS_NULL}`;
@@ -349,7 +349,7 @@ function compoundFilterToWhereClause(
 
   if (conditions && conditions.length > 0) {
     const clauses = conditions
-      .map((cond, index) => {
+      .map(cond => {
         const clause = simpleFilterToWhereClause(columnName, cond);
 
         return clause;
