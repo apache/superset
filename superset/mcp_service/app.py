@@ -328,19 +328,21 @@ def init_fastmcp_server(
     a new instance will be created with those settings.
 
     Args:
-        name: Server name (defaults to MCP_SERVICE_NAME from config)
-        instructions: Custom instructions (defaults to branded DEFAULT_INSTRUCTIONS)
+        name: Server name (defaults to "{APP_NAME} MCP Server")
+        instructions: Custom instructions (defaults to branded with APP_NAME)
         auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
         **kwargs: Additional FastMCP configuration
 
     Returns:
         FastMCP instance (either the global one or a new custom one)
     """
-    # Read branding from Flask config if available
+    # Read branding from Flask config's APP_NAME
     from superset.mcp_service.flask_singleton import app as flask_app
 
-    branding = flask_app.config.get("MCP_SERVICE_BRANDING", "Apache Superset")
-    default_name = flask_app.config.get("MCP_SERVICE_NAME", "Superset MCP Server")
+    # Derive branding from Superset's APP_NAME config (defaults to "Superset")
+    app_name = flask_app.config.get("APP_NAME", "Superset")
+    branding = app_name
+    default_name = f"{app_name} MCP Server"
 
     # Apply branding defaults if not explicitly provided
     if name is None:
