@@ -482,7 +482,7 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="minimum of 1"):
+            with pytest.raises(ToolError, match="greater than or equal to 1"):
                 await client.call_tool("execute_sql", {"request": request})
 
         # Test limit too high
@@ -493,5 +493,5 @@ class TestExecuteSql:
         }
 
         async with Client(mcp_server) as client:
-            with pytest.raises(ToolError, match="maximum of 10000"):
+            with pytest.raises(ToolError, match="less than or equal to 10000"):
                 await client.call_tool("execute_sql", {"request": request})
