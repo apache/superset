@@ -17,12 +17,8 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  screen,
-  waitFor,
-  fireEvent,
-  within,
-} from 'spec/helpers/testing-library';
+import { screen, waitFor, within } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   mockCharts,
@@ -71,6 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.restore();
+  mockIsFeatureEnabled.mockReset();
 });
 
 test('ChartList list view renders correctly', async () => {
@@ -179,7 +176,7 @@ test('ChartList list view switches from list view to card view', async () => {
 
   // Switch to card view
   const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-  fireEvent.click(cardViewToggle);
+  await userEvent.click(cardViewToggle);
 
   // Verify table is no longer rendered
   await waitFor(() => {
@@ -238,7 +235,7 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   expect(sortableHeaders).toHaveLength(3);
 
   const nameHeader = within(table).getByTitle('Name');
-  fireEvent.click(nameHeader);
+  await userEvent.click(nameHeader);
 
   await waitFor(() => {
     const sortCalls = fetchMock
@@ -251,7 +248,7 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   });
 
   const typeHeader = within(table).getByTitle('Type');
-  fireEvent.click(typeHeader);
+  await userEvent.click(typeHeader);
 
   await waitFor(() => {
     const typeSortCalls = fetchMock
@@ -264,7 +261,7 @@ test('ChartList list view sorts table when clicking column headers', async () =>
   });
 
   const lastModifiedHeader = within(table).getByTitle('Last modified');
-  fireEvent.click(lastModifiedHeader);
+  await userEvent.click(lastModifiedHeader);
 
   await waitFor(() => {
     const lastModifiedSortCalls = fetchMock
@@ -371,7 +368,7 @@ test('ChartList list view export chart api called when export button is clicked'
   // Click first export button
   const table = screen.getByTestId('listview-table');
   const exportButtons = within(table).getAllByTestId('upload');
-  fireEvent.click(exportButtons[0]);
+  await userEvent.click(exportButtons[0]);
 
   // Verify export functionality is triggered - check if handleResourceExport was called
   await waitFor(() => {
@@ -397,7 +394,7 @@ test('ChartList list view opens edit properties modal when edit button is clicke
 
   const table = screen.getByTestId('listview-table');
   const editButtons = within(table).getAllByTestId('edit-alt');
-  fireEvent.click(editButtons[0]);
+  await userEvent.click(editButtons[0]);
 
   // Verify edit modal opens
   await waitFor(() => {
@@ -421,7 +418,7 @@ test('ChartList list view opens delete confirmation when delete button is clicke
 
   const table = screen.getByTestId('listview-table');
   const deleteButtons = within(table).getAllByTestId('delete');
-  fireEvent.click(deleteButtons[0]);
+  await userEvent.click(deleteButtons[0]);
 
   // Verify delete confirmation modal opens
   await waitFor(() => {
@@ -640,7 +637,7 @@ test('ChartList list view can bulk select and deselect all charts', async () => 
   });
 
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -651,7 +648,7 @@ test('ChartList list view can bulk select and deselect all charts', async () => 
   const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
   expect(selectAllCheckbox).not.toBeChecked();
 
-  fireEvent.click(selectAllCheckbox);
+  await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
     // Should show all charts selected
@@ -668,7 +665,7 @@ test('ChartList list view can bulk select and deselect all charts', async () => 
 
   // Use the deselect all link to deselect all
   const deselectAllButton = screen.getByTestId('bulk-select-deselect-all');
-  fireEvent.click(deselectAllButton);
+  await userEvent.click(deselectAllButton);
 
   await waitFor(() => {
     // Should show 0 selected
@@ -699,7 +696,7 @@ test('ChartList list view can bulk export selected charts', async () => {
   });
 
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -708,7 +705,7 @@ test('ChartList list view can bulk export selected charts', async () => {
 
   // Use select all to select multiple charts
   const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
-  fireEvent.click(selectAllCheckbox);
+  await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
@@ -721,7 +718,7 @@ test('ChartList list view can bulk export selected charts', async () => {
   const exportButton = bulkActions.find(btn => btn.textContent === 'Export');
   expect(exportButton).toBeInTheDocument();
 
-  fireEvent.click(exportButton!);
+  await userEvent.click(exportButton!);
 
   // Verify export function was called with all chart IDs
   await waitFor(() => {
@@ -746,7 +743,7 @@ test('ChartList list view can bulk delete selected charts', async () => {
   });
 
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -755,7 +752,7 @@ test('ChartList list view can bulk delete selected charts', async () => {
 
   // Use select all to select multiple charts
   const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
-  fireEvent.click(selectAllCheckbox);
+  await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
@@ -768,7 +765,7 @@ test('ChartList list view can bulk delete selected charts', async () => {
   const deleteButton = bulkActions.find(btn => btn.textContent === 'Delete');
   expect(deleteButton).toBeInTheDocument();
 
-  fireEvent.click(deleteButton!);
+  await userEvent.click(deleteButton!);
 
   // Should open delete confirmation modal
   await waitFor(() => {
@@ -799,7 +796,7 @@ test('ChartList list view can bulk add tags to selected charts', async () => {
 
   // Activate bulk select and select charts
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -811,7 +808,7 @@ test('ChartList list view can bulk add tags to selected charts', async () => {
   // Target first data row specifically (not header row)
   const dataRows = within(table).getAllByTestId('table-row');
   const firstRowCheckbox = within(dataRows[0]).getByRole('checkbox');
-  fireEvent.click(firstRowCheckbox);
+  await userEvent.click(firstRowCheckbox);
 
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
@@ -821,7 +818,7 @@ test('ChartList list view can bulk add tags to selected charts', async () => {
 
   const addTagButton = screen.queryByText('Add Tag') as HTMLButtonElement;
   expect(addTagButton).toBeInTheDocument();
-  fireEvent.click(addTagButton);
+  await userEvent.click(addTagButton);
 
   await waitFor(() => {
     const tagModal = screen.getByRole('dialog');
@@ -843,7 +840,7 @@ test('ChartList list view exit bulk select by hitting x on bulk select bar', asy
   });
 
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -854,7 +851,7 @@ test('ChartList list view exit bulk select by hitting x on bulk select bar', asy
   // Target first data row specifically (not header row)
   const dataRows = within(table).getAllByTestId('table-row');
   const firstRowCheckbox = within(dataRows[0]).getByRole('checkbox');
-  fireEvent.click(firstRowCheckbox);
+  await userEvent.click(firstRowCheckbox);
 
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
@@ -866,7 +863,7 @@ test('ChartList list view exit bulk select by hitting x on bulk select bar', asy
   const closeIcon = document.querySelector(
     '.ant-alert-close-icon',
   ) as HTMLButtonElement;
-  fireEvent.click(closeIcon);
+  await userEvent.click(closeIcon);
 
   await waitFor(() => {
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
@@ -887,7 +884,7 @@ test('ChartList list view exit bulk select by clicking bulk select button again'
   });
 
   const bulkSelectButton = screen.getByTestId('bulk-select');
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     // Expect header checkbox + one checkbox per chart
@@ -898,7 +895,7 @@ test('ChartList list view exit bulk select by clicking bulk select button again'
   // Target first data row specifically (not header row)
   const dataRows = within(table).getAllByTestId('table-row');
   const firstRowCheckbox = within(dataRows[0]).getByRole('checkbox');
-  fireEvent.click(firstRowCheckbox);
+  await userEvent.click(firstRowCheckbox);
 
   await waitFor(() => {
     expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
@@ -906,7 +903,7 @@ test('ChartList list view exit bulk select by clicking bulk select button again'
     );
   });
 
-  fireEvent.click(bulkSelectButton);
+  await userEvent.click(bulkSelectButton);
 
   await waitFor(() => {
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);

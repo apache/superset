@@ -367,9 +367,6 @@ test('validates the pre-filter value', async () => {
     jest.useRealTimers();
   }
 
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
-
   // Wait for validation to complete after timer switch
   await waitFor(
     () => {
