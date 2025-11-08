@@ -225,9 +225,7 @@ test('renders a numerical range filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const numericalRangeOption = await waitFor(() =>
-    screen.getByText(NUMERICAL_RANGE_REGEX),
-  );
+  const numericalRangeOption = await screen.findByText(NUMERICAL_RANGE_REGEX);
   await userEvent.click(numericalRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -252,9 +250,7 @@ test('renders a time range filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeRangeOption = await waitFor(() =>
-    screen.getByText(TIME_RANGE_REGEX),
-  );
+  const timeRangeOption = await screen.findByText(TIME_RANGE_REGEX);
   await userEvent.click(timeRangeOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -270,9 +266,7 @@ test('renders a time column filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeColumnOption = await waitFor(() =>
-    screen.getByText(TIME_COLUMN_REGEX),
-  );
+  const timeColumnOption = await screen.findByText(TIME_COLUMN_REGEX);
   await userEvent.click(timeColumnOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -288,9 +282,7 @@ test('renders a time grain filter type', async () => {
 
   await userEvent.click(screen.getByText(VALUE_REGEX));
 
-  const timeGrainOption = await waitFor(() =>
-    screen.getByText(TIME_GRAIN_REGEX),
-  );
+  const timeGrainOption = await screen.findByText(TIME_GRAIN_REGEX);
   await userEvent.click(timeGrainOption);
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();

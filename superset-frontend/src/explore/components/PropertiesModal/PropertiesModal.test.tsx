@@ -256,7 +256,7 @@ test('"Cancel" button should call "onHide"', async () => {
   });
 });
 
-test('"Save" button should call only "onSave"', async () => {
+test('"Save" button should call "onSave" and "onHide"', async () => {
   const props = createProps();
   renderModal(props);
   await waitFor(() => {
