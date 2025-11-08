@@ -60,6 +60,8 @@ const HorizontalOverflowFilterControlTitle = styled(
   HorizontalFilterControlTitle,
 )`
   max-width: none;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px 0
+    ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const VerticalFilterControlTitleBox = styled.div`
