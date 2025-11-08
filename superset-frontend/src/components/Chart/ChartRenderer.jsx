@@ -46,7 +46,7 @@ export function cleanupAllChartLegendStates() {
     // Get all localStorage keys
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
+      const key = localStorage.key(i);
       if (
         key &&
         (key.startsWith('chart_legend_state_') ||
@@ -77,6 +77,13 @@ function checkAndCleanupAll(pathname) {
     // Update the tracked pathname for the new page
     globalCleanupPathname = pathname;
   }
+}
+
+/**
+ * Reset global cleanup pathname (for testing only)
+ */
+export function resetGlobalCleanupPathname() {
+  globalCleanupPathname = '';
 }
 
 // Global handlers that work independently of component instances
