@@ -31,13 +31,10 @@ import {
   DataMaskStateWithId,
   Filter,
   Divider,
-  css,
-  SupersetTheme,
   t,
   isNativeFilterWithDataMask,
-  useTheme,
-  styled,
 } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -323,12 +320,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       chartCustomizationItems,
       sectionsOpen,
       toggleSection,
-      SectionContainer,
-      SectionHeader,
-      SectionContent,
-      StyledDivider,
-      StyledIcon,
-      ChartCustomizationContent,
       hideHeader,
     ],
   );

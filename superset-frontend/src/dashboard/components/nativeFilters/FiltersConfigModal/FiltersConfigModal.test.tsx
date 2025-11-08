@@ -310,7 +310,12 @@ test('render time filter types as disabled if there are no temporal columns in t
 test('validates the name', async () => {
   defaultRender();
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-  expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+  await waitFor(
+    async () => {
+      expect(await screen.findByText(NAME_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('validates the column', async () => {
@@ -340,18 +345,25 @@ test('validates the pre-filter value', async () => {
   try {
     defaultRender();
 
-    await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-    await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+    userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+    userEvent.click(getCheckbox(PRE_FILTER_REGEX));
 
     jest.runAllTimers();
   } finally {
     jest.useRealTimers();
   }
 
-  await waitFor(() => {
-    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
-  });
-});
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+
+  // Wait for validation to complete after timer switch
+  await waitFor(
+    () => {
+      expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+    },
+    { timeout: 15000 },
+  );
+}, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {

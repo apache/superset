@@ -20,8 +20,8 @@ import {
   ChartProps,
   getNumberFormatter,
   SqlaFormData,
-  supersetTheme,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import type { PieSeriesOption } from 'echarts/charts';
 import type {
   LabelFormatterCallback,

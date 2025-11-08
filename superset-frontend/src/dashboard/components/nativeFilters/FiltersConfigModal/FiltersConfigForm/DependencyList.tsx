@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { useState, useEffect } from 'react';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Select } from '@superset-ui/core/components';
 import { CollapsibleControl } from './CollapsibleControl';
@@ -189,10 +190,28 @@ const DependencyList = ({
   const hasAvailableFilters = availableFilters.length > 0;
   const hasDependencies = dependencies.length > 0;
 
+  // Clean up invalid dependencies when available filters change
+  useEffect(() => {
+    if (dependencies.length > 0) {
+      const availableFilterIds = new Set(availableFilters.map(f => f.value));
+      const validDependencies = dependencies.filter(dep =>
+        availableFilterIds.has(dep),
+      );
+
+      // If some dependencies are no longer valid, update the list
+      if (validDependencies.length !== dependencies.length) {
+        onDependenciesChange(validDependencies);
+      }
+    }
+  }, [availableFilters, dependencies, onDependenciesChange]);
+
   const onCheckChanged = (value: boolean) => {
     const newDependencies: string[] = [];
     if (value && !hasDependencies && hasAvailableFilters) {
-      newDependencies.push(getDependencySuggestion());
+      const suggestion = getDependencySuggestion();
+      if (suggestion) {
+        newDependencies.push(suggestion);
+      }
     }
     onDependenciesChange(newDependencies);
   };
@@ -201,7 +220,7 @@ const DependencyList = ({
     <MainPanel>
       <CollapsibleControl
         title={t('Values are dependent on other filters')}
-        initialValue={hasDependencies}
+        checked={hasDependencies}
         onChange={onCheckChanged}
         tooltip={t(
           'Values selected in other filters will affect the filter options to only show relevant values',

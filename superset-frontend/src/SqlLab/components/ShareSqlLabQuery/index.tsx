@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  getClientErrorObject,
-  SupersetClient,
-  css,
-} from '@superset-ui/core';
+import { t, getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 export const Styles = styled.div`
   ${({ theme, isDashboardEditMode }) => css`
