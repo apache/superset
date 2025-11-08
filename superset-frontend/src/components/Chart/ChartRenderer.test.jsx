@@ -22,16 +22,25 @@ import {
   getChartMetadataRegistry,
   VizType,
 } from '@superset-ui/core';
-import ChartRenderer from 'src/components/Chart/ChartRenderer';
+import ChartRenderer, {
+  cleanupAllChartLegendStates,
+  resetGlobalCleanupPathname,
+} from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
+
+let capturedSuperChartProps = null;
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
-  SuperChart: ({ postTransformProps = x => x, ...props }) => (
-    <div data-test="mock-super-chart">
-      {JSON.stringify(postTransformProps(props).formData)}
-    </div>
-  ),
+  SuperChart: ({ postTransformProps = x => x, ...props }) => {
+    // Capture props for testing legend state handlers
+    capturedSuperChartProps = props;
+    return (
+      <div data-test="mock-super-chart">
+        {JSON.stringify(postTransformProps(props).formData)}
+      </div>
+    );
+  },
 }));
 
 jest.mock(
@@ -285,4 +294,277 @@ test('should detect nested matrixify property changes', () => {
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(updatedProps.formData),
   );
+});
+
+// localStorage legend state tests
+let beforeUnloadHandlers = [];
+let popstateHandlers = [];
+let hashchangeHandlers = [];
+let originalLocation;
+let originalAddEventListener;
+let originalRemoveEventListener;
+
+beforeEach(() => {
+  localStorage.clear();
+  capturedSuperChartProps = null;
+  resetGlobalCleanupPathname();
+
+  window.__chartLegendCleanupListenersSetup = false;
+  if (window.__chartLegendCleanupInterval) {
+    clearInterval(window.__chartLegendCleanupInterval);
+    delete window.__chartLegendCleanupInterval;
+  }
+
+  // Reset handlers
+  beforeUnloadHandlers = [];
+  popstateHandlers = [];
+  hashchangeHandlers = [];
+
+  // Save original location
+  originalLocation = window.location;
+
+  // Mock window.location.pathname
+  delete window.location;
+  window.location = {
+    pathname: '/dashboard/1',
+    href: 'http://localhost/dashboard/1',
+  };
+
+  // Mock addEventListener to capture handlers
+  const originalAddEventListenerImpl = window.addEventListener;
+  originalAddEventListener = jest.spyOn(window, 'addEventListener');
+  originalAddEventListener.mockImplementation((event, handler) => {
+    if (event === 'beforeunload') {
+      beforeUnloadHandlers.push(handler);
+    } else if (event === 'popstate') {
+      popstateHandlers.push(handler);
+    } else if (event === 'hashchange') {
+      hashchangeHandlers.push(handler);
+    }
+    originalAddEventListenerImpl.call(window, event, handler);
+  });
+
+  // Spy on removeEventListener to preserve original functionality
+  originalRemoveEventListener = jest.spyOn(window, 'removeEventListener');
+
+  // Use fake timers for interval tests
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  // Restore
+  window.location = originalLocation;
+  if (
+    originalAddEventListener &&
+    typeof originalAddEventListener.mockRestore === 'function'
+  ) {
+    originalAddEventListener.mockRestore();
+  }
+  if (
+    originalRemoveEventListener &&
+    typeof originalRemoveEventListener.mockRestore === 'function'
+  ) {
+    originalRemoveEventListener.mockRestore();
+  }
+
+  // Clear intervals and storage
+  if (window.__chartLegendCleanupInterval) {
+    clearInterval(window.__chartLegendCleanupInterval);
+    delete window.__chartLegendCleanupInterval;
+  }
+  localStorage.clear();
+
+  window.__chartLegendCleanupListenersSetup = false;
+
+  // Restore timers
+  jest.useRealTimers();
+});
+
+test('should save legend state to localStorage when handleLegendStateChanged is called', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  expect(localStorage.getItem(legendStateKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the hooks prop with the handler
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.hooks).toBeDefined();
+  expect(capturedSuperChartProps.hooks.onLegendStateChanged).toBeDefined();
+
+  capturedSuperChartProps.hooks.onLegendStateChanged(mockLegendState);
+
+  // Verify it was saved to localStorage
+  const saved = JSON.parse(JSON.parse(localStorage.getItem(legendStateKey)));
+  expect(saved).toEqual(mockLegendState);
+});
+
+test('should save legend index to localStorage when handleLegendScroll is called', () => {
+  const mockLegendIndex = 5;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+
+  expect(localStorage.getItem(legendIndexKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the hooks prop with the handler
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.hooks).toBeDefined();
+  expect(capturedSuperChartProps.hooks.onLegendScroll).toBeDefined();
+
+  capturedSuperChartProps.hooks.onLegendScroll(mockLegendIndex);
+
+  // Verify it was saved to localStorage
+  const saved = JSON.parse(JSON.parse(localStorage.getItem(legendIndexKey)));
+  expect(saved).toBe(mockLegendIndex);
+});
+
+test('should load legend state from localStorage on mount', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  localStorage.setItem(legendStateKey, JSON.stringify(mockLegendState));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify localStorage data was loaded (still there in localStorage)
+  const saved = JSON.parse(localStorage.getItem(legendStateKey));
+  expect(saved).toEqual(mockLegendState);
+});
+
+test('should load legend index from localStorage on mount', () => {
+  const mockLegendIndex = 10;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  localStorage.setItem(legendIndexKey, JSON.stringify(mockLegendIndex));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  const saved = JSON.parse(localStorage.getItem(legendIndexKey));
+  expect(saved).toBe(mockLegendIndex);
+});
+
+test('should clean up all chart legend states on beforeunload event', () => {
+  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
+  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
+  localStorage.setItem('chart_legend_index_2', JSON.stringify(10));
+  localStorage.setItem('other_key', 'should not be removed');
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Trigger beforeunload handler
+  if (beforeUnloadHandlers.length > 0) {
+    beforeUnloadHandlers[0]();
+  }
+
+  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_2')).toBeNull();
+  expect(localStorage.getItem('other_key')).toBe('should not be removed');
+});
+
+test('should clean up all chart legend states on popstate event', () => {
+  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
+  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Change pathname to trigger cleanup
+  window.location.pathname = '/welcome';
+
+  // Trigger popstate handler
+  if (popstateHandlers.length > 0) {
+    popstateHandlers[0]();
+  }
+
+  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+});
+
+test('should clean up all chart legend states on hashchange event', () => {
+  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
+  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Change pathname to trigger cleanup
+  window.location.pathname = '/dashboard/2';
+
+  // Trigger hashchange handler
+  if (hashchangeHandlers.length > 0) {
+    hashchangeHandlers[0]();
+  }
+
+  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+});
+
+test('should clean up all chart legend states when pathname changes', () => {
+  // Reset global cleanup pathname to ensure clean state
+  resetGlobalCleanupPathname();
+
+  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
+  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
+
+  window.location.pathname = '/dashboard/1';
+  const { unmount } = render(<ChartRenderer {...requiredProps} />);
+
+  // Verify data exists after mount (should not be cleaned up yet)
+  expect(localStorage.getItem('chart_legend_state_1')).not.toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).not.toBeNull();
+
+  unmount();
+
+  // Change pathname to simulate navigation
+  window.location.pathname = '/welcome';
+
+  // Mount new component on different page (should trigger cleanup)
+  render(<ChartRenderer {...requiredProps} chartId={2} />);
+
+  // Wait a bit for the interval to trigger (>100)
+  jest.advanceTimersByTime(150);
+
+  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
+});
+
+test('should not clean up chart legend states when pathname is the same (scrolling scenario)', () => {
+  // Set up some legend state data
+  const mockLegendState = { series1: true };
+  localStorage.setItem(
+    `chart_legend_state_${requiredProps.chartId}`,
+    JSON.stringify(mockLegendState),
+  );
+
+  window.location.pathname = '/dashboard/1';
+  const { unmount } = render(<ChartRenderer {...requiredProps} />);
+
+  // Simulating scroll out of view
+  unmount();
+
+  // Verify data is still there (pathname didn't change, so no cleanup)
+  const saved = JSON.parse(
+    localStorage.getItem(`chart_legend_state_${requiredProps.chartId}`),
+  );
+  expect(saved).toEqual(mockLegendState);
+});
+
+test('cleanupAllChartLegendStates should remove all chart legend keys', () => {
+  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
+  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
+  localStorage.setItem('chart_legend_index_2', JSON.stringify(10));
+  localStorage.setItem('other_key', 'should not be removed');
+  localStorage.setItem('chart_legend_state_3', JSON.stringify({ c: true }));
+
+  cleanupAllChartLegendStates();
+
+  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
+  expect(localStorage.getItem('chart_legend_index_2')).toBeNull();
+  expect(localStorage.getItem('chart_legend_state_3')).toBeNull();
+  expect(localStorage.getItem('other_key')).toBe('should not be removed');
 });
