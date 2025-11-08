@@ -18,7 +18,7 @@
  */
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core';
 import DuplicateDatasetModal from './DuplicateDatasetModal';
 
 // Test-only fixture type that includes all fields from API responses
