@@ -159,6 +159,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
+    # Due to mypy limitations, we can't have `type[T]` here
     model_cls: ClassVar[type[Any] | None] = None
     """
     Child classes need to state the Model class so they don't need to implement basic

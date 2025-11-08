@@ -38,7 +38,7 @@ class BaseDAO(Generic[T], ABC):
     ```
     """
 
-    # Class attributes that implementations should define
+    # Due to mypy limitations, we can't have `type[T]` here
     model_cls: ClassVar[type[Any] | None]
     base_filter: ClassVar[BaseFilter | None]
     id_column_name: ClassVar[str]
