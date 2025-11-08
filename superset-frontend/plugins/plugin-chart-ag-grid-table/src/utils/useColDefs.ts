@@ -222,11 +222,7 @@ export const useColDefs = ({
         }),
         ...(dataType === GenericDataType.Temporal && {
           filterParams: {
-            comparator: serverPagination
-              ? () => {
-                  return 0;
-                }
-              : dateFilterComparator,
+            comparator: serverPagination ? () => 0 : dateFilterComparator,
           },
         }),
         cellDataType: getCellDataType(col),
