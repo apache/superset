@@ -14,3 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""
+Model exports for superset-core.
+
+Provides direct import access to core model classes.
+"""
+
+from superset_core.models.base import CoreModel, Database, Dataset
+
+__all__ = ["CoreModel", "Dataset", "Database"]

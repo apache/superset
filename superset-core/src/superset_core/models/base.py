@@ -72,3 +72,142 @@ class Dataset(CoreModel):
     """
 
     __abstract__ = True
+
+
+class Chart(CoreModel):
+    """
+    Abstract Chart/Slice model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core chart properties
+    slice_name = Mapped[str | None]
+    datasource_id = Mapped[int | None]
+    datasource_type = Mapped[str | None]
+    datasource_name = Mapped[str | None]
+    viz_type = Mapped[str | None]
+    params = Mapped[str | None]
+    query_context = Mapped[str | None]
+    description = Mapped[str | None]
+    cache_timeout = Mapped[int | None]
+    certified_by = Mapped[str | None]
+    certification_details = Mapped[str | None]
+    is_managed_externally = Mapped[bool]
+    external_url = Mapped[str | None]
+
+
+class Dashboard(CoreModel):
+    """
+    Abstract Dashboard model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core dashboard properties
+    dashboard_title = Mapped[str | None]
+    position_json = Mapped[str | None]
+    description = Mapped[str | None]
+    css = Mapped[str | None]
+    json_metadata = Mapped[str | None]
+    slug = Mapped[str | None]
+    published = Mapped[bool]
+    certified_by = Mapped[str | None]
+    certification_details = Mapped[str | None]
+    is_managed_externally = Mapped[bool]
+    external_url = Mapped[str | None]
+
+
+class User(CoreModel):
+    """
+    Abstract User model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core user properties
+    username = Mapped[str | None]
+    email = Mapped[str | None]
+    first_name = Mapped[str | None]
+    last_name = Mapped[str | None]
+    active = Mapped[bool]
+
+
+class Query(CoreModel):
+    """
+    Abstract Query model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core query properties
+    client_id = Mapped[str | None]
+    database_id = Mapped[int | None]
+    sql = Mapped[str | None]
+    status = Mapped[str | None]
+    user_id = Mapped[int | None]
+    progress = Mapped[int]
+    error_message = Mapped[str | None]
+
+
+class SavedQuery(CoreModel):
+    """
+    Abstract SavedQuery model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core saved query properties
+    label = Mapped[str | None]
+    sql = Mapped[str | None]
+    database_id = Mapped[int | None]
+    description = Mapped[str | None]
+    user_id = Mapped[int | None]
+
+
+class Tag(CoreModel):
+    """
+    Abstract Tag model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core tag properties
+    name = Mapped[str | None]
+    type = Mapped[str | None]
+
+
+class KeyValue(CoreModel):
+    """
+    Abstract KeyValue model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Core key-value properties
+    resource = Mapped[str | None]
+    value = Mapped[str | None]  # Encoded value
+    expires_on = Mapped[Any | None]  # datetime or None
+    created_by_fk = Mapped[int | None]
+    changed_by_fk = Mapped[int | None]

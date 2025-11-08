@@ -16,12 +16,8 @@
 # under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Type
 
 from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm.query import Query
-
-from superset_core.models.base import Database, Dataset
 
 
 class CoreModelsApi(ABC):
@@ -40,55 +36,5 @@ class CoreModelsApi(ABC):
         Superset models.
 
         :returns: The SQLAlchemy scoped session instance.
-        """
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def get_dataset_model() -> Type[Dataset]:
-        """
-        Retrieve the Dataset (SqlaTable) type implementation. At a minimum, this
-        class implements the contract defined in the core Dataset model.
-
-        :returns: The Dataset type implementation.
-        """
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def get_database_model() -> Type[Database]:
-        """
-        Retrieve the Database type implementation. At a minimum, this
-        class implements the contract defined in the core Database model.
-
-        :returns: The Database type implementation.
-        """
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def get_datasets(query: Query | None = None, **kwargs: Any) -> list[Dataset]:
-        """
-        Retrieve Dataset implementations.
-
-        :param query: A query with the Dataset model as the primary entity for complex
-            queries.
-        :param kwargs: Optional keyword arguments to filter datasets using SQLAlchemy's
-            `filter_by()`.
-        :returns: Dataset implementations.
-        """
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def get_databases(query: Query | None = None, **kwargs: Any) -> list[Database]:
-        """
-        Retrieve Database implementations.
-
-        :param query: A query with the Database model as the primary entity for complex
-            queries.
-        :param kwargs: Optional keyword arguments to filter databases using SQLAlchemy's
-            `filter_by()`.
-        :returns: Database implementations.
         """
         ...

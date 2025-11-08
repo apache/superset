@@ -14,3 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""
+DAO exports for superset-core.
+
+Provides direct import access to core DAO base classes.
+"""
+
+from superset_core.dao.types import BaseDAO
+
+__all__ = ["BaseDAO"]
