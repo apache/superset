@@ -28,9 +28,8 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
+    from flask import current_app as app
     from shapely import wkt
-
-    from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)

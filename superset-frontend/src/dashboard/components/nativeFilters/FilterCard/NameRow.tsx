@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
+import { useTruncation } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
@@ -73,7 +74,7 @@ export const NameRow = ({
         >
           <Icons.EditOutlined
             iconSize="l"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
             css={() => css`
               cursor: pointer;
             `}

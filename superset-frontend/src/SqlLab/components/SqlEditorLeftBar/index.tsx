@@ -18,7 +18,6 @@
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import querystring from 'query-string';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
@@ -35,7 +34,8 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { Button, EmptyState, Icons } from '@superset-ui/core/components';
 import { type DatabaseObject } from 'src/components';
-import { t, styled, css } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import {
@@ -43,11 +43,11 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
+import { noop } from 'lodash';
 import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
-  height?: number;
   database?: DatabaseObject;
 }
 
@@ -72,7 +72,6 @@ const LeftBarStyles = styled.div`
 const SqlEditorLeftBar = ({
   database,
   queryEditorId,
-  height = 500,
 }: SqlEditorLeftBarProps) => {
   const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
@@ -84,6 +83,7 @@ const SqlEditorLeftBar = ({
     'dbId',
     'catalog',
     'schema',
+    'tabViewId',
   ]);
 
   const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
@@ -99,8 +99,10 @@ const SqlEditorLeftBar = ({
     [allSelectedTables, dbId, schema],
   );
 
+  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
+
   useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
+    const bool = new URLSearchParams(window.location.search).get('db');
     const userSelected = getItem(
       LocalStorageKeys.Database,
       null,
@@ -168,7 +170,6 @@ const SqlEditorLeftBar = ({
   };
 
   const shouldShowReset = window.location.search === '?reset=1';
-  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
   const handleCatalogChange = useCallback(
     (catalog: string | null) => {
@@ -225,22 +226,16 @@ const SqlEditorLeftBar = ({
       />
       <div className="divider" />
       <StyledScrollbarContainer>
-        <div
-          css={css`
-            height: ${tableMetaDataHeight}px;
-          `}
-        >
-          {tables.map(table => (
-            <TableElement
-              table={table}
-              key={table.id}
-              activeKey={tables
-                .filter(({ expanded }) => expanded)
-                .map(({ id }) => id)}
-              onChange={onToggleTable}
-            />
-          ))}
-        </div>
+        {tables.map(table => (
+          <TableElement
+            table={table}
+            key={table.id}
+            activeKey={tables
+              .filter(({ expanded }) => expanded)
+              .map(({ id }) => id)}
+            onChange={onToggleTable}
+          />
+        ))}
       </StyledScrollbarContainer>
       {shouldShowReset && (
         <Button

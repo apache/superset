@@ -111,7 +111,6 @@ Here are some of the major database solutions that are supported:
   <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" />
-  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
   <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FormItem } from '@superset-ui/core/components';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
 
 const MODAL_BODY_HEIGHT = 180.5;
 
@@ -46,7 +46,7 @@ export const antDModalNoPaddingStyles = css`
 
 export const formStyles = (theme: SupersetTheme) => css`
   .switch-label {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextSecondary};
     margin-left: ${theme.sizeUnit * 4}px;
   }
 `;

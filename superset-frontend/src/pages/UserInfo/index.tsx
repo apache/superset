@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { css, t, SupersetClient, useTheme, styled } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+import { css, useTheme, styled } from '@apache-superset/core/ui';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Descriptions } from 'src/components/Descriptions';
@@ -39,7 +40,7 @@ const StyledHeader = styled.div`
     display: inline-block;
     line-height: ${theme.sizeUnit * 9}px;
     width: 100%;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     margin-bottom: ${theme.sizeUnit * 6}px;
   `}
 `;
@@ -48,17 +49,17 @@ const DescriptionsContainer = styled.div`
   ${({ theme }) => css`
     margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
       ${theme.sizeUnit * 3}px;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
   `}
 `;
 
 const StyledLayout = styled.div`
   ${({ theme }) => css`
-    .antd5-row {
+    .ant-row {
       margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
         ${theme.sizeUnit * 3}px;
     }
-    && .menu > .antd5-menu {
+    && .menu > .ant-menu {
       padding: 0px;
     }
     && .nav-right {
@@ -116,7 +117,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.LockOutlined
-            iconColor={theme.colors.primary.base}
+            iconColor={theme.colorPrimary}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;
@@ -136,7 +137,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.FormOutlined
-            iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

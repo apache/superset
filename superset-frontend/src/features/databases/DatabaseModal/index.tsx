@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  styled,
-  SupersetTheme,
-  getExtensionsRegistry,
-  css,
-  useTheme,
-} from '@superset-ui/core';
+import { t, getExtensionsRegistry } from '@superset-ui/core';
+import { styled, SupersetTheme, Alert } from '@apache-superset/core/ui';
 
 import {
   FunctionComponent,
@@ -41,7 +35,6 @@ import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
-  Alert,
   Button,
   Icons,
   LabeledErrorBoundInput as ValidatedInput,
@@ -69,6 +62,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -252,8 +246,9 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
+  display: flex;
+  justify-content: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
 export function dbReducer(
@@ -261,9 +256,10 @@ export function dbReducer(
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
   const trimmedState = {
-    ...(state || {}),
+    ...state,
   };
   let query = {};
+  // eslint-disable-next-line camelcase
   let query_input = '';
   let parametersCatalog;
   let actionPayloadJson;
@@ -275,7 +271,7 @@ export function dbReducer(
       try {
         // we don't want to stringify encoded strings twice
         actionPayloadJson = JSON.parse(action.payload.json || '{}');
-      } catch (e) {
+      } catch {
         actionPayloadJson = action.payload.json;
       }
       return {
@@ -310,16 +306,21 @@ export function dbReducer(
         };
       }
       if (action.payload.name === 'schemas_allowed_for_file_upload') {
+        const value = action.payload.value || '';
+        const filteredSchemas = value
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
         return {
           ...trimmedState,
           extra: JSON.stringify({
             ...extraJson,
-            schemas_allowed_for_file_upload: (action.payload.value || '')
-              .split(',')
-              .filter(schema => schema !== ''),
+            schemas_allowed_for_file_upload: filteredSchemas,
           }),
         };
       }
+
       if (action.payload.name === 'http_path') {
         return {
           ...trimmedState,
@@ -427,9 +428,11 @@ export function dbReducer(
         },
       };
     case ActionType.SetSSHTunnelLoginMethod: {
+      // eslint-disable-next-line camelcase
       let ssh_tunnel = {};
       if (trimmedState?.ssh_tunnel) {
         // remove any attributes that are considered sensitive
+        // eslint-disable-next-line camelcase
         ssh_tunnel = pick(trimmedState.ssh_tunnel, [
           'id',
           'server_address',
@@ -440,10 +443,12 @@ export function dbReducer(
       if (action.payload.login_method === AuthType.PrivateKey) {
         return {
           ...trimmedState,
+          // eslint-disable-next-line camelcase
           ssh_tunnel: {
             private_key: trimmedState?.ssh_tunnel?.private_key,
             private_key_password:
               trimmedState?.ssh_tunnel?.private_key_password,
+            // eslint-disable-next-line camelcase
             ...ssh_tunnel,
           },
         };
@@ -451,8 +456,10 @@ export function dbReducer(
       if (action.payload.login_method === AuthType.Password) {
         return {
           ...trimmedState,
+          // eslint-disable-next-line camelcase
           ssh_tunnel: {
             password: trimmedState?.ssh_tunnel?.password,
+            // eslint-disable-next-line camelcase
             ...ssh_tunnel,
           },
         };
@@ -494,6 +501,7 @@ export function dbReducer(
           ...trimmedState.parameters,
           query: Object.fromEntries(new URLSearchParams(action.payload.value)),
         },
+        // eslint-disable-next-line camelcase
         query_input: action.payload.value,
       };
     case ActionType.TextChange:
@@ -504,6 +512,7 @@ export function dbReducer(
     case ActionType.Fetched:
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
+      // eslint-disable-next-line camelcase
       query_input = Object.entries(query)
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
@@ -532,6 +541,7 @@ export function dbReducer(
             ...(action.payload.parameters || trimmedState.parameters),
             catalog: payloadCatalog,
           },
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -542,6 +552,7 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
         query_input,
       };
 
@@ -574,7 +585,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
-  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -702,6 +712,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Test Connection logic
   const testConnection = () => {
+    handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
@@ -728,10 +739,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (errorMsg: string) => {
         setTestInProgress(false);
         addDangerToast(errorMsg);
+        setHasValidated(false);
       },
       (errorMsg: string) => {
         setTestInProgress(false);
         addSuccessToast(errorMsg);
+        setHasValidated(true);
       },
     );
   };
@@ -761,6 +774,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    clearError();
   }, [setValidationErrors, setHasValidated]);
 
   const handleParametersChange = useCallback(
@@ -820,7 +834,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
-
+    setHasValidated(false);
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -835,7 +849,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return;
     }
     // Clone DB object
-    const dbToUpdate = { ...(db || {}) };
+    const dbToUpdate = { ...db };
 
     if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
       // Validate DB before saving
@@ -858,12 +872,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         return;
       }
 
+      // eslint-disable-next-line camelcase
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
         : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
         dbToUpdate.masked_encrypted_extra || '{}',
       );
+      // eslint-disable-next-line camelcase
       const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
@@ -873,6 +889,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
          * backend when the database is created or edited.
          */
         if (
+          // eslint-disable-next-line camelcase
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
           dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
         ) {
@@ -1024,15 +1041,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
+  // eslint-disable-next-line camelcase
   const setDatabaseModel = (database_name: string) => {
+    // eslint-disable-next-line camelcase
     if (database_name === 'Other') {
       // Allow users to connect to DB via legacy SQLA form
       setDB({
         type: ActionType.DbSelected,
         payload: {
+          // eslint-disable-next-line camelcase
           database_name,
           configuration_method: ConfigurationMethod.SqlalchemyUri,
           engine: undefined,
+          // eslint-disable-next-line camelcase
           engine_information: {
             supports_file_upload: true,
           },
@@ -1040,26 +1061,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     } else {
       const selectedDbModel = availableDbs?.databases.filter(
+        // eslint-disable-next-line camelcase
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      if (!selectedDbModel) return;
       const {
         engine,
         parameters,
+        // eslint-disable-next-line camelcase
         engine_information,
+        // eslint-disable-next-line camelcase
         default_driver,
+        // eslint-disable-next-line camelcase
         sqlalchemy_uri_placeholder,
       } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.DbSelected,
         payload: {
+          // eslint-disable-next-line camelcase
           database_name,
           engine,
           configuration_method: isDynamic
             ? ConfigurationMethod.DynamicForm
             : ConfigurationMethod.SqlalchemyUri,
+          // eslint-disable-next-line camelcase
           engine_information,
+          // eslint-disable-next-line camelcase
           driver: default_driver,
+          // eslint-disable-next-line camelcase
           sqlalchemy_uri_placeholder,
         },
       });
@@ -1084,18 +1114,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
         options={[
-          ...(availableDbs?.databases || [])
-            .sort((a: DatabaseForm, b: DatabaseForm) =>
-              a.name.localeCompare(b.name),
-            )
-            .map((database: DatabaseForm, index: number) => ({
+          ...(availableDbs?.databases || []).map(
+            (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
               key: `database-${index}`,
-            })),
+            }),
+          ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
         showSearch
+        sortComparator={(a, b) => {
+          // Always put "Other" at the end
+          if (a.value === 'Other') return 1;
+          if (b.value === 'Other') return -1;
+          // For all other options, sort alphabetically
+          return String(a.label).localeCompare(String(b.label));
+        }}
+        getPopupContainer={triggerNode =>
+          triggerNode.parentElement || document.body
+        }
+        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
         showIcon
@@ -1166,6 +1205,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
+    handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
     if (importErrored) {
@@ -1831,7 +1871,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
         show={show}
-        title={<h4>{t('Connect a database')}</h4>}
+        title={
+          <ModalTitleWithIcon
+            title={t('Connect a database')}
+            icon={<Icons.InsertRowAboveOutlined />}
+          />
+        }
         width="500px"
       >
         <ModalHeader
@@ -1871,24 +1916,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.InsertRowAboveOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit database') : t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
+          icon={
+            isEditMode ? (
+              <Icons.EditOutlined iconSize="l" />
+            ) : (
+              <Icons.InsertRowAboveOutlined iconSize="l" />
+            )
+          }
+        />
       }
       footer={modalFooter}
       maskClosable={false}
@@ -1925,14 +1963,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         target,
                       }: {
                         target: HTMLInputElement;
-                      }) =>
+                      }) => {
+                        setHasValidated(false);
                         onChange(ActionType.InputChange, {
                           type: target.type,
                           name: target.name,
                           checked: target.checked,
                           value: target.value,
-                        })
-                      }
+                        });
+                      }}
                       conf={conf}
                       testConnection={testConnection}
                       testInProgress={testInProgress}
@@ -2071,15 +2110,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          <Icons.InsertRowAboveOutlined
-            iconSize="l"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-          />
-          {t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          title={t('Connect a database')}
+          icon={<Icons.InsertRowAboveOutlined />}
+        />
       }
       footer={renderModalFooter()}
       maskClosable={false}
@@ -2156,7 +2190,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <Button
                         data-test="sqla-connect-btn"
                         buttonStyle="link"
-                        onClick={() =>
+                        onClick={() => {
+                          handleClearValidationErrors();
                           setDB({
                             type: ActionType.ConfigMethodChange,
                             payload: {
@@ -2165,8 +2200,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,
                             },
-                          })
-                        }
+                          });
+                        }}
                         css={buttonLinkStyles}
                       >
                         {t(

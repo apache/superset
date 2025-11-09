@@ -25,7 +25,7 @@ const reportEndpoint = 'glob:*/api/v1/report/*';
 
 fetchMock.delete(executionLogsEndpoint, {});
 
-const mockAnnotations = [...new Array(3)].map((_, i) => ({
+const mockAnnotations = new Array(3).fill(undefined).map((_, i) => ({
   end_dttm: new Date().toISOString,
   error_message: `report ${i} error message`,
   id: i,
@@ -59,10 +59,11 @@ const renderAndWait = (props = {}) =>
     useRouter: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExecutionLog', () => {
   beforeAll(() => renderAndWait());
 
-  it('renders with a ListView', () => {
+  test('renders with a ListView', () => {
     expect(screen.getByText('Back to all')).toHaveAttribute(
       'href',
       '/alert/list/',
@@ -70,7 +71,7 @@ describe('ExecutionLog', () => {
     expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
   });
 
-  it('fetches report/alert', () => {
+  test('fetches report/alert', () => {
     const callsQ = fetchMock.calls(/report\/1/);
     expect(callsQ).toHaveLength(2);
     expect(callsQ[1][0]).toMatchInlineSnapshot(
@@ -78,7 +79,7 @@ describe('ExecutionLog', () => {
     );
   });
 
-  it('fetches execution logs', () => {
+  test('fetches execution logs', () => {
     const callsQ = fetchMock.calls(/report\/1\/log/);
     expect(callsQ).toHaveLength(1);
     expect(callsQ[0][0]).toMatchInlineSnapshot(

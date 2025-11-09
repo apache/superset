@@ -19,15 +19,8 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  addAlpha,
-  css,
-  JsonObject,
-  styled,
-  t,
-  useTheme,
-  useElementOnScreen,
-} from '@superset-ui/core';
+import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
@@ -80,6 +73,7 @@ import DashboardWrapper from './DashboardWrapper';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
+  background-color: ${({ theme }) => theme.colorBgContainer};
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
@@ -140,7 +134,7 @@ const DashboardContentWrapper = styled.div`
       /* drop shadow for top-level tabs only */
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
-          ${addAlpha(theme.colors.grayscale.dark2, 0.1)};
+          ${addAlpha(theme.colorBorderSecondary, 0.1)};
         padding-left: ${theme.sizeUnit *
         2}px; /* note this is added to tab-level padding, to match header */
       }
@@ -275,6 +269,7 @@ const StyledDashboardContent = styled.div<{
   marginLeft: number;
 }>`
   ${({ theme, editMode, marginLeft }) => css`
+    background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -291,9 +286,7 @@ const StyledDashboardContent = styled.div<{
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.sizeUnit * 6}px;
-      margin-right: ${theme.sizeUnit * 8}px;
-      margin-bottom: ${theme.sizeUnit * 6}px;
+      margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
@@ -557,13 +550,9 @@ const DashboardBuilder = () => {
     ],
   );
 
-  const dashboardContentMarginLeft =
-    !dashboardFiltersOpen &&
-    !editMode &&
-    nativeFiltersEnabled &&
-    filterBarOrientation !== FilterBarOrientation.Horizontal
-      ? 0
-      : theme.sizeUnit * 8;
+  const dashboardContentMarginLeft = !editMode
+    ? theme.sizeUnit * 4
+    : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
     adjustedWidth => {

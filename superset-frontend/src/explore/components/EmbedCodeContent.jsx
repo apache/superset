@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { URL_PARAMS } from 'src/constants';
@@ -104,7 +105,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
             padding: ${theme.sizeUnit * 2}px;
             font-size: ${theme.fontSizeSM}px;
             border-radius: 4px;
-            background-color: ${theme.colorBgSpotlight};
+            background-color: ${theme.colorBgElevated};
           `}
         />
       </div>

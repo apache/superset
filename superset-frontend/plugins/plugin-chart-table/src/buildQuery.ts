@@ -116,6 +116,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -258,7 +265,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
       const modifiedOwnState = {
-        ...(options?.ownState || {}),
+        ...options?.ownState,
         currentPage: 0,
         pageSize: queryObject.row_limit ?? 0,
       };

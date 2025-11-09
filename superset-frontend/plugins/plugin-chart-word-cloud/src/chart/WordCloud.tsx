@@ -24,12 +24,8 @@ import {
   DeriveEncoding,
   Encoder,
 } from 'encodable';
-import {
-  SupersetTheme,
-  withTheme,
-  seed,
-  CategoricalColorNamespace,
-} from '@superset-ui/core';
+import { seed, CategoricalColorNamespace } from '@superset-ui/core';
+import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
 import { isEqual } from 'lodash';
 
 const seedRandom = seed('superset-ui');
@@ -106,7 +102,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       text: 'Text',
     },
     defaultEncoding: {
-      color: { value: this.props.theme.colors.grayscale.dark2 },
+      color: { value: this.props.theme.colorTextLabel },
       fontFamily: { value: this.props.theme.fontFamily },
       fontSize: { value: 20 },
       fontWeight: { value: 'bold' },

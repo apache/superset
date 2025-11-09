@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '../../../..';
+import { styled } from '@apache-superset/core/ui';
 import { Constants } from '../../..';
 
 const GrayCell = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
 function NullCell() {

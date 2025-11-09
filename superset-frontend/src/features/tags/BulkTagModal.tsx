@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useState, useEffect, FC } from 'react';
-
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import { t, SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   FormLabel,
   AsyncSelect,
@@ -94,7 +95,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
 
   return (
     <Modal
-      title={t('Bulk tag')}
+      title={<ModalTitleWithIcon title={t('Bulk tag')} />}
       show={show}
       onHide={() => {
         setTags([]);

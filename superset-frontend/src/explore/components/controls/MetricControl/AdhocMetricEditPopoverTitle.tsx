@@ -25,7 +25,8 @@ import {
   FC,
 } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -122,9 +123,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
         <Icons.EditOutlined
-          iconColor={
-            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
-          }
+          iconColor={isHovered ? theme.colorPrimary : theme.colorIcon}
           iconSize="m"
         />
       </span>

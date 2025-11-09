@@ -28,10 +28,9 @@ import {
 } from '@testing-library/react';
 import {
   ThemeProvider,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme,
   themeObject,
-} from '@superset-ui/core';
+  supersetTheme,
+} from '@apache-superset/core/ui';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
@@ -43,6 +42,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
+import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -85,7 +85,9 @@ export function createWrapper(options?: Options) {
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+      <ThemeProvider theme={supersetTheme}>
+        <ExtensionsProvider>{children}</ExtensionsProvider>
+      </ThemeProvider>
     );
 
     if (useTheme) {

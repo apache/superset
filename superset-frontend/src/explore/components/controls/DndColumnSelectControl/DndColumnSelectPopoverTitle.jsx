@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -94,9 +95,7 @@ export const DndColumnSelectPopoverTitle = ({
         {title || defaultLabel}
         &nbsp;
         <Icons.EditOutlined
-          iconColor={
-            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
-          }
+          iconColor={isHovered ? theme.colorPrimary : theme.colorText}
           iconSize="m"
         />
       </span>

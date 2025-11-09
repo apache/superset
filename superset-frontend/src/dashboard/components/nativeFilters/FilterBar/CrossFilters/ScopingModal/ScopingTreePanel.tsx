@@ -18,15 +18,9 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  css,
-  isDefined,
-  NativeFilterScope,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
-import { Select, Tooltip, Alert } from '@superset-ui/core/components';
+import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { Select, Tooltip } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {
@@ -51,7 +45,7 @@ interface ScopingTreePanelProps {
 const InfoText = styled.div`
   ${({ theme }) => css`
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextSecondary};
     margin-bottom: ${theme.sizeUnit * 7}px;
   `}
 `;

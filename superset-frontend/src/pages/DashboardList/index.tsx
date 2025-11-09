@@ -19,10 +19,10 @@
 import {
   isFeatureEnabled,
   FeatureFlag,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -67,6 +67,7 @@ import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
@@ -114,7 +115,7 @@ export interface Dashboard {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -273,12 +274,17 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dashboard', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected dashboards'));
+    }
   };
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
@@ -357,8 +363,9 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'xl',
+        size: 'sm',
         id: 'published',
+        className: 'no-ellipsis',
       },
       {
         Cell: ({
@@ -376,7 +383,8 @@ function DashboardList(props: DashboardListProps) {
           <TagsList
             tags={tags.filter(
               (tag: TagType) =>
-                tag.type === 'TagTypes.custom' || tag.type === 1,
+                tag.type === 'TagTypes.custom' ||
+                tag.type === TagTypeEnum.Custom,
             )}
             maxTags={3}
           />
@@ -396,7 +404,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-        size: 'xl',
         id: 'owners',
       },
       {
@@ -410,7 +417,6 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -684,28 +690,8 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select',
-      onClick: toggleBulkSelect,
-    });
-  }
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dashboard')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
-      },
-    });
 
+  if (canCreate) {
     subMenuButtons.push({
       name: (
         <Tooltip
@@ -720,6 +706,26 @@ function DashboardList(props: DashboardListProps) {
       onClick: openDashboardImportModal,
     });
   }
+
+  if (canDelete || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
+      onClick: toggleBulkSelect,
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        navigateTo('/dashboard/new', { assign: true });
+      },
+    });
+  }
   return (
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
@@ -731,6 +737,7 @@ function DashboardList(props: DashboardListProps) {
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -810,7 +817,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag
+                enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
               />
             </>

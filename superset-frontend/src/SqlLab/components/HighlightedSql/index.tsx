@@ -16,34 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import atomOneDark from 'react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark';
-import { t, themeObject } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { ModalTrigger } from '@superset-ui/core/components';
-
-SyntaxHighlighterBase.registerLanguage('sql', sql);
-
-const ThemedSyntaxHighlighter = ({
-  children,
-  style,
-}: {
-  children: string;
-  style: any;
-}) => (
-  <SyntaxHighlighterBase
-    language="sql"
-    style={style}
-    customStyle={{
-      background: themeObject.theme.colorBgElevated,
-      padding: themeObject.theme.sizeUnit * 4,
-      border: 0,
-    }}
-  >
-    {children}
-  </SyntaxHighlighterBase>
-);
+import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
   sql: string;
@@ -56,7 +31,6 @@ export interface HighlightedSqlProps {
 interface HighlightedSqlModalTypes {
   rawSql?: string;
   sql: string;
-  syntaxTheme: any;
 }
 
 interface TriggerNodeProps {
@@ -64,7 +38,6 @@ interface TriggerNodeProps {
   sql: string;
   maxLines: number;
   maxWidth: number;
-  syntaxTheme: any;
 }
 
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
@@ -81,37 +54,23 @@ const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
     .join('\n');
 };
 
-function TriggerNode({
-  shrink,
-  sql,
-  maxLines,
-  maxWidth,
-  syntaxTheme,
-}: TriggerNodeProps) {
+function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <ThemedSyntaxHighlighter style={syntaxTheme}>
+    <CodeSyntaxHighlighter language="sql">
       {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
-    </ThemedSyntaxHighlighter>
+    </CodeSyntaxHighlighter>
   );
 }
 
-function HighlightSqlModal({
-  rawSql,
-  sql,
-  syntaxTheme,
-}: HighlightedSqlModalTypes) {
+function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
   return (
     <div>
       <h4>{t('Source SQL')}</h4>
-      <ThemedSyntaxHighlighter style={syntaxTheme}>
-        {sql}
-      </ThemedSyntaxHighlighter>
+      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
       {rawSql && rawSql !== sql && (
         <div>
           <h4>{t('Executed SQL')}</h4>
-          <ThemedSyntaxHighlighter style={syntaxTheme}>
-            {rawSql}
-          </ThemedSyntaxHighlighter>
+          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
         </div>
       )}
     </div>
@@ -125,26 +84,16 @@ function HighlightedSql({
   maxLines = 5,
   shrink = false,
 }: HighlightedSqlProps) {
-  const isDark = themeObject.isThemeDark();
-  const syntaxTheme = isDark ? atomOneDark : github;
-
   return (
     <ModalTrigger
       modalTitle={t('SQL')}
-      modalBody={
-        <HighlightSqlModal
-          rawSql={rawSql}
-          sql={sql}
-          syntaxTheme={syntaxTheme}
-        />
-      }
+      modalBody={<HighlightSqlModal rawSql={rawSql} sql={sql} />}
       triggerNode={
         <TriggerNode
           shrink={shrink}
           sql={sql}
           maxLines={maxLines}
           maxWidth={maxWidth}
-          syntaxTheme={syntaxTheme}
         />
       }
     />

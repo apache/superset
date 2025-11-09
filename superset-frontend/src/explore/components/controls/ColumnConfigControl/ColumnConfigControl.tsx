@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { useTheme, t, GenericDataType } from '@superset-ui/core';
-
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
@@ -173,7 +174,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               fontSize: theme.fontSizeXS,
               color: theme.colorTextLabel,
               ':hover': {
-                backgroundColor: theme.colors.grayscale.light4,
+                backgroundColor: theme.colorFillContentHover,
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}

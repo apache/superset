@@ -33,6 +33,7 @@ export function FormModal({
   formSubmitHandler,
   bodyStyle = {},
   requiredFields = [],
+  name,
 }: FormModalProps) {
   const [form] = Form.useForm();
   const [isSaving, setIsSaving] = useState(false);
@@ -78,6 +79,7 @@ export function FormModal({
 
   return (
     <Modal
+      name={name}
       show={show}
       title={title}
       onHide={handleClose}

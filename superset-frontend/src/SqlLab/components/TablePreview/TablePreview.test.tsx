@@ -135,34 +135,33 @@ test('renders preview', async () => {
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
       expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Refresh table schema'));
+    const refreshButton = getByRole('button', { name: 'sync' });
+    fireEvent.click(refreshButton);
     await waitFor(() =>
       expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(2),
     );
   });
 
   test('shows CREATE VIEW statement', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
       expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Show CREATE VIEW statement'));
+    const viewButton = getByRole('button', { name: 'eye' });
+    fireEvent.click(viewButton);
     await waitFor(() =>
       expect(
         screen.queryByRole('dialog', { name: 'CREATE VIEW statement' }),

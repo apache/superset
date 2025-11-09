@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, useTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -139,7 +139,6 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
-        iconColor={theme.colorTextTertiary}
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

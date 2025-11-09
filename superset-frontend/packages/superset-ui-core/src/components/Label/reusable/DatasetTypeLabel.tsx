@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Label } from '..';
 
 // Define the prop types for DatasetTypeLabel
@@ -37,7 +38,7 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
     datasetType === 'physical' ? (
       <Icons.InsertRowAboveOutlined
         iconSize={SIZE}
-        iconColor={theme.colors.primary.dark1}
+        iconColor={theme.colorPrimary}
       />
     ) : (
       <Icons.ConsoleSqlOutlined iconSize={SIZE} />
@@ -45,7 +46,16 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
   const labelType = datasetType === 'physical' ? 'primary' : 'default';
 
   return (
-    <Label icon={icon} type={labelType}>
+    <Label
+      icon={icon}
+      type={labelType}
+      style={{
+        color:
+          datasetType === 'physical'
+            ? theme.colorPrimaryText
+            : theme.colorPrimary,
+      }}
+    >
       {label}
     </Label>
   );

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode, ReactElement } from 'react';
-import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';
@@ -34,7 +35,7 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.sizeUnit * 8}px;
   height: ${theme.sizeUnit * 8}px;
   padding: 0;
-  border: 1px solid ${theme.colors.primary.dark2};
+  border: 1px solid ${theme.colorPrimary};
 
   &.ant-btn > span.anticon {
     line-height: 0;
@@ -151,7 +152,7 @@ export const PageHeaderWithActions = ({
           {showMenuDropdown && (
             <Dropdown
               trigger={['click']}
-              dropdownRender={() => additionalActionsMenu}
+              popupRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
               <Button
@@ -163,7 +164,7 @@ export const PageHeaderWithActions = ({
                 data-test="actions-trigger"
               >
                 <Icons.EllipsisOutlined
-                  iconColor={theme.colors.primary.dark2}
+                  iconColor={theme.colorPrimary}
                   iconSize="l"
                 />
               </Button>

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash';
-import { SupersetClient, JsonObject } from '@superset-ui/core';
+import { SupersetClient, JsonObject, JsonResponse } from '@superset-ui/core';
+import { sanitizeFormData } from 'src/utils/sanitizeFormData';
 
 type Payload = {
   datasource_id: number;
@@ -26,19 +26,12 @@ type Payload = {
   chart_id?: number;
 };
 
-const TEMPORARY_CONTROLS = ['url_params'];
-
-export const sanitizeFormData = (formData: JsonObject): JsonObject =>
-  omit(formData, TEMPORARY_CONTROLS);
-
 const assembleEndpoint = (key?: string, tabId?: string) => {
   let endpoint = 'api/v1/explore/form_data';
-  if (key) {
-    endpoint = endpoint.concat(`/${key}`);
-  }
-  if (tabId) {
-    endpoint = endpoint.concat(`?tab_id=${tabId}`);
-  }
+
+  if (key) endpoint = endpoint.concat(`/${key}`);
+  if (tabId) endpoint = endpoint.concat(`?tab_id=${tabId}`);
+
   return endpoint;
 };
 
@@ -47,15 +40,15 @@ const assemblePayload = (
   datasourceType: string,
   formData: JsonObject,
   chartId?: number,
-) => {
+): Payload => {
   const payload: Payload = {
     datasource_id: datasourceId,
     datasource_type: datasourceType,
     form_data: JSON.stringify(sanitizeFormData(formData)),
   };
-  if (chartId) {
-    payload.chart_id = chartId;
-  }
+
+  if (chartId) payload.chart_id = chartId;
+
   return payload;
 };
 
@@ -74,7 +67,7 @@ export const postFormData = (
       formData,
       chartId,
     ),
-  }).then(r => r.json.key);
+  }).then((r: JsonResponse) => r.json.key);
 
 export const putFormData = (
   datasourceId: number,
@@ -92,4 +85,4 @@ export const putFormData = (
       formData,
       chartId,
     ),
-  }).then(r => r.json.message);
+  }).then((r: JsonResponse) => r.json.message);

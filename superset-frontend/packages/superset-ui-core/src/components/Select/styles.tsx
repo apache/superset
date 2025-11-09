@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Select } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Spin } from '../Spin';
@@ -28,12 +28,14 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-right: ${headerPosition === 'left' ? theme.sizeUnit * 2 : 0}px;
+    font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
 export const StyledContainer = styled.div<{ headerPosition: string }>`
-  ${({ headerPosition }) => `
+  ${({ headerPosition, theme }) => `
     display: flex;
+    gap: ${theme.sizeUnit}px;
     flex-direction: ${headerPosition === 'top' ? 'column' : 'row'};
     align-items: ${headerPosition === 'left' ? 'center' : undefined};
     width: 100%;
@@ -45,7 +47,7 @@ export const StyledSelect = styled(Select, {
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-      outline: 2px solid ${theme.colors.primary.base};
+      outline: 2px solid ${theme.colorPrimary};
       outline-offset: -2px;
     }
     flex: ${headerPosition === 'left' ? 1 : 0};
@@ -103,17 +105,17 @@ export const StyledLoadingText = styled.div`
   ${({ theme }) => `
    margin-left: ${theme.sizeUnit * 3}px;
    line-height: ${theme.sizeUnit * 8}px;
-   color: ${theme.colors.grayscale.light1};
+   color: ${theme.colorTextSecondary};
  `}
 `;
 
 export const StyledHelperText = styled.div`
   ${({ theme }) => `
    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
-   color: ${theme.colors.grayscale.base};
+   color: ${theme.colorText};
    font-size: ${theme.fontSizeSM}px;
    cursor: default;
-   border-bottom: 1px solid ${theme.colors.grayscale.light2};
+   border-bottom: 1px solid ${theme.colorBorderSecondary};
  `}
 `;
 
@@ -139,6 +141,6 @@ export const StyledErrorMessage = styled.div`
 export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
     padding: ${theme.sizeUnit}px;
-    border-top: 1px solid ${theme.colors.grayscale.light3};
+    border-top: 1px solid ${theme.colorSplit};
   `}
 `;

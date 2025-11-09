@@ -62,12 +62,12 @@ test('Calling "onHide"', async () => {
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // type "del" in the input
-  await userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
+  userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('del');
 
   // close the modal
-  expect(screen.getByText('×')).toBeInTheDocument();
-  await userEvent.click(screen.getByText('×'));
+  expect(screen.getByTestId('close-modal-btn')).toBeInTheDocument();
+  userEvent.click(screen.getByTestId('close-modal-btn'));
   expect(props.onHide).toHaveBeenCalledTimes(1);
   expect(props.onConfirm).toHaveBeenCalledTimes(0);
 

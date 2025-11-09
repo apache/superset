@@ -19,10 +19,9 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual, noop } from 'lodash';
 import {
   BinaryAdhocFilter,
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
@@ -30,6 +29,7 @@ import {
   SimpleAdhocFilter,
   t,
 } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
@@ -61,6 +61,8 @@ const oldChoices = {
 export const ComparisonRangeLabel = ({
   multi = true,
 }: ComparisonRangeLabelProps) => {
+  noop(multi); // This is to avoid unused variable warning, can be removed if not needed
+
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
@@ -142,7 +144,8 @@ export const ComparisonRangeLabel = ({
               );
               const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
               if (
-                startDateDayjs.isSameOrBefore(parsedDateDayjs) ||
+                startDateDayjs.isBefore(parsedDateDayjs) ||
+                startDateDayjs.isSame(parsedDateDayjs) ||
                 !startDate
               ) {
                 const postProcessedShifts = getTimeOffset({

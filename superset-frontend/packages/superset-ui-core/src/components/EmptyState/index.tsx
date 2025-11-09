@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode, SyntheticEvent } from 'react';
-import { styled, css, SupersetTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 
 // Importing svg images
 import FilterResultsImage from './svgs/filter-results.svg';
@@ -60,7 +61,7 @@ const EmptyStateContainer = styled.div`
     flex-direction: column;
     width: 100%;
     height: 100%;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     align-items: center;
     justify-content: center;
     padding: ${theme.sizeUnit * 4}px;
@@ -84,7 +85,7 @@ const EmptyStateContainer = styled.div`
 const Title = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
     font-size: ${size === 'large' ? theme.fontSizeLG : theme.fontSize}px;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     margin-top: ${size === 'large' ? theme.sizeUnit * 4 : theme.sizeUnit * 2}px;
     font-weight: ${theme.fontWeightStrong};
   `}
@@ -93,7 +94,7 @@ const Title = styled.p<{ size: EmptyStateSize }>`
 const Description = styled.p<{ size: EmptyStateSize }>`
   ${({ theme, size }) => css`
     font-size: ${size === 'large' ? theme.fontSize : theme.fontSizeSM}px;
-    color: ${theme.colorTextQuaternary};
+    color: ${theme.colorTextTertiary};
     margin-top: ${theme.sizeUnit * 2}px;
   `}
 `;
@@ -128,7 +129,7 @@ const ImageContainer = ({
       <Empty
         description={false}
         image={mappedImage}
-        imageStyle={getImageHeight(size)}
+        styles={{ image: getImageHeight(size) }}
       />
     </div>
   );
@@ -144,6 +145,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   description = t('There is currently no information to display.'),
   image = 'empty.svg',
   buttonText,
+  buttonIcon,
   buttonAction,
   size = 'medium',
   children,
@@ -165,6 +167,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
       {buttonText && buttonAction && (
         <Button
+          icon={buttonIcon}
           buttonStyle="primary"
           onClick={buttonAction}
           onMouseDown={handleMouseDown}

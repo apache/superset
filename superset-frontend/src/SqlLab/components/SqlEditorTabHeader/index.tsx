@@ -22,14 +22,8 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import {
-  styled,
-  css,
-  t,
-  QueryState,
-  SupersetTheme,
-  useTheme,
-} from '@superset-ui/core';
+import { t, QueryState } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -114,18 +108,18 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
-      [QueryState.Running]: theme.colors.info.base,
-      [QueryState.Success]: theme.colors.success.base,
-      [QueryState.Failed]: theme.colors.error.base,
-      [QueryState.Started]: theme.colors.primary.base,
-      [QueryState.Stopped]: theme.colors.warning.base,
-      [QueryState.Pending]: theme.colors.grayscale.light1,
-      [QueryState.Scheduled]: theme.colors.grayscale.light2,
+      [QueryState.Running]: theme.colorInfo,
+      [QueryState.Success]: theme.colorSuccess,
+      [QueryState.Failed]: theme.colorError,
+      [QueryState.Started]: theme.colorPrimary,
+      [QueryState.Stopped]: theme.colorWarning,
+      [QueryState.Pending]: theme.colorIcon,
+      [QueryState.Scheduled]: theme.colorIcon,
       [QueryState.Fetching]: theme.colorWarning,
-      [QueryState.TimedOut]: theme.colors.error.dark1,
+      [QueryState.TimedOut]: theme.colorError,
     };
 
-    return statusColors[state] || theme.colors.grayscale.light2;
+    return statusColors[state] || theme.colorIcon;
   };
   return (
     <TabTitleWrapper>

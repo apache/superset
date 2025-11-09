@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getExtensionsRegistry,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -61,6 +57,7 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -96,7 +93,7 @@ const Actions = styled.div`
   }
 `;
 
-function BooleanDisplay({ value }: { value: Boolean }) {
+function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
     <Icons.CheckOutlined iconSize="s" />
   ) : (
@@ -319,12 +316,8 @@ function DatabaseList({
     menuData.buttons = [
       {
         'data-test': 'btn-create-database',
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Database')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Database'),
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
@@ -334,15 +327,20 @@ function DatabaseList({
     ];
   }
 
-  function handleDatabaseExport(database: DatabaseObject) {
+  async function handleDatabaseExport(database: DatabaseObject) {
     if (database.id === undefined) {
       return;
     }
 
-    handleResourceExport('database', [database.id], () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('database', [database.id], () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the database'));
+    }
   }
 
   function handleDatabasePermSync(database: DatabaseObject) {
@@ -390,12 +388,13 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
-        size: 'lg',
+        size: 'xl',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
         id: 'backend',
       },
@@ -788,7 +787,12 @@ function DatabaseList({
           }}
           onHide={() => setDatabaseCurrentlyDeleting(null)}
           open
-          title={t('Delete Database?')}
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Database?')}
+            />
+          }
         />
       )}
 

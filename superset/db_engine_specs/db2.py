@@ -36,6 +36,7 @@ class Db2EngineSpec(BaseEngineSpec):
     max_column_name_length = 30
 
     supports_dynamic_schema = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -47,11 +48,7 @@ class Db2EngineSpec(BaseEngineSpec):
         " - MINUTE({col}) MINUTES"
         " - SECOND({col}) SECONDS"
         " - MICROSECOND({col}) MICROSECONDS ",
-        TimeGrain.DAY: "CAST({col} as TIMESTAMP)"
-        " - HOUR({col}) HOURS"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
+        TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
         TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
         TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"

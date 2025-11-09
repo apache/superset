@@ -18,20 +18,16 @@
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import {
-  css,
-  styled,
   t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
+import { css, styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Constants,
   Divider,
-  Modal,
   Tooltip,
   Select,
 } from '@superset-ui/core/components';
@@ -145,7 +141,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
-    overlayStyle = 'Popover',
     isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
@@ -344,19 +339,18 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ContentStyleWrapper>
   );
 
-  const title = (
-    <IconWrapper>
-      <Icons.EditOutlined />
-      <span className="text">{t('Edit time range')}</span>
-    </IconWrapper>
-  );
   const popoverContent = (
     <ControlPopover
       autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
-      title={title}
+      title={
+        <IconWrapper>
+          <Icons.EditOutlined />
+          <span className="text">{t('Edit time range')}</span>
+        </IconWrapper>
+      }
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
@@ -384,39 +378,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ControlPopover>
   );
 
-  const modalContent = (
-    <>
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          onClick={toggleOverlay}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.ModalOverlay}
-          ref={labelRef}
-        />
-      </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
-      <Modal
-        title={title}
-        show={show}
-        onHide={toggleOverlay}
-        width="600px"
-        hideFooter
-        zIndex={1030}
-      >
-        {overlayContent}
-      </Modal>
-    </>
-  );
-
   return (
     <>
       <ControlHeader {...props} />
-      {overlayStyle === 'Modal' ? modalContent : popoverContent}
+      {popoverContent}
     </>
   );
 }

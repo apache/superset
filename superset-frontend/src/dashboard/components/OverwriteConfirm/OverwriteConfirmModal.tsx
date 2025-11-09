@@ -27,7 +27,8 @@ import {
   saveDashboardRequest,
   setOverrideConfirm,
 } from 'src/dashboard/actions/dashboardState';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { SAVE_TYPE_OVERWRITE_CONFIRMED } from 'src/dashboard/util/constants';
 
 const STICKY_HEADER_TOP = 16;
@@ -58,7 +59,7 @@ const StackableHeader = styled(Button)<{ top: number }>`
   ${({ theme, top }) => `
      position: sticky;
      top: ${top}px;
-     background-color: ${theme.colors.grayscale.light5};
+     background-color: ${theme.colorBgContainer};
      margin: 0px;
      padding: 8px 4px;
      z-index: 1;

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button, DropdownButton } from '@superset-ui/core/components';
 
@@ -38,7 +39,7 @@ const SaveDatasetActionButton = ({
   ) : (
     <DropdownButton
       onClick={() => setShowSave(true)}
-      dropdownRender={() => overlayMenu}
+      popupRender={() => overlayMenu}
       icon={
         <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
       }

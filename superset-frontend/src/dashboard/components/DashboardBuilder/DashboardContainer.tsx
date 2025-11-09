@@ -70,13 +70,12 @@ type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-export const renderedChartIdsSelector = createSelector(
-  [(state: RootState) => state.charts],
-  charts =>
+export const renderedChartIdsSelector: (state: RootState) => number[] =
+  createSelector([(state: RootState) => state.charts], charts =>
     Object.values(charts)
       .filter(chart => chart.chartStatus === 'rendered')
       .map(chart => chart.id),
-);
+  );
 
 const useRenderedChartIds = () => {
   const renderedChartIds = useSelector<RootState, number[]>(
@@ -153,7 +152,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+      if (
+        filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        filterScope.id.startsWith('chart_customization_')
+      ) {
         return {
           filterId: filterScope.id,
           tabsInScope: [],
@@ -164,6 +166,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const chartLayoutItems = Object.values(dashboardLayout).filter(
         item => item?.type === CHART_TYPE,
       );
+
+      if (!filterScope.scope || !Array.isArray(filterScope.scope.excluded)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
 
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
@@ -297,6 +307,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           allowOverflow
           onFocus={handleFocus}
           items={tabItems}
+          tabBarStyle={{ paddingLeft: 0 }}
         />
       );
     },

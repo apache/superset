@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Badge as AntdBadge } from 'antd';
 import type { BadgeProps } from './types';
 
@@ -24,6 +24,7 @@ export const Badge = styled((props: BadgeProps) => <AntdBadge {...props} />)`
   ${({ theme, color, count }) => `
     & > sup,
     & > sup.ant-badge-count {
+      box-shadow: none;
       ${
         count !== undefined ? `background: ${color || theme.colorPrimary};` : ''
       }

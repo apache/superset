@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -71,7 +71,6 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
@@ -133,12 +132,17 @@ function ChartTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+  const handleBulkChartExport = async (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('chart', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected charts'));
+    }
   };
 
   const menuTabs = [
@@ -188,16 +192,13 @@ function ChartTable({
         backgroundColor="transparent"
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  data-test="add-annotation-layer-button"
-                  iconColor={theme.colorPrimary}
-                />
-                {t('Chart')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
+            name: t('Chart'),
             buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/chart/add', { assign: true });

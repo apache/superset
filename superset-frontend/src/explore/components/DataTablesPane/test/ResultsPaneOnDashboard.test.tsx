@@ -24,11 +24,11 @@ import {
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultsPaneOnDashboard', () => {
   // render and render errorMessage
   fetchMock.post(
@@ -87,7 +87,7 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+  const setForceQuery = jest.fn();
 
   afterAll(() => {
     fetchMock.reset();
@@ -132,7 +132,7 @@ describe('ResultsPaneOnDashboard', () => {
       queryForce: true,
     });
     const { queryByText, getByPlaceholderText } = render(
-      <ResultsPaneOnDashboard {...props} />,
+      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
       },

@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getExtensionsRegistry,
-  styled,
-  SupersetClient,
-  useTheme,
-  css,
-  t,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -82,6 +76,7 @@ const DatasetDeleteRelatedExtension = extensionsRegistry.get(
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   svg {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
@@ -90,7 +85,7 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorIcon};
 
     .disabled {
       svg,
@@ -101,12 +96,15 @@ const Actions = styled.div`
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
+      &:hover {
+        cursor: not-allowed;
+      }
       .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextDisabled};
       }
     }
   `}
@@ -274,12 +272,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDuplicating(dataset);
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+  const handleBulkDatasetExport = async (datasetsToExport: Dataset[]) => {
     const ids = datasetsToExport.map(({ id }) => id);
-    handleResourceExport('dataset', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dataset', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected datasets'));
+    }
   };
 
   const columns = useMemo(
@@ -358,13 +361,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'md',
+        size: 'sm',
         id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
-        size: 'lg',
+        size: 'xl',
         id: 'database.database_name',
       },
       {
@@ -473,7 +476,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditOutlined iconSize="l" />
@@ -634,6 +637,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
+  if (canCreate) {
+    buttonArr.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined
+            iconColor={theme.colorPrimary}
+            data-test="import-button"
+            iconSize="l"
+          />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
+  }
+
   if (canDelete || canExport) {
     buttonArr.push({
       name: t('Bulk select'),
@@ -644,34 +667,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (canCreate) {
     buttonArr.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dataset')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dataset'),
       onClick: () => {
         history.push('/dataset/add/');
       },
       buttonStyle: 'primary',
-    });
-
-    buttonArr.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import datasets')}
-          placement="bottomRight"
-        >
-          <Icons.DownloadOutlined
-            iconColor={theme.colors.primary.dark1}
-            data-test="import-button"
-            iconSize="l"
-          />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDatasetImportModal,
     });
   }
 

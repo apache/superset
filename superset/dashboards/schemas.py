@@ -145,6 +145,7 @@ class DashboardJSONMetadataSchema(Schema):
     # global_chart_configuration keeps data about global cross-filter scoping
     # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
+    chart_customization_config = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
@@ -204,6 +205,12 @@ class TagSchema(Schema):
     type = fields.Enum(TagType, by_value=True)
 
 
+class ThemeSchema(Schema):
+    id = fields.Int()
+    theme_name = fields.String()
+    json_data = fields.String()
+
+
 class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
@@ -214,6 +221,7 @@ class DashboardGetResponseSchema(Schema):
     thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
+    theme = fields.Nested(ThemeSchema, allow_none=True)
     json_metadata = fields.String(metadata={"description": json_metadata_description})
     position_json = fields.String(metadata={"description": position_json_description})
     certified_by = fields.String(metadata={"description": certified_by_description})
@@ -231,6 +239,7 @@ class DashboardGetResponseSchema(Schema):
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    uuid = fields.UUID(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -342,6 +351,9 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": position_json_description}, validate=validate_json
     )
     css = fields.String(metadata={"description": css_description})
+    theme_id = fields.Integer(
+        metadata={"description": "Theme ID for the dashboard"}, allow_none=True
+    )
     json_metadata = fields.String(
         metadata={"description": json_metadata_description},
         validate=validate_json_metadata,
@@ -355,6 +367,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardCopySchema(Schema):
@@ -399,6 +412,9 @@ class DashboardPutSchema(BaseDashboardSchema):
         validate=validate_json,
     )
     css = fields.String(metadata={"description": css_description}, allow_none=True)
+    theme_id = fields.Integer(
+        metadata={"description": "Theme ID for the dashboard"}, allow_none=True
+    )
     json_metadata = fields.String(
         metadata={"description": json_metadata_description},
         allow_none=True,
@@ -418,6 +434,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
@@ -484,6 +501,8 @@ class ImportV1DashboardSchema(Schema):
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
+    theme_uuid = fields.UUID(allow_none=True)
+    theme_id = fields.Integer(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

@@ -19,7 +19,7 @@
 import { ReactElement, cloneElement } from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   IconOrientation,
@@ -31,7 +31,7 @@ const MenuDots = styled.div`
   width: ${({ theme }) => theme.sizeUnit * 0.75}px;
   height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light1};
+  background-color: ${({ theme }) => theme.colorFill};
 
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
@@ -53,7 +53,7 @@ const MenuDots = styled.div`
     width: ${({ theme }) => theme.sizeUnit * 0.75}px;
     height: ${({ theme }) => theme.sizeUnit * 0.75}px;
     border-radius: 50%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colorFill};
   }
 
   &::before {
@@ -89,7 +89,7 @@ export const MenuDotsDropdown = ({
   iconOrientation = IconOrientation.Vertical,
   ...rest
 }: MenuDotsDropdownProps) => (
-  <AntdDropdown dropdownRender={() => overlay} {...rest}>
+  <AntdDropdown popupRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>

@@ -19,13 +19,13 @@
 
 import {
   logging,
-  styled,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
   t,
   lruCache,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
@@ -69,7 +69,7 @@ import { Dashboard, Filter, TableTab } from './types';
 })();
 
 export const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const createFetchResourceMethod =

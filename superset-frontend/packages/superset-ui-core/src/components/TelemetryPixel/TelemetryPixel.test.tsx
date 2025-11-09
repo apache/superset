@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render } from '@superset-ui/core/spec';
-import TelemetryPixel from '.';
+import { TelemetryPixel } from '.';
 
 const OLD_ENV = process.env;
 

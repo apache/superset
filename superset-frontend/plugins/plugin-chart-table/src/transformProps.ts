@@ -24,7 +24,6 @@ import {
   DataRecord,
   ensureIsArray,
   extractTimegrain,
-  GenericDataType,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -36,13 +35,14 @@ import {
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, merge } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -276,7 +276,7 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        formatter = currency
+        formatter = currency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
               currency,
@@ -459,7 +459,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
@@ -469,7 +469,14 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    theme,
   } = chartProps;
+
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     align_pn: alignPositiveNegative = true,
@@ -676,7 +683,7 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData) ??
+    getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(

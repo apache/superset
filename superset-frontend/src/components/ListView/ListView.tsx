@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
-import Pagination from '@superset-ui/core/components/Pagination';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
-  Alert,
   Button,
   Checkbox,
   Icons,
   EmptyState,
+  Loading,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
@@ -45,6 +45,8 @@ import { ListViewError, useListViewState } from './utils';
 const ListViewStyles = styled.div`
   ${({ theme }) => `
     text-align: center;
+    background-color: ${theme.colorBgLayout};
+    padding-top: ${theme.paddingXS}px;
 
     .superset-list-view {
       text-align: left;
@@ -58,7 +60,7 @@ const ListViewStyles = styled.div`
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          column-gap: ${theme.sizeUnit * 6}px;
+          column-gap: ${theme.sizeUnit * 7}px;
           row-gap: ${theme.sizeUnit * 4}px;
         }
       }
@@ -69,6 +71,7 @@ const ListViewStyles = styled.div`
 
       .body {
         overflow-x: auto;
+        overflow-y: hidden;
       }
 
       .ant-empty {
@@ -87,8 +90,18 @@ const ListViewStyles = styled.div`
 
     .row-count-container {
       margin-top: ${theme.sizeUnit * 2}px;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorText};
     }
+  `}
+`;
+
+const FullPageLoadingWrapper = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    padding: ${theme.sizeUnit * 16}px;
   `}
 `;
 
@@ -159,7 +172,7 @@ const ViewModeContainer = styled.div`
     }
 
     .active {
-      background-color: ${theme.colors.grayscale.base};
+      background-color: ${theme.colorText};
 
       svg {
         color: ${theme.colorBgLayout};
@@ -407,7 +420,7 @@ export function ListView<T extends object = any>({
                           cta
                           onClick={() =>
                             action.onSelect(
-                              selectedFlatRows.map(r => r.original),
+                              selectedFlatRows.map((r: any) => r.original),
                             )
                           }
                         >
@@ -443,28 +456,42 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'table' && (
-            <TableCollection
-              getTableProps={getTableProps}
-              getTableBodyProps={getTableBodyProps}
-              prepareRow={prepareRow}
-              headerGroups={headerGroups}
-              setSortBy={setSortBy}
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              highlightRowId={highlightRowId}
-              columnsForWrapText={columnsForWrapText}
-              bulkSelectEnabled={bulkSelectEnabled}
-              selectedFlatRows={selectedFlatRows}
-              toggleRowSelected={(rowId, value) => {
-                const row = rows.find(r => r.id === rowId);
-                if (row) {
-                  prepareRow(row);
-                  row.toggleRowSelected(value);
-                }
-              }}
-              toggleAllRowsSelected={toggleAllRowsSelected}
-            />
+            <>
+              {loading && rows.length === 0 ? (
+                <FullPageLoadingWrapper>
+                  <Loading />
+                </FullPageLoadingWrapper>
+              ) : (
+                <TableCollection
+                  getTableProps={getTableProps}
+                  getTableBodyProps={getTableBodyProps}
+                  prepareRow={prepareRow}
+                  headerGroups={headerGroups}
+                  setSortBy={setSortBy}
+                  rows={rows}
+                  columns={columns}
+                  loading={loading && rows.length > 0}
+                  highlightRowId={highlightRowId}
+                  columnsForWrapText={columnsForWrapText}
+                  bulkSelectEnabled={bulkSelectEnabled}
+                  selectedFlatRows={selectedFlatRows}
+                  toggleRowSelected={(rowId, value) => {
+                    const row = rows.find((r: any) => r.id === rowId);
+                    if (row) {
+                      prepareRow(row);
+                      (row as any).toggleRowSelected(value);
+                    }
+                  }}
+                  toggleAllRowsSelected={toggleAllRowsSelected}
+                  pageIndex={pageIndex}
+                  pageSize={pageSize}
+                  totalCount={count}
+                  onPageChange={newPageIndex => {
+                    gotoPage(newPageIndex);
+                  }}
+                />
+              )}
+            </>
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode} data-test="empty-state">
@@ -489,25 +516,6 @@ export function ListView<T extends object = any>({
           )}
         </div>
       </div>
-      {rows.length > 0 && (
-        <div className="pagination-container">
-          <Pagination
-            totalPages={pageCount || 0}
-            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => gotoPage(p - 1)}
-            hideFirstAndLastPageLinks
-          />
-          <div className="row-count-container">
-            {!loading &&
-              t(
-                '%s-%s of %s',
-                pageSize * pageIndex + (rows.length && 1),
-                pageSize * pageIndex + rows.length,
-                count,
-              )}
-          </div>
-        </div>
-      )}
     </ListViewStyles>
   );
 }

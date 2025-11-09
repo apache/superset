@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import {
   FormLabel,
   LabeledErrorBoundInput as ValidatedInput,
@@ -68,7 +69,7 @@ export const TableCatalog = ({
                 <Icons.CloseOutlined
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
-                    background: ${theme.colors.grayscale.light4};
+                    background: ${theme.colorFillSecondary};
                     margin: 5px 5px 8px 5px;
 
                     &.anticon > * {

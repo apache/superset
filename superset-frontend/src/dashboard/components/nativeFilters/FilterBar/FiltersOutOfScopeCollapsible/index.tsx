@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css, Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
+import { Divider, Filter, t } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { Collapse } from '@superset-ui/core/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {
@@ -34,7 +35,7 @@ export const FiltersOutOfScopeCollapsible = ({
   <Collapse
     ghost
     bordered
-    expandIconPosition="right"
+    expandIconPosition="end"
     collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
     items={[
       {

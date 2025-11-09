@@ -19,14 +19,9 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  t,
-  styled,
-  SupersetClient,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import dayjs from 'dayjs';
+import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import rison from 'rison';
 
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
@@ -165,6 +160,7 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
         id: 'short_descr',
       },
       {
@@ -235,23 +231,19 @@ function AnnotationList({
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Annotation')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    onClick: () => {
-      handleAnnotationEdit(null);
-    },
-  });
-
-  subMenuButtons.push({
     name: t('Bulk select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
+  });
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Annotation'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      handleAnnotationEdit(null);
+    },
   });
 
   let hasHistory = true;

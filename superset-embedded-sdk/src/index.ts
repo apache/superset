@@ -46,6 +46,7 @@ export type UiConfigType = {
   urlParams?: {
     [key: string]: any;
   };
+  showRowLimitWarning?: boolean;
 };
 
 export type EmbedDashboardParams = {
@@ -88,7 +89,8 @@ export type EmbeddedDashboard = {
   observeDataMask: (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => void;
-  getDataMask: () => Record<string, any>;
+  getDataMask: () => Promise<Record<string, any>>;
+  getChartStates: () => Promise<Record<string, any>>;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
 };
 
@@ -132,6 +134,9 @@ export async function embedDashboard({
       }
       if (dashboardUiConfig.emitDataMasks) {
         configNumber += 16;
+      }
+      if (dashboardUiConfig.showRowLimitWarning) {
+        configNumber += 32;
       }
     }
     return configNumber;
@@ -240,6 +245,7 @@ export async function embedDashboard({
     ourPort.get<string>('getDashboardPermalink', { anchor });
   const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
   const getDataMask = () => ourPort.get<Record<string, any>>('getDataMask');
+  const getChartStates = () => ourPort.get<Record<string, any>>('getChartStates');
   const observeDataMask = (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => {
@@ -266,6 +272,7 @@ export async function embedDashboard({
     getActiveTabs,
     observeDataMask,
     getDataMask,
+    getChartStates,
     setThemeConfig
   };
 }

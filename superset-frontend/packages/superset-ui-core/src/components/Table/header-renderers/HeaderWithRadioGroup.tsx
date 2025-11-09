@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { css, useTheme } from '../../..';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Icons, Radio, Popover } from '../..';
 
 export interface HeaderWithRadioGroupProps {
@@ -74,7 +74,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
       >
         <Icons.SettingOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           css={css`
             margin-top: ${theme.sizeUnit * 0.75}px;
             margin-right: ${theme.sizeUnit}px;

@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { styled, css } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
@@ -40,6 +40,9 @@ const CheckBoxControlWrapper = styled.div`
     }
     span:has(label) {
       padding-right: ${theme.sizeUnit * 2}px;
+    }
+    .ant-checkbox-wrapper {
+      font-size: ${theme.fontSizeSM}px;
     }
   `}
 `;

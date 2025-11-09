@@ -25,4 +25,5 @@ export interface DeleteModalProps {
   onHide: () => void;
   open: boolean;
   title: ReactNode;
+  name?: string;
 }

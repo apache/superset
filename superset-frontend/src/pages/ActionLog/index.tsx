@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t, css } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -196,10 +197,10 @@ function ActionLogList() {
         }: any) => (
           <Typography.Text
             css={css`
-              .antd5-typography-copy {
+              .ant-typography-copy {
                 visibility: hidden;
               }
-              &:hover .antd5-typography-copy {
+              &:hover .ant-typography-copy {
                 visibility: visible;
               }
             `}
@@ -224,10 +225,10 @@ function ActionLogList() {
         }: any) => (
           <Typography.Text
             css={css`
-              .antd5-typography-copy {
+              .ant-typography-copy {
                 visibility: hidden;
               }
-              &:hover .antd5-typography-copy {
+              &:hover .ant-typography-copy {
                 visibility: visible;
               }
             `}

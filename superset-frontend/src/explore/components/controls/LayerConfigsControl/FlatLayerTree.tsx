@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
 import { forwardRef } from 'react';
@@ -36,12 +37,12 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     border: none;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.grayscale.light3};
+    background-color: ${theme.colorFill};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightNormal};
 
     &:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFill};
     }
 
     & .layer-tree-item-close {
@@ -70,12 +71,12 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
     & > button {
       border: none;
       background-color: unset;
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
 
     & > button:hover {
       background-color: unset;
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
   `}
 `;

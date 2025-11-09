@@ -28,7 +28,7 @@ import { <%= packageLabel %>Props, <%= packageLabel %>StylesProps } from './type
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/theme/index.ts
 
 const Styles = styled.div<<%= packageLabel %>StylesProps>`
-  background-color: ${({ theme }) => theme.colors.primary.light2};
+  background-color: ${({ theme }) => theme.colorPrimaryBg};
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
   border-radius: ${({ theme }) => theme.borderRadius}px;
   height: ${({ height }) => height}px;

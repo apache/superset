@@ -17,15 +17,16 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
-  Input,
   Form,
   FormLabel,
   Col,
   Row,
   Tooltip,
 } from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components/Input';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
@@ -34,7 +35,7 @@ import { AuthType } from '.';
 const StyledDiv = styled.div`
   padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;

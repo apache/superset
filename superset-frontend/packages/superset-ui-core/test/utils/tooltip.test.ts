@@ -150,3 +150,32 @@ test('should sanitize HTML input', () => {
 
   expect(html).toMatch(expectedHtml);
 });
+
+test('should preserve table styling after sanitization (fixes ECharts tooltip formatting)', () => {
+  const tableWithStyles = `
+    <table>
+      <tr style="opacity: 0.8;">
+        <td style="text-align: left; padding-left: 0px;">Label</td>
+        <td style="text-align: right; padding-left: 16px;">Value</td>
+      </tr>
+    </table>
+  `;
+
+  const sanitized = sanitizeHtml(tableWithStyles);
+  expect(sanitized).toContain('style="opacity: 0.8;"');
+  expect(sanitized).toContain('style="text-align: left; padding-left: 0px;"');
+  expect(sanitized).toContain('style="text-align: right; padding-left: 16px;"');
+
+  const data = [
+    ['Metric', 'Value'],
+    ['Sales', '$1,234'],
+  ];
+  const html = tooltipHtml(data, 'Test Tooltip');
+
+  expect(html).toContain('style="opacity: 0.8;"');
+  expect(html).toContain('text-align: left');
+  expect(html).toContain('text-align: right');
+  expect(html).toContain('padding-left: 0px');
+  expect(html).toContain('padding-left: 16px');
+  expect(html).toContain('max-width: 300px');
+});

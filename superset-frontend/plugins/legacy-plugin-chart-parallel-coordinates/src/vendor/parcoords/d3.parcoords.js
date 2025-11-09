@@ -1385,7 +1385,7 @@ export default function (config) {
         p[0] = p[0] - __.margin.left;
         p[1] = p[1] - __.margin.top;
 
-        (dims = dimensionsForPoint(p)),
+        ((dims = dimensionsForPoint(p)),
           (strum = {
             p1: p,
             dims: dims,
@@ -1393,7 +1393,7 @@ export default function (config) {
             maxX: xscale(dims.right),
             minY: 0,
             maxY: h(),
-          });
+          }));
 
         strums[dims.i] = strum;
         strums.active = dims.i;
@@ -1942,7 +1942,7 @@ export default function (config) {
         p[0] = p[0] - __.margin.left;
         p[1] = p[1] - __.margin.top;
 
-        (dims = dimensionsForPoint(p)),
+        ((dims = dimensionsForPoint(p)),
           (arc = {
             p1: p,
             dims: dims,
@@ -1953,7 +1953,7 @@ export default function (config) {
             startAngle: undefined,
             endAngle: undefined,
             arc: d3.svg.arc().innerRadius(0),
-          });
+          }));
 
         arcs[dims.i] = arc;
         arcs.active = dims.i;

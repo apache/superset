@@ -18,18 +18,16 @@
  */
 import { FC } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import { Alert, EmptyState } from '@superset-ui/core/components';
-import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
+import { EmptyState } from '@superset-ui/core/components';
+import { FeatureFlag, t, isFeatureEnabled } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ResultSet from '../ResultSet';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../constants';
 
-const EXTRA_HEIGHT_RESULTS = 8; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
-
 type Props = {
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 };
@@ -47,7 +45,6 @@ const StyledEmptyStateWrapper = styled.div`
 
 const Results: FC<Props> = ({
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }) => {
@@ -92,7 +89,6 @@ const Results: FC<Props> = ({
     <ResultSet
       search
       queryId={latestQuery.id}
-      height={height + EXTRA_HEIGHT_RESULTS}
       database={databases[latestQuery.dbId]}
       displayLimit={displayLimit}
       defaultQueryLimit={defaultQueryLimit}

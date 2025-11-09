@@ -18,7 +18,7 @@
  */
 
 // eslint-disable-next-line
-import { SupersetTheme, css } from '@superset-ui/core';
+import { SupersetTheme, css } from '@apache-superset/core/ui';
 import { Typography } from '../Typography';
 import { Icons } from '../Icons';
 import { Card } from '../Card';
@@ -50,17 +50,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   const renderIcon = () => {
-    const iconContent = icon ? (
-      <img
-        src={icon as string}
-        alt={altText || buttonText}
-        css={css`
-          width: 100%;
-          object-fit: contain;
-          height: 100px;
-        `}
-      />
-    ) : (
+    const iconContent = (
       <div
         css={css`
           display: flex;
@@ -69,12 +59,19 @@ const IconButton: React.FC<IconButtonProps> = ({
           height: 100px;
         `}
       >
-        <Icons.DatabaseOutlined
-          css={css`
-            font-size: 48px;
-          `}
-          aria-label="default-icon"
-        />
+        {icon ? (
+          <img
+            src={icon as string}
+            alt={altText || buttonText}
+            css={css`
+              width: 100%;
+              object-fit: contain;
+              height: 48px;
+            `}
+          />
+        ) : (
+          <Icons.DatabaseOutlined iconSize="xxl" aria-label="default-icon" />
+        )}
       </div>
     );
 

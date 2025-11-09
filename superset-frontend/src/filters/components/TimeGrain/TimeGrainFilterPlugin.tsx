@@ -133,7 +133,8 @@ export default function PluginFilterTimegrain(
           onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
-          onDropdownVisibleChange={setFilterActive}
+          onOpenChange={setFilterActive}
+          sortComparator={() => 0} // Disable frontend sorting to preserve backend order
         />
       </FormItem>
     </FilterPluginStyle>

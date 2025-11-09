@@ -22,7 +22,8 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
+import { truncationCSS } from '@superset-ui/core';
+import { styled, SupersetTheme } from '@apache-superset/core/ui';
 import {
   FormItem as StyledFormItem,
   Form,
@@ -162,6 +163,8 @@ const HorizontalFormItem = styled(StyledFormItem)<{
   }
 
   .ant-form-item-label {
+    display: flex;
+    align-items: center;
     overflow: visible;
     padding-bottom: 0;
     margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -177,11 +180,11 @@ const HorizontalFormItem = styled(StyledFormItem)<{
   }
 
   .ant-form-item-control {
-    width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
+    min-width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
   }
 
   .select-container {
-    ${({ inverseSelection, theme }) =>
+    ${({ inverseSelection }) =>
       inverseSelection &&
       `
       width: 164px;
@@ -286,6 +289,8 @@ const FilterControl = ({
   parentRef,
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
+  clearAllTrigger,
+  onClearAllComplete,
 }: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
@@ -358,6 +363,8 @@ const FilterControl = ({
           orientation={orientation}
           overflow={overflow}
           validateStatus={validateStatus}
+          clearAllTrigger={clearAllTrigger}
+          onClearAllComplete={onClearAllComplete}
         />
       </InPortal>
       <FilterControlContainer

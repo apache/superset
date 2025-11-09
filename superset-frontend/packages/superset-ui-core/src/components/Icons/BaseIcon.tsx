@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { css, useTheme, themeObject } from '../..';
+import { css, useTheme, getFontSize } from '@apache-superset/core/ui';
 import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {
   const name = fileName.replace(/_/g, '-'); // Replace underscores with dashes
-  const words = name.split(/(?=[A-Z])/); // Split at uppercase letters
+  const words = name.split(/(?<=[a-z])(?=[A-Z])/); // Split at lowercase-to-uppercase transitions
 
   if (words.length === 2) {
     return words[0].toLowerCase();
@@ -43,15 +43,16 @@ export const BaseIconComponent: React.FC<
   iconSize,
   viewBox,
   customIcons,
+  fileName,
   ...rest
 }) => {
   const theme = useTheme();
   const whatRole = rest?.onClick ? 'button' : 'img';
-  const ariaLabel = genAriaLabel(rest.fileName || '');
+  const ariaLabel = genAriaLabel(fileName || '');
   const style = {
     color: iconColor,
     fontSize: iconSize
-      ? `${themeObject.getFontSize(iconSize)}px`
+      ? `${getFontSize(theme, iconSize)}px`
       : `${theme.fontSize}px`,
     cursor: rest?.onClick ? 'pointer' : undefined,
   };
@@ -75,12 +76,12 @@ export const BaseIconComponent: React.FC<
         style={style}
         width={
           iconSize
-            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
+            ? `${getFontSize(theme, iconSize) || theme.fontSize}px`
             : `${theme.fontSize}px`
         }
         height={
           iconSize
-            ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
+            ? `${getFontSize(theme, iconSize) || theme.fontSize}px`
             : `${theme.fontSize}px`
         }
         {...(rest as CustomIconType)}

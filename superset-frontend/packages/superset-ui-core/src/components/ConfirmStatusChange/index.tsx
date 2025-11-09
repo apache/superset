@@ -31,13 +31,10 @@ export function ConfirmStatusChange({
   const [currentCallbackArgs, setCurrentCallbackArgs] = useState<any[]>([]);
 
   const showConfirm = (...callbackArgs: any[]) => {
-    // check if any args are DOM events, if so, call persist
+    // check if any args are DOM events, if so, handle them
     callbackArgs.forEach(arg => {
       if (!arg) {
         return;
-      }
-      if (typeof arg.persist === 'function') {
-        arg.persist();
       }
       if (typeof arg.preventDefault === 'function') {
         arg.preventDefault();
@@ -68,6 +65,7 @@ export function ConfirmStatusChange({
         onConfirm={confirm}
         onHide={hide}
         open={open}
+        name="please confirm"
         title={title}
       />
     </>

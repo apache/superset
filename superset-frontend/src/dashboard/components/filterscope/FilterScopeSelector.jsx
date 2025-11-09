@@ -20,7 +20,8 @@ import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { Button, Input } from '@superset-ui/core/components';
-import { css, t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import buildFilterScopeTreeEntry from 'src/dashboard/util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from 'src/dashboard/util/getFilterScopeNodesTree';
@@ -227,7 +228,7 @@ const ScopeSelector = styled.div`
               border-radius: ${theme.borderRadius}px;
               margin-top: ${theme.sizeUnit * -2}px;
               box-shadow: inset 0 0 0 2px ${theme.colorBorder};
-              background: ${theme.colors.grayscale.light3};
+              background: ${theme.colorFill};
             }
           }
 
@@ -309,7 +310,7 @@ const ActionsContainer = styled.div`
   ${({ theme }) => `
     height: ${theme.sizeUnit * 16}px;
 
-    border-top: ${theme.sizeUnit / 4}px solid ${theme.colors.primary.light3};
+    border-top: ${theme.sizeUnit / 4}px solid ${theme.colorPrimaryBg};
     padding: ${theme.sizeUnit * 6}px;
     margin: 0 0 0 ${-theme.sizeUnit * 6}px;
     text-align: right;

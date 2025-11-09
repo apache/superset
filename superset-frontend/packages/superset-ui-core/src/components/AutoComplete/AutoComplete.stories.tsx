@@ -165,7 +165,7 @@ export default {
         defaultValue: { summary: 'false' },
       },
     },
-    dropdownRender: {
+    popupRender: {
       control: false,
       description:
         'Custom render function for dropdown content. `(menus: ReactNode) => ReactNode`',

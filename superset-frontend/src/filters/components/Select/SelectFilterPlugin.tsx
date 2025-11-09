@@ -23,14 +23,14 @@ import {
   DataMask,
   ensureIsArray,
   ExtraFormData,
-  GenericDataType,
   getColumnLabel,
   JsonObject,
   finestTemporalGrainFormatter,
   t,
   tn,
-  styled,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import {
@@ -131,6 +131,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     parentRef,
     inputRef,
     filterBarOrientation,
+    clearAllTrigger,
+    onClearAllComplete,
   } = props;
   const {
     enableEmptyFilter,
@@ -149,6 +151,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
+  const isChangedByUser = useRef(false);
+  const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -269,8 +273,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       } else {
         updateDataMask(values);
       }
+
+      isChangedByUser.current = true;
     },
-    [updateDataMask],
+    [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
 
   const placeholderText =
@@ -290,7 +296,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
+    const allOptions = new Set(data.map(el => el[col]));
     return [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
@@ -311,13 +317,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
+      // When sortMetric is specified, the backend already sorted the data correctly
+      // Don't override the backend's metric-based sorting with frontend alphabetical sorting
+      if (formData.sortMetric) {
+        return 0; // Preserve the original order from the backend
+      }
+
+      // Only apply alphabetical sorting when no sortMetric is specified
       const labelComparator = propertyComparator('label');
       if (formData.sortAscending) {
         return labelComparator(a, b);
       }
       return labelComparator(b, a);
     },
-    [formData.sortAscending],
+    [formData.sortAscending, formData.sortMetric],
   );
 
   // Use effect for initialisation for filter plugin
@@ -343,17 +356,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
 
     // Handle the default to first Value case
-    if (defaultToFirstItem) {
-      // Set to first item if defaultToFirstItem is true
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+    // Skip default values when clearAllTrigger is active to prevent
+    // defaults from being applied during Clear All operation
+    if (!clearAllTrigger) {
+      if (defaultToFirstItem) {
+        // Set to first item if defaultToFirstItem is true
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (formData?.defaultValue) {
+        // Handle defalut value case
+        updateDataMask(formData.defaultValue);
       }
-    } else if (formData?.defaultValue) {
-      // Handle defalut value case
-      updateDataMask(formData.defaultValue);
     }
   }, [
     isDisabled,
@@ -364,11 +381,85 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     groupby,
     col,
     inverseSelection,
+    clearAllTrigger,
+  ]);
+
+  useEffect(() => {
+    const prev = prevDataRef.current;
+    const curr = data;
+
+    const hasDataChanged =
+      prev?.length !== curr?.length ||
+      prev?.some((row, i) => {
+        const prevVal = row[col];
+        const currVal = curr[i][col];
+        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
+          ? prevVal?.toString() !== currVal?.toString()
+          : prevVal !== currVal;
+      });
+
+    // If data actually changed (e.g., due to parent filter), reset flag
+    if (hasDataChanged) {
+      isChangedByUser.current = false;
+      prevDataRef.current = data;
+    }
+  }, [data, col]);
+
+  useEffect(() => {
+    if (
+      isChangedByUser.current &&
+      filterState.value?.every((value?: any) =>
+        data.some(row => row[col] === value),
+      )
+    )
+      return;
+
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+
+    // Skip default value update when clearAllTrigger is active
+    if (
+      !clearAllTrigger &&
+      defaultToFirstItem &&
+      Object.keys(formData?.extraFormData || {}).length &&
+      filterState.value !== undefined &&
+      firstItem !== null &&
+      filterState.value !== firstItem
+    ) {
+      if (firstItem?.[0] !== undefined) {
+        updateDataMask(firstItem);
+      }
+    }
+  }, [
+    defaultToFirstItem,
+    updateDataMask,
+    formData,
+    data,
+    JSON.stringify(filterState.value),
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
+
+  useEffect(() => {
+    if (clearAllTrigger) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: {},
+        filterState: {
+          value: undefined,
+          label: undefined,
+        },
+      });
+
+      updateDataMask(null);
+      setSearch('');
+      onClearAllComplete?.(formData.nativeFilterId);
+    }
+  }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
 
   useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {
@@ -448,7 +539,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             invertSelection={inverseSelection && excludeFilterValues}
             options={options}
             sortComparator={sortComparator}
-            onDropdownVisibleChange={setFilterActive}
+            onOpenChange={setFilterActive}
             className="select-container"
           />
         </StyledSpace>

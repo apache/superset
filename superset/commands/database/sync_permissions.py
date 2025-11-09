@@ -20,9 +20,9 @@ import logging
 from functools import partial
 from typing import Iterable
 
-from flask import current_app, g
+from flask import current_app as app, g
 
-from superset import app, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -320,7 +320,7 @@ def sync_database_permissions_task(
     """
     Celery task that triggers the SyncPermissionsCommand in async mode.
     """
-    with current_app.test_request_context():
+    with app.test_request_context():
         try:
             user = security_manager.get_user_by_username(username)
             if not user:

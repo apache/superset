@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
@@ -32,7 +33,7 @@ export const StyledFlatLayerTree = styled(FlatLayerTree)`
     border: solid;
     border-width: 1px;
     border-radius: ${theme.borderRadius}px;
-    border-color: ${theme.colors.grayscale.light2};
+    border-color: ${theme.colorBorderSecondary};
 
     & .add-layer-btn {
       display: flex;
@@ -40,13 +41,13 @@ export const StyledFlatLayerTree = styled(FlatLayerTree)`
 
       margin: 4px;
 
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
       font-size: ${theme.fontSizeSM}px;
       font-weight: ${theme.fontWeightNormal};
 
       &:hover {
-        background-color: ${theme.colors.grayscale.light4};
-        border-color: ${theme.colors.grayscale.light2};
+        background-color: ${theme.colorFillTertiary};
+        border-color: ${theme.colorBorderSecondary};
       }
     }
 

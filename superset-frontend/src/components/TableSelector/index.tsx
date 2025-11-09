@@ -26,19 +26,16 @@ import {
 import type { SelectValue } from '@superset-ui/core/components';
 
 import {
-  styled,
   t,
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  FormLabel,
-  CertifiedBadge,
-  Select,
-} from '@superset-ui/core/components';
+import { styled } from '@apache-superset/core/ui';
+import { CertifiedBadge, Select } from '@superset-ui/core/components';
 import { DatabaseSelector } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
+import { StyledFormLabel } from 'src/components/DatabaseSelector/styles';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -53,7 +50,6 @@ const TableSelectorWrapper = styled.div`
       align-items: center;
       width: ${REFRESH_WIDTH}px;
       margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -68,7 +64,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .table-length {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextSecondary};
     }
 
     .select {
@@ -126,9 +122,11 @@ export const TableOption = ({ table }: { table: Table }) => {
   return (
     <TableLabel title={value}>
       {type === 'view' ? (
-        <Icons.EyeOutlined iconSize="m" />
+        <Icons.FunctionOutlined iconSize="m" />
+      ) : type === 'materialized_view' ? (
+        <Icons.ProfileOutlined iconSize="m" />
       ) : (
-        <Icons.InsertRowAboveOutlined iconSize="m" />
+        <Icons.TableOutlined iconSize="m" />
       )}
       {extra?.certification && (
         <CertifiedBadge
@@ -312,18 +310,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableSelect() {
     const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
 
-    const header = sqlLabMode ? (
-      <FormLabel>{t('See table schema')}</FormLabel>
-    ) : (
-      <FormLabel>{t('Table')}</FormLabel>
-    );
+    const label = sqlLabMode ? t('See table schema') : t('Table');
 
     const select = (
       <Select
         ariaLabel={t('Select table or type to search tables')}
         disabled={disabled}
         filterOption={handleFilterOption}
-        header={header}
         labelInValue
         loading={loadingTables}
         name="select-table"
@@ -347,7 +340,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
-    return renderSelectRow(select, refreshLabel);
+    return (
+      <>
+        <StyledFormLabel>{label}</StyledFormLabel>
+        {renderSelectRow(select, refreshLabel)}
+      </>
+    );
   }
 
   return (

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
 import Component from './NVD3Vis';
 import { hideTooltips, removeTooltip } from './utils';
@@ -71,6 +72,12 @@ export default styled(NVD3)`
     }
     text.nv-axislabel {
       font-size: ${({ theme }) => theme.fontSize} !important;
+    }
+    g.nv-axis text {
+      fill: ${({ theme }) => theme.colorText};
+    }
+    g.nv-series text {
+      fill: ${({ theme }) => theme.colorText};
     }
     g.solid path,
     line.solid {
@@ -164,15 +171,15 @@ export default styled(NVD3)`
   .d3-tip.nv-event-annotation-layer-NATIVE {
     width: 200px;
     border-radius: 2px;
-    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    background-color: ${({ theme }) => theme.colorBgContainer};
     fill-opacity: 0.6;
     margin: ${({ theme }) => theme.sizeUnit * 2}px;
     padding: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.light5};
+    color: ${({ theme }) => theme.colorTextLightSolid};
     &:after {
       content: '\\25BC';
       font-size: ${({ theme }) => theme.fontSize};
-      color: ${({ theme }) => theme.colors.grayscale.base};
+      color: ${({ theme }) => theme.colorText};
       position: absolute;
       bottom: -14px;
       left: 94px;

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
 import { FormLabel } from '../Form';
 import { Input, InputRef } from '../Input';
@@ -27,13 +28,8 @@ const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorTextLabel};
   }
-`;
-
-const DescriptionContainer = styled.div`
-  line-height: ${({ theme }) => theme.sizeUnit * 4}px;
-  padding-top: 16px;
 `;
 
 export function DeleteModal({
@@ -42,6 +38,7 @@ export function DeleteModal({
   onHide,
   open,
   title,
+  name,
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
@@ -81,12 +78,13 @@ export function DeleteModal({
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={t('Delete')}
-      primaryButtonType="danger"
+      primaryButtonStyle="danger"
       show={open}
+      name={name}
       title={title}
       centered
     >
-      <DescriptionContainer>{description}</DescriptionContainer>
+      {description}
       <StyledDiv>
         <FormLabel htmlFor="delete">
           {t('Type "%s" to confirm', t('DELETE'))}

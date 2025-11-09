@@ -18,13 +18,13 @@
  */
 import {
   buildQueryContext,
-  GenericDataType,
   getColumnLabel,
   isPhysicalColumn,
   QueryObject,
   QueryObjectFilterClause,
   BuildQuery,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (

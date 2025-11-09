@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Collapse as AntdCollapse } from 'antd';
 import type { CollapseProps } from './types';
 
@@ -38,7 +38,7 @@ const StyledCollapse = styled((props: CollapseProps) => (
 
       ${({ expandIconPosition }) =>
         expandIconPosition &&
-        expandIconPosition === 'right' &&
+        expandIconPosition === 'end' &&
         `
             .anticon.anticon-right.ant-collapse-arrow > svg {
               transform: rotate(90deg) !important;
@@ -72,7 +72,7 @@ const StyledCollapse = styled((props: CollapseProps) => (
     .ant-collapse-header {
       ${({ expandIconPosition }) =>
         expandIconPosition &&
-        expandIconPosition === 'right' &&
+        expandIconPosition === 'end' &&
         `
             .anticon.anticon-right.ant-collapse-arrow > svg {
               transform: rotate(-90deg) !important;

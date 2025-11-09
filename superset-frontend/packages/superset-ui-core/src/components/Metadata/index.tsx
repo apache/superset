@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 const MetadataWrapper = styled.div`
   display: flex;
@@ -30,7 +30,7 @@ const MetadataWrapper = styled.div`
 
 const MetadataText = styled.span`
   font-size: ${({ theme }) => theme.fontSizeXS}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 

@@ -36,11 +36,21 @@ import {
   DataMask,
   isNativeFilter,
   usePrevious,
-  styled,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask } from 'src/dataMask/actions';
+import { triggerQuery } from 'src/components/Chart/chartAction';
+import {
+  saveChartCustomization,
+  setChartCustomization,
+  clearAllPendingChartCustomizations,
+  ChartCustomizationSavePayload,
+  clearAllChartCustomizationsFromMetadata,
+} from 'src/dashboard/actions/chartCustomizationActions';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
@@ -148,6 +158,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
+  const chartCustomizationItems = useSelector<RootState, any[]>(
+    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+  );
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
@@ -162,6 +175,9 @@ const FilterBar: FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
   const previousDashboardId = usePrevious(dashboardId);
+  const chartIds = useSelector<RootState, number[]>(
+    state => state.dashboardState.sliceIds || [],
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -171,6 +187,14 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const [clearAllTriggers, setClearAllTriggers] = useState<
+    Record<string, boolean>
+  >({});
+  const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
+    new Set(),
+  );
+  const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
+    useState(false);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -180,23 +204,55 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
+        const isFirstTimeInitialization =
+          !initializedFilters.has(filter.id) &&
+          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
+            undefined;
+
         // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
         if (
           // filterState.value === undefined - means that value not initialized
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
+          isFirstTimeInitialization &&
           filter.requiredFirst
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-        draft[filter.id] = {
+
+        // Mark filter as initialized after getting its first value
+        if (
+          dataMask.filterState?.value !== undefined &&
+          !initializedFilters.has(filter.id)
+        ) {
+          setInitializedFilters(prev => new Set(prev).add(filter.id));
+        }
+
+        const baseDataMask = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
+
+        // Recalculate validation status
+        const isRequired = !!filter.controlValues?.enableEmptyFilter;
+        const value = baseDataMask.filterState?.value;
+
+        const isEmptyValue =
+          value == null ||
+          (Array.isArray(value) && value.length === 0) ||
+          (typeof value === 'string' && value.trim() === '');
+
+        const hasRequiredValue = isRequired && isEmptyValue;
+
+        draft[filter.id] = {
+          ...baseDataMask,
+          filterState: {
+            ...baseDataMask.filterState,
+            validateStatus: hasRequiredValue ? 'error' : undefined,
+          },
+        };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [dispatch, setDataMaskSelected, initializedFilters, setInitializedFilters],
   );
 
   useEffect(() => {
@@ -234,7 +290,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected]);
+  }, [dataMaskAppliedText, setDataMaskSelected, dashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -244,19 +300,105 @@ const FilterBar: FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
+  const pendingChartCustomizations = useSelector<
+    RootState,
+    Record<string, ChartCustomizationItem> | undefined
+  >(state => state.dashboardInfo.pendingChartCustomizations);
+
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+
+    // Apply filter changes
+    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+      if (dataMask) {
+        dispatch(updateDataMask(filterId, dataMask));
       }
     });
-  }, [dataMaskSelected, dispatch]);
+
+    if (
+      pendingChartCustomizations &&
+      Object.keys(pendingChartCustomizations).length > 0
+    ) {
+      Object.values(pendingChartCustomizations).forEach(
+        (customization: any) => {
+          if (customization) {
+            const customizationFilterId = `chart_customization_${customization.id}`;
+            const dataMask = {
+              extraFormData: {},
+              filterState: {},
+              ownState: {
+                column: customization.customization?.column || null,
+              },
+            };
+            dispatch(updateDataMask(customizationFilterId, dataMask));
+          }
+        },
+      );
+
+      const pendingItems = Object.values(pendingChartCustomizations).filter(
+        Boolean,
+      ) as ChartCustomizationSavePayload[];
+
+      if (pendingItems.length > 0) {
+        const newCustomizations: ChartCustomizationItem[] = pendingItems.map(
+          item => ({
+            id: item.id,
+            title: item.title,
+            removed: item.removed,
+            chartId: item.chartId,
+            customization: item.customization,
+          }),
+        );
+
+        const existingCustomizations = chartCustomizationItems || [];
+        const existingMap = new Map(
+          existingCustomizations.map(item => [item.id, item]),
+        );
+
+        newCustomizations.forEach(newItem => {
+          existingMap.set(newItem.id, newItem);
+        });
+
+        const mergedCustomizations = Array.from(existingMap.values());
+
+        dispatch(setChartCustomization(mergedCustomizations));
+
+        if (chartIds.length > 0) {
+          chartIds.forEach(chartId => {
+            dispatch(triggerQuery(true, chartId));
+          });
+        }
+      }
+      dispatch(clearAllPendingChartCustomizations());
+    } else if (hasClearedChartCustomizations) {
+      const clearedChartCustomizations = chartCustomizationItems.map(item => ({
+        ...item,
+        customization: {
+          ...item.customization,
+          column: null,
+        },
+      }));
+
+      dispatch(saveChartCustomization(clearedChartCustomizations));
+    }
+
+    setHasClearedChartCustomizations(false);
+  }, [
+    dataMaskSelected,
+    dispatch,
+    pendingChartCustomizations,
+    hasClearedChartCustomizations,
+    chartCustomizationItems,
+    dashboardId,
+    chartIds,
+  ]);
 
   const handleClearAll = useCallback(() => {
-    filtersInScope.filter(isNativeFilter).forEach(filter => {
+    const newClearAllTriggers = { ...clearAllTriggers };
+    // Clear all native filters, not just those in scope
+    // This ensures dependent filters are cleared even if parent was cleared first
+    nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
         setDataMaskSelected(draft => {
@@ -265,16 +407,106 @@ const FilterBar: FC<FiltersBarProps> = ({
           }
           draft[id].extraFormData = {};
         });
+        newClearAllTriggers[id] = true;
       }
     });
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+
+    let hasChartCustomizationsToClear = false;
+
+    const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
+
+    Object.keys(allDataMasks).forEach(key => {
+      if (key.startsWith('chart_customization_')) {
+        hasChartCustomizationsToClear = true;
+      }
+    });
+
+    if (!hasChartCustomizationsToClear && chartCustomizationItems.length > 0) {
+      chartCustomizationItems.forEach(item => {
+        if (item.customization?.column) {
+          const customizationFilterId = `chart_customization_${item.id}`;
+          const dataMask = {
+            filterState: {
+              value: item.customization.column,
+            },
+            ownState: {
+              column: item.customization.column,
+            },
+            extraFormData: {},
+          };
+
+          dispatch(updateDataMask(customizationFilterId, dataMask));
+          hasChartCustomizationsToClear = true;
+        }
+      });
+    }
+
+    if (hasChartCustomizationsToClear) {
+      dispatch(clearAllPendingChartCustomizations());
+      dispatch(clearAllChartCustomizationsFromMetadata());
+      setHasClearedChartCustomizations(true);
+    }
+
+    setClearAllTriggers(newClearAllTriggers);
+  }, [
+    dataMaskSelected,
+    nativeFilterValues,
+    setDataMaskSelected,
+    clearAllTriggers,
+    dataMaskApplied,
+    chartCustomizationItems,
+    dispatch,
+  ]);
+
+  const handleClearAllComplete = useCallback((filterId: string) => {
+    setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-  const isApplyDisabled = checkIsApplyDisabled(
-    dataMaskSelected,
-    dataMaskApplied,
-    filtersInScope.filter(isNativeFilter),
-  );
+
+  const hasPendingChartCustomizations =
+    pendingChartCustomizations &&
+    Object.keys(pendingChartCustomizations).length > 0;
+
+  const hasMissingRequiredChartCustomization =
+    chartCustomizationItems?.some(item => {
+      if (item.removed) return false;
+
+      const required = !!item.customization?.controlValues?.enableEmptyFilter;
+      if (!required) return false;
+
+      const pendingItem = pendingChartCustomizations?.[item.id];
+      const currentCustomization =
+        pendingItem?.customization || item.customization;
+      const columnValue = currentCustomization?.column;
+
+      if (!columnValue) return true;
+
+      if (Array.isArray(columnValue)) {
+        return columnValue.length === 0;
+      }
+
+      if (typeof columnValue === 'string') {
+        return columnValue.trim() === '';
+      }
+
+      return false;
+    }) || false;
+
+  const isApplyDisabled =
+    (checkIsApplyDisabled(
+      dataMaskSelected,
+      dataMaskApplied,
+      filtersInScope.filter(isNativeFilter),
+    ) &&
+      !hasPendingChartCustomizations &&
+      !hasClearedChartCustomizations) ||
+    hasMissingRequiredChartCustomization;
+
   const isInitialized = useInitialization();
 
   const actions = useMemo(
@@ -287,6 +519,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
+        chartCustomizationItems={chartCustomizationItems}
       />
     ),
     [
@@ -295,8 +528,9 @@ const FilterBar: FC<FiltersBarProps> = ({
       handleApply,
       handleClearAll,
       dataMaskSelected,
-      dataMaskAppliedText,
+      dataMaskApplied,
       isApplyDisabled,
+      chartCustomizationItems,
     ],
   );
 
@@ -310,6 +544,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         filterValues={filterValues}
         isInitialized={isInitialized}
         onSelectionChange={handleFilterSelectionChange}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -324,6 +560,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         onSelectionChange={handleFilterSelectionChange}
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : null;
 

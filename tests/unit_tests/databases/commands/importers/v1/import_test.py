@@ -19,6 +19,7 @@
 import copy
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -97,12 +98,12 @@ def test_import_database_sqlite_invalid(
     """
     Test importing a database.
     """
-    from superset import app, security_manager
+    from superset import security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config_sqlite
 
-    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -116,7 +117,7 @@ def test_import_database_sqlite_invalid(
         == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."  # noqa: E501
     )
     # restore app config
-    app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
 
 
 def test_import_database_managed_externally(

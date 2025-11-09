@@ -18,9 +18,12 @@
  */
 import { useEffect, useState, FunctionComponent } from 'react';
 
-import { t, styled, css } from '@superset-ui/core';
-import dayjs from 'dayjs';
+import { t } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { Dayjs } from 'dayjs';
 import { extendedDayjs } from '../../utils/dates';
+import 'dayjs/plugin/updateLocale';
+import 'dayjs/plugin/calendar';
 import { Icons } from '../Icons';
 import type { LastUpdatedProps } from './types';
 
@@ -38,27 +41,15 @@ extendedDayjs.updateLocale('en', {
 });
 
 const TextStyles = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
-const RefreshIcon = styled(Icons.SyncOutlined)`
-  ${({ theme }) => `
-  width: auto;
-  height: ${theme.sizeUnit * 5}px;
-  position: relative;
-  top: ${theme.sizeUnit}px;
-  left: ${theme.sizeUnit}px;
-  cursor: pointer;
-`};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
-  const [timeSince, setTimeSince] = useState<dayjs.Dayjs>(
-    extendedDayjs(updatedAt),
-  );
+  const theme = useTheme();
+  const [timeSince, setTimeSince] = useState<Dayjs>(extendedDayjs(updatedAt));
 
   useEffect(() => {
     setTimeSince(() => extendedDayjs(updatedAt));
@@ -75,10 +66,9 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
       {update && (
-        <RefreshIcon
-          iconSize="l"
+        <Icons.SyncOutlined
           css={css`
-            vertical-align: text-bottom;
+            margin-left: ${theme.sizeUnit * 2}px;
           `}
           onClick={update}
         />

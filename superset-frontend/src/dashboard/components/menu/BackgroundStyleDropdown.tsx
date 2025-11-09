@@ -18,7 +18,8 @@
  */
 import { PureComponent } from 'react';
 import cx from 'classnames';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
@@ -43,11 +44,11 @@ const BackgroundStyleOption = styled.div`
       display: inline-block;
       vertical-align: middle;
     }
-    &.background--white {
+    &.background-style-option.background--white {
       padding-left: 0;
       background: transparent;
       &:before {
-        background: ${theme.colors.grayscale.light5};
+        background: ${theme.colorBgContainer};
         border: 1px solid ${theme.colorBorder};
       }
     }

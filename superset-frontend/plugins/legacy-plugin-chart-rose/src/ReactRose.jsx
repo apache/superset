@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled, css } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import Component from './Rose';
 
@@ -29,8 +30,8 @@ const Rose = ({ className, ...otherProps }) => (
         .tooltip {
           line-height: 1;
           padding: ${theme.sizeUnit * 3}px;
-          background: ${theme.colors.grayscale.dark2};
-          color: ${theme.colors.grayscale.light5};
+          background: ${theme.colorBgElevated};
+          color: ${theme.colorText};
           border-radius: 4px;
           pointer-events: none;
           z-index: 1000;
@@ -46,7 +47,7 @@ export default styled(Rose)`
   ${({ theme }) => `
     .superset-legacy-chart-rose path {
         transition: fill-opacity 180ms linear;
-        stroke: ${theme.colors.grayscale.light5};
+        stroke: ${theme.colorBorder};
         stroke-width: 1px;
         stroke-opacity: 1;
         fill-opacity: 0.75;

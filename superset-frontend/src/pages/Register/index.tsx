@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { SupersetClient, styled, t, css } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import {
   Button,
   Card,
@@ -45,7 +46,7 @@ const StyledCard = styled(Card)`
     width: 50%;
     margin-top: ${theme.marginXL}px;
     background: ${theme.colorBgBase};
-    .antd5-form-item-label label {
+    .ant-form-item-label label {
       color: ${theme.colorPrimary};
     }
   `}
