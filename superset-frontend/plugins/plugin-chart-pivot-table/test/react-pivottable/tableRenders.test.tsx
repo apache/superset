@@ -55,9 +55,9 @@ const mockProps = {
   colPartialOnTop: false,
 };
 
-tableRenderer = new TableRenderer(mockProps);
-
 beforeEach(() => {
+  tableRenderer = new TableRenderer(mockProps);
+
   mockCalculateGroups = jest.fn();
   mockSortAndCacheData = jest.fn();
 
@@ -78,10 +78,12 @@ beforeEach(() => {
 
   tableRenderer.state = {
     sortingOrder: [],
+    activeSortColumn: null,
     collapsedRows: {},
     collapsedCols: {},
-  };
+  } as any;
 });
+
 test('should set initial ascending sort when no active sort column', () => {
   mockCalculateGroups.mockReturnValue({
     A: { currentVal: 30 },
@@ -164,7 +166,7 @@ test('should check second call in sequence', () => {
 
   mockSortAndCacheData.mockClear();
 
-  const setStateMock = jest.fn((stateUpdater, callback) => {
+  const setStateMock = jest.fn(stateUpdater => {
     if (typeof stateUpdater === 'function') {
       const newState = stateUpdater(tableRenderer.state);
       tableRenderer.state = {
@@ -180,15 +182,15 @@ test('should check second call in sequence', () => {
     activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
-  };
+  } as any;
   tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   tableRenderer.state = {
     sortingOrder: ['asc' as never],
-    activeSortColumn: 0,
+    activeSortColumn: 0 as any,
     collapsedRows: {},
     collapsedCols: {},
-  };
+  } as any;
   tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   expect(mockSortAndCacheData).toHaveBeenCalledTimes(2);

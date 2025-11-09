@@ -149,7 +149,7 @@ export class TableRenderer extends Component {
     // This is an object with flat-keys indicating if the corresponding rows
     // should be collapsed.
     this.state = { collapsedRows: {}, collapsedCols: {}, sortingOrder: [] };
-
+    this.sortCache = new Map();
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
   }
@@ -465,25 +465,36 @@ export class TableRenderer extends Component {
       }
 
       newSortingOrder[columnIndex] = newDirection;
-      const groups = this.calculateGroups(
-        pivotData,
-        visibleColKeys,
-        columnIndex,
-      );
-      const sortedRowKeys = this.sortAndCacheData(
-        groups,
-        newSortingOrder[columnIndex],
-        pivotData.subtotals,
-        maxRowIndex,
-      );
-      this.cachedBasePivotSettings = {
-        ...this.cachedBasePivotSettings,
-        rowKeys: sortedRowKeys,
-      };
+
+      const cacheKey = `${columnIndex}-${newDirection}`;
+      if (this.sortCache.has(cacheKey)) {
+        const cachedRowKeys = this.sortCache.get(cacheKey);
+        this.cachedBasePivotSettings = {
+          ...this.cachedBasePivotSettings,
+          rowKeys: cachedRowKeys,
+        };
+      } else {
+        const groups = this.calculateGroups(
+          pivotData,
+          visibleColKeys,
+          columnIndex,
+        );
+        const sortedRowKeys = this.sortAndCacheData(
+          groups,
+          newDirection,
+          pivotData.subtotals,
+          maxRowIndex,
+        );
+        this.sortCache.set(cacheKey, sortedRowKeys);
+        this.cachedBasePivotSettings = {
+          ...this.cachedBasePivotSettings,
+          rowKeys: sortedRowKeys,
+        };
+      }
+
       return {
         sortingOrder: newSortingOrder,
         activeSortColumn: columnIndex,
-        sortedRowKeys,
       };
     });
   }
