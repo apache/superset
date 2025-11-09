@@ -116,14 +116,16 @@ function convertToArray(
       updatedFlag = true;
     }
     if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+      parentKeys.push(key);
       convertToArray(
         obj[key],
         rowEnabled,
         rowPartialOnTop,
         maxRowIndex,
-        [...parentKeys, key],
+        parentKeys,
         result,
       );
+      parentKeys.pop();
     }
     if (
       parentKeys.length >= maxRowIndex - 1 ||
@@ -418,19 +420,18 @@ export class TableRenderer extends Component {
     return spans;
   }
 
-  calculateGroups(pivotData, visibleColKey, columnIndex) {
+  calculateGroups(pivotData, visibleColName) {
     const groups = {};
     const rows = pivotData.rowKeys;
     rows.forEach(rowKey => {
+      const aggValue = pivotData.getAggregator(rowKey, visibleColName).value();
       let current = groups;
       let sumGroup = 0;
       rowKey.forEach(key => {
         if (!current[key]) {
           current[key] = { currentVal: 0 };
         }
-        sumGroup += pivotData
-          .getAggregator(rowKey, visibleColKey[columnIndex])
-          .value();
+        sumGroup += aggValue;
         current[key].currentVal = sumGroup;
         current = current[key];
       });
@@ -474,8 +475,7 @@ export class TableRenderer extends Component {
       } else {
         const groups = this.calculateGroups(
           pivotData,
-          visibleColKeys,
-          columnIndex,
+          visibleColKeys[columnIndex],
         );
         const sortedRowKeys = this.sortAndCacheData(
           groups,
@@ -644,13 +644,7 @@ export class TableRenderer extends Component {
               namesMapping,
               allowRenderHtml,
             )}
-            <span
-              role="columnheader button"
-              tabIndex={0}
-              onClick={e => {
-                e.stopPropagation();
-              }}
-            >
+            <span role="columnheader button" tabIndex={0}>
               {visibleSortIcon && getSortIcon(i)}
             </span>
           </th>,
@@ -1059,6 +1053,10 @@ export class TableRenderer extends Component {
 
   isDashboardEditMode() {
     return document.contains(document.querySelector('.dashboard--editing'));
+  }
+
+  componentWillUnmount() {
+    this.sortCache.clear();
   }
 
   render() {

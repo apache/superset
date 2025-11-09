@@ -114,8 +114,7 @@ test('should set initial ascending sort when no active sort column', () => {
 
   expect(mockCalculateGroups).toHaveBeenCalledWith(
     pivotData,
-    visibleColKeys,
-    columnIndex,
+    visibleColKeys[columnIndex],
   );
 
   expect(mockSortAndCacheData).toHaveBeenCalledWith(
