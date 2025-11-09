@@ -62,7 +62,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     theme: supersetTheme,
   };
 
-  it('xAxisTimeFormat has no default formatter', () => {
+  test('xAxisTimeFormat has no default formatter', () => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: baseFormData,
@@ -78,7 +78,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(xAxis.axisLabel.formatter).toBeUndefined();
   });
 
-  it.each(D3_TIME_FORMAT_OPTIONS)('should handle %s format', format => {
+  test.each(D3_TIME_FORMAT_OPTIONS)('should handle %s format', format => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: {
@@ -133,7 +133,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     theme: supersetTheme,
   };
 
-  it('should use SMART_NUMBER as default xAxisNumberFormat', () => {
+  test('should use SMART_NUMBER as default xAxisNumberFormat', () => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: baseFormData,
@@ -150,7 +150,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     expect(xAxis.axisLabel.formatter.id).toBe('SMART_NUMBER');
   });
 
-  it.each(D3_FORMAT_OPTIONS)('should handle %s format', format => {
+  test.each(D3_FORMAT_OPTIONS)('should handle %s format', format => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       formData: {
