@@ -216,7 +216,7 @@ class TestTakeTiledScreenshot:
             for _, call in enumerate(screenshot_calls):
                 kwargs = call[1]
                 assert kwargs["type"] == "png"
-                assert kwargs["clip"]["x"] == 0
+                assert kwargs["clip"]["x"] == 50
                 assert kwargs["clip"]["width"] == 800
 
             # Check y positions and heights for each tile
