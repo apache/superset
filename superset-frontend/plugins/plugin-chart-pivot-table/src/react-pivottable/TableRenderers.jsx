@@ -457,7 +457,7 @@ export class TableRenderer extends Component {
     this.setState(state => {
       const { sortingOrder, activeSortColumn } = state;
 
-      let newSortingOrder = [];
+      const newSortingOrder = [];
       let newDirection = 'asc';
 
       if (activeSortColumn === columnIndex) {
@@ -476,10 +476,14 @@ export class TableRenderer extends Component {
         pivotData.subtotals,
         maxRowIndex,
       );
-      this.cachedBasePivotSettings.rowKeys = sortedRowKeys;
+      this.cachedBasePivotSettings = {
+        ...this.cachedBasePivotSettings,
+        rowKeys: sortedRowKeys,
+      };
       return {
         sortingOrder: newSortingOrder,
         activeSortColumn: columnIndex,
+        sortedRowKeys,
       };
     });
   }
@@ -638,7 +642,7 @@ export class TableRenderer extends Component {
                 e.stopPropagation();
               }}
             >
-              {visibleSortIcon && getSortIcon(Object.keys(visibleColKeys)[i])}
+              {visibleSortIcon && getSortIcon(i)}
             </span>
           </th>,
         );

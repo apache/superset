@@ -86,7 +86,7 @@ beforeEach(() => {
 
   tableRenderer.state = {
     sortingOrder: [],
-    activeSortColumn: null,
+    activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
   };
@@ -111,7 +111,7 @@ test('should set initial ascending sort when no active sort column', () => {
 
   const previousState = {
     sortingOrder: [],
-    activeSortColumn: null,
+    activeSortColumn: 0,
   };
 
   const newState = stateUpdater(previousState);
@@ -186,14 +186,14 @@ test('should check second call in sequence', () => {
 
   tableRenderer.state = {
     sortingOrder: [],
-    activeSortColumn: null,
+    activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
   };
   tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   tableRenderer.state = {
-    sortingOrder: ['asc'],
+    sortingOrder: { 0: 'asc' },
     activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
