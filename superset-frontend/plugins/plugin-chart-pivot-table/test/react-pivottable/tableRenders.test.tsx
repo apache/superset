@@ -316,11 +316,7 @@ test('should calculate groups from pivot data', () => {
       .mockReturnValueOnce(mockAggregator(20)),
   };
 
-  const result = tableRenderer.calculateGroups(
-    mockPivotData as any,
-    [['col1']],
-    0,
-  );
+  const result = tableRenderer.calculateGroups(mockPivotData as any, ['col1']);
 
   expect(result).toEqual({
     A: { currentVal: 30 },
