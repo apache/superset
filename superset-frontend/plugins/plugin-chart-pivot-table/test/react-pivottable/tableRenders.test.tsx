@@ -29,14 +29,6 @@ const pivotData = {
     rowEnabled: true,
     rowPartialOnTop: false,
   },
-  rowKeys: [
-    ['A', 'A1'],
-    ['A', 'A2'],
-    ['B', 'B1'],
-    ['B', 'B2'],
-    ['C', 'C1'],
-    ['C', 'C2'],
-  ],
 } as any;
 const maxRowIndex = 2;
 
@@ -86,7 +78,6 @@ beforeEach(() => {
 
   tableRenderer.state = {
     sortingOrder: [],
-    activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
   };
@@ -142,7 +133,7 @@ test('should toggle from asc to desc when clicking same column', () => {
   const setStateMock = jest.fn(stateUpdater => {
     if (typeof stateUpdater === 'function') {
       const newState = stateUpdater({
-        sortingOrder: { 0: 'asc' },
+        sortingOrder: ['asc' as never],
         activeSortColumn: 0,
       });
 
@@ -193,7 +184,7 @@ test('should check second call in sequence', () => {
   tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
 
   tableRenderer.state = {
-    sortingOrder: { 0: 'asc' },
+    sortingOrder: ['asc' as never],
     activeSortColumn: 0,
     collapsedRows: {},
     collapsedCols: {},
