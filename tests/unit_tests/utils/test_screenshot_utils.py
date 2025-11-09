@@ -133,7 +133,7 @@ class TestTakeTiledScreenshot:
         ) as mock_combine:
             mock_combine.return_value = b"combined_screenshot"
 
-            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             # Should return combined screenshot
             assert result == b"combined_screenshot"
@@ -152,7 +152,7 @@ class TestTakeTiledScreenshot:
         element.wait_for.side_effect = Exception("Element not found")
         mock_page.locator.return_value = element
 
-        result = take_tiled_screenshot(mock_page, "nonexistent", viewport_height=2000)
+        result = take_tiled_screenshot(mock_page, "nonexistent", tile_height=2000)
 
         assert result is None
 
@@ -169,7 +169,7 @@ class TestTakeTiledScreenshot:
         ) as mock_combine:
             mock_combine.return_value = b"combined"
 
-            take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+            take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             # Should take 2 screenshots (3500px / 2000px = 1.75, rounded up to 2)
             assert mock_page.screenshot.call_count == 2
@@ -178,7 +178,7 @@ class TestTakeTiledScreenshot:
         """Test that dashboard info is logged."""
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
-                take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+                take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
                 # Should log dashboard dimensions with lazy logging format
                 mock_logger.info.assert_any_call(
@@ -193,7 +193,7 @@ class TestTakeTiledScreenshot:
         mock_page.locator.side_effect = Exception("Unexpected error")
 
         with patch("superset.utils.screenshot_utils.logger") as mock_logger:
-            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             assert result is None
             # The exception object is passed, not the string
@@ -204,7 +204,7 @@ class TestTakeTiledScreenshot:
     def test_screenshot_clip_parameters(self, mock_page):
         """Test that screenshot clipping parameters are correct."""
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
-            take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+            take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             # Check screenshot calls have correct clip parameters
             screenshot_calls = mock_page.screenshot.call_args_list
@@ -212,7 +212,7 @@ class TestTakeTiledScreenshot:
             # Should have 3 tiles (5000px / 2000px = 2.5, rounded up to 3)
             assert len(screenshot_calls) == 3
 
-            # All tiles use absolute coordinates
+            # All tiles use the same x and width
             for _, call in enumerate(screenshot_calls):
                 kwargs = call[1]
                 assert kwargs["type"] == "png"
@@ -220,17 +220,17 @@ class TestTakeTiledScreenshot:
                 assert kwargs["clip"]["width"] == 800
 
             # Check y positions and heights for each tile
-            # Tile 1: y=100 (dashboard_top), height=2000
-            assert screenshot_calls[0][1]["clip"]["y"] == 100
+            # Tile 1: clip_y=0, height=2000 (tile_height < remaining: 5000)
+            assert screenshot_calls[0][1]["clip"]["y"] == 0
             assert screenshot_calls[0][1]["clip"]["height"] == 2000
 
-            # Tile 2: y=2100 (dashboard_top + viewport_height), height=2000
-            assert screenshot_calls[1][1]["clip"]["y"] == 2100
+            # Tile 2: clip_y=0, height=2000 (tile_height < remaining: 3000)
+            assert screenshot_calls[1][1]["clip"]["y"] == 0
             assert screenshot_calls[1][1]["clip"]["height"] == 2000
 
-            # Tile 3: y=4100 (dashboard_top + 2*viewport_height)
-            # height=1000 (remaining)
-            assert screenshot_calls[2][1]["clip"]["y"] == 4100
+            # Tile 3: clip_y=1000 (tile_height - remaining: 2000 - 1000)
+            # height=1000 (remaining content)
+            assert screenshot_calls[2][1]["clip"]["y"] == 1000
             assert screenshot_calls[2][1]["clip"]["height"] == 1000
 
     def test_handles_invalid_tile_dimensions(self, mock_page):
@@ -247,9 +247,7 @@ class TestTakeTiledScreenshot:
                 mock_combine.return_value = b"combined"
 
                 # Use exact viewport height that divides evenly
-                result = take_tiled_screenshot(
-                    mock_page, "dashboard", viewport_height=2000
-                )
+                result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
                 # Should succeed
                 assert result == b"combined"
@@ -279,8 +277,45 @@ class TestTakeTiledScreenshot:
             mock_combine.return_value = b"combined"
 
             # Use viewport height equal to element height
-            result = take_tiled_screenshot(mock_page, "dashboard", viewport_height=2000)
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             # Should succeed with 1 tile
             assert result == b"combined"
             assert mock_page.screenshot.call_count == 1
+
+    def test_scroll_positions_calculated_correctly(self, mock_page):
+        """Test that window scroll positions are calculated correctly."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+            # Check page.evaluate calls for scrolling
+            # First call is for dimensions, subsequent are for scrolling
+            evaluate_calls = mock_page.evaluate.call_args_list
+
+            # Should have 1 dimension query + 3 scroll calls
+            assert len(evaluate_calls) == 4
+
+            # First call is for dimensions (contains querySelector)
+            assert "querySelector" in str(evaluate_calls[0])
+
+            # Subsequent calls are scroll positions
+            # Tile 1: scroll to y=100 (dashboard_top + 0 * tile_height)
+            assert evaluate_calls[1][0][0] == "window.scrollTo(0, 100)"
+
+            # Tile 2: scroll to y=2100 (dashboard_top + 1 * tile_height)
+            assert evaluate_calls[2][0][0] == "window.scrollTo(0, 2100)"
+
+            # Tile 3: scroll to y=4100 (dashboard_top + 2 * tile_height)
+            assert evaluate_calls[3][0][0] == "window.scrollTo(0, 4100)"
+
+    def test_reset_scroll_position(self, mock_page):
+        """Test that scroll position waits are called after each scroll."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+            # Should call wait_for_timeout 3 times (once per tile for scroll settling)
+            assert mock_page.wait_for_timeout.call_count == 3
+
+            # Each wait should be 1000ms
+            for call in mock_page.wait_for_timeout.call_args_list:
+                assert call[0][0] == 1000
