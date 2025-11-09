@@ -100,17 +100,17 @@ def take_tiled_screenshot(
             const el = document.querySelector(".{element_name}");
             const rect = el.getBoundingClientRect();
             return {{
-                height: el.scrollHeight,
-                top: rect.top + window.scrollY,
-                left: rect.left + window.scrollX,
                 width: el.scrollWidth
+                height: el.scrollHeight,
+                left: rect.left + window.scrollX,
+                top: rect.top + window.scrollY,
             }};
         }}""")
 
-        dashboard_height = element_info["height"]
-        dashboard_top = element_info["top"]
-        dashboard_left = element_info["left"]
         dashboard_width = element_info["width"]
+        dashboard_height = element_info["height"]
+        dashboard_left = element_info["left"]
+        dashboard_top = element_info["top"]
 
         logger.info(
             "Dashboard: %sx%spx at (%s, %s)",
@@ -128,55 +128,35 @@ def take_tiled_screenshot(
 
         for i in range(num_tiles):
             # Calculate scroll position to show this tile's content
-            scroll_y = dashboard_top + (i * viewport_height)
-
-            # Scroll the window to the desired position
-            page.evaluate(f"window.scrollTo(0, {scroll_y})")
-            logger.debug(
-                "Scrolled window to %s for tile %s/%s", scroll_y, i + 1, num_tiles
-            )
-
-            # Wait for scroll to settle and content to load
-            page.wait_for_timeout(2000)  # 2 second wait per tile
-
-            # Get the current element position after scroll
-            current_element_box = page.evaluate(f"""() => {{
-                const el = document.querySelector(".{element_name}");
-                const rect = el.getBoundingClientRect();
-                return {{
-                    x: rect.left,
-                    y: rect.top,
-                    width: rect.width,
-                    height: rect.height
-                }};
-            }}""")
+            y = dashboard_top + (i * viewport_height)
+            x = dashboard_left
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * viewport_height
             remaining_content = dashboard_height - tile_start_in_element
-            tile_content_height = min(viewport_height, remaining_content)
-
-            # Determine clip height (use visible element height in viewport)
-            clip_height = min(tile_content_height, current_element_box["height"])
+            clip_height = min(viewport_height, remaining_content)
 
             # Skip tile if dimensions are invalid (width or height <= 0)
             # This can happen if element is completely scrolled out of viewport
             if clip_height <= 0:
                 logger.warning(
                     "Skipping tile %s/%s due to invalid clip dimensions: "
-                    "width=%s, height=%s (element may be scrolled out of viewport)",
+                    "x=%s, y=%s, width=%s, height=%s "
+                    "(element may be scrolled out of viewport)",
                     i + 1,
                     num_tiles,
-                    current_element_box["width"],
+                    x,
+                    y,
+                    dashboard_width,
                     clip_height,
                 )
                 continue
 
             # Clip to capture only the current tile portion of the element
             clip = {
-                "x": current_element_box["x"],
-                "y": current_element_box["y"],
-                "width": current_element_box["width"],
+                "x": x,
+                "y": y,
+                "width": dashboard_width,
                 "height": clip_height,
             }
 
@@ -189,9 +169,6 @@ def take_tiled_screenshot(
         # Combine all tiles
         logger.info("Combining screenshot tiles...")
         combined_screenshot = combine_screenshot_tiles(screenshot_tiles)
-
-        # Reset window scroll position
-        page.evaluate("window.scrollTo(0, 0)")
 
         return combined_screenshot
 
