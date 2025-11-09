@@ -467,12 +467,10 @@ export class TableRenderer extends Component {
       newSortingOrder[columnIndex] = newDirection;
 
       const cacheKey = `${columnIndex}-${newDirection}`;
+      let newRowKeys;
       if (this.sortCache.has(cacheKey)) {
         const cachedRowKeys = this.sortCache.get(cacheKey);
-        this.cachedBasePivotSettings = {
-          ...this.cachedBasePivotSettings,
-          rowKeys: cachedRowKeys,
-        };
+        newRowKeys = cachedRowKeys;
       } else {
         const groups = this.calculateGroups(
           pivotData,
@@ -486,11 +484,12 @@ export class TableRenderer extends Component {
           maxRowIndex,
         );
         this.sortCache.set(cacheKey, sortedRowKeys);
-        this.cachedBasePivotSettings = {
-          ...this.cachedBasePivotSettings,
-          rowKeys: sortedRowKeys,
-        };
+        newRowKeys = sortedRowKeys;
       }
+      this.cachedBasePivotSettings = {
+        ...this.cachedBasePivotSettings,
+        rowKeys: newRowKeys,
+      };
 
       return {
         sortingOrder: newSortingOrder,
@@ -522,7 +521,6 @@ export class TableRenderer extends Component {
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
       dateFormatters,
-      sortingOrder = this.state.sortingOrder,
     } = this.props.tableOptions;
 
     const spaceCell =
