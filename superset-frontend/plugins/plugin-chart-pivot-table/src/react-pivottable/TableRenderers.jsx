@@ -457,7 +457,7 @@ export class TableRenderer extends Component {
     this.setState(state => {
       const { sortingOrder, activeSortColumn } = state;
 
-      let newSortingOrder = {};
+      let newSortingOrder = [];
       let newDirection = 'asc';
 
       if (activeSortColumn === columnIndex) {
