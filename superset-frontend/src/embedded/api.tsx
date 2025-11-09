@@ -20,6 +20,8 @@ import { DataMaskStateWithId } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
+import { DashboardChartStates } from '../dashboard/types/chartState';
+import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 
 const bootstrapData = getBootstrapData();
 
@@ -33,6 +35,7 @@ type EmbeddedSupersetApi = {
   getDashboardPermalink: ({ anchor }: { anchor: string }) => Promise<string>;
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
+  getChartStates: () => DashboardChartStates;
 };
 
 const getScrollSize = (): Size => ({
@@ -46,18 +49,27 @@ const getDashboardPermalink = async ({
   anchor: string;
 }): Promise<string> => {
   const state = store?.getState();
-  const { dashboardId, dataMask, activeTabs } = {
+  const { dashboardId, dataMask, activeTabs, chartStates, sliceEntities } = {
     dashboardId:
       state?.dashboardInfo?.id || bootstrapData?.embedded!.dashboard_id,
     dataMask: state?.dataMask,
     activeTabs: state.dashboardState?.activeTabs,
+    chartStates: state.dashboardState?.chartStates,
+    sliceEntities: state?.sliceEntities?.slices,
   };
+
+  const includeChartState =
+    hasStatefulCharts(sliceEntities) &&
+    chartStates &&
+    Object.keys(chartStates).length > 0;
 
   return getDashboardPermalinkUtil({
     dashboardId,
     dataMask,
     activeTabs,
     anchor,
+    chartStates: includeChartState ? chartStates : undefined,
+    includeChartState,
   });
 };
 
@@ -65,9 +77,13 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const getChartStates = () =>
+  store?.getState()?.dashboardState?.chartStates || {};
+
 export const embeddedApi: EmbeddedSupersetApi = {
   getScrollSize,
   getDashboardPermalink,
   getActiveTabs,
   getDataMask,
+  getChartStates,
 };

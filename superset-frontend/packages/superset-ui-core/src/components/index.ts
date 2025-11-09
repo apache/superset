@@ -28,7 +28,6 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from './Alert';
 export { CertifiedBadge } from './CertifiedBadge';
 export * from './Icons';
 export * from './Timer';
@@ -189,3 +188,4 @@ export {
   type CodeEditorMode,
   type CodeEditorTheme,
 } from './CodeEditor';
+export { ActionButton, type ActionProps } from './ActionButton';

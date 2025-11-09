@@ -74,6 +74,8 @@ def run_server(
 
     configure_logging(debug)
 
+    # DO NOT IMPORT TOOLS HERE!! IMPORT THEM IN app.py!!!!!
+
     if use_factory_config:
         # Use factory configuration for customization
         logging.info("Creating MCP app from factory configuration...")

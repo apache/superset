@@ -203,9 +203,9 @@ describe('RoleListEditModal', () => {
     const usersTab = screen.getByRole('tab', { name: 'Users' });
     fireEvent.click(usersTab);
 
-    expect(screen.getByText('First Name')).toBeInTheDocument();
-    expect(screen.getByText('Last Name')).toBeInTheDocument();
-    expect(screen.getByText('User Name')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
+    expect(screen.getByTitle('First Name')).toBeInTheDocument();
+    expect(screen.getByTitle('Last Name')).toBeInTheDocument();
+    expect(screen.getByTitle('User Name')).toBeInTheDocument();
+    expect(screen.getByTitle('Email')).toBeInTheDocument();
   });
 });

@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getExtensionsRegistry,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -97,7 +93,7 @@ const Actions = styled.div`
   }
 `;
 
-function BooleanDisplay({ value }: { value: Boolean }) {
+function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
     <Icons.CheckOutlined iconSize="s" />
   ) : (
