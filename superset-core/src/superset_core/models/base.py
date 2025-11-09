@@ -18,6 +18,7 @@
 """Core model base classes."""
 
 from typing import Any
+from uuid import UUID
 
 from flask_appbuilder import Model
 from sqlalchemy.orm import Mapped
@@ -73,6 +74,34 @@ class Dataset(CoreModel):
 
     __abstract__ = True
 
+    id = Mapped[int]
+    uuid = Mapped[UUID | None]
+    table_name = Mapped[str | None]
+    main_dttm_col = Mapped[str | None]
+    database_id = Mapped[int | None]
+    schema = Mapped[str | None]
+    catalog = Mapped[str | None]
+    sql = Mapped[str | None]  # For virtual datasets
+    description = Mapped[str | None]
+    default_endpoint = Mapped[str | None]
+    is_featured = Mapped[bool]
+    filter_select_enabled = Mapped[bool]
+    offset = Mapped[int]
+    cache_timeout = Mapped[int | None]
+    params = Mapped[str | None]
+    perm = Mapped[str | None]
+    schema_perm = Mapped[str | None]
+    catalog_perm = Mapped[str | None]
+    is_managed_externally = Mapped[bool]
+    external_url = Mapped[str | None]
+    fetch_values_predicate = Mapped[str | None]
+    is_sqllab_view = Mapped[bool]
+    template_params = Mapped[str | None]
+    extra = Mapped[str | None]  # JSON string
+    normalize_columns = Mapped[bool]
+    always_filter_main_dttm = Mapped[bool]
+    folders = Mapped[str | None]  # JSON string
+
 
 class Chart(CoreModel):
     """
@@ -84,7 +113,8 @@ class Chart(CoreModel):
 
     __abstract__ = True
 
-    # Core chart properties
+    id = Mapped[int]
+    uuid = Mapped[UUID | None]
     slice_name = Mapped[str | None]
     datasource_id = Mapped[int | None]
     datasource_type = Mapped[str | None]
@@ -110,7 +140,8 @@ class Dashboard(CoreModel):
 
     __abstract__ = True
 
-    # Core dashboard properties
+    id = Mapped[int]
+    uuid = Mapped[UUID | None]
     dashboard_title = Mapped[str | None]
     position_json = Mapped[str | None]
     description = Mapped[str | None]
@@ -134,7 +165,7 @@ class User(CoreModel):
 
     __abstract__ = True
 
-    # Core user properties
+    id = Mapped[int]
     username = Mapped[str | None]
     email = Mapped[str | None]
     first_name = Mapped[str | None]
@@ -152,7 +183,7 @@ class Query(CoreModel):
 
     __abstract__ = True
 
-    # Core query properties
+    id = Mapped[int]
     client_id = Mapped[str | None]
     database_id = Mapped[int | None]
     sql = Mapped[str | None]
@@ -172,7 +203,8 @@ class SavedQuery(CoreModel):
 
     __abstract__ = True
 
-    # Core saved query properties
+    id = Mapped[int]
+    uuid = Mapped[UUID | None]
     label = Mapped[str | None]
     sql = Mapped[str | None]
     database_id = Mapped[int | None]
@@ -190,7 +222,7 @@ class Tag(CoreModel):
 
     __abstract__ = True
 
-    # Core tag properties
+    id = Mapped[int]
     name = Mapped[str | None]
     type = Mapped[str | None]
 
@@ -205,7 +237,8 @@ class KeyValue(CoreModel):
 
     __abstract__ = True
 
-    # Core key-value properties
+    id = Mapped[int]
+    uuid = Mapped[UUID | None]
     resource = Mapped[str | None]
     value = Mapped[str | None]  # Encoded value
     expires_on = Mapped[Any | None]  # datetime or None

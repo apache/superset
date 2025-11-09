@@ -31,7 +31,17 @@ Usage:
 """
 
 from superset_core.dao.types import BaseDAO
-from superset_core.models.base import CoreModel, Database, Dataset
+from superset_core.models.base import (
+    Chart,
+    Dashboard,
+    Database,
+    Dataset,
+    KeyValue,
+    Query,
+    SavedQuery,
+    Tag,
+    User,
+)
 
 
 class DatasetDAO(BaseDAO[Dataset]):
@@ -64,7 +74,7 @@ class DatabaseDAO(BaseDAO[Database]):
     uuid_column_name = "uuid"
 
 
-class ChartDAO(BaseDAO[CoreModel]):
+class ChartDAO(BaseDAO[Chart]):
     """
     Abstract Chart DAO interface.
 
@@ -79,7 +89,7 @@ class ChartDAO(BaseDAO[CoreModel]):
     uuid_column_name = "uuid"
 
 
-class DashboardDAO(BaseDAO[CoreModel]):
+class DashboardDAO(BaseDAO[Dashboard]):
     """
     Abstract Dashboard DAO interface.
 
@@ -94,7 +104,7 @@ class DashboardDAO(BaseDAO[CoreModel]):
     uuid_column_name = "uuid"
 
 
-class UserDAO(BaseDAO[CoreModel]):
+class UserDAO(BaseDAO[User]):
     """
     Abstract User DAO interface.
 
@@ -108,7 +118,7 @@ class UserDAO(BaseDAO[CoreModel]):
     id_column_name = "id"
 
 
-class QueryDAO(BaseDAO[CoreModel]):
+class QueryDAO(BaseDAO[Query]):
     """
     Abstract Query DAO interface.
 
@@ -122,7 +132,7 @@ class QueryDAO(BaseDAO[CoreModel]):
     id_column_name = "id"
 
 
-class SavedQueryDAO(BaseDAO[CoreModel]):
+class SavedQueryDAO(BaseDAO[SavedQuery]):
     """
     Abstract SavedQuery DAO interface.
 
@@ -136,7 +146,7 @@ class SavedQueryDAO(BaseDAO[CoreModel]):
     id_column_name = "id"
 
 
-class TagDAO(BaseDAO[CoreModel]):
+class TagDAO(BaseDAO[Tag]):
     """
     Abstract Tag DAO interface.
 
@@ -150,7 +160,7 @@ class TagDAO(BaseDAO[CoreModel]):
     id_column_name = "id"
 
 
-class KeyValueDAO(BaseDAO[CoreModel]):
+class KeyValueDAO(BaseDAO[KeyValue]):
     """
     Abstract KeyValue DAO interface.
 

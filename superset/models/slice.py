@@ -38,6 +38,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
+from superset_core.models.base import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -65,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    Model, AuditMixinNullable, ImportExportMixin
+    CoreChart, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
 

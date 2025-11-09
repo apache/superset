@@ -90,31 +90,31 @@ Backend APIs follow a similar pattern, providing access to Superset's models, se
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
 ``` python
-from superset_core.api import rest_api, models, query
+from superset_core.api.models import Database, get_session
+from superset_core.api.daos import DatabaseDAO
+from superset_core.api.rest_api import add_extension_api
 from .api import DatasetReferencesAPI
 
 # Register a new extension REST API
-rest_api.add_extension_api(DatasetReferencesAPI)
+add_extension_api(DatasetReferencesAPI)
 
 # Access Superset models with simple queries that filter out entities that
 # the user doesn't have access to
-databases = models.get_databases(id=database_id)
-if not databases:
+database = DatabaseDAO.find_by_id(database_id)
+if not database:
     return self.response_404()
-
-database = databases[0]
 
 # Perform complex queries using SQLAlchemy BaseQuery, also filtering
 # out inaccessible entities
-session = models.get_session()
-db_model = models.get_database_model())
-database_query = session.query(db_model.database_name.ilike("%abc%")
-databases_containing_abc = models.get_databases(query)
+session = get_session()
+databases_query = session.query(Database).filter(Database.database_name.ilike("%abc%"))
+databases_containing_abc = DatabaseDAO.find_all()  # Use DAO for security-aware queries
 
 # Bypass security model for highly custom use cases
-session = models.get_session()
-db_model = models.get_database_model())
-all_databases_containg_abc = session.query(db_model.database_name.ilike("%abc%").all()
+session = get_session()
+all_databases_containing_abc = session.query(Database).filter(
+    Database.database_name.ilike("%abc%")
+).all()
 ```
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.
