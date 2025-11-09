@@ -148,7 +148,7 @@ def take_tiled_screenshot(
 
             # Skip tile if dimensions are invalid (width or height <= 0)
             # This can happen if element is completely scrolled out of viewport
-            if clip_height <= 0:
+            if clip_height <= 0 or clip_y < 0:
                 logger.warning(
                     "Skipping tile %s/%s due to invalid clip dimensions: "
                     "x=%s, y=%s, width=%s, height=%s "
