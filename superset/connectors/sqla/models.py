@@ -1616,8 +1616,9 @@ class SqlaTable(
         This overrides ExploreMixin.query() to add SqlaTable-specific behavior
         for handling column_order from extras.
         """
-        # Get the base result from parent
-        result = super().query(query_obj)
+        # Get the base result from ExploreMixin
+        # (explicitly, not super() which would hit BaseDatasource first)
+        result = ExploreMixin.query(self, query_obj)
 
         # Apply SqlaTable-specific column ordering
         extras = query_obj.get("extras", {})

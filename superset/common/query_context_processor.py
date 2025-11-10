@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
+from typing import Any, cast, ClassVar, TYPE_CHECKING
 
 import pandas as pd
 from flask import current_app
@@ -38,7 +38,7 @@ from superset.exceptions import (
     SupersetException,
 )
 from superset.extensions import cache_manager, security_manager
-from superset.models.helpers import QueryResult
+from superset.models.helpers import CachedTimeOffset, QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -61,12 +61,6 @@ if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
 
 logger = logging.getLogger(__name__)
-
-
-class CachedTimeOffset(TypedDict):
-    df: pd.DataFrame
-    queries: list[str]
-    cache_keys: list[str | None]
 
 
 class QueryContextProcessor:
