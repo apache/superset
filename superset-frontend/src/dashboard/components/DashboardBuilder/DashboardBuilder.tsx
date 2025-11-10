@@ -570,7 +570,9 @@ const DashboardBuilder = () => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      setCurrentFilterBarWidth(filterBarWidth);
+      if (filterBarWidth !== currentFilterBarWidth) {
+        setCurrentFilterBarWidth(filterBarWidth);
+      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -603,31 +605,29 @@ const DashboardBuilder = () => {
     ],
   );
 
+  const isVerticalFilterBarVisible =
+    showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
+  const headerFilterBarWidth = isVerticalFilterBarVisible
+    ? currentFilterBarWidth
+    : 0;
+
   return (
     <DashboardWrapper>
-      {showFilterBar &&
-        filterBarOrientation === FilterBarOrientation.Vertical && (
-          <>
-            <ResizableSidebar
-              id={`dashboard:${dashboardId}`}
-              enable={dashboardFiltersOpen}
-              minWidth={OPEN_FILTER_BAR_WIDTH}
-              maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
-              initialWidth={OPEN_FILTER_BAR_WIDTH}
-            >
-              {renderChild}
-            </ResizableSidebar>
-          </>
-        )}
+      {isVerticalFilterBarVisible && (
+        <ResizableSidebar
+          id={`dashboard:${dashboardId}`}
+          enable={dashboardFiltersOpen}
+          minWidth={OPEN_FILTER_BAR_WIDTH}
+          maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
+          initialWidth={OPEN_FILTER_BAR_WIDTH}
+        >
+          {renderChild}
+        </ResizableSidebar>
+      )}
       <StyledHeader
         data-test="dashboard-header-wrapper"
         ref={headerRef}
-        filterBarWidth={
-          showFilterBar &&
-          filterBarOrientation === FilterBarOrientation.Vertical
-            ? currentFilterBarWidth
-            : 0
-        }
+        filterBarWidth={headerFilterBarWidth}
       >
         {/* @ts-ignore */}
         <Droppable
