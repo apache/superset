@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
@@ -109,13 +109,15 @@ function cellBackground({
   value,
   colorPositiveNegative = false,
   isDarkTheme = false,
+  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
   isDarkTheme: boolean;
+  theme: any;
 }) {
   if (!colorPositiveNegative) {
-    return isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'; // transparent or neutral
+    return 'transparent'; // Use transparent background when colorPositiveNegative is false
   }
 
   const r = value < 0 ? 150 : 0;
@@ -150,6 +152,7 @@ export const NumericCellRenderer = (
   } = params;
 
   const isDarkTheme = useIsDark();
+  const theme = !colorPositiveNegative ? null : useTheme();
 
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
@@ -195,6 +198,7 @@ export const NumericCellRenderer = (
     value: value as number,
     colorPositiveNegative,
     isDarkTheme,
+    theme,
   });
 
   return (

@@ -48,11 +48,7 @@ class Db2EngineSpec(BaseEngineSpec):
         " - MINUTE({col}) MINUTES"
         " - SECOND({col}) SECONDS"
         " - MICROSECOND({col}) MICROSECONDS ",
-        TimeGrain.DAY: "CAST({col} as TIMESTAMP)"
-        " - HOUR({col}) HOURS"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
+        TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
         TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
         TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"

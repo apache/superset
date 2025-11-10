@@ -22,14 +22,8 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import {
-  styled,
-  css,
-  t,
-  QueryState,
-  SupersetTheme,
-  useTheme,
-} from '@superset-ui/core';
+import { t, QueryState } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,

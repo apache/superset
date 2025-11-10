@@ -183,10 +183,23 @@ test('renders correct column headers', async () => {
   setupTest();
 
   await waitFor(() => {
-    expect(screen.getByText('Chart')).toBeInTheDocument();
-    expect(screen.getByText('Chart owners')).toBeInTheDocument();
-    expect(screen.getByText('Last modified')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard usage')).toBeInTheDocument();
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'));
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'));
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'));
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'));
+
+    expect(chartHeader).toBeInTheDocument();
+    expect(ownersHeader).toBeInTheDocument();
+    expect(lastModifiedHeader).toBeInTheDocument();
+    expect(dashboardHeader).toBeInTheDocument();
   });
 });
 
@@ -211,16 +224,29 @@ test('displays data in correct order (last modified desc)', async () => {
 
 test('enables sorting for Chart and Last modified columns', async () => {
   setupTest();
-
   await waitFor(() => {
-    const chartHeader = screen.getByText('Chart').closest('th');
-    const lastModifiedHeader = screen.getByText('Last modified').closest('th');
-    const ownersHeader = screen.getByText('Chart owners').closest('th');
-    const dashboardHeader = screen.getByText('Dashboard usage').closest('th');
+    const chartHeader = screen
+      .getAllByText('Chart')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const lastModifiedHeader = screen
+      .getAllByText('Last modified')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const ownersHeader = screen
+      .getAllByText('Chart owners')
+      .find(el => el.closest('th'))
+      ?.closest('th');
+
+    const dashboardHeader = screen
+      .getAllByText('Dashboard usage')
+      .find(el => el.closest('th'))
+      ?.closest('th');
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-
     expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });

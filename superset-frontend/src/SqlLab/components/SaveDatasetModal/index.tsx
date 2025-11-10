@@ -31,7 +31,6 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import {
-  styled,
   t,
   SupersetClient,
   JsonResponse,
@@ -43,6 +42,7 @@ import {
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
 import rison from 'rison';
@@ -218,7 +218,7 @@ export const SaveDatasetModal = ({
   };
   const formDataWithDefaults = {
     ...EXPLORE_CHART_DEFAULT,
-    ...(formData || {}),
+    ...formData,
   };
   const handleOverwriteDataset = async () => {
     // if user wants to overwrite a dataset we need to prompt them
