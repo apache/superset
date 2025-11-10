@@ -210,7 +210,8 @@ export function AsyncAceEditor(
 
         // Move autocomplete popup to the nearest parent container with data-ace-container
         useEffect(() => {
-          const editorInstance = (ref as React.RefObject<AceEditor>)?.current?.editor;
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+            ?.editor;
           if (!editorInstance) return;
 
           const editorContainer = editorInstance.container;
@@ -227,8 +228,9 @@ export function AsyncAceEditor(
               !document.body.contains(cachedAutocompletePopup)
             ) {
               cachedAutocompletePopup =
-                editorContainer.querySelector<HTMLElement>('.ace_autocomplete') ??
-                document.querySelector<HTMLElement>('.ace_autocomplete');
+                editorContainer.querySelector<HTMLElement>(
+                  '.ace_autocomplete',
+                ) ?? document.querySelector<HTMLElement>('.ace_autocomplete');
             }
 
             // Revalidate cached container if missing or detached
