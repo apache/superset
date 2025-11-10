@@ -42,13 +42,11 @@ from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion, TimeGrain
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
-    InvalidPostProcessingError,
     QueryObjectValidationError,
     SupersetException,
 )
 from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.models.sql_lab import Query
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -266,48 +264,14 @@ class QueryContextProcessor:
         return cache_key
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        """Returns a pandas dataframe based on the query object"""
-        query_context = self._query_context
-        # Here, we assume that all the queries will use the same datasource, which is
-        # a valid assumption for current setting. In the long term, we may
-        # support multiple queries from different data sources.
+        """
+        Returns a pandas dataframe based on the query object.
 
-        query = ""
-        if isinstance(query_context.datasource, Query):
-            # todo(hugh): add logic to manage all sip68 models here
-            result = query_context.datasource.exc_query(query_object.to_dict())
-        else:
-            result = query_context.datasource.query(query_object.to_dict())
-            query = result.query + ";\n\n"
-
-        df = result.df
-        # Transform the timestamp we received from database to pandas supported
-        # datetime format. If no python_date_format is specified, the pattern will
-        # be considered as the default ISO date format
-        # If the datetime format is unix, the parse will use the corresponding
-        # parsing logic
-        if not df.empty:
-            df = self.normalize_df(df, query_object)
-
-            if query_object.time_offsets:
-                time_offsets = self.processing_time_offsets(df, query_object)
-                df = time_offsets["df"]
-                queries = time_offsets["queries"]
-
-                query += ";\n\n".join(queries)
-                query += ";\n\n"
-
-            # Re-raising QueryObjectValidationError
-            try:
-                df = query_object.exec_post_processing(df)
-            except InvalidPostProcessingError as ex:
-                raise QueryObjectValidationError(ex.message) from ex
-
-        result.df = df
-        result.query = query
-        result.from_dttm = query_object.from_dttm
-        result.to_dttm = query_object.to_dttm
-        return result
+        This method delegates to the datasource's get_query_result method,
+        which handles query execution, normalization, time offsets, and
+        post-processing.
+        """
+        return self._qc_datasource.get_query_result(query_object)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         # todo: should support "python_date_format" and "get_column" in each datasource
@@ -683,10 +647,8 @@ class QueryContextProcessor:
                 query_object_clone_dct["row_limit"] = current_app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
-            if isinstance(self._qc_datasource, Query):
-                result = self._qc_datasource.exc_query(query_object_clone_dct)
-            else:
-                result = self._qc_datasource.query(query_object_clone_dct)
+            # Call the unified query method on the datasource
+            result = self._qc_datasource.query(query_object_clone_dct)
 
             queries.append(result.query)
             cache_keys.append(None)
