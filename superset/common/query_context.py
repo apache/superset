@@ -24,7 +24,6 @@ import pandas as pd
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
-from superset.models.helpers import CachedTimeOffset
 from superset.models.slice import Slice
 from superset.utils.core import GenericDataType
 
@@ -125,36 +124,6 @@ class QueryContext:
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         return self._processor.get_query_result(query_object)
-
-    def processing_time_offsets(
-        self,
-        df: pd.DataFrame,
-        query_object: QueryObject,
-    ) -> CachedTimeOffset:
-        """
-        Process time offsets by delegating to datasource with caching support.
-        """
-
-        # Create cache key function that uses the processor's method
-        def cache_key_fn(
-            qo: QueryObject, time_offset: str, time_grain: Any
-        ) -> str | None:
-            return self._processor.query_cache_key(
-                qo, time_offset=time_offset, time_grain=time_grain
-            )
-
-        # Create cache timeout function
-        def cache_timeout_fn() -> int:
-            return self._processor.get_cache_timeout()
-
-        # Call datasource's processing_time_offsets with caching support
-        return self.datasource.processing_time_offsets(
-            df,
-            query_object,
-            cache_key_fn=cache_key_fn,
-            cache_timeout_fn=cache_timeout_fn,
-            force_cache=self.force,
-        )
 
     def raise_for_access(self) -> None:
         self._processor.raise_for_access()
