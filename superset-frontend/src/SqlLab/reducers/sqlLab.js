@@ -222,10 +222,10 @@ export default function sqlLabReducer(state = {}, action) {
       }
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at, Boolean(action.prepend));
-      if (at.expanded) {
-        newState.activeSouthPaneTab = at.id;
-      }
+      let newState = {
+        ...addToArr(state, 'tables', at, Boolean(action.prepend)),
+        ...(at.expanded && { activeSouthPaneTab: at.id }),
+      };
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, {
           dataPreviewQueryId: action.query.id,
