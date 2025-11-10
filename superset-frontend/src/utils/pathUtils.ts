@@ -26,3 +26,11 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
 export function ensureAppRoot(path: string): string {
   return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
 }
+
+/**
+ * Takes a string path to a resource and remove the applicationRoot if it is not empty
+ * @param path A string path to a resource
+ */
+export function stripAppRoot(path: string): string {
+  return `${path.startsWith(applicationRoot()) ? path.slice(applicationRoot().length) : path}`;
+}
