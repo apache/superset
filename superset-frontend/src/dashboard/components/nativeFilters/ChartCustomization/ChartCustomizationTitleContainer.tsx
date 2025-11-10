@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, forwardRef, MouseEvent } from 'react';
-import { styled, t, css, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { Icons, Flex } from '@superset-ui/core/components';
 import { ChartCustomizationItem } from './types';
 

@@ -17,7 +17,8 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import { reactify, styled, css, useTheme } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import Component from './Calendar';
 

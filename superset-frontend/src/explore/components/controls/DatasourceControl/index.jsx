@@ -20,14 +20,8 @@
 
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import {
-  css,
-  DatasourceType,
-  SupersetClient,
-  styled,
-  t,
-  withTheme,
-} from '@superset-ui/core';
+import { DatasourceType, SupersetClient, t } from '@superset-ui/core';
+import { css, styled, withTheme } from '@apache-superset/core/ui';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -316,7 +310,6 @@ class DatasourceControl extends PureComponent {
       datasourceKey: `${datasource.id}__${datasource.type}`,
       sql: datasource.sql,
     };
-
     const defaultDatasourceMenuItems = [];
     if (this.props.isEditable && !isMissingDatasource) {
       defaultDatasourceMenuItems.push({
@@ -333,7 +326,7 @@ class DatasourceControl extends PureComponent {
           editText
         ),
         disabled: !allowEdit,
-        ...{ 'data-test': 'edit-dataset' },
+        'data-test': 'edit-dataset',
       });
     }
 

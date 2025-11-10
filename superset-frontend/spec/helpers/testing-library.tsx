@@ -28,10 +28,9 @@ import {
 } from '@testing-library/react';
 import {
   ThemeProvider,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme,
   themeObject,
-} from '@superset-ui/core';
+  supersetTheme,
+} from '@apache-superset/core/ui';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';

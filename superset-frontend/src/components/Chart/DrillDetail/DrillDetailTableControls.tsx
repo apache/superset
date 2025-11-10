@@ -21,11 +21,10 @@ import { useCallback, useMemo } from 'react';
 import { Tag } from 'src/components/Tag';
 import {
   BinaryQueryObjectFilterClause,
-  css,
   isAdhocColumn,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -62,7 +61,7 @@ export default function TableControls({
     colName => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
-      setFilters([...Object.values(updatedFilterMap)]);
+      setFilters(Object.values(updatedFilterMap));
     },
     [filterMap, setFilters],
   );
