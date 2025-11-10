@@ -20,7 +20,8 @@ import { createRef, Component } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 import Tabs from '@superset-ui/core/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';

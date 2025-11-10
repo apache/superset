@@ -18,7 +18,8 @@
  */
 import { ReactNode, CSSProperties, PureComponent } from 'react';
 import cx from 'classnames';
-import { addAlpha, css, styled } from '@superset-ui/core';
+import { addAlpha } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 type ShouldFocusContainer = HTMLDivElement & {
   contains: (event_target: EventTarget & HTMLElement) => boolean;

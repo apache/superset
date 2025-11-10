@@ -18,15 +18,8 @@
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
-import {
-  Filter,
-  NativeFilterType,
-  Divider,
-  styled,
-  t,
-  css,
-  useTheme,
-} from '@superset-ui/core';
+import { Filter, NativeFilterType, Divider, t } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { useDispatch } from 'react-redux';
 import { Constants, Form, Icons } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';

@@ -11,6 +11,7 @@
 .nvmrc
 .prettierrc
 .rat-excludes
+.swcrc
 .*log
 .*pyc
 .*lock

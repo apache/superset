@@ -310,11 +310,13 @@ class AbstractEventLogger(ABC):
         """Decorator that uses the function name as the action"""
         return self._wrapper(f)
 
-    def log_this_with_context(self, **kwargs: Any) -> Callable[..., Any]:
+    def log_this_with_context(
+        self, allow_extra_payload: bool = False, **kwargs: Any
+    ) -> Callable[..., Any]:
         """Decorator that can override kwargs of log_context"""
 
         def func(f: Callable[..., Any]) -> Callable[..., Any]:
-            return self._wrapper(f, **kwargs)
+            return self._wrapper(f, allow_extra_payload=allow_extra_payload, **kwargs)
 
         return func
 

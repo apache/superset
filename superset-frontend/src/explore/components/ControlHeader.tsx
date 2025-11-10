@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -167,7 +168,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
               </Tooltip>{' '}
             </span>
           )}
