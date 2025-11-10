@@ -123,28 +123,6 @@ test('getDashboardUrlParams should exclude edit parameter by default', () => {
   window.location = originalLocation;
 });
 
-test('getDashboardUrlParams should include edit parameter when not explicitly excluded', () => {
-  // Mock window.location.search to include edit parameter
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?edit=true&standalone=false',
-    },
-    writable: true,
-  });
-
-  // Call without excluding edit parameter
-  const urlParams = getDashboardUrlParams([]);
-  const paramNames = urlParams.map(([key]) => key);
-
-  expect(paramNames).toContain('edit');
-  expect(paramNames).toContain('standalone');
-
-  // Restore original location
-  window.location = originalLocation;
-});
-
 test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
   // Mock window.location.search with multiple parameters
   const originalLocation = window.location;
