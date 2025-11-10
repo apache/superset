@@ -477,10 +477,20 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         )
 
     if time_shift:
-        time_delta_since = parse_past_timedelta(time_shift, _since)
-        time_delta_until = parse_past_timedelta(time_shift, _until)
-        _since = _since if _since is None else (_since - time_delta_since)
-        _until = _until if _until is None else (_until - time_delta_until)
+        separator = " : "
+        if separator in time_shift:
+            # Date range format: parse as a new time range
+            parts = time_shift.split(separator, 1)
+            if len(parts) != 2:
+                raise ValueError(f"Invalid time_shift format: {time_shift}")
+            since_part, until_part = (part.strip() for part in parts)
+            _since = parse_human_datetime(since_part)
+            _until = parse_human_datetime(until_part)
+        else:
+            time_delta_since = parse_past_timedelta(time_shift, _since)
+            time_delta_until = parse_past_timedelta(time_shift, _until)
+            _since = _since if _since is None else (_since - time_delta_since)
+            _until = _until if _until is None else (_until - time_delta_until)
 
     if instant_time_comparison_range:
         # This is only set using the new time comparison controls

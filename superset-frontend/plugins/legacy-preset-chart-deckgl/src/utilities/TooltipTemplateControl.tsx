@@ -19,7 +19,8 @@
 
 import { useCallback } from 'react';
 import { debounce } from 'lodash';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { InfoTooltip, Constants } from '@superset-ui/core/components';
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { TooltipTemplateEditor } from './TooltipTemplateEditor';

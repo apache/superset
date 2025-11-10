@@ -24,7 +24,7 @@ from flask_babel import _
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
@@ -86,7 +86,15 @@ def _get_query(
     try:
         result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:
+        # Validation errors (missing required fields, invalid config)
+        # No SQL was generated
         result["error"] = err.message
+    except SupersetParseError as err:
+        # Parsing errors (SQL optimization/parsing failed)
+        # SQL was generated but couldn't be optimized - show both
+        if err.error.extra and (sql := err.error.extra.get("sql")) is not None:
+            result["query"] = sql
+        result["error"] = err.error.message
     return result
 
 

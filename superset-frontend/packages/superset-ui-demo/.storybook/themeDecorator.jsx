@@ -1,5 +1,5 @@
 // themeDecorator.js
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
 
 const ThemeDecorator = Story => (
   <ThemeProvider theme={supersetTheme}>

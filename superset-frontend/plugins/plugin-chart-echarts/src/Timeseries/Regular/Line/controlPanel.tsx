@@ -27,7 +27,6 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
@@ -53,7 +52,6 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
 } = DEFAULT_FORM_DATA;
@@ -71,27 +69,6 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        [
-          {
-            name: 'seriesType',
-            config: {
-              type: 'SelectControl',
-              label: t('Series Style'),
-              renderTrigger: true,
-              default: seriesType,
-              choices: [
-                [EchartsTimeseriesSeriesType.Line, t('Line')],
-                [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
-                [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
-                [EchartsTimeseriesSeriesType.Bar, t('Bar')],
-                [EchartsTimeseriesSeriesType.Start, t('Step - start')],
-                [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
-                [EchartsTimeseriesSeriesType.End, t('Step - end')],
-              ],
-              description: t('Series chart type (line, bar etc)'),
-            },
-          },
-        ],
         ...showValueSection,
         [
           {

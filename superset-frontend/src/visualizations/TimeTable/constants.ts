@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 
 export const getAccessibleColorBounds = (theme: SupersetTheme): string[] => [
   theme.colorError, // Red variant for negative/danger

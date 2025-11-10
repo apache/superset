@@ -18,14 +18,13 @@
  */
 import { ReactNode, useMemo } from 'react';
 import {
-  css,
   ColorScheme,
   ColorSchemeGroup,
   t,
-  useTheme,
   getCategoricalSchemeRegistry,
   CategoricalScheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { sortBy } from 'lodash';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';

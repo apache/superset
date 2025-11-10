@@ -30,9 +30,9 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
-  supersetTheme,
   VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 
 describe('ChartPlugin', () => {
   const FakeChart = () => <span>test</span>;

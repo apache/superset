@@ -18,7 +18,7 @@
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
 import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import cx from 'classnames';
 
 interface CardCollectionProps {
