@@ -129,12 +129,11 @@ def handle_query_error(
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     stats_logger = app.config["STATS_LOGGER"]
     query_id = details["kwargs"]["query_id"]
-    logger.error(
-        "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
-    )
     stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
-    logger.error(
-        "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
+    logger.warning(
+        "Query with id `%s` could not be retrieved, sleeping for a sec before retrying",
+        str(query_id),
+        exc_info=True,
     )
 
 

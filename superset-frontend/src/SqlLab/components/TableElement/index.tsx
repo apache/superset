@@ -31,7 +31,8 @@ import {
   type CollapseProps,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 
 import {

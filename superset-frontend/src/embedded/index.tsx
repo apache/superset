@@ -21,12 +21,8 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import {
-  type SupersetThemeConfig,
-  makeApi,
-  t,
-  logging,
-} from '@superset-ui/core';
+import { makeApi, t, logging } from '@superset-ui/core';
+import { type SupersetThemeConfig } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -250,6 +246,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
     Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {

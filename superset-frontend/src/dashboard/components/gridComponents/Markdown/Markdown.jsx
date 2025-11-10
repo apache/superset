@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown, MarkdownEditor } from '@superset-ui/core/components';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
@@ -94,6 +95,10 @@ const MarkdownStyles = styled.div`
       h5,
       h6 {
         font-weight: ${theme.fontWeightNormal};
+      }
+
+      strong {
+        font-weight: 600;
       }
 
       h6 {
