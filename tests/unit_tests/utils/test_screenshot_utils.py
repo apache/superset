@@ -23,6 +23,7 @@ from PIL import Image
 
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
+    SCROLL_SETTLE_TIMEOUT_MS,
     take_tiled_screenshot,
 )
 
@@ -313,9 +314,9 @@ class TestTakeTiledScreenshot:
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
-            # Should call wait_for_timeout 3 times (once per tile for scroll settling)
+            # Should call wait_for_timeout 3 times (once per tile)
             assert mock_page.wait_for_timeout.call_count == 3
 
-            # Each wait should be 1000ms
+            # Each wait should use the scroll settle timeout constant
             for call in mock_page.wait_for_timeout.call_args_list:
-                assert call[0][0] == 1000
+                assert call[0][0] == SCROLL_SETTLE_TIMEOUT_MS

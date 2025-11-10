@@ -25,6 +25,9 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+# Time to wait after scrolling for content to settle and load (in milliseconds)
+SCROLL_SETTLE_TIMEOUT_MS = 1000
+
 if TYPE_CHECKING:
     try:
         from playwright.sync_api import Page
@@ -128,13 +131,14 @@ def take_tiled_screenshot(
 
         for i in range(num_tiles):
             # Calculate scroll position to show this tile's content
-            y = dashboard_top + (i * tile_height)
-            x = dashboard_left
+            scroll_y = dashboard_top + (i * tile_height)
 
-            page.evaluate(f"window.scrollTo(0, {y})")
-            logger.debug("Scrolled window to %s for tile %s/%s", y, i + 1, num_tiles)
+            page.evaluate(f"window.scrollTo(0, {scroll_y})")
+            logger.debug(
+                "Scrolled window to %s for tile %s/%s", scroll_y, i + 1, num_tiles
+            )
             # Wait for scroll to settle and content to load
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
@@ -145,6 +149,7 @@ def take_tiled_screenshot(
                 if tile_height < remaining_content
                 else tile_height - remaining_content
             )
+            clip_x = dashboard_left
 
             # Skip tile if dimensions are invalid (width or height <= 0)
             # This can happen if element is completely scrolled out of viewport
@@ -155,7 +160,7 @@ def take_tiled_screenshot(
                     "(element may be scrolled out of viewport)",
                     i + 1,
                     num_tiles,
-                    x,
+                    clip_x,
                     clip_y,
                     dashboard_width,
                     clip_height,
@@ -164,7 +169,7 @@ def take_tiled_screenshot(
 
             # Clip to capture only the current tile portion of the element
             clip = {
-                "x": x,
+                "x": clip_x,
                 "y": clip_y,
                 "width": dashboard_width,
                 "height": clip_height,
