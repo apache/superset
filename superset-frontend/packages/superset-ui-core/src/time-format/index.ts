@@ -20,6 +20,7 @@
 export { default as TimeFormats, LOCAL_PREFIX } from './TimeFormats';
 export { default as TimeFormatter, PREVIEW_TIME } from './TimeFormatter';
 export { DEFAULT_D3_TIME_FORMAT } from './D3FormatConfig';
+export { DEFAULT_SMART_DATE_FORMAT } from './SmartDateFormatConfig';
 
 export {
   default as getTimeFormatterRegistry,

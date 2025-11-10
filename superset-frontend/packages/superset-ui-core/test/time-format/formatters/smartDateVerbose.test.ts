@@ -21,6 +21,7 @@ import { TimeLocaleDefinition } from 'd3-time-format';
 import {
   TimeFormatter,
   createSmartDateVerboseFormatter,
+  SmartDateFormat,
 } from '@superset-ui/core';
 
 describe('smartDateVerboseFormatter', () => {
@@ -45,6 +46,39 @@ describe('smartDateVerboseFormatter', () => {
     });
   });
   describe('when locale is not default', () => {
+    const formats: SmartDateFormat = {
+      smart_date: {
+        millisecond: '.%Lms',
+        second: ':%Ss',
+        minute: '%H:%M',
+        hour: '%H h',
+        day: '%a %d',
+        week: '%d %b',
+        month: '%B',
+        year: '%Y',
+      },
+      smart_date_verbose: {
+        millisecond: '.%L',
+        second: '%a %d %b, %H:%M:%S',
+        minute: '%a %d %b, %H:%M',
+        hour: '%a %d %b, %Hh',
+        day: '%a %d %b',
+        week: '%a %d %b',
+        month: '%b %Y',
+        year: '%Y',
+      },
+      smart_date_detailed: {
+        millisecond: '%d/%m/%Y %H:%M:%S.%L',
+        second: '%d/%m/%Y %H:%M:%S',
+        minute: '%d/%m/%Y %H:%M',
+        hour: '%d/%m/%Y %H:%M',
+        day: '%d/%m/%Y',
+        week: '%d/%m/%Y',
+        month: '%d/%m/%Y',
+        year: '%Y',
+      },
+    };
+
     const locale: TimeLocaleDefinition = {
       dateTime: '%A, %e de %B de %Y. %X',
       date: '%d/%m/%Y',
@@ -89,7 +123,7 @@ describe('smartDateVerboseFormatter', () => {
         'Dez',
       ],
     };
-    const formatter = createSmartDateVerboseFormatter(locale);
+    const formatter = createSmartDateVerboseFormatter(locale, formats);
 
     it('is a function', () => {
       expect(formatter).toBeInstanceOf(TimeFormatter);
@@ -104,8 +138,8 @@ describe('smartDateVerboseFormatter', () => {
     });
 
     it('shows weekday when any day of the month', () => {
-      expect(formatter(new Date('2020-03-03'))).toBe('Ter Mar 3');
-      expect(formatter(new Date('2020-03-15'))).toBe('Dom Mar 15');
+      expect(formatter(new Date('2020-03-03'))).toBe('Ter 03 Mar');
+      expect(formatter(new Date('2020-03-15'))).toBe('Dom 15 Mar');
     });
   });
 });

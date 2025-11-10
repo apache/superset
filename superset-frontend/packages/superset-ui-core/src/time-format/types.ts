@@ -49,3 +49,20 @@ export const TimeGranularity = {
 type ValueOf<T> = T[keyof T];
 
 export type TimeGranularity = ValueOf<typeof TimeGranularity>;
+
+export type FormatsByStep = Partial<{
+  millisecond: string;
+  second: string;
+  minute: string;
+  hour: string;
+  day: string;
+  week: string;
+  month: string;
+  year: string;
+}>;
+
+export type SmartDateFormat = {
+  smart_date?: FormatsByStep;
+  smart_date_detailed?: FormatsByStep;
+  smart_date_verbose?: FormatsByStep;
+};

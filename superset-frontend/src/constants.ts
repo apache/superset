@@ -20,6 +20,7 @@ import {
   t,
   DEFAULT_D3_FORMAT,
   DEFAULT_D3_TIME_FORMAT,
+  DEFAULT_SMART_DATE_FORMAT,
 } from '@superset-ui/core';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
@@ -189,6 +190,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   d3_format: DEFAULT_D3_FORMAT,
   d3_time_format: DEFAULT_D3_TIME_FORMAT,
+  smart_date_format: { en: DEFAULT_SMART_DATE_FORMAT },
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {

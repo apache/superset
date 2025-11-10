@@ -24,17 +24,7 @@ import {
 } from 'd3-time-format';
 import { utcUtils, localTimeUtils } from '../utils/d3Time';
 import TimeFormatter from '../TimeFormatter';
-
-type FormatsByStep = Partial<{
-  millisecond: string;
-  second: string;
-  minute: string;
-  hour: string;
-  day: string;
-  week: string;
-  month: string;
-  year: string;
-}>;
+import { FormatsByStep } from '../types';
 
 export default function createMultiFormatter({
   id,

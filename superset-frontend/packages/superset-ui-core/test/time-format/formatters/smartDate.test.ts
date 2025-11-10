@@ -18,7 +18,11 @@
  */
 
 import { TimeLocaleDefinition } from 'd3-time-format';
-import { TimeFormatter, createSmartDateFormatter } from '@superset-ui/core';
+import {
+  TimeFormatter,
+  createSmartDateFormatter,
+  SmartDateFormat,
+} from '@superset-ui/core';
 
 describe('createSmartDateFormatter', () => {
   describe('when locale is default', () => {
@@ -45,6 +49,39 @@ describe('createSmartDateFormatter', () => {
     });
   });
   describe('when different locale is not default', () => {
+    const formats: SmartDateFormat = {
+      smart_date: {
+        millisecond: '.%Lms',
+        second: ':%Ss',
+        minute: '%H:%M',
+        hour: '%H h',
+        day: '%a %d',
+        week: '%d %b',
+        month: '%B',
+        year: '%Y',
+      },
+      smart_date_verbose: {
+        millisecond: '.%L',
+        second: '%a %d %b, %H:%M:%S',
+        minute: '%a %d %b, %H:%M',
+        hour: '%a %d %b, %Hh',
+        day: '%a %d %b',
+        week: '%a %d %b',
+        month: '%B %Y',
+        year: '%Y',
+      },
+      smart_date_detailed: {
+        millisecond: '%d/%m/%Y %H:%M:%S.%L',
+        second: '%d/%m/%Y %H:%M:%S',
+        minute: '%d/%m/%Y %H:%M',
+        hour: '%d/%m/%Y %H:%M',
+        day: '%d/%m/%Y',
+        week: '%d/%m/%Y',
+        month: '%d/%m/%Y',
+        year: '%Y',
+      },
+    };
+
     const locale: TimeLocaleDefinition = {
       dateTime: '%A, %e de %B de %Y. %X',
       date: '%d/%m/%Y',
@@ -89,7 +126,7 @@ describe('createSmartDateFormatter', () => {
         'Dez',
       ],
     };
-    const smartDateFormatter = createSmartDateFormatter(locale);
+    const smartDateFormatter = createSmartDateFormatter(locale, formats);
 
     it('is a function', () => {
       expect(smartDateFormatter).toBeInstanceOf(TimeFormatter);
@@ -104,7 +141,7 @@ describe('createSmartDateFormatter', () => {
     });
 
     it('does not show day of week when it is Sunday', () => {
-      expect(smartDateFormatter(new Date('2023-10-15'))).toBe('Out 15');
+      expect(smartDateFormatter(new Date('2023-10-15'))).toBe('15 Out');
     });
 
     it('shows weekday when it is not Sunday (and no ms/sec/min/hr)', () => {

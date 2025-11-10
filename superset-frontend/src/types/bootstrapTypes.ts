@@ -5,6 +5,7 @@ import {
   LanguagePack,
   Locale,
   SequentialSchemeConfig,
+  SmartDateFormat,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -154,6 +155,9 @@ export interface CommonBootstrapData {
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
+  smart_date_format: {
+    [x: string]: SmartDateFormat;
+  };
 }
 
 export interface BootstrapData {

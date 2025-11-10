@@ -29,6 +29,7 @@ import {
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
+  SmartDateFormat,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -36,6 +37,7 @@ import { TimeLocaleDefinition } from 'd3-time-format';
 export default function setupFormatters(
   d3NumberFormat: Partial<FormatLocaleDefinition>,
   d3TimeFormat: Partial<TimeLocaleDefinition>,
+  smartDateFormat?: SmartDateFormat,
 ) {
   getNumberFormatterRegistry()
     .setD3Format(d3NumberFormat)
@@ -91,15 +93,21 @@ export default function setupFormatters(
     .setD3Format(d3TimeFormat)
     .registerValue(
       SMART_DATE_ID,
-      createSmartDateFormatter(timeFormatterRegistry.d3Format),
+      createSmartDateFormatter(timeFormatterRegistry.d3Format, smartDateFormat),
     )
     .registerValue(
       SMART_DATE_VERBOSE_ID,
-      createSmartDateVerboseFormatter(timeFormatterRegistry.d3Format),
+      createSmartDateVerboseFormatter(
+        timeFormatterRegistry.d3Format,
+        smartDateFormat,
+      ),
     )
     .registerValue(
       SMART_DATE_DETAILED_ID,
-      createSmartDateDetailedFormatter(timeFormatterRegistry.d3Format),
+      createSmartDateDetailedFormatter(
+        timeFormatterRegistry.d3Format,
+        smartDateFormat,
+      ),
     )
     .setDefaultKey(SMART_DATE_ID);
 }

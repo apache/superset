@@ -19,23 +19,21 @@
 
 import { TimeLocaleDefinition } from 'd3-time-format';
 import createMultiFormatter from '../factories/createMultiFormatter';
+import { SmartDateFormat } from '../types';
+import { DEFAULT_SMART_DATE_FORMAT } from '../SmartDateFormatConfig';
 
 export const SMART_DATE_ID = 'smart_date';
 
-export function createSmartDateFormatter(locale?: TimeLocaleDefinition) {
+export function createSmartDateFormatter(
+  locale?: TimeLocaleDefinition,
+  formats?: SmartDateFormat,
+) {
   return createMultiFormatter({
     id: SMART_DATE_ID,
     label: 'Adaptative Formatting',
-    formats: {
-      millisecond: '.%Lms',
-      second: ':%Ss',
-      minute: '%I:%M',
-      hour: '%I %p',
-      day: '%a %d',
-      week: '%b %d',
-      month: '%B',
-      year: '%Y',
-    },
+    formats: formats?.[SMART_DATE_ID]
+      ? formats?.[SMART_DATE_ID]
+      : DEFAULT_SMART_DATE_FORMAT[SMART_DATE_ID],
     locale,
   });
 }

@@ -40,11 +40,12 @@ if (process.env.WEBPACK_MODE === 'development') {
 
 // eslint-disable-next-line import/no-mutable-exports
 const bootstrapData = getBootstrapData();
+const { locale } = bootstrapData.common;
 
 // Configure translation
 if (typeof window !== 'undefined') {
   configure({ languagePack: bootstrapData.common.language_pack });
-  dayjs.locale(bootstrapData.common.locale);
+  dayjs.locale(locale);
 } else {
   configure();
 }
@@ -64,6 +65,7 @@ setupColors(
 setupFormatters(
   bootstrapData.common.d3_format,
   bootstrapData.common.d3_time_format,
+  bootstrapData.common.smart_date_format[locale],
 );
 
 setupDashboardComponents();

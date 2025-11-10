@@ -434,6 +434,47 @@ D3_FORMAT: D3Format = {}
 #                     "May", "Jun", "Jul", "Aug",
 #                     "Sep", "Oct", "Nov", "Dec"]
 # }
+
+# Override the adaptative format used for formatting based on locale
+# Default values are equivalent to
+# SMART_DATE_FORMAT = {
+#     "en": {
+#         "smart_date": {
+#             "millisecond": ".%Lms",
+#             "second": ":%Ss",
+#             "minute": "%I:%M",
+#             "hour": "%I %p",
+#             "day": "%a %d",
+#             "week": "%b %d",
+#             "month": "%B",
+#             "year": "%Y",
+#         },
+#         "smart_date_verbose": {
+#             "millisecond": ".%L",
+#             "second": "%a %b %d, %I:%M:%S %p",
+#             "minute": "%a %b %d, %I:%M %p",
+#             "hour": "%a %b %d, %I %p",
+#             "day": "%a %b %-e",
+#             "week": "%a %b %-e",
+#             "month": "%b %Y",
+#             "year": "%Y",
+#         },
+#         "smart_date_detailed": {
+#             "millisecond": "%Y-%m-%d %H:%M:%S.%L",
+#             "second": "%Y-%m-%d %H:%M:%S",
+#             "minute": "%Y-%m-%d %H:%M",
+#             "hour": "%Y-%m-%d %H:%M",
+#             "day": "%Y-%m-%d",
+#             "week": "%Y-%m-%d",
+#             "month": "%Y-%m-%d",
+#             "year": "%Y",
+#         },
+#     },
+# }
+
+SMART_DATE_FORMAT = {}
+
+
 # https://github.com/d3/d3-time-format/tree/main#locales
 class D3TimeFormat(TypedDict, total=False):
     date: str
@@ -446,7 +487,7 @@ class D3TimeFormat(TypedDict, total=False):
     shortMonths: list[str]
 
 
-D3_TIME_FORMAT: D3TimeFormat = {}
+# D3_TIME_FORMAT: D3TimeFormat = {}
 
 CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 

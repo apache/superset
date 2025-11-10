@@ -21,6 +21,7 @@ import { TimeLocaleDefinition } from 'd3-time-format';
 import {
   TimeFormatter,
   createSmartDateDetailedFormatter,
+  SmartDateFormat,
 } from '@superset-ui/core';
 
 describe('smartDateDetailedFormatter', () => {
@@ -60,6 +61,39 @@ describe('smartDateDetailedFormatter', () => {
     });
   });
   describe('when locale is specified', () => {
+    const formats: SmartDateFormat = {
+      smart_date: {
+        millisecond: '.%Lms',
+        second: ':%Ss',
+        minute: '%H:%M',
+        hour: '%H h',
+        day: '%a %d',
+        week: '%d %b',
+        month: '%B',
+        year: '%Y',
+      },
+      smart_date_verbose: {
+        millisecond: '.%L',
+        second: '%a %d %b, %H:%M:%S',
+        minute: '%a %d %b, %H:%M',
+        hour: '%a %d %b, %Hh',
+        day: '%a %d %b',
+        week: '%a %d %b',
+        month: '%B %Y',
+        year: '%Y',
+      },
+      smart_date_detailed: {
+        millisecond: '%d/%m/%Y %H:%M:%S.%L',
+        second: '%d/%m/%Y %H:%M:%S',
+        minute: '%d/%m/%Y %H:%M',
+        hour: '%d/%m/%Y %H:%M',
+        day: '%d/%m/%Y',
+        week: '%d/%m/%Y',
+        month: '%d/%m/%Y',
+        year: '%Y',
+      },
+    };
+
     const locale: TimeLocaleDefinition = {
       dateTime: '%A, %e de %B de %Y. %X',
       date: '%d/%m/%Y',
@@ -104,7 +138,7 @@ describe('smartDateDetailedFormatter', () => {
         'Dez',
       ],
     };
-    const formatter = createSmartDateDetailedFormatter(locale);
+    const formatter = createSmartDateDetailedFormatter(locale, formats);
 
     it('is a function', () => {
       expect(formatter).toBeInstanceOf(TimeFormatter);
@@ -116,25 +150,25 @@ describe('smartDateDetailedFormatter', () => {
 
     it('shows full date when a regular date', () => {
       expect(formatter(new Date('2020-03-01T00:00:00.000+00:00'))).toBe(
-        '2020-03-01',
+        '01/03/2020',
       );
     });
 
     it('shows full date including time of day without seconds when hour precision', () => {
       expect(formatter(new Date('2020-03-01T13:00:00.000+00:00'))).toBe(
-        '2020-03-01 13:00',
+        '01/03/2020 13:00',
       );
     });
 
     it('shows full date including time of day when minute precision', () => {
       expect(formatter(new Date('2020-03-10T13:10:00.000+00:00'))).toBe(
-        '2020-03-10 13:10',
+        '10/03/2020 13:10',
       );
     });
 
     it('shows full date including time of day when subsecond precision', () => {
       expect(formatter(new Date('2020-03-10T13:10:00.100+00:00'))).toBe(
-        '2020-03-10 13:10:00.100',
+        '10/03/2020 13:10:00.100',
       );
     });
   });
