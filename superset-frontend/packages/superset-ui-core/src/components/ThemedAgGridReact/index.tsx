@@ -24,8 +24,7 @@ import {
   colorSchemeDark,
   colorSchemeLight,
 } from 'ag-grid-community';
-import { useTheme } from '../../theme';
-import { useThemeMode } from '../../theme/utils/themeUtils';
+import { useTheme, useThemeMode } from '@apache-superset/core/ui';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files

@@ -18,7 +18,8 @@
  */
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';

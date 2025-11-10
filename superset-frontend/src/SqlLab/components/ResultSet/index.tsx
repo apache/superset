@@ -30,7 +30,6 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
-  Alert,
   Button,
   ButtonGroup,
   Tooltip,
@@ -47,16 +46,14 @@ import {
 import { nanoid } from 'nanoid';
 import {
   QueryState,
-  styled,
   t,
   tn,
-  useTheme,
   usePrevious,
-  css,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
   ISimpleColumn,

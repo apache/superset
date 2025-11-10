@@ -752,7 +752,7 @@ THEME_DEFAULT: Theme = {
         # Brand
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
-        "brandLogoMargin": "18px",
+        "brandLogoMargin": "18px 0",
         "brandLogoHref": "/",
         "brandLogoHeight": "24px",
         # Spinner

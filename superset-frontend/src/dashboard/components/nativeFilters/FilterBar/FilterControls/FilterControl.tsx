@@ -22,7 +22,8 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
+import { truncationCSS } from '@superset-ui/core';
+import { styled, SupersetTheme } from '@apache-superset/core/ui';
 import {
   FormItem as StyledFormItem,
   Form,

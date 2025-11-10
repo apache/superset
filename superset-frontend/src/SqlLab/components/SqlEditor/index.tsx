@@ -33,16 +33,14 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
-  css,
   FeatureFlag,
   isFeatureEnabled,
-  styled,
   t,
-  useTheme,
   getExtensionsRegistry,
   QueryResponse,
   Query,
 } from '@superset-ui/core';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import type {
   QueryEditor,
   SqlLabRootState,
@@ -52,7 +50,6 @@ import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, isEmpty, noop } from 'lodash';
 import Mousetrap from 'mousetrap';
 import {
-  Alert,
   Button,
   Dropdown,
   EmptyState,

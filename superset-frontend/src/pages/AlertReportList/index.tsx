@@ -21,12 +21,11 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
-  css,
   SupersetClient,
   makeApi,
-  styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Tooltip,

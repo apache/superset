@@ -42,7 +42,7 @@ cachelib==0.13.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==5.5.2
+cachetools==6.2.1
     # via google-auth
 cattrs==25.1.1
     # via requests-cache
@@ -154,12 +154,13 @@ geographiclib==2.0
     # via geopy
 geopy==2.4.1
     # via apache-superset (pyproject.toml)
-google-auth==2.40.3
+google-auth==2.43.0
     # via shillelagh
 greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -404,7 +405,7 @@ trio==0.30.0
     #   trio-websocket
 trio-websocket==0.12.2
     # via selenium
-typing-extensions==4.14.0
+typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
