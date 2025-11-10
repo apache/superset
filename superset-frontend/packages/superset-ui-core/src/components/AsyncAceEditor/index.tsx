@@ -210,44 +210,61 @@ export function AsyncAceEditor(
 
         // Move autocomplete popup to the nearest parent container with data-ace-container
         useEffect(() => {
-          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
-            ?.editor;
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current?.editor;
           if (!editorInstance) return;
 
+          const editorContainer = editorInstance.container;
+          if (!editorContainer) return;
+
+          // Cache DOM elements to avoid repeated queries on every command execution
+          let cachedAutocompletePopup: HTMLElement | null = null;
+          let cachedTargetContainer: Element | null = null;
+
           const moveAutocompleteToContainer = () => {
-            const editorContainer = editorInstance.container;
-            const autocompletePopup =
-              (editorContainer?.querySelector(
-                '.ace_autocomplete',
-              ) as HTMLElement) ||
-              (document.querySelector('.ace_autocomplete') as HTMLElement);
-            if (autocompletePopup) {
-              const targetContainer =
-                editorContainer?.closest('#ace-editor') ||
-                editorContainer?.parentElement;
-              if (targetContainer && targetContainer !== document.body) {
-                targetContainer.appendChild(autocompletePopup);
-                autocompletePopup.setAttribute('data-ace-autocomplete', 'true');
-              }
+            // Revalidate cached popup if missing or detached from DOM
+            if (
+              !cachedAutocompletePopup ||
+              !document.body.contains(cachedAutocompletePopup)
+            ) {
+              cachedAutocompletePopup =
+                editorContainer.querySelector<HTMLElement>('.ace_autocomplete') ??
+                document.querySelector<HTMLElement>('.ace_autocomplete');
+            }
+
+            // Revalidate cached container if missing or detached
+            if (
+              !cachedTargetContainer ||
+              !document.body.contains(cachedTargetContainer)
+            ) {
+              cachedTargetContainer =
+                editorContainer.closest('#ace-editor') ??
+                editorContainer.parentElement;
+            }
+
+            if (
+              cachedAutocompletePopup &&
+              cachedTargetContainer &&
+              cachedTargetContainer !== document.body
+            ) {
+              cachedTargetContainer.appendChild(cachedAutocompletePopup);
+              cachedAutocompletePopup.dataset.aceAutocomplete = 'true';
             }
           };
 
-          // Hook into Ace's command execution to detect when autocomplete starts
           const handleAfterExec = (e: Ace.Operation) => {
-            if (
-              e.command.name &&
-              ['insertstring', 'startAutocomplete'].includes(e.command.name)
-            ) {
+            const name = e?.command?.name;
+            if (name === 'insertstring' || name === 'startAutocomplete') {
               moveAutocompleteToContainer();
             }
           };
 
-          editorInstance.commands.on('afterExec', handleAfterExec);
+          const { commands } = editorInstance;
+          commands.on('afterExec', handleAfterExec);
 
           return () => {
-            if (editorInstance.commands) {
-              editorInstance.commands.off('afterExec', handleAfterExec);
-            }
+            commands.off('afterExec', handleAfterExec);
+            cachedAutocompletePopup = null;
+            cachedTargetContainer = null;
           };
         }, [ref]);
 
