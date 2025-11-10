@@ -80,6 +80,7 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetErrorException,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -1181,6 +1182,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 mutator=assign_column_label,
             )
         except Exception as ex:  # pylint: disable=broad-except
+            # Re-raise SupersetErrorException (includes OAuth2RedirectError)
+            # to bubble up to API layer
+            if isinstance(ex, SupersetErrorException):
+                raise
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(
