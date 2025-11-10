@@ -582,7 +582,9 @@ def test_processing_time_offsets_temporal_column_error(processor):
                         QueryObjectValidationError,
                         match="Unable to identify temporal column",
                     ):
-                        processor.processing_time_offsets(df, query_object)
+                        processor._qc_datasource.processing_time_offsets(
+                            df, query_object, None, None, False
+                        )
 
 
 def test_processing_time_offsets_date_range_enabled(processor):
@@ -682,8 +684,10 @@ def test_processing_time_offsets_date_range_enabled(processor):
                             "processing_time_offsets",
                             return_value=mock_cached_result,
                         ):
-                            # Test the method
-                            result = processor.processing_time_offsets(df, query_object)
+                            # Test the method (call datasource method directly)
+                            result = processor._qc_datasource.processing_time_offsets(
+                                df, query_object, None, None, False
+                            )
 
                             # Verify that the method completes successfully
                             assert "df" in result

@@ -622,10 +622,24 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
+
+        # Create cache functions for testing
+        def cache_key_fn(qo, time_offset, time_grain):
+            return query_context._processor.query_cache_key(
+                qo, time_offset=time_offset, time_grain=time_grain
+            )
+
+        def cache_timeout_fn():
+            return query_context._processor.get_cache_timeout()
+
         # query without cache
-        query_context._processor.processing_time_offsets(df.copy(), query_object)
+        query_context.datasource.processing_time_offsets(
+            df.copy(), query_object, cache_key_fn, cache_timeout_fn, query_context.force
+        )
         # query with cache
-        rv = query_context._processor.processing_time_offsets(df.copy(), query_object)
+        rv = query_context.datasource.processing_time_offsets(
+            df.copy(), query_object, cache_key_fn, cache_timeout_fn, query_context.force
+        )
         cache_keys = rv["cache_keys"]
         cache_keys__1_year_ago = cache_keys[0]
         cache_keys__1_year_later = cache_keys[1]
@@ -637,7 +651,9 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context._processor.processing_time_offsets(df.copy(), query_object)
+        rv = query_context.datasource.processing_time_offsets(
+            df.copy(), query_object, cache_key_fn, cache_timeout_fn, query_context.force
+        )
         cache_keys = rv["cache_keys"]
         assert cache_keys__1_year_ago == cache_keys[1]
         assert cache_keys__1_year_later == cache_keys[0]
@@ -646,9 +662,8 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = []
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context._processor.processing_time_offsets(
-            df.copy(),
-            query_object,
+        rv = query_context.datasource.processing_time_offsets(
+            df.copy(), query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
 
         assert rv["df"].shape == df.shape
@@ -676,8 +691,17 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["3 years ago", "3 years later"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        time_offsets_obj = query_context._processor.processing_time_offsets(
-            df, query_object
+
+        def cache_key_fn(qo, time_offset, time_grain):
+            return query_context._processor.query_cache_key(
+                qo, time_offset=time_offset, time_grain=time_grain
+            )
+
+        def cache_timeout_fn():
+            return query_context._processor.get_cache_timeout()
+
+        time_offsets_obj = query_context.datasource.processing_time_offsets(
+            df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
         query_from_1977_to_1988 = time_offsets_obj["queries"][0]
         query_from_1983_to_1994 = time_offsets_obj["queries"][1]
@@ -709,8 +733,17 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["3 years ago", "3 years later"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        time_offsets_obj = query_context._processor.processing_time_offsets(
-            df, query_object
+
+        def cache_key_fn(qo, time_offset, time_grain):
+            return query_context._processor.query_cache_key(
+                qo, time_offset=time_offset, time_grain=time_grain
+            )
+
+        def cache_timeout_fn():
+            return query_context._processor.get_cache_timeout()
+
+        time_offsets_obj = query_context.datasource.processing_time_offsets(
+            df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
         df_with_offsets = time_offsets_obj["df"]
         df_with_offsets = df_with_offsets.set_index(["__timestamp", "state"])
@@ -799,8 +832,17 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        time_offsets_obj = query_context._processor.processing_time_offsets(
-            df, query_object
+
+        def cache_key_fn(qo, time_offset, time_grain):
+            return query_context._processor.query_cache_key(
+                qo, time_offset=time_offset, time_grain=time_grain
+            )
+
+        def cache_timeout_fn():
+            return query_context._processor.get_cache_timeout()
+
+        time_offsets_obj = query_context.datasource.processing_time_offsets(
+            df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
         sqls = time_offsets_obj["queries"]
         row_limit_value = current_app.config["ROW_LIMIT"]

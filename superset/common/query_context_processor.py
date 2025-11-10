@@ -38,7 +38,7 @@ from superset.exceptions import (
     SupersetException,
 )
 from superset.extensions import cache_manager, security_manager
-from superset.models.helpers import CachedTimeOffset, QueryResult
+from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -228,38 +228,6 @@ class QueryContextProcessor:
         post-processing.
         """
         return self._qc_datasource.get_query_result(query_object)
-
-    def processing_time_offsets(
-        self,
-        df: pd.DataFrame,
-        query_object: QueryObject,
-    ) -> CachedTimeOffset:
-        """
-        Process time offsets by delegating to datasource.
-
-        This method provides caching support via callback functions.
-        """
-
-        # Create cache key function
-        def cache_key_fn(
-            qo: QueryObject, time_offset: str, time_grain: Any
-        ) -> str | None:
-            return self.query_cache_key(
-                qo, time_offset=time_offset, time_grain=time_grain
-            )
-
-        # Create cache timeout function
-        def cache_timeout_fn() -> int:
-            return self.get_cache_timeout()
-
-        # Delegate to datasource with caching support
-        return self._qc_datasource.processing_time_offsets(
-            df,
-            query_object,
-            cache_key_fn=cache_key_fn,
-            cache_timeout_fn=cache_timeout_fn,
-            force_cache=self._query_context.force,
-        )
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
