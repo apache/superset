@@ -477,12 +477,15 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         )
 
     if time_shift:
-        if " : " in time_shift:
+        separator = " : "
+        if separator in time_shift:
             # Date range format: parse as a new time range
-            separator = " : "
-            since_part, until_part = time_shift.split(separator, 1)
-            _since = datetime_eval(f"DATETIME('{since_part.strip()}')")
-            _until = datetime_eval(f"DATETIME('{until_part.strip()}')")
+            parts = time_shift.split(separator, 1)
+            if len(parts) != 2:
+                raise ValueError(f"Invalid time_shift format: {time_shift}")
+            since_part, until_part = (part.strip() for part in parts)
+            _since = parse_human_datetime(since_part)
+            _until = parse_human_datetime(until_part)
         else:
             time_delta_since = parse_past_timedelta(time_shift, _since)
             time_delta_until = parse_past_timedelta(time_shift, _until)
