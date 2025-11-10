@@ -45,6 +45,7 @@ screenshot_query_schema = {
     },
 }
 dashboard_title_description = "A title for the dashboard."
+description_description = "A description for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
 owners_description = (
     "Owner are users ids allowed to delete or change this dashboard. "
@@ -405,6 +406,11 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": dashboard_title_description},
         allow_none=True,
         validate=Length(0, 500),
+    )
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+        validate=Length(0, 255),
     )
     slug = fields.String(
         metadata={"description": slug_description},

@@ -288,7 +288,7 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
+    const { title, description, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentJsonMetadata = jsonMetadata;
 
@@ -368,6 +368,7 @@ const PropertiesModal = ({
     const onSubmitProps = {
       id: dashboardId,
       title,
+      description,
       slug,
       jsonMetadata: currentJsonMetadata,
       owners,
@@ -393,6 +394,7 @@ const PropertiesModal = ({
     } else {
       const saveData = {
         dashboard_title: title,
+        description: description || null,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
         owners: (owners || []).map(o => o.id),
