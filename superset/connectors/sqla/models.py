@@ -101,6 +101,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SQLA_QUERY_KEYS,
 )
 from superset.models.slice import Slice
 from superset.sql.parse import Table
@@ -1930,34 +1931,8 @@ class SqlaTable(
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
             # Filter out keys that aren't parameters to get_sqla_query
-            sqla_query_keys = {
-                "apply_fetch_values_predicate",
-                "columns",
-                "extras",
-                "filter",
-                "from_dttm",
-                "granularity",
-                "groupby",
-                "inner_from_dttm",
-                "inner_to_dttm",
-                "is_rowcount",
-                "is_timeseries",
-                "metrics",
-                "orderby",
-                "order_desc",
-                "to_dttm",
-                "series_columns",
-                "series_limit",
-                "series_limit_metric",
-                "group_others_when_limit_reached",
-                "row_limit",
-                "row_offset",
-                "timeseries_limit",
-                "timeseries_limit_metric",
-                "time_shift",
-            }
             filtered_query_obj = {
-                k: v for k, v in query_obj.items() if k in sqla_query_keys
+                k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
             sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
             extra_cache_keys += sqla_query.extra_cache_keys

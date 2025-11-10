@@ -120,6 +120,34 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 
+# Keys used to filter QueryObjectDict for get_sqla_query parameters
+SQLA_QUERY_KEYS = {
+    "apply_fetch_values_predicate",
+    "columns",
+    "extras",
+    "filter",
+    "from_dttm",
+    "granularity",
+    "groupby",
+    "inner_from_dttm",
+    "inner_to_dttm",
+    "is_rowcount",
+    "is_timeseries",
+    "metrics",
+    "orderby",
+    "order_desc",
+    "to_dttm",
+    "series_columns",
+    "series_limit",
+    "series_limit_metric",
+    "group_others_when_limit_reached",
+    "row_limit",
+    "row_offset",
+    "timeseries_limit",
+    "timeseries_limit_metric",
+    "time_shift",
+}
+
 
 def validate_adhoc_subquery(
     sql: str,
@@ -975,34 +1003,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         mutate: bool = True,
     ) -> QueryStringExtended:
         # Filter out keys that aren't parameters to get_sqla_query
-        sqla_query_keys = {
-            "apply_fetch_values_predicate",
-            "columns",
-            "extras",
-            "filter",
-            "from_dttm",
-            "granularity",
-            "groupby",
-            "inner_from_dttm",
-            "inner_to_dttm",
-            "is_rowcount",
-            "is_timeseries",
-            "metrics",
-            "orderby",
-            "order_desc",
-            "to_dttm",
-            "series_columns",
-            "series_limit",
-            "series_limit_metric",
-            "group_others_when_limit_reached",
-            "row_limit",
-            "row_offset",
-            "timeseries_limit",
-            "timeseries_limit_metric",
-            "time_shift",
-        }
         filtered_query_obj = {
-            k: v for k, v in query_obj.items() if k in sqla_query_keys
+            k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
         }
         sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
         sql = self.database.compile_sqla_query(
