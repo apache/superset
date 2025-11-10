@@ -332,17 +332,24 @@ export function AsyncAceEditor(
                   border: 1px solid ${token.colorBorderSecondary};
                   box-shadow: ${token.boxShadow};
                   border-radius: ${token.borderRadius}px;
+                  padding: ${token.paddingXS}px ${token.paddingXS}px;
                 }
 
-                & .tooltip-detail {
+                .ace_tooltip.ace_doc-tooltip {
+                  display: flex !important;
+                }
+
+                &&& .tooltip-detail {
                   display: flex;
+                  justify-content: center;
                   flex-direction: row;
+                  gap: ${token.paddingXXS}px;
                   align-items: center;
                   background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${token.sizeXXL * 5}px;
                   max-width: ${token.sizeXXL * 10}px;
+                  font-size: ${token.fontSize}px;
 
                   & .tooltip-detail-head {
                     background-color: ${token.colorBgElevated};
@@ -361,16 +368,13 @@ export function AsyncAceEditor(
                   & .tooltip-detail-body {
                     word-break: break-word;
                     color: ${token.colorTextSecondary};
-
-                    & .tooltip-detail-body-element {
-                      background-color: ${token.colorBgLayout};
-                      padding: ${token.paddingXS}px;
-                    }
                   }
 
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${token.padding}px ${token.paddingLG}px;
+                    background-color: ${token.colorBgLayout};
+                    padding: 0px ${token.paddingXXS}px;
+                    border: 1px ${token.colorSplit} solid;
                   }
 
                   & .tooltip-detail-footer {
