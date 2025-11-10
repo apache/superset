@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docker-image
           path: docker-image.tar.gz
@@ -90,7 +90,7 @@ jobs:
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
 
       - name: Upload Coverage Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage

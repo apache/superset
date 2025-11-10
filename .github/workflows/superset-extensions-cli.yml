@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload HTML coverage report
         if: steps.check.outputs.superset-extensions-cli
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: superset-extensions-cli-coverage-html
           path: htmlcov/
