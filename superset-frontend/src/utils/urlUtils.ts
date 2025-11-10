@@ -188,7 +188,7 @@ export function getDashboardPermalink({
   includeChartState?: boolean;
 }) {
   const payload: JsonObject = {
-    urlParams: getDashboardUrlParams(['edit']),
+    urlParams: getDashboardUrlParams(),
     dataMask,
     activeTabs,
     anchor,
