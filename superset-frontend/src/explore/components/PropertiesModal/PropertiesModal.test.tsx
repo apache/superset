@@ -344,17 +344,17 @@ test('"Cache timeout" should not be empty when saved', async () => {
 
   const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
 
-  userEvent.clear(cacheTimeout);
-  userEvent.type(cacheTimeout, '1000');
+  await userEvent.clear(cacheTimeout);
+  await userEvent.type(cacheTimeout, '1000');
 
   expect(cacheTimeout).toHaveValue('1000');
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ cache_timeout: '1000' }),
+      expect.objectContaining({ cache_timeout: 1000 }),
     );
   });
 });
