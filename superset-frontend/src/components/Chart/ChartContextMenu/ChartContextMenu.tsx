@@ -40,8 +40,8 @@ import {
   isFeatureEnabled,
   QueryFormData,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';

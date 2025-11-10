@@ -22,9 +22,9 @@ import {
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
-  styled,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { User } from 'src/types/bootstrapTypes';

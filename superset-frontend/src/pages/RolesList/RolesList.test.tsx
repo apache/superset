@@ -159,8 +159,8 @@ describe('RolesList', () => {
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const nameColumn = await within(table).findByText('Name');
-    const actionsColumn = await within(table).findByText('Actions');
+    const nameColumn = await within(table).findByTitle('Name');
+    const actionsColumn = await within(table).findByTitle('Actions');
 
     expect(nameColumn).toBeInTheDocument();
     expect(actionsColumn).toBeInTheDocument();
