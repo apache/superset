@@ -49,6 +49,8 @@ are compatible with Superset.
 | [Apache Pinot](/docs/configuration/databases#apache-pinot)                     | `pip install pinotdb`                                                              | `pinot://BROKER:5436/query?server=http://CONTROLLER:5983/`                                                                                             |
 | [Apache Solr](/docs/configuration/databases#apache-solr)                       | `pip install sqlalchemy-solr`                                                      | `solr://{username}:{password}@{hostname}:{port}/{server_path}/{collection}`                                                                            |
 | [Apache Spark SQL](/docs/configuration/databases#apache-spark-sql)             | `pip install pyhive`                                                               | `hive://hive@{hostname}:{port}/{database}`                                                                                                             |
+| [Arc - Apache Arrow](/docs/configuration/databases#arc-arrow)                  | `pip install arc-superset-arrow`                                                   | `arc+arrow://{api_key}@{hostname}:{port}/{database}`                                                                                                   |
+| [Arc - JSON](/docs/configuration/databases#arc-json)                           | `pip install arc-superset-dialect`                                                | `arc+json://{api_key}@{hostname}:{port}/{database}`                                                                                                    |
 | [Ascend.io](/docs/configuration/databases#ascendio)                       | `pip install impyla`                                                               | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                        |
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
@@ -1256,6 +1258,34 @@ The expected connection string is formatted as follows:
 hive://hive@{hostname}:{port}/{database}
 ```
 
+#### Arc
+
+There are two ways to connect Superset to Arc:
+
+**1. Arc with Apache Arrow (Recommended)**
+
+The recommended connector library for Arc with Apache Arrow support is [arc-superset-arrow](https://pypi.org/project/arc-superset-arrow/).
+
+The connection string looks like:
+
+```
+arc+arrow://{api_key}@{hostname}:{port}/{database}
+```
+
+**2. Arc with JSON**
+
+Alternatively, you can use the JSON connector [arc-superset-dialect](https://pypi.org/project/arc-superset-dialect/).
+
+The connection string looks like:
+
+```
+arc+json://{api_key}@{hostname}:{port}/{database}
+```
+
+Arc supports multiple databases (schemas) within a single instance. In Superset, each Arc database appears as a schema in the SQL Lab.
+
+**Note:** The Arrow dialect (`arc-superset-arrow`) is recommended for production use as it provides 3-5x better performance using Apache Arrow IPC binary format.
+
 #### SQL Server
 
 The recommended connector library for SQL Server is [pymssql](https://github.com/pymssql/pymssql).
@@ -1769,6 +1799,48 @@ You can use the `Extra` field in the **Edit Databases** form to configure SSL:
      }
 }
 ```
+##### Custom Error Messages
+You can use the `CUSTOM_DATABASE_ERRORS` in the `superset/custom_database_errors.py` file or overwrite it in your config file to configure custom error messages for database exceptions.
+
+This feature lets you transform raw database errors into user-friendly messages, optionally including documentation links and hiding default error codes.
+
+Provide an empty string as the first value to keep the original error message. This way, you can add just a link to the documentation
+**Example usage:**
+```Python
+CUSTOM_DATABASE_ERRORS = {
+    "database_name": {
+        re.compile('permission denied for view'): (
+            __(
+                'Permission denied'
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {
+                "custom_doc_links": [
+                    {
+                        "url": "https://example.com/docs/1",
+                        "label": "Check documentation"
+                    },
+                ],
+                "show_issue_info": False,
+            }
+        )
+    },
+    "examples": {
+        re.compile(r'message="(?P<message>[^"]*)"'): (
+            __(
+                'Unexpected error: "%(message)s"'
+            ),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {}
+        )
+    }
+}
+```
+
+**Options:**
+
+- ``custom_doc_links``: List of documentation links to display with the error.
+- ``show_issue_info``: Set to ``False`` to hide default error codes.
 
 ## Misc
 

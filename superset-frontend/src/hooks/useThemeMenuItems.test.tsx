@@ -23,7 +23,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { ThemeMode } from '@superset-ui/core';
+import { ThemeMode } from '@apache-superset/core/ui';
 import { Menu } from '@superset-ui/core/components';
 import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 
@@ -38,6 +38,7 @@ const TestComponent = (props: ThemeSubMenuProps) => {
   return <Menu items={[menuItem]} />;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useThemeMenuItems', () => {
   const defaultProps = {
     allowOSPreference: true,
@@ -66,35 +67,35 @@ describe('useThemeMenuItems', () => {
     jest.clearAllMocks();
   });
 
-  it('renders Light and Dark theme options by default', async () => {
+  test('renders Light and Dark theme options by default', async () => {
     renderThemeMenu();
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Light');
 
     expect(within(menu!).getByText('Light')).toBeInTheDocument();
     expect(within(menu!).getByText('Dark')).toBeInTheDocument();
   });
 
-  it('does not render Match system option when allowOSPreference is false', async () => {
+  test('does not render Match system option when allowOSPreference is false', async () => {
     renderThemeMenu({ ...defaultProps, allowOSPreference: false });
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
 
     await waitFor(() => {
       expect(screen.queryByText('Match system')).not.toBeInTheDocument();
     });
   });
 
-  it('renders with allowOSPreference as true by default', async () => {
+  test('renders with allowOSPreference as true by default', async () => {
     renderThemeMenu();
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Match system');
 
     expect(within(menu).getByText('Match system')).toBeInTheDocument();
   });
 
-  it('renders clear option when both hasLocalOverride and onClearLocalSettings are provided', async () => {
+  test('renders clear option when both hasLocalOverride and onClearLocalSettings are provided', async () => {
     const mockClear = jest.fn();
     renderThemeMenu({
       ...defaultProps,
@@ -102,13 +103,13 @@ describe('useThemeMenuItems', () => {
       onClearLocalSettings: mockClear,
     });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Clear local theme');
 
     expect(within(menu).getByText('Clear local theme')).toBeInTheDocument();
   });
 
-  it('does not render clear option when hasLocalOverride is false', async () => {
+  test('does not render clear option when hasLocalOverride is false', async () => {
     const mockClear = jest.fn();
     renderThemeMenu({
       ...defaultProps,
@@ -116,47 +117,47 @@ describe('useThemeMenuItems', () => {
       onClearLocalSettings: mockClear,
     });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
 
     await waitFor(() => {
       expect(screen.queryByText('Clear local theme')).not.toBeInTheDocument();
     });
   });
 
-  it('calls setThemeMode with DEFAULT when Light is clicked', async () => {
+  test('calls setThemeMode with DEFAULT when Light is clicked', async () => {
     const mockSet = jest.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Light');
-    userEvent.click(within(menu).getByText('Light'));
+    await userEvent.click(within(menu).getByText('Light'));
 
     expect(mockSet).toHaveBeenCalledWith(ThemeMode.DEFAULT);
   });
 
-  it('calls setThemeMode with DARK when Dark is clicked', async () => {
+  test('calls setThemeMode with DARK when Dark is clicked', async () => {
     const mockSet = jest.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Dark');
-    userEvent.click(within(menu).getByText('Dark'));
+    await userEvent.click(within(menu).getByText('Dark'));
 
     expect(mockSet).toHaveBeenCalledWith(ThemeMode.DARK);
   });
 
-  it('calls setThemeMode with SYSTEM when Match system is clicked', async () => {
+  test('calls setThemeMode with SYSTEM when Match system is clicked', async () => {
     const mockSet = jest.fn();
     renderThemeMenu({ ...defaultProps, setThemeMode: mockSet });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Match system');
-    userEvent.click(within(menu).getByText('Match system'));
+    await userEvent.click(within(menu).getByText('Match system'));
 
     expect(mockSet).toHaveBeenCalledWith(ThemeMode.SYSTEM);
   });
 
-  it('calls onClearLocalSettings when Clear local theme is clicked', async () => {
+  test('calls onClearLocalSettings when Clear local theme is clicked', async () => {
     const mockClear = jest.fn();
     renderThemeMenu({
       ...defaultProps,
@@ -164,66 +165,66 @@ describe('useThemeMenuItems', () => {
       onClearLocalSettings: mockClear,
     });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Clear local theme');
-    userEvent.click(within(menu).getByText('Clear local theme'));
+    await userEvent.click(within(menu).getByText('Clear local theme'));
 
     expect(mockClear).toHaveBeenCalledTimes(1);
   });
 
-  it('displays sun icon for DEFAULT theme', () => {
+  test('displays sun icon for DEFAULT theme', () => {
     renderThemeMenu({ ...defaultProps, themeMode: ThemeMode.DEFAULT });
     expect(screen.getByTestId('sun')).toBeInTheDocument();
   });
 
-  it('displays moon icon for DARK theme', () => {
+  test('displays moon icon for DARK theme', () => {
     renderThemeMenu({ ...defaultProps, themeMode: ThemeMode.DARK });
     expect(screen.getByTestId('moon')).toBeInTheDocument();
   });
 
-  it('displays format-painter icon for SYSTEM theme', () => {
+  test('displays format-painter icon for SYSTEM theme', () => {
     renderThemeMenu({ ...defaultProps, themeMode: ThemeMode.SYSTEM });
     expect(screen.getByTestId('format-painter')).toBeInTheDocument();
   });
 
-  it('displays override icon when hasLocalOverride is true', () => {
+  test('displays override icon when hasLocalOverride is true', () => {
     renderThemeMenu({ ...defaultProps, hasLocalOverride: true });
     expect(screen.getByTestId('thunderbolt')).toBeInTheDocument();
   });
 
-  it('renders Theme group header', async () => {
+  test('renders Theme group header', async () => {
     renderThemeMenu();
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Theme');
 
     expect(within(menu).getByText('Theme')).toBeInTheDocument();
   });
 
-  it('renders sun icon for Light theme option', async () => {
+  test('renders sun icon for Light theme option', async () => {
     renderThemeMenu();
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Light');
     const lightOption = within(menu).getByText('Light').closest('li');
 
     expect(within(lightOption!).getByTestId('sun')).toBeInTheDocument();
   });
 
-  it('renders moon icon for Dark theme option', async () => {
+  test('renders moon icon for Dark theme option', async () => {
     renderThemeMenu();
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Dark');
     const darkOption = within(menu).getByText('Dark').closest('li');
 
     expect(within(darkOption!).getByTestId('moon')).toBeInTheDocument();
   });
 
-  it('renders format-painter icon for Match system option', async () => {
+  test('renders format-painter icon for Match system option', async () => {
     renderThemeMenu({ ...defaultProps, allowOSPreference: true });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Match system');
     const matchOption = within(menu).getByText('Match system').closest('li');
 
@@ -232,14 +233,14 @@ describe('useThemeMenuItems', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders clear icon for Clear local theme option', async () => {
+  test('renders clear icon for Clear local theme option', async () => {
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
       onClearLocalSettings: jest.fn(),
     });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const menu = await findMenuWithText('Clear local theme');
     const clearOption = within(menu)
       .getByText('Clear local theme')
@@ -248,14 +249,14 @@ describe('useThemeMenuItems', () => {
     expect(within(clearOption!).getByTestId('clear')).toBeInTheDocument();
   });
 
-  it('renders divider before clear option when clear option is present', async () => {
+  test('renders divider before clear option when clear option is present', async () => {
     renderThemeMenu({
       ...defaultProps,
       hasLocalOverride: true,
       onClearLocalSettings: jest.fn(),
     });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
 
     const menu = await findMenuWithText('Clear local theme');
     const divider = within(menu).queryByRole('separator');
@@ -263,10 +264,10 @@ describe('useThemeMenuItems', () => {
     expect(divider).toBeInTheDocument();
   });
 
-  it('does not render divider when clear option is not present', async () => {
+  test('does not render divider when clear option is not present', async () => {
     renderThemeMenu({ ...defaultProps });
 
-    userEvent.hover(await screen.findByRole('menuitem'));
+    await userEvent.hover(await screen.findByRole('menuitem'));
     const divider = document.querySelector('.ant-menu-item-divider');
 
     expect(divider).toBeNull();

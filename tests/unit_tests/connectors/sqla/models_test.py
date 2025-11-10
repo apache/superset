@@ -616,7 +616,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             "test_dataset",
-            "test_project.test_dataset.test_table",
+            '"test_project"."test_dataset"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, catalog only (no schema)
@@ -625,7 +625,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             None,
-            "test_project.test_table",
+            '"test_project"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, schema only (no catalog)
@@ -675,12 +675,14 @@ def test_get_sqla_table_with_catalog(
     expected_name: str,
     expected_schema: str | None,
 ) -> None:
-    """Test that get_sqla_table handles catalog inclusion correctly based on
-    database cross-catalog support
+    """
+    Test that `get_sqla_table` handles catalog inclusion correctly.
     """
     # Mock database with specified cross-catalog support
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = supports_cross_catalog
+    # Provide a simple quote_identifier
+    database.quote_identifier = lambda x: f'"{x}"'
 
     # Create table with specified parameters
     table = SqlaTable(
@@ -696,3 +698,147 @@ def test_get_sqla_table_with_catalog(
     # Verify expected table name and schema
     assert sqla_table.name == expected_name
     assert sqla_table.schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "table_name, catalog, schema, expected_in_sql, not_expected_in_sql",
+    [
+        (
+            "My-Table",
+            "My-DB",
+            "My-Schema",
+            '"My-DB"."My-Schema"."My-Table"',
+            '"My-DB.My-Schema.My-Table"',  # Should NOT be one quoted string
+        ),
+        (
+            "ORDERS",
+            "PROD_DB",
+            "SALES",
+            '"PROD_DB"."SALES"."ORDERS"',
+            '"PROD_DB.SALES.ORDERS"',  # Should NOT be one quoted string
+        ),
+        (
+            "My Table",
+            "My DB",
+            "My Schema",
+            '"My DB"."My Schema"."My Table"',
+            '"My DB.My Schema.My Table"',  # Should NOT be one quoted string
+        ),
+    ],
+)
+def test_get_sqla_table_quoting_for_cross_catalog(
+    mocker: MockerFixture,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_in_sql: str,
+    not_expected_in_sql: str,
+) -> None:
+    """
+    Test that `get_sqla_table` properly quotes each component of the identifier.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a Postgres-like engine to test proper quoting
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database with cross-catalog support and proper quote_identifier
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # The compiled SQL should contain each part quoted separately
+    assert expected_in_sql in compiled, f"Expected {expected_in_sql} in SQL: {compiled}"
+    # Should NOT have the entire identifier quoted as one string
+    assert not_expected_in_sql not in compiled, (
+        f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    )
+
+
+def test_get_sqla_table_without_cross_catalog_ignores_catalog(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that databases without cross-catalog support ignore the catalog field.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a PostgreSQL engine (doesn't support cross-catalog queries)
+    engine = create_engine("postgresql://user:pass@localhost/db")
+
+    # Mock database without cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table with catalog - should be ignored
+    table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        schema="my_schema",
+        catalog="my_catalog",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should only have schema.table, not catalog.schema.table
+    assert "my_schema" in compiled
+    assert "my_table" in compiled
+    assert "my_catalog" not in compiled
+
+
+def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
+    """
+    Test that `quoted_name(..., quote=False)` does not cause double quoting.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Use uppercase table name to force quoting
+    table = SqlaTable(
+        table_name="MY_TABLE",
+        database=database,
+        schema="MY_SCHEMA",
+        catalog="MY_DB",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should NOT have the entire identifier quoted as one:
+    # BAD:  '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # This would cause: SQL compilation error: Object '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # does not exist
+    assert '"MY_DB.MY_SCHEMA.MY_TABLE"' not in compiled
+
+    # Should have each part quoted separately:
+    # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
+    assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled

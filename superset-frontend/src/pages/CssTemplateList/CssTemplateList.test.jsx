@@ -38,7 +38,7 @@ const templatesEndpoint = 'glob:*/api/v1/css_template/?*';
 const templateEndpoint = 'glob:*/api/v1/css_template/*';
 const templatesRelatedEndpoint = 'glob:*/api/v1/css_template/related/*';
 
-const mocktemplates = [...new Array(3)].map((_, i) => ({
+const mocktemplates = new Array(3).fill().map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
     first_name: `user`,
@@ -85,29 +85,30 @@ const renderCssTemplatesList = (props = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CssTemplatesList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderCssTemplatesList();
     expect(await screen.findByText(/css templates/i)).toBeInTheDocument();
   });
 
-  it('renders a SubMenu', async () => {
+  test('renders a SubMenu', async () => {
     renderCssTemplatesList();
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderCssTemplatesList();
     expect(
       await screen.findByTestId('css-templates-list-view'),
     ).toBeInTheDocument();
   });
 
-  it('fetches templates', async () => {
+  test('fetches templates', async () => {
     renderCssTemplatesList();
     await waitFor(() => {
       const calls = fetchMock.calls(/css_template\/\?q/);
@@ -118,13 +119,13 @@ describe('CssTemplatesList', () => {
     });
   });
 
-  it('renders Filters', async () => {
+  test('renders Filters', async () => {
     renderCssTemplatesList();
     await screen.findByTestId('css-templates-list-view');
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
-  it('searches', async () => {
+  test('searches', async () => {
     renderCssTemplatesList();
 
     // Wait for list to load
@@ -145,7 +146,7 @@ describe('CssTemplatesList', () => {
     });
   });
 
-  it('deletes', async () => {
+  test('deletes', async () => {
     renderCssTemplatesList();
 
     // Wait for list to load
@@ -173,7 +174,7 @@ describe('CssTemplatesList', () => {
     });
   });
 
-  it('shows bulk actions when bulk select is clicked', async () => {
+  test('shows bulk actions when bulk select is clicked', async () => {
     renderCssTemplatesList();
 
     // Wait for list to load

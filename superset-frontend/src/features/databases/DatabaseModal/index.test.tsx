@@ -26,6 +26,7 @@ import {
   userEvent,
   within,
   waitFor,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -73,6 +74,7 @@ const databaseFixture: DatabaseObject = {
   driver: 'psycopg2',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatabaseModal', () => {
   beforeEach(() => {
     fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
@@ -326,6 +328,7 @@ describe('DatabaseModal', () => {
       useRedux: true,
     });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Visual: New database connection', () => {
     test('renders the initial load of Step 1 correctly', async () => {
       setup();
@@ -419,6 +422,27 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+    });
+
+    test('shows database options when pasting text in the select', async () => {
+      setup();
+
+      const modal = await screen.findByRole('dialog');
+      expect(modal).toBeInTheDocument();
+
+      // Find the select input (not opening the dropdown)
+      const selectInput = screen.getByRole('combobox');
+      expect(selectInput).toBeInTheDocument();
+
+      // Simulate focusing the input
+      userEvent.click(selectInput);
+
+      // Simulate pasting text into the input
+      expect(() =>
+        fireEvent.paste(selectInput, {
+          clipboardData: { getData: () => 'post' },
+        }),
+      ).not.toThrow();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -907,7 +931,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+    test('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1062,6 +1086,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Functional: Create new database', () => {
     test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
       setup();
@@ -1096,6 +1121,7 @@ describe('DatabaseModal', () => {
       expect(sqlAlchemyFormStepText).toBeInTheDocument();
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('SQL Alchemy form flow', () => {
       test('enters step 2 of 2 when proper database is selected', async () => {
         setup();
@@ -1126,6 +1152,7 @@ describe('DatabaseModal', () => {
         expect.anything();
       });
 
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('step 2 component interaction', () => {
         test('properly interacts with textboxes', async () => {
           setup();
@@ -1172,6 +1199,7 @@ describe('DatabaseModal', () => {
         });
       });
 
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('SSH Tunnel Form interaction', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           setup();
@@ -1317,6 +1345,7 @@ describe('DatabaseModal', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Dynamic form flow', () => {
       test('enters step 2 of 3 when proper database is selected', async () => {
         setup();
@@ -1378,6 +1407,7 @@ describe('DatabaseModal', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Import database flow', () => {
       test('imports a file', async () => {
         setup();
@@ -1401,6 +1431,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ Deeplinking Engine', () => {
     test('enters step 2 of 3 when proper database is selected', async () => {
       setup({ dbEngine: 'PostgreSQL' });
@@ -1409,14 +1440,15 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ GSheet Engine', () => {
-    it('enters step 2 of 2 when proper database is selected', async () => {
+    test('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+    test('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
@@ -1454,7 +1486,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+    test('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
@@ -1478,6 +1510,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as objects', () => {
     jest.mock('src/views/CRUD/hooks', () => ({
       ...jest.requireActual('src/views/CRUD/hooks'),
@@ -1493,6 +1526,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as strings', () => {
     jest.mock('src/views/CRUD/hooks', () => ({
       ...jest.requireActual('src/views/CRUD/hooks'),
@@ -1530,6 +1564,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w Extensions', () => {
     beforeAll(() => {
       const extensionsRegistry = getExtensionsRegistry();
@@ -1550,6 +1585,7 @@ describe('DatabaseModal', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
   test('it will reset state to null', () => {
     const action: DBReducerActionType = { type: ActionType.Reset };
@@ -1754,9 +1790,59 @@ describe('dbReducer', () => {
     const currentState = dbReducer(databaseFixture, action);
 
     // extra should be serialized
+    expect(JSON.parse(currentState!.extra!)).toEqual({
+      schemas_allowed_for_file_upload: ['bar'],
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with trailing comma preserves empty string`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
     expect(currentState).toEqual({
       ...databaseFixture,
       extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with multiple schemas and trailing comma`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,schema2,',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with double commas filters empty strings`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,,schema2',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
     });
   });
 

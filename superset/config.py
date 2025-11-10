@@ -36,7 +36,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, Optional, TYPE_CHECKING, TypedDict
 
 import click
 from celery.schedules import crontab
@@ -115,6 +115,7 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 #     "rel": "icon"
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+PDF_COMPRESSION_LEVEL: Literal["NONE", "FAST", "MEDIUM", "SLOW"] = "MEDIUM"
 
 
 def _try_json_readversion(filepath: str) -> str | None:
@@ -723,46 +724,69 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# ---------------------------------------------------
-# Theme Configuration for Superset
-# ---------------------------------------------------
+# -----------------------------------------------------------------------------
+# Theme System Configuration
+# -----------------------------------------------------------------------------
 # Superset supports custom theming through Ant Design's theme structure.
-# This allows users to customize colors, fonts, and other UI elements.
 #
-# Theme Generation:
+# Theme Hierarchy:
+# 1. THEME_DEFAULT/THEME_DARK - Base themes defined in config (foundation)
+# 2. System themes - Set by admins via UI (when ENABLE_UI_THEME_ADMINISTRATION=True)
+# 3. Dashboard themes - Applied per dashboard using the theme bolt button
+#
+# How it works:
+# - Custom themes override base themes for any properties they define
+# - Properties not defined in custom themes use the base theme values
+# - Admins can set system-wide themes that apply to all users
+# - Users can apply specific themes to individual dashboards
+#
+# Theme Creation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export or copy the generated theme JSON and assign to the variables below
-# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
-#
-# To expose a JSON theme editor modal that can be triggered from the navbar
-# set the `ENABLE_THEME_EDITOR` feature flag to True.
-#
-# Theme Structure:
-# Each theme should follow Ant Design's theme format.
-# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
-# and copy the generated JSON configuration.
-#
-# Example theme definition:
-# THEME_DEFAULT = {
-#       "token": {
-#            "colorPrimary": "#2893B3",
-#            "colorSuccess": "#5ac189",
-#            "colorWarning": "#fcc700",
-#            "colorError": "#e04355",
-#            "fontFamily": "'Inter', Helvetica, Arial",
-#            ... # other tokens
-#       },
-#       ... # other theme properties
-# }
+# - Export the generated JSON and use it in your theme configuration
+# -----------------------------------------------------------------------------
 
+# Default theme configuration - foundation for all themes
+# This acts as the base theme for all users
+THEME_DEFAULT: Theme = {
+    "token": {
+        # Brand
+        "brandLogoAlt": "Apache Superset",
+        "brandLogoUrl": APP_ICON,
+        "brandLogoMargin": "18px 0",
+        "brandLogoHref": "/",
+        "brandLogoHeight": "24px",
+        # Spinner
+        "brandSpinnerUrl": None,
+        "brandSpinnerSvg": None,
+        # Default colors
+        "colorPrimary": "#2893B3",  # NOTE: previous lighter primary color was #20a7c9 # noqa: E501
+        "colorLink": "#2893B3",
+        "colorError": "#e04355",
+        "colorWarning": "#fcc700",
+        "colorSuccess": "#5ac189",
+        "colorInfo": "#66bcfe",
+        # Fonts
+        "fontFamily": "Inter, Helvetica, Arial",
+        "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        # Extra tokens
+        "transitionTiming": 0.3,
+        "brandIconMaxWidth": 37,
+        "fontSizeXS": "8",
+        "fontSizeXXL": "28",
+        "fontWeightNormal": "400",
+        "fontWeightLight": "300",
+        "fontWeightStrong": "500",
+    },
+    "algorithm": "default",
+}
 
-# Default theme configuration
-# Leave empty to use Superset's default theme
-THEME_DEFAULT: Theme = {"algorithm": "default"}
-
-# Dark theme configuration
-# Applied when user selects dark mode
-THEME_DARK: Theme = {"algorithm": "dark"}
+# Dark theme configuration - foundation for dark mode
+# Inherits all tokens from THEME_DEFAULT and adds dark algorithm
+# Set to None to disable dark mode
+THEME_DARK: Optional[Theme] = {
+    **THEME_DEFAULT,
+    "algorithm": "dark",
+}
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -948,7 +972,7 @@ CORS_OPTIONS: dict[Any, Any] = {
 # Disabling this option is not recommended for security reasons. If you wish to allow
 # valid safe elements that are not included in the default sanitization schema, use the
 # HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
-HTML_SANITIZATION = False
+HTML_SANITIZATION = True
 
 # Use this configuration to extend the HTML sanitization schema.
 # By default we use the GitHub schema defined in
@@ -1330,6 +1354,15 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Values that should be treated as nulls for scheduled reports CSV processing.
+# If not set or None, defaults to standard pandas NA handling behavior.
+# Set to a custom list to control which values should be treated as null.
+# Examples:
+# REPORTS_CSV_NA_NAMES = None  # Use default pandas NA handling (backwards compatible)
+# REPORTS_CSV_NA_NAMES = []    # Disable all automatic NA conversion
+# REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these specific values as NA
+REPORTS_CSV_NA_NAMES: list[str] | None = None
+
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
 READ_CSV_CHUNK_SIZE = 1000
@@ -1710,6 +1743,11 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
+
+# Maximum number of retries when Slack API returns rate limit errors
+# Default: 2
+# For workspaces with 10k+ channels, consider increasing to 10
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -2171,6 +2209,14 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # considerably increases the time to process it. Running it in async mode prevents
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
+
+# CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions
+# in superset/custom_database_errors.py.
+# Transform raw database errors into user-friendly messages with optional documentation
+try:
+    from superset.custom_database_errors import CUSTOM_DATABASE_ERRORS
+except ImportError:
+    CUSTOM_DATABASE_ERRORS = {}
 
 
 LOCAL_EXTENSIONS: list[str] = []

@@ -37,14 +37,14 @@ const store = mockStore({});
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
 
-const mockRoles = [...new Array(3)].map((_, i) => ({
+const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
   id: i,
   name: `role ${i}`,
   user_ids: [i, i + 1],
   permission_ids: [i, i + 1, i + 2],
 }));
 
-const mockUsers = [...new Array(5)].map((_, i) => ({
+const mockUsers = new Array(5).fill(undefined).map((_, i) => ({
   active: true,
   changed_by: { id: 1 },
   changed_on: new Date(2025, 2, 25, 11, 4, 32 + i).toISOString(),
@@ -90,6 +90,7 @@ const mockUser = {
   ],
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UsersList', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
@@ -109,12 +110,12 @@ describe('UsersList', () => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     await renderAndWait();
     expect(await screen.findByText('List Users')).toBeInTheDocument();
   });
 
-  it('fetches users on load', async () => {
+  test('fetches users on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(usersEndpoint);
@@ -122,7 +123,7 @@ describe('UsersList', () => {
     });
   });
 
-  it('fetches roles on load', async () => {
+  test('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const calls = fetchMock.calls(rolesEndpoint);
@@ -130,7 +131,7 @@ describe('UsersList', () => {
     });
   });
 
-  it('renders filters options', async () => {
+  test('renders filters options', async () => {
     await renderAndWait();
 
     const submenu = screen.queryAllByTestId('filters-select')[0];
@@ -145,19 +146,19 @@ describe('UsersList', () => {
     expect(within(submenu).getByText(/last login/i)).toBeInTheDocument();
   });
 
-  it('renders correct list columns', async () => {
+  test('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const fnameColumn = await within(table).findByText('First name');
-    const lnameColumn = await within(table).findByText('Last name');
-    const usernameColumn = await within(table).findByText('Username');
-    const emailColumn = await within(table).findByText('Email');
-    const rolesColumn = await within(table).findByText('Roles');
-    const actionsColumn = await within(table).findByText('Actions');
-    const activeColumn = await within(table).findByText('Is active?');
+    const fnameColumn = await within(table).findByTitle('First name');
+    const lnameColumn = await within(table).findByTitle('Last name');
+    const usernameColumn = await within(table).findByTitle('Username');
+    const emailColumn = await within(table).findByTitle('Email');
+    const rolesColumn = await within(table).findByTitle('Roles');
+    const actionsColumn = await within(table).findByTitle('Actions');
+    const activeColumn = await within(table).findByTitle('Is active?');
 
     expect(fnameColumn).toBeInTheDocument();
     expect(lnameColumn).toBeInTheDocument();
@@ -168,7 +169,7 @@ describe('UsersList', () => {
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  it('opens add modal when Add User button is clicked', async () => {
+  test('opens add modal when Add User button is clicked', async () => {
     await renderAndWait();
 
     const addButton = screen.getByTestId('add-user-button');
@@ -177,7 +178,7 @@ describe('UsersList', () => {
     expect(screen.queryByTestId('Add User-modal')).toBeInTheDocument();
   });
 
-  it('open edit modal when edit button is clicked', async () => {
+  test('open edit modal when edit button is clicked', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');

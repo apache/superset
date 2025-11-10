@@ -24,12 +24,13 @@ import {
 
 import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sliceEntities reducer', () => {
-  it('should return initial state', () => {
+  test('should return initial state', () => {
     expect(sliceEntitiesReducer({}, {})).toEqual({});
   });
 
-  it('should set loading when fetching slices', () => {
+  test('should set loading when fetching slices', () => {
     expect(
       sliceEntitiesReducer(
         { isLoading: false },
@@ -38,7 +39,7 @@ describe('sliceEntities reducer', () => {
     ).toBe(true);
   });
 
-  it('should set slices', () => {
+  test('should set slices', () => {
     const result = sliceEntitiesReducer(
       { slices: { a: {} } },
       { type: ADD_SLICES, payload: { slices: { 1: {}, 2: {} } } },
@@ -52,7 +53,7 @@ describe('sliceEntities reducer', () => {
     expect(result.isLoading).toBe(false);
   });
 
-  it('should set an error on error', () => {
+  test('should set an error on error', () => {
     const result = sliceEntitiesReducer(
       {},
       {

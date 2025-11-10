@@ -99,7 +99,7 @@ jobs:
           run: testdata
       - name: Setup Node.js
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies

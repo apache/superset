@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Test comment for pre-commit
 import {
   forwardRef,
-  Key,
   ReactNode,
   RefObject,
   useCallback,
@@ -40,21 +40,21 @@ import {
   isFeatureEnabled,
   QueryFormData,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { RootState } from 'src/dashboard/types';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from '@superset-ui/core/components';
 import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { DrillDetailMenuItems } from '../DrillDetail';
+import { useDrillDetailMenuItems } from '../useDrillDetailMenuItems';
 import { getMenuAdjustedY } from '../utils';
-import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
-import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
+import { DrillBySubmenu } from '../DrillBy/DrillBySubmenu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -94,8 +94,8 @@ const ChartContextMenu = (
   }: ChartContextMenuProps,
   ref: RefObject<ChartContextMenuRef>,
 ) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
+  const theme = useTheme();
   const { canDrillToDetail, canDrillBy, canDownload } = usePermissions();
 
   const crossFiltersEnabled = useSelector<RootState, boolean>(
@@ -104,7 +104,6 @@ const ChartContextMenu = (
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
@@ -160,7 +159,6 @@ const ChartContextMenu = (
 
   const closeContextMenu = useCallback(() => {
     setVisible(false);
-    setOpenKeys([]);
     onClose();
   }, [onClose]);
 
@@ -177,7 +175,7 @@ const ChartContextMenu = (
     setShowDrillByModal(false);
   }, []);
 
-  const menuItems: React.JSX.Element[] = [];
+  const menuItems: MenuItem[] = [];
 
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DrillToDetail) &&
@@ -264,6 +262,20 @@ const ChartContextMenu = (
     itemsCount = 1; // "No actions" appears if no actions in menu
   }
 
+  const drillDetailMenuItems = useDrillDetailMenuItems({
+    formData: drillFormData,
+    filters: filters?.drillToDetail,
+    setFilters,
+    isContextMenu: true,
+    contextMenuY: clientY,
+    onSelection,
+    submenuIndex: showCrossFilters ? 2 : 1,
+    setShowModal: setDrillModalIsOpen,
+    dataset: filteredDataset,
+    isLoadingDataset,
+    ...additionalConfig?.drillToDetail,
+  });
+
   if (showCrossFilters) {
     const isCrossFilterDisabled =
       !isCrossFilteringSupportedByChart ||
@@ -305,74 +317,65 @@ const ChartContextMenu = (
         </>
       );
     }
+
     menuItems.push(
-      <>
-        <Menu.Item
-          key="cross-filtering-menu-item"
-          disabled={isCrossFilterDisabled}
-          onClick={() => {
-            if (filters?.crossFilter) {
-              dispatch(updateDataMask(id, filters.crossFilter.dataMask));
-            }
-          }}
-        >
-          {filters?.crossFilter?.isCurrentValueSelected ? (
-            t('Remove cross-filter')
-          ) : (
-            <div>
-              {t('Add cross-filter')}
-              <MenuItemTooltip
-                title={crossFilteringTooltipTitle}
-                color={!isCrossFilterDisabled ? theme.colorIcon : undefined}
-              />
-            </div>
-          )}
-        </Menu.Item>
-        {itemsCount > 1 && <Menu.Divider />}
-      </>,
+      {
+        key: 'cross-filtering-menu-item',
+        label: filters?.crossFilter?.isCurrentValueSelected ? (
+          t('Remove cross-filter')
+        ) : (
+          <span>
+            {t('Add cross-filter')}
+            <MenuItemTooltip
+              title={crossFilteringTooltipTitle}
+              color={!isCrossFilterDisabled ? theme.colorIcon : undefined}
+            />
+          </span>
+        ),
+        disabled: isCrossFilterDisabled,
+        onClick: () => {
+          if (filters?.crossFilter) {
+            dispatch(updateDataMask(id, filters.crossFilter.dataMask));
+          }
+        },
+      },
+      ...(itemsCount > 1
+        ? [{ key: 'divider-1', type: 'divider' as const }]
+        : []),
     );
   }
   if (showDrillToDetail) {
-    menuItems.push(
-      <DrillDetailMenuItems
-        formData={drillFormData}
-        filters={filters?.drillToDetail}
-        setFilters={setFilters}
-        isContextMenu
-        contextMenuY={clientY}
-        onSelection={onSelection}
-        submenuIndex={showCrossFilters ? 2 : 1}
-        setShowModal={setDrillModalIsOpen}
-        dataset={filteredDataset}
-        isLoadingDataset={isLoadingDataset}
-        {...(additionalConfig?.drillToDetail || {})}
-      />,
-    );
+    menuItems.push(...drillDetailMenuItems);
   }
+
   if (showDrillBy) {
-    let submenuIndex = 0;
-    if (showCrossFilters) {
-      submenuIndex += 1;
+    if (menuItems.length > 0) {
+      menuItems.push({ key: 'divider-drill-by', type: 'divider' as const });
     }
-    if (showDrillToDetail) {
-      submenuIndex += 2;
-    }
-    menuItems.push(
-      <DrillByMenuItems
-        drillByConfig={enhancedFilters?.drillBy}
-        onSelection={onSelection}
-        onCloseMenu={closeContextMenu}
-        formData={formData}
-        contextMenuY={clientY}
-        submenuIndex={submenuIndex}
-        open={openKeys.includes('drill-by-submenu')}
-        key="drill-by-submenu"
-        onDrillBy={handleDrillBy}
-        dataset={filteredDataset}
-        isLoadingDataset={isLoadingDataset}
-        {...(additionalConfig?.drillBy || {})}
-      />,
-    );
+
+    const hasDrillBy = enhancedFilters?.drillBy?.groupbyFieldName;
+    const handlesDimensionContextMenu = getChartMetadataRegistry()
+      .get(formData.viz_type)
+      ?.behaviors.find(behavior => behavior === Behavior.DrillBy);
+    const isDrillByDisabled = !handlesDimensionContextMenu || !hasDrillBy;
+
+    // Add a custom render component for DrillBy submenu to support react-window
+    menuItems.push({
+      key: 'drill-by-submenu',
+      disabled: isDrillByDisabled,
+      label: (
+        <DrillBySubmenu
+          drillByConfig={enhancedFilters?.drillBy}
+          onSelection={onSelection}
+          onCloseMenu={closeContextMenu}
+          formData={formData}
+          onDrillBy={handleDrillBy}
+          dataset={filteredDataset}
+          isLoadingDataset={isLoadingDataset}
+          {...(additionalConfig?.drillBy || {})}
+        />
+      ),
+    });
   }
 
   const open = useCallback(
@@ -404,30 +407,22 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <>
       <Dropdown
-        popupRender={() => (
-          <Menu
-            className="chart-context-menu"
-            data-test="chart-context-menu"
-            onOpenChange={setOpenKeys}
-            onClick={() => {
-              setVisible(false);
-              setOpenKeys([]);
-              onClose();
-            }}
-          >
-            {menuItems.length ? (
-              menuItems
-            ) : (
-              <Menu.Item disabled>{t('No actions')}</Menu.Item>
-            )}
-          </Menu>
+        menu={{
+          items:
+            menuItems.length > 0
+              ? menuItems
+              : [{ key: 'no-actions', label: t('No actions'), disabled: true }],
+          onClick: () => {
+            setVisible(false);
+            onClose();
+          },
+        }}
+        dropdownRender={menu => (
+          <div data-test="chart-context-menu">{menu}</div>
         )}
         trigger={['click']}
         onOpenChange={value => {
           setVisible(value);
-          if (!value) {
-            setOpenKeys([]);
-          }
         }}
         open={visible}
       >

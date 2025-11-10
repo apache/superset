@@ -22,16 +22,14 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-  styled,
   t,
-  css,
-  useTheme,
   logging,
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { Tooltip } from '@superset-ui/core/components';
@@ -371,15 +369,6 @@ function ExploreViewContainer(props) {
     props.form_data,
   ]);
 
-  // Simple debounced auto-query for non-renderTrigger controls
-  const debouncedAutoQuery = useMemo(
-    () =>
-      debounce(() => {
-        onQuery();
-      }, 1000), // 1 second delay
-    [onQuery],
-  );
-
   const handleKeydown = useCallback(
     event => {
       const controlOrCommand = event.ctrlKey || event.metaKey;
@@ -573,25 +562,8 @@ function ExploreViewContainer(props) {
       if (displayControlsChanged.length > 0) {
         reRenderChart(displayControlsChanged);
       }
-
-      // Auto-update for non-renderTrigger controls
-      const queryControlsChanged = changedControlKeys.filter(
-        key =>
-          !props.controls[key].renderTrigger &&
-          !props.controls[key].dontRefreshOnChange,
-      );
-      if (queryControlsChanged.length > 0) {
-        // Check if there are no validation errors before auto-updating
-        const hasErrors = Object.values(props.controls).some(
-          control =>
-            control.validationErrors && control.validationErrors.length > 0,
-        );
-        if (!hasErrors) {
-          debouncedAutoQuery();
-        }
-      }
     }
-  }, [props.controls, props.ownState, debouncedAutoQuery]);
+  }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {

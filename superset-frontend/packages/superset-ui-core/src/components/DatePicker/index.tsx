@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatePicker as AntdDatePicker } from 'antd';
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import type { DatePickerProps, RangePickerProps } from './types';
 
 export const DatePicker = (props: DatePickerProps) => (

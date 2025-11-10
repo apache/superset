@@ -19,7 +19,8 @@
 
 import '@testing-library/jest-dom';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
@@ -203,7 +204,13 @@ describe('SuperChartCore', () => {
       );
 
       await waitFor(() => {
-        expect(container).toBeEmptyDOMElement();
+        // Should not render any chart content, only the antd App wrapper
+        expect(
+          container.querySelector('.test-component'),
+        ).not.toBeInTheDocument();
+        expect(
+          container.querySelector('[data-test="chart-container"]'),
+        ).not.toBeInTheDocument();
       });
     });
   });

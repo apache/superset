@@ -49,7 +49,7 @@ const dataMask: DataMaskStateWithId = {
   },
 };
 
-it('datamask didnt change - both triggers set to false', () => {
+test('datamask didnt change - both triggers set to false', () => {
   const previousDataMask = cloneDeep(dataMask);
   expect(getDataMaskChangeTrigger(dataMask, previousDataMask)).toEqual({
     crossFiltersChanged: false,
@@ -57,7 +57,7 @@ it('datamask didnt change - both triggers set to false', () => {
   });
 });
 
-it('a native filter changed - nativeFiltersChanged set to true', () => {
+test('a native filter changed - nativeFiltersChanged set to true', () => {
   const previousDataMask = cloneDeep(dataMask);
   previousDataMask['NATIVE_FILTER-1'].filterState!.value = 'test';
   expect(getDataMaskChangeTrigger(dataMask, previousDataMask)).toEqual({
@@ -66,7 +66,7 @@ it('a native filter changed - nativeFiltersChanged set to true', () => {
   });
 });
 
-it('a cross filter changed - crossFiltersChanged set to true', () => {
+test('a cross filter changed - crossFiltersChanged set to true', () => {
   const previousDataMask = cloneDeep(dataMask);
   previousDataMask['1'].filterState!.value = 'test';
   expect(getDataMaskChangeTrigger(dataMask, previousDataMask)).toEqual({

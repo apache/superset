@@ -21,9 +21,9 @@ import {
   BaseFormData,
   QueryData,
   SuperChart,
-  css,
   ContextMenuFilters,
 } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Dataset } from '../types';
 
 interface DrillByChartProps {
