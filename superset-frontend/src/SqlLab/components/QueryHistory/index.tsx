@@ -21,14 +21,8 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
-import {
-  t,
-  styled,
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-  useTheme,
-} from '@superset-ui/core';
+import { t, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';

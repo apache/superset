@@ -18,7 +18,8 @@
  */
 import { useEffect, useRef, useMemo } from 'react';
 import { Select } from '@superset-ui/core/components';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -88,7 +89,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           ),
         ),
       ),
-    [sqlKeywords],
+    [options],
   );
 
   const selectOptions = useMemo(
@@ -97,7 +98,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
         label: clause,
         value: clause,
       })),
-    [Clauses],
+    [],
   );
 
   return (

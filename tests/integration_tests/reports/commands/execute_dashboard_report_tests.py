@@ -20,8 +20,10 @@ from uuid import uuid4
 
 import pytest
 from flask import current_app
+from sqlalchemy.orm.exc import StaleDataError
 
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSourceFormat
@@ -117,4 +119,41 @@ def test_report_with_header_data(
         assert header_data.get("notification_format") == report_schedule.report_format
         assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
         assert header_data.get("notification_type") == report_schedule.type
-        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 8
+
+
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.commands.report.execute.DashboardScreenshot")
+@pytest.mark.usefixtures("login_as_admin")
+def test_report_schedule_stale_data_error_preserves_cause(
+    dashboard_screenshot_mock: MagicMock,
+    send_email_smtp_mock: MagicMock,
+    tabbed_dashboard: Dashboard,  # noqa: F811
+) -> None:
+    """
+    Test that when db.session.commit raises StaleDataError during logging,
+    we surface ReportScheduleUnexpectedError while preserving the original
+    StaleDataError as the cause.
+    """
+    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+
+    with create_dashboard_report(
+        dashboard=tabbed_dashboard,
+        extra={},
+        name="test stale data error",
+    ) as report_schedule:
+        # Mock db.session.commit to raise StaleDataError during log creation
+        with patch("superset.db.session.commit") as mock_commit:
+            mock_commit.side_effect = StaleDataError("test stale data")
+
+            # Execute the report and expect ReportScheduleUnexpectedError
+            with pytest.raises(ReportScheduleUnexpectedError) as exc_info:
+                AsyncExecuteReportScheduleCommand(
+                    str(uuid4()), report_schedule.id, datetime.utcnow()
+                ).run()
+
+            # Verify the original StaleDataError is preserved as the cause
+            assert exc_info.value.__cause__ is not None
+            assert isinstance(exc_info.value.__cause__, StaleDataError)
+            assert str(exc_info.value.__cause__) == "test stale data"

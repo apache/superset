@@ -265,3 +265,29 @@ test('uses exploreBackend from Redux state when available', async () => {
   expect(formatCallBody.engine).toBe('postgresql');
   expect(fetchMock.calls(datasetApiEndpoint)).toHaveLength(0);
 });
+
+test('sends engine as string (not object) when fetched from dataset API', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(fetchMock.calls(datasetApiEndpoint)).toHaveLength(1);
+  });
+
+  await waitFor(() => {
+    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1);
+  });
+
+  const formatCallBody = JSON.parse(
+    fetchMock.lastCall(formatSqlEndpoint)?.[1]?.body as string,
+  );
+
+  expect(formatCallBody).toEqual({
+    sql: mockProps.sql,
+    engine: 'sqlite',
+  });
+});

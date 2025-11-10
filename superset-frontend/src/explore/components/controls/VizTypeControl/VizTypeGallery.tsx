@@ -31,15 +31,17 @@ import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {
   t,
-  styled,
-  css,
   ChartMetadata,
-  SupersetTheme,
-  useTheme,
   chartLabelWeight,
   chartLabelExplanations,
-  isThemeDark,
 } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+  isThemeDark,
+} from '@apache-superset/core/ui';
 import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
