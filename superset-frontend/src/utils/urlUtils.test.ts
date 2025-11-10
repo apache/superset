@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { isUrlExternal, parseUrl, toQueryString, getDashboardUrlParams } from './urlUtils';
+import {
+  isUrlExternal,
+  parseUrl,
+  toQueryString,
+  getDashboardUrlParams,
+} from './urlUtils';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -109,7 +114,7 @@ test('getDashboardUrlParams should exclude edit parameter by default', () => {
 
   const urlParams = getDashboardUrlParams(['edit']);
   const paramNames = urlParams.map(([key]) => key);
-  
+
   expect(paramNames).not.toContain('edit');
   expect(paramNames).toContain('standalone');
   expect(paramNames).toContain('expand_filters');
@@ -132,7 +137,7 @@ test('getDashboardUrlParams should include edit parameter when not explicitly ex
   // Call without excluding edit parameter
   const urlParams = getDashboardUrlParams([]);
   const paramNames = urlParams.map(([key]) => key);
-  
+
   expect(paramNames).toContain('edit');
   expect(paramNames).toContain('standalone');
 
@@ -153,7 +158,7 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
 
   const urlParams = getDashboardUrlParams(['edit', 'debug']);
   const paramNames = urlParams.map(([key]) => key);
-  
+
   expect(paramNames).not.toContain('edit');
   expect(paramNames).not.toContain('debug');
   expect(paramNames).toContain('standalone');
