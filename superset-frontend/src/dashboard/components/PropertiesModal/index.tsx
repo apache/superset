@@ -171,10 +171,12 @@ const PropertiesModal = ({
         is_managed_externally,
         theme,
         css,
+        description,
       } = dashboardData;
       const dashboardInfo = {
         id,
         title: dashboard_title,
+        description: description || '',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
