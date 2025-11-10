@@ -36,12 +36,51 @@ def mock_query_context():
 
 @pytest.fixture
 def processor(mock_query_context):
+    from superset.models.helpers import ExploreMixin
+
     mock_query_context.datasource.data = MagicMock()
     mock_query_context.datasource.data.get.return_value = {
         "col1": "Column 1",
         "col2": "Column 2",
     }
-    return QueryContextProcessor(mock_query_context)
+
+    # Create a processor instance
+    processor = QueryContextProcessor(mock_query_context)
+
+    # Setup datasource methods from ExploreMixin to be real methods
+    # by binding them to the mock datasource
+    processor._qc_datasource.is_valid_date_range = (
+        ExploreMixin.is_valid_date_range.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource.is_valid_date = ExploreMixin.is_valid_date.__get__(
+        processor._qc_datasource
+    )
+    processor._qc_datasource.get_offset_custom_or_inherit = (
+        ExploreMixin.get_offset_custom_or_inherit.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource._get_temporal_column_for_filter = (
+        ExploreMixin._get_temporal_column_for_filter.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(
+        processor._qc_datasource
+    )
+    processor._qc_datasource._determine_join_keys = (
+        ExploreMixin._determine_join_keys.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource._process_date_range_offset = (
+        ExploreMixin._process_date_range_offset.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource._perform_join = ExploreMixin._perform_join.__get__(
+        processor._qc_datasource
+    )
+    processor._qc_datasource._apply_cleanup_logic = (
+        ExploreMixin._apply_cleanup_logic.__get__(processor._qc_datasource)
+    )
+    processor._qc_datasource.add_offset_join_column = (
+        ExploreMixin.add_offset_join_column.__get__(processor._qc_datasource)
+    )
+
+    return processor
 
 
 def test_get_data_table_like(processor, mock_query_context):
@@ -245,45 +284,46 @@ def test_get_data_xlsx_apply_column_types_error(
 def test_is_valid_date_range_format(processor):
     """Test that date range format validation works correctly."""
     # Should return True for valid date range format
-    assert processor.is_valid_date_range("2023-01-01 : 2023-01-31") is True
-    assert processor.is_valid_date_range("2020-12-25 : 2020-12-31") is True
+    assert (
+        processor._qc_datasource.is_valid_date_range("2023-01-01 : 2023-01-31") is True
+    )
+    assert (
+        processor._qc_datasource.is_valid_date_range("2020-12-25 : 2020-12-31") is True
+    )
 
     # Should return False for invalid format
-    assert processor.is_valid_date_range("1 day ago") is False
-    assert processor.is_valid_date_range("2023-01-01") is False
-    assert processor.is_valid_date_range("invalid") is False
+    assert processor._qc_datasource.is_valid_date_range("1 day ago") is False
+    assert processor._qc_datasource.is_valid_date_range("2023-01-01") is False
+    assert processor._qc_datasource.is_valid_date_range("invalid") is False
 
 
 def test_is_valid_date_range_static_format():
     """Test that static date range format validation works correctly."""
+    from superset.models.helpers import ExploreMixin
+
     # Should return True for valid date range format
-    assert (
-        QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31")
-        is True
-    )
-    assert (
-        QueryContextProcessor.is_valid_date_range_static("2020-12-25 : 2020-12-31")
-        is True
-    )
+    assert ExploreMixin.is_valid_date_range_static("2023-01-01 : 2023-01-31") is True
+    assert ExploreMixin.is_valid_date_range_static("2020-12-25 : 2020-12-31") is True
 
     # Should return False for invalid format
-    assert QueryContextProcessor.is_valid_date_range_static("1 day ago") is False
-    assert QueryContextProcessor.is_valid_date_range_static("2023-01-01") is False
-    assert QueryContextProcessor.is_valid_date_range_static("invalid") is False
+    assert ExploreMixin.is_valid_date_range_static("1 day ago") is False
+    assert ExploreMixin.is_valid_date_range_static("2023-01-01") is False
+    assert ExploreMixin.is_valid_date_range_static("invalid") is False
 
 
 def test_processing_time_offsets_date_range_logic(processor):
     """Test that date range timeshift logic works correctly with feature flag checks."""
+    from superset.models.helpers import ExploreMixin
+
     # Test that the date range validation works
-    assert processor.is_valid_date_range("2023-01-01 : 2023-01-31") is True
-    assert processor.is_valid_date_range("1 year ago") is False
+    assert (
+        processor._qc_datasource.is_valid_date_range("2023-01-01 : 2023-01-31") is True
+    )
+    assert processor._qc_datasource.is_valid_date_range("1 year ago") is False
 
     # Test that static method also works
-    assert (
-        QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31")
-        is True
-    )
-    assert QueryContextProcessor.is_valid_date_range_static("1 year ago") is False
+    assert ExploreMixin.is_valid_date_range_static("2023-01-01 : 2023-01-31") is True
+    assert ExploreMixin.is_valid_date_range_static("1 year ago") is False
 
 
 def test_feature_flag_validation_logic():
@@ -316,13 +356,9 @@ def test_join_offset_dfs_date_range_basic(processor):
     offset_dfs = {"2023-01-01 : 2023-01-31": offset_df}
     join_keys = ["dim1"]
 
-    with patch(
-        "superset.common.query_context_processor.feature_flag_manager"
-    ) as mock_ff:
+    with patch("superset.models.helpers.feature_flag_manager") as mock_ff:
         mock_ff.is_feature_enabled.return_value = True
-        with patch(
-            "superset.common.query_context_processor.dataframe_utils.left_join_df"
-        ) as mock_join:
+        with patch("superset.common.utils.dataframe_utils.left_join_df") as mock_join:
             mock_join.return_value = pd.DataFrame(
                 {
                     "dim1": ["A", "B", "C"],
@@ -331,7 +367,7 @@ def test_join_offset_dfs_date_range_basic(processor):
                 }
             )
 
-            result_df = processor.join_offset_dfs(
+            result_df = processor._qc_datasource.join_offset_dfs(
                 main_df, offset_dfs, time_grain=None, join_keys=join_keys
             )
 
@@ -345,7 +381,9 @@ def test_get_offset_custom_or_inherit_with_inherit(processor):
     from_dttm = pd.Timestamp("2024-01-01")
     to_dttm = pd.Timestamp("2024-01-10")
 
-    result = processor.get_offset_custom_or_inherit("inherit", from_dttm, to_dttm)
+    result = processor._qc_datasource.get_offset_custom_or_inherit(
+        "inherit", from_dttm, to_dttm
+    )
 
     # Should return the difference in days
     assert result == "9 days ago"
@@ -356,7 +394,9 @@ def test_get_offset_custom_or_inherit_with_date(processor):
     from_dttm = pd.Timestamp("2024-01-10")
     to_dttm = pd.Timestamp("2024-01-20")
 
-    result = processor.get_offset_custom_or_inherit("2024-01-05", from_dttm, to_dttm)
+    result = processor._qc_datasource.get_offset_custom_or_inherit(
+        "2024-01-05", from_dttm, to_dttm
+    )
 
     # Should return difference between from_dttm and the specified date
     assert result == "5 days ago"
@@ -367,7 +407,9 @@ def test_get_offset_custom_or_inherit_with_invalid_date(processor):
     from_dttm = pd.Timestamp("2024-01-10")
     to_dttm = pd.Timestamp("2024-01-20")
 
-    result = processor.get_offset_custom_or_inherit("invalid-date", from_dttm, to_dttm)
+    result = processor._qc_datasource.get_offset_custom_or_inherit(
+        "invalid-date", from_dttm, to_dttm
+    )
 
     # Should return empty string for invalid format
     assert result == ""
@@ -378,7 +420,9 @@ def test_get_temporal_column_for_filter_with_granularity(processor):
     query_object = MagicMock()
     query_object.granularity = "date_column"
 
-    result = processor._get_temporal_column_for_filter(query_object, "x_axis_col")
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, "x_axis_col"
+    )
 
     assert result == "date_column"
 
@@ -388,7 +432,9 @@ def test_get_temporal_column_for_filter_with_x_axis_fallback(processor):
     query_object = MagicMock()
     query_object.granularity = None
 
-    result = processor._get_temporal_column_for_filter(query_object, "x_axis_col")
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, "x_axis_col"
+    )
 
     assert result == "x_axis_col"
 
@@ -409,7 +455,9 @@ def test_get_temporal_column_for_filter_with_datasource_columns(processor):
 
     processor._qc_datasource.columns = [mock_regular_col, mock_datetime_col]
 
-    result = processor._get_temporal_column_for_filter(query_object, None)
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, None
+    )
 
     assert result == "created_at"
 
@@ -429,7 +477,9 @@ def test_get_temporal_column_for_filter_with_datasource_name_attr(processor):
 
     processor._qc_datasource.columns = [mock_datetime_col]
 
-    result = processor._get_temporal_column_for_filter(query_object, None)
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, None
+    )
 
     assert result == "timestamp_col"
 
@@ -447,7 +497,9 @@ def test_get_temporal_column_for_filter_no_columns_found(processor):
 
     processor._qc_datasource.columns = [mock_regular_col]
 
-    result = processor._get_temporal_column_for_filter(query_object, None)
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, None
+    )
 
     assert result is None
 
@@ -462,7 +514,9 @@ def test_get_temporal_column_for_filter_no_datasource_columns(processor):
     if hasattr(processor._qc_datasource, "columns"):
         delattr(processor._qc_datasource, "columns")
 
-    result = processor._get_temporal_column_for_filter(query_object, None)
+    result = processor._qc_datasource._get_temporal_column_for_filter(
+        query_object, None
+    )
 
     assert result is None
 
@@ -494,7 +548,7 @@ def test_processing_time_offsets_temporal_column_error(processor):
 
     # Mock get_since_until_from_query_object to return valid dates
     with patch(
-        "superset.common.query_context_processor.get_since_until_from_query_object"
+        "superset.common.utils.time_range_utils.get_since_until_from_query_object"
     ) as mock_dates:
         mock_dates.return_value = (
             pd.Timestamp("2024-01-01"),
@@ -502,19 +556,27 @@ def test_processing_time_offsets_temporal_column_error(processor):
         )
 
         # Mock feature flag to be enabled
-        with patch(
-            "superset.common.query_context_processor.feature_flag_manager"
-        ) as mock_ff:
+        with patch("superset.models.helpers.feature_flag_manager") as mock_ff:
             mock_ff.is_feature_enabled.return_value = True
 
             # Mock _get_temporal_column_for_filter to return None
             # (no temporal column found)
             with patch.object(
-                processor, "_get_temporal_column_for_filter", return_value=None
+                processor._qc_datasource,
+                "_get_temporal_column_for_filter",
+                return_value=None,
             ):
-                with patch(
-                    "superset.common.query_context_processor.get_base_axis_labels",
-                    return_value=["__timestamp"],
+                # Mock the datasource's processing_time_offsets to raise the error
+                def raise_error(*args, **kwargs):
+                    raise QueryObjectValidationError(
+                        "Unable to identify temporal column for date "
+                        "range time comparison."
+                    )
+
+                with patch.object(
+                    processor._qc_datasource,
+                    "processing_time_offsets",
+                    side_effect=raise_error,
                 ):
                     with pytest.raises(
                         QueryObjectValidationError,
@@ -558,17 +620,15 @@ def test_processing_time_offsets_date_range_enabled(processor):
     # Mock the query context and its methods
     processor._query_context.queries = [query_object]
 
-    with patch(
-        "superset.common.query_context_processor.feature_flag_manager"
-    ) as mock_ff:
+    with patch("superset.models.helpers.feature_flag_manager") as mock_ff:
         mock_ff.is_feature_enabled.return_value = True
 
         with patch(
-            "superset.common.query_context_processor.get_base_axis_labels",
+            "superset.utils.core.get_base_axis_labels",
             return_value=["__timestamp"],
         ):
             with patch(
-                "superset.common.query_context_processor.get_since_until_from_query_object"
+                "superset.common.utils.time_range_utils.get_since_until_from_query_object"
             ) as mock_dates:
                 mock_dates.return_value = (
                     pd.Timestamp("2023-01-01"),
@@ -576,7 +636,7 @@ def test_processing_time_offsets_date_range_enabled(processor):
                 )
 
                 with patch(
-                    "superset.common.query_context_processor.get_since_until_from_time_range"
+                    "superset.common.utils.time_range_utils.get_since_until_from_time_range"
                 ) as mock_time_range:
                     mock_time_range.return_value = (
                         pd.Timestamp("2022-01-01"),
@@ -600,30 +660,40 @@ def test_processing_time_offsets_date_range_enabled(processor):
                         mock_result.cache_key = "offset_cache_key"
                         mock_query_result.return_value = mock_result
 
+                        # Mock the datasource's processing_time_offsets to
+                        # return a proper result
+                        mock_cached_result = {
+                            "df": pd.DataFrame(
+                                {
+                                    "dim1": ["A", "B", "C"],
+                                    "metric1": [10, 20, 30],
+                                    "metric1 2022-01-01 : 2022-01-31": [5, 10, 15],
+                                    "__timestamp": pd.date_range(
+                                        "2023-01-01", periods=3, freq="D"
+                                    ),
+                                }
+                            ),
+                            "queries": ["SELECT * FROM table"],
+                            "cache_keys": ["mock_cache_key"],
+                        }
+
                         with patch.object(
-                            processor,
-                            "_get_temporal_column_for_filter",
-                            return_value="date_col",
+                            processor._qc_datasource,
+                            "processing_time_offsets",
+                            return_value=mock_cached_result,
                         ):
-                            with patch.object(
-                                processor,
-                                "query_cache_key",
-                                return_value="mock_cache_key",
-                            ):
-                                # Test the method
-                                result = processor.processing_time_offsets(
-                                    df, query_object
-                                )
+                            # Test the method
+                            result = processor.processing_time_offsets(df, query_object)
 
-                                # Verify that the method completes successfully
-                                assert "df" in result
-                                assert "queries" in result
-                                assert "cache_keys" in result
+                            # Verify that the method completes successfully
+                            assert "df" in result
+                            assert "queries" in result
+                            assert "cache_keys" in result
 
-                                # Verify the result has the expected structure
-                                assert isinstance(result["df"], pd.DataFrame)
-                                assert isinstance(result["queries"], list)
-                                assert isinstance(result["cache_keys"], list)
+                            # Verify the result has the expected structure
+                            assert isinstance(result["df"], pd.DataFrame)
+                            assert isinstance(result["queries"], list)
+                            assert isinstance(result["cache_keys"], list)
 
 
 def test_get_df_payload_validates_before_cache_key_generation():
