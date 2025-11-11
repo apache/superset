@@ -52,6 +52,7 @@ const VerticalFilterControlTitle = styled.h4`
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colorText};
+  margin: 0;
   ${truncationCSS};
 `;
 
@@ -59,6 +60,7 @@ const HorizontalOverflowFilterControlTitle = styled(
   HorizontalFilterControlTitle,
 )`
   max-width: none;
+  margin: ${({ theme }) => `${theme.sizeUnit * 2}px 0 ${theme.sizeUnit}px`};
 `;
 
 const VerticalFilterControlTitleBox = styled.div`
@@ -161,7 +163,7 @@ const HorizontalFormItem = styled(StyledFormItem)<{
     align-items: center;
   }
 
-  .ant-form-item-label {
+  && > .ant-row > .ant-form-item-label {
     display: flex;
     align-items: center;
     overflow: visible;

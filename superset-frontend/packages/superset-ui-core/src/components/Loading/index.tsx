@@ -34,8 +34,9 @@ const LoaderImg = styled.img`
   }
   &.inline-centered {
     margin: 0 auto;
-    width: 30px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   &.floating {
     padding: 0;
