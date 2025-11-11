@@ -19,13 +19,13 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core';
+import * as themeUtils from '@apache-superset/core/ui/theme/utils/themeUtils';
 import { ThemedAgGridReact } from './index';
-import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
-jest.mock('../../theme/utils/themeUtils', () => ({
-  ...jest.requireActual('../../theme/utils/themeUtils'),
+jest.mock('@apache-superset/core/ui/theme/utils/themeUtils', () => ({
+  ...jest.requireActual('@apache-superset/core/ui/theme/utils/themeUtils'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 

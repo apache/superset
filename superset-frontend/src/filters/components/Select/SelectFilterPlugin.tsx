@@ -28,8 +28,8 @@ import {
   finestTemporalGrainFormatter,
   t,
   tn,
-  styled,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
@@ -317,13 +317,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
+      // When sortMetric is specified, the backend already sorted the data correctly
+      // Don't override the backend's metric-based sorting with frontend alphabetical sorting
+      if (formData.sortMetric) {
+        return 0; // Preserve the original order from the backend
+      }
+
+      // Only apply alphabetical sorting when no sortMetric is specified
       const labelComparator = propertyComparator('label');
       if (formData.sortAscending) {
         return labelComparator(a, b);
       }
       return labelComparator(b, a);
     },
-    [formData.sortAscending],
+    [formData.sortAscending, formData.sortMetric],
   );
 
   // Use effect for initialisation for filter plugin

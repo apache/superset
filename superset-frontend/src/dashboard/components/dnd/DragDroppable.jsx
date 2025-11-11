@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';

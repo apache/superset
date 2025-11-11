@@ -25,7 +25,7 @@ import {
   userEvent,
   RenderResult,
 } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';

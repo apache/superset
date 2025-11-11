@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Comparator,
