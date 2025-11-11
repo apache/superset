@@ -171,7 +171,6 @@ const updateDataset = async (
     body,
   });
 
-  // Clear the dataset cache after updating to ensure fresh data
   clearDatasetCache(datasetId);
 
   return data.json.result;
