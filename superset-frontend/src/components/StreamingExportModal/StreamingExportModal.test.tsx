@@ -46,7 +46,7 @@ beforeEach(() => {
 test('renders modal with streaming state', () => {
   render(<StreamingExportModal {...defaultProps} />);
 
-  expect(screen.getByText('Exporting Data')).toBeInTheDocument();
+  expect(screen.getByText('CSV Export')).toBeInTheDocument();
   expect(
     screen.getByText(/Processing export for test_export.csv/i),
   ).toBeInTheDocument();
