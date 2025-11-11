@@ -410,7 +410,6 @@ class DashboardPutSchema(BaseDashboardSchema):
     description = fields.String(
         metadata={"description": description_description},
         allow_none=True,
-        validate=Length(0, 255),
     )
     slug = fields.String(
         metadata={"description": slug_description},
