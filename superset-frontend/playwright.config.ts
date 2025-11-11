@@ -83,8 +83,12 @@ export default defineConfig({
       // Default project - uses global authentication for speed
       // E2E tests login once via global-setup.ts and reuse auth state
       // Explicitly ignore auth tests (they run in chromium-unauth project)
+      // Also respect the global experimental testIgnore setting
       name: 'chromium',
-      testIgnore: '**/tests/auth/**/*.spec.ts',
+      testIgnore: [
+        '**/tests/auth/**/*.spec.ts',
+        ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
+      ],
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',

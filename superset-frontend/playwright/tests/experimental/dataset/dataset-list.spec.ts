@@ -18,13 +18,13 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
-import { DatasetListPage } from '../../pages/DatasetListPage';
-import { ExplorePage } from '../../pages/ExplorePage';
-import { DeleteConfirmationModal } from '../../components/modals/DeleteConfirmationModal';
-import { Toast } from '../../components/core/Toast';
-import { createTestDataset } from '../../helpers/api/dataset.factories';
-import { apiDeleteDataset } from '../../helpers/api/dataset';
-import { apiDeleteDatabase } from '../../helpers/api/database';
+import { DatasetListPage } from '../../../pages/DatasetListPage';
+import { ExplorePage } from '../../../pages/ExplorePage';
+import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
+import { Toast } from '../../../components/core/Toast';
+import { createTestDataset } from '../../../helpers/api/dataset.factories';
+import { apiDeleteDataset } from '../../../helpers/api/dataset';
+import { apiDeleteDatabase } from '../../../helpers/api/database';
 
 test.describe('Dataset List', () => {
   let datasetListPage: DatasetListPage;
