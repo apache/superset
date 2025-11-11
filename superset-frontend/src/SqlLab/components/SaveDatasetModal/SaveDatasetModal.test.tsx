@@ -61,6 +61,10 @@ jest.mock('src/SqlLab/actions/sqlLab', () => ({
 jest.mock('src/explore/exploreUtils/formData', () => ({
   postFormData: jest.fn(),
 }));
+jest.mock('src/utils/cachedSupersetGet', () => ({
+  ...jest.requireActual('src/utils/cachedSupersetGet'),
+  clearDatasetCache: jest.fn(),
+}));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetModal', () => {
@@ -334,6 +338,73 @@ describe('SaveDatasetModal', () => {
       schema: 'main',
       sql: 'SELECT *',
       templateParams: undefined,
+    });
+  });
+
+  test('clears dataset cache when creating new dataset', async () => {
+    const clearDatasetCache = jest.spyOn(
+      require('src/utils/cachedSupersetGet'),
+      'clearDatasetCache',
+    );
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+
+    const dummyDispatch = jest.fn().mockResolvedValue({ id: 123 });
+    useDispatchMock.mockReturnValue(dummyDispatch);
+    useSelectorMock.mockReturnValue({ ...user });
+    postFormData.mockResolvedValue('chart_key_123');
+
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    await waitFor(() => {
+      expect(clearDatasetCache).toHaveBeenCalledWith(123);
+    });
+  });
+
+  test('clears dataset cache when updating existing dataset', async () => {
+    const clearDatasetCache = jest.spyOn(
+      require('src/utils/cachedSupersetGet'),
+      'clearDatasetCache',
+    );
+
+    fetchMock.put('glob:*/api/v1/dataset/*', {
+      json: { result: { id: 456 } },
+    });
+
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    // Select overwrite existing radio button
+    const overwriteRadioBtn = screen.getByRole('radio', {
+      name: /overwrite existing/i,
+    });
+    userEvent.click(overwriteRadioBtn);
+
+    // Select a dataset from dropdown
+    const dropdown = screen.getByRole('combobox');
+    userEvent.click(dropdown);
+
+    await waitFor(() => {
+      const option = screen.getByText('Some Dataset');
+      userEvent.click(option);
+    });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /overwrite/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    await waitFor(() => {
+      expect(clearDatasetCache).toHaveBeenCalledWith(1);
     });
   });
 });
