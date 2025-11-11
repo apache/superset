@@ -42,7 +42,7 @@ def test_health_check_request_schema():
 def test_health_check_request_forbids_extra_fields():
     """Test that GetHealthCheckRequest forbids unexpected fields."""
     # Should raise validation error when extra fields are provided
-    with pytest.raises(ValidationError, match="extra.*forbidden|unexpected"):
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         GetHealthCheckRequest.model_validate({"unexpected_field": "value"})
 
 
