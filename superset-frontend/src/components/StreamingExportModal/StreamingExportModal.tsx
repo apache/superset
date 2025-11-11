@@ -55,6 +55,7 @@ interface StreamingExportModalProps {
   visible: boolean;
   onCancel: () => void;
   onRetry?: () => void;
+  onDownload?: () => void;
   progress: StreamingProgress;
 }
 
@@ -334,6 +335,7 @@ const StreamingExportModal = ({
   visible,
   onCancel,
   onRetry,
+  onDownload,
   progress,
 }: StreamingExportModalProps) => {
   const { status, downloadUrl, filename } = progress;
@@ -348,6 +350,7 @@ const StreamingExportModal = ({
   const handleDownload = () => {
     if (downloadUrl && filename) {
       triggerFileDownload(downloadUrl, filename);
+      onDownload?.(); // Call onDownload callback if provided
       onCancel();
     }
   };

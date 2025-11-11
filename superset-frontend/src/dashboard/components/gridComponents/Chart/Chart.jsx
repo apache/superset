@@ -39,7 +39,10 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import { URL_PARAMS } from 'src/constants';
+import {
+  URL_PARAMS,
+  DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
+} from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import {
@@ -87,7 +90,6 @@ const propTypes = {
 
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
-const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;
 
 const ChartWrapper = styled.div`
   overflow: hidden;
@@ -199,14 +201,18 @@ const Chart = props => {
     retryExport,
   } = useStreamingExport({
     onComplete: () => {
-      boundActionCreators.addSuccessToast(
-        t('CSV file downloaded successfully'),
-      );
+      // Don't show toast here - wait for user to click Download button
     },
     onError: () => {
       boundActionCreators.addDangerToast(t('Export failed - please try again'));
     },
   });
+
+  const handleDownloadComplete = useCallback(() => {
+    boundActionCreators.addSuccessToast(
+      t('CSV file downloaded successfully'),
+    );
+  }, [boundActionCreators]);
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -686,6 +692,7 @@ const Chart = props => {
           resetExport();
         }}
         onRetry={retryExport}
+        onDownload={handleDownloadComplete}
         progress={progress}
         exportType="csv"
       />

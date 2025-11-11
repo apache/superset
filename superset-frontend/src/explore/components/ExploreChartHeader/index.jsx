@@ -39,6 +39,7 @@ import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
+import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -172,7 +173,7 @@ export const ExploreChartHeader = ({
     [redirectSQLLab, history],
   );
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] =
+  const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
       canDownload,
@@ -344,6 +345,14 @@ export const ExploreChartHeader = ({
         onHide={() => setShowUnsavedChangesModal(false)}
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
+      />
+
+      <StreamingExportModal
+        visible={streamingExportState.isVisible}
+        onCancel={streamingExportState.onCancel}
+        onRetry={streamingExportState.onRetry}
+        onDownload={streamingExportState.onDownload}
+        progress={streamingExportState.progress}
       />
     </>
   );
