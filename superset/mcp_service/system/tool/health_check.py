@@ -43,11 +43,11 @@ async def health_check() -> HealthCheckResponse:
     Returns:
         HealthCheckResponse: Health status and system information
     """
-    try:
-        # Get app name from config
-        app_name = current_app.config.get("APP_NAME", "Superset")
-        service_name = f"{app_name} MCP Service"
+    # Get app name from config (safe to do outside try block)
+    app_name = current_app.config.get("APP_NAME", "Superset")
+    service_name = f"{app_name} MCP Service"
 
+    try:
         # Get version from Superset version metadata
         version_metadata = get_version_metadata()
         version = version_metadata.get("version_string", "unknown")
@@ -67,11 +67,10 @@ async def health_check() -> HealthCheckResponse:
     except Exception as e:
         logger.error("Health check failed: %s", e)
         # Return error status but don't raise to keep tool working
-        # Use fallback values if config access fails
         response = HealthCheckResponse(
             status="error",
             timestamp=datetime.datetime.now().isoformat(),
-            service="Superset MCP Service",
+            service=service_name,
             version="unknown",
             python_version=platform.python_version(),
             platform=platform.system(),
