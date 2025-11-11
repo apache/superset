@@ -17,33 +17,7 @@
 
 """Tests for health_check MCP tool."""
 
-import pytest
-from pydantic import ValidationError
-
-from superset.mcp_service.system.schemas import (
-    GetHealthCheckRequest,
-    HealthCheckResponse,
-)
-
-
-def test_health_check_request_schema():
-    """Test that GetHealthCheckRequest schema allows empty object."""
-    # This should not raise validation errors
-    request = GetHealthCheckRequest()
-
-    # Verify it's a valid schema with no required fields
-    assert request is not None
-
-    # Verify it can be created from empty dict (simulating MCP client)
-    request_from_dict = GetHealthCheckRequest.model_validate({})
-    assert request_from_dict is not None
-
-
-def test_health_check_request_forbids_extra_fields():
-    """Test that GetHealthCheckRequest forbids unexpected fields."""
-    # Should raise validation error when extra fields are provided
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        GetHealthCheckRequest.model_validate({"unexpected_field": "value"})
+from superset.mcp_service.system.schemas import HealthCheckResponse
 
 
 def test_health_check_response_schema():
