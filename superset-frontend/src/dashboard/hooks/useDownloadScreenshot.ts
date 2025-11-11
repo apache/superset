@@ -133,7 +133,7 @@ export const useDownloadScreenshot = (
           anchor,
           activeTabs,
           dataMask,
-          urlParams: getDashboardUrlParams(['edit']),
+          urlParams: getDashboardUrlParams(),
         },
       })
         .then(({ json }) => {
