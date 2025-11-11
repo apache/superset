@@ -38,7 +38,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
-from superset_core.models.base import Chart as CoreChart
+from superset_core.api.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -214,7 +214,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def description_markeddown(self) -> str:
-        return utils.markdown(self.description)
+        return utils.markdown(self.description or "")
 
     @property
     def data(self) -> dict[str, Any]:

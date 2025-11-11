@@ -26,6 +26,8 @@ under the License.
 
 Extensions interact with Superset through well-defined, versioned APIs provided by the `@apache-superset/core` (frontend) and `apache-superset-core` (backend) packages. These APIs are designed to be stable, discoverable, and consistent for both built-in and external extensions.
 
+**Note**: The `superset_core.api` module provides abstract classes that are replaced with concrete implementations via dependency injection when Superset initializes. This allows extensions to use the same interfaces as the host application.
+
 **Frontend APIs** (via `@apache-superset/core)`:
 
 The frontend extension APIs in Superset are organized into logical namespaces such as `authentication`, `commands`, `extensions`, `sqlLab`, and others. Each namespace groups related functionality, making it easy for extension authors to discover and use the APIs relevant to their needs. For example, the `sqlLab` namespace provides events and methods specific to SQL Lab, allowing extensions to react to user actions and interact with the SQL Lab environment:

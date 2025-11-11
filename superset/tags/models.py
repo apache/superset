@@ -37,7 +37,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from superset_core.models.base import Tag as CoreTag
+from superset_core.api.models import Tag as CoreTag
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable

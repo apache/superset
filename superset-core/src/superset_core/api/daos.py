@@ -30,9 +30,15 @@ Usage:
     DatasetDAO.create(attributes={"name": "New Dataset"})
 """
 
-from superset_core.dao.types import BaseDAO
-from superset_core.models.base import (
+from abc import ABC, abstractmethod
+from typing import Any, ClassVar, Generic, TypeVar, Union
+
+from flask_appbuilder.models.filters import BaseFilter
+from sqlalchemy.orm import Query as SQLQuery
+
+from superset_core.api.models import (
     Chart,
+    CoreModel,
     Dashboard,
     Database,
     Dataset,
@@ -42,6 +48,105 @@ from superset_core.models.base import (
     Tag,
     User,
 )
+
+# Type variable bound to our CoreModel
+T = TypeVar("T", bound=CoreModel)
+
+
+class BaseDAO(Generic[T], ABC):
+    """
+    Abstract base class for DAOs.
+
+    This ABC defines the base that all DAOs should implement,
+    providing consistent CRUD operations across Superset and extensions.
+    """
+
+    # Due to mypy limitations, we can't have `type[T]` here
+    model_cls: ClassVar[type[Any] | None]
+    base_filter: ClassVar[BaseFilter | None]
+    id_column_name: ClassVar[str]
+    uuid_column_name: ClassVar[str]
+
+    @classmethod
+    @abstractmethod
+    def find_by_id(
+        cls,
+        model_id: Union[str, int],
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
+    ) -> T | None:
+        """Find a model by ID."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def find_by_id_or_uuid(
+        cls,
+        model_id_or_uuid: str,
+        skip_base_filter: bool = False,
+    ) -> T | None:
+        """Find a model by ID or UUID."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def find_by_ids(
+        cls,
+        model_ids: Union[list[str], list[int]],
+        skip_base_filter: bool = False,
+    ) -> list[T]:
+        """Find models by list of IDs."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def find_all(cls) -> list[T]:
+        """Get all entities that fit the base_filter."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def find_one_or_none(cls, **filter_by: Any) -> T | None:
+        """Get the first entity that fits the base_filter."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def create(
+        cls,
+        item: T | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> T:
+        """Create an object from the specified item and/or attributes."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def update(
+        cls,
+        item: T | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> T:
+        """Update an object from the specified item and/or attributes."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, items: list[T]) -> None:
+        """Delete the specified items."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def query(cls, query: SQLQuery) -> list[T]:
+        """Execute query with base_filter applied."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def filter_by(cls, **filter_by: Any) -> list[T]:
+        """Get all entries that fit the base_filter."""
+        ...
 
 
 class DatasetDAO(BaseDAO[Dataset]):
@@ -175,6 +280,7 @@ class KeyValueDAO(BaseDAO[KeyValue]):
 
 
 __all__ = [
+    "BaseDAO",
     "DatasetDAO",
     "DatabaseDAO",
     "ChartDAO",

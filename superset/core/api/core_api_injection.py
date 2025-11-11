@@ -28,8 +28,8 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy.orm import scoped_session
 
 if TYPE_CHECKING:
+    from superset_core.api.models import Database
     from superset_core.api.rest_api import RestApi
-    from superset_core.models.base import Database
 
 
 __all__ = ["initialize_core_api_dependencies"]
@@ -82,6 +82,8 @@ def inject_model_implementations() -> None:
     """
     Replace abstract model classes in superset_core.api.models with concrete
     implementations from Superset.
+
+    Uses in-place replacement to maintain single import location for extensions.
     """
     import superset_core.api.models as core_models_module
     from flask_appbuilder.security.sqla.models import User as HostUser
@@ -94,7 +96,7 @@ def inject_model_implementations() -> None:
     from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
     from superset.tags.models import Tag as HostTag
 
-    # Replace abstract classes with concrete implementations
+    # In-place replacement - extensions will import concrete implementations
     core_models_module.Database = HostDatabase  # type: ignore[misc]
     core_models_module.Dataset = HostDataset  # type: ignore[misc]
     core_models_module.Chart = HostChart  # type: ignore[misc]
@@ -104,19 +106,6 @@ def inject_model_implementations() -> None:
     core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
     core_models_module.Tag = HostTag  # type: ignore[misc]
     core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
-
-    core_models_module.__all__ = [
-        "Database",
-        "Dataset",
-        "Chart",
-        "Dashboard",
-        "User",
-        "Query",
-        "SavedQuery",
-        "Tag",
-        "KeyValue",
-        "get_session",
-    ]
 
 
 def inject_query_implementations() -> None:

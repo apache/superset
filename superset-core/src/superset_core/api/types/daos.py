@@ -20,8 +20,8 @@
 from abc import ABC, abstractmethod
 from typing import Type
 
-from superset_core.dao.types import BaseDAO
-from superset_core.models.base import CoreModel, Database, Dataset
+from superset_core.api.daos import BaseDAO
+from superset_core.api.models import CoreModel, Database, Dataset
 
 
 class CoreDAOsApi(ABC):

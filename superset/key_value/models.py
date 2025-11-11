@@ -18,7 +18,7 @@ from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import relationship
-from superset_core.models.base import KeyValue as CoreKeyValue
+from superset_core.api.models import KeyValue as CoreKeyValue
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
