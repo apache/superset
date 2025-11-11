@@ -110,7 +110,7 @@ if not database:
 # out inaccessible entities
 session = get_session()
 databases_query = session.query(Database).filter(Database.database_name.ilike("%abc%"))
-databases_containing_abc = DatabaseDAO.find_all()  # Use DAO for security-aware queries
+databases_containing_abc = DatabaseDAO.query(databases_query)  # Execute with security filters
 
 # Bypass security model for highly custom use cases
 session = get_session()

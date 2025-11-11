@@ -35,13 +35,12 @@ from typing import (
 import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
+from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
 from superset_core.api.daos import BaseDAO as CoreBaseDAO
 from superset_core.api.models import CoreModel
 
@@ -441,7 +440,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: BaseQuery) -> list[T]:
+    def query(cls, query: Query) -> list[T]:
         """
         Get all that fit the `base_filter` based on a BaseQuery object
         """

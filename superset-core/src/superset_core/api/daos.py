@@ -34,7 +34,7 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Generic, TypeVar, Union
 
 from flask_appbuilder.models.filters import BaseFilter
-from sqlalchemy.orm import Query as SQLQuery
+from sqlalchemy.orm import Query as SQLAQuery
 
 from superset_core.api.models import (
     Chart,
@@ -138,7 +138,7 @@ class BaseDAO(Generic[T], ABC):
 
     @classmethod
     @abstractmethod
-    def query(cls, query: SQLQuery) -> list[T]:
+    def query(cls, query: SQLAQuery) -> list[T]:
         """Execute query with base_filter applied."""
         ...
 
