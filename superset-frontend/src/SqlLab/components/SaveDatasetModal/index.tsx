@@ -340,7 +340,6 @@ export const SaveDatasetModal = ({
       }),
     )
       .then((data: { id: number }) => {
-        // Clear cache for the newly created dataset
         clearDatasetCache(data.id);
 
         return postFormData(data.id, 'table', {
