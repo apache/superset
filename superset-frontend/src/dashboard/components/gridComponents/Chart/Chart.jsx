@@ -39,10 +39,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import {
-  URL_PARAMS,
-  DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
-} from 'src/constants';
+import { URL_PARAMS, DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import {
@@ -209,9 +206,7 @@ const Chart = props => {
   });
 
   const handleDownloadComplete = useCallback(() => {
-    boundActionCreators.addSuccessToast(
-      t('CSV file downloaded successfully'),
-    );
+    boundActionCreators.addSuccessToast(t('CSV file downloaded successfully'));
   }, [boundActionCreators]);
   const history = useHistory();
   const resize = useCallback(
