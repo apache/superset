@@ -50,7 +50,8 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         json.validate_json(value)
     except json.JSONDecodeError as ex:
-        raise ValidationError("JSON not valid") from ex
+        error_msg = "JSON not valid"
+        raise ValidationError(error_msg) from ex
 
 
 def validate_query_context_metadata(value: bytes | bytearray | str | None) -> None:
@@ -74,7 +75,8 @@ def validate_query_context_metadata(value: bytes | bytearray | str | None) -> No
 
     # Validate required fields exist in the query_context
     if not isinstance(parsed_data, dict):
-        raise ValidationError("Query context must be a valid JSON object")
+        error_msg = "Query context must be a valid JSON object"
+        raise ValidationError(error_msg)
 
     # When query_context is provided (not None), validate it has required fields
     required_fields = {"datasource", "queries"}
