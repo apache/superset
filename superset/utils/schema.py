@@ -66,10 +66,11 @@ def validate_query_context_metadata(value: bytes | bytearray | str | None) -> No
     if value is None or value == "":
         return  # Allow None values and empty strings
 
-    try:
-        parsed_data = json.loads(value)
-    except json.JSONDecodeError as ex:
-        raise ValidationError("JSON not valid") from ex
+    # Reuse existing JSON validation logic
+    validate_json(value)
+
+    # Parse and validate the structure
+    parsed_data = json.loads(value)
 
     # Validate required fields exist in the query_context
     if not isinstance(parsed_data, dict):
