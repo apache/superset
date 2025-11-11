@@ -27,6 +27,7 @@ import {
 import { Row, FilterValue } from 'react-table';
 import { t, tn } from '@apache-superset/core/translation';
 import { Input, type InputRef, Space } from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {

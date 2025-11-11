@@ -254,12 +254,12 @@ function SearchInput({
   inputRef,
 }: SearchInputProps) {
   return (
-    <Space direction="horizontal" size={4} className="dt-global-filter">
+    <Space direction="vertical" size={4} className="dt-global-filter">
       {t('Search')}
       <Input
         aria-label={t('Search %s records', count)}
-        placeholder={tn('%s record', '%s records...', count, count)}
         value={value}
+        size="small"
         onChange={onChange}
         onBlur={onBlur}
         ref={inputRef}
@@ -276,18 +276,18 @@ function SelectPageSize({
   const { Option } = Select;
 
   return (
-    <span className="dt-select-page-size">
+    <Space direction="vertical" size={4} className="dt-select-page-size">
       <VisuallyHidden htmlFor="pageSizeSelect">
         {t('Select page size')}
       </VisuallyHidden>
-      {t('Show')}{' '}
+      {t('Entries per page')}
       <Select<number>
         id="pageSizeSelect"
         value={current}
         onChange={value => onChange(value)}
         size="small"
         css={(theme: SupersetTheme) => css`
-          width: ${theme.sizeUnit * 18}px;
+          width: ${theme.sizeUnit * 30}px;
         `}
         aria-label={t('Show entries per page')}
       >
@@ -301,9 +301,8 @@ function SelectPageSize({
             </Option>
           );
         })}
-      </Select>{' '}
-      {t('entries per page')}
-    </span>
+      </Select>
+    </Space>
   );
 }
 
