@@ -80,10 +80,9 @@ const BasicInfoSection = ({
         bottomSpacing={false}
       >
         <FormItem name="description" noStyle>
-          <Input
+          <Input.TextArea
             placeholder={t('A description for your dashboard')}
             data-test="dashboard-description-input"
-            type="text"
           />
         </FormItem>
       </ModalFormField>
