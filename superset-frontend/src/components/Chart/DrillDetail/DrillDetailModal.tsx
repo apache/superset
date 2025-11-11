@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useContext, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useContext, useMemo, useState } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
@@ -32,37 +31,46 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import { useDashboardFormData } from 'src/dashboard/hooks/useDashboardFormData';
+import { generateExploreUrl } from 'src/explore/exploreUtils/formData';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
   canExplore: boolean;
   closeModal?: () => void;
-  exploreChart: () => void;
+  showEditButton: boolean;
+  onExploreClick?: (event: React.MouseEvent) => void;
+  isGeneratingUrl: boolean;
 }
 
 const ModalFooter = ({
   canExplore,
   closeModal,
-  exploreChart,
+  showEditButton,
+  onExploreClick,
+  isGeneratingUrl,
 }: ModalFooterProps) => {
   const theme = useTheme();
 
   return (
     <>
-      {!isEmbedded() && (
+      {!isEmbedded() && showEditButton && (
         <Button
           buttonStyle="secondary"
           buttonSize="small"
-          onClick={exploreChart}
-          disabled={!canExplore}
+          onClick={canExplore ? onExploreClick : undefined}
+          disabled={!canExplore || isGeneratingUrl}
+          loading={isGeneratingUrl}
           tooltip={
             !canExplore
-              ? t('You do not have sufficient permissions to edit the chart')
+              ? t('You do not have sufficient permissions to explore the chart')
               : undefined
           }
         >
-          {t('Edit chart')}
+          {t('Explore')}
         </Button>
       )}
       <Button
@@ -98,8 +106,10 @@ export default function DrillDetailModal({
   dataset,
 }: DrillDetailModalProps) {
   const theme = useTheme();
-  const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
+  const { addDangerToast } = useToasts();
+  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
+
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
       state.sliceEntities?.slices?.[chartId] || {},
@@ -108,14 +118,65 @@ export default function DrillDetailModal({
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  const exploreUrl = useMemo(
-    () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
-    [chartId, dashboardPageId],
+  const showEditButton = Boolean(dataset?.drill_through_chart_id);
+  const dashboardContextFormData = useDashboardFormData(
+    dataset?.drill_through_chart_id,
   );
 
-  const exploreChart = useCallback(() => {
-    history.push(exploreUrl);
-  }, [exploreUrl, history]);
+  const drillThroughFormData = useMemo(() => {
+    if (!dataset?.drill_through_chart_id || !dataset?.id) {
+      return null;
+    }
+
+    const drillThroughBaseFormData = {
+      slice_id: dataset.drill_through_chart_id,
+      datasource: `${dataset.id}__table`,
+      viz_type: 'table',
+    };
+
+    return getFormDataWithDashboardContext(
+      drillThroughBaseFormData,
+      dashboardContextFormData,
+      undefined,
+      initialFilters,
+    );
+  }, [
+    dataset?.drill_through_chart_id,
+    dataset?.id,
+    dashboardContextFormData,
+    initialFilters,
+  ]);
+  const handleExploreClick = async (event: React.MouseEvent) => {
+    event.preventDefault();
+
+    if (
+      !dataset?.drill_through_chart_id ||
+      !drillThroughFormData ||
+      !dataset?.id
+    ) {
+      return;
+    }
+
+    setIsGeneratingUrl(true);
+
+    try {
+      const url = await generateExploreUrl(
+        dataset.id,
+        'table',
+        drillThroughFormData,
+        {
+          chartId: dataset.drill_through_chart_id,
+          dashboardPageId,
+        },
+      );
+
+      window.location.href = url;
+    } catch (error) {
+      console.error('Failed to generate chart explore URL:', error);
+      addDangerToast(t('Failed to generate chart explore URL'));
+      setIsGeneratingUrl(false);
+    }
+  };
 
   return (
     <Modal
@@ -130,7 +191,12 @@ export default function DrillDetailModal({
       name={t('Drill to detail: %s', chartName)}
       title={t('Drill to detail: %s', chartName)}
       footer={
-        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+        <ModalFooter
+          canExplore={canExplore}
+          showEditButton={showEditButton}
+          onExploreClick={handleExploreClick}
+          isGeneratingUrl={isGeneratingUrl}
+        />
       }
       responsive
       resizable
@@ -150,6 +216,7 @@ export default function DrillDetailModal({
         formData={formData}
         initialFilters={initialFilters}
         dataset={dataset}
+        drillThroughFormData={drillThroughFormData}
       />
     </Modal>
   );

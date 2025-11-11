@@ -16,34 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column, Metric } from '@superset-ui/core';
 
-export enum DrillByType {
-  Chart,
-  Table,
-}
+import { ActiveFilters } from '../types';
 
-export type Dataset = {
-  id?: number;
-  changed_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  changed_on_humanized?: string;
-  created_on_humanized?: string;
-  description?: string;
-  table_name?: string;
-  owners?: {
-    first_name: string;
-    last_name: string;
-  }[];
-  columns?: Column[];
-  drillable_columns?: Column[];
-  metrics?: Metric[];
-  verbose_map?: Record<string, string>;
-  drill_through_chart_id?: number | null;
-};
+/**
+ * Returns the filter IDs that apply to a specific chart based on their scope.
+ * This centralizes the logic for determining which dashboard filters
+ * should be applied to a given chart.
+ *
+ * @param activeFilters - The currently active dashboard filters
+ * @param chartId - The ID of the chart to check filter scope for
+ * @returns Array of filter IDs that apply to the specified chart
+ */
+export const getFilterIdsAppliedOnChart = (
+  activeFilters: ActiveFilters,
+  chartId: number,
+): string[] =>
+  Object.entries(activeFilters)
+    .filter(([, activeFilter]) => activeFilter.scope.includes(chartId))
+    .map(([filterId]) => filterId);

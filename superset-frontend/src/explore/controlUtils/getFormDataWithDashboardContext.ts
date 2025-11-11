@@ -19,6 +19,7 @@
 import { isEqual } from 'lodash';
 import {
   AdhocFilter,
+  BinaryQueryObjectFilterClause,
   ensureIsArray,
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -195,6 +196,7 @@ export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
   saveAction?: string | null,
+  drillToDetailFilters?: BinaryQueryObjectFilterClause[],
 ) => {
   const filterBoxData = mergeFilterBoxToFormData(
     exploreFormData,
@@ -205,6 +207,15 @@ export const getFormDataWithDashboardContext = (
     exploreFormData,
     dashboardContextFormData,
   );
+
+  // Handle drill-to-detail filters (e.g., drill-down filters from context menu)
+  const drillToDetailFiltersData: JsonObject = {};
+  if (drillToDetailFilters && drillToDetailFilters.length > 0) {
+    drillToDetailFiltersData.adhoc_filters = drillToDetailFilters.map(filter =>
+      simpleFilterToAdhoc({ ...filter, isExtra: true }),
+    );
+  }
+
   const isDeckGLChart =
     exploreFormData.viz_type === 'deck_multi' ||
     dashboardContextFormData.viz_type === 'deck_multi';
@@ -215,6 +226,7 @@ export const getFormDataWithDashboardContext = (
     ...Object.keys(exploreFormData),
     ...Object.keys(filterBoxData),
     ...Object.keys(nativeFiltersData),
+    ...Object.keys(drillToDetailFiltersData),
   ]
     .filter(key => key.match(/adhoc_filter.*/))
     .reduce(
@@ -225,6 +237,7 @@ export const getFormDataWithDashboardContext = (
             ...ensureIsArray(exploreFormData[key]),
             ...ensureIsArray(filterBoxData[key]),
             ...ensureIsArray(nativeFiltersData[key]),
+            ...ensureIsArray(drillToDetailFiltersData[key]),
           ];
 
           const afterDuplicates = removeAdhocFilterDuplicates(beforeDuplicates);
@@ -280,6 +293,7 @@ export const getFormDataWithDashboardContext = (
       ...dashboardContextFormData,
       ...filterBoxData,
       ...nativeFiltersData,
+      ...drillToDetailFiltersData,
       ...adhocFilters,
       ...exploreFormData, // Explore form data comes last to override
       own_color_scheme: ownColorScheme,
@@ -296,6 +310,7 @@ export const getFormDataWithDashboardContext = (
     ...dashboardContextFormData,
     ...filterBoxData,
     ...nativeFiltersData,
+    ...drillToDetailFiltersData,
     ...adhocFilters,
     own_color_scheme: ownColorScheme,
     color_scheme: appliedColorScheme,

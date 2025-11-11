@@ -60,8 +60,7 @@ import {
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
-import { postFormData } from 'src/explore/exploreUtils/formData';
+import { generateExploreUrl } from 'src/explore/exploreUtils/formData';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
@@ -74,7 +73,6 @@ import {
   reFetchQueryResults,
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
-import { URL_PARAMS } from 'src/constants';
 import useLogAction from 'src/logger/useLogAction';
 import {
   LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
@@ -280,14 +278,11 @@ const ResultSet = ({
     const openInNewWindow = clickEvent.metaKey;
     logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
     if (results?.query_id) {
-      const key = await postFormData(results.query_id, 'query', {
+      const url = await generateExploreUrl(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
 
         all_columns: results.columns.map(column => column.column_name),
-      });
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
       });
       if (openInNewWindow) {
         window.open(url, '_blank', 'noreferrer');
