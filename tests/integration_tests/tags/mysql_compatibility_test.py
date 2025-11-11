@@ -28,7 +28,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 class TestTagCreationMySQLCompatibility(SupersetTestCase):
     """Test suite to verify the MySQL compatibility fix for tag creation."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         super().setUp()
         # Clean up any existing test tags
@@ -105,8 +105,8 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         ]
 
         created_tags = []
-        for tag_name in tag_names:
-            try:
+        try:
+            for tag_name in tag_names:
                 tag = get_tag(tag_name, db.session, TagType.custom)
                 created_tags.append(tag)
 
@@ -116,11 +116,10 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                 assert not isinstance(tag.name, Markup), (
                     f"Tag '{tag_name}' should NOT be Markup"
                 )
-            except ProgrammingError as e:
-                pytest.fail(
-                    f"ProgrammingError should not occur when creating tag "
-                    f"'{tag_name}': {e}"
-                )
+        except ProgrammingError as e:
+            pytest.fail(
+                f"ProgrammingError should not occur when creating tags: {e}",
+            )
 
         db.session.commit()
 
@@ -261,7 +260,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
 
         except ProgrammingError as e:
             pytest.fail(f"ProgrammingError should not occur during commit: {e}")
-        except Exception as e:
+        except BaseException as e:
             pytest.fail(f"Unexpected error during tag creation and commit: {e}")
 
     def test_tag_name_is_pure_string_type(self):
