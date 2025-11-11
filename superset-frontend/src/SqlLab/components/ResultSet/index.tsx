@@ -83,7 +83,7 @@ import {
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
-import { ensureAppRoot, stripAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
@@ -286,13 +286,20 @@ const ResultSet = ({
 
         all_columns: results.columns.map(column => column.column_name),
       });
-      const url = mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      });
+      const force = false;
+      const includeAppRoot = openInNewWindow;
+      const url = mountExploreUrl(
+        null,
+        {
+          [URL_PARAMS.formDataKey.name]: key,
+        },
+        force,
+        includeAppRoot,
+      );
       if (openInNewWindow) {
         window.open(url, '_blank', 'noreferrer');
       } else {
-        history.push(stripAppRoot(url));
+        history.push(url);
       }
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));

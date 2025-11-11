@@ -345,17 +345,25 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <Image preview={false} src={brand.icon} alt={brand.alt} />
+          <Image
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </GenericLink>
       );
     } else {
       link = (
         <Typography.Link
           className="navbar-brand"
-          href={brand.path}
+          href={ensureAppRoot(brand.path)}
           tabIndex={-1}
         >
-          <Image preview={false} src={brand.icon} alt={brand.alt} />
+          <Image
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </Typography.Link>
       );
     }
