@@ -37,11 +37,29 @@ async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 
+    IMPORTANT: This tool takes NO parameters. Call it without any arguments.
+
     Returns basic system information and confirms the service is running.
     This is useful for testing connectivity and basic functionality.
 
+    Parameters:
+        None - This tool does not accept any parameters
+
     Returns:
-        HealthCheckResponse: Health status and system information
+        HealthCheckResponse: Health status and system information including:
+            - status: "healthy" or "error"
+            - timestamp: ISO format timestamp
+            - service: Service name from APP_NAME config (e.g., "Superset MCP Service")
+            - version: Superset version string
+            - python_version: Python version
+            - platform: Operating system platform
+
+    Example:
+        # Correct - no parameters
+        health_check()
+
+        # Incorrect - do not pass any arguments
+        # health_check(request={})  # This will cause validation errors
     """
     # Get app name from config (safe to do outside try block)
     app_name = current_app.config.get("APP_NAME", "Superset")
