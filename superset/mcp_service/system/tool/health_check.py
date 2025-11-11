@@ -23,14 +23,17 @@ import platform
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.system.schemas import HealthCheckResponse
+from superset.mcp_service.system.schemas import (
+    GetHealthCheckRequest,
+    HealthCheckResponse,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
 @mcp_auth_hook
-async def health_check() -> HealthCheckResponse:
+async def health_check(request: GetHealthCheckRequest) -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 

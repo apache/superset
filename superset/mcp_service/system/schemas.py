@@ -28,6 +28,20 @@ from typing import Dict, List
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GetHealthCheckRequest(BaseModel):
+    """
+    Request schema for health_check tool.
+
+    Currently has no parameters but provides consistent API for future extensibility.
+    This prevents validation errors when MCP clients call the tool with an empty object.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
+
+
 class HealthCheckResponse(BaseModel):
     """Response model for health check.
 
