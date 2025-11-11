@@ -26,6 +26,7 @@ import {
 } from 'react';
 import { Row, FilterValue } from 'react-table';
 import { Input, type InputRef, Space } from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {
@@ -59,7 +60,7 @@ function DefaultSearchInput({
 }: SearchInputProps) {
   return (
     <Space direction="horizontal" size={4} className="dt-global-filter">
-      Search
+      {t('Search')}
       <Input
         size="small"
         ref={inputRef}
