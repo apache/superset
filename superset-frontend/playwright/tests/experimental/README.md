@@ -19,52 +19,98 @@ under the License.
 
 # Experimental Playwright Tests
 
-This directory contains Playwright tests that are still under development or validation.
-
 ## Purpose
 
-Tests in this directory run in "shadow mode" with `continue-on-error: true` in CI:
-- Failures do NOT block PR merges
-- Allows tests to run in CI to validate stability before promotion
-- Provides visibility into test reliability over time
+This directory contains **experimental** Playwright E2E tests that are being developed and stabilized before becoming part of the required test suite.
 
-## Promoting Tests to Stable
+## How Experimental Tests Work
 
-Once a test has proven stable (no false positives/negatives over sufficient time):
+### Running Tests
 
-1. Move the test file out of `experimental/` to the appropriate feature directory:
-   ```bash
-   # From the repository root:
-   git mv superset-frontend/playwright/tests/experimental/dashboard/test.spec.ts \
-          superset-frontend/playwright/tests/dashboard/
-
-   # Or from the superset-frontend/ directory:
-   git mv playwright/tests/experimental/dashboard/test.spec.ts \
-          playwright/tests/dashboard/
-   ```
-
-2. The test will automatically become required for merge
-
-## Test Organization
-
-Organize tests by feature area:
-- `auth/` - Authentication and authorization tests
-- `dashboard/` - Dashboard functionality tests
-- `explore/` - Chart builder tests
-- `sqllab/` - SQL Lab tests
-- etc.
-
-## Running Tests
-
+**By default (CI and local), experimental tests are EXCLUDED:**
 ```bash
-# Run all experimental tests (requires INCLUDE_EXPERIMENTAL env var)
-INCLUDE_EXPERIMENTAL=true npm run playwright:test -- experimental/
-
-# Run specific experimental test
-INCLUDE_EXPERIMENTAL=true npm run playwright:test -- experimental/dashboard/test.spec.ts
-
-# Run in UI mode for debugging
-INCLUDE_EXPERIMENTAL=true npm run playwright:ui -- experimental/
+npm run playwright:test
+# Only runs stable tests (tests/auth/*)
 ```
 
-**Note**: The `INCLUDE_EXPERIMENTAL=true` environment variable is required because experimental tests are filtered out by default in `playwright.config.ts`. Without it, Playwright will report "No tests found".
+**To include experimental tests, set the environment variable:**
+```bash
+INCLUDE_EXPERIMENTAL=true npm run playwright:test
+# Runs all tests including experimental/
+```
+
+### CI Behavior
+
+- **Required CI jobs**: Experimental tests are excluded by default
+  - Tests in `experimental/` do NOT block merges
+  - Failures in `experimental/` do NOT fail the build
+
+- **Experimental CI jobs** (optional): Use `TEST_PATH=experimental/`
+  - `.github/workflows/bashlib.sh` sets `INCLUDE_EXPERIMENTAL=true` when `TEST_PATH` is provided
+  - These jobs can use `continue-on-error: true` for shadow mode
+
+### Configuration
+
+The experimental pattern is configured in `playwright.config.ts`:
+
+```typescript
+testIgnore: process.env.INCLUDE_EXPERIMENTAL
+  ? undefined
+  : '**/experimental/**',
+```
+
+This ensures:
+- Without `INCLUDE_EXPERIMENTAL`: Tests in `experimental/` are ignored
+- With `INCLUDE_EXPERIMENTAL=true`: All tests run, including experimental
+
+## When to Use Experimental
+
+Add tests to `experimental/` when:
+
+1. **Testing new infrastructure** - New page objects, components, or patterns that need real-world validation
+2. **Flaky tests** - Tests that pass locally but have intermittent CI failures that need investigation
+3. **New test types** - E2E tests for new features that need to prove stability before becoming required
+4. **Prototyping** - Experimental approaches that may or may not become standard patterns
+
+## Moving Tests to Stable
+
+Once an experimental test has proven stable (consistent CI passes over time):
+
+1. **Move the test file** from `experimental/` to the appropriate stable directory:
+   ```bash
+   git mv tests/experimental/dataset/my-test.spec.ts tests/dataset/my-test.spec.ts
+   ```
+
+2. **Commit the move** with a clear message:
+   ```bash
+   git commit -m "test(playwright): promote my-test from experimental to stable"
+   ```
+
+3. **Test will now be required** - It will run by default and block merges on failure
+
+## Current Experimental Tests
+
+### Dataset Tests
+
+- **`dataset/dataset-list.spec.ts`** - Dataset list E2E tests
+  - Status: Infrastructure complete, validating stability
+  - Includes: Delete dataset test with API-based test data
+  - Supporting infrastructure: API helpers, Modal components, page objects
+
+## Infrastructure Location
+
+**Important**: Supporting infrastructure (components, page objects, API helpers) should live in **stable locations**, NOT under `experimental/`:
+
+✅ **Correct locations:**
+- `playwright/components/` - Components used by any tests
+- `playwright/pages/` - Page objects for any features
+- `playwright/helpers/api/` - API helpers for test data setup
+
+❌ **Avoid:**
+- `playwright/tests/experimental/components/` - Makes it hard to share infrastructure
+
+This keeps infrastructure reusable and avoids duplication when tests graduate from experimental to stable.
+
+## Questions?
+
+See [Superset Testing Documentation](https://superset.apache.org/docs/contributing/development#testing) or ask in the `#testing` Slack channel.
