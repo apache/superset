@@ -21,12 +21,15 @@ import datetime
 import logging
 import platform
 
+from flask import current_app
+
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.system.schemas import (
     GetHealthCheckRequest,
     HealthCheckResponse,
 )
+from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +47,19 @@ async def health_check(request: GetHealthCheckRequest) -> HealthCheckResponse:
         HealthCheckResponse: Health status and system information
     """
     try:
+        # Get app name from config
+        app_name = current_app.config.get("APP_NAME", "Superset")
+        service_name = f"{app_name} MCP Service"
+
+        # Get version from Superset version metadata
+        version_metadata = get_version_metadata()
+        version = version_metadata.get("version_string", "unknown")
+
         response = HealthCheckResponse(
             status="healthy",
             timestamp=datetime.datetime.now().isoformat(),
-            service="Superset MCP Service",
-            version="1.0.0",
+            service=service_name,
+            version=version,
             python_version=platform.python_version(),
             platform=platform.system(),
         )
@@ -59,11 +70,13 @@ async def health_check(request: GetHealthCheckRequest) -> HealthCheckResponse:
     except Exception as e:
         logger.error("Health check failed: %s", e)
         # Return error status but don't raise to keep tool working
-        return HealthCheckResponse(
+        # Use fallback values if config access fails
+        response = HealthCheckResponse(
             status="error",
             timestamp=datetime.datetime.now().isoformat(),
             service="Superset MCP Service",
-            version="1.0.0",
+            version="unknown",
             python_version=platform.python_version(),
             platform=platform.system(),
         )
+        return response

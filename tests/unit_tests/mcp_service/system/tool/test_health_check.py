@@ -51,15 +51,15 @@ def test_health_check_response_schema():
     response = HealthCheckResponse(
         status="healthy",
         timestamp="2025-11-10T19:00:00",
-        service="Superset MCP Service",
-        version="1.0.0",
+        service="Test MCP Service",
+        version="4.0.0",
         python_version="3.11.0",
         platform="Darwin",
     )
 
     assert response.status == "healthy"
-    assert response.service == "Superset MCP Service"
-    assert response.version == "1.0.0"
+    assert response.service == "Test MCP Service"
+    assert response.version == "4.0.0"
     assert response.python_version == "3.11.0"
     assert response.platform == "Darwin"
     assert response.timestamp is not None
@@ -71,8 +71,8 @@ def test_health_check_response_with_uptime():
     response = HealthCheckResponse(
         status="healthy",
         timestamp="2025-11-10T19:00:00",
-        service="Superset MCP Service",
-        version="1.0.0",
+        service="Test MCP Service",
+        version="4.0.0",
         python_version="3.11.0",
         platform="Darwin",
         uptime_seconds=123.45,
