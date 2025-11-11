@@ -15,10 +15,40 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .types.models import CoreModelsApi
-from .types.query import CoreQueryApi
-from .types.rest_api import CoreRestApi
+"""
+Superset Core API Package
 
-models: CoreModelsApi
-rest_api: CoreRestApi
-query: CoreQueryApi
+This package provides a unified API for Superset core functionality,
+allowing extensions to import from single, consistent locations.
+
+Usage:
+    from superset_core.api.models import Database, Dataset, get_session
+    from superset_core.api.daos import DatasetDAO, DatabaseDAO
+    from superset_core.api.rest_api import RestApi, add_api
+    from superset_core.api.query import get_sqlglot_dialect
+
+All classes and functions are replaced with concrete implementations
+during Superset initialization via dependency injection.
+"""
+
+# Re-export commonly used items for convenience
+from .daos import ChartDAO, DashboardDAO, DatabaseDAO, DatasetDAO
+from .models import Chart, Dashboard, Database, Dataset, get_session
+from .query import get_sqlglot_dialect
+from .rest_api import add_api, add_extension_api, RestApi
+
+__all__ = [
+    "Database",
+    "Dataset",
+    "Chart",
+    "Dashboard",
+    "get_session",
+    "DatasetDAO",
+    "DatabaseDAO",
+    "ChartDAO",
+    "DashboardDAO",
+    "RestApi",
+    "add_api",
+    "add_extension_api",
+    "get_sqlglot_dialect",
+]

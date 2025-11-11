@@ -117,7 +117,7 @@ def inject_query_implementations() -> None:
 
     from superset.sql.parse import SQLGLOT_DIALECTS
 
-    def get_sqlglot_dialect(database: Database) -> Any:
+    def get_sqlglot_dialect(database: "Database") -> Any:
         return (
             SQLGLOT_DIALECTS.get(database.backend)
             or __import__("sqlglot").Dialects.DIALECT

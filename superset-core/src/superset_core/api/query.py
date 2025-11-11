@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from superset_core.api.models import Database
 
 
-def get_sqlglot_dialect(database: Database) -> Dialects:
+def get_sqlglot_dialect(database: "Database") -> Dialects:
     """
     Get the SQLGlot dialect for the specified database.
 
