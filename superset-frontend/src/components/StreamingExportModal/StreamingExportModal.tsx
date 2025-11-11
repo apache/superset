@@ -358,7 +358,7 @@ const StreamingExportModal = ({
 
   return (
     <Modal
-      title={t('Exporting Data')}
+      title={t('CSV Export')}
       show={visible}
       onHide={onCancel}
       hideFooter
