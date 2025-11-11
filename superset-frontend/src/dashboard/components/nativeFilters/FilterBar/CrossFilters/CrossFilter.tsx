@@ -18,7 +18,7 @@
  */
 
 import { useCallback } from 'react';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { useDispatch } from 'react-redux';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
@@ -86,7 +86,7 @@ const CrossFilter = (props: {
         />
       )}
       {last && (
-        <span
+        <div
           data-test="cross-filters-divider"
           css={css`
             ${orientation === FilterBarOrientation.Horizontal
@@ -95,6 +95,7 @@ const CrossFilter = (props: {
                 height: 22px;
                 margin-left: ${theme.sizeUnit * 4}px;
                 margin-right: ${theme.sizeUnit}px;
+                flex-shrink: 0;
               `
               : `
                 width: 100%;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css } from '@superset-ui/core';
+import { SupersetTheme, css } from '@apache-superset/core/ui';
 import { ReactElement } from 'react';
 import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -25,6 +25,7 @@ import { NotificationMethodOption } from '../types';
 const notificationStyledIcon = (theme: SupersetTheme) => css`
   color: ${theme.colorIcon};
   margin-right: ${theme.sizeUnit * 2}px;
+  vertical-align: middle;
 `;
 
 export default function RecipientIcon({ type }: { type: string }) {
@@ -41,13 +42,13 @@ export default function RecipientIcon({ type }: { type: string }) {
       break;
     case NotificationMethodOption.Slack:
       recipientIconConfig.icon = (
-        <Icons.Slack css={notificationStyledIcon} iconSize="l" />
+        <Icons.SlackOutlined css={notificationStyledIcon} iconSize="l" />
       );
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;
     case NotificationMethodOption.SlackV2:
       recipientIconConfig.icon = (
-        <Icons.Slack css={notificationStyledIcon} iconSize="l" />
+        <Icons.SlackOutlined css={notificationStyledIcon} iconSize="l" />
       );
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;

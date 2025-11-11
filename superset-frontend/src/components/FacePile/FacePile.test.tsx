@@ -39,7 +39,7 @@ const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;
 
-const users = [...new Array(10)].map((_, i) => ({
+const users = new Array(10).fill(undefined).map((_, i) => ({
   first_name: 'user',
   last_name: `${i}`,
   id: i,
@@ -57,15 +57,16 @@ afterEach(() => {
   cleanup();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FacePile', () => {
-  it('renders empty state with no users', () => {
+  test('renders empty state with no users', () => {
     const { container } = render(<FacePile users={[]} />, { store });
 
     expect(container.querySelector('.ant-avatar-group')).toBeInTheDocument();
     expect(container.querySelectorAll('.ant-avatar')).toHaveLength(0);
   });
 
-  it('renders single user without truncation', () => {
+  test('renders single user without truncation', () => {
     const { container } = render(<FacePile users={users.slice(0, 1)} />, {
       store,
     });
@@ -76,7 +77,7 @@ describe('FacePile', () => {
     expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
   });
 
-  it('renders multiple users no truncation', () => {
+  test('renders multiple users no truncation', () => {
     const { container } = render(<FacePile users={users.slice(0, 4)} />, {
       store,
     });
@@ -90,7 +91,7 @@ describe('FacePile', () => {
     expect(within(container).queryByText(/\+/)).not.toBeInTheDocument();
   });
 
-  it('renders multiple users with truncation', () => {
+  test('renders multiple users with truncation', () => {
     const { container } = render(<FacePile users={users} />, { store });
 
     // Should show 4 avatars + 1 overflow indicator = 5 total elements
@@ -107,7 +108,7 @@ describe('FacePile', () => {
     expect(within(container).getByText('+6')).toBeInTheDocument();
   });
 
-  it('displays user tooltip on hover', () => {
+  test('displays user tooltip on hover', () => {
     const { container } = render(<FacePile users={users.slice(0, 2)} />, {
       store,
     });
@@ -119,7 +120,7 @@ describe('FacePile', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('user 0');
   });
 
-  it('displays avatar images when Slack avatars are enabled', () => {
+  test('displays avatar images when Slack avatars are enabled', () => {
     // Enable Slack avatars feature flag
     mockIsFeatureEnabled.mockImplementation(
       feature => feature === 'SLACK_ENABLE_AVATARS',
@@ -143,24 +144,26 @@ describe('FacePile', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('utils', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getRandomColor', () => {
     const colors = ['color1', 'color2', 'color3'];
 
-    it('produces the same color for the same input values', () => {
+    test('produces the same color for the same input values', () => {
       const name = 'foo';
       expect(getRandomColor(name, colors)).toEqual(
         getRandomColor(name, colors),
       );
     });
 
-    it('produces a different color for different input values', () => {
+    test('produces a different color for different input values', () => {
       expect(getRandomColor('foo', colors)).not.toEqual(
         getRandomColor('bar', colors),
       );
     });
 
-    it('handles non-ascii input values', () => {
+    test('handles non-ascii input values', () => {
       expect(getRandomColor('泰', colors)).toMatchInlineSnapshot(`"color1"`);
       expect(getRandomColor('مُحَمَّد‎', colors)).toMatchInlineSnapshot(
         `"color2"`,

@@ -319,6 +319,7 @@ test('onChange is not called when close is clicked and canDelete is string, warn
   expect(await screen.findByText('Test warning')).toBeInTheDocument();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('when disallow_adhoc_metrics is set', () => {
   test('can drop a column type from the simple column selection', () => {
     const adhocMetric = new AdhocMetric({

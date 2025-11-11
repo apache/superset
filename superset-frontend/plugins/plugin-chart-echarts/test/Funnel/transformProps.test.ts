@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getNumberFormatter,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,

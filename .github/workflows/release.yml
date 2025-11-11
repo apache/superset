@@ -42,7 +42,7 @@ jobs:
 
       - name: Install Node.js
         if: env.HAS_TAGS
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: './superset-frontend/.nvmrc'
 

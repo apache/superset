@@ -18,7 +18,7 @@
  */
 
 import { ReactNode } from 'react';
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 

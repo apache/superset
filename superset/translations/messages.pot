@@ -695,10 +695,10 @@ msgstr ""
 msgid "AUG"
 msgstr ""
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr ""
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr ""
 
 msgid "About"
@@ -12353,7 +12353,7 @@ msgstr ""
 msgid "Write a handlebars template to render the data"
 msgstr ""
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr ""
 
 msgid "X Axis"
@@ -12401,7 +12401,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr ""
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr ""
 
 msgid "Y Axis"

@@ -20,9 +20,9 @@ import {
   CategoricalColorNamespace,
   ChartProps,
   SqlaFormData,
-  supersetTheme,
   VizType,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps, {
   getIntervalBoundsAndColors,
 } from '../../src/Gauge/transformProps';

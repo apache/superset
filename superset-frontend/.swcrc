@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": true,
+      "decorators": false,
+      "dynamicImport": true
+    },
+    "transform": {
+      "react": {
+        "runtime": "automatic",
+        "importSource": "@emotion/react",
+        "throwIfNamespace": true
+      },
+      "optimizer": {
+        "globals": {
+          "vars": {
+            "process.env.NODE_ENV": "production"
+          }
+        }
+      }
+    },
+    "target": "es2015",
+    "loose": true,
+    "externalHelpers": false,
+    "preserveAllComments": false,
+    "experimental": {
+      "plugins": [
+        [
+          "@swc/plugin-emotion",
+          {
+            "sourceMap": true,
+            "autoLabel": "dev-only",
+            "labelFormat": "[local]"
+          }
+        ],
+        [
+          "@swc/plugin-transform-imports",
+          {
+            "lodash": {
+              "transform": "lodash/{{member}}",
+              "preventFullImport": true,
+              "skipDefaultConversion": false
+            },
+            "lodash-es": {
+              "transform": "lodash-es/{{member}}",
+              "preventFullImport": true,
+              "skipDefaultConversion": false
+            }
+          }
+        ]
+      ]
+    }
+  },
+  "module": {
+    "type": "es6",
+    "strict": false,
+    "strictMode": false,
+    "lazy": false,
+    "noInterop": false
+  },
+  "minify": false
+}

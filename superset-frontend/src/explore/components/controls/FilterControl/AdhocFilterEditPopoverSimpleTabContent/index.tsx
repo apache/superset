@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ChangeEvent, useEffect, useState } from 'react';
+import { FC, ChangeEvent, useEffect, useState, useRef } from 'react';
 
-import { Input, Select, Tooltip } from '@superset-ui/core/components';
+import { Input, InputRef, Select, Tooltip } from '@superset-ui/core/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
   isDefined,
-  styled,
   SupersetClient,
-  useTheme,
   t,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -263,12 +261,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     onComparatorChange,
     onDatePickerChange,
   } = useSimpleTabFilterProps(props);
+  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
+  const comparatorInputRef = useRef<InputRef | null>(null);
   const [suggestions, setSuggestions] = useState<
     Record<'label' | 'value', any>[]
   >([]);
-  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
-    useState(false);
+    useState<boolean>(false);
+  const [hasFocusedComparator, setHasFocusedComparator] =
+    useState<boolean>(false);
 
   const {
     advancedDataTypesState,
@@ -361,7 +362,6 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     notFoundContent: t('Type a value here'),
     disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
-    autoFocus: shouldFocusComparator,
   };
 
   const labelText =
@@ -411,16 +411,33 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           });
       }
     };
+
     if (!datePicker) {
       refreshComparatorSuggestions();
     }
-  }, [props.adhocFilter.subject]);
+    // loadingComparatorSuggestions intentionally omitted - set inside effect, would cause infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.adhocFilter.subject,
+    props.adhocFilter.clause,
+    props.datasource,
+    datePicker,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
-      fetchSubjectAdvancedDataType(props);
+      fetchSubjectAdvancedDataType(
+        props.options,
+        props.adhocFilter.subject,
+        props.validHandler,
+      );
     }
-  }, [props.adhocFilter.subject]);
+  }, [
+    props.adhocFilter.subject,
+    props.options,
+    props.validHandler,
+    fetchSubjectAdvancedDataType,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -430,6 +447,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         subjectAdvancedDataType,
       );
     }
+    // advancedDataTypesState intentionally omitted - set by the callback, would cause infinite API calls
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
 
   useEffect(() => {
@@ -437,6 +456,22 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       setComparator(props.adhocFilter.comparator);
     }
   }, [props.adhocFilter.comparator]);
+
+  useEffect(() => {
+    if (
+      shouldFocusComparator &&
+      !hasFocusedComparator &&
+      comparatorInputRef.current
+    ) {
+      comparatorInputRef.current.focus();
+      setHasFocusedComparator(true);
+    }
+
+    if (!shouldFocusComparator) {
+      setHasFocusedComparator(false);
+    }
+  }, [shouldFocusComparator, hasFocusedComparator]);
+
   const theme = useTheme();
 
   // another name for columns, just for following previous naming.
@@ -506,11 +541,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           <Input
             data-test="adhoc-filter-simple-value"
             name="filter-value"
-            ref={ref => {
-              if (ref && shouldFocusComparator) {
-                ref.focus();
-              }
-            }}
+            ref={comparatorInputRef}
             onChange={onInputComparatorChange}
             value={comparator}
             placeholder={t('Filter value (case sensitive)')}

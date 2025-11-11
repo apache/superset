@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import {
   FeatureFlag,
