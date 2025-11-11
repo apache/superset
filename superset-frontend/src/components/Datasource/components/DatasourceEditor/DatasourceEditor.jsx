@@ -839,8 +839,6 @@ class DatasourceEditor extends PureComponent {
         ),
       });
 
-      // Clear the dataset cache to ensure fresh data when fetching columns for filters
-      // This ensures that newly synced columns are immediately available in filter creation
       clearDatasetCache(datasource.id);
 
       this.props.addSuccessToast(t('Metadata has been synced'));
