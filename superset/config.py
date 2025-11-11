@@ -1749,6 +1749,23 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Enable/disable caching for Slack channels list
+# When enabled, all channels are cached in memory for fast lookups
+# Disable this for very large workspaces (50k+ channels) to reduce memory usage
+# Default: True (caching enabled)
+SLACK_ENABLE_CACHING: bool = True
+
+# Maximum number of channels to cache during warmup
+# Prevents excessive memory usage in very large workspaces
+# The cache warmup task will stop after reaching this limit
+# Default: 20000 channels (~100MB cache size)
+SLACK_CACHE_MAX_CHANNELS: int = 20000
+
+# Celery task timeout for Slack cache warmup (seconds)
+# Prevents runaway cache warmup tasks in extremely large workspaces
+# Default: 300 seconds (5 minutes)
+SLACK_CACHE_WARMUP_TIMEOUT: int = 300
+
 # The webdriver to use for generating reports. Use one of the following
 # firefox
 #   Requires: geckodriver and firefox installations

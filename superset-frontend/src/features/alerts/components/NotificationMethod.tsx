@@ -27,24 +27,13 @@ import {
   useCallback,
 } from 'react';
 import { debounce } from 'lodash';
-import rison from 'rison';
-
-import {
-  FeatureFlag,
-  SupersetClient,
-  isFeatureEnabled,
-  logging,
-  t,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Input, Select, AsyncSelect } from '@superset-ui/core/components';
-import {
-  NotificationMethodOption,
-  NotificationSetting,
-  SlackChannel,
-} from '../types';
+import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
 import { styled, useTheme } from '@apache-superset/core/ui';
+import { useSlackChannels } from '../hooks/useSlackChannels';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
@@ -190,18 +179,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [ccValue, setCcValue] = useState<string>(cc || '');
   const [bccValue, setBccValue] = useState<string>(bcc || '');
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-  const cursorRef = useRef<Record<string, string | null>>({});
-  const dataCache = useRef<
-    Record<
-      string,
-      { data: { label: string; value: string }[]; totalCount: number }
-    >
-  >({});
-  const forceRefreshRef = useRef(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const hasShownErrorToast = useRef(false);
   const [searchGeneration, setSearchGeneration] = useState(0);
   const lastSearchValueRef = useRef('');
+
+  const {
+    fetchChannels: fetchSlackChannelsFromHook,
+    refreshChannels,
+    isRefreshing,
+  } = useSlackChannels(addDangerToast);
 
   const onMethodChange = (selected: {
     label: string;
@@ -234,69 +220,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       totalCount: number;
     }> => {
       try {
-        const cacheKey = `${search}:${page}`;
+        const result = await fetchSlackChannelsFromHook(search, page, pageSize);
 
-        if (dataCache.current[cacheKey] && !forceRefreshRef.current) {
-          return dataCache.current[cacheKey];
-        }
+        hasShownErrorToast.current = false;
 
-        // Clear cache for previous searches to prevent stale data
-        if (page === 0) {
-          Object.keys(dataCache.current).forEach(key => {
-            if (!key.startsWith(`${search}:`)) {
-              delete dataCache.current[key];
-              delete cursorRef.current[key];
-            }
-          });
-        }
-
-        const cursor = page > 0 ? cursorRef.current[cacheKey] : null;
-
-        const params: Record<string, any> = {
-          types: ['public_channel', 'private_channel'],
-          limit: pageSize,
-        };
-
-        if (page === 0 && forceRefreshRef.current) {
-          params.force = true;
-          forceRefreshRef.current = false;
-        }
-
-        if (search) {
-          params.search_string = search;
-        }
-
-        if (cursor) {
-          params.cursor = cursor;
-        }
-
-        const queryString = rison.encode(params);
-        const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
-        const response = await SupersetClient.get({ endpoint });
-
-        const { result, next_cursor, has_more } = response.json;
-
-        if (next_cursor) {
-          cursorRef.current[`${search}:${page + 1}`] = next_cursor;
-        }
-
-        const options = result.map((channel: SlackChannel) => ({
-          label: channel.name,
-          value: channel.id,
-        }));
-
-        const totalCount = has_more
-          ? (page + 1) * pageSize + 1
-          : page * pageSize + options.length;
-
-        const responseData = {
-          data: options,
-          totalCount,
-        };
-
-        dataCache.current[cacheKey] = responseData;
-
-        return responseData;
+        return result;
       } catch (error) {
         logging.error('Failed to fetch Slack channels:', error);
 
@@ -336,33 +264,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     // Purpose: Trigger function reference change when search changes (after debounce)
     // Effect: Forces AsyncSelect to clear internal state and show fresh results
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addDangerToast, onUpdate, setting, index, searchGeneration],
+    [
+      fetchSlackChannelsFromHook,
+      addDangerToast,
+      onUpdate,
+      setting,
+      index,
+      searchGeneration,
+    ],
   );
 
-  const handleRefreshSlackChannels = async () => {
-    setIsRefreshing(true);
-
-    try {
-      // Clear cache and cursor to force fresh data fetch
-      forceRefreshRef.current = true;
-      cursorRef.current = {};
-      dataCache.current = {};
-
-      // Fetch fresh channel list without clearing user selections
-      await fetchSlackChannels('', 0, 100);
-    } catch (error) {
-      logging.error('Error refreshing channels:', error);
-
-      // Show error toast if available
-      if (addDangerToast) {
-        addDangerToast(
-          t('Failed to refresh Slack channels. Please try again.'),
-        );
-      }
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const handleRefreshSlackChannels = refreshChannels;
 
   // Reset error toast flag when method changes
   useEffect(() => {
@@ -405,10 +317,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     };
 
     initializeSlackRecipients();
-    // Note: fetchSlackChannels and slackRecipients are intentionally omitted
-    // - fetchSlackChannels: Would cause re-initialization on every search change
-    // - slackRecipients: Would cause infinite loop (we modify it inside)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, recipients]);
 
   const debouncedSearchUpdate = useMemo(

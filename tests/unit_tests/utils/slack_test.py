@@ -927,3 +927,168 @@ The server responded with: missing scope: channels:read"""
         assert "sales" in channel_names
         assert "engineering-team" not in channel_names
         assert "general" not in channel_names
+
+    def test_cache_boundary_exceeded_fallback_to_api(self, mocker):
+        """Test fallback to API when pagination exceeds cached data"""
+        # Mock cached channels (only 100 channels cached)
+        cached_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(100)
+        ]
+
+        # Mock continuation channels from API
+        api_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(100, 150)
+        ]
+
+        def cache_get_side_effect(key):
+            if key == "slack_conversations_list":
+                return cached_channels
+            if key == "slack_conversations_list_continuation_cursor":
+                return "continuation_cursor_value"
+            return None
+
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=cache_get_side_effect,
+        )
+
+        mock_data = {
+            "channels": api_channels,
+            "response_metadata": {"next_cursor": None},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Try to paginate beyond cached data (offset 100)
+        result = get_channels_with_search(cursor="cache:100", limit=50)
+
+        # Should fall back to API and return channels from continuation
+        assert len(result["result"]) == 50
+        assert result["result"][0]["name"] == "channel-100"
+
+    def test_cache_with_continuation_cursor_signals_more_data(self, mocker):
+        """Test that reaching end of cache with continuation cursor signals more data"""
+        # Mock cached channels
+        cached_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(100)
+        ]
+
+        def cache_get_side_effect(key):
+            if key == "slack_conversations_list":
+                return cached_channels
+            if key == "slack_conversations_list_continuation_cursor":
+                return "continuation_cursor_value"
+            return None
+
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=cache_get_side_effect,
+        )
+
+        # Get last page of cached data (offset 90, limit 10)
+        result = get_channels_with_search(cursor="cache:90", limit=10)
+
+        # Should return last 10 channels
+        assert len(result["result"]) == 10
+        assert result["result"][0]["name"] == "channel-90"
+
+        # Should signal more data available via API
+        assert result["has_more"] is True
+        assert result["next_cursor"] == "api:continue"
+
+    def test_api_continue_cursor_transitions_to_api(self, mocker):
+        """Test that 'api:continue' cursor properly transitions to API"""
+        api_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(100, 150)
+        ]
+
+        def cache_get_side_effect(key):
+            if key == "slack_conversations_list_continuation_cursor":
+                return "slack_api_cursor_value"
+            return None
+
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=cache_get_side_effect,
+        )
+
+        mock_data = {
+            "channels": api_channels,
+            "response_metadata": {"next_cursor": "next_slack_cursor"},
+        }
+
+        mock_response = MockResponse(mock_data)
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = mock_response
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        # Use api:continue cursor
+        result = get_channels_with_search(cursor="api:continue", limit=50)
+
+        # Should call API with continuation cursor
+        mock_client.conversations_list.assert_called_once()
+        call_args = mock_client.conversations_list.call_args
+        assert call_args[1]["cursor"] == "slack_api_cursor_value"
+
+        # Should return API results
+        assert len(result["result"]) == 50
+        assert result["next_cursor"] == "next_slack_cursor"
+        assert result["has_more"] is True
+
+    def test_cache_boundary_without_continuation_cursor(self, mocker):
+        """Test graceful handling when cache boundary exceeded without cursor"""
+        cached_channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(100)
+        ]
+
+        def cache_get_side_effect(key):
+            if key == "slack_conversations_list":
+                return cached_channels
+            # No continuation cursor available
+            return None
+
+        mocker.patch(
+            "superset.utils.slack.cache_manager.cache.get",
+            side_effect=cache_get_side_effect,
+        )
+
+        # Try to paginate beyond cached data
+        result = get_channels_with_search(cursor="cache:100", limit=50)
+
+        # Should return empty result gracefully
+        assert len(result["result"]) == 0
+        assert result["has_more"] is False
+        assert result["next_cursor"] is None
