@@ -785,7 +785,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert len(result["objects_tagged"]) == 2
         assert len(result["objects_skipped"]) == 1
 
-    def test_create_tag_mysql_compatibility(self):
+    def test_create_tag_mysql_compatibility(self) -> None:
         """
         Test creating a tag via API to ensure MySQL compatibility.
 

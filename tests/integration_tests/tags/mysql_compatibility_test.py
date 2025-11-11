@@ -52,7 +52,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                 db.session.delete(tag)
         db.session.commit()
 
-    def test_create_tag_returns_string_not_markup(self):
+    def test_create_tag_returns_string_not_markup(self) -> None:
         """
         Test that creating a tag results in a plain string name, not Markup.
 
@@ -92,7 +92,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
             "Retrieved tag name should match original"
         )
 
-    def test_create_multiple_tags_no_sql_error(self):
+    def test_create_multiple_tags_no_sql_error(self) -> None:
         """
         Test creating multiple tags in sequence without SQL errors.
 
@@ -133,7 +133,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                 f"Tag '{tag_name}' should have string name"
             )
 
-    def test_create_tag_with_special_characters(self):
+    def test_create_tag_with_special_characters(self) -> None:
         """
         Test creating tags with special characters that might trigger HTML escaping.
 
@@ -175,7 +175,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                     f"ProgrammingError should not occur for tag '{tag_name}': {e}"
                 )
 
-    def test_get_existing_tag_returns_string(self):
+    def test_get_existing_tag_returns_string(self) -> None:
         """Test that retrieving an existing tag also returns a string name."""
         tag_name = "test-tag-for-retrieval"
 
@@ -194,7 +194,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
             "Retrieved tag name should NOT be Markup"
         )
 
-    def test_tag_with_whitespace_handling(self):
+    def test_tag_with_whitespace_handling(self) -> None:
         """Test that tags with leading/trailing whitespace are handled correctly."""
         input_name = "  test-tag-with-whitespace  "
         expected_name = "test-tag-with-whitespace"
@@ -211,7 +211,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         retrieved_tag = db.session.query(Tag).filter_by(name=expected_name).first()
         assert retrieved_tag is not None, "Tag should exist with stripped name"
 
-    def test_tag_type_variations(self):
+    def test_tag_type_variations(self) -> None:
         """Test creating tags with different TagType values."""
         tag_types = [
             (TagType.custom, "test-custom-tag"),
@@ -237,7 +237,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
             except ProgrammingError as e:
                 pytest.fail(f"ProgrammingError for {tag_type} tag '{tag_name}': {e}")
 
-    def test_no_sql_syntax_error_on_commit(self):
+    def test_no_sql_syntax_error_on_commit(self) -> None:
         """
         Test that committing a tag to the database doesn't cause SQL syntax errors.
 
@@ -263,7 +263,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         except BaseException as e:
             pytest.fail(f"Unexpected error during tag creation and commit: {e}")
 
-    def test_tag_name_is_pure_string_type(self):
+    def test_tag_name_is_pure_string_type(self) -> None:
         """
         Test that tag name is exactly of type 'str', not a subclass like Markup.
 

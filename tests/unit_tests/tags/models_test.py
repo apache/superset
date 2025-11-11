@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from superset.tags.models import get_tag, Tag, TagType
 
 
-def test_get_tag_returns_plain_string_not_markup():
+def test_get_tag_returns_plain_string_not_markup() -> None:
     """
     Test that get_tag() returns a Tag with a plain string name, not a Markup object.
 
@@ -50,7 +50,7 @@ def test_get_tag_returns_plain_string_not_markup():
     assert result.type == tag_type, f"Tag type should be {tag_type}"
 
 
-def test_get_tag_with_special_characters():
+def test_get_tag_with_special_characters() -> None:
     """
     Test that get_tag() correctly handles tag names with special characters
     without converting them to Markup objects.
@@ -83,7 +83,7 @@ def test_get_tag_with_special_characters():
         assert result.name == tag_name, f"Tag name should match input: '{tag_name}'"
 
 
-def test_get_tag_with_html_characters():
+def test_get_tag_with_html_characters() -> None:
     """
     Test that get_tag() handles HTML special characters correctly.
 
@@ -116,7 +116,7 @@ def test_get_tag_with_html_characters():
         assert result.name == tag_name, f"Tag name should not be escaped: '{tag_name}'"
 
 
-def test_get_tag_strips_whitespace():
+def test_get_tag_strips_whitespace() -> None:
     """Test that get_tag() strips leading and trailing whitespace from tag names."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
@@ -143,7 +143,7 @@ def test_get_tag_strips_whitespace():
         )
 
 
-def test_get_tag_returns_existing_tag():
+def test_get_tag_returns_existing_tag() -> None:
     """
     Test that get_tag() returns existing tag from database.
 
@@ -169,7 +169,7 @@ def test_get_tag_returns_existing_tag():
     mock_session.commit.assert_not_called(), "Should not commit"
 
 
-def test_get_tag_creates_new_tag():
+def test_get_tag_creates_new_tag() -> None:
     """Test that get_tag() creates and commits a new tag when it doesn't exist."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
@@ -197,7 +197,7 @@ def test_get_tag_creates_new_tag():
     assert added_tag.type == tag_type, "Tag type should match"
 
 
-def test_get_tag_with_different_tag_types():
+def test_get_tag_with_different_tag_types() -> None:
     """Test that get_tag() works correctly with all TagType values."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
@@ -224,7 +224,7 @@ def test_get_tag_with_different_tag_types():
         assert result.type == tag_type, f"Tag type should be {tag_type}"
 
 
-def test_tag_name_type_after_database_operation():
+def test_tag_name_type_after_database_operation() -> None:
     """
     Simulate the complete flow to ensure tag name remains a string
     throughout the database operation lifecycle.
