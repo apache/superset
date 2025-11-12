@@ -951,18 +951,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.get_allows_alias_in_select(self.database):
-            # Temporarily store database in g for db-specific label mutation logic
-            previous_db = getattr(g, "database", None)
-            try:
-                g.database = self.database
-                label = db_engine_spec.make_label_compatible(label_expected)
-                sqla_col = sqla_col.label(label)
-            finally:
-                # Restore prev value/remove if it didn't exist
-                if previous_db is not None:
-                    g.database = previous_db
-                elif hasattr(g, "database"):
-                    delattr(g, "database")
+            label = db_engine_spec.make_label_compatible(
+                label_expected, database=self.database
+            )
+            sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
 
@@ -1780,20 +1772,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         # Ensure db-specific label mutation logic can access the current database
-        _prev_db = getattr(g, "database", None)
-        try:
-            g.database = self.database
-            series_column_labels = [
-                db_engine_spec.make_label_compatible(column)
-                for column in utils.get_column_names(
-                    columns=series_columns or [],
-                )
-            ]
-        finally:
-            if _prev_db is not None:
-                g.database = _prev_db
-            elif hasattr(g, "database"):
-                delattr(g, "database")
+        series_column_labels = [
+            db_engine_spec.make_label_compatible(column, database=self.database)
+            for column in utils.get_column_names(
+                columns=series_columns or [],
+            )
+        ]
         # deprecated, to be removed in 2.0
         if is_timeseries and timeseries_limit:
             series_limit = timeseries_limit
@@ -2375,15 +2359,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    _prev_db2 = getattr(g, "database", None)
-                    try:
-                        g.database = self.database
-                        col_name = db_engine_spec.make_label_compatible(gby_name + "__")
-                    finally:
-                        if _prev_db2 is not None:
-                            g.database = _prev_db2
-                        elif hasattr(g, "database"):
-                            delattr(g, "database")
+                    col_name = db_engine_spec.make_label_compatible(
+                        gby_name + "__", database=self.database
+                    )
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
@@ -2399,17 +2377,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # Apply Others grouping using the refactored method
                     def _create_join_condition(col_name: str, expr: Any) -> Any:
                         # Get the corresponding column from the subquery
-                        _prev_db3 = getattr(g, "database", None)
-                        try:
-                            g.database = self.database
-                            subq_col_name = db_engine_spec.make_label_compatible(
-                                col_name + "__"
-                            )
-                        finally:
-                            if _prev_db3 is not None:
-                                g.database = _prev_db3
-                            elif hasattr(g, "database"):
-                                delattr(g, "database")
+                        subq_col_name = db_engine_spec.make_label_compatible(
+                            col_name + "__", database=self.database
+                        )
                         # Reference the column from the already-created aliased subquery
                         subq_col = subq_alias.c[subq_col_name]
                         return subq_col.is_not(None)

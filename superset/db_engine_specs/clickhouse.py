@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app as app, g
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -409,14 +409,14 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         return []
 
     @staticmethod
-    def _mutate_label(label: str) -> str:
+    def _mutate_label(label: str, database: Database | None = None) -> str:
         """
         Conditionally suffix the label with the first six characters from the md5
         of the label to avoid collisions with original column names.
 
         By default, labels are mutated for backward compatibility. To disable this
         behavior on a per-database basis, set `mutate_label_name` to `false` in
-        the database's "extra" JSON configuration:
+        the database's "extra" JSON configuration in the Superset UI:
 
             {
                 "mutate_label_name": false
@@ -426,20 +426,20 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         within the same SELECT statement.
 
         :param label: Expected expression label
+        :param database: Database instance for db-specific label mutation logic
         :return: Mutated label if mutation is enabled, otherwise the original label
         """
         mutate_label = True
 
-        if hasattr(g, "database") and g.database:
+        if database:
             try:
-                extra = g.database.get_extra()
+                extra = database.get_extra()
                 mutate_label = extra.get("mutate_label_name", True)
             except Exception:  # pylint: disable=broad-except
                 logger.warning(
                     "Error retrieving mutate_label_name setting. Falling back to "
                     "default behavior of True."
                 )
-                pass
 
         if mutate_label:
             return f"{label}_{md5_sha_from_str(label)[:6]}"

@@ -359,7 +359,7 @@ uses the default user without a password (and doesn't encrypt the connection):
 clickhousedb://localhost/default
 ```
 
-Optional label alias mutation
+##### Optional label alias mutation
 
 When using the ClickHouse Connect engine, Superset mutates column labels by default to avoid collisions. To preserve labels exactly as defined (for example, when a query refers to an alias within the same SELECT), set the following in the database Extra JSON:
 

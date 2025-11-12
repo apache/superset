@@ -244,22 +244,15 @@ def test_connect_make_label_compatible(column_name: str, expected_result: str) -
 def test_connect_make_label_compatible_with_extra(
     extra: Optional[dict[str, Any]], column_name: str, expected_result: str
 ) -> None:
-    from flask import g
-
     from superset.db_engine_specs.clickhouse import (
         ClickHouseConnectEngineSpec as spec,  # noqa: N813
     )
 
     mock_database = Mock()
     mock_database.get_extra = Mock(return_value=extra or {})
-    g.database = mock_database
 
-    try:
-        label = spec.make_label_compatible(column_name)
-        assert label == expected_result
-    finally:
-        if hasattr(g, "database"):
-            delattr(g, "database")
+    label = spec.make_label_compatible(column_name, database=mock_database)
+    assert label == expected_result
 
 
 @pytest.mark.parametrize(
