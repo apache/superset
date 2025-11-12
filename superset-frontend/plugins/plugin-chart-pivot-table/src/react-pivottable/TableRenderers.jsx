@@ -600,8 +600,10 @@ export class TableRenderer extends Component {
       colAttrs,
       rowAttrSpans,
       visibleColKeys,
+      visibleRowKeys,
       pivotData,
       rowTotals,
+      colTotals,
       rowSubtotalDisplay,
       arrowExpanded,
       arrowCollapsed,
@@ -619,6 +621,8 @@ export class TableRenderer extends Component {
       dateFormatters,
     } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
+
+    const totalRowsCount = visibleRowKeys.length + (colTotals ? 1 : 0);
 
     const colIncrSpan = colAttrs.length !== 0 ? 1 : 0;
     const attrValueCells = rowKey.map((r, i) => {
@@ -650,6 +654,12 @@ export class TableRenderer extends Component {
           ? this.toggleRowKey(flatRowKey)
           : null;
 
+        const isLastRow = rowIdx + rowSpan === totalRowsCount;
+        let cellClassName = valueCellClassName;
+        if (isLastRow) {
+          cellClassName += ' pvtRowLabelLast';
+        }
+
         const headerCellFormattedValue =
           dateFormatters && dateFormatters[rowAttrs[i]]
             ? dateFormatters[rowAttrs[i]](r)
@@ -657,7 +667,7 @@ export class TableRenderer extends Component {
         return (
           <th
             key={`rowKeyLabel-${i}`}
-            className={valueCellClassName}
+            className={cellClassName}
             rowSpan={rowSpan}
             colSpan={colSpan}
             role="columnheader button"
