@@ -60,9 +60,19 @@ function handleFilterChangesComplete(
   state: NativeFiltersState,
   filters: Filter[],
 ) {
-  const modifiedFilters = Object.fromEntries(
-    filters.map(filter => [filter.id, filter]),
-  );
+  const modifiedFilters = { ...state.filters };
+  filters.forEach(filter => {
+    if (filter.chartsInScope != null && filter.tabsInScope != null) {
+      modifiedFilters[filter.id] = filter;
+    } else {
+      const existingFilter = modifiedFilters[filter.id];
+      modifiedFilters[filter.id] = {
+        ...filter,
+        chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
+        tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
+      };
+    }
+  });
 
   return {
     ...state,
