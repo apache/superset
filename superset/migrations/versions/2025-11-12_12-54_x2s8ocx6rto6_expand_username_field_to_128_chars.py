@@ -17,7 +17,7 @@
 """Expand username field to 128 chars
 
 Revision ID: x2s8ocx6rto6
-Revises: 363a9b1e8992
+Revises: c233f5365c9e
 Create Date: 2025-11-12 12:54:00.000000
 
 """
@@ -33,7 +33,7 @@ logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "x2s8ocx6rto6"
-down_revision = "363a9b1e8992"
+down_revision = "c233f5365c9e"
 
 
 def upgrade():
