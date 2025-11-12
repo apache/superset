@@ -55,7 +55,7 @@ def get_instance_metadata_resource() -> str:
         from superset.daos.user import UserDAO
         from superset.mcp_service.mcp_core import InstanceInfoCore
         from superset.mcp_service.system.schemas import InstanceInfo
-        from superset.mcp_service.system.tool.get_instance_info import (
+        from superset.mcp_service.system.system_utils import (
             calculate_dashboard_breakdown,
             calculate_database_breakdown,
             calculate_instance_summary,

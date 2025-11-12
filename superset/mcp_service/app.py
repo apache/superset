@@ -68,6 +68,7 @@ Explore & Analysis:
 
 System Information:
 - get_instance_info: Get instance-wide statistics and metadata
+- health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
 - superset://instance/metadata: Access instance configuration and metadata
