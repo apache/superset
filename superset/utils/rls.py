@@ -113,3 +113,51 @@ def get_predicates_for_table(
         )
         for predicate in dataset.get_sqla_row_level_filters()
     ]
+
+
+def collect_rls_predicates_for_sql(
+    sql: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+) -> list[str]:
+    """
+    Collect all RLS predicates that would be applied to tables in the given SQL.
+
+    This is used for cache key generation for virtual datasets to ensure that
+    different users with different RLS rules get different cache keys.
+
+    :param sql: The SQL query to analyze
+    :param database: The database the query runs against
+    :param catalog: The default catalog for the query
+    :param schema: The default schema for the query
+    :return: List of RLS predicate strings that would be applied
+    """
+    from superset.sql.parse import SQLScript
+
+    try:
+        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
+        all_predicates: list[str] = []
+
+        for statement in parsed_script.statements:
+            for table in statement.tables:
+                # fully qualify table
+                qualified_table = Table(
+                    table.table,
+                    table.schema or schema,
+                    table.catalog or catalog,
+                )
+
+                predicates = get_predicates_for_table(
+                    qualified_table,
+                    database,
+                    database.get_default_catalog(),
+                )
+                all_predicates.extend(predicates)
+
+        # Return sorted unique predicates for consistent cache keys
+        return sorted(set(all_predicates))
+    except Exception:
+        # If we can't parse the SQL, return empty list
+        # This ensures RLS application failure doesn't break caching
+        return []

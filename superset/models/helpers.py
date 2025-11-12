@@ -1212,7 +1212,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         statement,
                     )
                 # Regenerate the SQL after RLS application
-                from_sql = parsed_script.format(comments=False) + "\n"
+                from_sql = parsed_script.format()
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
