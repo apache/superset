@@ -407,10 +407,19 @@ export function exploreJSON(
   ownState,
 ) {
   return async (dispatch, getState) => {
+    const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
+    const prevController = state.charts?.[key]?.queryController;
+    /**
+     * Abort in-flight requests before starting a new query to avoid race
+     * conditions where stale data renders after filters change.
+     */
+    if (prevController) {
+      prevController.abort();
+    }
     const queryTimeout =
-      timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      timeout || state.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
     const requestParams = {
       signal: controller.signal,

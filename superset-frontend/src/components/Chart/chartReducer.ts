@@ -67,15 +67,6 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      const controller = state.queryController;
-      /**
-       * Race condition fix for cross-filters:
-       * When a filter is removed while charts are loading, abort the
-       * in-flight request to prevent stale filtered data from rendering.
-       */
-      if (controller) {
-        setTimeout(() => controller.abort(), 0);
-      }
       return {
         ...state,
         chartStatus: 'loading',
