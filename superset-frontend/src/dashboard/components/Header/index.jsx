@@ -478,6 +478,7 @@ const Header = () => {
     refreshFrequency,
     shouldPersistRefreshFrequency,
     slug,
+    dashboardInfo.description,
   ]);
 
   const {
