@@ -1913,7 +1913,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: conditionally mutated label supported by the db engine
         """
         if "database" in signature(cls._mutate_label).parameters:
-            label_mutated = cls._mutate_label(label, database=database)
+            # Dynamic dispatch based on subclass signature
+            label_mutated = cls._mutate_label(label, database=database)  # type: ignore[call-arg]
         else:
             label_mutated = cls._mutate_label(label)
 
