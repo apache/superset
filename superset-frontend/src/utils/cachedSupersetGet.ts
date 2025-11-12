@@ -35,7 +35,6 @@ export const cachedSupersetGet = cacheWrapper(
 export function clearDatasetCache(datasetId: number | string): void {
   if (datasetId === null || datasetId === undefined || datasetId === '') return;
 
-  const keysToDelete: string[] = [];
   const datasetIdStr = String(datasetId);
 
   supersetGetCache.forEach((_value, key) => {
@@ -57,7 +56,7 @@ export function clearDatasetCache(datasetId: number | string): void {
         );
         // If pattern ends with slash or query, it's already precise
         if (pattern.endsWith('/') || pattern.endsWith('?')) {
-          keysToDelete.push(key);
+          supersetGetCache.delete(key);
           break;
         }
         // For the base pattern, ensure nothing follows or only valid separators
@@ -66,27 +65,21 @@ export function clearDatasetCache(datasetId: number | string): void {
           afterPattern.startsWith('/') ||
           afterPattern.startsWith('?')
         ) {
-          keysToDelete.push(key);
+          supersetGetCache.delete(key);
           break;
         }
       }
     }
   });
-
-  keysToDelete.forEach(key => supersetGetCache.delete(key));
 }
 
 /**
  * Clear all cached dataset responses
  */
 export function clearAllDatasetCache(): void {
-  const keysToDelete: string[] = [];
-
   supersetGetCache.forEach((_value, key) => {
     if (key.includes('/api/v1/dataset/')) {
-      keysToDelete.push(key);
+      supersetGetCache.delete(key);
     }
   });
-
-  keysToDelete.forEach(key => supersetGetCache.delete(key));
 }
