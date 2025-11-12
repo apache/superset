@@ -82,20 +82,24 @@ def run_server(
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
     else:
-        # Use default initialization with response caching middleware
-        logging.info("Creating MCP app with default configuration...")
+        # Use default global mcp instance with middleware
+        # This ensures all registered tools are available
+        logging.info("Using global MCP instance with middleware...")
 
-        # Import here to avoid circular imports
+        # Import global mcp instance and middleware config
+        from superset.mcp_service.app import mcp
         from superset.mcp_service.mcp_config import create_response_caching_middleware
 
-        # Create middleware list - response caching is enabled by default
-        middleware_list = []
-        caching_middleware = create_response_caching_middleware()
-        if caching_middleware:
-            middleware_list.append(caching_middleware)
+        # Add response caching middleware if available
+        try:
+            caching_middleware = create_response_caching_middleware()
+            if caching_middleware is not None:
+                mcp.add_middleware(caching_middleware)
+                logging.info("Response caching middleware added successfully")
+        except Exception as e:
+            logging.warning("Failed to add response caching middleware: %s", e)
 
-        # Create MCP instance with middleware
-        mcp_instance = create_mcp_app(middleware=middleware_list or None)
+        mcp_instance = mcp
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
