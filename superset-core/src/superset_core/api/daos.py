@@ -31,7 +31,7 @@ Usage:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Generic, TypeVar, Union
+from typing import Any, ClassVar, Generic, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from sqlalchemy.orm import Query as SQLAQuery
@@ -66,37 +66,6 @@ class BaseDAO(Generic[T], ABC):
     base_filter: ClassVar[BaseFilter | None]
     id_column_name: ClassVar[str]
     uuid_column_name: ClassVar[str]
-
-    @classmethod
-    @abstractmethod
-    def find_by_id(
-        cls,
-        model_id: Union[str, int],
-        skip_base_filter: bool = False,
-        id_column: str | None = None,
-    ) -> T | None:
-        """Find a model by ID."""
-        ...
-
-    @classmethod
-    @abstractmethod
-    def find_by_id_or_uuid(
-        cls,
-        model_id_or_uuid: str,
-        skip_base_filter: bool = False,
-    ) -> T | None:
-        """Find a model by ID or UUID."""
-        ...
-
-    @classmethod
-    @abstractmethod
-    def find_by_ids(
-        cls,
-        model_ids: Union[list[str], list[int]],
-        skip_base_filter: bool = False,
-    ) -> list[T]:
-        """Find models by list of IDs."""
-        ...
 
     @classmethod
     @abstractmethod

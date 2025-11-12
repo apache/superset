@@ -100,17 +100,25 @@ from .api import DatasetReferencesAPI
 # Register a new extension REST API
 add_extension_api(DatasetReferencesAPI)
 
-# Access Superset models with simple queries that filter out entities that
-# the user doesn't have access to
-database = DatabaseDAO.find_by_id(database_id)
-if not database:
-    return self.response_404()
+# Fetch Superset entities via the DAO to apply base filters that filter out entities
+# that the user doesn't have access to
+all_databases = DatabaseDAO.find_all()
+  return databases
 
-# Perform complex queries using SQLAlchemy BaseQuery, also filtering
-# out inaccessible entities
+# Apply simple filters on top of base filters
+databases = DatabaseDAO.filter_by(uuid=database.uuid)
+if not databases:
+    raise Exception("Database not found")
+
+return databases[0]
+
+# Perform complex queries using SQLAlchemy Query, also filtering out
+# inaccessible entities
 session = get_session()
-databases_query = session.query(Database).filter(Database.database_name.ilike("%abc%"))
-databases_containing_abc = DatabaseDAO.query(databases_query)  # Execute with security filters
+databases_query = session.query(Database).filter(
+    Database.database_name.ilike("%abc%")
+)
+return DatabaseDAO.query(databases_query)
 
 # Bypass security model for highly custom use cases
 session = get_session()
