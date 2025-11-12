@@ -120,11 +120,17 @@ class AlertCommand(BaseCommand):
 
     def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
-        if rows[0][1] in (0, None, np.nan):
+
+        if rows[0][1] is None or (
+            isinstance(rows[0][1], float) and np.isnan(rows[0][1])
+        ):
+            self._result = None
+            return
+
+        if rows[0][1] == 0:
             self._result = 0.0
             return
         try:
-            # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
         except (AssertionError, TypeError, ValueError) as ex:
