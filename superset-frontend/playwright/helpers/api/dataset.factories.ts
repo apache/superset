@@ -20,6 +20,7 @@
 import { Page } from '@playwright/test';
 import { createGsheetsDatabase } from './database.factories';
 import { apiPostDataset } from './dataset';
+import { apiDeleteDatabase } from './database';
 
 /**
  * Create a test dataset with Google Sheets database
@@ -39,26 +40,37 @@ export async function createTestDataset(
   const dbId = await createGsheetsDatabase(page, dbName, tableName);
 
   // Step 2: Create dataset using the database
-  // For Google Sheets, table_name must reference the catalog entry name
-  // catalog: null is required to avoid OAuth validation issues
-  const datasetRequestBody = {
-    database: dbId,
-    catalog: null,
-    schema: 'main',
-    table_name: tableName, // Must match the catalog entry name
-  };
+  // Wrap in try/finally to ensure database cleanup on failure
+  try {
+    // For Google Sheets, table_name must reference the catalog entry name
+    // catalog: null is required to avoid OAuth validation issues
+    const datasetRequestBody = {
+      database: dbId,
+      catalog: null,
+      schema: 'main',
+      table_name: tableName, // Must match the catalog entry name
+    };
 
-  const response = await apiPostDataset(page, datasetRequestBody);
+    const response = await apiPostDataset(page, datasetRequestBody);
 
-  if (!response.ok()) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to create dataset: ${response.status()} ${response.statusText()}\n${errorText}`,
+    if (!response.ok()) {
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to create dataset: ${response.status()} ${response.statusText()}\n${errorText}`,
+      );
+    }
+
+    const body = await response.json();
+    const datasetId = body.id;
+
+    return { dbId, datasetId };
+  } catch (error) {
+    // Clean up the orphaned database before rethrowing
+    await apiDeleteDatabase(page, dbId, { failOnStatusCode: false }).catch(
+      () => {
+        // Silently ignore cleanup errors - the original error is more important
+      },
     );
+    throw error;
   }
-
-  const body = await response.json();
-  const datasetId = body.id;
-
-  return { dbId, datasetId };
 }
