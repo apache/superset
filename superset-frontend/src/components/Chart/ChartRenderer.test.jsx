@@ -395,7 +395,7 @@ test('should save legend state to localStorage when handleLegendStateChanged is 
   capturedSuperChartProps.hooks.onLegendStateChanged(mockLegendState);
 
   // Verify it was saved to localStorage
-  const saved = JSON.parse(JSON.parse(localStorage.getItem(legendStateKey)));
+  const saved = JSON.parse(localStorage.getItem(legendStateKey));
   expect(saved).toEqual(mockLegendState);
 });
 
@@ -415,7 +415,7 @@ test('should save legend index to localStorage when handleLegendScroll is called
   capturedSuperChartProps.hooks.onLegendScroll(mockLegendIndex);
 
   // Verify it was saved to localStorage
-  const saved = JSON.parse(JSON.parse(localStorage.getItem(legendIndexKey)));
+  const saved = JSON.parse(localStorage.getItem(legendIndexKey));
   expect(saved).toBe(mockLegendIndex);
 });
 
