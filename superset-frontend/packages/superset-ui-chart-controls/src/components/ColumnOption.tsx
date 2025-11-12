@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
 import {
   SafeMarkdown,
   Tooltip,

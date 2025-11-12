@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';

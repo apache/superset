@@ -24,7 +24,7 @@ import {
   type SystemColors,
   type SupersetTheme,
   ThemeAlgorithm,
-} from './types';
+} from '../types';
 
 /**
  * Check if a theme config is serializable by detecting string-based algorithm

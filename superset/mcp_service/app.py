@@ -67,7 +67,8 @@ Explore & Analysis:
 - generate_explore_link: Create pre-configured explore URL with dataset/metrics/filters
 
 System Information:
-- get_superset_instance_info: Get instance-wide statistics and metadata
+- get_instance_info: Get instance-wide statistics and metadata
+- health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
 - superset://instance/metadata: Access instance configuration and metadata
@@ -118,7 +119,7 @@ General usage tips:
 - All tools return structured, Pydantic-typed responses
 - Chart previews are served as PNG images via custom screenshot endpoints
 
-If you are unsure which tool to use, start with get_superset_instance_info
+If you are unsure which tool to use, start with get_instance_info
 or use the superset_quickstart prompt for an interactive guide.
 """
 
@@ -283,7 +284,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
     resources as system_resources,
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
-    get_superset_instance_info,
+    get_instance_info,
     health_check,
 )
 

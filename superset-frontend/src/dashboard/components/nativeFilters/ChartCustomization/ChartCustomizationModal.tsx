@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, sortBy, debounce } from 'lodash';
 import { Form } from '@superset-ui/core/components';

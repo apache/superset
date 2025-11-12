@@ -22,19 +22,22 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
-  css,
   isFeatureEnabled,
   getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
-  styled,
   SupersetClient,
-  themeObject,
   t,
-  withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  themeObject,
+  Alert,
+  withTheme,
+} from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -45,7 +48,6 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
-  Alert,
   AsyncSelect,
   Badge,
   Button,
@@ -69,6 +71,7 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -838,6 +841,9 @@ class DatasourceEditor extends PureComponent {
           col => !col.expression, // remove calculated columns
         ),
       });
+
+      clearDatasetCache(datasource.id);
+
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
