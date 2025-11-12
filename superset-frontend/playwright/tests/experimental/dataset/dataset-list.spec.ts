@@ -71,22 +71,29 @@ test.describe('Dataset List', () => {
     return Promise.all(promises);
   }
 
-  test('should navigate to Explore when dataset name is clicked', async () => {
-    // Test uses existing fixture dataset 'birth_names'
-    // (available in Superset examples database)
+  test('should navigate to Explore when dataset name is clicked', async ({
+    page,
+  }) => {
+    // Create test dataset (hermetic - no dependency on sample data)
+    const datasetName = `test_nav_${Date.now()}`;
+    testResources = await createTestDataset(page, datasetName);
+
+    // Refresh page to see new dataset
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
 
     // Verify dataset is visible in list (uses page object + Playwright auto-wait)
-    await expect(datasetListPage.getDatasetRow('birth_names')).toBeVisible();
+    await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
     // Click on dataset name to navigate to Explore
-    await datasetListPage.clickDatasetName('birth_names');
+    await datasetListPage.clickDatasetName(datasetName);
 
     // Wait for Explore page to load (validates URL + datasource control)
     await explorePage.waitForPageLoad();
 
     // Verify correct dataset is loaded in datasource control
-    const datasetName = await explorePage.getDatasetName();
-    expect(datasetName).toContain('birth_names');
+    const loadedDatasetName = await explorePage.getDatasetName();
+    expect(loadedDatasetName).toContain(datasetName);
 
     // Verify visualization switcher shows default viz type (indicates full page load)
     await expect(explorePage.getVizSwitcher()).toBeVisible();
@@ -94,7 +101,7 @@ test.describe('Dataset List', () => {
   });
 
   test('should delete a dataset with confirmation', async ({ page }) => {
-    // Create test dataset
+    // Create test dataset (hermetic - creates own test data)
     const datasetName = `test_delete_${Date.now()}`;
     testResources = await createTestDataset(page, datasetName);
 
