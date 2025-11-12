@@ -722,4 +722,41 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+
+  it('should set hideOverlap to false for time-based x-axis', () => {
+    const chartProps = new ChartProps(chartPropsConfig);
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformed.echartOptions.xAxis).toEqual(
+      expect.objectContaining({
+        axisLabel: expect.objectContaining({
+          hideOverlap: false,
+        }),
+      }),
+    );
+  });
+
+  it('should set hideOverlap to true for categorical x-axis', () => {
+    const categoricalFormData = {
+      ...formData,
+      xAxisForceCategorical: true,
+    };
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: categoricalFormData,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+
+    expect(transformed.echartOptions.xAxis).toEqual(
+      expect.objectContaining({
+        axisLabel: expect.objectContaining({
+          hideOverlap: true,
+        }),
+      }),
+    );
+  });
 });

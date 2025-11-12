@@ -525,7 +525,7 @@ export default function transformProps(
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
     axisLabel: {
-      hideOverlap: true,
+      hideOverlap: xAxisType !== AxisType.Time,
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
