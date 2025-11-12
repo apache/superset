@@ -59,6 +59,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 
 interface QueryDatabase {
   id?: number;
@@ -170,6 +171,9 @@ const updateDataset = async (
     headers,
     body,
   });
+
+  clearDatasetCache(datasetId);
+
   return data.json.result;
 };
 
@@ -347,15 +351,17 @@ export const SaveDatasetModal = ({
         datasourceName: datasetName,
       }),
     )
-      .then((data: { id: number }) =>
-        postFormData(data.id, 'table', {
+      .then((data: { id: number }) => {
+        clearDatasetCache(data.id);
+
+        return postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
-        }),
-      )
+        });
+      })
       .then((key: string) => {
         setLoading(false);
         const url = mountExploreUrl(null, {
