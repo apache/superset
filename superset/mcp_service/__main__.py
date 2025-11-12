@@ -117,15 +117,16 @@ def main() -> None:
                 sys.exit(0)
     else:
         # For other transports, use normal initialization
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
         init_fastmcp_server()
 
         # Run with specified transport
         if transport == "streamable-http":
             host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
             port = int(os.environ.get("FASTMCP_PORT", "5008"))
-            stateless = (
-                os.environ.get("FASTMCP_STATELESS_HTTP", "true").lower() == "true"
-            )
+            stateless = flask_app.config.get("MCP_FASTMCP_STATELESS_HTTP", True)
             mcp.run(transport=transport, host=host, port=port, stateless_http=stateless)
         else:
             mcp.run(transport=transport)

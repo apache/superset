@@ -45,6 +45,14 @@ MCP_SERVICE_PORT = 5008
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# FastMCP stateless HTTP mode (True for stateless, False for stateful sessions)
+# Can be overridden in superset_config.py
+MCP_FASTMCP_STATELESS_HTTP = True
+
+# SQLAlchemy debug logging for MCP service
+# Can be overridden in superset_config.py
+MCP_SQLALCHEMY_DEBUG = False
+
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
     "SESSION_COOKIE_HTTPONLY": True,
