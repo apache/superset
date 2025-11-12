@@ -309,6 +309,7 @@ beforeEach(() => {
   capturedSuperChartProps = null;
   resetGlobalCleanupPathname();
 
+  delete window.__chartRendererCount;
   window.__chartLegendCleanupListenersSetup = false;
   if (window.__chartLegendCleanupInterval) {
     clearInterval(window.__chartLegendCleanupInterval);
@@ -374,6 +375,7 @@ afterEach(() => {
   }
   localStorage.clear();
 
+  delete window.__chartRendererCount;
   window.__chartLegendCleanupListenersSetup = false;
 
   // Restore timers
