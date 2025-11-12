@@ -224,10 +224,14 @@ class ChartRenderer extends Component {
     this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
   }
 
-  componentDidMount() {
-    // Only set up global listeners once (shared across all ChartRenderer instances)
-    // Cleans up ALL chart legend states even charts out of view and unmounted
-    if (!window.__chartLegendCleanupListenersSetup) {
+componentDidMount() {
+    // Initialize count if it doesn't exist
+    if (!window.__chartRendererCount) {
+      window.__chartRendererCount = 0;
+    }
+
+    // Only set up global listeners if this is the FIRST ChartRenderer instance
+    if (window.__chartRendererCount === 0) {
       // Listen for browser navigation (close tab, navigate away)
       window.addEventListener('beforeunload', globalBeforeUnloadHandler);
       // Listen for browser back/forward navigation
@@ -239,8 +243,10 @@ class ChartRenderer extends Component {
         globalRouteChangeHandler,
         100,
       );
-      window.__chartLegendCleanupListenersSetup = true;
     }
+
+    // Increment the count for this instance
+    window.__chartRendererCount += 1;
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -405,6 +411,23 @@ class ChartRenderer extends Component {
     // If pathname changed when unmounting, we're navigating away
     // If scrolling out of view, pathname is the same, so no cleanup happens
     checkAndCleanupAll(window.location.pathname);
+
+    // Ensure count exists and is positive before decrementing
+    if (window.__chartRendererCount && window.__chartRendererCount > 0) {
+      window.__chartRendererCount -= 1;
+    }
+
+    // If this is the LAST ChartRenderer instance unmounting, remove listeners
+    if (window.__chartRendererCount === 0) {
+      window.removeEventListener('beforeunload', globalBeforeUnloadHandler);
+      window.removeEventListener('popstate', globalRouteChangeHandler);
+      window.removeEventListener('hashchange', globalRouteChangeHandler);
+
+      if (window.__chartLegendCleanupInterval) {
+        clearInterval(window.__chartLegendCleanupInterval);
+        delete window.__chartLegendCleanupInterval;
+      }
+    }
   }
 
   render() {
