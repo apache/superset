@@ -64,7 +64,9 @@ test('admin users see all UI elements', async () => {
   // Admin should see actions column
   await waitFor(() => {
     const table = screen.getByTestId('listview-table');
-    expect(within(table).getByText(/Actions/i)).toBeInTheDocument();
+    expect(
+      within(table).getByRole('columnheader', { name: /Actions/i }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -134,7 +136,9 @@ test('write users see Actions column', async () => {
 
   await waitFor(() => {
     const table = screen.getByTestId('listview-table');
-    expect(within(table).getByText(/Actions/i)).toBeInTheDocument();
+    expect(
+      within(table).getByRole('columnheader', { name: /Actions/i }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -155,13 +155,27 @@ test('renders all required column headers', async () => {
   const table = screen.getByTestId('listview-table');
 
   // Verify all column headers are present
-  expect(within(table).getByText(/Name/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Type/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Database/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Schema/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Owners/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Last modified/i)).toBeInTheDocument();
-  expect(within(table).getByText(/Actions/i)).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Name/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Type/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Database/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Schema/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Owners/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Last modified/i }),
+  ).toBeInTheDocument();
+  expect(
+    within(table).getByRole('columnheader', { name: /Actions/i }),
+  ).toBeInTheDocument();
 });
 
 test('displays dataset name in Name column', async () => {
@@ -259,7 +273,9 @@ test('sorting by Name column updates API call with sort parameter', async () => 
   });
 
   const table = screen.getByTestId('listview-table');
-  const nameHeader = within(table).getByText(/Name/i);
+  const nameHeader = within(table).getByRole('columnheader', {
+    name: /Name/i,
+  });
 
   // Record initial calls
   const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
@@ -290,7 +306,9 @@ test('sorting by Database column updates sort parameter', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const databaseHeader = within(table).getByText(/Database/i);
+  const databaseHeader = within(table).getByRole('columnheader', {
+    name: /Database/i,
+  });
 
   const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
@@ -314,7 +332,9 @@ test('sorting by Last modified column updates sort parameter', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const modifiedHeader = within(table).getByText(/Last modified/i);
+  const modifiedHeader = within(table).getByRole('columnheader', {
+    name: /Last modified/i,
+  });
 
   const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
@@ -1092,7 +1112,9 @@ test('sort order persists after deleting a dataset', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const nameHeader = within(table).getByText(/Name/i);
+  const nameHeader = within(table).getByRole('columnheader', {
+    name: /Name/i,
+  });
 
   // Record initial API calls count
   const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
