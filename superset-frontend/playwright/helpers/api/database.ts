@@ -25,14 +25,41 @@ const ENDPOINTS = {
 } as const;
 
 /**
+ * TypeScript interface for database creation API payload
+ * Provides compile-time safety for required fields
+ */
+export interface DatabaseCreatePayload {
+  database_name: string;
+  engine: string;
+  configuration_method?: string;
+  engine_information?: {
+    disable_ssh_tunneling?: boolean;
+    supports_dynamic_catalog?: boolean;
+    supports_file_upload?: boolean;
+    supports_oauth2?: boolean;
+  };
+  driver?: string;
+  sqlalchemy_uri_placeholder?: string;
+  extra?: string;
+  expose_in_sqllab?: boolean;
+  catalog?: Array<{ name: string; value: string }>;
+  parameters?: {
+    service_account_info?: string;
+    catalog?: Record<string, string>;
+  };
+  masked_encrypted_extra?: string;
+  impersonate_user?: boolean;
+}
+
+/**
  * POST request to create a database connection
  * @param page - Playwright page instance (provides authentication context)
- * @param requestBody - Database configuration object
+ * @param requestBody - Database configuration object with type safety
  * @returns API response from database creation
  */
 export async function apiPostDatabase(
   page: Page,
-  requestBody: object,
+  requestBody: DatabaseCreatePayload,
 ): Promise<APIResponse> {
   return apiPost(page, ENDPOINTS.DATABASE, requestBody);
 }

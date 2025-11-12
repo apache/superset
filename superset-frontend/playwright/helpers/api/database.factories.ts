@@ -49,7 +49,14 @@ export async function createGsheetsDatabase(
     },
     driver: 'apsw',
     sqlalchemy_uri_placeholder: 'gsheets://',
-    extra: `{"allows_virtual_table_explore":true,"engine_params":{"catalog":{"${tableName}":"${NETFLIX_TITLES_SHEET}"}}}`,
+    extra: JSON.stringify({
+      allows_virtual_table_explore: true,
+      engine_params: {
+        catalog: {
+          [tableName]: NETFLIX_TITLES_SHEET,
+        },
+      },
+    }),
     expose_in_sqllab: true,
     catalog: [
       {
