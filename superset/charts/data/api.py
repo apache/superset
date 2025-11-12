@@ -549,14 +549,17 @@ class ChartDataRestApi(ChartRestApi):
             if len(queries) > 1 and queries[1].get("data"):
                 data = queries[1]["data"]
                 if isinstance(data, list) and len(data) > 0:
-                    actual_row_count = data[0].get("rowcount")
+                    rowcount = data[0].get("rowcount")
+                    actual_row_count = int(rowcount) if rowcount else None
 
         # Fallback to row_limit if actual count not available
         if actual_row_count is None:
             if form_data and "row_limit" in form_data:
-                actual_row_count = form_data.get("row_limit", 0)
+                row_limit = form_data.get("row_limit", 0)
+                actual_row_count = int(row_limit) if row_limit else 0
             elif query_context.form_data and "row_limit" in query_context.form_data:
-                actual_row_count = query_context.form_data.get("row_limit", 0)
+                row_limit = query_context.form_data.get("row_limit", 0)
+                actual_row_count = int(row_limit) if row_limit else 0
 
         # Use streaming if row count meets or exceeds threshold
         if actual_row_count is not None and actual_row_count >= threshold:
