@@ -304,6 +304,21 @@ class Table:
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
 
+    def qualify(
+        self,
+        *,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Table:
+        """
+        Return a new Table with the given schema and/or catalog, if not already set.
+        """
+        return Table(
+            table=self.table,
+            schema=self.schema or schema,
+            catalog=self.catalog or catalog,
+        )
+
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the

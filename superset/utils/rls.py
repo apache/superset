@@ -46,13 +46,7 @@ def apply_rls(
     # collect all RLS predicates for all tables in the query
     predicates: dict[Table, list[Any]] = {}
     for table in parsed_statement.tables:
-        # fully qualify table
-        table = Table(
-            table.table,
-            table.schema or schema,
-            table.catalog or catalog,
-        )
-
+        table = table.qualify(catalog=catalog, schema=schema)
         predicates[table] = [
             parsed_statement.parse_predicate(predicate)
             for predicate in get_predicates_for_table(
@@ -138,11 +132,7 @@ def collect_rls_predicates_for_sql(
     try:
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
         tables = {
-            Table(
-                table.table,
-                table.schema or schema,
-                table.catalog or catalog,
-            )
+            table.qualify(catalog=catalog, schema=schema)
             for statement in parsed_script.statements
             for table in statement.tables
         }
@@ -152,11 +142,7 @@ def collect_rls_predicates_for_sql(
                 predicate
                 for table in tables
                 for predicate in get_predicates_for_table(
-                    Table(
-                        table.table,
-                        table.schema or schema,
-                        table.catalog or catalog,
-                    ),
+                    table,
                     database,
                     default_catalog,
                 )
