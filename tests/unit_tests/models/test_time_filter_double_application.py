@@ -24,7 +24,7 @@ from flask import Flask
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 
 
@@ -293,6 +293,7 @@ def test_time_filter_with_timestamp_alias(mocker: MockerFixture, app: Flask) -> 
         columns=columns,
         main_dttm_col="dttm",
         database=database,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
     )
 
     mocker.patch(
