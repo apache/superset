@@ -32,7 +32,6 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
-import { setItem, getItem } from 'src/utils/localStorageHelpers';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
 // Global pathname tracker to detect page navigation
@@ -160,9 +159,9 @@ class ChartRenderer extends Component {
     let savedLegendState;
     let savedLegendIndex = 0;
     try {
-      const savedState = getItem(legendStateKey);
+      const savedState = localStorage.getItem(legendStateKey);
       if (savedState) savedLegendState = JSON.parse(savedState);
-      const savedIndex = getItem(legendIndexKey);
+      const savedIndex = localStorage.getItem(legendIndexKey);
       if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
     } catch (e) {
        logging.warn(
@@ -375,7 +374,7 @@ componentDidMount() {
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
     try {
-      setItem(
+      localStorage.setItem(
         `chart_legend_state_${this.props.chartId}`,
         JSON.stringify(legendState),
       );
@@ -397,7 +396,7 @@ componentDidMount() {
   handleLegendScroll(legendIndex) {
     this.setState({ legendIndex });
     try {
-      setItem(
+      localStorage.setItem(
         `chart_legend_index_${this.props.chartId}`,
         JSON.stringify(legendIndex),
       );
