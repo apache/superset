@@ -137,26 +137,31 @@ def collect_rls_predicates_for_sql(
 
     try:
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
-        all_predicates: list[str] = []
-
-        for statement in parsed_script.statements:
-            for table in statement.tables:
-                # fully qualify table
-                qualified_table = Table(
-                    table.table,
-                    table.schema or schema,
-                    table.catalog or catalog,
-                )
-
-                predicates = get_predicates_for_table(
-                    qualified_table,
+        tables = {
+            Table(
+                table.table,
+                table.schema or schema,
+                table.catalog or catalog,
+            )
+            for statement in parsed_script.statements
+            for table in statement.tables
+        }
+        default_catalog = database.get_default_catalog()
+        return sorted(
+            {
+                predicate
+                for table in tables
+                for predicate in get_predicates_for_table(
+                    Table(
+                        table.table,
+                        table.schema or schema,
+                        table.catalog or catalog,
+                    ),
                     database,
-                    database.get_default_catalog(),
+                    default_catalog,
                 )
-                all_predicates.extend(predicates)
-
-        # Return sorted unique predicates for consistent cache keys
-        return sorted(set(all_predicates))
+            }
+        )
     except Exception:
         # If we can't parse the SQL, return empty list
         # This ensures RLS application failure doesn't break caching
