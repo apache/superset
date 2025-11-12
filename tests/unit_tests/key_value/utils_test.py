@@ -113,3 +113,50 @@ def test_get_uuid_namespace_different_seeds() -> None:
     namespace1 = get_uuid_namespace("seed1", app=mock_app)
     namespace2 = get_uuid_namespace("seed2", app=mock_app)
     assert namespace1 != namespace2
+
+
+def test_get_uuid_namespace_with_algorithm_md5() -> None:
+    """Test UUID namespace generation with explicit MD5 algorithm."""
+    from superset.key_value.utils import get_uuid_namespace_with_algorithm
+
+    namespace = get_uuid_namespace_with_algorithm("test_seed", "md5")
+    assert isinstance(namespace, UUID)
+    assert namespace == UUID("d81a8c4d-6522-9513-525d-6a5cef1c7c9d")
+
+
+def test_get_uuid_namespace_with_algorithm_sha256() -> None:
+    """Test UUID namespace generation with explicit SHA-256 algorithm."""
+    from superset.key_value.utils import get_uuid_namespace_with_algorithm
+
+    namespace = get_uuid_namespace_with_algorithm("test_seed", "sha256")
+    assert isinstance(namespace, UUID)
+    assert namespace == UUID("4504d44d-861b-6919-7db1-d95e47344234")
+
+
+def test_get_uuid_namespace_with_algorithm_different_results() -> None:
+    """Test that MD5 and SHA-256 produce different UUIDs for same seed."""
+    from superset.key_value.utils import get_uuid_namespace_with_algorithm
+
+    namespace_md5 = get_uuid_namespace_with_algorithm("test_seed", "md5")
+    namespace_sha256 = get_uuid_namespace_with_algorithm("test_seed", "sha256")
+    assert namespace_md5 != namespace_sha256
+
+
+def test_get_deterministic_uuid_with_algorithm() -> None:
+    """Test deterministic UUID generation with explicit algorithm."""
+    from superset.key_value.utils import get_deterministic_uuid_with_algorithm
+
+    payload = {"key": "value", "number": 123}
+
+    # Test MD5
+    uuid_md5_1 = get_deterministic_uuid_with_algorithm("salt", payload, "md5")
+    uuid_md5_2 = get_deterministic_uuid_with_algorithm("salt", payload, "md5")
+    assert uuid_md5_1 == uuid_md5_2  # Should be deterministic
+
+    # Test SHA-256
+    uuid_sha256_1 = get_deterministic_uuid_with_algorithm("salt", payload, "sha256")
+    uuid_sha256_2 = get_deterministic_uuid_with_algorithm("salt", payload, "sha256")
+    assert uuid_sha256_1 == uuid_sha256_2  # Should be deterministic
+
+    # Different algorithms should produce different UUIDs
+    assert uuid_md5_1 != uuid_sha256_1

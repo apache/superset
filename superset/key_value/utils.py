@@ -68,6 +68,29 @@ def decode_permalink_id(key: str, salt: str) -> int:
     raise KeyValueParseKeyError(_("Invalid permalink key"))
 
 
+def get_uuid_namespace_with_algorithm(seed: str, algorithm: str) -> UUID:
+    """
+    Generate a UUID namespace from a seed string using specified hash algorithm.
+
+    Args:
+        seed: Seed string for namespace generation
+        algorithm: Hash algorithm to use ('sha256' or 'md5')
+
+    Returns:
+        UUID namespace
+    """
+    if algorithm == "sha256":
+        sha256_obj = hashlib.sha256()
+        sha256_obj.update(seed.encode("utf-8"))
+        # Use first 16 bytes of SHA-256 digest for UUID
+        return UUID(bytes=sha256_obj.digest()[:16])
+    else:
+        # Legacy MD5 path for backward compatibility
+        md5_obj = md5()  # noqa: S324
+        md5_obj.update(seed.encode("utf-8"))
+        return UUID(md5_obj.hexdigest())
+
+
 def get_uuid_namespace(seed: str, app: Any = None) -> UUID:
     """
     Generate a UUID namespace from a seed string using configured hash algorithm.
@@ -80,19 +103,26 @@ def get_uuid_namespace(seed: str, app: Any = None) -> UUID:
         UUID namespace
     """
     app = app or current_app
-
     algorithm = app.config["HASH_ALGORITHM"]
+    return get_uuid_namespace_with_algorithm(seed, algorithm)
 
-    if algorithm == "sha256":
-        sha256_obj = hashlib.sha256()
-        sha256_obj.update(seed.encode("utf-8"))
-        # Use first 16 bytes of SHA-256 digest for UUID
-        return UUID(bytes=sha256_obj.digest()[:16])
-    else:
-        # Legacy MD5 path for backward compatibility
-        md5_obj = md5()  # noqa: S324
-        md5_obj.update(seed.encode("utf-8"))
-        return UUID(md5_obj.hexdigest())
+
+def get_deterministic_uuid_with_algorithm(
+    namespace: str, payload: Any, algorithm: str
+) -> UUID:
+    """
+    Get a deterministic UUID (uuid3) using specified hash algorithm.
+
+    Args:
+        namespace: Namespace string for UUID generation
+        payload: JSON-serializable payload
+        algorithm: Hash algorithm to use ('sha256' or 'md5')
+
+    Returns:
+        Deterministic UUID
+    """
+    payload_str = json_dumps_w_dates(payload, sort_keys=True)
+    return uuid3(get_uuid_namespace_with_algorithm(namespace, algorithm), payload_str)
 
 
 def get_deterministic_uuid(namespace: str, payload: Any) -> UUID:
