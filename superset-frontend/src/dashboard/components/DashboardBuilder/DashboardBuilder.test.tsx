@@ -274,6 +274,85 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 
+  test('should set header max width based on open filter bar width', () => {
+    const expectedValue = 320;
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      expectedValue,
+      setter,
+    ]);
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+
+    const { getByTestId } = setup();
+
+    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
+      'max-width',
+      `calc(100vw - ${expectedValue}px)`,
+    );
+
+    nativeFiltersSpy.mockRestore();
+  });
+
+  test('should use closed filter bar width when the panel is collapsed', () => {
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      OPEN_FILTER_BAR_WIDTH,
+      setter,
+    ]);
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: false,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+
+    const { getByTestId } = setup();
+
+    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
+      'max-width',
+      `calc(100vw - ${CLOSED_FILTER_BAR_WIDTH}px)`,
+    );
+
+    nativeFiltersSpy.mockRestore();
+  });
+
+  test('should not constrain header width when filter bar is hidden', () => {
+    const setter = jest.fn();
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+      OPEN_FILTER_BAR_WIDTH,
+      setter,
+    ]);
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: false,
+      });
+
+    const { getByTestId } = setup();
+
+    expect(getByTestId('dashboard-header-wrapper')).toHaveStyleRule(
+      'max-width',
+      'calc(100vw - 0px)',
+    );
+
+    nativeFiltersSpy.mockRestore();
+  });
+
   it('filter panel state when featureflag is true', () => {
     window.featureFlags = {
       [FeatureFlag.FilterBarClosedByDefault]: true,
@@ -294,7 +373,7 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${CLOSED_FILTER_BAR_WIDTH}px`);
   });
 
-  it('filter panel state when featureflag is false', () => {
+  test('filter panel state when featureflag is false', () => {
     window.featureFlags = {
       [FeatureFlag.FilterBarClosedByDefault]: false,
     };
