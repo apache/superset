@@ -62,6 +62,81 @@ def test_table() -> None:
     )
 
 
+def test_table_qualify() -> None:
+    """
+    Test the `Table.qualify` method.
+
+    The qualify method should add schema and/or catalog if not already set,
+    but should not override existing values.
+    """
+    # Table with no schema or catalog
+    table = Table("tbname")
+
+    # Add schema only
+    qualified = table.qualify(schema="schemaname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog is None
+    assert str(qualified) == "schemaname.tbname"
+
+    # Add catalog only
+    qualified = table.qualify(catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema is None
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.tbname"
+
+    # Add both schema and catalog
+    qualified = table.qualify(schema="schemaname", catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.schemaname.tbname"
+
+    # Table with existing schema - should not override
+    table_with_schema = Table("tbname", "existingschema")
+    qualified = table_with_schema.qualify(schema="newschema")
+    assert qualified.schema == "existingschema"
+    assert str(qualified) == "existingschema.tbname"
+
+    # Table with existing catalog - should not override
+    table_with_catalog = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog.qualify(catalog="newcatalog")
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.tbname"
+
+    # Table with existing schema and catalog - should not override
+    fully_qualified = Table("tbname", "existingschema", "existingcatalog")
+    qualified = fully_qualified.qualify(schema="newschema", catalog="newcatalog")
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.existingschema.tbname"
+
+    # Table with schema but no catalog - should add catalog only
+    table_with_schema_only = Table("tbname", "existingschema")
+    qualified = table_with_schema_only.qualify(
+        schema="newschema", catalog="catalogname"
+    )
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.existingschema.tbname"
+
+    # Table with catalog but no schema - should add schema only
+    table_with_catalog_only = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog_only.qualify(
+        schema="schemaname", catalog="newcatalog"
+    )
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.schemaname.tbname"
+
+    # Calling qualify with no arguments should return equivalent table
+    qualified = table.qualify()
+    assert qualified.table == table.table
+    assert qualified.schema == table.schema
+    assert qualified.catalog == table.catalog
+
+
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
     """
     Helper function to extract tables from SQL.
