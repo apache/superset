@@ -25,6 +25,17 @@ const ENDPOINTS = {
 } as const;
 
 /**
+ * TypeScript interface for dataset creation API payload
+ * Provides compile-time safety for required fields
+ */
+export interface DatasetCreatePayload {
+  database: number;
+  catalog: string | null;
+  schema: string;
+  table_name: string;
+}
+
+/**
  * POST request to create a dataset
  * @param page - Playwright page instance (provides authentication context)
  * @param requestBody - Dataset configuration object (database, schema, table_name)
@@ -32,7 +43,7 @@ const ENDPOINTS = {
  */
 export async function apiPostDataset(
   page: Page,
-  requestBody: object,
+  requestBody: DatasetCreatePayload,
 ): Promise<APIResponse> {
   return apiPost(page, ENDPOINTS.DATASET, requestBody);
 }
