@@ -72,7 +72,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
 
   // 1. Apply a sort by clicking Name header
   const table = screen.getByTestId('listview-table');
-  const nameHeader = within(table).getByText(/Name/i);
+  const nameHeader = within(table).getByRole('columnheader', { name: /Name/i });
 
   await userEvent.click(nameHeader);
 
