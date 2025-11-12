@@ -21,7 +21,7 @@ import { t } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/ui';
 import SupersetText from 'src/utils/textUtils';
 import { Input, Button } from '@superset-ui/core/components';
-import { StyledInputContainer, wideButton } from './styles';
+import { StyledInputContainer, wideButton, marginBottom } from './styles';
 import { DatabaseObject } from '../types';
 
 const SqlAlchemyTab = ({
@@ -97,15 +97,17 @@ const SqlAlchemyTab = ({
         </div>
       </StyledInputContainer>
       {children}
-      <Button
-        onClick={testConnection}
-        loading={testInProgress}
-        cta
-        buttonStyle="link"
-        css={(theme: SupersetTheme) => wideButton(theme)}
-      >
-        {t('Test connection')}
-      </Button>
+      <div css={(theme: SupersetTheme) => marginBottom(theme)}>
+        <Button
+          onClick={testConnection}
+          loading={testInProgress}
+          cta
+          buttonStyle="link"
+          css={(theme: SupersetTheme) => wideButton(theme)}
+        >
+          {t('Test connection')}
+        </Button>
+      </div>
     </>
   );
 };
