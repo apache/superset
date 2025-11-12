@@ -600,10 +600,8 @@ export class TableRenderer extends Component {
       colAttrs,
       rowAttrSpans,
       visibleColKeys,
-      visibleRowKeys,
       pivotData,
       rowTotals,
-      colTotals,
       rowSubtotalDisplay,
       arrowExpanded,
       arrowCollapsed,
@@ -611,6 +609,7 @@ export class TableRenderer extends Component {
       rowTotalCallbacks,
       namesMapping,
       allowRenderHtml,
+      totalRowsCount,
     } = pivotSettings;
 
     const {
@@ -621,8 +620,6 @@ export class TableRenderer extends Component {
       dateFormatters,
     } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
-
-    const totalRowsCount = visibleRowKeys.length + (colTotals ? 1 : 0);
 
     const colIncrSpan = colAttrs.length !== 0 ? 1 : 0;
     const attrValueCells = rowKey.map((r, i) => {
@@ -926,6 +923,7 @@ export class TableRenderer extends Component {
       maxColVisible: Math.max(...visibleColKeys.map(k => k.length)),
       rowAttrSpans: this.calcAttrSpans(visibleRowKeys, rowAttrs.length),
       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
+      totalRowsCount: visibleRowKeys.length + (colTotals ? 1 : 0),
       allowRenderHtml,
       ...this.cachedBasePivotSettings,
     };
