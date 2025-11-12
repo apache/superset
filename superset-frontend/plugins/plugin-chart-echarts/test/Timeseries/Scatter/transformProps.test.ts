@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps, SMART_DATE_ID, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SMART_DATE_ID } from '@superset-ui/core';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
 import {
@@ -30,6 +30,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/ui';
 
 describe('Scatter Chart X-axis Time Formatting', () => {
   const baseFormData: EchartsTimeseriesFormData = {
@@ -69,6 +70,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     });
 
     const transformedProps = transformProps(
+      // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
 
@@ -78,28 +80,32 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(xAxis.axisLabel.formatter).toBeUndefined();
   });
 
-  test.each(D3_TIME_FORMAT_OPTIONS)('should handle %s format', format => {
-    const chartProps = new ChartProps({
-      ...baseChartPropsConfig,
-      formData: {
-        ...baseFormData,
-        xAxisTimeFormat: format,
-      },
-    });
+  test.each(D3_TIME_FORMAT_OPTIONS.map(([id]) => id))(
+    'should handle %s format',
+    format => {
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData: {
+          ...baseFormData,
+          xAxisTimeFormat: format,
+        },
+      });
 
-    const transformedProps = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
+      const transformedProps = transformProps(
+        // @ts-ignore
+        chartProps as EchartsTimeseriesChartProps,
+      );
 
-    const xAxis = transformedProps.echartOptions.xAxis as any;
-    expect(xAxis.axisLabel).toHaveProperty('formatter');
-    if (format === SMART_DATE_ID) {
-      expect(xAxis.axisLabel.formatter).toBeUndefined();
-    } else {
-      expect(typeof xAxis.axisLabel.formatter).toBe('function');
-      expect(xAxis.axisLabel.formatter.id).toBe(format);
-    }
-  });
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      if (format === SMART_DATE_ID) {
+        expect(xAxis.axisLabel.formatter).toBeUndefined();
+      } else {
+        expect(typeof xAxis.axisLabel.formatter).toBe('function');
+        expect(xAxis.axisLabel.formatter.id).toBe(format);
+      }
+    },
+  );
 });
 
 describe('Scatter Chart X-axis Number Formatting', () => {
@@ -140,6 +146,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     });
 
     const transformedProps = transformProps(
+      // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
 
@@ -150,23 +157,27 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     expect(xAxis.axisLabel.formatter.id).toBe('SMART_NUMBER');
   });
 
-  test.each(D3_FORMAT_OPTIONS)('should handle %s format', format => {
-    const chartProps = new ChartProps({
-      ...baseChartPropsConfig,
-      formData: {
-        ...baseFormData,
-        xAxisNumberFormat: format,
-      },
-    });
+  test.each(D3_FORMAT_OPTIONS.map(([id]) => id))(
+    'should handle %s format',
+    format => {
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData: {
+          ...baseFormData,
+          xAxisNumberFormat: format,
+        },
+      });
 
-    const transformedProps = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
+      const transformedProps = transformProps(
+        // @ts-ignore
+        chartProps as EchartsTimeseriesChartProps,
+      );
 
-    expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-    const xAxis = transformedProps.echartOptions.xAxis as any;
-    expect(xAxis.axisLabel).toHaveProperty('formatter');
-    expect(typeof xAxis.axisLabel.formatter).toBe('function');
-    expect(xAxis.axisLabel.formatter.id).toBe(format);
-  });
+      expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      expect(xAxis.axisLabel.formatter.id).toBe(format);
+    },
+  );
 });

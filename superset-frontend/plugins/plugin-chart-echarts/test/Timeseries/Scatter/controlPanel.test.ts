@@ -101,7 +101,7 @@ test('x_axis_time_format control should be visible for any data types include TI
   );
 });
 
-test('x_axis_time_format control should be hidden for any data types include TIME', () => {
+test('x_axis_time_format control should be hidden for data types that do NOT include TIME', () => {
   expect(isTimeVisible('null', 'null')).toBe(false);
   expect(isTimeVisible(null, null)).toBe(false);
   expect(isTimeVisible('float_column', 'FLOAT')).toBe(false);
