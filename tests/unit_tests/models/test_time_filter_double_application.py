@@ -35,14 +35,12 @@ def test_time_filter_applied_once_with_remove_filter_in_virtual_dataset(
     Test that time filter is applied only once when using get_time_filter with
     remove_filter=True in a virtual dataset.
 
-    This test reproduces the issue described in GitHub issue #34894 where time
-    filters are being applied twice - once in the inner query (virtual dataset)
-    and again in the outer query.
+    This test verifies the fix for GitHub issue #34894 where time filters were
+    being applied twice - once in the inner query (virtual dataset) and again in
+    the outer query.
 
     Expected behavior: When remove_filter=True is used in the virtual dataset,
     the time filter should only be applied in the inner query, not in the outer query.
-
-    Actual behavior (bug): The filter is applied in both inner and outer queries.
     """
     # Mock the database connection
     database = Database(
@@ -129,29 +127,39 @@ def test_time_filter_applied_once_with_remove_filter_in_virtual_dataset(
         sqla_query = virtual_dataset.get_query_str_extended(query_obj, mutate=False)
         generated_sql = sqla_query.sql.lower()
 
-        print(f"\n\nGenerated SQL:\n{generated_sql}\n\n")
+        # Verify that the time filter appears only in the inner query from the
+        # virtual dataset and NOT in the outer query WHERE clause
 
-        # Count how many times the date filter condition appears
-        # The filter should appear only ONCE (in the inner query from the
-        # virtual dataset). It should NOT appear in the outer query WHERE clause
+        # Check if there's a WHERE clause after the subquery closes
+        # Split by "as virtual_table" and check if WHERE is in outer part
+        if "as virtual_table" in generated_sql:
+            outer_part = generated_sql.split("as virtual_table")[1]
+            # Extract just the part before GROUP BY/ORDER BY/LIMIT to check for WHERE
+            outer_where_part = (
+                outer_part.split("group by")[0]
+                if "group by" in outer_part
+                else outer_part
+            )
+            outer_where_part = (
+                outer_where_part.split("order by")[0]
+                if "order by" in outer_where_part
+                else outer_where_part
+            )
+            outer_where_part = (
+                outer_where_part.split("limit")[0]
+                if "limit" in outer_where_part
+                else outer_where_part
+            )
+            has_outer_where = "where" in outer_where_part and "dttm" in outer_where_part
+        else:
+            has_outer_where = False
 
-        # Check for patterns that indicate the filter is applied in the outer query
-        # This would be a bug - the filter should only be in the subquery
-        outer_where_pattern = (
-            "where" in generated_sql.split("from (")[1]
-            if "from (" in generated_sql
-            else False
-        )
-
-        # The assertion we want to pass: time filter should NOT be in outer query
-        # because remove_filter=True was used in the virtual dataset
-        # Currently this will FAIL because of bug #34894
-        assert (
-            not outer_where_pattern or "dttm" not in generated_sql.split("from (")[1]
-        ), (
-            "Time filter should only be applied in the inner query (virtual dataset), "
-            "not in the outer query when using remove_filter=True. "
-            "This indicates the filter is being applied twice."
+        # Assert that there's NO time filter in the outer query
+        outer_clause = outer_where_part if "outer_where_part" in locals() else "N/A"
+        assert not has_outer_where, (
+            f"Time filter should only be applied in the inner query "
+            f"(virtual dataset), not in the outer query when using "
+            f"remove_filter=True. Found outer WHERE clause: {outer_clause}"
         )
 
 
@@ -238,8 +246,6 @@ def test_time_filter_removed_from_outer_query_simple_case(
     ):
         sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
         generated_sql = sqla_query.sql.lower()
-
-        print(f"\n\nSimple case SQL:\n{generated_sql}\n\n")
 
         # In this simple case, the filter should appear exactly once
         # (in the template, not added by SQLAlchemy)
@@ -342,8 +348,6 @@ def test_time_filter_with_timestamp_alias(mocker: MockerFixture, app: Flask) -> 
     ):
         sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
         generated_sql = sqla_query.sql.lower()
-
-        print(f"\n\nTimestamp alias case SQL:\n{generated_sql}\n\n")
 
         # The filter should only appear in the inner query (virtual dataset)
         # NOT in the outer query WHERE clause

@@ -840,7 +840,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
+        template_processor: Optional[
+            BaseTemplateProcessor
+        ] = None,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -2042,6 +2044,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             metrics_exprs = []
 
         time_filters = []
+
+        # Process FROM clause early to populate removed_filters from virtual dataset
+        # templates before we decide whether to add time filters
+        tbl, cte = self.get_from_clause(template_processor)
+
         if granularity:
             if granularity not in columns_by_name or not dttm_col:
                 raise QueryObjectValidationError(
@@ -2064,6 +2071,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 self.always_filter_main_dttm
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
+                and self.main_dttm_col not in removed_filters
             ):
                 time_filters.append(
                     self.get_time_filter(
@@ -2074,13 +2082,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 )
 
-            time_filter_column = self.get_time_filter(
-                time_col=dttm_col,
-                start_dttm=from_dttm,
-                end_dttm=to_dttm,
-                template_processor=template_processor,
+            # Check if time filter should be skipped because it was handled in template.
+            # Check both the actual column name and __timestamp alias
+            should_skip_time_filter = (
+                dttm_col.column_name in removed_filters
+                or utils.DTTM_ALIAS in removed_filters
             )
-            time_filters.append(time_filter_column)
+
+            if not should_skip_time_filter:
+                time_filter_column = self.get_time_filter(
+                    time_col=dttm_col,
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
+                )
+                time_filters.append(time_filter_column)
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -2098,8 +2114,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)
-
-        tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -2199,7 +2213,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+                ADVANCED_DATA_TYPES = app.config.get(
+                    "ADVANCED_DATA_TYPES", {}
+                )  # noqa: N806
 
                 if (
                     col_advanced_data_type != ""
@@ -2367,7 +2383,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
+        for col, (_orig_col, ascending) in zip(
+            orderby_exprs, orderby, strict=False
+        ):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column
