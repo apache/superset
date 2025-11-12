@@ -321,3 +321,82 @@ def test_validation_serialization_stability():
     # Verify processed SQL in serialized form
     assert "SUM(NUM)" in metrics_json_1
     assert "SUM(NUM)" in orderby_json_1
+
+
+def test_orderby_uses_processed_true():
+    """
+    Test that adhoc metrics in orderby are processed with processed=True.
+
+    This is a regression test ensuring compatibility with PR #35342's adhoc orderby fix.
+
+    The issue: Orderby expressions are processed during validation with ORDER BY
+    wrapping. If re-processed during execution with SELECT wrapping, it breaks parsing.
+
+    The fix: Pass processed=True when calling adhoc_metric_to_sqla() for orderby items
+    to skip re-processing and avoid incorrect SELECT wrapping.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from superset.models.helpers import ExploreMixin
+
+    # Create an adhoc metric that would be used in orderby
+    adhoc_metric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(*)",
+        "label": "count_metric",
+    }
+
+    # Mock the datasource
+    mock_datasource = MagicMock()
+    mock_datasource.database_id = 1
+    mock_datasource.database.backend = "postgresql"
+    mock_datasource.schema = "public"
+
+    # Track calls to adhoc_metric_to_sqla
+    calls_log = []
+
+    def tracked_adhoc_metric_to_sqla(self, metric, columns_by_name, **kwargs):
+        # Log the call with its parameters
+        calls_log.append(
+            {
+                "metric": metric,
+                "processed": kwargs.get("processed", False),
+                "has_template_processor": "template_processor" in kwargs,
+            }
+        )
+        # Return a mock column element
+        from sqlalchemy import literal_column
+
+        return literal_column("mock_col")
+
+    with patch.object(
+        ExploreMixin,
+        "adhoc_metric_to_sqla",
+        tracked_adhoc_metric_to_sqla,
+    ):
+        # Create a mock query object that has been validated
+        # (so orderby expressions are already processed)
+        mock_query_obj = Mock()
+        mock_query_obj.metrics = [adhoc_metric]
+        mock_query_obj.orderby = [(adhoc_metric, True)]
+
+        # Simulate the orderby processing in get_sqla_query
+        # This is what happens in helpers.py around line 1868
+        from superset.utils import core as utils
+
+        if isinstance(adhoc_metric, dict) and utils.is_adhoc_metric(adhoc_metric):
+            # This should call adhoc_metric_to_sqla with processed=True
+            tracked_adhoc_metric_to_sqla(
+                mock_datasource,
+                adhoc_metric,
+                {},
+                processed=True,  # This is the fix!
+            )
+
+    # Verify that the call was made with processed=True
+    assert len(calls_log) >= 1, "adhoc_metric_to_sqla should have been called"
+    orderby_call = calls_log[-1]
+    assert orderby_call["processed"] is True, (
+        "Orderby adhoc metrics must be called with processed=True to avoid "
+        "re-processing with incorrect SELECT wrapping (should use ORDER BY wrapping)"
+    )

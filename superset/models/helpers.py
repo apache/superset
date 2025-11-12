@@ -1859,16 +1859,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
-                # SQL expressions are sanitized during QueryObject.validate() via
-                # _sanitize_sql_expressions(). We still process here to handle
-                # Jinja templates. The removal of the _process_orderby_expression()
-                # call (which mutated the dict) prevents cache key mismatches.
+                # SQL expressions are processed during QueryObject.validate() via
+                # _sanitize_sql_expressions() using ORDER BY wrapping. We pass
+                # processed=True to skip re-processing and avoid incorrect SELECT
+                # wrapping that breaks ORDER BY expressions. The removal of the
+                # _process_orderby_expression() call (which mutated the dict) prevents
+                # cache key mismatches.
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
-                        template_processor=template_processor,
+                        processed=True,
                     )
                     # use the existing instance, if possible
                     col = metrics_exprs_by_expr.get(str(col), col)
