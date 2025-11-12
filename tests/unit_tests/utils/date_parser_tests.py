@@ -271,6 +271,15 @@ def test_get_since_until() -> None:
     expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
     assert result == expected
 
+    # Test time_shift with date range format (contains ' : ')
+    result = get_since_until(
+        time_range="today : tomorrow",
+        time_shift="yesterday : today",
+    )
+    # When time_shift contains ' : ', it should be parsed as a new time range
+    expected = datetime(2016, 11, 6), datetime(2016, 11, 7)
+    assert result == expected
+
     with pytest.raises(ValueError):  # noqa: PT011
         get_since_until(time_range="tomorrow : yesterday")
 

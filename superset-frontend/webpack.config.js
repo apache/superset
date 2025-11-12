@@ -35,6 +35,7 @@ const {
   getCompilerHooks,
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
@@ -179,6 +180,11 @@ const plugins = [
 
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
+}
+
+// Add React Refresh plugin for development mode
+if (isDevMode) {
+  plugins.push(new ReactRefreshWebpackPlugin());
 }
 
 if (!isDevMode) {

@@ -14,13 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-"""System tools for MCP service."""
-
-from .get_instance_info import get_instance_info
-from .health_check import health_check
-
-__all__ = [
-    "health_check",
-    "get_instance_info",
-]

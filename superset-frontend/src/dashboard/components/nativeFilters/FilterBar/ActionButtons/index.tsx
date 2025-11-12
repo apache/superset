@@ -152,7 +152,6 @@ const ActionButtons = ({
       <Button
         disabled={!isClearAllEnabled}
         buttonStyle="link"
-        buttonSize="small"
         className="filter-clear-all-button"
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}
