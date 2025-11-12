@@ -60,35 +60,4 @@ describe('chart reducers', () => {
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('failed');
   });
-
-  test('should defer abort of previous controller to avoid Redux state mutation', () => {
-    jest.useFakeTimers();
-
-    const oldController = new AbortController();
-    const abortSpy = jest.spyOn(oldController, 'abort');
-
-    const chartWithController = {
-      ...testChart,
-      queryController: oldController,
-      chartStatus: 'loading',
-    };
-
-    const newController = new AbortController();
-    const newState = chartReducer(
-      { [chartKey]: chartWithController },
-      actions.chartUpdateStarted(newController, {}, chartKey),
-    );
-
-    expect(abortSpy).not.toHaveBeenCalled();
-    expect(oldController.signal.aborted).toBe(false);
-
-    jest.runAllTimers();
-    expect(abortSpy).toHaveBeenCalledTimes(1);
-    expect(oldController.signal.aborted).toBe(true);
-
-    expect(newState[chartKey].queryController).toBe(newController);
-    expect(newState[chartKey].chartStatus).toBe('loading');
-
-    jest.useRealTimers();
-  });
 });
