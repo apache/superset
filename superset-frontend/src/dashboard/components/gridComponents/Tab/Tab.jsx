@@ -122,31 +122,25 @@ const Tab = props => {
   const lastRefreshTime = useSelector(
     state => state.dashboardState.lastRefreshTime,
   );
-  const tabActivationTimes = useSelector(
-    state => state.dashboardState.tabActivationTimes || {},
+  const tabActivationTime = useSelector(
+    state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
 
-  // Check if tab needs refresh when it becomes visible
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
-      const tabId = props.id;
-      const tabActivationTime = tabActivationTimes[tabId] || 0;
-
-      // If a refresh occurred while this tab was inactive,
-      // refresh the charts in this tab now that it's visible
       if (
         lastRefreshTime &&
         tabActivationTime &&
         lastRefreshTime > tabActivationTime
       ) {
-        const chartIds = getChartIdsFromComponent(tabId, dashboardLayout);
+        const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
         if (chartIds.length > 0) {
-          // Small delay to ensure charts are fully mounted
-          setTimeout(() => {
-            // Refresh charts in this tab
-            dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
-          }, CHART_MOUNT_DELAY);
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+            }, CHART_MOUNT_DELAY);
+          });
         }
       }
     }
@@ -155,7 +149,7 @@ const Tab = props => {
     props.renderType,
     props.id,
     lastRefreshTime,
-    tabActivationTimes,
+    tabActivationTime,
     dashboardLayout,
     dashboardInfo.id,
     dispatch,
