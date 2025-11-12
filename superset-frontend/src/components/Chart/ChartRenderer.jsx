@@ -241,7 +241,7 @@ componentDidMount() {
       // Check periodically to catch route changes (including SPA navigation via tabs/links)
       window.__chartLegendCleanupInterval = setInterval(
         globalRouteChangeHandler,
-        100,
+        1000,
       );
     }
 
