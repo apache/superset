@@ -18,7 +18,7 @@
 
 import logging
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import Flask
 
@@ -34,7 +34,7 @@ WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 # Feature flags for MCP
-MCP_FEATURE_FLAGS: Dict[str, Any] = {
+MCP_FEATURE_FLAGS: dict[str, Any] = {
     "MCP_SERVICE": True,
 }
 
@@ -107,7 +107,7 @@ MCP_CACHE_CONFIG = {
 }
 
 
-def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
+def create_default_mcp_auth_factory(app: Flask) -> Any | None:
     """Default MCP auth factory using app.config values."""
     if not app.config.get("MCP_AUTH_ENABLED", False):
         return None
@@ -155,7 +155,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
 
-def default_user_resolver(app: Any, access_token: Any) -> Optional[str]:
+def default_user_resolver(app: Any, access_token: Any) -> str | None:
     """Extract username from JWT token claims."""
     logger.info(
         "Resolving user from token: type=%s, token=%s",
@@ -180,7 +180,7 @@ def generate_secret_key() -> str:
     return secrets.token_urlsafe(42)
 
 
-def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Get complete MCP configuration dictionary.
 
@@ -208,8 +208,8 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
 
 
 def get_mcp_config_with_overrides(
-    app_config: Dict[str, Any] | None = None,
-) -> Dict[str, Any]:
+    app_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Alternative approach: Allow any app_config keys, not just predefined ones.
 
@@ -224,16 +224,16 @@ def get_mcp_config_with_overrides(
 
 
 def create_response_caching_middleware(
-    app_config: Dict[str, Any] | None = None,
-) -> Optional[Any]:
-    """
-    Create ResponseCachingMiddleware with configuration from app.config.
+    app_config: dict[str, Any] | None = None,
+) -> Any | None:
+    """Create ResponseCachingMiddleware with configuration from app.config.
 
     Args:
         app_config: Optional Flask app configuration dict
 
     Returns:
         ResponseCachingMiddleware instance or None if caching is disabled
+
     """
     app_config = app_config or {}
 
@@ -270,7 +270,7 @@ def create_response_caching_middleware(
         }
 
         # Tool caching with include/exclude lists
-        call_tool_settings: Dict[str, Any] = {
+        call_tool_settings: dict[str, Any] = {
             "ttl": cache_config.get("call_tool_ttl", 3600),
             "enabled": True,
         }
@@ -299,7 +299,8 @@ def create_response_caching_middleware(
 
         if cache_config.get("excluded_tools"):
             logger.info(
-                "Excluded tools from caching: %s", cache_config["excluded_tools"]
+                "Excluded tools from caching: %s",
+                cache_config["excluded_tools"],
             )
 
         return middleware
@@ -310,11 +311,11 @@ def create_response_caching_middleware(
         )
         return None
     except Exception as e:
-        logger.error("Failed to create response caching middleware: %s", e)
+        logger.exception("Failed to create response caching middleware: %s", e)
         return None
 
 
-def get_mcp_factory_config() -> Dict[str, Any]:
+def get_mcp_factory_config() -> dict[str, Any]:
     """
     Get FastMCP factory configuration.
 
