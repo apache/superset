@@ -65,7 +65,6 @@ const StyledBrandText = styled.div`
     color: ${theme.colorText};
     padding-left: ${theme.sizeUnit * 4}px;
     padding-right: ${theme.sizeUnit * 4}px;
-    margin-right: ${theme.sizeUnit * 6}px;
     font-size: ${theme.fontSizeLG}px;
     float: left;
     display: flex;
