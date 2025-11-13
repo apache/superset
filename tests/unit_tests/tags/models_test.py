@@ -165,7 +165,7 @@ def test_get_tag_returns_existing_tag() -> None:
     # Verify
     assert result is existing_tag, "Should return the existing tag"
     assert result.id == 42, "Should have the existing tag's ID"
-    mock_session.add.assert_not_called(), "Should not add a new tag"
+    mock_session.add.assert_not_called()
     mock_session.commit.assert_not_called(), "Should not commit"
 
 
