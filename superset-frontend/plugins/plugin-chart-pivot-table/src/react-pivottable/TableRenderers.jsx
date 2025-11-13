@@ -88,13 +88,17 @@ function sortHierarchicalObject(obj, objSort, rowPartialOnTop) {
     }
     return objSort === 'asc' ? valA - valB : valB - valA;
   });
-  return sortedKeys.reduce((acc, key) => {
-    acc[key] =
-      typeof obj[key] === 'object' && !Array.isArray(obj[key])
-        ? sortHierarchicalObject(obj[key], objSort, rowPartialOnTop)
-        : obj[key];
-    return acc;
-  }, {});
+
+  const result = new Map();
+  sortedKeys.forEach(key => {
+    const value = obj[key];
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      result.set(key, sortHierarchicalObject(value, objSort, rowPartialOnTop));
+    } else {
+      result.set(key, value);
+    }
+  });
+  return result;
 }
 
 function convertToArray(
@@ -107,25 +111,28 @@ function convertToArray(
   flag = false,
 ) {
   let updatedFlag = flag;
-  Object.keys(obj).forEach(key => {
+
+  const keys = Array.from(obj.keys());
+  const getValue = key => obj.get(key);
+
+  keys.forEach(key => {
     if (key === 'currentVal') {
       return;
     }
+    const value = getValue(key);
     if (rowEnabled && rowPartialOnTop && parentKeys.length < maxRowIndex - 1) {
       result.push(parentKeys.length > 0 ? [...parentKeys, key] : [key]);
       updatedFlag = true;
     }
-    if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-      parentKeys.push(key);
+    if (typeof value === 'object' && !Array.isArray(value)) {
       convertToArray(
-        obj[key],
+        value,
         rowEnabled,
         rowPartialOnTop,
         maxRowIndex,
-        parentKeys,
+        [...parentKeys, key],
         result,
       );
-      parentKeys.pop();
     }
     if (
       parentKeys.length >= maxRowIndex - 1 ||
@@ -431,8 +438,7 @@ export class TableRenderer extends Component {
         if (!current[key]) {
           current[key] = { currentVal: 0 };
         }
-        sumGroup += aggValue;
-        current[key].currentVal = sumGroup;
+        current[key].currentVal = aggValue ?? 0;
         current = current[key];
       });
     });
@@ -644,7 +650,7 @@ export class TableRenderer extends Component {
               namesMapping,
               allowRenderHtml,
             )}
-            <span role="columnheader button" tabIndex={0}>
+            <span role="columnheader" tabIndex={0}>
               {visibleSortIcon && getSortIcon(i)}
             </span>
           </th>,
