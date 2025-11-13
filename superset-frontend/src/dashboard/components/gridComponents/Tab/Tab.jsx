@@ -68,6 +68,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 };
 
 const defaultProps = {
