@@ -102,10 +102,9 @@ add_extension_api(DatasetReferencesAPI)
 
 # Fetch Superset entities via the DAO to apply base filters that filter out entities
 # that the user doesn't have access to
-all_databases = DatabaseDAO.find_all()
-  return databases
+databases = DatabaseDAO.find_all()
 
-# Apply simple filters on top of base filters
+# ..or apply simple filters on top of base filters
 databases = DatabaseDAO.filter_by(uuid=database.uuid)
 if not databases:
     raise Exception("Database not found")

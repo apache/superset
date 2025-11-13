@@ -26,7 +26,7 @@ Usage:
 
     # Use standard BaseDAO methods
     datasets = DatasetDAO.find_all()
-    dataset = DatasetDAO.find_by_id(123)
+    dataset = DatasetDAO.find_one_or_none(id=123)
     DatasetDAO.create(attributes={"name": "New Dataset"})
 """
 
