@@ -16,7 +16,7 @@
 # under the License.
 import pandas as pd
 import pytest
-from sqlalchemy import String
+from sqlalchemy import String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -52,7 +52,8 @@ def load_unicode_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS unicode_test")
+            with engine.connect() as connection:
+                connection.execute(text("DROP TABLE IF EXISTS unicode_test"))
 
 
 @pytest.fixture

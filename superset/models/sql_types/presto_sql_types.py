@@ -16,7 +16,7 @@
 # under the License.
 
 # pylint: disable=abstract-method
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import DATE, Integer, TIMESTAMP
@@ -113,6 +113,16 @@ class TimeStamp(TypeDecorator):
         """
         return f"TIMESTAMP '{value}'"
 
+    def literal_processor(self, dialect: Dialect) -> Callable[[Any], str]:
+        """
+        Return a literal processor for SQLAlchemy 2.x compatibility.
+        """
+
+        def process(value: Any) -> str:
+            return f"TIMESTAMP '{value}'"
+
+        return process
+
 
 class Date(TypeDecorator):
     """
@@ -129,3 +139,13 @@ class Date(TypeDecorator):
         as Presto does not support automatic casting.
         """
         return f"DATE '{value}'"
+
+    def literal_processor(self, dialect: Dialect) -> Callable[[Any], str]:
+        """
+        Return a literal processor for SQLAlchemy 2.x compatibility.
+        """
+
+        def process(value: Any) -> str:
+            return f"DATE '{value}'"
+
+        return process

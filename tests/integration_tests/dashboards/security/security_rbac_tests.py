@@ -528,6 +528,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         with override_user(security_manager.find_user("admin")):  # noqa: F405
             target = DashboardDAO.copy_dashboard(source, data)
+            db.session.commit()  # noqa: F405
             db.session.delete(target)  # noqa: F405
 
         db.session.commit()  # noqa: F405

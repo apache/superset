@@ -226,7 +226,10 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+    # SQLAlchemy 2.x: SQL is wrapped in text() objects
+    from sqlalchemy import text
+
+    mock_execute.assert_any_call(text(f"DROP TABLE IF EXISTS {schema}.{table_name}"))
     app.config = config
 
 
@@ -347,7 +350,8 @@ def test_where_latest_partition(mock_method):
             columns,
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-    assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+    # SQLAlchemy 2.x: Different SQL formatting (single space after SELECT)
+    assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
 
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")

@@ -22,7 +22,7 @@ from typing import Any
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, text
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -67,7 +67,8 @@ def load_world_bank_data():
     yield
     with app.app_context():
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS wb_health_population")
+            with engine.connect() as connection:
+                connection.execute(text("DROP TABLE IF EXISTS wb_health_population"))
 
 
 @pytest.fixture

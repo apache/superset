@@ -17,8 +17,7 @@
 
 from typing import Any, Type
 
-from flask_sqlalchemy import BaseQuery
-from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import Query, scoped_session
 from superset_core.api.types.models import CoreModelsApi
 
 
@@ -48,7 +47,7 @@ class HostModelsApi(CoreModelsApi):
         return Database
 
     @staticmethod
-    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_datasets(query: Query | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
@@ -63,7 +62,7 @@ class HostModelsApi(CoreModelsApi):
         return DatasetDAO.filter_by(**kwargs)
 
     @staticmethod
-    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
+    def get_databases(query: Query | None = None, **kwargs: Any) -> list[Any]:
         from superset.daos.database import DatabaseDAO
 
         if query:

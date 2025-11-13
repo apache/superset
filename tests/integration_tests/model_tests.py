@@ -245,10 +245,13 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
-            assert (
-                str(call_args[0][0])
-                == "trino://original_user:original_user_password@localhost/"
-            )
+            # SQLAlchemy 2.x masks passwords in string representation for security
+            # Check individual URL components instead
+            url = call_args[0][0]
+            assert url.drivername == "trino"
+            assert url.username == "original_user"
+            assert url.password == "original_user_password"  # noqa: S105
+            assert url.host == "localhost"
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")

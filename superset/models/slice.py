@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from urllib import parse
 
@@ -35,7 +36,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
@@ -52,6 +53,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
+    from superset.tags.models import Tag
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -72,36 +74,39 @@ class Slice(  # pylint: disable=too-many-public-methods
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)
-    slice_name = Column(String(250))
-    datasource_id = Column(Integer)
-    datasource_type = Column(String(200))
-    datasource_name = Column(String(2000))
-    viz_type = Column(String(250))
-    params = Column(utils.MediumText())
-    query_context = Column(utils.MediumText())
-    description = Column(Text)
-    cache_timeout = Column(Integer)
-    perm = Column(String(1000))
-    schema_perm = Column(String(1000))
-    catalog_perm = Column(String(1000), nullable=True, default=None)
+    __allow_unmapped__ = True
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    slice_name: Mapped[str | None] = Column(String(250))
+    datasource_id: Mapped[int | None] = Column(Integer)
+    datasource_type: Mapped[str | None] = Column(String(200))
+    datasource_name: Mapped[str | None] = Column(String(2000))
+    viz_type: Mapped[str | None] = Column(String(250))
+    params: Mapped[str | None] = Column(utils.MediumText())
+    query_context: Mapped[str | None] = Column(utils.MediumText())
+    description: Mapped[str | None] = Column(Text)
+    cache_timeout: Mapped[int | None] = Column(Integer)
+    perm: Mapped[str | None] = Column(String(1000))
+    schema_perm: Mapped[str | None] = Column(String(1000))
+    catalog_perm: Mapped[str | None] = Column(String(1000), nullable=True, default=None)
     # the last time a user has saved the chart, changed_on is referencing
     # when the database row was last written
-    last_saved_at = Column(DateTime, nullable=True)
-    last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
-    certified_by = Column(Text)
-    certification_details = Column(Text)
-    is_managed_externally = Column(Boolean, nullable=False, default=False)
-    external_url = Column(Text, nullable=True)
-    last_saved_by = relationship(
+    last_saved_at: Mapped[datetime | None] = Column(DateTime, nullable=True)
+    last_saved_by_fk: Mapped[int | None] = Column(
+        Integer, ForeignKey("ab_user.id"), nullable=True
+    )
+    certified_by: Mapped[str | None] = Column(Text)
+    certification_details: Mapped[str | None] = Column(Text)
+    is_managed_externally: Mapped[bool] = Column(Boolean, nullable=False, default=False)
+    external_url: Mapped[str | None] = Column(Text, nullable=True)
+    last_saved_by: Mapped[Any] = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(
+    owners: Mapped[list[Any]] = relationship(
         security_manager.user_model,
         secondary=slice_user,
         passive_deletes=True,
     )
-    tags = relationship(
+    tags: Mapped[list["Tag"]] = relationship(
         "Tag",
         secondary="tagged_object",
         overlaps="objects,tag,tags",
@@ -110,7 +115,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         secondaryjoin="TaggedObject.tag_id == Tag.id",
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
-    table = relationship(
+    table: Mapped["SqlaTable | None"] = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
         overlaps="table",

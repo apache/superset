@@ -35,13 +35,12 @@ import sqlalchemy as sa
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_sqlalchemy import BaseQuery
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
+from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
@@ -437,9 +436,9 @@ class BaseDAO(Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: BaseQuery) -> list[T]:
+    def query(cls, query: Query) -> list[T]:
         """
-        Get all that fit the `base_filter` based on a BaseQuery object
+        Get all that fit the `base_filter` based on a Query object
         """
         if cls.base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)

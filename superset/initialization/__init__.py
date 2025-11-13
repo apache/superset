@@ -66,7 +66,7 @@ from superset.extensions import (
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import is_test, pessimistic_connection_handling
+from superset.utils.core import is_test
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -667,8 +667,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """Check database connection and warn if unavailable"""
         try:
             with self.superset_app.app_context():
-                # Simple connection test
-                db.engine.execute("SELECT 1")
+                # Simple connection test - SQLAlchemy 2.0 compatible
+                with db.engine.connect() as connection:
+                    connection.execute(db.text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
             safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
@@ -885,10 +886,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         encrypted_field_factory.init_app(self.superset_app)
 
     def setup_db(self) -> None:
+        # Configure SQLAlchemy engine options for connection pool management
+        # This replaces the legacy pessimistic_connection_handling with
+        # built-in features
+        engine_options = self.config.get("SQLALCHEMY_ENGINE_OPTIONS", {})
+
+        # Enable connection pool pre-ping (compatible with SQLAlchemy 1.4+)
+        # This tests connections before using them, similar to pessimistic handling
+        if "pool_pre_ping" not in engine_options:
+            engine_options = engine_options.copy()
+            engine_options["pool_pre_ping"] = True
+            self.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
+
         db.init_app(self.superset_app)
 
+        # Setup SQLite-specific configurations if needed
         with self.superset_app.app_context():
-            pessimistic_connection_handling(db.engine)
+            from superset.utils.core import setup_sqlite_foreign_keys
+
+            setup_sqlite_foreign_keys(db.engine)
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 
