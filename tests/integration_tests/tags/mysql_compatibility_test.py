@@ -260,7 +260,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
 
         except ProgrammingError as e:
             pytest.fail(f"ProgrammingError should not occur during commit: {e}")
-        except BaseException as e:
+        except Exception as e:
             pytest.fail(f"Unexpected error during tag creation and commit: {e}")
 
     def test_tag_name_is_pure_string_type(self) -> None:
