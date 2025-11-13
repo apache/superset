@@ -71,7 +71,7 @@ const buildDateObject = (year: number, month: number, day: number) =>
 
 const detectRTL = () => {
   if (typeof document === 'undefined') {
-    return true;
+    return false;
   }
   const doc = document.documentElement;
   if (doc?.dir === 'rtl' || doc?.lang?.startsWith('fa')) {
@@ -80,7 +80,7 @@ const detectRTL = () => {
   if (typeof navigator !== 'undefined') {
     return navigator.language?.startsWith('fa') ?? false;
   }
-  return true;
+  return false;
 };
 
 /**

@@ -195,7 +195,7 @@ export function PersianCalendarFrame({
 
   const isRTL = useMemo(() => {
     if (typeof document === 'undefined') {
-      return true;
+      return false;
     }
     const doc = document.documentElement;
     if (doc?.dir === 'rtl' || doc?.lang?.startsWith('fa')) {
@@ -204,7 +204,7 @@ export function PersianCalendarFrame({
     if (typeof navigator !== 'undefined' && navigator.language?.startsWith('fa')) {
       return true;
     }
-    return true;
+    return false;
   }, []);
 
   const shouldUsePersianText = useMemo(() => {
@@ -217,7 +217,7 @@ export function PersianCalendarFrame({
     if (typeof navigator !== 'undefined' && navigator.language?.startsWith('fa')) {
       return true;
     }
-    return true;
+    return false;
   }, []);
 
   const normalizeToGregorian = useCallback(

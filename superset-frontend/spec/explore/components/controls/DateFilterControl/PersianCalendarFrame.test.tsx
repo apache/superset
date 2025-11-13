@@ -64,7 +64,7 @@ test('renders preset selection and applies relative range on change', async () =
   const onChange = jest.fn();
   render(<PersianCalendarFrame value="Last 7 days" onChange={onChange} />);
 
-  await userEvent.click(screen.getByRole('radio', { name: '۳۰ روز گذشته' }));
+  await userEvent.click(screen.getByRole('radio', { name: /Last 30 days/i }));
 
   expect(onChange).toHaveBeenCalledWith('Last 30 days');
 });
@@ -73,10 +73,10 @@ test('emits custom range when both Jalali pickers are filled', async () => {
   const onChange = jest.fn();
   render(<PersianCalendarFrame value={NO_TIME_RANGE} onChange={onChange} />);
 
-  await userEvent.click(screen.getByRole('radio', { name: 'بازه سفارشی' }));
+  await userEvent.click(screen.getByRole('radio', { name: /Custom range/i }));
 
-  const startInput = screen.getByLabelText('بازه تاریخ را انتخاب کنید-start');
-  const endInput = screen.getByLabelText('بازه تاریخ را انتخاب کنید-end');
+  const startInput = screen.getByLabelText('Select date range-start');
+  const endInput = screen.getByLabelText('Select date range-end');
 
   fireEvent.change(startInput, { target: { value: '2024-01-10' } });
   fireEvent.change(endInput, { target: { value: '2024-01-12' } });
@@ -93,22 +93,22 @@ test('parses persisted custom range values', () => {
   );
 
   expect(
-    screen.getByText(/بازه انتخاب‌شده \(جلالی\)/i),
+    screen.getByText(/Selected Jalali range/i),
   ).toBeInTheDocument();
 });
 
 test('custom range defaults both inputs to today when enabled', async () => {
   render(<PersianCalendarFrame value={NO_TIME_RANGE} onChange={jest.fn()} />);
 
-  await userEvent.click(screen.getByRole('radio', { name: 'بازه سفارشی' }));
+  await userEvent.click(screen.getByRole('radio', { name: /Custom range/i }));
 
   const isoDate = dayjs().format('YYYY-MM-DD');
   await waitFor(() =>
     expect(
-      screen.getByLabelText('بازه تاریخ را انتخاب کنید-start'),
+      screen.getByLabelText('Select date range-start'),
     ).toHaveValue(isoDate),
   );
   expect(
-    screen.getByLabelText('بازه تاریخ را انتخاب کنید-end'),
+    screen.getByLabelText('Select date range-end'),
   ).toHaveValue(isoDate);
 });
