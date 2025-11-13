@@ -445,8 +445,13 @@ export class TableRenderer extends Component {
     return groups;
   }
 
-  sortAndCacheData(groups, sortOrder, subtotals, maxRowIndex) {
-    const { rowEnabled, rowPartialOnTop } = subtotals;
+  sortAndCacheData(
+    groups,
+    sortOrder,
+    rowEnabled,
+    rowPartialOnTop,
+    maxRowIndex,
+  ) {
     const sortedGroups = sortHierarchicalObject(
       groups,
       sortOrder,
@@ -471,9 +476,10 @@ export class TableRenderer extends Component {
         newDirection = sortingOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
       }
 
+      const { rowEnabled, rowPartialOnTop } = pivotData.subtotals;
       newSortingOrder[columnIndex] = newDirection;
 
-      const cacheKey = `${columnIndex}-${newDirection}`;
+      const cacheKey = `${columnIndex}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
       let newRowKeys;
       if (this.sortCache.has(cacheKey)) {
         const cachedRowKeys = this.sortCache.get(cacheKey);
@@ -486,7 +492,8 @@ export class TableRenderer extends Component {
         const sortedRowKeys = this.sortAndCacheData(
           groups,
           newDirection,
-          pivotData.subtotals,
+          rowEnabled,
+          rowPartialOnTop,
           maxRowIndex,
         );
         this.sortCache.set(cacheKey, sortedRowKeys);
