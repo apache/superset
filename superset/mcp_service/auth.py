@@ -59,7 +59,7 @@ def get_user_from_request() -> User:
 
     # Validate user is properly loaded with relationships
     if not hasattr(user, "roles"):
-        logger.warning("User object missing 'roles' relationship")
+        raise ValueError("User object missing required 'roles' relationship")
 
     return user
 
@@ -119,9 +119,14 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         # Validate user has necessary relationships loaded
         # (Force access to ensure they're loaded if lazy)
-        _ = user.roles
-        if hasattr(user, "groups"):
-            _ = user.groups
+        # TODO: Consider lazy loading optimization - only load relationships when needed
+        try:
+            _ = user.roles
+            if hasattr(user, "groups"):
+                _ = user.groups
+        except Exception as e:
+            logger.error("Failed to load user relationships: %s", e)
+            raise ValueError("User object relationships could not be loaded") from e
 
         try:
             # TODO: Add permission checks here in future PR
