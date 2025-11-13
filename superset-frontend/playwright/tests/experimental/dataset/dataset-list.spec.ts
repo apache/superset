@@ -24,7 +24,11 @@ import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfir
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { Toast } from '../../../components/core/Toast';
 import { createTestDataset } from '../../../helpers/api/dataset.factories';
-import { apiDeleteDataset, apiGetDataset } from '../../../helpers/api/dataset';
+import {
+  apiDeleteDataset,
+  apiGetDataset,
+  getDatasetByName,
+} from '../../../helpers/api/dataset';
 import { apiDeleteDatabase } from '../../../helpers/api/database';
 
 test.describe('Dataset List', () => {
@@ -146,15 +150,14 @@ test.describe('Dataset List', () => {
   });
 
   test('should duplicate a dataset with new name', async ({ page }) => {
-    // Create test dataset (hermetic - creates own test data)
-    const originalName = `test_original_${Date.now()}`;
-    const duplicateName = `test_duplicate_${Date.now()}`;
-    const result = await createTestDataset(page, originalName);
-    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
+    // Use virtual example dataset (members_channels_2)
+    const originalName = 'members_channels_2';
+    const duplicateName = `duplicate_${originalName}_${Date.now()}`;
 
-    // Refresh page to see new dataset
-    await datasetListPage.goto();
-    await datasetListPage.waitForTableLoad();
+    // Get the dataset by name (ID varies by environment)
+    const original = await getDatasetByName(page, originalName);
+    expect(original).not.toBeNull();
+    expect(original!.id).toBeGreaterThan(0);
 
     // Verify original dataset is visible in list
     await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
@@ -184,8 +187,8 @@ test.describe('Dataset List', () => {
     const duplicateData = await duplicateResponse.json();
     const duplicateId = duplicateData.id;
 
-    // Track duplicate for cleanup
-    testResources.datasetIds.push(duplicateId);
+    // Track duplicate for cleanup (original is example data, don't delete it)
+    testResources = { datasetIds: [duplicateId] };
 
     // Modal should close
     await duplicateModal.waitForHidden();
@@ -204,18 +207,15 @@ test.describe('Dataset List', () => {
     await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
 
     // API Verification: Compare original and duplicate datasets
-    const originalResponse = await apiGetDataset(page, result.datasetId);
-    const originalData = await originalResponse.json();
-
     const duplicateResponseData = await apiGetDataset(page, duplicateId);
     const duplicateDataFull = await duplicateResponseData.json();
 
-    // Verify key properties were copied correctly
-    expect(duplicateDataFull.result.sql).toBe(originalData.result.sql);
+    // Verify key properties were copied correctly (original data already fetched)
+    expect(duplicateDataFull.result.sql).toBe(original!.data.sql);
     expect(duplicateDataFull.result.database.id).toBe(
-      originalData.result.database.id,
+      original!.data.database.id,
     );
-    expect(duplicateDataFull.result.schema).toBe(originalData.result.schema);
+    expect(duplicateDataFull.result.schema).toBe(original!.data.schema);
     // Name should be different (the duplicate name)
     expect(duplicateDataFull.result.table_name).toBe(duplicateName);
   });

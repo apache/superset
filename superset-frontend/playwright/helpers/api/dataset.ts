@@ -49,6 +49,41 @@ export async function apiPostDataset(
 }
 
 /**
+ * Get a dataset by its table name
+ * @param page - Playwright page instance (provides authentication context)
+ * @param tableName - The table_name to search for
+ * @returns Object with id and data if found, null if not found
+ */
+export async function getDatasetByName(
+  page: Page,
+  tableName: string,
+): Promise<{ id: number; data: any } | null> {
+  // Use Superset's filter API to search by table_name
+  const filter = {
+    filters: [
+      {
+        col: 'table_name',
+        opr: 'eq',
+        value: tableName,
+      },
+    ],
+  };
+  const queryParam = encodeURIComponent(JSON.stringify(filter));
+  const response = await apiGet(page, `${ENDPOINTS.DATASET}?q=${queryParam}`);
+
+  if (!response.ok()) {
+    return null;
+  }
+
+  const body = await response.json();
+  if (body.result && body.result.length > 0) {
+    return { id: body.result[0].id, data: body.result[0] };
+  }
+
+  return null;
+}
+
+/**
  * GET request to fetch a dataset's details
  * @param page - Playwright page instance (provides authentication context)
  * @param datasetId - ID of the dataset to fetch
