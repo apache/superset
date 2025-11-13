@@ -46,6 +46,10 @@ export const getOpacity = (
   const numExtremeValue =
     typeof extremeValue === 'string' ? parseFloat(extremeValue) : extremeValue;
 
+  if (isNaN(numCutoffPoint) || isNaN(numExtremeValue)) {
+    return maxOpacity;
+  }
+
   return Math.min(
     maxOpacity,
     round(
