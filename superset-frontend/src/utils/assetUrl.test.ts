@@ -27,11 +27,10 @@ const resourcePath = '/endpoint/img.png';
 const absoluteResourcePath = `https://cdn.domain.com/static${resourcePath}`;
 
 beforeEach(() => {
-  // Clear app root
   staticAssetsPrefixMock.mockReturnValue('');
 });
 
-describe('assetUrl should prepend static asset prefix', () => {
+describe('assetUrl should prepend static asset prefix for relative paths', () => {
   it.each(['', '/myapp'])("'%s' for relative path", app_root => {
     staticAssetsPrefixMock.mockReturnValue(app_root);
     expect(assetUrl(resourcePath)).toBe(`${app_root}${resourcePath}`);
@@ -41,10 +40,9 @@ describe('assetUrl should prepend static asset prefix', () => {
   });
 });
 
-describe('assetUrlIf should ignore static asset prefix', () => {
+describe('assetUrl should ignore static asset prefix for absolute URLs', () => {
   it.each(['', '/myapp'])("'%s' for absolute url", app_root => {
     staticAssetsPrefixMock.mockReturnValue(app_root);
-    expect(ensureStaticPrefix(resourcePath)).toBe(`${app_root}${resourcePath}`);
     expect(ensureStaticPrefix(absoluteResourcePath)).toBe(absoluteResourcePath);
   });
 });

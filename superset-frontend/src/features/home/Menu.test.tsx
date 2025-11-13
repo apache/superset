@@ -252,7 +252,7 @@ fetchMock.get(
 beforeEach(() => {
   // setup a DOM element as a render target
   useSelectorMock.mockClear();
-  // By default use empty app root
+  // By default use empty static assets prefix
   staticAssetsPrefixMock.mockReturnValue('');
 });
 
