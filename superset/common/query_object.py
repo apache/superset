@@ -398,22 +398,17 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 sanitized_metrics.append(metric)
                 continue
             if sql_expr := metric.get("sqlExpression"):
-                try:
-                    processed = self.datasource._process_select_expression(
-                        expression=sql_expr,
-                        database_id=self.datasource.database_id,
-                        engine=self.datasource.database.backend,
-                        schema=self.datasource.schema,
-                        template_processor=None,
-                    )
-                    if processed and processed != sql_expr:
-                        # Create new dict to avoid mutating shared references
-                        sanitized_metrics.append({**metric, "sqlExpression": processed})
-                    else:
-                        sanitized_metrics.append(metric)
-                except Exception as ex:  # pylint: disable=broad-except
-                    # If processing fails, leave as-is and let execution handle it
-                    logger.debug("Failed to sanitize metric SQL expression: %s", ex)
+                processed = self.datasource._process_select_expression(
+                    expression=sql_expr,
+                    database_id=self.datasource.database_id,
+                    engine=self.datasource.database.backend,
+                    schema=self.datasource.schema,
+                    template_processor=None,
+                )
+                if processed and processed != sql_expr:
+                    # Create new dict to avoid mutating shared references
+                    sanitized_metrics.append({**metric, "sqlExpression": processed})
+                else:
                     sanitized_metrics.append(metric)
             else:
                 sanitized_metrics.append(metric)
@@ -436,24 +431,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if not (isinstance(col, dict) and col.get("sqlExpression")):
                 sanitized_orderby.append((col, ascending))
                 continue
-            try:
-                processed = self.datasource._process_orderby_expression(
-                    expression=col["sqlExpression"],
-                    database_id=self.datasource.database_id,
-                    engine=self.datasource.database.backend,
-                    schema=self.datasource.schema,
-                    template_processor=None,
+
+            processed = self.datasource._process_orderby_expression(
+                expression=col["sqlExpression"],
+                database_id=self.datasource.database_id,
+                engine=self.datasource.database.backend,
+                schema=self.datasource.schema,
+                template_processor=None,
+            )
+            if processed and processed != col["sqlExpression"]:
+                # Create new dict to avoid mutating shared references
+                sanitized_orderby.append(
+                    ({**col, "sqlExpression": processed}, ascending)  # type: ignore[arg-type]
                 )
-                if processed and processed != col["sqlExpression"]:
-                    # Create new dict to avoid mutating shared references
-                    sanitized_orderby.append(
-                        ({**col, "sqlExpression": processed}, ascending)  # type: ignore[arg-type]
-                    )
-                else:
-                    sanitized_orderby.append((col, ascending))
-            except Exception as ex:  # pylint: disable=broad-except
-                # If processing fails, leave as-is
-                logger.debug("Failed to sanitize orderby SQL expression: %s", ex)
+            else:
                 sanitized_orderby.append((col, ascending))
 
         self.orderby = sanitized_orderby
