@@ -396,7 +396,13 @@ export const FormattingPopoverContent = ({
                 initialValue={toAllRow}
               >
                 <Checkbox
-                  onChange={event => setToAllRow(event.target.checked)}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToAllRow(checked);
+                    if (checked) {
+                      setToCellBar(false);
+                    }
+                  }}
                   checked={toAllRow}
                   disabled={toCellBar}
                 />
@@ -416,7 +422,13 @@ export const FormattingPopoverContent = ({
                 initialValue={toTextColor}
               >
                 <Checkbox
-                  onChange={event => setToTextColor(event.target.checked)}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToTextColor(checked);
+                    if (checked) {
+                      setToCellBar(false);
+                    }
+                  }}
                   checked={toTextColor}
                   disabled={toCellBar}
                 />
@@ -436,7 +448,14 @@ export const FormattingPopoverContent = ({
                 initialValue={toCellBar}
               >
                 <Checkbox
-                  onChange={event => setToCellBar(event.target.checked)}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setToCellBar(checked);
+                    if (checked) {
+                      setToTextColor(false);
+                      setToAllRow(false);
+                    }
+                  }}
                   checked={toCellBar}
                   disabled={toTextColor || toAllRow}
                 />
