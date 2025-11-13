@@ -111,7 +111,7 @@ describe('EstimateQueryCostButton', () => {
   });
 
   test('renders estimation success result', async () => {
-    const { queryByText, getByText } = setup(
+    const { queryByText, getByText, findByTitle } = setup(
       {},
       mockStore({
         ...initialState,
@@ -129,7 +129,7 @@ describe('EstimateQueryCostButton', () => {
 
     expect(queryByText('Estimate cost')).toBeInTheDocument();
     fireEvent.click(getByText('Estimate cost'));
-
-    expect(queryByText('Total cost')).toBeInTheDocument();
+    const totalCostTitle = await findByTitle('Total cost');
+    expect(totalCostTitle).toBeInTheDocument();
   });
 });

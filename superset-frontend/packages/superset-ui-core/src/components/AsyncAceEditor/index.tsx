@@ -31,7 +31,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@superset-ui/core';
+import { useTheme, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -387,7 +387,9 @@ export const FullSQLEditor = AsyncAceEditor(
   {
     // a custom placeholder in SQL lab for less jumpy re-renders
     placeholder: () => {
-      const gutterBackground = '#e8e8e8'; // from ace-github theme
+      // Use a hook to get theme colors
+      const theme = useTheme();
+      const gutterBackground = theme.colorBgElevated;
       return (
         <div
           style={{

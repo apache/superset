@@ -36,12 +36,12 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
-  Icons,
   IconNameType,
-  Tooltip,
+  Icons,
   type TooltipPlacement,
+  ActionButton,
 } from '@superset-ui/core/components';
 
 export type ActionProps = {
@@ -59,47 +59,19 @@ interface ActionsBarProps {
 const StyledActions = styled.span`
   white-space: nowrap;
   min-width: 100px;
-  .action-button {
-    cursor: pointer;
-    color: ${({ theme }) => theme.colorIcon};
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-    &:hover {
-      path {
-        fill: ${({ theme }) => theme.colorPrimary};
-      }
-    }
-  }
 `;
 
 export function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
-      {actions.map((action, index) => {
-        const ActionIcon = Icons[action.icon as IconNameType];
-        const actionButton = (
-          <span
-            role="button"
-            tabIndex={0}
-            style={{ cursor: 'pointer' }}
-            className="action-button"
-            data-test={action.label}
-            onClick={action.onClick}
-            key={action.tooltip ? undefined : index}
-          >
-            <ActionIcon />
-          </span>
-        );
-        return action.tooltip ? (
-          <Tooltip
-            id={`${action.label}-tooltip`}
-            title={action.tooltip}
-            placement={action.placement}
-            key={index}
-          >
-            {actionButton}
-          </Tooltip>
-        ) : (
-          actionButton
+      {actions.map(({ icon, tooltip, ...rest }, index) => {
+        const IconComponent = Icons[icon as IconNameType];
+        return (
+          <ActionButton
+            key={tooltip ? undefined : index}
+            icon={<IconComponent />}
+            {...rest}
+          />
         );
       })}
     </StyledActions>

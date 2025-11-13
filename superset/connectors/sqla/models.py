@@ -1467,7 +1467,7 @@ class SqlaTable(
 
             if not processed:
                 try:
-                    expression = self._process_sql_expression(
+                    expression = self._process_select_expression(
                         expression=expression,
                         database_id=self.database_id,
                         engine=self.database.backend,
@@ -1502,8 +1502,14 @@ class SqlaTable(
         """
         label = utils.get_column_name(col)
         try:
-            expression = self._process_sql_expression(
-                expression=col["sqlExpression"],
+            sql_expression = col["sqlExpression"]
+
+            # For column references, conditionally quote identifiers that need it
+            if col.get("isColumnReference"):
+                sql_expression = self.database.quote_identifier(sql_expression)
+
+            expression = self._process_select_expression(
+                expression=sql_expression,
                 database_id=self.database_id,
                 engine=self.database.backend,
                 schema=self.schema,
@@ -1629,6 +1635,16 @@ class SqlaTable(
                 if len(df.columns) > len(labels_expected):
                     df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+
+                extras = query_obj.get("extras", {})
+                column_order = extras.get("column_order")
+                if column_order and isinstance(column_order, list):
+                    existing_cols = [col for col in column_order if col in df.columns]
+                    remaining_cols = [
+                        col for col in df.columns if col not in existing_cols
+                    ]
+                    final_order = existing_cols + remaining_cols
+                    df = df[final_order]
             return df
 
         try:

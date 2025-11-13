@@ -18,7 +18,7 @@
  */
 
 import cls from 'classnames';
-import { styled, useTheme } from '../../theme';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Loading as LoaderSvg } from '../assets';
 import type { LoadingProps, SizeOption } from './types';
 
@@ -49,7 +49,9 @@ const LoaderWrapper = styled.div<{
 
   &.inline-centered {
     margin: 0 auto;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   &.floating {
     position: absolute;

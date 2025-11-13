@@ -31,7 +31,6 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import {
-  styled,
   t,
   SupersetClient,
   JsonResponse,
@@ -41,7 +40,9 @@ import {
   VizType,
   FeatureFlag,
   isFeatureEnabled,
+  getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
 import rison from 'rison';
@@ -58,6 +59,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 
 interface QueryDatabase {
   id?: number;
@@ -169,6 +171,9 @@ const updateDataset = async (
     headers,
     body,
   });
+
+  clearDatasetCache(datasetId);
+
   return data.json.result;
 };
 
@@ -217,7 +222,7 @@ export const SaveDatasetModal = ({
   };
   const formDataWithDefaults = {
     ...EXPLORE_CHART_DEFAULT,
-    ...(formData || {}),
+    ...formData,
   };
   const handleOverwriteDataset = async () => {
     // if user wants to overwrite a dataset we need to prompt them
@@ -227,39 +232,50 @@ export const SaveDatasetModal = ({
     }
     setLoading(true);
 
-    const [, key] = await Promise.all([
-      updateDataset(
-        datasource?.dbId,
-        datasetToOverwrite?.datasetid,
-        datasource?.sql,
-        datasource?.columns?.map(
-          (d: { column_name: string; type: string; is_dttm: boolean }) => ({
-            column_name: d.column_name,
-            type: d.type,
-            is_dttm: d.is_dttm,
-          }),
+    try {
+      const [, key] = await Promise.all([
+        updateDataset(
+          datasource?.dbId,
+          datasetToOverwrite?.datasetid,
+          datasource?.sql,
+          datasource?.columns?.map(
+            (d: { column_name: string; type: string; is_dttm: boolean }) => ({
+              column_name: d.column_name,
+              type: d.type,
+              is_dttm: d.is_dttm,
+            }),
+          ),
+          datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          true,
         ),
-        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
-        true,
-      ),
-      postFormData(datasetToOverwrite.datasetid, 'table', {
-        ...formDataWithDefaults,
-        datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === VizType.Table && {
-          all_columns: datasource?.columns?.map(column => column.column_name),
+        postFormData(datasetToOverwrite.datasetid, 'table', {
+          ...formDataWithDefaults,
+          datasource: `${datasetToOverwrite.datasetid}__table`,
+          ...(defaultVizType === VizType.Table && {
+            all_columns: datasource?.columns?.map(column => column.column_name),
+          }),
         }),
-      }),
-    ]);
-    setLoading(false);
+      ]);
+      setLoading(false);
 
-    const url = mountExploreUrl(null, {
-      [URL_PARAMS.formDataKey.name]: key,
-    });
-    createWindow(url);
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      createWindow(url);
 
-    setShouldOverwriteDataset(false);
-    setDatasetName(getDefaultDatasetName());
-    onHide();
+      setShouldOverwriteDataset(false);
+      setDatasetName(getDefaultDatasetName());
+      onHide();
+    } catch (error) {
+      setLoading(false);
+      getClientErrorObject(error).then((e: { error: string }) => {
+        dispatch(
+          addDangerToast(
+            e.error || t('An error occurred while overwriting the dataset'),
+          ),
+        );
+      });
+    }
   };
 
   const loadDatasetOverwriteOptions = useCallback(
@@ -335,15 +351,17 @@ export const SaveDatasetModal = ({
         datasourceName: datasetName,
       }),
     )
-      .then((data: { id: number }) =>
-        postFormData(data.id, 'table', {
+      .then((data: { id: number }) => {
+        clearDatasetCache(data.id);
+
+        return postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
-        }),
-      )
+        });
+      })
       .then((key: string) => {
         setLoading(false);
         const url = mountExploreUrl(null, {

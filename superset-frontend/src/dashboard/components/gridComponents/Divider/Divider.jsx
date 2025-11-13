@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import { Draggable } from '../../dnd/DragDroppable';
 import HoverMenu from '../../menu/HoverMenu';
