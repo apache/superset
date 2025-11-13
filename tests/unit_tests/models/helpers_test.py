@@ -30,6 +30,8 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
+from superset.superset_typing import AdhocColumn
+
 if TYPE_CHECKING:
     from superset.models.core import Database
 
@@ -1389,3 +1391,34 @@ def test_reapply_query_filters_with_empty_filters(database: Database) -> None:
     # Query should be valid without WHERE or HAVING
     assert "SELECT" in sql
     assert "value" in sql
+
+
+def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
+    """
+    Test that adhoc_column_to_sqla
+    properly quotes column identifiers when isColumnReference is true.
+
+    This tests the fix for column names with spaces being properly quoted
+    before being processed by SQLGlot to prevent "column AS alias" misinterpretation.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+    )
+
+    # Test 1: Column reference with spaces should be quoted
+    col_with_spaces: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    result = table.adhoc_column_to_sqla(col_with_spaces)
+
+    # Should contain the quoted column name
+    assert result is not None
+    result_str = str(result)
+
+    assert '"Customer Name"' in result_str

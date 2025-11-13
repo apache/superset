@@ -21,9 +21,12 @@ import datetime
 import logging
 import platform
 
+from flask import current_app
+
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.system.schemas import HealthCheckResponse
+from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +37,44 @@ async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 
+    IMPORTANT: This tool takes NO parameters. Call it without any arguments.
+
     Returns basic system information and confirms the service is running.
     This is useful for testing connectivity and basic functionality.
 
+    Parameters:
+        None - This tool does not accept any parameters
+
     Returns:
-        HealthCheckResponse: Health status and system information
+        HealthCheckResponse: Health status and system information including:
+            - status: "healthy" or "error"
+            - timestamp: ISO format timestamp
+            - service: Service name from APP_NAME config (e.g., "Superset MCP Service")
+            - version: Superset version string
+            - python_version: Python version
+            - platform: Operating system platform
+
+    Example:
+        # Correct - no parameters
+        health_check()
+
+        # Incorrect - do not pass any arguments
+        # health_check(request={})  # This will cause validation errors
     """
+    # Get app name from config (safe to do outside try block)
+    app_name = current_app.config.get("APP_NAME", "Superset")
+    service_name = f"{app_name} MCP Service"
+
     try:
+        # Get version from Superset version metadata
+        version_metadata = get_version_metadata()
+        version = version_metadata.get("version_string", "unknown")
+
         response = HealthCheckResponse(
             status="healthy",
             timestamp=datetime.datetime.now().isoformat(),
-            service="Superset MCP Service",
-            version="1.0.0",
+            service=service_name,
+            version=version,
             python_version=platform.python_version(),
             platform=platform.system(),
         )
@@ -56,11 +85,12 @@ async def health_check() -> HealthCheckResponse:
     except Exception as e:
         logger.error("Health check failed: %s", e)
         # Return error status but don't raise to keep tool working
-        return HealthCheckResponse(
+        response = HealthCheckResponse(
             status="error",
             timestamp=datetime.datetime.now().isoformat(),
-            service="Superset MCP Service",
-            version="1.0.0",
+            service=service_name,
+            version="unknown",
             python_version=platform.python_version(),
             platform=platform.system(),
         )
+        return response
