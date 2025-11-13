@@ -59,7 +59,7 @@ export function cleanupAllChartLegendStates() {
       localStorage.removeItem(key);
     });
   } catch (e) {
-     logging.warn(
+    logging.warn(
       '[ChartRenderer] Failed to clean up all chart legend states from localStorage:',
       e,
     );
@@ -164,8 +164,10 @@ class ChartRenderer extends Component {
       const savedIndex = localStorage.getItem(legendIndexKey);
       if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
     } catch (e) {
-       logging.warn(
-      '[ChartRenderer] Failed to load legend state from localStorage:', e);
+      logging.warn(
+        '[ChartRenderer] Failed to load legend state from localStorage:',
+        e,
+      );
     }
 
     this.state = {
@@ -223,7 +225,7 @@ class ChartRenderer extends Component {
     this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
   }
 
-componentDidMount() {
+  componentDidMount() {
     // Initialize count if it doesn't exist
     if (!window.__chartRendererCount) {
       window.__chartRendererCount = 0;
@@ -379,8 +381,10 @@ componentDidMount() {
         JSON.stringify(legendState),
       );
     } catch (e) {
-       logging.warn(
-      '[ChartRenderer] Failed to save legend state to localStorage:', e);
+      logging.warn(
+        '[ChartRenderer] Failed to save legend state to localStorage:',
+        e,
+      );
     }
   }
 
@@ -401,8 +405,10 @@ componentDidMount() {
         JSON.stringify(legendIndex),
       );
     } catch (e) {
-       logging.warn(
-      '[ChartRenderer] Failed to save legend index to localStorage:', e);
+      logging.warn(
+        '[ChartRenderer] Failed to save legend index to localStorage:',
+        e,
+      );
     }
   }
 
