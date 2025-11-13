@@ -46,38 +46,20 @@ def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
 
-    TODO (future PR): Add JWT token extraction and validation.
-    TODO (future PR): Add user impersonation support.
-    TODO (future PR): Add fallback user configuration.
-
-    For now, this returns the admin user for development.
+    The user should already be set by WorkspaceContextMiddleware.
+    This function validates that authentication succeeded.
     """
-    from flask import current_app
-    from sqlalchemy.orm import joinedload
-
-    from superset.extensions import db
-
-    # TODO: Extract from JWT token once authentication is implemented
-    # For now, use MCP_DEV_USERNAME from configuration
-    username = current_app.config.get("MCP_DEV_USERNAME")
-
-    if not username:
-        raise ValueError("Username not configured")
-
-    # Query user directly with eager loading to ensure fresh session-bound object
-    # Do NOT use security_manager.find_user() as it may return cached/detached user
-    user = (
-        db.session.query(User)
-        .options(joinedload(User.roles), joinedload(User.groups))
-        .filter(User.username == username)
-        .first()
-    )
-
-    if not user:
+    # Check if user was set by middleware
+    if not hasattr(g, "user") or g.user is None:
         raise ValueError(
-            f"User '{username}' not found. "
-            f"Please create admin user with: superset fab create-admin"
+            "User not authenticated. This tool requires authentication via JWT token."
         )
+
+    user = g.user
+
+    # Validate user is properly loaded with relationships
+    if not hasattr(user, "roles"):
+        logger.warning("User object missing 'roles' relationship")
 
     return user
 
@@ -119,14 +101,12 @@ def mcp_auth_hook(tool_func: F) -> F:
     """
     Authentication and authorization decorator for MCP tools.
 
-    This is a minimal implementation that:
-    1. Gets the current user
-    2. Sets g.user for Flask context
+    This decorator assumes Flask application context and g.user
+    have already been set by WorkspaceContextMiddleware.
 
     TODO (future PR): Add permission checking
     TODO (future PR): Add JWT scope validation
     TODO (future PR): Add comprehensive audit logging
-    TODO (future PR): Add rate limiting integration
     """
     import functools
 
@@ -134,15 +114,14 @@ def mcp_auth_hook(tool_func: F) -> F:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         from superset.extensions import db
 
-        # Get user and set Flask context OUTSIDE try block
+        # Get user from g (already set by middleware)
         user = get_user_from_request()
 
-        # Force load relationships NOW while session is definitely active
+        # Validate user has necessary relationships loaded
+        # (Force access to ensure they're loaded if lazy)
         _ = user.roles
         if hasattr(user, "groups"):
             _ = user.groups
-
-        g.user = user
 
         try:
             # TODO: Add permission checks here in future PR
