@@ -303,6 +303,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           renderTabBar={renderTabBar}
           animated={false}
           allowOverflow
+          fullHeight
           onFocus={handleFocus}
           items={tabItems}
           tabBarStyle={{ paddingLeft: 0 }}
