@@ -67,10 +67,6 @@ export default function chartReducer(
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      if (state.queryController) {
-        state.queryController.abort();
-      }
-
       return {
         ...state,
         chartStatus: 'loading',

@@ -408,6 +408,13 @@ export function exploreJSON(
 ) {
   return async (dispatch, getState) => {
     const logStart = Logger.getTimestamp();
+
+    // Abort previous query if one exists
+    const { charts } = getState();
+    if (charts[key]?.queryController) {
+      charts[key].queryController.abort();
+    }
+
     const controller = new AbortController();
     const queryTimeout =
       timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
