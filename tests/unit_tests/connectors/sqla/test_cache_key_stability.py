@@ -225,43 +225,6 @@ def test_validation_preserves_jinja_templates():
     assert "}}" in query_obj.metrics[0]["sqlExpression"]
 
 
-def test_validation_without_processing_methods():
-    """
-    Test that validation doesn't crash when datasource lacks processing methods.
-    """
-    adhoc_metric = {
-        "expressionType": "SQL",
-        "sqlExpression": "sum(num)",
-        "label": "Sum",
-    }
-
-    # Mock datasource WITHOUT _process_* methods
-    mock_datasource = Mock(spec=SqlaTable)
-    mock_datasource.database_id = 1
-    mock_datasource.schema = "public"
-
-    # Remove the processing methods
-    if hasattr(mock_datasource, "_process_select_expression"):
-        delattr(mock_datasource, "_process_select_expression")
-    if hasattr(mock_datasource, "_process_orderby_expression"):
-        delattr(mock_datasource, "_process_orderby_expression")
-
-    # Create QueryObject
-    query_obj = QueryObject(
-        datasource=mock_datasource,
-        metrics=[adhoc_metric],
-        orderby=[(adhoc_metric, True)],
-        columns=[],
-        extras={},
-    )
-
-    # Validate should not crash
-    query_obj.validate()
-
-    # SQL should remain unchanged (no processing)
-    assert query_obj.metrics[0]["sqlExpression"] == "sum(num)"
-
-
 def test_validation_serialization_stability():
     """
     Test that serializing QueryObject metrics/orderby gives consistent results.

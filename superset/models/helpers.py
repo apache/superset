@@ -1241,6 +1241,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
+            elif template_processor and expression:
+                # Even if already processed (sanitized), we still need to
+                # render Jinja templates
+                expression = template_processor.process_template(expression)
 
             sqla_metric = literal_column(expression)
         else:
@@ -1870,6 +1874,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
+                        template_processor=template_processor,
                         processed=True,
                     )
                     # use the existing instance, if possible
