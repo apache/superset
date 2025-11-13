@@ -256,7 +256,6 @@ export const getColorFormatters = memoizeOne(
           resolvedColorScheme = theme[config.colorScheme] as string;
         }
 
-        console.log('resolvedColorScheme', resolvedColorScheme);
 
         if (
           config?.column !== undefined &&
