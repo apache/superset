@@ -46,8 +46,9 @@ def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
 
-    Default implementation uses MCP_DEV_USERNAME from configuration for
-    development and single-user deployments.
+    Priority order:
+    1. g.user if already set (by Preset workspace middleware)
+    2. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -60,11 +61,19 @@ def get_user_from_request() -> User:
 
     from superset.extensions import db
 
-    # Use configured username for authentication
+    # First check if user is already set by Preset workspace middleware
+    if hasattr(g, "user") and g.user:
+        return g.user
+
+    # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
 
     if not username:
-        raise ValueError("Username not configured")
+        raise ValueError(
+            "No authenticated user found. "
+            "Either pass a valid JWT bearer token or configure "
+            "MCP_DEV_USERNAME for development."
+        )
 
     # Query user directly with eager loading to ensure fresh session-bound object
     # Do NOT use security_manager.find_user() as it may return cached/detached user
