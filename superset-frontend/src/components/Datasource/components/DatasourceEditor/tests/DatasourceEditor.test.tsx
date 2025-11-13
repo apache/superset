@@ -76,6 +76,28 @@ export const asyncRender = (renderProps: DatasourceEditorProps) =>
     }),
   );
 
+/**
+ * Setup common API mocks for DatasourceEditor tests.
+ * Mocks the 3 endpoints called on component mount to prevent test hangs and async warnings.
+ */
+export const setupDatasourceEditorMocks = () => {
+  fetchMock.get(
+    url => url.includes('/api/v1/chart/'),
+    { result: [], count: 0, ids: [] },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    url => url.includes('/api/v1/database/'),
+    { result: [], count: 0, ids: [] },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    url => url.includes('/api/v1/dataset/related/owners'),
+    { result: [], count: 0 },
+    { overwriteRoutes: true },
+  );
+};
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor', () => {
   beforeAll(() => {
@@ -83,21 +105,7 @@ describe('DatasourceEditor', () => {
   });
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    fetchMock.get(
-      url => url.includes('/api/v1/chart/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/database/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/dataset/related/owners'),
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    setupDatasourceEditorMocks();
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
@@ -249,21 +257,7 @@ describe('DatasourceEditor Source Tab', () => {
 
   beforeEach(async () => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    fetchMock.get(
-      url => url.includes('/api/v1/chart/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/database/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/dataset/related/owners'),
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    setupDatasourceEditorMocks();
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },

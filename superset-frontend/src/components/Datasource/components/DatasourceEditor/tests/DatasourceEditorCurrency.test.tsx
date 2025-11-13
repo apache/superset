@@ -21,7 +21,11 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
-import { props, DATASOURCE_ENDPOINT } from './DatasourceEditor.test';
+import {
+  props,
+  DATASOURCE_ENDPOINT,
+  setupDatasourceEditorMocks,
+} from './DatasourceEditor.test';
 
 type MetricType = DatasetObject['metrics'][number];
 
@@ -37,21 +41,7 @@ const fastRender = (renderProps: typeof props) =>
 describe('DatasourceEditor Currency Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    fetchMock.get(
-      url => url.includes('/api/v1/chart/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/database/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/dataset/related/owners'),
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    setupDatasourceEditorMocks();
   });
 
   afterEach(() => {

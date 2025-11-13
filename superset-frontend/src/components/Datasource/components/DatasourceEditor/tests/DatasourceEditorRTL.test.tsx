@@ -22,27 +22,14 @@ import {
   props,
   asyncRender,
   DATASOURCE_ENDPOINT,
+  setupDatasourceEditorMocks,
 } from './DatasourceEditor.test';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor RTL Metrics Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    fetchMock.get(
-      url => url.includes('/api/v1/chart/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/database/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/dataset/related/owners'),
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    setupDatasourceEditorMocks();
     jest.clearAllMocks();
   });
 
@@ -105,21 +92,7 @@ describe('DatasourceEditor RTL Metrics Tests', () => {
 describe('DatasourceEditor RTL Columns Tests', () => {
   beforeEach(() => {
     fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    fetchMock.get(
-      url => url.includes('/api/v1/chart/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/database/'),
-      { result: [], count: 0, ids: [] },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      url => url.includes('/api/v1/dataset/related/owners'),
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    setupDatasourceEditorMocks();
     jest.clearAllMocks();
   });
 
