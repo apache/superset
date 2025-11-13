@@ -137,10 +137,13 @@ def inject_rest_api_implementations() -> None:
     from superset.extensions import appbuilder
 
     def add_api(api: "type[RestApi]") -> None:
-        return appbuilder.add_api(api)
+        view = appbuilder.add_api(api)
+        appbuilder._add_permission(view, True)
 
     def add_extension_api(api: "type[RestApi]") -> None:
-        return appbuilder.add_api(api)  # Extensions also use add_api
+        api.route_base = "/extensions/" + (api.resource_name or "")
+        view = appbuilder.add_api(api)
+        appbuilder._add_permission(view, True)
 
     core_rest_api_module.add_api = add_api
     core_rest_api_module.add_extension_api = add_extension_api

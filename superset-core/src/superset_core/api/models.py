@@ -30,6 +30,7 @@ Usage:
     session = get_session()
 """
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -261,7 +262,7 @@ class KeyValue(CoreModel):
     uuid: UUID | None
     resource: str | None
     value: str | None  # Encoded value
-    expires_on: Any | None  # datetime or None
+    expires_on: datetime | None
     created_by_fk: int | None
     changed_by_fk: int | None
 
