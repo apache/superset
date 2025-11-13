@@ -193,6 +193,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
