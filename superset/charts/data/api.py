@@ -171,7 +171,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
             form_data = json.loads(chart.params)
@@ -265,7 +265,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
         return self._get_data_response(
@@ -334,7 +334,10 @@ class ChartDataRestApi(ChartRestApi):
         return self._get_data_response(command, True)
 
     def _run_async(
-        self, form_data: dict[str, Any], command: ChartDataCommand
+        self,
+        form_data: dict[str, Any],
+        command: ChartDataCommand,
+        add_extra_log_payload: Callable[..., None] | None = None,
     ) -> Response:
         """
         Execute command as an async query.
@@ -343,6 +346,10 @@ class ChartDataRestApi(ChartRestApi):
         with contextlib.suppress(ChartDataCacheLoadError):
             result = command.run(force_cached=True)
             if result is not None:
+                # Log is_cached if extra payload callback is provided.
+                # This indicates no async job was triggered - data was already cached
+                # and a synchronous response is being returned immediately.
+                self._log_is_cached(result, add_extra_log_payload)
                 return self._send_chart_response(result)
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
@@ -424,6 +431,25 @@ class ChartDataRestApi(ChartRestApi):
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    def _log_is_cached(
+        self,
+        result: dict[str, Any],
+        add_extra_log_payload: Callable[..., None] | None,
+    ) -> None:
+        """
+        Log is_cached values from query results to event logger.
+
+        Extracts is_cached from each query in the result and logs it.
+        If there's a single query, logs the boolean value directly.
+        If multiple queries, logs as a list.
+        """
+        if add_extra_log_payload and result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
+
     @event_logger.log_this
     def _get_data_response(
         self,
@@ -442,12 +468,7 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_400(message=exc.message)
 
         # Log is_cached if extra payload callback is provided
-        if add_extra_log_payload and result and "queries" in result:
-            is_cached_values = [query.get("is_cached") for query in result["queries"]]
-            if len(is_cached_values) == 1:
-                add_extra_log_payload(is_cached=is_cached_values[0])
-            elif is_cached_values:
-                add_extra_log_payload(is_cached=is_cached_values)
+        self._log_is_cached(result, add_extra_log_payload)
 
         return self._send_chart_response(result, form_data, datasource)
 
