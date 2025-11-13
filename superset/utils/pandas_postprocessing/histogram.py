@@ -49,7 +49,7 @@ def histogram(
         groupby = []
 
     # drop empty values from the target column
-    df.dropna(subset=[column], inplace=True)
+    df = df.dropna(subset=[column])
     if df.empty:
         return df
 
