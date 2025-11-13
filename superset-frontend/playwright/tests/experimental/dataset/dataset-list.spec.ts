@@ -24,18 +24,20 @@ import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfir
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { Toast } from '../../../components/core/Toast';
 import { createTestDataset } from '../../../helpers/api/dataset.factories';
-import { apiDeleteDataset } from '../../../helpers/api/dataset';
+import { apiDeleteDataset, apiGetDataset } from '../../../helpers/api/dataset';
 import { apiDeleteDatabase } from '../../../helpers/api/database';
 
 test.describe('Dataset List', () => {
   let datasetListPage: DatasetListPage;
   let explorePage: ExplorePage;
-  let testResources: { datasetId?: number; dbId?: number } = {};
+  let testResources: { datasetIds: number[]; dbId?: number } = {
+    datasetIds: [],
+  };
 
   test.beforeEach(async ({ page }) => {
     datasetListPage = new DatasetListPage(page);
     explorePage = new ExplorePage(page);
-    testResources = {}; // Reset for each test
+    testResources = { datasetIds: [] }; // Reset for each test
 
     // Navigate to dataset list page
     await datasetListPage.goto();
@@ -49,18 +51,20 @@ test.describe('Dataset List', () => {
 
   function cleanupTestAssets(
     page: Page,
-    resources: { datasetId?: number; dbId?: number },
+    resources: { datasetIds: number[]; dbId?: number },
   ) {
     const promises = [];
 
-    if (resources.datasetId) {
+    // Delete all datasets
+    for (const datasetId of resources.datasetIds) {
       promises.push(
-        apiDeleteDataset(page, resources.datasetId, {
+        apiDeleteDataset(page, datasetId, {
           failOnStatusCode: false,
         }).catch(() => {}),
       );
     }
 
+    // Delete database if exists
     if (resources.dbId) {
       promises.push(
         apiDeleteDatabase(page, resources.dbId, {
@@ -77,7 +81,9 @@ test.describe('Dataset List', () => {
   }) => {
     // Create test dataset (hermetic - no dependency on sample data)
     const datasetName = `test_nav_${Date.now()}`;
-    testResources = await createTestDataset(page, datasetName);
+    const { datasetId, dbId } = await createTestDataset(page, datasetName);
+    testResources.datasetIds.push(datasetId);
+    testResources.dbId = dbId;
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -104,7 +110,9 @@ test.describe('Dataset List', () => {
   test('should delete a dataset with confirmation', async ({ page }) => {
     // Create test dataset (hermetic - creates own test data)
     const datasetName = `test_delete_${Date.now()}`;
-    testResources = await createTestDataset(page, datasetName);
+    const { datasetId, dbId } = await createTestDataset(page, datasetName);
+    testResources.datasetIds.push(datasetId);
+    testResources.dbId = dbId;
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -143,7 +151,9 @@ test.describe('Dataset List', () => {
     // Create test dataset (hermetic - creates own test data)
     const originalName = `test_original_${Date.now()}`;
     const duplicateName = `test_duplicate_${Date.now()}`;
-    testResources = await createTestDataset(page, originalName);
+    const { datasetId, dbId } = await createTestDataset(page, originalName);
+    testResources.datasetIds.push(datasetId);
+    testResources.dbId = dbId;
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -151,6 +161,13 @@ test.describe('Dataset List', () => {
 
     // Verify original dataset is visible in list
     await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+
+    // Set up response intercept to capture duplicate dataset ID
+    const duplicateResponsePromise = page.waitForResponse(
+      response =>
+        response.url().includes('/dataset/duplicate') &&
+        response.status() === 200,
+    );
 
     // Click duplicate action button
     await datasetListPage.clickDuplicateAction(originalName);
@@ -164,6 +181,14 @@ test.describe('Dataset List', () => {
 
     // Click the Duplicate button
     await duplicateModal.clickDuplicate();
+
+    // Get the duplicate dataset ID from response
+    const duplicateResponse = await duplicateResponsePromise;
+    const duplicateData = await duplicateResponse.json();
+    const duplicateId = duplicateData.id;
+
+    // Track duplicate for cleanup
+    testResources.datasetIds.push(duplicateId);
 
     // Modal should close
     await duplicateModal.waitForHidden();
@@ -181,17 +206,20 @@ test.describe('Dataset List', () => {
     await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
     await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
 
-    // Clean up the duplicate dataset via UI (tests delete functionality too)
-    await datasetListPage.clickDeleteAction(duplicateName);
-    const deleteModal = new DeleteConfirmationModal(page);
-    await deleteModal.waitForVisible();
-    await deleteModal.fillConfirmationInput('DELETE');
-    await deleteModal.clickDelete();
-    await deleteModal.waitForHidden();
+    // API Verification: Compare original and duplicate datasets
+    const originalResponse = await apiGetDataset(page, datasetId);
+    const originalData = await originalResponse.json();
 
-    // Verify duplicate is removed
-    await expect(datasetListPage.getDatasetRow(duplicateName)).not.toBeVisible();
-    // Original dataset should still be there (will be cleaned up in afterEach)
-    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+    const duplicateResponseData = await apiGetDataset(page, duplicateId);
+    const duplicateDataFull = await duplicateResponseData.json();
+
+    // Verify key properties were copied correctly
+    expect(duplicateDataFull.result.sql).toBe(originalData.result.sql);
+    expect(duplicateDataFull.result.database.id).toBe(
+      originalData.result.database.id,
+    );
+    expect(duplicateDataFull.result.schema).toBe(originalData.result.schema);
+    // Name should be different (the duplicate name)
+    expect(duplicateDataFull.result.table_name).toBe(duplicateName);
   });
 });

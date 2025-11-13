@@ -18,7 +18,7 @@
  */
 
 import { Page, APIResponse } from '@playwright/test';
-import { apiPost, apiDelete, ApiRequestOptions } from './requests';
+import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
@@ -46,6 +46,20 @@ export async function apiPostDataset(
   requestBody: DatasetCreatePayload,
 ): Promise<APIResponse> {
   return apiPost(page, ENDPOINTS.DATASET, requestBody);
+}
+
+/**
+ * GET request to fetch a dataset's details
+ * @param page - Playwright page instance (provides authentication context)
+ * @param datasetId - ID of the dataset to fetch
+ * @returns API response with dataset details
+ */
+export async function apiGetDataset(
+  page: Page,
+  datasetId: number,
+  options?: ApiRequestOptions,
+): Promise<APIResponse> {
+  return apiGet(page, `${ENDPOINTS.DATASET}${datasetId}`, options);
 }
 
 /**
