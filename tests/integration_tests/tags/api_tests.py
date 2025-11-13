@@ -23,6 +23,7 @@ from urllib import parse
 import prison
 import pytest
 from freezegun import freeze_time
+from markupsafe import Markup
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
@@ -792,7 +793,6 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         This test verifies the fix for issue #32484 where tag creation
         failed with MySQL due to Markup objects being used instead of strings.
         """
-        from markupsafe import Markup
 
         self.login(ADMIN_USERNAME)
 
