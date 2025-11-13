@@ -1502,8 +1502,14 @@ class SqlaTable(
         """
         label = utils.get_column_name(col)
         try:
+            sql_expression = col["sqlExpression"]
+
+            # For column references, conditionally quote identifiers that need it
+            if col.get("isColumnReference"):
+                sql_expression = self.database.quote_identifier(sql_expression)
+
             expression = self._process_select_expression(
-                expression=col["sqlExpression"],
+                expression=sql_expression,
                 database_id=self.database_id,
                 engine=self.database.backend,
                 schema=self.schema,
