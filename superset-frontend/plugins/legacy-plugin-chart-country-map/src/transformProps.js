@@ -24,7 +24,24 @@ export default function transformProps(chartProps) {
     selectCountry,
     colorScheme,
     sliceId,
+    customColorRules,
+    customColorScale,
   } = formData;
+
+  let parsedColorRules = [];
+  let parsedColorScale = [];
+
+  try {
+    parsedColorRules = customColorRules ? JSON.parse(customColorRules) : [];
+  } catch (error) {
+    console.warn('Invalid JSON in customColorRules:', error);
+  }
+
+  try {
+    parsedColorScale = customColorScale ? JSON.parse(customColorScale) : [];
+  } catch (error) {
+    console.warn('Invalid JSON in customColorScale:', error);
+  }
 
   return {
     width,
@@ -35,5 +52,7 @@ export default function transformProps(chartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    customColorRules: parsedColorRules,
+    customColorScale: parsedColorScale,
   };
 }

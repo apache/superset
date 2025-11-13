@@ -27,6 +27,15 @@ import {
 } from '@superset-ui/core';
 import countries, { countryOptions } from './countries';
 
+function normalizeColorKeyword(color) {
+  if (!color && color !== '') return '#000000';
+  const c = String(color).trim().toLowerCase();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) return c;
+  if (/^[a-z]+$/.test(c)) return c;
+
+  return '#000000';
+}
+
 const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
@@ -41,9 +50,45 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
+  sliceId: PropTypes.number,
+  customColorRules: PropTypes.array,
+  minColor: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  maxColor: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  customColorScale: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
 };
 
 const maps = {};
+
+function safeNumber(v) {
+  if (v === null || v === undefined || v === '') return NaN;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function rgbaToHex(rgba) {
+  if (typeof rgba === 'string') return rgba;
+  if (Array.isArray(rgba)) return rgbaToHex(rgba[0]);
+  if (!rgba || typeof rgba !== 'object') return null;
+  const { r, g, b } = rgba;
+  if (r === undefined || g === undefined || b === undefined) return null;
+  const toHex = n => {
+    const hex = Math.round(n).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function normalizeScale(scale) {
+  if (Array.isArray(scale)) return scale;
+  if (typeof scale === 'string') {
+    try {
+      return JSON.parse(scale);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 function CountryMap(element, props) {
   const {
@@ -53,24 +98,208 @@ function CountryMap(element, props) {
     country,
     linearColorScheme,
     numberFormat,
+    customColorRules = [],
+    customColorScale = [],
+    minColor,
+    maxColor,
     colorScheme,
     sliceId,
   } = props;
 
+  const minColorHexRaw = rgbaToHex(minColor) || '#f7fbff';
+  const maxColorHexRaw = rgbaToHex(maxColor) || '#08306b';
+  const minColorHex = normalizeColorKeyword(minColorHexRaw);
+  const maxColorHex = normalizeColorKeyword(maxColorHexRaw);
+
   const container = element;
   const format = getNumberFormatter(numberFormat);
+  const normalizedScale = normalizeScale(customColorScale);
+  const normalizedScaleWithColors = Array.isArray(normalizedScale)
+    ? normalizedScale.map(e => {
+        if (!e || typeof e !== 'object') return e;
+        return { ...e, color: normalizeColorKeyword(e.color) };
+      })
+    : [];
+
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
+  // Parse metrics to numbers safely
+  const parsedData = Array.isArray(data)
+    ? data.map(r => ({ ...r, metric: safeNumber(r.metric) }))
+    : [];
+
+  // numeric values only
+  const numericValues = parsedData
+    .map(r => r.metric)
+    .filter(v => Number.isFinite(v));
+
+  let minValue = 0;
+  let maxValue = 1;
+  if (numericValues.length > 0) {
+    const extent = d3Extent(numericValues);
+    minValue = extent[0];
+    maxValue = extent[1];
+  }
+
+  const valueRange = maxValue - minValue;
+  const valueRangeNonZero = valueRange === 0 ? 1 : valueRange;
+
+  /** -------------------------
+   * 1) Custom conditional rules
+   * ------------------------- */
+  const getColorFromRules = value => {
+    if (!Array.isArray(customColorRules) || !Number.isFinite(value))
+      return null;
+    for (const rule of customColorRules) {
+      if (
+        rule &&
+        typeof rule.color === 'string' &&
+        (('min' in rule && 'max' in rule) || 'value' in rule)
+      ) {
+        if ('value' in rule && Number(rule.value) === value) {
+          // 🆕 normalize possible keyword in conditional rules as well
+          return normalizeColorKeyword(rule.color);
+        }
+        if ('min' in rule && 'max' in rule) {
+          const minR = safeNumber(rule.min);
+          const maxR = safeNumber(rule.max);
+          if (
+            Number.isFinite(minR) &&
+            Number.isFinite(maxR) &&
+            value >= minR &&
+            value <= maxR
+          ) {
+            return normalizeColorKeyword(rule.color);
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  /** -------------------------
+   * 2) Custom color scale (by %)
+   * ------------------------- */
+  let percentColorScale = null;
+  if (
+    Array.isArray(normalizedScaleWithColors) &&
+    normalizedScaleWithColors.length >= 2
+  ) {
+    const sorted = normalizedScaleWithColors
+      .filter(
+        e => e && typeof e.percent === 'number' && typeof e.color === 'string',
+      )
+      .slice()
+      .sort((a, b) => a.percent - b.percent);
+
+    if (sorted.length >= 2) {
+      const domainPerc = sorted.map(e => e.percent);
+      const rangeColors = sorted.map(e => e.color);
+      percentColorScale = d3.scale
+        .linear()
+        .domain(domainPerc)
+        .range(rangeColors)
+        .clamp(true)
+        .interpolate(d3.interpolateRgb);
+    }
+  }
+
+  /** -------------------------
+   * 3) Linear palette from registry (SI défini)
+   * ------------------------- */
+  let linearPaletteScale = null;
+  if (linearColorScheme) {
+    try {
+      const seq = getSequentialSchemeRegistry().get(linearColorScheme);
+      if (seq && typeof seq.createLinearScale === 'function') {
+        linearPaletteScale = seq.createLinearScale([minValue, maxValue]);
+      } else if (seq && Array.isArray(seq.colors) && seq.colors.length >= 2) {
+        linearPaletteScale = d3.scale
+          .linear()
+          .domain([minValue, maxValue])
+          .range([seq.colors[0], seq.colors[seq.colors.length - 1]])
+          .interpolate(d3.interpolateRgb);
+      }
+    } catch {
+      linearPaletteScale = null;
+    }
+  }
+
+  /** -------------------------
+   * 4) Gradient fallback (minColor → maxColor) avec HEX
+   * ------------------------- */
+  let gradientColorScale;
+  if (minValue === maxValue) {
+    gradientColorScale = () => minColorHex || maxColorHex || '#ddd';
+  } else {
+    gradientColorScale = d3.scale
+      .linear()
+      .domain([minValue, maxValue])
+      .range([minColorHex, maxColorHex])
+      .interpolate(d3.interpolateRgb);
+  }
+
+  /** -------------------------
+   * Build final color (priority)
+   * rules > customScale > linearPalette > gradient
+   * ------------------------- */
   const colorMap = {};
-  data.forEach(d => {
-    colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id, sliceId)
-      : linearColorScale(d.metric);
+  parsedData.forEach(r => {
+    const iso = r.country_id;
+    const value = r.metric;
+    if (!iso) return;
+    if (!Number.isFinite(value)) {
+      colorMap[iso] = 'none';
+      return;
+    }
+
+    const ruleColor = getColorFromRules(value);
+    if (ruleColor) {
+      colorMap[iso] = ruleColor;
+      return;
+    }
+
+    if (percentColorScale) {
+      const percentNormalized = ((value - minValue) / valueRangeNonZero) * 100;
+      const p = Math.max(0, Math.min(100, percentNormalized));
+      try {
+        colorMap[iso] = percentColorScale(p);
+        return;
+      } catch {
+        // continue regardless of error
+      }
+    }
+
+    if (linearPaletteScale) {
+      try {
+        colorMap[iso] = linearPaletteScale(value);
+        return;
+      } catch {
+        // continue regardless of error
+      }
+    }
+
+    try {
+      colorMap[iso] = gradientColorScale(value);
+    } catch {
+      colorMap[iso] = '#ccc';
+    }
   });
-  const colorFn = d => colorMap[d.properties.ISO] || 'none';
+  const fallbackCategorical = CategoricalColorNamespace.getScale(colorScheme);
+  const colorFn = d => {
+    const iso = d && d.properties && d.properties.ISO;
+    if (!iso) return 'none';
+    const c = colorMap[iso];
+    if (c && c !== 'none') return c;
+    try {
+      return fallbackCategorical(iso, sliceId);
+    } catch {
+      return '#ccc';
+    }
+  };
 
   const path = d3.geo.path();
   const div = d3.select(container);
