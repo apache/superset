@@ -17,6 +17,22 @@
  * under the License.
  */
 
+import { isValidJalaaliDate, toGregorian, toJalaali } from 'jalaali-js';
+
+export interface PersianDateParts {
+  year: number;
+  month: number;
+  day: number;
+  monthName: string;
+  weekday: string;
+}
+
+export interface GregorianDateParts {
+  year: number;
+  month: number;
+  day: number;
+}
+
 // Persian calendar months
 export const PERSIAN_MONTHS = [
   'فروردین',
@@ -35,128 +51,76 @@ export const PERSIAN_MONTHS = [
 
 // Persian calendar days
 export const PERSIAN_WEEKDAYS = [
-  'شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'
+  'شنبه',
+  'یکشنبه',
+  'دوشنبه',
+  'سه‌شنبه',
+  'چهارشنبه',
+  'پنج‌شنبه',
+  'جمعه',
 ];
 
-// Convert Gregorian date to Persian date
-export function gregorianToPersian(year: number, month: number, day: number): {
-  year: number;
-  month: number;
-  day: number;
-  monthName: string;
-  weekday: string;
-} {
-  // Simple conversion algorithm (approximate)
-  const gregorianDate = new Date(year, month - 1, day);
-  let persianYear = year - 621;
-  
-  // Calculate Persian month and day (simplified)
-  let persianMonth = month;
-  let persianDay = day;
-  
-  // Adjust for Persian calendar differences
-  if (month <= 3) {
-    persianYear -= 1;
-  }
-  
-  // Simple month adjustment
-  if (month <= 3) {
-    persianMonth = month + 9;
-  } else {
-    persianMonth = month - 3;
-  }
-  
-  // Simple day adjustment
-  if (day <= 21) {
-    persianDay = day + 10;
-  } else {
-    persianDay = day - 21;
-    persianMonth += 1;
-  }
-  
-  // Handle month overflow
-  if (persianMonth > 12) {
-    persianMonth -= 12;
-    persianYear += 1;
-  }
-  
-  const monthName = PERSIAN_MONTHS[persianMonth - 1];
-  const weekday = PERSIAN_WEEKDAYS[gregorianDate.getDay()];
-  
+const getWeekdayName = (year: number, month: number, day: number) =>
+  PERSIAN_WEEKDAYS[new Date(year, month - 1, day).getDay()];
+
+// Convert Gregorian date to Persian date (accurate Jalali conversion)
+export function gregorianToPersian(
+  year: number,
+  month: number,
+  day: number,
+): PersianDateParts {
+  const { jy, jm, jd } = toJalaali(year, month, day);
+
   return {
-    year: persianYear,
-    month: persianMonth,
-    day: persianDay,
-    monthName,
-    weekday
+    year: jy,
+    month: jm,
+    day: jd,
+    monthName: PERSIAN_MONTHS[jm - 1],
+    weekday: getWeekdayName(year, month, day),
   };
 }
 
-// Convert Persian date to Gregorian date
-export function persianToGregorian(year: number, month: number, day: number): {
-  year: number;
-  month: number;
-  day: number;
-} {
-  // Simple conversion algorithm (approximate)
-  let gregorianYear = year + 621;
-  
-  // Calculate Gregorian month and day (simplified)
-  let gregorianMonth = month;
-  let gregorianDay = day;
-  
-  // Adjust for Gregorian calendar differences
-  if (month <= 9) {
-    gregorianYear -= 1;
+// Convert Persian date to Gregorian date (accurate Jalali conversion)
+export function persianToGregorian(
+  year: number,
+  month: number,
+  day: number,
+): GregorianDateParts {
+  if (!isValidJalaaliDate(year, month, day)) {
+    throw new Error('Invalid Jalali date');
   }
-  
-  // Simple month adjustment
-  if (month <= 9) {
-    gregorianMonth = month + 3;
-  } else {
-    gregorianMonth = month - 9;
-  }
-  
-  // Simple day adjustment
-  if (day <= 10) {
-    gregorianDay = day + 21;
-  } else {
-    gregorianDay = day - 10;
-    gregorianMonth += 1;
-  }
-  
-  // Handle month overflow
-  if (gregorianMonth > 12) {
-    gregorianMonth -= 12;
-    gregorianYear += 1;
-  }
-  
+
+  const { gy, gm, gd } = toGregorian(year, month, day);
   return {
-    year: gregorianYear,
-    month: gregorianMonth,
-    day: gregorianDay
+    year: gy,
+    month: gm,
+    day: gd,
   };
 }
 
-// Format Persian date
-export function formatPersianDate(year: number, month: number, day: number): string {
+export function formatPersianDate(
+  year: number,
+  month: number,
+  day: number,
+): string {
   const monthStr = month.toString().padStart(2, '0');
   const dayStr = day.toString().padStart(2, '0');
   return `${year}/${monthStr}/${dayStr}`;
 }
 
-// Get current Persian date
-export function getCurrentPersianDate(): {
-  year: number;
-  month: number;
-  day: number;
-  monthName: string;
-  weekday: string;
-} {
+export function getCurrentPersianDate(): PersianDateParts {
   const now = new Date();
   return gregorianToPersian(
     now.getFullYear(),
     now.getMonth() + 1,
-    now.getDate()
+    now.getDate(),
   );
+}
+
+export function isValidPersianDate(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
+  return isValidJalaaliDate(year, month, day);
 }

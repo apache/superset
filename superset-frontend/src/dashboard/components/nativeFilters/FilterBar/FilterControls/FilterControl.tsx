@@ -41,13 +41,24 @@ import { useIsFilterInScope } from '../../state';
 
 const FilterStyledIcon = styled.div`
   position: absolute;
-  right: 0;
+  ${() => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    return isRTL ? 'left: 0;' : 'right: 0;';
+  }}
 `;
 
 const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorText};
   overflow-wrap: anywhere;
+  text-align: ${() => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    return isRTL ? 'right' : 'left';
+  }};
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
@@ -69,6 +80,12 @@ const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  direction: ${() => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    return isRTL ? 'rtl' : 'ltr';
+  }};
 `;
 
 const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
@@ -104,6 +121,25 @@ const VerticalFilterControlContainer = styled(AllFilterControlContainer)`
   .ant-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
+  
+  ${() => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    
+    if (isRTL) {
+      return `
+        direction: rtl;
+        text-align: right;
+        
+        && .ant-form-item-label > label {
+          padding-left: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 11}px;
+          padding-right: 0;
+        }
+      `;
+    }
+    return '';
+  }}
 `;
 
 const HorizontalFilterControlContainer = styled(AllFilterControlContainer)`

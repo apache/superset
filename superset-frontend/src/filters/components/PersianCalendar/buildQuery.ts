@@ -16,32 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  buildQueryContext,
-  BuildQuery,
-} from '@superset-ui/core';
+import { buildQueryContext, BuildQuery, QueryFormData } from '@superset-ui/core';
 
-interface PersianCalendarQueryFormData {
-  time_range?: string;
-  datasource: string;
-  viz_type: string;
-  [key: string]: any;
-}
-
-const buildQuery: BuildQuery<PersianCalendarQueryFormData> = (
-  formData: PersianCalendarQueryFormData,
+const buildQuery: BuildQuery<QueryFormData> = (
+  formData: QueryFormData,
   options,
 ) => {
-  // For native filters, we don't need to build a specific query
+  // For native filters, return a minimal valid query structure
   // The filter works by setting data mask which affects other charts
-  return buildQueryContext(formData, baseQueryObject => {
+  return buildQueryContext(formData, () => {
     return [
       {
-        ...baseQueryObject,
-        // Native filters don't generate their own queries
-        // They work by filtering data for other charts
-        datasource: formData.datasource || baseQueryObject.datasource,
-        queries: [],
+        result_type: 'columns',
+        columns: [],
+        metrics: [],
+        orderby: [],
+        time_range: formData.time_range,
       },
     ];
   });

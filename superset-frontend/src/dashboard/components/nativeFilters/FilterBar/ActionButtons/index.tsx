@@ -59,11 +59,12 @@ const containerStyle = (theme: SupersetTheme) => css`
   }
 `;
 
-const verticalStyle = (theme: SupersetTheme, width: number) => css`
+const verticalStyle = (theme: SupersetTheme, width: number, isRTL: boolean) => css`
   flex-direction: column;
-  align-items: center;
+  align-items: ${isRTL ? 'flex-end' : 'center'};
   position: fixed;
   z-index: 100;
+  text-align: ${isRTL ? 'right' : 'center'};
 
   // filter bar width minus 1px for border
   width: ${width - 1}px;
@@ -79,22 +80,32 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
 
   & > .filter-apply-button {
     margin-bottom: ${theme.sizeUnit * 3}px;
+    width: ${isRTL ? 'auto' : '100%'};
+  }
+
+  & > .filter-clear-all-button {
+    text-align: ${isRTL ? 'right' : 'center'};
   }
 `;
 
-const horizontalStyle = (theme: SupersetTheme) => css`
+const horizontalStyle = (theme: SupersetTheme, isRTL: boolean) => css`
   align-items: center;
-  margin-left: auto;
+  ${isRTL ? 'margin-right: auto;' : 'margin-left: auto;'}
   && > .filter-clear-all-button {
     text-transform: capitalize;
     font-weight: ${theme.fontWeightNormal};
+    text-align: ${isRTL ? 'right' : 'left'};
+  }
+
+  && > .filter-apply-button {
+    text-align: ${isRTL ? 'right' : 'left'};
   }
 `;
 
-const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`
-  ${({ theme, isVertical, width }) => css`
+const ButtonsContainer = styled.div<{ isVertical: boolean; width: number; isRTL: boolean }>`
+  ${({ theme, isVertical, width, isRTL }) => css`
     ${containerStyle(theme)};
-    ${isVertical ? verticalStyle(theme, width) : horizontalStyle(theme)};
+    ${isVertical ? verticalStyle(theme, width, isRTL) : horizontalStyle(theme, isRTL)};
   `}
 `;
 
@@ -108,6 +119,17 @@ const ActionButtons = ({
   filterBarOrientation = FilterBarOrientation.Vertical,
   chartCustomizationItems,
 }: ActionButtonsProps) => {
+  // Check if locale is Persian (fa) for RTL support
+  const isRTL = useMemo(() => {
+    // Check document direction
+    if (typeof document !== 'undefined' && document.documentElement) {
+      return document.documentElement.dir === 'rtl' || 
+             document.documentElement.lang === 'fa' ||
+             document.documentElement.lang?.startsWith('fa');
+    }
+    return false;
+  }, []);
+
   const isClearAllEnabled = useMemo(() => {
     const hasSelectedChanges = Object.entries(dataMaskSelected).some(
       ([, mask]) => {
@@ -137,6 +159,7 @@ const ActionButtons = ({
     <ButtonsContainer
       isVertical={isVertical}
       width={width}
+      isRTL={isRTL}
       data-test="filterbar-action-buttons"
     >
       <Button

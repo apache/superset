@@ -162,16 +162,20 @@ module.exports = newManifest => {
     onProxyRes(proxyResponse, request, response) {
       try {
         copyHeaders(proxyResponse, response);
-        if (isHTML(response)) {
+        if (isHTML(proxyResponse)) {
           processHTML(proxyResponse, response);
         } else {
           proxyResponse.pipe(response);
         }
-        response.flushHeaders();
+        if (!response.headersSent) {
+          response.flushHeaders();
+        }
       } catch (e) {
-        response.setHeader('content-type', 'text/plain');
-        response.write(`Error requesting ${request.path} from proxy:\n\n`);
-        response.end(e.stack);
+        if (!response.headersSent) {
+          response.setHeader('content-type', 'text/plain');
+          response.write(`Error requesting ${request.path} from proxy:\n\n`);
+          response.end(e.stack);
+        }
       }
     },
   };

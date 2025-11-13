@@ -46,6 +46,9 @@ import 'dayjs/plugin/localizedFormat';
 
 // dayjs-jalali will be loaded dynamically in components that need it
 
+// Import react-multi-date-picker CSS globally
+import 'react-multi-date-picker/styles/layouts/mobile.css';
+
 configure();
 
 // Set hot reloader config

@@ -66,27 +66,34 @@ const BarWrapper = styled.div<{ width: number }>`
 `;
 
 const Bar = styled.div<{ width: number }>`
-  ${({ theme, width }) => `
-    & .ant-typography-edit-content {
+  ${({ theme, width }) => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    
+    return `
+      & .ant-typography-edit-content {
+        left: 0;
+        margin-top: 0;
+        width: 100%;
+      }
+      position: absolute;
+      top: 0;
       left: 0;
-      margin-top: 0;
-      width: 100%;
-    }
-    position: absolute;
-    top: 0;
-    left: 0;
-    flex-direction: column;
-    flex-grow: 1;
-    width: ${width}px;
-    background: ${theme.colorBgContainer};
-    border-right: 1px solid ${theme.colorSplit};
-    border-bottom: 1px solid ${theme.colorSplit};
-    min-height: 100%;
-    display: none;
-    &.open {
-      display: flex;
-    }
-  `}
+      flex-direction: column;
+      flex-grow: 1;
+      width: ${width}px;
+      background: ${theme.colorBgContainer};
+      ${isRTL ? 'border-left' : 'border-right'}: 1px solid ${theme.colorSplit};
+      border-bottom: 1px solid ${theme.colorSplit};
+      min-height: 100%;
+      display: none;
+      direction: ${isRTL ? 'rtl' : 'ltr'};
+      &.open {
+        display: flex;
+      }
+    `;
+  }}
 `;
 
 const CollapsedBar = styled.div<{ offset: number }>`
@@ -116,14 +123,22 @@ const FilterBarEmptyStateContainer = styled.div`
 `;
 
 const FilterControlsWrapper = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 4}px;
-    // 108px padding to make room for buttons with position: absolute
-    padding-bottom: ${theme.sizeUnit * 27}px;
-  `}
+  ${({ theme }) => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    
+    return `
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 2}px;
+      padding: ${theme.sizeUnit * 4}px;
+      // 108px padding to make room for buttons with position: absolute
+      padding-bottom: ${theme.sizeUnit * 27}px;
+      direction: ${isRTL ? 'rtl' : 'ltr'};
+      text-align: ${isRTL ? 'right' : 'left'};
+    `;
+  }}
 `;
 
 export const FilterBarScrollContext = createContext(false);

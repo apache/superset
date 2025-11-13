@@ -26,28 +26,37 @@ import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 
 const TitleArea = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-    margin: 0;
-    padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+  ${({ theme }) => {
+    const isRTL =
+      (typeof document !== 'undefined' && document.documentElement?.dir === 'rtl') ||
+      (typeof document !== 'undefined' && document.documentElement?.lang?.startsWith('fa'));
+    
+    return css`
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      justify-content: space-between;
+      margin: 0;
+      padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+      direction: ${isRTL ? 'rtl' : 'ltr'};
+      text-align: ${isRTL ? 'right' : 'left'};
 
-    & > span {
-      font-size: ${theme.fontSizeLG}px;
-      flex-grow: 1;
-      font-weight: ${theme.fontWeightStrong};
-    }
+      & > span {
+        font-size: ${theme.fontSizeLG}px;
+        flex-grow: 1;
+        font-weight: ${theme.fontWeightStrong};
+        text-align: ${isRTL ? 'right' : 'left'};
+      }
 
-    & > div:first-of-type {
-      line-height: 0;
-    }
+      & > div:first-of-type {
+        line-height: 0;
+      }
 
-    & > button > span.anticon {
-      line-height: 0;
-    }
-  `}
+      & > button > span.anticon {
+        line-height: 0;
+      }
+    `;
+  }}
 `;
 
 const HeaderButton = styled(Button)`

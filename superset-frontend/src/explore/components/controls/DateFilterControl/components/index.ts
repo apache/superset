@@ -23,3 +23,4 @@ export { CustomFrame } from './CustomFrame';
 export { AdvancedFrame } from './AdvancedFrame';
 export { DateLabel } from './DateLabel';
 export { PersianCalendarFrame } from './PersianCalendarFrame';
+export { JalaliDatePicker } from './JalaliDatePicker';
