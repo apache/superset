@@ -120,7 +120,8 @@ test('should set initial ascending sort when no active sort column', () => {
   expect(mockSortAndCacheData).toHaveBeenCalledWith(
     { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
     'asc',
-    { rowEnabled: true, rowPartialOnTop: false },
+    true,
+    false,
     maxRowIndex,
   );
 });
@@ -151,7 +152,8 @@ test('should toggle from asc to desc when clicking same column', () => {
   expect(mockSortAndCacheData).toHaveBeenCalledWith(
     { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
     'desc',
-    { rowEnabled: true, rowPartialOnTop: false },
+    true,
+    false,
     maxRowIndex,
   );
 });
@@ -197,14 +199,16 @@ test('should check second call in sequence', () => {
   expect(mockSortAndCacheData.mock.calls[0]).toEqual([
     { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
     'asc',
-    { rowEnabled: true, rowPartialOnTop: false },
+    true,
+    false,
     maxRowIndex,
   ]);
 
   expect(mockSortAndCacheData.mock.calls[1]).toEqual([
     { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
     'desc',
-    { rowEnabled: true, rowPartialOnTop: false },
+    true,
+    false,
     maxRowIndex,
   ]);
 });
@@ -230,12 +234,7 @@ test('should sort hierarchical data in descending order', () => {
     },
   };
 
-  const result = tableRenderer.sortAndCacheData(
-    groups,
-    'desc',
-    { rowEnabled: true, rowPartialOnTop: false },
-    2,
-  );
+  const result = tableRenderer.sortAndCacheData(groups, 'desc', true, false, 2);
 
   expect(result).toBeDefined();
 
@@ -275,12 +274,7 @@ test('should sort hierarchical data in ascending order', () => {
     },
   };
 
-  const result = tableRenderer.sortAndCacheData(
-    groups,
-    'asc',
-    { rowEnabled: true, rowPartialOnTop: false },
-    2,
-  );
+  const result = tableRenderer.sortAndCacheData(groups, 'asc', true, false, 2);
 
   expect(result).toBeDefined();
 
