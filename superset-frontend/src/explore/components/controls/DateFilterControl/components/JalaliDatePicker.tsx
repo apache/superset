@@ -250,7 +250,9 @@ export function JalaliDatePicker(props: JalaliDatePickerProps) {
       const endCandidate =
         normalized.length > 1 ? normalized[normalized.length - 1] : null;
       const rangeStart = convertDateObjectToDayjs(startCandidate);
-      const rangeEnd = convertDateObjectToDayjs(endCandidate);
+      const rangeEnd = endCandidate
+        ? convertDateObjectToDayjs(endCandidate)
+        : rangeStart;
 
       (props as RangeModeProps).onChange([rangeStart, rangeEnd]);
       return;
