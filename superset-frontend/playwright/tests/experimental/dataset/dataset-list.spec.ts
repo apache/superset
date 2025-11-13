@@ -81,9 +81,8 @@ test.describe('Dataset List', () => {
   }) => {
     // Create test dataset (hermetic - no dependency on sample data)
     const datasetName = `test_nav_${Date.now()}`;
-    const { datasetId, dbId } = await createTestDataset(page, datasetName);
-    testResources.datasetIds.push(datasetId);
-    testResources.dbId = dbId;
+    const result = await createTestDataset(page, datasetName);
+    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -110,9 +109,8 @@ test.describe('Dataset List', () => {
   test('should delete a dataset with confirmation', async ({ page }) => {
     // Create test dataset (hermetic - creates own test data)
     const datasetName = `test_delete_${Date.now()}`;
-    const { datasetId, dbId } = await createTestDataset(page, datasetName);
-    testResources.datasetIds.push(datasetId);
-    testResources.dbId = dbId;
+    const result = await createTestDataset(page, datasetName);
+    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -151,9 +149,8 @@ test.describe('Dataset List', () => {
     // Create test dataset (hermetic - creates own test data)
     const originalName = `test_original_${Date.now()}`;
     const duplicateName = `test_duplicate_${Date.now()}`;
-    const { datasetId, dbId } = await createTestDataset(page, originalName);
-    testResources.datasetIds.push(datasetId);
-    testResources.dbId = dbId;
+    const result = await createTestDataset(page, originalName);
+    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -207,7 +204,7 @@ test.describe('Dataset List', () => {
     await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
 
     // API Verification: Compare original and duplicate datasets
-    const originalResponse = await apiGetDataset(page, datasetId);
+    const originalResponse = await apiGetDataset(page, result.datasetId);
     const originalData = await originalResponse.json();
 
     const duplicateResponseData = await apiGetDataset(page, duplicateId);
