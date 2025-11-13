@@ -457,11 +457,11 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
   jest.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReturnValue([101, 102]);
-  
+
   const props = createProps();
   props.renderType = 'RENDER_TAB_CONTENT';
   props.isComponentVisible = false;
-  
+
   const initialState = {
     dashboardState: {
       lastRefreshTime: Date.now() - 5000, // Dashboard was refreshed 5 seconds ago
@@ -480,18 +480,18 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     useDnd: true,
     initialState,
   });
-  
+
   // onRefresh should not be called when tab is not visible
   expect(onRefresh).not.toHaveBeenCalled();
-  
+
   // Make tab visible - this should trigger refresh since lastRefreshTime > tabActivationTime
   rerender(<Tab {...props} isComponentVisible />);
-  
+
   // Wait for the refresh to be triggered after the delay
   await waitFor(() => {
     expect(onRefresh).toHaveBeenCalled();
   }, { timeout: 500 });
-  
+
   expect(onRefresh).toHaveBeenCalledWith(
     [101, 102], // Chart IDs from the tab
     true, // Force refresh
@@ -504,7 +504,7 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
   jest.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReturnValue([101]);
-  
+
   const props = createProps();
   props.renderType = 'RENDER_TAB_CONTENT';
   props.isComponentVisible = false;
@@ -522,18 +522,18 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
       dash_edit_perm: true,
     },
   };
-  
+
   const { rerender } = render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
     initialState,
   });
-  
+
   // Make tab visible - should NOT trigger refresh since tabActivationTime > lastRefreshTime
   rerender(<Tab {...props} isComponentVisible />);
-  
+
   // Wait a bit to ensure no refresh is triggered
   await new Promise(resolve => setTimeout(resolve, 200));
-  
+
   expect(onRefresh).not.toHaveBeenCalled();
 });
