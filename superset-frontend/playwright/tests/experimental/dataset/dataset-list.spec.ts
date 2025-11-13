@@ -21,6 +21,7 @@ import { test, expect, Page } from '@playwright/test';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
+import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { Toast } from '../../../components/core/Toast';
 import { createTestDataset } from '../../../helpers/api/dataset.factories';
 import { apiDeleteDataset } from '../../../helpers/api/dataset';
@@ -136,5 +137,61 @@ test.describe('Dataset List', () => {
 
     // Verify dataset is removed from list
     await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
+  });
+
+  test('should duplicate a dataset with new name', async ({ page }) => {
+    // Create test dataset (hermetic - creates own test data)
+    const originalName = `test_original_${Date.now()}`;
+    const duplicateName = `test_duplicate_${Date.now()}`;
+    testResources = await createTestDataset(page, originalName);
+
+    // Refresh page to see new dataset
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify original dataset is visible in list
+    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+
+    // Click duplicate action button
+    await datasetListPage.clickDuplicateAction(originalName);
+
+    // Duplicate modal should appear
+    const duplicateModal = new DuplicateDatasetModal(page);
+    await duplicateModal.waitForVisible();
+
+    // Fill in new dataset name
+    await duplicateModal.fillDatasetName(duplicateName);
+
+    // Click the Duplicate button
+    await duplicateModal.clickDuplicate();
+
+    // Modal should close
+    await duplicateModal.waitForHidden();
+
+    // Verify success toast appears
+    const toast = new Toast(page);
+    const successToast = toast.getSuccess();
+    await expect(successToast).toBeVisible();
+
+    // Refresh to see the duplicated dataset
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+
+    // Verify both datasets exist in list
+    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+    await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
+
+    // Clean up the duplicate dataset via UI (tests delete functionality too)
+    await datasetListPage.clickDeleteAction(duplicateName);
+    const deleteModal = new DeleteConfirmationModal(page);
+    await deleteModal.waitForVisible();
+    await deleteModal.fillConfirmationInput('DELETE');
+    await deleteModal.clickDelete();
+    await deleteModal.waitForHidden();
+
+    // Verify duplicate is removed
+    await expect(datasetListPage.getDatasetRow(duplicateName)).not.toBeVisible();
+    // Original dataset should still be there (will be cleaned up in afterEach)
+    await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
   });
 });
