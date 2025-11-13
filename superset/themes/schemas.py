@@ -35,7 +35,7 @@ class ImportV1ThemeSchema(Schema):
     version = fields.String(required=True)
 
     @validates("json_data")
-    def validate_json_data(self, value: dict[str, Any]) -> None:
+    def validate_json_data(self, value: dict[str, Any], **kwargs: Any) -> None:
         # Convert dict to JSON string for validation
         if isinstance(value, dict):
             json_str = json.dumps(value)
@@ -70,12 +70,12 @@ class ThemePostSchema(Schema):
     json_data = fields.String(required=True, allow_none=False)
 
     @validates("theme_name")
-    def validate_theme_name(self, value: str) -> None:
+    def validate_theme_name(self, value: str, **kwargs: Any) -> None:
         if not value or not value.strip():
             raise ValidationError("Theme name cannot be empty.")
 
     @validates("json_data")
-    def validate_and_sanitize_json_data(self, value: str) -> None:
+    def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
@@ -101,12 +101,12 @@ class ThemePutSchema(Schema):
     json_data = fields.String(required=True, allow_none=False)
 
     @validates("theme_name")
-    def validate_theme_name(self, value: str) -> None:
+    def validate_theme_name(self, value: str, **kwargs: Any) -> None:
         if not value or not value.strip():
             raise ValidationError("Theme name cannot be empty.")
 
     @validates("json_data")
-    def validate_and_sanitize_json_data(self, value: str) -> None:
+    def validate_and_sanitize_json_data(self, value: str, **kwargs: Any) -> None:
         # Parse JSON
         try:
             theme_config = json.loads(value) if isinstance(value, str) else value
