@@ -488,9 +488,12 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
   rerender(<Tab {...props} isComponentVisible />);
 
   // Wait for the refresh to be triggered after the delay
-  await waitFor(() => {
-    expect(onRefresh).toHaveBeenCalled();
-  }, { timeout: 500 });
+  await waitFor(
+    () => {
+      expect(onRefresh).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
 
   expect(onRefresh).toHaveBeenCalledWith(
     [101, 102], // Chart IDs from the tab
