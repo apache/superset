@@ -97,10 +97,16 @@ function getTotalValuePadding({
     top: donut ? 'middle' : '0',
     left: 'center',
   };
-  const getDonutBase = () => (half ? 68.5 : 50);
+  // When half, the donut is centered at 70% - 1% so that the total does not go beyond the limits
+  const HALF_DONUT_BASE_POSITION = 69;
+  // When halfway, the donut is centered at 70% - 1% to keep the total from going over the limit - 0.5% legend offset
+  const HALF_DONUT_TOP_OFFSET = 68.5;
+  // When donut, the donut is centered at 50%
+  const DONUT_OFFSET = 50;
+  const getDonutBase = () => (half ? HALF_DONUT_TOP_OFFSET : DONUT_OFFSET);
   if (half) {
     padding.top = donut
-      ? `${69 + (chartPadding.top / height / 2) * 100}%`
+      ? `${HALF_DONUT_BASE_POSITION + (chartPadding.top / height / 2) * 100}%`
       : `${(chartPadding.top / height) * 100}%`;
   }
   if (chartPadding.top) {
@@ -115,12 +121,12 @@ function getTotalValuePadding({
   }
   if (chartPadding.left) {
     const leftPaddingPercent = (chartPadding.left / width) * 100;
-    const adjustedLeftPercent = 50 + leftPaddingPercent * 0.25;
+    const adjustedLeftPercent = DONUT_OFFSET + leftPaddingPercent * 0.25;
     padding.left = `${adjustedLeftPercent}%`;
   }
   if (chartPadding.right) {
     const rightPaddingPercent = (chartPadding.right / width) * 100;
-    const adjustedLeftPercent = 50 - rightPaddingPercent * 0.75;
+    const adjustedLeftPercent = DONUT_OFFSET - rightPaddingPercent * 0.75;
     padding.left = `${adjustedLeftPercent}%`;
   }
   return padding;
