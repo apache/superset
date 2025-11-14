@@ -299,7 +299,6 @@ export function saveDashboardRequest(data, id, saveType) {
       tags,
     } = data;
 
-
     const hasId = item => item.id !== undefined;
     const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     const colorScheme = data.metadata?.color_scheme;
