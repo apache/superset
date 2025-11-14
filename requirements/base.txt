@@ -160,7 +160,6 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -364,6 +363,8 @@ rsa==4.9.1
     # via google-auth
 selenium==4.32.0
     # via apache-superset (pyproject.toml)
+setuptools==80.9.0
+    # via -r requirements/base.in
 shillelagh==1.4.3
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
