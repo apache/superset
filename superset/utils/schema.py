@@ -54,7 +54,7 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError(error_msg) from ex
 
 
-def validate_query_context_metadata(value: bytes | bytearray | str | None) -> None:
+def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -> None:
     """
     Validator for query_context field to ensure it contains required metadata.
 
