@@ -24,7 +24,7 @@ const EMPTY_ARRAY: ChartCustomizationItem[] = [];
 
 export const selectChartCustomizationItems = createSelector(
   (state: RootState) => state.dashboardInfo.metadata,
-  metadata => {
+  (metadata): ChartCustomizationItem[] => {
     if (
       metadata?.chart_customization_config &&
       metadata.chart_customization_config.length > 0
