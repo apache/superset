@@ -97,17 +97,15 @@ const SqlAlchemyTab = ({
         </div>
       </StyledInputContainer>
       {children}
-      <div css={(theme: SupersetTheme) => marginBottom(theme)}>
-        <Button
-          onClick={testConnection}
-          loading={testInProgress}
-          cta
-          buttonStyle="link"
-          css={(theme: SupersetTheme) => wideButton(theme)}
-        >
-          {t('Test connection')}
-        </Button>
-      </div>
+      <Button
+        onClick={testConnection}
+        loading={testInProgress}
+        cta
+        buttonStyle="link"
+        css={(theme: SupersetTheme) => ([wideButton(theme), marginBottom(theme)])}
+      >
+        {t('Test connection')}
+      </Button>
     </>
   );
 };
