@@ -136,7 +136,6 @@ const FlexRowContainer = styled.div`
   }
 `;
 
-
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
