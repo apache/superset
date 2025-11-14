@@ -609,7 +609,7 @@ export class TableRenderer extends Component {
       rowTotalCallbacks,
       namesMapping,
       allowRenderHtml,
-      totalRowsCount,
+      visibleRowCount,
     } = pivotSettings;
 
     const {
@@ -651,7 +651,7 @@ export class TableRenderer extends Component {
           ? this.toggleRowKey(flatRowKey)
           : null;
 
-        const isLastRow = rowIdx + rowSpan === totalRowsCount;
+        const isLastRow = rowIdx + rowSpan === visibleRowCount;
         let cellClassName = valueCellClassName;
         if (isLastRow) {
           cellClassName += ' pvtRowLabelLast';
@@ -923,7 +923,7 @@ export class TableRenderer extends Component {
       maxColVisible: Math.max(...visibleColKeys.map(k => k.length)),
       rowAttrSpans: this.calcAttrSpans(visibleRowKeys, rowAttrs.length),
       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
-      totalRowsCount: visibleRowKeys.length + (colTotals ? 1 : 0),
+      visibleRowCount: visibleRowKeys.length + (colTotals ? 1 : 0),
       allowRenderHtml,
       ...this.cachedBasePivotSettings,
     };
