@@ -33,6 +33,7 @@ from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
 )
+from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -101,7 +102,7 @@ SQLGLOT_DIALECTS = {
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
     "shillelagh": Dialects.SQLITE,
-    "singlestore": Dialects.MYSQL,
+    "singlestoredb": SingleStore,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
