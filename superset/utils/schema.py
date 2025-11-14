@@ -86,7 +86,7 @@ def validate_external_url(value: Optional[str]) -> None:
         raise ValidationError("URL must be absolute and include a host.")
 
 
-def validate_query_context_metadata(value: bytes | bytearray | str | None) -> None:
+def validate_query_context_metadata(value: Union[bytes, bytearray, str, None]) -> None:
     """
     Validator for query_context field to ensure it contains required metadata.
 
