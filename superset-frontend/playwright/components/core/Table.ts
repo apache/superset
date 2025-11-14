@@ -43,13 +43,16 @@ export class Table {
   }
 
   /**
-   * Gets a table row by text content
-   * @param rowText - Text to find in the row
+   * Gets a table row by exact text match in the first cell (dataset name column).
+   * Uses exact match to avoid substring collisions (e.g., 'members_channels_2' vs 'duplicate_members_channels_2_123').
+   * @param rowText - Exact text to find in the row's first cell
    */
   getRow(rowText: string): Locator {
     return this.element
       .locator(Table.SELECTORS.TABLE_ROW)
-      .filter({ hasText: rowText });
+      .filter({
+        has: this.page.getByRole('cell', { name: rowText, exact: true }),
+      });
   }
 
   /**
