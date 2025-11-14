@@ -102,7 +102,7 @@ const SqlAlchemyTab = ({
         loading={testInProgress}
         cta
         buttonStyle="link"
-        css={(theme: SupersetTheme) => ([wideButton(theme), marginBottom(theme)])}
+        css={(theme: SupersetTheme) => [wideButton(theme), marginBottom(theme)]}
       >
         {t('Test connection')}
       </Button>
