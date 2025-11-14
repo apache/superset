@@ -279,8 +279,9 @@ test('revalidates cached autocomplete popup when detached from DOM', async () =>
 
 test('cleans up event listeners on unmount', async () => {
   const ref = createRef<AceEditor>();
-  const { container, unmount } = render(<SQLEditor ref={ref as React.Ref<never>} />);
-
+  const { container, unmount } = render(
+    <SQLEditor ref={ref as React.Ref<never>} />,
+  );
   await waitFor(() => {
     expect(container.querySelector(selector)).toBeInTheDocument();
   });
