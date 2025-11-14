@@ -57,13 +57,13 @@ DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 def get_table_column(
     table_name: str,
     column_name: str,
-) -> Optional[list[dict[str, Any]]]:
+) -> Optional[dict[str, Any]]:
     """
     Get the specified column.
 
     :param table_name: The Table name
     :param column_name: The column name
-    :returns: The column
+    :returns: The column dictionary or None if not found
     """
 
     insp = inspect(op.get_context().bind)

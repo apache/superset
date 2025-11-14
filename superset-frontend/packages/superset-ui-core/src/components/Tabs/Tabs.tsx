@@ -25,12 +25,14 @@ import type { SerializedStyles } from '@emotion/react';
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
+  fullHeight?: boolean;
   contentStyle?: SerializedStyles;
 }
 
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
+  fullHeight = false,
   tabBarStyle,
   contentStyle,
   ...props
@@ -46,9 +48,17 @@ const StyledTabs = ({
       tabBarStyle={mergedStyle}
       css={theme => css`
         overflow: ${allowOverflow ? 'visible' : 'hidden'};
+        ${fullHeight && 'height: 100%;'}
 
         .ant-tabs-content-holder {
           overflow: ${allowOverflow ? 'visible' : 'auto'};
+          ${fullHeight && 'height: 100%;'}
+        }
+        .ant-tabs-content {
+          ${fullHeight && 'height: 100%;'}
+        }
+        .ant-tabs-tabpane {
+          ${fullHeight && 'height: 100%;'}
           ${contentStyle}
         }
         .ant-tabs-tab {
