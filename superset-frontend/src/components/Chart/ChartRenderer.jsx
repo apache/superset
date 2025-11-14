@@ -33,6 +33,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
+import { getItem, setItem } from 'src/utils/localStorageHelpers';
 
 // Global pathname tracker to detect page navigation
 let globalCleanupPathname = '';
@@ -156,19 +157,8 @@ class ChartRenderer extends Component {
     // Load legend state from localStorage (per-chart)
     const legendStateKey = `chart_legend_state_${props.chartId}`;
     const legendIndexKey = `chart_legend_index_${props.chartId}`;
-    let savedLegendState;
-    let savedLegendIndex = 0;
-    try {
-      const savedState = localStorage.getItem(legendStateKey);
-      if (savedState) savedLegendState = JSON.parse(savedState);
-      const savedIndex = localStorage.getItem(legendIndexKey);
-      if (savedIndex) savedLegendIndex = JSON.parse(savedIndex);
-    } catch (e) {
-      logging.warn(
-        '[ChartRenderer] Failed to load legend state from localStorage:',
-        e,
-      );
-    }
+    const savedLegendState = getItem(legendStateKey, null);
+    const savedLegendIndex = getItem(legendIndexKey, 0);
 
     this.state = {
       showContextMenu:
@@ -375,17 +365,7 @@ class ChartRenderer extends Component {
 
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
-    try {
-      localStorage.setItem(
-        `chart_legend_state_${this.props.chartId}`,
-        JSON.stringify(legendState),
-      );
-    } catch (e) {
-      logging.warn(
-        '[ChartRenderer] Failed to save legend state to localStorage:',
-        e,
-      );
-    }
+    setItem(`chart_legend_state_${this.props.chartId}`, legendState);
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
@@ -399,17 +379,7 @@ class ChartRenderer extends Component {
 
   handleLegendScroll(legendIndex) {
     this.setState({ legendIndex });
-    try {
-      localStorage.setItem(
-        `chart_legend_index_${this.props.chartId}`,
-        JSON.stringify(legendIndex),
-      );
-    } catch (e) {
-      logging.warn(
-        '[ChartRenderer] Failed to save legend index to localStorage:',
-        e,
-      );
-    }
+    setItem(`chart_legend_index_${this.props.chartId}`, legendIndex);
   }
 
   componentWillUnmount() {
