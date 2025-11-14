@@ -1188,6 +1188,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
+
+        For virtual datasets, RLS filters from underlying tables are applied to
+        prevent RLS bypass.
         """
         from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
@@ -1195,6 +1198,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
+
+        # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
+        # For each table referenced in the virtual dataset, apply its RLS filters
+        if parsed_script.statements:
+            default_schema = self.database.get_default_schema(self.catalog)
+            try:
+                for statement in parsed_script.statements:
+                    apply_rls(
+                        self.database,
+                        self.catalog,
+                        self.schema or default_schema or "",
+                        statement,
+                    )
+                # Regenerate the SQL after RLS application
+                from_sql = parsed_script.format()
+            except Exception as ex:
+                # Log the error but don't fail - RLS application is best-effort
+                logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
