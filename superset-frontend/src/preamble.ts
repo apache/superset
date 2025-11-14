@@ -43,6 +43,12 @@ import 'dayjs/plugin/customParseFormat';
 import 'dayjs/plugin/duration';
 import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
+import 'dayjs/plugin/isSameOrBefore';
+
+// dayjs-jalali will be loaded dynamically in components that need it
+
+// Import react-multi-date-picker CSS globally
+import 'react-multi-date-picker/styles/layouts/mobile.css';
 
 configure();
 
