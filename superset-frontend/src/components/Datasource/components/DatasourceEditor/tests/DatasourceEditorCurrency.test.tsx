@@ -37,161 +37,199 @@ const fastRender = (renderProps: typeof props) =>
     initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
   });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('DatasourceEditor Currency Tests', () => {
-  beforeEach(() => {
-    fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
-    setupDatasourceEditorMocks();
-  });
-
-  afterEach(() => {
-    fetchMock.restore();
-  });
-
-  // The problematic test, now optimized
-  test('renders currency controls', async () => {
-    // Setup a metric with currency data
-    const propsWithCurrency = {
-      ...props,
-      datasource: {
-        ...props.datasource,
-        metrics: [
-          {
-            ...props.datasource.metrics[0],
-            currency: { symbol: 'USD', symbolPosition: 'prefix' },
-          },
-          ...props.datasource.metrics.slice(1),
-        ],
-      },
-      // Fresh mock for each test to avoid interference
-      onChange: jest.fn(),
-    };
-
-    // Faster rendering without initial waitFor
-    fastRender(propsWithCurrency);
-
-    // Navigate to metrics tab
-    const metricButton = screen.getByTestId('collection-tab-Metrics');
-    await userEvent.click(metricButton);
-
-    // Find and expand the metric row with currency
-    // Metrics are sorted by ID descending, so metric with id=1 (which has currency)
-    // is at position 6 (last). Expand that one.
-    const expandToggles = await screen.findAllByLabelText(
-      /expand row/i,
-      {},
-      { timeout: 5000 },
-    );
-    await userEvent.click(expandToggles[6]);
-
-    // Check for currency section header
-    const currencyHeader = await screen.findByText(
-      'Metric currency',
-      {},
-      { timeout: 5000 },
-    );
-    expect(currencyHeader).toBeVisible();
-
-    // Check prefix/suffix dropdown - first find the wrapper
-    const positionSelector = screen.getByRole('combobox', {
-      name: 'Currency prefix or suffix',
-    });
-
-    // Verify current value is 'Prefix'
-    expect(positionSelector).toBeInTheDocument();
-
-    // Open the dropdown
-    await userEvent.click(positionSelector);
-
-    // Wait for dropdown to open and find the suffix option
-    const suffixOption = await waitFor(
-      () => {
-        // Look for 'suffix' option in the dropdown
-        const options = document.querySelectorAll('.ant-select-item-option');
-        const suffixOpt = Array.from(options).find(opt =>
-          opt.textContent?.toLowerCase().includes('suffix'),
-        );
-
-        if (!suffixOpt) throw new Error('Suffix option not found');
-        return suffixOpt;
-      },
-      { timeout: 5000 },
-    );
-
-    // Clear the mock to ensure clean state
-    propsWithCurrency.onChange.mockClear();
-
-    // Click the suffix option
-    await userEvent.click(suffixOption);
-
-    // Check if onChange was called with the expected parameters
-    await waitFor(
-      () => {
-        expect(propsWithCurrency.onChange).toHaveBeenCalledTimes(1);
-        const callArg = propsWithCurrency.onChange.mock.calls[0][0];
-
-        // More robust check for the metrics array
-        const metrics = callArg.metrics || [];
-        const updatedMetric = metrics.find(
-          (m: MetricType) =>
-            m.currency && m.currency.symbolPosition === 'suffix',
-        );
-
-        expect(updatedMetric).toBeDefined();
-        expect(updatedMetric?.currency?.symbol).toBe('USD');
-      },
-      { timeout: 5000 },
-    );
-
-    // Now test changing the currency symbol
-    const currencySymbol = await screen.findByRole(
-      'combobox',
+// Shared currency props setup
+const propsWithCurrency = {
+  ...props,
+  datasource: {
+    ...props.datasource,
+    metrics: [
       {
-        name: 'Currency symbol',
+        ...props.datasource.metrics[0],
+        currency: { symbol: 'USD', symbolPosition: 'prefix' },
       },
-      { timeout: 5000 },
-    );
+      ...props.datasource.metrics.slice(1),
+    ],
+  },
+};
 
-    // Open the currency dropdown
-    await userEvent.click(currencySymbol);
-
-    // Wait for dropdown to open and find the GBP option
-    const gbpOption = await waitFor(
-      () => {
-        // Look for 'GBP' option in the dropdown
-        const options = document.querySelectorAll('.ant-select-item-option');
-        const gbpOpt = Array.from(options).find(opt =>
-          opt.textContent?.includes('GBP'),
-        );
-
-        if (!gbpOpt) throw new Error('GBP option not found');
-        return gbpOpt;
-      },
-      { timeout: 5000 },
-    );
-
-    // Clear mock again
-    propsWithCurrency.onChange.mockClear();
-
-    // Click the GBP option
-    await userEvent.click(gbpOption);
-
-    // Verify the onChange with GBP was called
-    await waitFor(
-      () => {
-        expect(propsWithCurrency.onChange).toHaveBeenCalledTimes(1);
-        const callArg = propsWithCurrency.onChange.mock.calls[0][0];
-
-        // More robust check
-        const metrics = callArg.metrics || [];
-        const updatedMetric = metrics.find(
-          (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
-        );
-
-        expect(updatedMetric).toBeDefined();
-        expect(updatedMetric?.currency?.symbolPosition).toBe('suffix');
-      },
-      { timeout: 5000 },
-    );
-  }, 60000);
+beforeEach(() => {
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+  setupDatasourceEditorMocks();
 });
+
+afterEach(() => {
+  fetchMock.restore();
+});
+
+test('renders currency section in metrics tab', async () => {
+  const testProps = {
+    ...propsWithCurrency,
+    onChange: jest.fn(),
+  };
+
+  fastRender(testProps);
+
+  // Navigate to metrics tab
+  const metricButton = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricButton);
+
+  // Find and expand the metric row with currency
+  // Metrics are sorted by ID descending, so metric with id=1 (which has currency)
+  // is at position 6 (last). Expand that one.
+  const expandToggles = await screen.findAllByLabelText(
+    /expand row/i,
+    {},
+    { timeout: 5000 },
+  );
+  await userEvent.click(expandToggles[6]);
+
+  // Check for currency section header
+  const currencyHeader = await screen.findByText(
+    'Metric currency',
+    {},
+    { timeout: 5000 },
+  );
+  expect(currencyHeader).toBeVisible();
+
+  // Verify currency position selector exists
+  const positionSelector = screen.getByRole('combobox', {
+    name: 'Currency prefix or suffix',
+  });
+  expect(positionSelector).toBeInTheDocument();
+
+  // Verify currency symbol selector exists
+  const symbolSelector = screen.getByRole('combobox', {
+    name: 'Currency symbol',
+  });
+  expect(symbolSelector).toBeInTheDocument();
+});
+
+test('changes currency position from prefix to suffix', async () => {
+  const testProps = {
+    ...propsWithCurrency,
+    onChange: jest.fn(),
+  };
+
+  fastRender(testProps);
+
+  // Navigate to metrics tab
+  const metricButton = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricButton);
+
+  // Expand the metric with currency
+  const expandToggles = await screen.findAllByLabelText(
+    /expand row/i,
+    {},
+    { timeout: 5000 },
+  );
+  await userEvent.click(expandToggles[6]);
+
+  // Find position selector
+  const positionSelector = screen.getByRole('combobox', {
+    name: 'Currency prefix or suffix',
+  });
+
+  // Open the dropdown
+  await userEvent.click(positionSelector);
+
+  // Wait for dropdown to open and find the suffix option
+  const suffixOption = await waitFor(
+    () => {
+      const options = document.querySelectorAll('.ant-select-item-option');
+      const suffixOpt = Array.from(options).find(opt =>
+        opt.textContent?.toLowerCase().includes('suffix'),
+      );
+
+      if (!suffixOpt) throw new Error('Suffix option not found');
+      return suffixOpt;
+    },
+    { timeout: 5000 },
+  );
+
+  // Click the suffix option
+  await userEvent.click(suffixOption);
+
+  // Verify onChange was called with suffix position
+  await waitFor(
+    () => {
+      expect(testProps.onChange).toHaveBeenCalledTimes(1);
+      const callArg = testProps.onChange.mock.calls[0][0];
+
+      const metrics = callArg.metrics || [];
+      const updatedMetric = metrics.find(
+        (m: MetricType) => m.currency && m.currency.symbolPosition === 'suffix',
+      );
+
+      expect(updatedMetric).toBeDefined();
+      expect(updatedMetric?.currency?.symbol).toBe('USD');
+    },
+    { timeout: 5000 },
+  );
+}, 60000);
+
+test('changes currency symbol from USD to GBP', async () => {
+  const testProps = {
+    ...propsWithCurrency,
+    onChange: jest.fn(),
+  };
+
+  fastRender(testProps);
+
+  // Navigate to metrics tab
+  const metricButton = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricButton);
+
+  // Expand the metric with currency
+  const expandToggles = await screen.findAllByLabelText(
+    /expand row/i,
+    {},
+    { timeout: 5000 },
+  );
+  await userEvent.click(expandToggles[6]);
+
+  // Find currency symbol selector
+  const currencySymbol = await screen.findByRole(
+    'combobox',
+    {
+      name: 'Currency symbol',
+    },
+    { timeout: 5000 },
+  );
+
+  // Open the currency dropdown
+  await userEvent.click(currencySymbol);
+
+  // Wait for dropdown to open and find the GBP option
+  const gbpOption = await waitFor(
+    () => {
+      const options = document.querySelectorAll('.ant-select-item-option');
+      const gbpOpt = Array.from(options).find(opt =>
+        opt.textContent?.includes('GBP'),
+      );
+
+      if (!gbpOpt) throw new Error('GBP option not found');
+      return gbpOpt;
+    },
+    { timeout: 5000 },
+  );
+
+  // Click the GBP option
+  await userEvent.click(gbpOption);
+
+  // Verify onChange was called with GBP
+  await waitFor(
+    () => {
+      expect(testProps.onChange).toHaveBeenCalledTimes(1);
+      const callArg = testProps.onChange.mock.calls[0][0];
+
+      const metrics = callArg.metrics || [];
+      const updatedMetric = metrics.find(
+        (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
+      );
+
+      expect(updatedMetric).toBeDefined();
+      expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
+    },
+    { timeout: 5000 },
+  );
+}, 60000);
