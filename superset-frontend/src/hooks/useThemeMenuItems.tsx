@@ -138,5 +138,6 @@ export const useThemeMenuItems = ({
     icon: <Icons.DownOutlined iconSize="xs" />,
     className: 'submenu-with-caret',
     children,
+    popupOffset: [0, -8],
   };
 };
