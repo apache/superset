@@ -81,6 +81,8 @@ export const publicControls = [
   // advanced analytics - resample
   'resample_rule', // via sections.advancedAnalytics
   'resample_method', // via sections.advancedAnalytics
+  // dashboard context
+  'dashboardId', // preserve dashboard context when changing viz type
 ];
 
 export class StandardizedFormData {
@@ -216,6 +218,7 @@ export class StandardizedFormData {
     });
     const targetFormData = {
       ...getFormDataFromControls(targetControlsState),
+      ...publicFormData,
       standardizedFormData: this.serialize(),
     };
 
