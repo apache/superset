@@ -2345,10 +2345,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     query, template_params
                 )
                 tables = {
-                    Table(
-                        table_.table,
-                        table_.schema or default_schema,
-                        table_.catalog or query.catalog or default_catalog,
+                    table_.qualify(
+                        catalog=query.catalog or default_catalog,
+                        schema=default_schema,
                     )
                     for table_ in process_jinja_sql(
                         query.sql, database, template_params
@@ -2356,9 +2355,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 }
             elif table:
                 # Make sure table has the default catalog, if not specified.
-                tables = {
-                    Table(table.table, table.schema, table.catalog or default_catalog)
-                }
+                tables = {table.qualify(catalog=default_catalog)}
 
             denied = set()
 
