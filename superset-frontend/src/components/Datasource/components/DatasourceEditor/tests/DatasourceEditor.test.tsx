@@ -18,85 +18,23 @@
  */
 import fetchMock from 'fetch-mock';
 import {
-  render,
   screen,
   waitFor,
   userEvent,
   cleanup,
 } from 'spec/helpers/testing-library';
-import mockDatasource from 'spec/fixtures/mockDatasource';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
-import type { DatasetObject } from 'src/features/datasets/types';
-import DatasourceEditor from '..';
+import {
+  props,
+  DATASOURCE_ENDPOINT,
+  asyncRender,
+  setupDatasourceEditorMocks,
+} from './DatasourceEditor.test.utils';
 
-/* eslint-disable jest/no-export */
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
-
-interface DatasourceEditorProps {
-  datasource: DatasetObject;
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
-  onChange: jest.Mock;
-  columnLabels?: Record<string, string>;
-  columnLabelTooltips?: Record<string, string>;
-}
-
-// Common setup for tests
-export const props: DatasourceEditorProps = {
-  datasource: mockDatasource['7__table'],
-  addSuccessToast: () => {},
-  addDangerToast: () => {},
-  onChange: jest.fn(),
-  columnLabels: {
-    state: 'State',
-  },
-  columnLabelTooltips: {
-    state: 'This is a tooltip for state',
-  },
-};
-
-export const DATASOURCE_ENDPOINT =
-  'glob:*/datasource/external_metadata_by_name/*';
-
-const routeProps = {
-  history: {},
-  location: {},
-  match: {},
-};
-
-export const asyncRender = (renderProps: DatasourceEditorProps) =>
-  waitFor(() =>
-    render(<DatasourceEditor {...renderProps} {...routeProps} />, {
-      useRedux: true,
-      initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
-      useRouter: true,
-    }),
-  );
-
-/**
- * Setup common API mocks for DatasourceEditor tests.
- * Mocks the 3 endpoints called on component mount to prevent test hangs and async warnings.
- */
-export const setupDatasourceEditorMocks = () => {
-  fetchMock.get(
-    url => url.includes('/api/v1/chart/'),
-    { result: [], count: 0, ids: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    url => url.includes('/api/v1/database/'),
-    { result: [], count: 0, ids: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    url => url.includes('/api/v1/dataset/related/owners'),
-    { result: [], count: 0 },
-    { overwriteRoutes: true },
-  );
-};
 
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });

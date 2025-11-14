@@ -25,7 +25,7 @@ import {
   props,
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
-} from './DatasourceEditor.test';
+} from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
 
@@ -37,8 +37,8 @@ const fastRender = (renderProps: typeof props) =>
     initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
   });
 
-// Shared currency props setup
-const propsWithCurrency = {
+// Factory function for currency props - returns fresh copy to prevent test pollution
+const createPropsWithCurrency = () => ({
   ...props,
   datasource: {
     ...props.datasource,
@@ -47,10 +47,11 @@ const propsWithCurrency = {
         ...props.datasource.metrics[0],
         currency: { symbol: 'USD', symbolPosition: 'prefix' },
       },
-      ...props.datasource.metrics.slice(1),
+      ...props.datasource.metrics.slice(1).map(m => ({ ...m })),
     ],
   },
-};
+  onChange: jest.fn(),
+});
 
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
@@ -62,10 +63,7 @@ afterEach(() => {
 });
 
 test('renders currency section in metrics tab', async () => {
-  const testProps = {
-    ...propsWithCurrency,
-    onChange: jest.fn(),
-  };
+  const testProps = createPropsWithCurrency();
 
   fastRender(testProps);
 
@@ -105,10 +103,7 @@ test('renders currency section in metrics tab', async () => {
 });
 
 test('changes currency position from prefix to suffix', async () => {
-  const testProps = {
-    ...propsWithCurrency,
-    onChange: jest.fn(),
-  };
+  const testProps = createPropsWithCurrency();
 
   fastRender(testProps);
 
@@ -168,10 +163,7 @@ test('changes currency position from prefix to suffix', async () => {
 }, 60000);
 
 test('changes currency symbol from USD to GBP', async () => {
-  const testProps = {
-    ...propsWithCurrency,
-    onChange: jest.fn(),
-  };
+  const testProps = createPropsWithCurrency();
 
   fastRender(testProps);
 
