@@ -482,8 +482,17 @@ export function getLegendProps(
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
+      if (padding?.left) {
+        legend.left = padding.left;
+      }
       break;
     case LegendOrientation.Top:
+      legend.top = 0;
+      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      if (padding?.left) {
+        legend.left = padding.left;
+      }
+      break;
     default:
       legend.top = 0;
       legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
