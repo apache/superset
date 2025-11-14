@@ -196,6 +196,7 @@ export default function transformProps(
     xAxisSort,
     xAxisSortAsc,
     xAxisTimeFormat,
+    xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
     yAxisBounds,
@@ -560,7 +561,9 @@ export default function transformProps(
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
-      : String;
+      : xAxisDataType === GenericDataType.Numeric
+        ? getNumberFormatter(xAxisNumberFormat)
+        : String;
 
   const {
     setDataMask = () => {},
