@@ -489,18 +489,15 @@ test('selecting all datasets shows correct count in toolbar', async () => {
     expect(checkboxes.length).toBeGreaterThan(0);
   });
 
-  // Select all checkbox (first one is usually select-all)
-  const checkboxes = screen.getAllByRole('checkbox');
-  expect(checkboxes.length).toBeGreaterThan(0);
+  // Select all checkbox using semantic selector (not DOM order)
+  const selectAllCheckbox = screen.getByLabelText('Select all');
+  await userEvent.click(selectAllCheckbox);
 
-  await userEvent.click(checkboxes[0]);
-
-  // Should show selected count in toolbar
+  // Should show selected count in toolbar (use data-test for reliability)
   await waitFor(() => {
-    const selectionText = screen.getByText(/selected/i);
-    expect(selectionText).toBeInTheDocument();
-    // Verify count matches number of datasets
-    expect(selectionText).toHaveTextContent(String(mockDatasets.length));
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      `${mockDatasets.length} Selected`,
+    );
   });
 
   // Verify bulk action buttons are enabled when items are selected
@@ -1029,7 +1026,12 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast with combined assertion
+  // Wait for modal to close (error handler closes it)
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // Wait for error toast
   await waitFor(() =>
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
@@ -1085,7 +1087,12 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast with combined assertion
+  // Wait for modal to close (error handler closes it)
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // Wait for error toast
   await waitFor(() =>
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
