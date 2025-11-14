@@ -254,7 +254,7 @@ export function AsyncAceEditor(
           };
 
           const handleAfterExec = (e: Ace.Operation) => {
-            const name = e?.command?.name;
+            const name: string | undefined = e?.command?.name;
             if (name === 'insertstring' || name === 'startAutocomplete') {
               moveAutocompleteToContainer();
             }
