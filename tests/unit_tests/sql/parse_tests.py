@@ -2803,6 +2803,19 @@ def test_kqlstatement_is_select(kql: str, expected: bool) -> None:
     assert KustoKQLStatement(kql, "kustokql").is_select() == expected
 
 
+def test_singlestore_engine_mapping():
+    """
+    Test the `singlestoredb` dialect is properly used.
+    """
+    sql = "SELECT COUNT(*) AS `COUNT(*)`"
+    statement = SQLStatement(sql, engine="singlestoredb")
+    assert statement.is_select()
+
+    # Should parse without errors
+    formatted = statement.format()
+    assert "COUNT(*)" in formatted
+
+
 def test_remove_quotes() -> None:
     """
     Test the `remove_quotes` helper function.
