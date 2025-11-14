@@ -75,6 +75,9 @@ function displayHeaderCell(
 }
 
 function sortHierarchicalObject(obj, objSort, rowPartialOnTop) {
+  // Performs a recursive sort of nested object structures. Sorts objects based on
+  // their currentVal property. The function preserves the hierarchical structure
+  // while sorting each level according to the specified criteria.
   const sortedKeys = Object.keys(obj).sort((a, b) => {
     const valA = obj[a].currentVal || 0;
     const valB = obj[b].currentVal || 0;
@@ -110,6 +113,9 @@ function convertToArray(
   result = [],
   flag = false,
 ) {
+  // Recursively flattens a hierarchical Map structure into an array of key paths.
+  // Handles different rendering scenarios based on row grouping configurations and
+  // depth limitations. The function supports complex hierarchy flattening with
   let updatedFlag = flag;
 
   const keys = Array.from(obj.keys());
@@ -428,6 +434,10 @@ export class TableRenderer extends Component {
   }
 
   calculateGroups(pivotData, visibleColName) {
+    // Transforms flat row keys into a hierarchical group structure where each level
+    // represents a grouping dimension. For each row key path, it calculates the
+    // aggregated value for the specified column and builds a nested object that
+    // preserves the hierarchy while storing aggregation values at each level.
     const groups = {};
     const rows = pivotData.rowKeys;
     rows.forEach(rowKey => {
@@ -452,6 +462,10 @@ export class TableRenderer extends Component {
     rowPartialOnTop,
     maxRowIndex,
   ) {
+    // Processes hierarchical data by first sorting it according to the specified order
+    // and then converting the sorted structure into a flat array format. This function
+    // serves as an intermediate step between hierarchical data representation and
+    // flat array representation needed for rendering.
     const sortedGroups = sortHierarchicalObject(
       groups,
       sortOrder,
@@ -466,6 +480,10 @@ export class TableRenderer extends Component {
   }
 
   sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex) {
+    // Handles column sorting with direction toggling (asc/desc) and implements
+    // caching mechanism to avoid redundant sorting operations. When sorting the same
+    // column multiple times, it cycles through sorting directions. Uses composite
+    // cache keys based on sorting parameters for optimal performance.
     this.setState(state => {
       const { sortingOrder, activeSortColumn } = state;
 
@@ -479,7 +497,7 @@ export class TableRenderer extends Component {
       const { rowEnabled, rowPartialOnTop } = pivotData.subtotals;
       newSortingOrder[columnIndex] = newDirection;
 
-      const cacheKey = `${columnIndex}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
+      const cacheKey = `${columnIndex}-${visibleColKeys.length}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
       let newRowKeys;
       if (this.sortCache.has(cacheKey)) {
         const cachedRowKeys = this.sortCache.get(cacheKey);
@@ -657,7 +675,13 @@ export class TableRenderer extends Component {
               namesMapping,
               allowRenderHtml,
             )}
-            <span role="columnheader" tabIndex={0}>
+            <span
+              role="columnheader"
+              tabIndex={0}
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
               {visibleSortIcon && getSortIcon(i)}
             </span>
           </th>,

@@ -84,6 +84,24 @@ beforeEach(() => {
   } as any;
 });
 
+const mockGroups = {
+  B: {
+    currentVal: 20,
+    B1: { currentVal: 15 },
+    B2: { currentVal: 5 },
+  },
+  A: {
+    currentVal: 10,
+    A1: { currentVal: 8 },
+    A2: { currentVal: 2 },
+  },
+  C: {
+    currentVal: 30,
+    C1: { currentVal: 25 },
+    C2: { currentVal: 5 },
+  },
+};
+
 test('should set initial ascending sort when no active sort column', () => {
   mockCalculateGroups.mockReturnValue({
     A: { currentVal: 30 },
@@ -317,4 +335,115 @@ test('should calculate groups from pivot data', () => {
     B: { currentVal: 10 },
     C: { currentVal: 20 },
   });
+});
+
+test('should sort groups and convert to array in ascending order', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const result = tableRenderer.sortAndCacheData(
+    mockGroups,
+    'asc',
+    true,
+    false,
+    2,
+  );
+
+  expect(result).toEqual([
+    ['A', 'A2'],
+    ['A', 'A1'],
+    ['A'],
+    ['B', 'B2'],
+    ['B', 'B1'],
+    ['B'],
+    ['C', 'C2'],
+    ['C', 'C1'],
+    ['C'],
+  ]);
+});
+
+test('should sort groups and convert to array in descending order', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const result = tableRenderer.sortAndCacheData(
+    mockGroups,
+    'desc',
+    true,
+    false,
+    2,
+  );
+
+  expect(result).toEqual([
+    ['C', 'C1'],
+    ['C', 'C2'],
+    ['C'],
+    ['B', 'B1'],
+    ['B', 'B2'],
+    ['B'],
+    ['A', 'A1'],
+    ['A', 'A2'],
+    ['A'],
+  ]);
+});
+
+test('should handle rowPartialOnTop = true configuration', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const result = tableRenderer.sortAndCacheData(
+    mockGroups,
+    'asc',
+    true,
+    true,
+    2,
+  );
+
+  expect(result).toEqual([
+    ['A'],
+    ['A', 'A2'],
+    ['A', 'A1'],
+    ['B'],
+    ['B', 'B2'],
+    ['B', 'B1'],
+    ['C'],
+    ['C', 'C2'],
+    ['C', 'C1'],
+  ]);
+});
+
+test('should handle rowEnabled = false and rowPartialOnTop = false, sorting asc', () => {
+  tableRenderer = new TableRenderer(mockProps);
+
+  const result = tableRenderer.sortAndCacheData(
+    mockGroups,
+    'asc',
+    false,
+    false,
+    2,
+  );
+
+  expect(result).toEqual([
+    ['A', 'A2'],
+    ['A', 'A1'],
+    ['B', 'B2'],
+    ['B', 'B1'],
+    ['C', 'C2'],
+    ['C', 'C1'],
+  ]);
+});
+
+test('should handle rowEnabled = false and rowPartialOnTop = false , sorting desc', () => {
+  tableRenderer = new TableRenderer(mockProps);
+
+  const result = tableRenderer.sortAndCacheData(
+    mockGroups,
+    'desc',
+    false,
+    false,
+    2,
+  );
+
+  expect(result).toEqual([
+    ['C', 'C1'],
+    ['C', 'C2'],
+    ['B', 'B1'],
+    ['B', 'B2'],
+    ['A', 'A1'],
+    ['A', 'A2'],
+  ]);
 });
