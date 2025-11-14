@@ -27,6 +27,7 @@ import ChartRenderer, {
   resetGlobalCleanupPathname,
 } from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
+import { getItem, setItem } from 'src/utils/localStorageHelpers';
 
 let capturedSuperChartProps = null;
 
@@ -385,7 +386,7 @@ afterEach(() => {
 test('should save legend state to localStorage when handleLegendStateChanged is called', () => {
   const mockLegendState = { series1: true, series2: false };
   const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
-  expect(localStorage.getItem(legendStateKey)).toBeNull();
+  expect(getItem(legendStateKey, null)).toBeNull();
 
   render(<ChartRenderer {...requiredProps} />);
 
@@ -397,7 +398,7 @@ test('should save legend state to localStorage when handleLegendStateChanged is 
   capturedSuperChartProps.hooks.onLegendStateChanged(mockLegendState);
 
   // Verify it was saved to localStorage
-  const saved = JSON.parse(localStorage.getItem(legendStateKey));
+  const saved = getItem(legendStateKey, null);
   expect(saved).toEqual(mockLegendState);
 });
 
@@ -405,7 +406,7 @@ test('should save legend index to localStorage when handleLegendScroll is called
   const mockLegendIndex = 5;
   const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
 
-  expect(localStorage.getItem(legendIndexKey)).toBeNull();
+  expect(getItem(legendIndexKey, null)).toBeNull();
 
   render(<ChartRenderer {...requiredProps} />);
 
@@ -417,39 +418,39 @@ test('should save legend index to localStorage when handleLegendScroll is called
   capturedSuperChartProps.hooks.onLegendScroll(mockLegendIndex);
 
   // Verify it was saved to localStorage
-  const saved = JSON.parse(localStorage.getItem(legendIndexKey));
+  const saved = getItem(legendIndexKey, null);
   expect(saved).toBe(mockLegendIndex);
 });
 
 test('should load legend state from localStorage on mount', () => {
   const mockLegendState = { series1: true, series2: false };
   const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
-  localStorage.setItem(legendStateKey, JSON.stringify(mockLegendState));
+  setItem(legendStateKey, mockLegendState);
 
   render(<ChartRenderer {...requiredProps} />);
 
   // Verify localStorage data was loaded (still there in localStorage)
-  const saved = JSON.parse(localStorage.getItem(legendStateKey));
+  const saved = getItem(legendStateKey, null);
   expect(saved).toEqual(mockLegendState);
 });
 
 test('should load legend index from localStorage on mount', () => {
   const mockLegendIndex = 10;
   const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
-  localStorage.setItem(legendIndexKey, JSON.stringify(mockLegendIndex));
+  setItem(legendIndexKey, mockLegendIndex);
 
   render(<ChartRenderer {...requiredProps} />);
 
-  const saved = JSON.parse(localStorage.getItem(legendIndexKey));
+  const saved = getItem(legendIndexKey, null);
   expect(saved).toBe(mockLegendIndex);
 });
 
 test('should clean up all chart legend states on beforeunload event', () => {
-  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
-  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
-  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
-  localStorage.setItem('chart_legend_index_2', JSON.stringify(10));
-  localStorage.setItem('other_key', 'should not be removed');
+  setItem('chart_legend_state_1', { a: true });
+  setItem('chart_legend_index_1', 5);
+  setItem('chart_legend_state_2', { b: false });
+  setItem('chart_legend_index_2', 10);
+  setItem('other_key', 'should not be removed');
 
   render(<ChartRenderer {...requiredProps} />);
 
@@ -458,16 +459,16 @@ test('should clean up all chart legend states on beforeunload event', () => {
     beforeUnloadHandlers[0]();
   }
 
-  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_2')).toBeNull();
-  expect(localStorage.getItem('other_key')).toBe('should not be removed');
+  expect(getItem('chart_legend_state_1', null)).toBeNull();
+  expect(getItem('chart_legend_index_1', null)).toBeNull();
+  expect(getItem('chart_legend_state_2', null)).toBeNull();
+  expect(getItem('chart_legend_index_2', null)).toBeNull();
+  expect(getItem('other_key', null)).toBe('should not be removed');
 });
 
 test('should clean up all chart legend states on popstate event', () => {
-  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
-  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+  setItem('chart_legend_state_1', { a: true });
+  setItem('chart_legend_index_1', 5);
 
   render(<ChartRenderer {...requiredProps} />);
 
@@ -479,13 +480,13 @@ test('should clean up all chart legend states on popstate event', () => {
     popstateHandlers[0]();
   }
 
-  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+  expect(getItem('chart_legend_state_1', null)).toBeNull();
+  expect(getItem('chart_legend_index_1', null)).toBeNull();
 });
 
 test('should clean up all chart legend states on hashchange event', () => {
-  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
-  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
+  setItem('chart_legend_state_1', { a: true });
+  setItem('chart_legend_index_1', 5);
 
   render(<ChartRenderer {...requiredProps} />);
 
@@ -497,24 +498,24 @@ test('should clean up all chart legend states on hashchange event', () => {
     hashchangeHandlers[0]();
   }
 
-  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
+  expect(getItem('chart_legend_state_1', null)).toBeNull();
+  expect(getItem('chart_legend_index_1', null)).toBeNull();
 });
 
 test('should clean up all chart legend states when pathname changes', () => {
   // Reset global cleanup pathname to ensure clean state
   resetGlobalCleanupPathname();
 
-  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
-  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
-  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
+  setItem('chart_legend_state_1', { a: true });
+  setItem('chart_legend_index_1', 5);
+  setItem('chart_legend_state_2', { b: false });
 
   window.location.pathname = '/dashboard/1';
   const { unmount } = render(<ChartRenderer {...requiredProps} />);
 
   // Verify data exists after mount (should not be cleaned up yet)
-  expect(localStorage.getItem('chart_legend_state_1')).not.toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).not.toBeNull();
+  expect(getItem('chart_legend_state_1', null)).not.toBeNull();
+  expect(getItem('chart_legend_index_1', null)).not.toBeNull();
 
   unmount();
 
@@ -527,18 +528,16 @@ test('should clean up all chart legend states when pathname changes', () => {
   // Wait a bit for the interval to trigger (>100)
   jest.advanceTimersByTime(150);
 
-  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
+  expect(getItem('chart_legend_state_1', null)).toBeNull();
+  expect(getItem('chart_legend_index_1', null)).toBeNull();
+  expect(getItem('chart_legend_state_2', null)).toBeNull();
 });
 
 test('should not clean up chart legend states when pathname is the same (scrolling scenario)', () => {
   // Set up some legend state data
   const mockLegendState = { series1: true };
-  localStorage.setItem(
-    `chart_legend_state_${requiredProps.chartId}`,
-    JSON.stringify(mockLegendState),
-  );
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  setItem(legendStateKey, mockLegendState);
 
   window.location.pathname = '/dashboard/1';
   const { unmount } = render(<ChartRenderer {...requiredProps} />);
@@ -547,26 +546,24 @@ test('should not clean up chart legend states when pathname is the same (scrolli
   unmount();
 
   // Verify data is still there (pathname didn't change, so no cleanup)
-  const saved = JSON.parse(
-    localStorage.getItem(`chart_legend_state_${requiredProps.chartId}`),
-  );
+  const saved = getItem(legendStateKey, null);
   expect(saved).toEqual(mockLegendState);
 });
 
 test('cleanupAllChartLegendStates should remove all chart legend keys', () => {
-  localStorage.setItem('chart_legend_state_1', JSON.stringify({ a: true }));
-  localStorage.setItem('chart_legend_index_1', JSON.stringify(5));
-  localStorage.setItem('chart_legend_state_2', JSON.stringify({ b: false }));
-  localStorage.setItem('chart_legend_index_2', JSON.stringify(10));
-  localStorage.setItem('other_key', 'should not be removed');
-  localStorage.setItem('chart_legend_state_3', JSON.stringify({ c: true }));
+  setItem('chart_legend_state_1', { a: true });
+  setItem('chart_legend_index_1', 5);
+  setItem('chart_legend_state_2', { b: false });
+  setItem('chart_legend_index_2', 10);
+  setItem('other_key', 'should not be removed');
+  setItem('chart_legend_state_3', { c: true });
 
   cleanupAllChartLegendStates();
 
-  expect(localStorage.getItem('chart_legend_state_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_1')).toBeNull();
-  expect(localStorage.getItem('chart_legend_state_2')).toBeNull();
-  expect(localStorage.getItem('chart_legend_index_2')).toBeNull();
-  expect(localStorage.getItem('chart_legend_state_3')).toBeNull();
-  expect(localStorage.getItem('other_key')).toBe('should not be removed');
+  expect(getItem('chart_legend_state_1', null)).toBeNull();
+  expect(getItem('chart_legend_index_1', null)).toBeNull();
+  expect(getItem('chart_legend_state_2', null)).toBeNull();
+  expect(getItem('chart_legend_index_2', null)).toBeNull();
+  expect(getItem('chart_legend_state_3', null)).toBeNull();
+  expect(getItem('other_key', null)).toBe('should not be removed');
 });
