@@ -1915,6 +1915,7 @@ TALISMAN_CONFIG = {
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
+            "https://app.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1951,6 +1952,7 @@ TALISMAN_DEV_CONFIG = {
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
+            "https://app.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",

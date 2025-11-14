@@ -356,6 +356,11 @@ appends the provided domains to both the production and development CSP policies
 allowing the front end to make outbound requests (such as the custom button API calls
 described in the Superset discussion about custom requests [\[1\]](https://github.com/apache/superset/discussions/30129)).
 
+> **Note**  
+> `https://app.snap4idtcity.com` is already included in the default `connect-src`
+> allowlist so dashboards can call that IoT endpoint immediately. Use the environment
+> variable when you need to add additional domains.
+
 For more information on setting up Talisman, please refer to
 https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp.
 
