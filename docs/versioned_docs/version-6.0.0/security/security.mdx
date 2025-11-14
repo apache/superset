@@ -340,6 +340,22 @@ TALISMAN_CONFIG = {
 }
 ```
 
+### Allowing custom dashboard actions to call external APIs
+
+Dashboard buttons and other interactive features rely on the browser's `connect-src`
+policy. If you need to call an external domain (for example, to trigger an API with
+`https://app.snap4idcity.com`), set the new environment variable
+`SUPERSET_ADDITIONAL_CONNECT_SOURCES` before starting Superset:
+
+```bash
+export SUPERSET_ADDITIONAL_CONNECT_SOURCES="https://app.snap4idcity.com"
+```
+
+You can add multiple domains by separating them with commas. Superset automatically
+appends the provided domains to both the production and development CSP policies,
+allowing the front end to make outbound requests (such as the custom button API calls
+described in the Superset discussion about custom requests [\[1\]](https://github.com/apache/superset/discussions/30129)).
+
 For more information on setting up Talisman, please refer to
 https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp.
 

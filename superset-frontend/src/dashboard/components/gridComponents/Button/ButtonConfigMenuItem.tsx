@@ -322,14 +322,37 @@ const ButtonConfigMenuItem = ({
                   requiredMark="optional"
                   rules={[
                     {
-                      validator: (_, value) =>
-                        value && value.trim().length === 0
-                          ? Promise.reject(
+                      validator: (_, value) => {
+                        if (!value || value.trim().length === 0) {
+                          return Promise.resolve();
+                        }
+                        const trimmedValue = value.trim();
+                        const trimmedLower = trimmedValue.toLowerCase();
+                        // Block dangerous protocols
+                        const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+                        if (dangerousProtocols.some(protocol => trimmedLower.startsWith(protocol))) {
+                          return Promise.reject(
+                            new Error(
+                              t('URLs with javascript:, data:, vbscript:, or file: protocols are not allowed for security reasons.'),
+                            ),
+                          );
+                        }
+                        // Validate URL format for absolute URLs
+                        if (trimmedLower.startsWith('http://') || trimmedLower.startsWith('https://')) {
+                          try {
+                            new URL(trimmedValue);
+                            return Promise.resolve();
+                          } catch {
+                            return Promise.reject(
                               new Error(
-                                t('Enter a valid URL or leave the field empty'),
+                                t('Please enter a valid URL (e.g., https://example.com/path)'),
                               ),
-                            )
-                          : Promise.resolve(),
+                            );
+                          }
+                        }
+                        // Allow relative URLs, mailto, tel, and hash links
+                        return Promise.resolve();
+                      },
                     },
                   ]}
                 >
@@ -358,20 +381,45 @@ const ButtonConfigMenuItem = ({
                   requiredMark="optional"
                   rules={[
                     {
-                      validator: (_, value) =>
-                        value && value.trim().length === 0
-                          ? Promise.reject(
+                      validator: (_, value) => {
+                        if (!value || value.trim().length === 0) {
+                          return Promise.resolve();
+                        }
+                        const trimmedValue = value.trim();
+                        const trimmedLower = trimmedValue.toLowerCase();
+                        // Block dangerous protocols
+                        const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+                        if (dangerousProtocols.some(protocol => trimmedLower.startsWith(protocol))) {
+                          return Promise.reject(
+                            new Error(
+                              t('Endpoints with javascript:, data:, vbscript:, or file: protocols are not allowed for security reasons.'),
+                            ),
+                          );
+                        }
+                        // Validate URL format for absolute URLs
+                        if (trimmedLower.startsWith('http://') || trimmedLower.startsWith('https://')) {
+                          try {
+                            new URL(trimmedValue);
+                            return Promise.resolve();
+                          } catch {
+                            return Promise.reject(
                               new Error(
-                                t(
-                                  'Enter a valid endpoint or leave the field empty',
-                                ),
+                                t('Please enter a valid endpoint URL (e.g., https://api.example.com/endpoint) or a relative path (e.g., /api/v1/resource/)'),
                               ),
-                            )
-                          : Promise.resolve(),
+                            );
+                          }
+                        }
+                        // Allow relative paths (must start with /)
+                        if (trimmedValue.startsWith('/')) {
+                          return Promise.resolve();
+                        }
+                        // Warn about relative paths without leading slash (but allow them)
+                        return Promise.resolve();
+                      },
                     },
                   ]}
                   extra={t(
-                    'Relative paths call Superset APIs. Absolute URLs are also supported.',
+                    'Relative paths (starting with /) call Superset APIs. Absolute URLs (http:// or https://) are also supported.',
                   )}
                 >
                   <Input placeholder="/api/v1/resource/" />

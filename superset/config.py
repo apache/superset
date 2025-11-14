@@ -1875,6 +1875,24 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 # For more information on setting up Talisman, please refer to
 # https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp
 
+def _get_additional_sources(env_key: str) -> list[str]:
+    """
+    Return a list of additional CSP sources from the provided env var.
+
+    The env var accepts a comma-separated list of values (URLs or keywords like
+    `'self'`). Empty segments are ignored to avoid accidental blank entries.
+    """
+
+    raw_value = os.environ.get(env_key)
+    if not raw_value:
+        return []
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+ADDITIONAL_CSP_CONNECT_SOURCES = _get_additional_sources(
+    "SUPERSET_ADDITIONAL_CONNECT_SOURCES"
+)
+
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
@@ -1897,7 +1915,8 @@ TALISMAN_CONFIG = {
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
-        ],
+        ]
+        + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
         "style-src": [
             "'self'",
@@ -1932,7 +1951,8 @@ TALISMAN_DEV_CONFIG = {
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
-        ],
+        ]
+        + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
         "style-src": [
             "'self'",

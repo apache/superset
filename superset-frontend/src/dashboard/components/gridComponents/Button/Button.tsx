@@ -83,6 +83,40 @@ const normalizeButtonSize = (size?: string | null) =>
 const normalizeButtonStyle = (style?: string | null) =>
   style ?? 'primary';
 
+const isValidUrl = (url: string): boolean => {
+  if (!url || url.trim().length === 0) {
+    return false;
+  }
+  const trimmedUrl = url.trim().toLowerCase();
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:'];
+  if (dangerousProtocols.some(protocol => trimmedUrl.startsWith(protocol))) {
+    return false;
+  }
+  // Allow http, https, mailto, tel, and relative URLs
+  try {
+    // Try to create URL object for absolute URLs
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      new URL(url.trim());
+      return true;
+    }
+    // Allow relative URLs and other safe protocols
+    if (
+      trimmedUrl.startsWith('/') ||
+      trimmedUrl.startsWith('mailto:') ||
+      trimmedUrl.startsWith('tel:') ||
+      trimmedUrl.startsWith('#')
+    ) {
+      return true;
+    }
+    // Allow relative paths without leading slash (will be treated as relative)
+    return true;
+  } catch {
+    // If URL parsing fails, it might still be a valid relative URL
+    return !trimmedUrl.includes('://') || trimmedUrl.startsWith('mailto:') || trimmedUrl.startsWith('tel:');
+  }
+};
+
 const normalizeMeta = (meta: LayoutItemMeta): DashboardButtonMeta => {
   const buttonMeta = meta as DashboardButtonMeta;
   return {
@@ -231,20 +265,27 @@ const DashboardButton = ({
   const sanitizedEndpoint = meta.apiEndpoint?.trim() ?? '';
   const actionType = meta.actionType ?? 'link';
 
+  const isUrlValid = sanitizedUrl.length > 0 && isValidUrl(sanitizedUrl);
   const missingConfiguration =
     actionType === 'api'
       ? sanitizedEndpoint.length === 0
-      : sanitizedUrl.length === 0;
+      : !isUrlValid;
 
   const buttonDisabled =
     editMode || meta.disabled || isPending || missingConfiguration;
 
   const tooltip =
     meta.tooltip ||
-    (missingConfiguration ? t('Configure this button to enable it.') : undefined);
+    (missingConfiguration
+      ? actionType === 'link'
+        ? sanitizedUrl.length > 0 && !isUrlValid
+          ? t('Invalid URL format. Please use http://, https://, or a relative path.')
+          : t('Configure this button to enable it.')
+        : t('Configure this button to enable it.')
+      : undefined);
 
   const href =
-    !editMode && actionType === 'link' && sanitizedUrl.length > 0
+    !editMode && actionType === 'link' && isUrlValid
       ? sanitizedUrl
       : undefined;
 
@@ -315,11 +356,22 @@ const DashboardButton = ({
       await SupersetClient.request(requestConfig);
       addSuccessToast(meta.successMessage ?? t('Action executed successfully.'));
     } catch (error) {
-      const responseStatus =
-        (error as Record<string, any>)?.response?.statusText;
-      const fallbackMessage =
-        meta.errorMessage ?? t('Unable to execute action.');
-      addDangerToast(responseStatus ?? fallbackMessage);
+      const errorRecord = error as Record<string, any>;
+      const responseStatus = errorRecord?.response?.statusText;
+      const responseStatusNumber = errorRecord?.response?.status;
+      const errorMessage = errorRecord?.message;
+      
+      // Build a more informative error message
+      let errorMsg = meta.errorMessage ?? t('Unable to execute action.');
+      if (responseStatusNumber) {
+        errorMsg = `${errorMsg} (${responseStatusNumber}${responseStatus ? ` ${responseStatus}` : ''})`;
+      } else if (responseStatus) {
+        errorMsg = `${errorMsg} (${responseStatus})`;
+      } else if (errorMessage && typeof errorMessage === 'string') {
+        errorMsg = `${errorMsg}: ${errorMessage}`;
+      }
+      
+      addDangerToast(errorMsg);
     } finally {
       setIsPending(false);
     }
@@ -346,14 +398,25 @@ const DashboardButton = ({
         event.preventDefault();
         event.stopPropagation();
         void executeApiAction();
-      } else if (!href) {
-        event.preventDefault();
-        addDangerToast(
-          t('Configure a destination URL before using this button.'),
-        );
+      } else if (actionType === 'link') {
+        // For link type, validate URL before navigation
+        if (!href) {
+          event.preventDefault();
+          const urlValid = sanitizedUrl.length > 0 && isValidUrl(sanitizedUrl);
+          if (sanitizedUrl.length > 0 && !urlValid) {
+            addDangerToast(
+              t('Invalid URL format. Please use http://, https://, or a relative path.'),
+            );
+          } else {
+            addDangerToast(
+              t('Configure a destination URL before using this button.'),
+            );
+          }
+        }
+        // If href is valid, let the browser handle navigation naturally
       }
     },
-    [actionType, addDangerToast, editMode, executeApiAction, href],
+    [actionType, addDangerToast, editMode, executeApiAction, href, sanitizedUrl],
   );
 
   const updateFocus = useCallback(
@@ -449,7 +512,7 @@ const DashboardButton = ({
                   href={href}
                   target={href ? target : undefined}
                   rel={href ? rel : undefined}
-                  onClick={actionType === 'api' ? handleButtonClick : undefined}
+                  onClick={handleButtonClick}
                   showMarginRight={false}
                 >
                   <ButtonContent>
