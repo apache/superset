@@ -16,18 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  BUTTON_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import type { LayoutItemMeta } from 'src/dashboard/types';
+import type {
+  ButtonSize,
+  ButtonStyle,
+} from '@superset-ui/core/components/Button/types';
 
-export default function componentIsResizable(entity: { type: string }) {
-  return (
-    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, BUTTON_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
-  );
+export type ButtonActionType = 'link' | 'api';
+
+export interface DashboardButtonMeta extends LayoutItemMeta {
+  buttonSize?: ButtonSize;
+  buttonStyle?: ButtonStyle;
+  disabled?: boolean;
+  tooltip?: string;
+  actionType?: ButtonActionType;
+  url?: string;
+  target?: string;
+  apiEndpoint?: string;
+  apiMethod?: string;
+  apiHeaders?: string;
+  apiPayload?: string;
+  successMessage?: string;
+  errorMessage?: string;
+  confirmBeforeExecute?: boolean;
+  confirmMessage?: string;
 }
+

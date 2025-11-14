@@ -28,6 +28,7 @@ export const NEW_COMPONENT_SOURCE_TYPE = 'NEW_COMPONENT_SOURCE';
 export const ROW_TYPE = 'ROW';
 export const TABS_TYPE = 'TABS';
 export const TAB_TYPE = 'TAB';
+export const BUTTON_TYPE = 'BUTTON';
 // Dynamic type proposes lazy loading of custom dashboard components that can be added in separate repository
 export const DYNAMIC_TYPE = 'DYNAMIC';
 
@@ -44,5 +45,6 @@ export default {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  BUTTON_TYPE,
   DYNAMIC_TYPE,
 };

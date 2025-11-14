@@ -43,6 +43,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  BUTTON_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -68,6 +69,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
     [HEADER_TYPE]: depthOne,
+    [BUTTON_TYPE]: depthOne,
     [ROW_TYPE]: depthOne,
     [TABS_TYPE]: depthOne,
   },
@@ -76,6 +78,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFour,
     [DYNAMIC_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
+    [BUTTON_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
 
@@ -87,6 +90,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFive,
     [DYNAMIC_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
+    [BUTTON_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
@@ -98,6 +102,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [CHART_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
+    [BUTTON_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
     [TABS_TYPE]: depthThree,
@@ -109,6 +114,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
   [MARKDOWN_TYPE]: {},
+  [BUTTON_TYPE]: {},
 };
 
 interface IsValidChildProps {

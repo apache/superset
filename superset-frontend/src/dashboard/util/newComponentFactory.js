@@ -28,6 +28,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  BUTTON_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -36,6 +37,7 @@ import {
   BACKGROUND_TRANSPARENT,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
 } from './constants';
 
 const typeToDefaultMetaData = {
@@ -57,6 +59,26 @@ const typeToDefaultMetaData = {
     text: '',
     defaultText: t('Tab title'),
     placeholder: t('Tab title'),
+  },
+  [BUTTON_TYPE]: {
+    width: GRID_DEFAULT_CHART_WIDTH,
+    height: GRID_MIN_ROW_UNITS,
+    text: t('Button'),
+    buttonStyle: 'primary',
+    buttonSize: 'default',
+    disabled: false,
+    tooltip: '',
+    actionType: 'link',
+    url: '',
+    target: '_self',
+    apiEndpoint: '',
+    apiMethod: 'POST',
+    apiHeaders: '',
+    apiPayload: '',
+    successMessage: t('Action executed successfully.'),
+    errorMessage: t('Unable to execute action.'),
+    confirmBeforeExecute: false,
+    confirmMessage: t('Are you sure you want to run this action?'),
   },
   [DYNAMIC_TYPE]: {
     width: GRID_COLUMN_COUNT,

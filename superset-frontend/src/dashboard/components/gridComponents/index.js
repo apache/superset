@@ -25,6 +25,7 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
+  BUTTON_TYPE,
   DYNAMIC_TYPE,
 } from '../../util/componentTypes';
 
@@ -36,6 +37,7 @@ import Header from './Header';
 import Row from './Row';
 import Tab from './Tab';
 import Tabs from './Tabs';
+import Button from './Button';
 import DynamicComponent from './DynamicComponent';
 
 export const componentLookup = {
@@ -47,5 +49,6 @@ export const componentLookup = {
   [ROW_TYPE]: Row,
   [TAB_TYPE]: Tab,
   [TABS_TYPE]: Tabs,
+  [BUTTON_TYPE]: Button,
   [DYNAMIC_TYPE]: DynamicComponent,
 };

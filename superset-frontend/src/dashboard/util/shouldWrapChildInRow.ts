@@ -21,6 +21,7 @@ import {
   CHART_TYPE,
   COLUMN_TYPE,
   MARKDOWN_TYPE,
+  BUTTON_TYPE,
   TAB_TYPE,
 } from './componentTypes';
 import { ComponentType } from '../types';
@@ -31,7 +32,7 @@ interface WrapChildParams {
 }
 
 type ParentTypes = typeof DASHBOARD_GRID_TYPE | typeof TAB_TYPE;
-type ChildTypes = typeof CHART_TYPE | typeof COLUMN_TYPE | typeof MARKDOWN_TYPE;
+type ChildTypes = typeof CHART_TYPE | typeof COLUMN_TYPE | typeof MARKDOWN_TYPE | typeof BUTTON_TYPE;
 
 const typeToWrapChildLookup: Record<
   ParentTypes,
@@ -41,12 +42,14 @@ const typeToWrapChildLookup: Record<
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [MARKDOWN_TYPE]: true,
+    [BUTTON_TYPE]: true,
   },
 
   [TAB_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [MARKDOWN_TYPE]: true,
+    [BUTTON_TYPE]: true,
   },
 };
 

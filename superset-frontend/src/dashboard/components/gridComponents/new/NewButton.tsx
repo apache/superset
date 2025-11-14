@@ -16,18 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  BUTTON_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import { t } from '@superset-ui/core';
 
-export default function componentIsResizable(entity: { type: string }) {
+import { Icons } from '@superset-ui/core/components';
+import { BUTTON_TYPE } from '../../../util/componentTypes';
+import { NEW_BUTTON_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+
+export default function NewButton() {
   return (
-    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, BUTTON_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
+    <DraggableNewComponent
+      id={NEW_BUTTON_ID}
+      type={BUTTON_TYPE}
+      label={t('Button')}
+      IconComponent={Icons.PlusOutlined}
+    />
   );
 }
+
