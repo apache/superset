@@ -37,6 +37,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
+from superset_core.api.models import Tag as CoreTag
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
@@ -87,7 +88,7 @@ class ObjectType(enum.Enum):
     dataset = 4
 
 
-class Tag(Model, AuditMixinNullable):
+class Tag(CoreTag, AuditMixinNullable):
     """A tag attached to an object (query, chart, dashboard, or dataset)."""
 
     __tablename__ = "tag"

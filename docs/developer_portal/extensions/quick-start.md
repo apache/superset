@@ -128,7 +128,7 @@ The CLI generated a basic `backend/src/hello_world/entrypoint.py`. We'll create 
 ```python
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
-from superset_core.api.types.rest_api import RestApi
+from superset_core.api.rest_api import RestApi
 
 
 class HelloWorldAPI(RestApi):

@@ -67,6 +67,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
+from superset_core.api.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -1090,7 +1091,7 @@ sqlatable_user = DBTable(
 
 
 class SqlaTable(
-    Model,
+    CoreDataset,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
@@ -1200,7 +1201,7 @@ class SqlaTable(
 
     @property
     def description_markeddown(self) -> str:
-        return utils.markdown(self.description)
+        return utils.markdown(self.description or "")
 
     @property
     def datasource_name(self) -> str:
@@ -1819,7 +1820,7 @@ class SqlaTable(
         #
         #   table.column IN (SELECT 1 FROM (SELECT 1) WHERE 1!=1)
         filters = [
-            method.in_(perms)
+            method.in_(perms)  # type: ignore[union-attr]
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),

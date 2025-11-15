@@ -46,6 +46,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
+from superset_core.api.models import Query as CoreQuery, SavedQuery as CoreSavedQuery
 
 from superset import security_manager
 from superset.exceptions import SupersetParseError, SupersetSecurityException
@@ -94,10 +95,10 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
 
 
 class Query(
+    CoreQuery,
     SqlTablesMixin,
     ExtraJSONMixin,
     ExploreMixin,
-    Model,
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -387,11 +388,11 @@ class Query(
 
 
 class SavedQuery(
+    CoreSavedQuery,
     SqlTablesMixin,
     AuditMixinNullable,
     ExtraJSONMixin,
     ImportExportMixin,
-    Model,
 ):
     """ORM model for SQL query"""
 
