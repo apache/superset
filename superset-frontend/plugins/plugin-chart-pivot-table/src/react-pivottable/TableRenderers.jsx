@@ -616,11 +616,11 @@ export class TableRenderer extends Component {
         }
         const { maxRowVisible: maxRowIndex, maxColVisible } = pivotSettings;
         const visibleSortIcon = maxColVisible - 1 === attrIdx;
+        const columnName = colKey[maxColVisible - 1];
 
         const rowSpan = 1 + (attrIdx === colAttrs.length - 1 ? rowIncrSpan : 0);
         const flatColKey = flatKey(colKey.slice(0, attrIdx + 1));
         const onArrowClick = needToggle ? this.toggleColKey(flatColKey) : null;
-
         const getSortIcon = key => {
           const { activeSortColumn, sortingOrder } = this.state;
 
@@ -678,9 +678,12 @@ export class TableRenderer extends Component {
             <span
               role="columnheader"
               tabIndex={0}
+              // Prevents event bubbling to avoid conflict with column header click handlers
+              // Ensures sort operation executes without triggering cross-filtration
               onClick={e => {
                 e.stopPropagation();
               }}
+              aria-label={`Sorted by ${columnName}`}
             >
               {visibleSortIcon && getSortIcon(i)}
             </span>
@@ -1098,6 +1101,7 @@ export class TableRenderer extends Component {
 
   render() {
     if (this.cachedProps !== this.props) {
+      this.sortCache.clear();
       this.cachedProps = this.props;
       this.cachedBasePivotSettings = this.getBasePivotSettings();
     }
