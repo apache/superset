@@ -33,6 +33,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 interface MenuProps {
   data: MenuData;
@@ -277,7 +278,7 @@ export function Menu({
       key: label,
       label,
       icon: <Icons.DownOutlined iconSize="xs" />,
-      popupOffset: [0, -8],
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       children: childItems,
     };
   };

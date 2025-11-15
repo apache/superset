@@ -53,6 +53,7 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -379,7 +380,7 @@ const RightMenu = ({
               label: menu.label,
               icon: menu.icon,
               children: childItems,
-              popupOffset: [0, -8],
+              popupOffset: NAVBAR_MENU_POPUP_OFFSET,
             });
           } else if (menu.url) {
             if (
@@ -560,7 +561,7 @@ const RightMenu = ({
         className: 'submenu-with-caret',
         icon: <Icons.DownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
-        popupOffset: [0, -8],
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       });
     }
 
@@ -578,7 +579,7 @@ const RightMenu = ({
       icon: <Icons.DownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
       className: 'submenu-with-caret',
-      popupOffset: [0, -8],
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
     });
 
     return items;
