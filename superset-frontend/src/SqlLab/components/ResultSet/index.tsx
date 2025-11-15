@@ -85,7 +85,6 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { makeUrl } from 'src/utils/pathUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
