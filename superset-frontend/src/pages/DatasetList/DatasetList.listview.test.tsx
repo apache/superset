@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -124,7 +124,11 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Wait for any pending state updates to complete before cleanup
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
   cleanup();
   fetchMock.reset();
   jest.restoreAllMocks();
@@ -489,9 +493,10 @@ test('selecting all datasets shows correct count in toolbar', async () => {
     expect(checkboxes.length).toBeGreaterThan(0);
   });
 
-  // Select all checkbox using semantic selector (not DOM order)
-  const selectAllCheckbox = screen.getByLabelText('Select all');
-  await userEvent.click(selectAllCheckbox);
+  // Select all checkbox using semantic selector
+  // Note: antd renders multiple checkboxes with same aria-label, use first one (table header)
+  const selectAllCheckboxes = screen.getAllByLabelText('Select all');
+  await userEvent.click(selectAllCheckboxes[0]);
 
   // Should show selected count in toolbar (use data-test for reliability)
   await waitFor(() => {
@@ -1027,9 +1032,13 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   await userEvent.click(submitButton);
 
   // Wait for modal to close (error handler closes it)
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
+  // antd modal close animation can be slow, increase timeout
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 
   // Wait for error toast
   await waitFor(() =>
@@ -1088,9 +1097,13 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   await userEvent.click(submitButton);
 
   // Wait for modal to close (error handler closes it)
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
+  // antd modal close animation can be slow, increase timeout
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 
   // Wait for error toast
   await waitFor(() =>
