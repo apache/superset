@@ -115,6 +115,7 @@ dependencies = [
 
 athena = ["pyathena[pandas]>=2, <3"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
+azure-blob = ["azure-storage-blob>=12.0.0"]
 bigquery = [
     "pandas-gbq>=0.19.1",
     "sqlalchemy-bigquery>=1.15.0",
