@@ -1,762 +1,751 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+/* eslint-disable camelcase */
+import { invert } from 'lodash';
 import {
-  AnnotationSourceType,
-  AnnotationStyle,
-  AnnotationType,
-  ChartProps,
-  EventAnnotationLayer,
-  FormulaAnnotationLayer,
-  IntervalAnnotationLayer,
-  SqlaFormData,
-  TimeseriesAnnotationLayer,
+  AnnotationLayer,
+  AxisType,
+  buildCustomFormatters,
+  CategoricalColorNamespace,
+  CurrencyFormatter,
+  ensureIsArray,
+  tooltipHtml,
+  getCustomFormatter,
+  getMetricLabel,
+  getNumberFormatter,
+  getXAxisLabel,
+  isDefined,
+  isEventAnnotationLayer,
+  isFormulaAnnotationLayer,
+  isIntervalAnnotationLayer,
+  isPhysicalColumn,
+  isTimeseriesAnnotationLayer,
+  t,
+  TimeseriesChartDataResponseResult,
+  NumberFormats,
+  GenericDataType,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
-import { EchartsTimeseriesChartProps } from '../../src/types';
-import transformProps from '../../src/Timeseries/transformProps';
+import { supersetTheme } from '@apache-superset/core/ui'; // keep import order if needed
+import {
+  extractExtraMetrics,
+  getOriginalSeries,
+  isDerivedSeries,
+} from '@superset-ui/chart-controls';
+import type { EChartsCoreOption } from 'echarts/core';
+import type {
+  LineStyleOption,
+  CallbackDataParams,
+} from 'echarts/types/src/util/types';
+import type { SeriesOption } from 'echarts';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesFormData,
+  OrientationType,
+  TimeseriesChartTransformedProps,
+} from './types';
+import { DEFAULT_FORM_DATA } from './constants';
+import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
+import { parseAxisBound } from '../utils/controls';
+import {
+  calculateLowerLogTick,
+  dedupSeries,
+  extractDataTotalValues,
+  extractSeries,
+  extractShowValueIndexes,
+  extractTooltipKeys,
+  getAxisType,
+  getColtypesMapping,
+  getLegendProps,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
+import {
+  extractAnnotationLabels,
+  getAnnotationData,
+} from '../utils/annotation';
+import {
+  extractForecastSeriesContext,
+  extractForecastSeriesContexts,
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+  reorderForecastSeries,
+} from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
+import { defaultGrid, defaultYAxis } from '../defaults';
+import {
+  getBaselineSeriesForStream,
+  getPadding,
+  transformEventAnnotation,
+  transformFormulaAnnotation,
+  transformIntervalAnnotation,
+  transformSeries,
+  transformTimeseriesAnnotation,
+} from './transformers';
+import {
+  OpacityEnum,
+  StackControlsValue,
+  TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
+} from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import {
+  getPercentFormatter,
+  getTooltipTimeFormatter,
+  getXAxisFormatter,
+  getYAxisFormatter,
+} from '../utils/formatters';
 
-const formData: SqlaFormData = {
-  colorScheme: 'bnbColors',
-  datasource: '3__table',
-  granularity_sqla: 'ds',
-  metric: 'sum__num',
-  groupby: ['foo', 'bar'],
-  viz_type: 'my_viz',
-};
-const queriesData = [
-  {
-    data: [
-      { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-      { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
-    ],
-  },
-];
-const chartPropsConfig = {
-  formData,
-  width: 800,
-  height: 600,
-  queriesData,
-  theme: supersetTheme,
-};
-
-describe('EchartsTimeseries transformProps', () => {
-  it('should transform chart props for viz', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          legend: expect.objectContaining({
-            data: ['San Francisco', 'New York'],
-          }),
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                [599616000000, 1],
-                [599916000000, 3],
-              ],
-              name: 'San Francisco',
-            }),
-            expect.objectContaining({
-              data: [
-                [599616000000, 2],
-                [599916000000, 4],
-              ],
-              name: 'New York',
-            }),
-          ]),
-        }),
-      }),
-    );
-  });
-
-  it('should transform chart props for horizontal viz', () => {
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: {
-        ...formData,
-        orientation: 'horizontal',
-      },
-    });
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          legend: expect.objectContaining({
-            data: ['San Francisco', 'New York'],
-          }),
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                [1, 599616000000],
-                [3, 599916000000],
-              ],
-              name: 'San Francisco',
-            }),
-            expect.objectContaining({
-              data: [
-                [2, 599616000000],
-                [4, 599916000000],
-              ],
-              name: 'New York',
-            }),
-          ]),
-        }),
-      }),
-    );
-  });
-
-  it('should add a formula annotation to viz', () => {
-    const formula: FormulaAnnotationLayer = {
-      name: 'My Formula',
-      annotationType: AnnotationType.Formula,
-      value: 'x+1',
-      style: AnnotationStyle.Solid,
-      show: true,
-      showLabel: true,
-    };
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: {
-        ...formData,
-        annotationLayers: [formula],
-      },
-    });
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
-      expect.objectContaining({
-        width: 800,
-        height: 600,
-        echartOptions: expect.objectContaining({
-          legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Formula'],
-          }),
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              data: [
-                [599616000000, 1],
-                [599916000000, 3],
-              ],
-              name: 'San Francisco',
-            }),
-            expect.objectContaining({
-              data: [
-                [599616000000, 2],
-                [599916000000, 4],
-              ],
-              name: 'New York',
-            }),
-            expect.objectContaining({
-              data: [
-                [599616000000, 599616000001],
-                [599916000000, 599916000001],
-              ],
-              name: 'My Formula',
-            }),
-          ]),
-        }),
-      }),
-    );
-  });
-
-  it('should add an interval, event and timeseries annotation to viz', () => {
-    const event: EventAnnotationLayer = {
-      annotationType: AnnotationType.Event,
-      name: 'My Event',
-      show: true,
-      showLabel: true,
-      sourceType: AnnotationSourceType.Native,
-      style: AnnotationStyle.Solid,
-      value: 1,
-    };
-
-    const interval: IntervalAnnotationLayer = {
-      annotationType: AnnotationType.Interval,
-      name: 'My Interval',
-      show: true,
-      showLabel: true,
-      sourceType: AnnotationSourceType.Table,
-      titleColumn: '',
-      timeColumn: 'start',
-      intervalEndColumn: '',
-      descriptionColumns: [],
-      style: AnnotationStyle.Dashed,
-      value: 2,
-    };
-
-    const timeseries: TimeseriesAnnotationLayer = {
-      annotationType: AnnotationType.Timeseries,
-      name: 'My Timeseries',
-      show: true,
-      showLabel: true,
-      sourceType: AnnotationSourceType.Line,
-      style: AnnotationStyle.Solid,
-      titleColumn: '',
-      value: 3,
-    };
-    const annotationData = {
-      'My Event': {
-        columns: [
-          'start_dttm',
-          'end_dttm',
-          'short_descr',
-          'long_descr',
-          'json_metadata',
-        ],
-        records: [
-          {
-            start_dttm: 0,
-            end_dttm: 1000,
-            short_descr: '',
-            long_descr: '',
-            json_metadata: null,
-          },
-        ],
-      },
-      'My Interval': {
-        columns: ['start', 'end', 'title'],
-        records: [
-          {
-            start: 2000,
-            end: 3000,
-            title: 'My Title',
-          },
-        ],
-      },
-      'My Timeseries': {
-        records: [
-          { x: 10000, y: 11000 },
-          { x: 20000, y: 21000 },
-        ],
-      },
-    };
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: {
-        ...formData,
-        annotationLayers: [event, interval, timeseries],
-      },
-      annotationData,
-      queriesData: [
-        {
-          ...queriesData[0],
-          annotation_data: annotationData,
-        },
-      ],
-    });
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
-      expect.objectContaining({
-        echartOptions: expect.objectContaining({
-          legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Timeseries'],
-          }),
-          series: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'line',
-              id: 'My Timeseries',
-            }),
-            expect.objectContaining({
-              type: 'line',
-              id: 'Event - My Event',
-            }),
-            expect.objectContaining({
-              type: 'line',
-              id: 'Interval - My Interval',
-            }),
-          ]),
-        }),
-      }),
-    );
-  });
-
-  it('Should add a baseline series for stream graph', () => {
-    const streamQueriesData = [
-      {
-        data: [
-          {
-            'San Francisco': 120,
-            'New York': 220,
-            Boston: 150,
-            Miami: 270,
-            Denver: 800,
-            __timestamp: 599616000000,
-          },
-          {
-            'San Francisco': 150,
-            'New York': 190,
-            Boston: 240,
-            Miami: 350,
-            Denver: 700,
-            __timestamp: 599616000001,
-          },
-          {
-            'San Francisco': 130,
-            'New York': 300,
-            Boston: 250,
-            Miami: 410,
-            Denver: 650,
-            __timestamp: 599616000002,
-          },
-          {
-            'San Francisco': 90,
-            'New York': 340,
-            Boston: 300,
-            Miami: 480,
-            Denver: 590,
-            __timestamp: 599616000003,
-          },
-          {
-            'San Francisco': 260,
-            'New York': 200,
-            Boston: 420,
-            Miami: 490,
-            Denver: 760,
-            __timestamp: 599616000004,
-          },
-          {
-            'San Francisco': 250,
-            'New York': 250,
-            Boston: 380,
-            Miami: 360,
-            Denver: 400,
-            __timestamp: 599616000005,
-          },
-          {
-            'San Francisco': 160,
-            'New York': 210,
-            Boston: 330,
-            Miami: 440,
-            Denver: 580,
-            __timestamp: 599616000006,
-          },
-        ],
-      },
-    ];
-    const streamFormData = { ...formData, stack: 'Stream' };
-    const props = {
-      ...chartPropsConfig,
-      formData: streamFormData,
-      queriesData: streamQueriesData,
-    };
-
-    const chartProps = new ChartProps(props);
-    expect(
-      (
-        transformProps(chartProps as EchartsTimeseriesChartProps).echartOptions
-          .series as any[]
-      )[0],
-    ).toEqual({
-      areaStyle: {
-        opacity: 0,
-      },
-      lineStyle: {
-        opacity: 0,
-      },
-      name: 'baseline',
-      showSymbol: false,
-      silent: true,
-      smooth: false,
-      stack: 'obs',
-      stackStrategy: 'all',
-      step: undefined,
-      tooltip: {
-        show: false,
-      },
-      type: 'line',
-      data: [
-        [599616000000, -415.7692307692308],
-        [599616000001, -403.6219915054271],
-        [599616000002, -476.32314093071443],
-        [599616000003, -514.2120298196033],
-        [599616000004, -485.7378514158475],
-        [599616000005, -419.6402904402378],
-        [599616000006, -442.9833136960517],
-      ],
-    });
-  });
-});
-
-describe('Does transformProps transform series correctly', () => {
-  type seriesDataType = [Date, number];
-  type labelFormatterType = (params: {
-    value: seriesDataType;
-    dataIndex: number;
-    seriesIndex: number;
-  }) => string;
-  type seriesType = {
-    label: { show: boolean; formatter: labelFormatterType };
-    data: seriesDataType[];
-    name: string;
-  };
-
-  const formData: SqlaFormData = {
-    viz_type: 'my_viz',
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    metric: 'sum__num',
-    groupby: ['foo', 'bar'],
-    showValue: true,
-    stack: true,
-    onlyTotal: false,
-    percentageThreshold: 50,
-  };
-  const queriesData = [
-    {
-      data: [
-        {
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
-    },
-  ];
-  const chartPropsConfig = {
+export default function transformProps(
+  chartProps: EchartsTimeseriesChartProps,
+): TimeseriesChartTransformedProps {
+  const {
+    width,
+    height,
+    filterState,
+    legendState,
     formData,
-    width: 800,
-    height: 600,
+    hooks,
     queriesData,
-    theme: supersetTheme,
-  };
+    datasource,
+    theme,
+    inContextMenu,
+    emitCrossFilters,
+    legendIndex,
+  } = chartProps;
 
-  const totalStackedValues = queriesData[0].data.reduce(
-    (totals, currentStack) => {
-      const total = Object.keys(currentStack).reduce((stackSum, key) => {
-        if (key === '__timestamp') return stackSum;
-        return stackSum + currentStack[key as keyof typeof currentStack];
-      }, 0);
-      totals.push(total);
-      return totals;
+  let focusedSeries: string | null = null;
+
+  const {
+    verboseMap = {},
+    columnFormats = {},
+    currencyFormats = {},
+  } = datasource;
+  const [queryData] = queriesData;
+  const { data = [], label_map = {} } =
+    queryData as TimeseriesChartDataResponseResult;
+
+  const dataTypes = getColtypesMapping(queryData);
+  const annotationData = getAnnotationData(chartProps);
+
+  const {
+    area,
+    annotationLayers,
+    colorScheme,
+    contributionMode,
+    forecastEnabled,
+    groupby,
+    legendOrientation,
+    legendType,
+    legendMargin,
+    legendSort,
+    logAxis,
+    markerEnabled,
+    markerSize,
+    metrics,
+    minorSplitLine,
+    minorTicks,
+    onlyTotal,
+    opacity,
+    orientation,
+    percentageThreshold,
+    richTooltip,
+    seriesType,
+    showLegend,
+    showValue,
+    sliceId,
+    sortSeriesType,
+    sortSeriesAscending,
+    timeGrainSqla,
+    forceMaxInterval,
+    timeCompare,
+    timeShiftColor,
+    stack,
+    tooltipTimeFormat,
+    tooltipSortByMetric,
+    showTooltipTotal,
+    showTooltipPercentage,
+    truncateXAxis,
+    truncateYAxis,
+    xAxis: xAxisOrig,
+    xAxisBounds,
+    xAxisForceCategorical,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    xAxisSort,
+    xAxisSortAsc,
+    xAxisTimeFormat,
+    xAxisTitle,
+    xAxisTitleMargin,
+    yAxisBounds,
+    yAxisFormat,
+    currencyFormat,
+    yAxisTitle,
+    yAxisTitleMargin,
+    yAxisTitlePosition,
+    zoomable,
+    stackDimension,
+  }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const refs: Refs = {};
+  const groupBy = ensureIsArray(groupby);
+  const labelMap: { [key: string]: string[] } = Object.entries(
+    label_map,
+  ).reduce((acc, entry) => {
+    if (
+      entry[1].length > groupBy.length &&
+      Array.isArray(timeCompare) &&
+      timeCompare.includes(entry[1][0])
+    ) {
+      entry[1].shift();
+    }
+    return { ...acc, [entry[0]]: entry[1] };
+  }, {});
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
+  const rebasedData = rebaseForecastDatum(data, verboseMap);
+  let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+  if (
+    isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
+    isDefined(verboseMap[xAxisLabel])
+  ) {
+    xAxisLabel = verboseMap[xAxisLabel];
+  }
+  const isHorizontal = orientation === OrientationType.Horizontal;
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedData,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol: xAxisLabel,
+      legendState,
     },
-    [] as number[],
+  );
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
+    getMetricLabel,
   );
 
-  it('should show labels when showValue is true', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
+  const isMultiSeries = groupBy.length || metrics?.length > 1;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
-
-    transformedSeries.forEach(series => {
-      expect(series.label.show).toBe(true);
-    });
+  const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
+    rebasedData,
+    {
+      fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+      xAxis: xAxisLabel,
+      extraMetricLabels,
+      stack,
+      totalStackedValues,
+      isHorizontal,
+      sortSeriesType,
+      sortSeriesAscending,
+      xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
+      xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisType,
+    },
+  );
+  const showValueIndexes = extractShowValueIndexes(rawSeries, {
+    stack,
+    onlyTotal,
+    isHorizontal,
+    legendState,
   });
+  const seriesContexts = extractForecastSeriesContexts(
+    rawSeries.map((series: { name: string; }) => series.name as string),
+  );
+  const isAreaExpand = stack === StackControlsValue.Expand;
+  const series: SeriesOption[] = [];
 
-  it('should not show labels when showValue is false', () => {
-    const updatedChartPropsConfig = {
-      ...chartPropsConfig,
-      formData: { ...formData, showValue: false },
-    };
+  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const percentFormatter = forcePercentFormatter
+    ? getPercentFormatter(yAxisFormat)
+    : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
+  const defaultFormatter = currencyFormat?.symbol
+    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+    : getNumberFormatter(yAxisFormat);
+  const customFormatters = buildCustomFormatters(
+    metrics,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
 
-    const chartProps = new ChartProps(updatedChartPropsConfig);
+  const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  const inverted = invert(verboseMap);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+  let patternIncrement = 0;
 
-    transformedSeries.forEach(series => {
-      expect(series.label.show).toBe(false);
-    });
-  });
+  rawSeries.forEach((entry: { [x: string]: any; name?: any; }) => {
+    const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries) {
+      patternIncrement += 1;
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
 
-  it('should show only totals when onlyTotal is true', () => {
-    const updatedChartPropsConfig = {
-      ...chartPropsConfig,
-      formData: { ...formData, onlyTotal: true },
-    };
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
 
-    const chartProps = new ChartProps(updatedChartPropsConfig);
+    let colorScaleKey = getOriginalSeries(seriesName, array);
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
-
-    const showValueIndexes: number[] = [];
-
-    transformedSeries.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [Date, number][]).forEach((datum, dataIndex) => {
-        if (datum[1] !== null) {
-          showValueIndexes[dataIndex] = seriesIndex;
-        }
+    // If this series name exactly matches a time compare value, it's a time-shifted series
+    // and we need to find the corresponding original series for color matching
+    if (array && array.includes(seriesName)) {
+      // Find the original series (first non-time-compare series)
+      const originalSeries = rawSeries.find((s: { name: any; }) => {
+        const sName = inverted[String(s.name || '')] || String(s.name || '');
+        return !array.includes(sName);
       });
-    });
+      if (originalSeries) {
+        const originalSeriesName =
+          inverted[String(originalSeries.name || '')] ||
+          String(originalSeries.name || '');
+        colorScaleKey = getOriginalSeries(originalSeriesName, array);
+      }
+    }
 
-    transformedSeries.forEach((series, seriesIndex) => {
-      expect(series.label.show).toBe(true);
-      series.data.forEach((value, dataIndex) => {
-        const params = {
-          value,
-          dataIndex,
-          seriesIndex,
-        };
-
-        let expectedLabel: string;
-
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          expectedLabel = String(totalStackedValues[dataIndex]);
-        } else {
-          expectedLabel = '';
-        }
-
-        expect(series.label.formatter(params)).toBe(expectedLabel);
-      });
-    });
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      colorScaleKey,
+      {
+        area,
+        connectNulls: derivedSeries,
+        filterState,
+        seriesContexts,
+        markerEnabled,
+        markerSize,
+        areaOpacity: opacity,
+        seriesType,
+        legendState,
+        stack,
+        formatter: forcePercentFormatter
+          ? percentFormatter
+          : (getCustomFormatter(
+              customFormatters,
+              metrics,
+              labelMap?.[seriesName]?.[0],
+            ) ?? defaultFormatter),
+        showValue,
+        onlyTotal,
+        totalStackedValues: sortedTotalValues,
+        showValueIndexes,
+        thresholdValues,
+        richTooltip,
+        sliceId,
+        isHorizontal,
+        lineStyle,
+        timeCompare: array,
+        timeShiftColor,
+        theme,
+      },
+    );
+    if (transformedSeries) {
+      if (stack === StackControlsValue.Stream) {
+        // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0
+        series.push({
+          ...transformedSeries,
+          data: (transformedSeries.data as any).map(
+            (row: [string | number, number]) => [row[0], row[1] ?? 0],
+          ),
+        });
+      } else {
+        series.push(transformedSeries);
+      }
+    }
   });
 
-  it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
-
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
-
-    const expectedThresholds = totalStackedValues.map(
-      total => ((formData.percentageThreshold || 0) / 100) * total,
+  if (stack === StackControlsValue.Stream) {
+    const baselineSeries = getBaselineSeriesForStream(
+      series.map(entry => entry.data) as [string | number, number][][],
+      seriesType,
     );
 
-    transformedSeries.forEach((series, seriesIndex) => {
-      expect(series.label.show).toBe(true);
-      series.data.forEach((value, dataIndex) => {
-        const params = {
-          value,
-          dataIndex,
-          seriesIndex,
-        };
-        const expectedLabel =
-          value[1] >= expectedThresholds[dataIndex] ? String(value[1]) : '';
-        expect(series.label.formatter(params)).toBe(expectedLabel);
-      });
+    series.unshift(baselineSeries);
+  }
+  const selectedValues = (filterState.selectedValues || []).reduce(
+    (acc: Record<string, number>, selectedValue: string) => {
+      const index = series.findIndex(({ name }) => name === selectedValue);
+      return {
+        ...acc,
+        [index]: selectedValue,
+      };
+    },
+    {},
+  );
+
+  annotationLayers
+    .filter((layer: AnnotationLayer) => layer.show)
+    .forEach((layer: AnnotationLayer) => {
+      if (isFormulaAnnotationLayer(layer))
+        series.push(
+          transformFormulaAnnotation(
+            layer,
+            data,
+            xAxisLabel,
+            xAxisType,
+            colorScale,
+            sliceId,
+            orientation,
+          ),
+        );
+      else if (isIntervalAnnotationLayer(layer)) {
+        series.push(
+          ...transformIntervalAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            theme,
+            sliceId,
+            orientation,
+          ),
+        );
+      } else if (isEventAnnotationLayer(layer)) {
+        series.push(
+          ...transformEventAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            theme,
+            sliceId,
+            orientation,
+          ),
+        );
+      } else if (isTimeseriesAnnotationLayer(layer)) {
+        series.push(
+          ...transformTimeseriesAnnotation(
+            layer,
+            markerSize,
+            data,
+            annotationData,
+            colorScale,
+            sliceId,
+            orientation,
+          ),
+        );
+      }
     });
-  });
 
-  it('should not apply percentage threshold when showValue is true and stack is false', () => {
-    const updatedChartPropsConfig = {
-      ...chartPropsConfig,
-      formData: { ...formData, stack: false },
-    };
+  // axis bounds need to be parsed to replace incompatible values with undefined
+  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
+  let [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
 
-    const chartProps = new ChartProps(updatedChartPropsConfig);
+  // default to 0-100% range when doing row-level contribution chart
+  if ((contributionMode === 'row' || isAreaExpand) && stack) {
+    if (yAxisMin === undefined) yAxisMin = 0;
+    if (yAxisMax === undefined) yAxisMax = 1;
+  } else if (
+    logAxis &&
+    yAxisMin === undefined &&
+    minPositiveValue !== undefined
+  ) {
+    yAxisMin = calculateLowerLogTick(minPositiveValue);
+  }
 
-    const transformedSeries = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    ).echartOptions.series as seriesType[];
+  const tooltipFormatter =
+    xAxisDataType === GenericDataType.Temporal
+      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      : String;
+  const xAxisFormatter =
+    xAxisDataType === GenericDataType.Temporal
+      ? getXAxisFormatter(xAxisTimeFormat)
+      : String;
 
-    transformedSeries.forEach((series, seriesIndex) => {
-      expect(series.label.show).toBe(true);
-      series.data.forEach((value, dataIndex) => {
-        const params = {
-          value,
-          dataIndex,
-          seriesIndex,
-        };
-        const expectedLabel = String(value[1]);
-        expect(series.label.formatter(params)).toBe(expectedLabel);
-      });
-    });
-  });
+  const {
+    setDataMask = () => {},
+    setControlValue = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
-  it('should remove time shift labels from label_map', () => {
-    const updatedChartPropsConfig = {
-      ...chartPropsConfig,
-      formData: {
-        ...formData,
-        timeCompare: ['1 year ago'],
+  const addYAxisLabelOffset = !!yAxisTitle;
+  const addXAxisLabelOffset = !!xAxisTitle;
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    legendMargin,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
+
+  const legendData = rawSeries
+    .filter(
+      (      entry: { name: any; }) =>
+        extractForecastSeriesContext(entry.name || '').type ===
+        ForecastSeriesEnum.Observation,
+    )
+    .map((entry: { name: any; }) => entry.name || '')
+    .concat(extractAnnotationLabels(annotationLayers));
+
+  // Determine time-based axis recognition more robustly:
+  // treat axis as time-based if:
+  // - getAxisType returned AxisType.Time
+  // - OR underlying column coltype is Temporal
+  // - OR a granularity_sqla is provided in raw form data (implies time series)
+  const isTimeBasedAxis =
+    xAxisType === AxisType.Time ||
+    xAxisDataType === GenericDataType.Temporal ||
+    Boolean(chartProps.rawFormData?.granularity_sqla);
+
+  let xAxis: any = {
+    type: xAxisType,
+    name: xAxisTitle,
+    nameGap: convertInteger(xAxisTitleMargin),
+    nameLocation: 'middle',
+    axisLabel: {
+      // hideOverlap should be false for time-based x-axis to satisfy tests and avoid label clipping
+      hideOverlap: !isTimeBasedAxis ? true : false,
+      formatter: xAxisFormatter,
+      rotate: xAxisLabelRotation,
+      interval: xAxisLabelInterval,
+    },
+    minorTick: { show: minorTicks },
+    minInterval:
+      xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
+        : 0,
+    maxInterval:
+      xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
+        : undefined,
+    ...getMinAndMaxFromBounds(
+      xAxisType,
+      truncateXAxis,
+      xAxisMin,
+      xAxisMax,
+      seriesType,
+    ),
+  };
+
+  let yAxis: any = {
+    ...defaultYAxis,
+    type: logAxis ? AxisType.Log : AxisType.Value,
+    min: yAxisMin,
+    max: yAxisMax,
+    minorTick: { show: minorTicks },
+    minorSplitLine: { show: minorSplitLine },
+    axisLabel: {
+      formatter: getYAxisFormatter(
+        metrics,
+        forcePercentFormatter,
+        customFormatters,
+        defaultFormatter,
+        yAxisFormat,
+      ),
+    },
+    scale: truncateYAxis,
+    name: yAxisTitle,
+    nameGap: convertInteger(yAxisTitleMargin),
+    nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
+  };
+
+  if (isHorizontal) {
+    [xAxis, yAxis] = [yAxis, xAxis];
+    [padding.bottom, padding.left] = [padding.left, padding.bottom];
+  }
+
+  const echartOptions: EChartsCoreOption = {
+    useUTC: true,
+    grid: {
+      ...defaultGrid,
+      ...padding,
+    },
+    xAxis,
+    yAxis,
+    tooltip: {
+      ...getDefaultTooltip(refs),
+      show: !inContextMenu,
+      trigger: richTooltip ? 'axis' : 'item',
+      formatter: (params: any) => {
+        const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
+        const xValue: number = richTooltip
+          ? params[0].value[xIndex]
+          : params.value[xIndex];
+        const forecastValue: CallbackDataParams[] = richTooltip
+          ? params
+          : [params];
+        const sortedKeys = extractTooltipKeys(
+          forecastValue,
+          yIndex,
+          richTooltip,
+          tooltipSortByMetric,
+        );
+        const filteredForecastValue = forecastValue.filter(
+          (item: CallbackDataParams) =>
+            !annotationLayers.some(
+              (annotation: AnnotationLayer) =>
+                item.seriesName === annotation.name,
+            ),
+        );
+        const forecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
+
+        const filteredForecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(
+            filteredForecastValue,
+            isHorizontal,
+          );
+
+        const isForecast = Object.values(forecastValues).some(
+          value =>
+            value.forecastTrend || value.forecastLower || value.forecastUpper,
+        );
+
+        const formatter = forcePercentFormatter
+          ? percentFormatter
+          : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
+
+        const rows: string[][] = [];
+        const total = Object.values(filteredForecastValues).reduce(
+          (acc, value) =>
+            value.observation !== undefined ? acc + value.observation : acc,
+          0,
+        );
+        const allowTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
+        const showPercentage =
+          allowTotal && !forcePercentFormatter && showTooltipPercentage;
+        const keys = Object.keys(forecastValues);
+        let focusedRow;
+        sortedKeys
+          .filter((key: string) => typeof key === 'string' && keys.includes(key))
+          .forEach((key: string) => {
+            const value = forecastValues[key];
+            if (value.observation === 0 && stack) {
+              return;
+            }
+            const row = formatForecastTooltipSeries({
+              ...value,
+              seriesName: key,
+              formatter,
+            });
+
+            const annotationRow = annotationLayers.some(
+              (              item: { name: string | number | null; }) => item.name === key,
+            );
+
+            if (
+              showPercentage &&
+              value.observation !== undefined &&
+              !annotationRow
+            ) {
+              row.push(
+                percentFormatter.format(value.observation / (total || 1)),
+              );
+            }
+            rows.push(row);
+            if (key === focusedSeries) {
+              focusedRow = rows.length - 1;
+            }
+          });
+        if (stack) {
+          rows.reverse();
+          if (focusedRow !== undefined) {
+            focusedRow = rows.length - focusedRow - 1;
+          }
+        }
+        if (allowTotal && showTooltipTotal) {
+          const totalRow = ['Total', formatter.format(total)];
+          if (showPercentage) {
+            totalRow.push(percentFormatter.format(1));
+          }
+          rows.push(totalRow);
+        }
+        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
       },
-      queriesData: [
-        {
-          ...queriesData[0],
-          label_map: {
-            '1 year ago, foo1, bar1': ['1 year ago', 'foo1', 'bar1'],
-            '1 year ago, foo2, bar2': ['1 year ago', 'foo2', 'bar2'],
-            'foo1, bar1': ['foo1', 'bar1'],
-            'foo2, bar2': ['foo2', 'bar2'],
+    },
+    legend: {
+      ...getLegendProps(
+        legendType,
+        legendOrientation,
+        showLegend,
+        theme,
+        zoomable,
+        legendState,
+        padding,
+      ),
+      scrollDataIndex: legendIndex || 0,
+      data: legendData.sort((a: string, b: string) => {
+        if (!legendSort) return 0;
+        return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }) as string[],
+    },
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
+    toolbox: {
+      show: zoomable,
+      top: TIMESERIES_CONSTANTS.toolboxTop,
+      right: TIMESERIES_CONSTANTS.toolboxRight,
+      feature: {
+        dataZoom: {
+          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
+          title: {
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
-      ],
-    };
-    const chartProps = new ChartProps(updatedChartPropsConfig);
-    const transformedProps = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-    expect(transformedProps.labelMap).toEqual({
-      '1 year ago, foo1, bar1': ['foo1', 'bar1'],
-      '1 year ago, foo2, bar2': ['foo2', 'bar2'],
-      'foo1, bar1': ['foo1', 'bar1'],
-      'foo2, bar2': ['foo2', 'bar2'],
-    });
-  });
-});
-
-describe('legend sorting', () => {
-  const legendSortData = [
-    {
-      data: [
-        {
-          Milton: 40,
-          'San Francisco': 1,
-          'New York': 2,
-          Boston: 1,
-          __timestamp: 599616000000,
-        },
-        {
-          Milton: 20,
-          'San Francisco': 3,
-          'New York': 4,
-          Boston: 1,
-          __timestamp: 599916000000,
-        },
-        {
-          Milton: 60,
-          'San Francisco': 5,
-          'New York': 8,
-          Boston: 6,
-          __timestamp: 600216000000,
-        },
-        {
-          Milton: 10,
-          'San Francisco': 2,
-          'New York': 7,
-          Boston: 2,
-          __timestamp: 600516000000,
-        },
-      ],
+      },
     },
-  ];
+    dataZoom: zoomable
+      ? [
+          {
+            type: 'slider',
+            start: TIMESERIES_CONSTANTS.dataZoomStart,
+            end: TIMESERIES_CONSTANTS.dataZoomEnd,
+            bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            yAxisIndex: isHorizontal ? 0 : undefined,
+          },
+          {
+            type: 'inside',
+            yAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+        ]
+      : [],
+  };
 
-  const getChartProps = (formData: Partial<SqlaFormData>) =>
-    new ChartProps({
-      ...chartPropsConfig,
-      formData: { ...formData },
-      queriesData: legendSortData,
-    });
-
-  it('sort legend by data', () => {
-    const chartProps = getChartProps({
-      legendSort: null,
-      sortSeriesType: 'min',
-      sortSeriesAscending: true,
-    });
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect((transformed.echartOptions.legend as any).data).toEqual([
-      'San Francisco',
-      'Boston',
-      'New York',
-      'Milton',
-    ]);
-  });
-
-  it('sort legend by label ascending', () => {
-    const chartProps = getChartProps({
-      legendSort: 'asc',
-      sortSeriesType: 'min',
-      sortSeriesAscending: true,
-    });
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect((transformed.echartOptions.legend as any).data).toEqual([
-      'Boston',
-      'Milton',
-      'New York',
-      'San Francisco',
-    ]);
-  });
-
-  it('sort legend by label descending', () => {
-    const chartProps = getChartProps({
-      legendSort: 'desc',
-      sortSeriesType: 'min',
-      sortSeriesAscending: true,
-    });
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect((transformed.echartOptions.legend as any).data).toEqual([
-      'San Francisco',
-      'New York',
-      'Milton',
-      'Boston',
-    ]);
-  });
-
-  it('should set hideOverlap to false for time-based x-axis', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect(transformed.echartOptions.xAxis).toEqual(
-      expect.objectContaining({
-        axisLabel: expect.objectContaining({
-          hideOverlap: false,
-        }),
-      }),
-    );
-  });
-
-  it('should set hideOverlap to true for categorical x-axis', () => {
-    const categoricalFormData = {
-      ...formData,
-      xAxisForceCategorical: true,
-    };
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: categoricalFormData,
-    });
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect(transformed.echartOptions.xAxis).toEqual(
-      expect.objectContaining({
-        axisLabel: expect.objectContaining({
-          hideOverlap: true,
-        }),
-      }),
-    );
-  });
-});
+  const onFocusedSeries = (seriesName: string | null) => {
+    focusedSeries = seriesName;
+  };
+  return {
+    echartOptions,
+    emitCrossFilters,
+    formData,
+    groupby: groupBy,
+    height,
+    labelMap,
+    selectedValues,
+    setDataMask,
+    setControlValue,
+    width,
+    legendData,
+    onContextMenu,
+    onLegendStateChanged,
+    onFocusedSeries,
+    xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisLabel,
+      type: xAxisType,
+    },
+    refs,
+    coltypeMapping: dataTypes,
+    onLegendScroll,
+  };
+}
