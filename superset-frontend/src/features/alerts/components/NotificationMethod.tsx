@@ -354,7 +354,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     return null;
   }
 
-  const onRecipientsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+  const onRecipientsChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
     const { target } = event;
 
     setRecipientValue(target.value);
@@ -476,8 +478,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <>
-          <div className="inline-container">
-            {method === NotificationMethodOption.Email ? (
+          {method === NotificationMethodOption.Email ? (
+            <div className="inline-container">
               <StyledInputContainer>
                 <>
                   <div className="control-label">
@@ -504,10 +506,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   )}
                 </>
               </StyledInputContainer>
-            ) : null}
-          </div>
-          <div className="inline-container">
-            {method !== NotificationMethodOption.Webhook ?
+            </div>
+          ) : null}
+          {method !== NotificationMethodOption.Webhook ? (
+            <div className="inline-container">
               <StyledInputContainer>
                 <div className="control-label">
                   {t(
@@ -563,8 +565,27 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
-            : null}
-          </div>
+            </div>
+          ) : (
+            <div className="inline-container">
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t('%s URL', method)}
+                  <span className="required">*</span>
+                </div>
+                <div>
+                  <div className="input-container">
+                    <Input
+                      name="To"
+                      data-test="recipients"
+                      value={recipientValue}
+                      onChange={onRecipientsChange}
+                    />
+                  </div>
+                </div>
+              </StyledInputContainer>
+            </div>
+          )}
           {method === NotificationMethodOption.Email && (
             <StyledInputContainer>
               {/* Render "CC" input field if ccVisible is true */}
