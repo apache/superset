@@ -338,8 +338,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
               useSlackV1) &&
               method === NotificationMethodOption.Slack) ||
-            method === NotificationMethodOption.Email,
-        )
+            method === NotificationMethodOption.Email ||
+            method === NotificationMethodOption.Webhook)
         .map(method => ({
           label:
             method === NotificationMethodOption.SlackV2
@@ -349,7 +349,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         })),
     [options, useSlackV1],
   );
-
+  
   if (!setting) {
     return null;
   }
@@ -477,8 +477,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       {method !== undefined ? (
         <>
           <div className="inline-container">
-            <StyledInputContainer>
-              {method === NotificationMethodOption.Email ? (
+            {method === NotificationMethodOption.Email ? (
+              <StyledInputContainer>
                 <>
                   <div className="control-label">
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
@@ -503,65 +503,67 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     </div>
                   )}
                 </>
-              ) : null}
-            </StyledInputContainer>
+              </StyledInputContainer>
+            ) : null}
           </div>
           <div className="inline-container">
-            <StyledInputContainer>
-              <div className="control-label">
-                {t(
-                  '%s recipients',
-                  method === NotificationMethodOption.SlackV2
-                    ? NotificationMethodOption.Slack
-                    : method,
-                )}
-                <span className="required">*</span>
-              </div>
-              <div>
-                {[
-                  NotificationMethodOption.Email,
-                  NotificationMethodOption.Slack,
-                ].includes(method) ? (
-                  <>
+            {method !== NotificationMethodOption.Webhook ?
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t(
+                    '%s recipients',
+                    method === NotificationMethodOption.SlackV2
+                      ? NotificationMethodOption.Slack
+                      : method,
+                  )}
+                  <span className="required">*</span>
+                </div>
+                <div>
+                  {[
+                    NotificationMethodOption.Email,
+                    NotificationMethodOption.Slack,
+                  ].includes(method) ? (
+                    <>
+                      <div className="input-container">
+                        <Input.TextArea
+                          name="To"
+                          data-test="recipients"
+                          value={recipientValue}
+                          onChange={onRecipientsChange}
+                        />
+                      </div>
+                      <div className="input-container">
+                        <div className="helper">
+                          {t('Recipients are separated by "," or ";"')}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // for SlackV2
                     <div className="input-container">
-                      <Input.TextArea
-                        name="To"
+                      <Select
+                        ariaLabel={t('Select channels')}
+                        mode="multiple"
+                        name="recipients"
+                        value={slackRecipients}
+                        options={slackOptions}
+                        onChange={onSlackRecipientsChange}
+                        allowClear
                         data-test="recipients"
-                        value={recipientValue}
-                        onChange={onRecipientsChange}
+                        loading={isSlackChannelsLoading}
+                        allowSelectAll={false}
+                        labelInValue
+                      />
+                      <RefreshLabel
+                        onClick={() => updateSlackOptions({ force: true })}
+                        tooltipContent={t('Force refresh Slack channels list')}
+                        disabled={isSlackChannelsLoading}
                       />
                     </div>
-                    <div className="input-container">
-                      <div className="helper">
-                        {t('Recipients are separated by "," or ";"')}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // for SlackV2
-                  <div className="input-container">
-                    <Select
-                      ariaLabel={t('Select channels')}
-                      mode="multiple"
-                      name="recipients"
-                      value={slackRecipients}
-                      options={slackOptions}
-                      onChange={onSlackRecipientsChange}
-                      allowClear
-                      data-test="recipients"
-                      loading={isSlackChannelsLoading}
-                      allowSelectAll={false}
-                      labelInValue
-                    />
-                    <RefreshLabel
-                      onClick={() => updateSlackOptions({ force: true })}
-                      tooltipContent={t('Force refresh Slack channels list')}
-                      disabled={isSlackChannelsLoading}
-                    />
-                  </div>
-                )}
-              </div>
-            </StyledInputContainer>
+                  )}
+                </div>
+              </StyledInputContainer>
+            : null}
           </div>
           {method === NotificationMethodOption.Email && (
             <StyledInputContainer>

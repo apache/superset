@@ -45,6 +45,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook'
 }
 
 export type SelectValue = {
