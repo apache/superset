@@ -797,7 +797,8 @@ const config: ControlPanelConfig = {
                         if (
                           coltypes[index] === GenericDataType.Numeric ||
                           (!explore?.controls?.time_compare?.value &&
-                            coltypes[index] === GenericDataType.String)
+                            (coltypes[index] === GenericDataType.String ||
+                              coltypes[index] === GenericDataType.Boolean))
                         ) {
                           acc.push({
                             value: colname,
