@@ -110,6 +110,26 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 
+
+// ----- natural sort helper -----
+// Try numeric comparison first for numeric-like strings, fallback to localeCompare.
+function naturalCompare(a: any, b: any): number {
+  const sa = a === undefined || a === null ? '' : String(a);
+  const sb = b === undefined || b === null ? '' : String(b);
+  const na = Number(sa);
+  const nb = Number(sb);
+
+  // If both parse as finite numbers, do numeric sort
+  if (isFinite(na) && isFinite(nb)) {
+    return na - nb;
+  }
+
+  // Otherwise fallback to lexicographic
+  return sa.localeCompare(sb);
+}
+
+
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -189,7 +209,6 @@ export default function transformProps(
     xAxisSort,
     xAxisSortAsc,
     xAxisTimeFormat,
-    xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
     yAxisBounds,
@@ -328,7 +347,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries,
+        connectNulls: Boolean(derivedSeries),
         filterState,
         seriesContexts,
         markerEnabled,
@@ -344,7 +363,7 @@ export default function transformProps(
               metrics,
               labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter),
-        showValue,
+        showValue:Boolean(showValue),
         onlyTotal,
         totalStackedValues: sortedTotalValues,
         showValueIndexes,
@@ -372,6 +391,38 @@ export default function transformProps(
       }
     }
   });
+      
+  // ----- ensure series data are sorted naturally on the x-value -----
+// Run after all series have been created so each series.data is complete.
+series.forEach((s: SeriesOption) => {
+  const dataArr = (s as any).data;
+  if (!Array.isArray(dataArr) || dataArr.length <= 1) return;
+
+  (s as any).data = dataArr.sort((row1: any, row2: any) => {
+    // extract the raw x values (support both [x,y] and { x, y } shapes)
+    const rawX1 = Array.isArray(row1) ? row1[0] : row1?.x;
+    const rawX2 = Array.isArray(row2) ? row2[0] : row2?.x;
+
+    // If this chart's x-axis is temporal, coerce to timestamps (numbers) for sorting.
+    // Fallback to original raw values if parsing fails.
+    const getComparableX = (raw: any) => {
+      if (xAxisType === AxisType.Time) {
+        // If it's already a number, use it. Otherwise try to coerce to Date timestamp.
+        if (typeof raw === 'number' && isFinite(raw)) return raw;
+        const parsed = new Date(String(raw)).getTime();
+        return isFinite(parsed) ? parsed : String(raw);
+      }
+      return raw;
+    };
+
+    const x1 = getComparableX(rawX1);
+    const x2 = getComparableX(rawX2);
+
+    // naturalCompare already prefers numeric comparison when possible
+    return naturalCompare(x1, x2);
+  });
+});
+
 
   if (stack === StackControlsValue.Stream) {
     const baselineSeries = getBaselineSeriesForStream(
@@ -486,9 +537,7 @@ export default function transformProps(
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
-      : xAxisDataType === GenericDataType.Numeric
-        ? getNumberFormatter(xAxisNumberFormat)
-        : String;
+      : String;
 
   const {
     setDataMask = () => {},
@@ -775,3 +824,4 @@ export default function transformProps(
     onLegendScroll,
   };
 }
+
