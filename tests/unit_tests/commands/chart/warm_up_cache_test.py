@@ -241,3 +241,102 @@ def test_handles_empty_dashboard_filters(
             assert mock_get_dashboard_filters.called, (
                 "Should still call get_dashboard_extra_filters"
             )
+
+
+@patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
+def test_invalid_json_in_extra_filters_raises_error(mock_chart_data_command):
+    """Verify that invalid JSON in extra_filters raises appropriate error"""
+    chart = Slice(
+        id=128,
+        slice_name="Test Chart",
+        viz_type="pie",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    # Invalid JSON string - missing closing brace
+    invalid_json = '{"col": "state", "op": "==", "val": ["CA"]'
+
+    mock_query = Mock()
+    mock_query.filter = []
+    mock_qc = Mock()
+    mock_qc.queries = [mock_query]
+
+    with patch.object(chart, "get_query_context", return_value=mock_qc):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "pie"}],
+        ):
+            result = ChartWarmUpCacheCommand(chart, 42, invalid_json).run()
+
+            assert result["viz_error"] is not None, "Should return an error"
+            assert result["chart_id"] == 128
+            # JSONDecodeError messages vary across Python versions
+            error_str = str(result["viz_error"]).lower()
+            assert (
+                "json" in error_str
+                or "decode" in error_str
+                or "expecting" in error_str
+                or "delimiter" in error_str
+            ), f"Error should be a JSON decode issue: {result['viz_error']}"
+
+
+@patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
+def test_none_query_context_raises_chart_invalid_error(mock_chart_data_command):
+    """Verify that None query context raises ChartInvalidError for non-legacy charts"""
+    chart = Slice(
+        id=129,
+        slice_name="Test Chart",
+        viz_type="echarts_timeseries",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    # Mock get_query_context to return None (chart has no query_context)
+    with patch.object(chart, "get_query_context", return_value=None):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "echarts_timeseries"}],
+        ):
+            result = ChartWarmUpCacheCommand(chart, None, None).run()
+
+            assert result["viz_error"] is not None, "Should return an error"
+            assert result["chart_id"] == 129
+            error_str = str(result["viz_error"]).lower()
+            assert "query context" in error_str, (
+                f"Error should mention query context: {result['viz_error']}"
+            )
+            assert "not exist" in error_str, (
+                f"Error should mention not exist: {result['viz_error']}"
+            )
+
+
+@patch("superset.commands.chart.warm_up_cache.viz_types", ["table"])
+def test_legacy_chart_without_datasource_raises_error():
+    """Verify that legacy chart without datasource raises ChartInvalidError"""
+    chart = Slice(
+        id=130,
+        slice_name="Legacy Chart",
+        viz_type="table",
+        datasource_id=None,
+        datasource_type=None,
+    )
+
+    with patch.object(
+        type(chart), "datasource", new_callable=lambda: property(lambda self: None)
+    ):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "table"}],
+        ):
+            result = ChartWarmUpCacheCommand(chart, None, None).run()
+
+            assert result["viz_error"] is not None, "Should return an error"
+            assert result["chart_id"] == 130
+            error_str = str(result["viz_error"]).lower()
+            assert "datasource" in error_str, (
+                f"Error should mention datasource: {result['viz_error']}"
+            )
+            assert "not exist" in error_str, (
+                f"Error should mention not exist: {result['viz_error']}"
+            )

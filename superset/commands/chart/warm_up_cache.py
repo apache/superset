@@ -26,6 +26,7 @@ from superset.commands.chart.exceptions import (
     ChartInvalidError,
     WarmUpCacheChartNotFoundError,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json
@@ -102,7 +103,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
             if error is not None:
                 return error, status
 
-        return None, None
+        return None, QueryStatus.SUCCESS
 
     def run(self) -> dict[str, Any]:
         self.validate()
