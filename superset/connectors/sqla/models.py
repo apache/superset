@@ -136,6 +136,7 @@ class MetadataResult:
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
 
+
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metric_2",

@@ -61,7 +61,7 @@ class AdhocColumn(TypedDict, total=False):
     hasCustomLabel: bool | None
     label: str
     sqlExpression: str
-    isColumnReference: Optional[bool]
+    isColumnReference: bool | None
     columnType: Literal["BASE_AXIS", "SERIES"] | None
     timeGrain: str | None
 
