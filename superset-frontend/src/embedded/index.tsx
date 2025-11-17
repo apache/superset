@@ -23,6 +23,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import {
   type SupersetThemeConfig,
+  ThemeMode,
   makeApi,
   t,
   logging,
@@ -264,6 +265,39 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
         } catch (error) {
           logging.error('Failed to apply theme config:', error);
           throw new Error(`Failed to apply theme config: ${error.message}`);
+        }
+      },
+    );
+
+    Switchboard.defineMethod(
+      'setThemeMode',
+      (payload: { mode: 'default' | 'dark' | 'system' }) => {
+        const { mode } = payload;
+        log('Received setThemeMode request:', mode);
+
+        try {
+          const themeController = getThemeController();
+
+          const themeModeMap: Record<string, ThemeMode> = {
+            default: ThemeMode.DEFAULT,
+            dark: ThemeMode.DARK,
+            system: ThemeMode.SYSTEM,
+          };
+
+          const themeMode = themeModeMap[mode];
+          if (!themeMode) {
+            throw new Error(`Invalid theme mode: ${mode}`);
+          }
+
+          themeController.setThemeMode(themeMode);
+          return { success: true, message: `Theme mode set to ${mode}` };
+        } catch (error) {
+          logging.debug('Theme mode not changed:', error.message);
+          return {
+            success: false,
+            message: `Theme locked to current mode`,
+            silent: true,
+          };
         }
       },
     );
