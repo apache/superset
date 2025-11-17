@@ -419,7 +419,8 @@ class CSVReader(BaseDataReader):
                     except Exception as ex:
                         logger.warning(
                             "Error concatenating CSV chunks: %s. "
-                            "This may be due to inconsistent date parsing across chunks.",
+                            "This may be due to inconsistent date parsing "
+                            "across chunks.",
                             str(ex),
                         )
                         raise
