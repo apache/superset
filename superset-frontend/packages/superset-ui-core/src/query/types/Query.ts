@@ -74,6 +74,9 @@ export type QueryObjectExtras = Partial<{
   instant_time_comparison_range?: string;
 
   time_compare?: string;
+
+  /** Visualization type for escape sanitisation */
+  viz_type?: string;
 }>;
 
 export type ResidualQueryObjectData = {

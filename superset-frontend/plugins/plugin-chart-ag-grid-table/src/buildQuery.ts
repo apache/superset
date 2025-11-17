@@ -462,6 +462,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         if (whereClause || havingClause) {
           queryObject.extras = {
             ...queryObject.extras,
+            viz_type: formData.viz_type,
             ...(whereClause && {
               where: queryObject.extras?.where
                 ? `${queryObject.extras.where} AND ${whereClause}`

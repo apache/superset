@@ -336,6 +336,13 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
+        from superset.utils.sql_sanitizer import (
+            is_ag_grid_viz_type,
+            sanitize_sql_with_sqlglot,
+        )
+
+        viz_type = self.extras.get("viz_type")
+        use_sqlglot_escaping = is_ag_grid_viz_type(viz_type)
 
         for param in ("where", "having"):
             clause = self.extras.get(param)
@@ -352,6 +359,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                                 msg=ex.message,
                             )
                         ) from ex
+
+                    if use_sqlglot_escaping:
+                        database_backend = database.db_engine_spec.engine
+                        clause = sanitize_sql_with_sqlglot(
+                            clause,
+                            database_backend,
+                            validate_structure=True,
+                        )
+
                     engine = database.db_engine_spec.engine
                     sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
