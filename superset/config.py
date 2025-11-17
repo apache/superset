@@ -1916,6 +1916,9 @@ TALISMAN_CONFIG = {
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
             "https://app.snap4idtcity.com",
+            # Allow loading 3D models from external sources
+            "https://raw.githubusercontent.com",
+            "https://github.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1953,6 +1956,9 @@ TALISMAN_DEV_CONFIG = {
             "https://tile.osm.ch",
             "https://a.basemaps.cartocdn.com",
             "https://app.snap4idtcity.com",
+            # Allow loading 3D models from external sources
+            "https://raw.githubusercontent.com",
+            "https://github.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
