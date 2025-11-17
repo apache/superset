@@ -16,6 +16,8 @@
 # under the License.
 from unittest.mock import Mock, patch
 
+import pytest
+
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
 
@@ -340,3 +342,149 @@ def test_legacy_chart_without_datasource_raises_error():
             assert "not exist" in error_str, (
                 f"Error should mention not exist: {result['viz_error']}"
             )
+
+
+@patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
+@patch("superset.commands.chart.warm_up_cache.get_viz")
+@patch("superset.commands.chart.warm_up_cache.viz_types", ["table"])
+@patch("superset.commands.chart.warm_up_cache.g")
+def test_legacy_chart_warm_up_with_dashboard(
+    mock_g, mock_get_viz, mock_get_dashboard_filters
+):
+    """Test successful legacy chart warm-up with dashboard filters"""
+    mock_get_dashboard_filters.return_value = [
+        {"col": "country", "op": "==", "val": "USA"}
+    ]
+
+    chart = Slice(
+        id=131,
+        slice_name="Legacy Table",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    mock_datasource = Mock()
+    mock_datasource.type = "table"
+    mock_datasource.id = 1
+
+    mock_viz = Mock()
+    mock_viz.get_payload.return_value = {"errors": None, "status": "success"}
+    mock_get_viz.return_value = mock_viz
+
+    with patch.object(
+        type(chart),
+        "datasource",
+        new_callable=lambda: property(lambda self: mock_datasource),
+    ):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "table"}],
+        ):
+            result = ChartWarmUpCacheCommand(chart, 42, None).run()
+
+            assert result["chart_id"] == 131
+            assert result["viz_error"] is None
+            assert result["viz_status"] == "success"
+            assert hasattr(mock_g, "form_data") is False
+            mock_get_dashboard_filters.assert_called_once_with(131, 42)
+
+
+@patch("superset.commands.chart.warm_up_cache.get_viz")
+@patch("superset.commands.chart.warm_up_cache.viz_types", ["table"])
+@patch("superset.commands.chart.warm_up_cache.g")
+def test_legacy_chart_warm_up_without_dashboard(mock_g, mock_get_viz):
+    """Test successful legacy chart warm-up without dashboard"""
+    chart = Slice(
+        id=134,
+        slice_name="Legacy Table",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    mock_datasource = Mock()
+    mock_datasource.type = "table"
+    mock_datasource.id = 1
+
+    mock_viz = Mock()
+    mock_viz.get_payload.return_value = {"errors": None, "status": "success"}
+    mock_get_viz.return_value = mock_viz
+
+    with patch.object(
+        type(chart),
+        "datasource",
+        new_callable=lambda: property(lambda self: mock_datasource),
+    ):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "table"}],
+        ):
+            result = ChartWarmUpCacheCommand(chart, None, None).run()
+
+            assert result["chart_id"] == 134
+            assert result["viz_error"] is None
+            assert result["viz_status"] == "success"
+
+
+@patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
+def test_non_legacy_chart_returns_first_error(mock_chart_data_command):
+    """Test that first query error is returned when multiple queries exist"""
+    chart = Slice(
+        id=132,
+        slice_name="Chart with Error",
+        viz_type="echarts_timeseries",
+        datasource_id=1,
+        datasource_type="table",
+    )
+
+    mock_query = Mock()
+    mock_query.filter = []
+    mock_qc = Mock()
+    mock_qc.queries = [mock_query]
+
+    with patch.object(chart, "get_query_context", return_value=mock_qc):
+        with patch(
+            "superset.commands.chart.warm_up_cache.get_form_data",
+            return_value=[{"viz_type": "echarts_timeseries"}],
+        ):
+            mock_chart_data_command.return_value.run.return_value = {
+                "queries": [
+                    {"error": "Database connection failed", "status": "failed"},
+                    {"error": None, "status": "success"},
+                ]
+            }
+
+            result = ChartWarmUpCacheCommand(chart, None, None).run()
+
+            assert result["chart_id"] == 132
+            assert result["viz_error"] == "Database connection failed"
+            assert result["viz_status"] == "failed"
+
+
+@patch("superset.commands.chart.warm_up_cache.db")
+def test_validate_with_integer_chart_id(mock_db):
+    """Test validation when passing integer chart ID instead of Slice object"""
+    chart = Slice(id=133, slice_name="Test Chart")
+    mock_db.session.query.return_value.filter_by.return_value.scalar.return_value = (
+        chart
+    )
+
+    command = ChartWarmUpCacheCommand(133, None, None)
+    command.validate()
+
+    assert command._chart_or_id == chart
+    mock_db.session.query.assert_called_once()
+
+
+@patch("superset.commands.chart.warm_up_cache.db")
+def test_validate_with_nonexistent_chart_id(mock_db):
+    """Test validation raises error when chart ID does not exist"""
+    from superset.commands.chart.exceptions import WarmUpCacheChartNotFoundError
+
+    mock_db.session.query.return_value.filter_by.return_value.scalar.return_value = None
+
+    command = ChartWarmUpCacheCommand(99999, None, None)
+
+    with pytest.raises(WarmUpCacheChartNotFoundError):
+        command.validate()
