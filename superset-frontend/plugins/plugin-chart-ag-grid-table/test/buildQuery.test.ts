@@ -179,7 +179,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.orderby[0]).toEqual(['state', false]);
+      expect(query.orderby?.[0]).toEqual(['state', false]);
     });
 
     it('should handle multi-column sort from sortModel', () => {
@@ -433,7 +433,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.columns[0]).toEqual('city');
+      expect(query.columns?.[0]).toEqual('city');
       expect(query.columns).toContain('state');
       expect(query.columns).toContain('country');
     });
@@ -454,7 +454,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.columns[0]).toMatchObject({
+      expect(query.columns?.[0]).toMatchObject({
         sqlExpression: 'degree_type',
       });
     });

@@ -26,7 +26,8 @@ import {
   ReactNode,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t, styled, css, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { DatasourcesState, ChartsState, RootState } from 'src/dashboard/types';
 import {
@@ -369,7 +370,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             ...values,
           },
         },
@@ -599,7 +600,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             defaultValueQueriesData: columns,
             filterType: 'filter_select',
             hasDefaultValue: true,
@@ -636,7 +637,7 @@ const ChartCustomizationForm: FC<Props> = ({
         filters: {
           ...currentFilters,
           [item.id]: {
-            ...(currentFilters[item.id] || {}),
+            ...currentFilters[item.id],
             defaultValueQueriesData: null,
             hasDefaultValue:
               currentFilters[item.id]?.hasDefaultValue ??

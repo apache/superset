@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo, useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Comparator,
@@ -270,7 +271,7 @@ export const FormattingPopoverContent = ({
         conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
           ? config?.[configKey] === undefined
           : config?.[configKey] !== undefined,
-      [conditionalFormattingFlag, config],
+      [conditionalFormattingFlag], // oxlint-disable-line react-hooks/exhaustive-deps
     );
 
   const showToAllRow = useConditionalFormattingFlag(

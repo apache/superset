@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Callable, Generic, List, Literal, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
 from pydantic import BaseModel
 
@@ -294,4 +294,211 @@ class ModelGetInfoCore(BaseCore):
             return response
         except Exception as context_error:
             self._log_error(context_error)
+            raise
+
+
+class InstanceInfoCore(BaseCore):
+    """
+    Configurable tool for generating comprehensive instance information.
+
+    Provides a flexible way to gather and present statistics about a Superset
+    instance with configurable metrics, time windows, and data aggregations.
+    Supports custom metric calculators and result transformers for extensibility.
+    """
+
+    def __init__(
+        self,
+        dao_classes: Dict[str, Type[BaseDAO[Any]]],
+        output_schema: Type[BaseModel],
+        metric_calculators: Dict[str, Callable[..., Any]],
+        time_windows: Dict[str, int] | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
+        """
+        Initialize the instance info tool.
+
+        Args:
+            dao_classes: Dict mapping entity names to their DAO classes
+            output_schema: Pydantic schema for the response
+            metric_calculators: Dict of custom metric calculation functions
+            time_windows: Dict of time window configurations (days)
+            logger: Optional logger instance
+        """
+        super().__init__(logger)
+        self.dao_classes = dao_classes
+        self.output_schema = output_schema
+        self.metric_calculators = metric_calculators
+        self.time_windows = time_windows or {
+            "recent": 7,
+            "monthly": 30,
+            "quarterly": 90,
+        }
+
+    def _calculate_basic_counts(self) -> Dict[str, int]:
+        """Calculate basic entity counts using DAOs."""
+        counts = {}
+        for entity_name, dao_class in self.dao_classes.items():
+            try:
+                counts[f"total_{entity_name}"] = dao_class.count()
+            except Exception as e:
+                self._log_warning(f"Failed to count {entity_name}: {e}")
+                counts[f"total_{entity_name}"] = 0
+        return counts
+
+    def _calculate_time_based_metrics(
+        self, base_counts: Dict[str, int]
+    ) -> Dict[str, Dict[str, int]]:
+        """Calculate time-based metrics for recent activity."""
+        from datetime import datetime, timedelta, timezone
+
+        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+
+        now = datetime.now(timezone.utc)
+        time_metrics = {}
+
+        for window_name, days in self.time_windows.items():
+            cutoff_date = now - timedelta(days=days)
+            window_metrics = {}
+
+            # Calculate created and modified counts for each entity
+            for entity_name, dao_class in self.dao_classes.items():
+                # Skip entities without time tracking
+                if not hasattr(dao_class.model_cls, "created_on"):
+                    continue
+
+                try:
+                    # Use list() with filters (count() has no params)
+                    _, created_count = dao_class.list(
+                        column_operators=[
+                            ColumnOperator(
+                                col="created_on",
+                                opr=ColumnOperatorEnum.gte,
+                                value=cutoff_date,
+                            )
+                        ],
+                        page_size=1,  # We only need the count
+                        columns=["id"],  # Minimal data transfer
+                    )
+                    window_metrics[f"{entity_name}_created"] = created_count
+
+                    # Modified count (if changed_on exists)
+                    if hasattr(dao_class.model_cls, "changed_on"):
+                        _, modified_count = dao_class.list(
+                            column_operators=[
+                                ColumnOperator(
+                                    col="changed_on",
+                                    opr=ColumnOperatorEnum.gte,
+                                    value=cutoff_date,
+                                )
+                            ],
+                            page_size=1,  # We only need the count
+                            columns=["id"],  # Minimal data transfer
+                        )
+                        window_metrics[f"{entity_name}_modified"] = modified_count
+
+                except Exception as e:
+                    self._log_warning(
+                        f"Failed to calculate {window_name} metrics for "
+                        f"{entity_name}: {e}"
+                    )
+                    window_metrics[f"{entity_name}_created"] = 0
+                    window_metrics[f"{entity_name}_modified"] = 0
+
+            time_metrics[window_name] = window_metrics
+
+        return time_metrics
+
+    def _calculate_custom_metrics(
+        self, base_counts: Dict[str, int], time_metrics: Dict[str, Dict[str, int]]
+    ) -> Dict[str, Any]:
+        """Calculate custom metrics using provided calculators."""
+        custom_metrics = {}
+
+        for metric_name, calculator in self.metric_calculators.items():
+            try:
+                # Pass context to calculator functions
+                result = calculator(
+                    base_counts=base_counts,
+                    time_metrics=time_metrics,
+                    dao_classes=self.dao_classes,
+                )
+                # Only include successful calculations
+                if result is not None:
+                    custom_metrics[metric_name] = result
+            except Exception as e:
+                self._log_warning(f"Failed to calculate {metric_name}: {e}")
+                # Don't add failed metrics to avoid validation errors
+
+        return custom_metrics
+
+    def run_tool(self) -> BaseModel:
+        """Tool interface for generating comprehensive instance information."""
+        return self._generate_instance_info()
+
+    def get_resource(self) -> str:
+        """Resource interface for generating instance metadata as JSON."""
+        from superset.utils import json
+
+        instance_info = self._generate_instance_info()
+        return json.dumps(instance_info.model_dump(), indent=2)
+
+    def _generate_instance_info(self) -> BaseModel:
+        """Generate comprehensive instance information."""
+        try:
+            # Calculate all metrics
+            base_counts = self._calculate_basic_counts()
+            time_metrics = self._calculate_time_based_metrics(base_counts)
+            custom_metrics = self._calculate_custom_metrics(base_counts, time_metrics)
+
+            # Combine all data with fallbacks for required fields
+            from datetime import datetime, timezone
+
+            response_data = {
+                **base_counts,
+                **time_metrics,
+                **custom_metrics,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+            # Create response using the configured schema
+            response = self.output_schema(**response_data)
+
+            self._log_info("Successfully generated instance information")
+            return response
+
+        except Exception as e:
+            self._log_error(e, "generating instance info")
+            raise
+
+
+class ModelGetAvailableFiltersCore(BaseCore, Generic[S]):
+    """
+    Generic tool for retrieving available filterable columns and operators for a
+    model. Used for get_dataset_available_filters, get_chart_available_filters,
+    get_dashboard_available_filters, etc.
+    """
+
+    def __init__(
+        self,
+        dao_class: Type[BaseDAO[Any]],
+        output_schema: Type[S],
+        logger: logging.Logger | None = None,
+    ) -> None:
+        super().__init__(logger)
+        self.dao_class = dao_class
+        self.output_schema = output_schema
+
+    def run_tool(self) -> S:
+        try:
+            filterable = self.dao_class.get_filterable_columns_and_operators()
+            # Ensure column_operators is a plain dict, not a custom type
+            column_operators = dict(filterable)
+            response = self.output_schema(column_operators=column_operators)
+            self._log_info(
+                f"Successfully retrieved available filters for "
+                f"{self.dao_class.__class__.__name__}"
+            )
+            return response
+        except Exception as e:
+            self._log_error(e)
             raise

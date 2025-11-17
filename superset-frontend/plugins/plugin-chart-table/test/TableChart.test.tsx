@@ -18,15 +18,93 @@
  */
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import TableChart from '../src/TableChart';
+import { cloneDeep } from 'lodash';
+import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
+test('sanitizeHeaderId should sanitize percent sign', () => {
+  expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
+});
+
+test('sanitizeHeaderId should sanitize hash/pound sign', () => {
+  expect(sanitizeHeaderId('# metric_1')).toBe('hash_metric_1');
+});
+
+test('sanitizeHeaderId should sanitize delta symbol', () => {
+  expect(sanitizeHeaderId('△ delta')).toBe('delta_delta');
+});
+
+test('sanitizeHeaderId should replace spaces with underscores', () => {
+  expect(sanitizeHeaderId('Main metric_1')).toBe('Main_metric_1');
+  expect(sanitizeHeaderId('multiple  spaces')).toBe('multiple_spaces');
+});
+
+test('sanitizeHeaderId should handle multiple special characters', () => {
+  expect(sanitizeHeaderId('% #△ test')).toBe('percent_hashdelta_test');
+  expect(sanitizeHeaderId('% # △ test')).toBe('percent_hash_delta_test');
+});
+
+test('sanitizeHeaderId should preserve alphanumeric, underscore, and hyphen', () => {
+  expect(sanitizeHeaderId('valid-name_123')).toBe('valid-name_123');
+});
+
+test('sanitizeHeaderId should replace other special characters with underscore', () => {
+  expect(sanitizeHeaderId('col@name!test')).toBe('col_name_test');
+  expect(sanitizeHeaderId('test.column')).toBe('test_column');
+});
+
+test('sanitizeHeaderId should handle edge cases', () => {
+  expect(sanitizeHeaderId('')).toBe('');
+  expect(sanitizeHeaderId('simple')).toBe('simple');
+});
+
+test('sanitizeHeaderId should collapse consecutive underscores', () => {
+  expect(sanitizeHeaderId('test @@ space')).toBe('test_space');
+  expect(sanitizeHeaderId('col___name')).toBe('col_name');
+  expect(sanitizeHeaderId('a  b  c')).toBe('a_b_c');
+  expect(sanitizeHeaderId('test@@name')).toBe('test_name');
+});
+
+test('sanitizeHeaderId should remove leading underscores', () => {
+  expect(sanitizeHeaderId('@col')).toBe('col');
+  expect(sanitizeHeaderId('!revenue')).toBe('revenue');
+  expect(sanitizeHeaderId('@@test')).toBe('test');
+  expect(sanitizeHeaderId('   leading_spaces')).toBe('leading_spaces');
+});
+
+test('sanitizeHeaderId should remove trailing underscores', () => {
+  expect(sanitizeHeaderId('col@')).toBe('col');
+  expect(sanitizeHeaderId('revenue!')).toBe('revenue');
+  expect(sanitizeHeaderId('test@@')).toBe('test');
+  expect(sanitizeHeaderId('trailing_spaces   ')).toBe('trailing_spaces');
+});
+
+test('sanitizeHeaderId should remove leading and trailing underscores', () => {
+  expect(sanitizeHeaderId('@col@')).toBe('col');
+  expect(sanitizeHeaderId('!test!')).toBe('test');
+  expect(sanitizeHeaderId('  spaced  ')).toBe('spaced');
+  expect(sanitizeHeaderId('@@multiple@@')).toBe('multiple');
+});
+
+test('sanitizeHeaderId should handle inputs with only special characters', () => {
+  expect(sanitizeHeaderId('@')).toBe('');
+  expect(sanitizeHeaderId('@@')).toBe('');
+  expect(sanitizeHeaderId('   ')).toBe('');
+  expect(sanitizeHeaderId('!@$')).toBe('');
+  expect(sanitizeHeaderId('!@#$')).toBe('hash'); // # is replaced with 'hash' (semantic replacement)
+  // Semantic replacements produce readable output even when alone
+  expect(sanitizeHeaderId('%')).toBe('percent');
+  expect(sanitizeHeaderId('#')).toBe('hash');
+  expect(sanitizeHeaderId('△')).toBe('delta');
+  expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
+});
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
-    it('should parse pageLength to pageSize', () => {
+    test('should parse pageLength to pageSize', () => {
       expect(transformProps(testData.basic).pageSize).toBe(20);
       expect(
         transformProps({
@@ -42,13 +120,13 @@ describe('plugin-chart-table', () => {
       ).toBe(0);
     });
 
-    it('should memoize data records', () => {
+    test('should memoize data records', () => {
       expect(transformProps(testData.basic).data).toBe(
         transformProps(testData.basic).data,
       );
     });
 
-    it('should memoize columns meta', () => {
+    test('should memoize columns meta', () => {
       expect(transformProps(testData.basic).columns).toBe(
         transformProps({
           ...testData.basic,
@@ -57,14 +135,14 @@ describe('plugin-chart-table', () => {
       );
     });
 
-    it('should format timestamp', () => {
+    test('should format timestamp', () => {
       // eslint-disable-next-line no-underscore-dangle
       const parsedDate = transformProps(testData.basic).data[0]
         .__timestamp as DateWithFormatter;
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
-    it('should process comparison columns when time_compare and comparison_type are set', () => {
+    test('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(
         col =>
@@ -86,7 +164,7 @@ describe('plugin-chart-table', () => {
       expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
     });
 
-    it('should not process comparison columns when time_compare is empty', () => {
+    test('should not process comparison columns when time_compare is empty', () => {
       const propsWithoutTimeCompare = {
         ...testData.comparison,
         rawFormData: {
@@ -109,7 +187,7 @@ describe('plugin-chart-table', () => {
       expect(comparisonColumns.length).toBe(0);
     });
 
-    it('should correctly apply column configuration for comparison columns', () => {
+    test('should correctly apply column configuration for comparison columns', () => {
       const transformedProps = transformProps(testData.comparisonWithConfig);
 
       const comparisonColumns = transformedProps.columns.filter(
@@ -147,7 +225,7 @@ describe('plugin-chart-table', () => {
       expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
     });
 
-    it('should correctly format comparison columns using getComparisonColFormatter', () => {
+    test('should correctly format comparison columns using getComparisonColFormatter', () => {
       const transformedProps = transformProps(testData.comparisonWithConfig);
       const comparisonColumns = transformedProps.columns.filter(
         col =>
@@ -178,7 +256,7 @@ describe('plugin-chart-table', () => {
       expect(formattedPercentMetric).toBe('0.123');
     });
 
-    it('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
+    test('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
 
       // Check if comparison columns are processed
@@ -265,7 +343,7 @@ describe('plugin-chart-table', () => {
     });
 
     describe('TableChart', () => {
-      it('render basic data', () => {
+      test('render basic data', () => {
         render(
           <TableChart {...transformProps(testData.basic)} sticky={false} />,
         );
@@ -284,12 +362,9 @@ describe('plugin-chart-table', () => {
         expect(cells[8]).toHaveTextContent('N/A');
       });
 
-      it('render advanced data', () => {
+      test('render advanced data', () => {
         render(
-          <>
-            <TableChart {...transformProps(testData.advanced)} sticky={false} />
-            ,
-          </>,
+          <TableChart {...transformProps(testData.advanced)} sticky={false} />,
         );
         const secondColumnHeader = screen.getByText('Sum of Num');
         expect(secondColumnHeader).toBeInTheDocument();
@@ -304,7 +379,7 @@ describe('plugin-chart-table', () => {
         expect(cells[4]).toHaveTextContent('2.47k');
       });
 
-      it('render advanced data with currencies', () => {
+      test('render advanced data with currencies', () => {
         render(
           ProviderWrapper({
             children: (
@@ -324,7 +399,7 @@ describe('plugin-chart-table', () => {
         expect(cells[4]).toHaveTextContent('$ 2.47k');
       });
 
-      it('render data with a bigint value in a raw record mode', () => {
+      test('render data with a bigint value in a raw record mode', () => {
         render(
           ProviderWrapper({
             children: (
@@ -345,7 +420,7 @@ describe('plugin-chart-table', () => {
         expect(cells[3]).toHaveTextContent('1234567890123456789');
       });
 
-      it('render raw data', () => {
+      test('render raw data', () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: { ...testData.raw.rawFormData },
@@ -362,7 +437,7 @@ describe('plugin-chart-table', () => {
         expect(cells[1]).toHaveTextContent('0');
       });
 
-      it('render raw data with currencies', () => {
+      test('render raw data with currencies', () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: {
@@ -387,7 +462,7 @@ describe('plugin-chart-table', () => {
         expect(cells[2]).toHaveTextContent('$ 0');
       });
 
-      it('render small formatted data with currencies', () => {
+      test('render small formatted data with currencies', () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: {
@@ -429,14 +504,14 @@ describe('plugin-chart-table', () => {
         expect(cells[2]).toHaveTextContent('$ 0.61');
       });
 
-      it('render empty data', () => {
+      test('render empty data', () => {
         render(
           <TableChart {...transformProps(testData.empty)} sticky={false} />,
         );
         expect(screen.getByText('No records found')).toBeInTheDocument();
       });
 
-      it('render color with column color formatter', () => {
+      test('render color with column color formatter', () => {
         render(
           ProviderWrapper({
             children: (
@@ -466,8 +541,8 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
       });
 
-      it('render cell without color', () => {
-        const dataWithEmptyCell = testData.advanced.queriesData[0];
+      test('render cell without color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({
           __timestamp: null,
           name: 'Noah',
@@ -507,7 +582,7 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
-      it('should display original label in grouped headers', () => {
+      test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
         render(<TableChart {...props} sticky={false} />);
@@ -522,7 +597,142 @@ describe('plugin-chart-table', () => {
         expect(hasMetricHeaders).toBe(true);
       });
 
-      it('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
+      test('should set meaningful header IDs for time-comparison columns', () => {
+        // Test time-comparison columns have proper IDs
+        // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
+        const props = transformProps(testData.comparison);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        const headers = screen.getAllByRole('columnheader');
+
+        // All headers should have IDs
+        const headersWithIds = headers.filter(header => header.id);
+        expect(headersWithIds.length).toBeGreaterThan(0);
+
+        // None should have "header-undefined"
+        const undefinedHeaders = headersWithIds.filter(header =>
+          header.id.includes('undefined'),
+        );
+        expect(undefinedHeaders).toHaveLength(0);
+
+        // Should have IDs based on sanitized originalLabel (e.g., "metric_1")
+        const hasMetricHeaders = headersWithIds.some(
+          header =>
+            header.id.includes('metric_1') || header.id.includes('metric_2'),
+        );
+        expect(hasMetricHeaders).toBe(true);
+
+        // CRITICAL: Verify sanitization - no spaces or special chars in any header ID
+        headersWithIds.forEach(header => {
+          // IDs must not contain spaces (would break CSS selectors and ARIA)
+          expect(header.id).not.toMatch(/\s/);
+          // IDs must not contain special chars like %, #, △
+          expect(header.id).not.toMatch(/[%#△]/);
+          // IDs should only contain valid characters: alphanumeric, underscore, hyphen
+          expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
+        });
+
+        // CRITICAL: Verify ALL cells reference valid headers (no broken ARIA)
+        const cellsWithLabels = container.querySelectorAll(
+          'td[aria-labelledby]',
+        );
+        cellsWithLabels.forEach(cell => {
+          const labelledBy = cell.getAttribute('aria-labelledby');
+          if (labelledBy) {
+            // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
+            expect(labelledBy).not.toMatch(/\s/);
+            // Check that the ID doesn't contain special characters
+            expect(labelledBy).not.toMatch(/[%#△]/);
+            // Verify the referenced header actually exists
+            const referencedHeader = container.querySelector(
+              `#${CSS.escape(labelledBy)}`,
+            );
+            expect(referencedHeader).toBeTruthy();
+          }
+        });
+      });
+
+      test('should set meaningful header IDs for regular table columns', () => {
+        // Test regular (non-time-comparison) columns have proper IDs
+        // Uses fallback to column.key since originalLabel is undefined
+        const props = transformProps(testData.advanced);
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        const headers = screen.getAllByRole('columnheader');
+
+        // Test 1: "name" column (regular string column)
+        const nameHeader = headers.find(header =>
+          header.textContent?.includes('name'),
+        );
+        expect(nameHeader).toBeDefined();
+        expect(nameHeader?.id).toBe('header-name'); // Falls back to column.key
+
+        // Verify cells reference this header correctly
+        const nameCells = container.querySelectorAll(
+          'td[aria-labelledby="header-name"]',
+        );
+        expect(nameCells.length).toBeGreaterThan(0);
+
+        // Test 2: "sum__num" column (metric with verbose map "Sum of Num")
+        const sumHeader = headers.find(header =>
+          header.textContent?.includes('Sum of Num'),
+        );
+        expect(sumHeader).toBeDefined();
+        expect(sumHeader?.id).toBe('header-sum_num'); // Falls back to column.key, consecutive underscores collapsed
+
+        // Verify cells reference this header correctly
+        const sumCells = container.querySelectorAll(
+          'td[aria-labelledby="header-sum_num"]',
+        );
+        expect(sumCells.length).toBeGreaterThan(0);
+
+        // Test 3: Verify NO headers have "undefined" in their ID
+        const undefinedHeaders = headers.filter(header =>
+          header.id?.includes('undefined'),
+        );
+        expect(undefinedHeaders).toHaveLength(0);
+
+        // Test 4: Verify ALL headers have proper IDs (no missing IDs)
+        const headersWithIds = headers.filter(header => header.id);
+        expect(headersWithIds.length).toBe(headers.length);
+
+        // Test 5: Verify ALL header IDs are properly sanitized
+        headersWithIds.forEach(header => {
+          // IDs must not contain spaces
+          expect(header.id).not.toMatch(/\s/);
+          // IDs must not contain special chars like % (from %pct_nice column)
+          expect(header.id).not.toMatch(/[%#△]/);
+          // IDs should only contain valid CSS selector characters
+          expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
+        });
+
+        // Test 6: Verify ALL cells reference valid headers (no broken ARIA)
+        const cellsWithLabels = container.querySelectorAll(
+          'td[aria-labelledby]',
+        );
+        cellsWithLabels.forEach(cell => {
+          const labelledBy = cell.getAttribute('aria-labelledby');
+          if (labelledBy) {
+            // Verify no spaces (would be interpreted as multiple IDs)
+            expect(labelledBy).not.toMatch(/\s/);
+            // Verify no special characters
+            expect(labelledBy).not.toMatch(/[%#△]/);
+            // Verify the referenced header actually exists
+            const referencedHeader = container.querySelector(
+              `#${CSS.escape(labelledBy)}`,
+            );
+            expect(referencedHeader).toBeTruthy();
+          }
+        });
+      });
+
+      test('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: { ...testData.raw.rawFormData },
@@ -572,7 +782,7 @@ describe('plugin-chart-table', () => {
         cells = document.querySelectorAll('td');
       });
 
-      it('render color with string column color formatter(operator begins with)', () => {
+      test('render color with string column color formatter(operator begins with)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -604,7 +814,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('render color with string column color formatter (operator ends with)', () => {
+      test('render color with string column color formatter (operator ends with)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -633,7 +843,7 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
       });
 
-      it('render color with string column color formatter (operator containing)', () => {
+      test('render color with string column color formatter (operator containing)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -662,7 +872,7 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
       });
 
-      it('render color with string column color formatter (operator not containing)', () => {
+      test('render color with string column color formatter (operator not containing)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -693,7 +903,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('render color with string column color formatter (operator =)', () => {
+      test('render color with string column color formatter (operator =)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -724,7 +934,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('render color with string column color formatter (operator None)', () => {
+      test('render color with string column color formatter (operator None)', () => {
         render(
           ProviderWrapper({
             children: (
@@ -757,7 +967,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('render color with column color formatter to entire row', () => {
+      test('render color with column color formatter to entire row', () => {
         render(
           ProviderWrapper({
             children: (
@@ -793,7 +1003,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('display text color using column color formatter', () => {
+      test('display text color using column color formatter', () => {
         render(
           ProviderWrapper({
             children: (
@@ -826,7 +1036,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('display text color using column color formatter for entire row', () => {
+      test('display text color using column color formatter for entire row', () => {
         render(
           ProviderWrapper({
             children: (
