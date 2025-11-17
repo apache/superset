@@ -283,9 +283,7 @@ test('should re-render when componentId changes', () => {
   });
   expect(getByTestId('chart-container')).toBeInTheDocument();
 
-  rerender(
-    <Chart {...props} isComponentVisible componentId="test-2" />,
-  );
+  rerender(<Chart {...props} isComponentVisible componentId="test-2" />);
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
@@ -296,8 +294,6 @@ test('should re-render when cacheBusterProp changes', () => {
   });
   expect(getByTestId('chart-container')).toBeInTheDocument();
 
-  rerender(
-    <Chart {...props} isComponentVisible cacheBusterProp="v2" />,
-  );
+  rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
