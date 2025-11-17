@@ -21,6 +21,8 @@ import PropTypes from 'prop-types';
 import { css, styled } from '@apache-superset/core/ui';
 import { t } from '@superset-ui/core';
 import { Input } from '@superset-ui/core/components';
+// Import model-viewer as a module (bundled, avoids CSP issues)
+import '@google/model-viewer';
 
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -149,136 +151,37 @@ declare global {
 class Model3D extends PureComponent<Model3DProps> {
   state = {
     scriptLoaded: false,
-    loadError: false,
   };
 
-  private checkInterval: NodeJS.Timeout | null = null;
-  private checkTimeout: NodeJS.Timeout | null = null;
-  private pollCount = 0;
-  private readonly MAX_POLL_COUNT = 50; // 5 seconds max (50 * 100ms)
-
   componentDidMount() {
-    this.loadModelViewerScript();
+    // Since we're importing the module, check if custom element is available
+    // It might be registered asynchronously, so poll briefly
+    this.checkCustomElement();
   }
 
-  componentWillUnmount() {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
-    if (this.checkTimeout) {
-      clearTimeout(this.checkTimeout);
-      this.checkTimeout = null;
-    }
-  }
-
-  checkCustomElementDefined() {
-    // Poll for custom element to be defined (ES modules may register asynchronously)
+  checkCustomElement() {
+    // Check if custom element is already defined
     if (customElements.get('model-viewer')) {
       this.setState({ scriptLoaded: true });
-      if (this.checkInterval) {
-        clearInterval(this.checkInterval);
-        this.checkInterval = null;
-      }
-      if (this.checkTimeout) {
-        clearTimeout(this.checkTimeout);
-        this.checkTimeout = null;
-      }
-      this.pollCount = 0;
-      return true;
-    }
-    
-    this.pollCount++;
-    if (this.pollCount >= this.MAX_POLL_COUNT) {
-      // Stop polling after max attempts
-      if (this.checkInterval) {
-        clearInterval(this.checkInterval);
-        this.checkInterval = null;
-      }
-      console.warn('model-viewer custom element not found after polling');
-      this.setState({ loadError: true });
-    }
-    return false;
-  }
-
-  loadModelViewerScript() {
-    // Check if custom element is already defined
-    if (this.checkCustomElementDefined()) {
-      console.log('model-viewer already loaded');
       return;
     }
 
-    // Check if script tag already exists
-    const existingScript = document.querySelector('script[src*="model-viewer"]');
-    if (existingScript) {
-      console.log('model-viewer script tag found, waiting for custom element...');
-      // Start polling for custom element
-      this.checkInterval = setInterval(() => {
-        this.checkCustomElementDefined();
-      }, 100);
-      
-      // Also listen for load event
-      existingScript.addEventListener('load', () => {
-        console.log('model-viewer script loaded, checking for custom element...');
-        // Wait a bit for custom element registration
-        setTimeout(() => {
-          this.checkCustomElementDefined();
-        }, 200);
-      });
-      
-      // Check immediately in case it's already loaded
-      setTimeout(() => {
-        this.checkCustomElementDefined();
-      }, 200);
-      return;
-    }
-
-    // Load model-viewer from CDN (try unpkg first, then Google CDN as fallback)
-    const tryLoadScript = (url: string, isFallback = false) => {
-      console.log(`Loading model-viewer from ${url}...`);
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = url;
-      script.crossOrigin = 'anonymous';
-      script.onload = () => {
-        console.log(`model-viewer script loaded from ${url}, waiting for custom element registration...`);
-        // ES modules may register custom elements asynchronously, so poll
-        this.checkInterval = setInterval(() => {
-          if (this.checkCustomElementDefined()) {
-            console.log('model-viewer custom element detected!');
-            // Already handled in checkCustomElementDefined
-          }
-        }, 100);
-        
-        // Also check after delays (ES modules can take time)
-        setTimeout(() => {
-          this.checkCustomElementDefined();
-        }, 300);
-        setTimeout(() => {
-          this.checkCustomElementDefined();
-        }, 1000);
-      };
-      script.onerror = (error) => {
-        console.error(`Failed to load model-viewer script from ${url}:`, error);
-        if (!isFallback) {
-          // Try fallback CDN
-          console.log('Trying fallback CDN...');
-          tryLoadScript('https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js', true);
-        } else {
-          // Both CDNs failed
-          console.error('All CDN attempts failed');
-          if (this.checkInterval) {
-            clearInterval(this.checkInterval);
-            this.checkInterval = null;
-          }
-          this.setState({ loadError: true });
-        }
-      };
-      document.head.appendChild(script);
-    };
-
-    // Try unpkg first (more reliable)
-    tryLoadScript('https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js');
+    // Poll for a short time (module import may register asynchronously)
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds max
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (customElements.get('model-viewer')) {
+        this.setState({ scriptLoaded: true });
+        clearInterval(checkInterval);
+      } else if (attempts >= maxAttempts) {
+        // After max attempts, assume it's loaded or there's an issue
+        // Try to set loaded anyway - the element might work even if not in registry yet
+        this.setState({ scriptLoaded: true });
+        clearInterval(checkInterval);
+        console.warn('model-viewer custom element not found in registry, but continuing...');
+      }
+    }, 100);
   }
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,21 +204,13 @@ class Model3D extends PureComponent<Model3DProps> {
 
   renderModelViewer(): ReactNode {
     const { component } = this.props;
-    const { scriptLoaded, loadError } = this.state;
+    const { scriptLoaded } = this.state;
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
       return (
         <div className="model3d-placeholder">
           {t('Enter a 3D model URL (GLTF, GLB, OBJ, etc.)')}
-        </div>
-      );
-    }
-
-    if (loadError) {
-      return (
-        <div className="model3d-placeholder">
-          {t('Failed to load 3D viewer. Please refresh the page.')}
         </div>
       );
     }
