@@ -63,7 +63,8 @@ def test_init_fastmcp_server_with_default_app_name():
 
     # Patch at the import location to avoid actual Flask app creation
     with patch.dict(
-        "sys.modules", {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)}
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
         with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
             mock_mcp = MagicMock()
@@ -89,7 +90,8 @@ def test_init_fastmcp_server_with_custom_app_name():
 
     # Patch at the import location to avoid actual Flask app creation
     with patch.dict(
-        "sys.modules", {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)}
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
         with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
             mock_mcp = MagicMock()
@@ -118,7 +120,8 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
 
     # Patch at the import location to avoid actual Flask app creation
     with patch.dict(
-        "sys.modules", {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)}
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
         with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
             mock_mcp = MagicMock()
