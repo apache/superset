@@ -318,24 +318,29 @@ function FiltersConfigModal({
     [filterConfigMap, form, removedFilters],
   );
 
+  const buildDependencyMap = useCallback(() => {
+    const dependencyMap = new Map<string, string[]>();
+    const filters = form.getFieldValue('filters');
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        const formItem = filters[key];
+        const configItem = filterConfigMap[key];
+        let array: string[] = [];
+        if (formItem && 'dependencies' in formItem) {
+          array = [...formItem.dependencies];
+        } else if (configItem?.cascadeParentIds) {
+          array = [...configItem.cascadeParentIds];
+        }
+        dependencyMap.set(key, array);
+      });
+    }
+    return dependencyMap;
+  }, [filterConfigMap, form]);
+
   const getAvailableFilters = useCallback(
     (filterId: string) => {
       // Build current dependency map
-      const dependencyMap = new Map<string, string[]>();
-      const filters = form.getFieldValue('filters');
-      if (filters) {
-        Object.keys(filters).forEach(key => {
-          const formItem = filters[key];
-          const configItem = filterConfigMap[key];
-          let array: string[] = [];
-          if (formItem && 'dependencies' in formItem) {
-            array = [...formItem.dependencies];
-          } else if (configItem?.cascadeParentIds) {
-            array = [...configItem.cascadeParentIds];
-          }
-          dependencyMap.set(key, array);
-        });
-      }
+      const dependencyMap = buildDependencyMap();
 
       return filterIds
         .filter(id => id !== filterId)
@@ -355,12 +360,11 @@ function FiltersConfigModal({
         }));
     },
     [
+      buildDependencyMap,
       canBeUsedAsDependency,
       filterConfigMap,
       filterIds,
       getFilterTitle,
-      form,
-      form.getFieldValue('filters'),
     ],
   );
 
@@ -521,25 +525,6 @@ function FiltersConfigModal({
       reordered: newOrderedFilter,
     }));
   };
-
-  const buildDependencyMap = useCallback(() => {
-    const dependencyMap = new Map<string, string[]>();
-    const filters = form.getFieldValue('filters');
-    if (filters) {
-      Object.keys(filters).forEach(key => {
-        const formItem = filters[key];
-        const configItem = filterConfigMap[key];
-        let array: string[] = [];
-        if (formItem && 'dependencies' in formItem) {
-          array = [...formItem.dependencies];
-        } else if (configItem?.cascadeParentIds) {
-          array = [...configItem.cascadeParentIds];
-        }
-        dependencyMap.set(key, array);
-      });
-    }
-    return dependencyMap;
-  }, [filterConfigMap, form]);
 
   const validateDependencies = useCallback(() => {
     const dependencyMap = buildDependencyMap();

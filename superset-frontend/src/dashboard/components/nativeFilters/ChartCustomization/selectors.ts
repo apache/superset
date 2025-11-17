@@ -16,30 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
 import { ChartCustomizationItem } from './types';
 
-export const selectChartCustomizationItems = (
-  state: RootState,
-): ChartCustomizationItem[] => {
-  const { metadata } = state.dashboardInfo;
+const EMPTY_ARRAY: ChartCustomizationItem[] = [];
 
-  if (
-    metadata?.chart_customization_config &&
-    metadata.chart_customization_config.length > 0
-  ) {
-    return metadata.chart_customization_config;
-  }
+export const selectChartCustomizationItems = createSelector(
+  (state: RootState) => state.dashboardInfo.metadata,
+  (metadata): ChartCustomizationItem[] => {
+    if (
+      metadata?.chart_customization_config &&
+      metadata.chart_customization_config.length > 0
+    ) {
+      return metadata.chart_customization_config;
+    }
 
-  const legacyCustomization = metadata?.native_filter_configuration?.find(
-    (item: any) =>
-      item.type === 'CHART_CUSTOMIZATION' &&
-      item.id === 'chart_customization_groupby',
-  );
+    const legacyCustomization = metadata?.native_filter_configuration?.find(
+      (item: any) =>
+        item.type === 'CHART_CUSTOMIZATION' &&
+        item.id === 'chart_customization_groupby',
+    );
 
-  if (legacyCustomization?.chart_customization) {
-    return legacyCustomization.chart_customization;
-  }
+    if (legacyCustomization?.chart_customization) {
+      return legacyCustomization.chart_customization;
+    }
 
-  return [];
-};
+    return EMPTY_ARRAY;
+  },
+);

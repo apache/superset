@@ -21,6 +21,7 @@ import {
   DataMaskStateWithId,
   DataRecordFilters,
   DataRecordValue,
+  ensureIsArray,
   JsonObject,
   PartialFilters,
   QueryFormExtraFilter,
@@ -81,7 +82,7 @@ const cachedFormdataByChart: Record<
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
   chartCustomizationItems?: ChartCustomizationItem[];
-  chart: ChartQueryPayload;
+  chart: Pick<ChartQueryPayload, 'id' | 'form_data'>;
   filters: DataRecordFilters;
   colorScheme?: string;
   ownColorScheme?: string;
@@ -132,11 +133,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const existingColumns = new Set<string>();
   const chartType = chart.form_data?.viz_type;
 
-  const existingGroupBy = Array.isArray(chart.form_data?.groupby)
-    ? chart.form_data.groupby
-    : chart.form_data?.groupby
-      ? [chart.form_data.groupby]
-      : [];
+  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
   existingGroupBy.forEach((col: string) => existingColumns.add(col));
 
   const xAxisColumn = chart.form_data?.x_axis;
@@ -347,11 +344,7 @@ function processGroupByCustomizations(
   }
 
   const existingColumns = buildExistingColumnsSet(chart);
-  const existingGroupBy = Array.isArray(chart.form_data?.groupby)
-    ? chart.form_data.groupby
-    : chart.form_data?.groupby
-      ? [chart.form_data.groupby]
-      : [];
+  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
