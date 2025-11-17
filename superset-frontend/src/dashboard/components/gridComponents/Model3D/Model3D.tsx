@@ -85,12 +85,16 @@ const Model3DContainer = styled.div`
     display: flex;
     flex-direction: column;
     background-color: ${theme.colorBgContainer};
+    min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
 
     .dashboard-component-chart-holder {
       flex: 1;
       overflow: hidden;
       border-radius: ${theme.borderRadius}px;
       position: relative;
+      min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
+      display: flex;
+      flex-direction: column;
     }
 
     .model3d-input-container {
@@ -102,15 +106,16 @@ const Model3DContainer = styled.div`
     .model3d-viewer {
       width: 100%;
       height: 100%;
-      min-height: 400px;
+      flex: 1;
+      min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
     }
 
     .model3d-placeholder {
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100%;
-      min-height: 400px;
+      flex: 1;
+      min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
       color: ${theme.colorTextSecondary};
       background-color: ${theme.colorFillQuaternary};
       border-radius: ${theme.borderRadius}px;
@@ -265,7 +270,6 @@ class Model3D extends PureComponent<Model3DProps> {
       >
         {({ dragSourceRef }) => (
           <Model3DContainer
-            ref={dragSourceRef}
             className="dashboard-component dashboard-component-model3d"
             data-test="dashboard-component-model3d"
           >
@@ -276,7 +280,7 @@ class Model3D extends PureComponent<Model3DProps> {
               widthStep={columnWidth}
               widthMultiple={widthMultiple}
               heightStep={GRID_BASE_UNIT}
-              heightMultiple={component.meta.height}
+              heightMultiple={component.meta.height || GRID_MIN_ROW_UNITS}
               minWidthMultiple={GRID_MIN_COLUMN_COUNT}
               minHeightMultiple={GRID_MIN_ROW_UNITS}
               maxWidthMultiple={availableColumnCount + widthMultiple}
@@ -285,7 +289,11 @@ class Model3D extends PureComponent<Model3DProps> {
               onResizeStop={onResizeStop}
               editMode={editMode}
             >
-              <div className="dashboard-component-chart-holder">
+              <div
+                ref={dragSourceRef}
+                className="dashboard-component-chart-holder"
+                data-test="dashboard-component-chart-holder"
+              >
                 {editMode && (
                   <HoverMenu position="top">
                     <DeleteComponentButton
