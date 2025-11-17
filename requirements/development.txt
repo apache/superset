@@ -874,8 +874,9 @@ selenium==4.32.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-setuptools==80.7.1
+setuptools==80.9.0
     # via
+    #   -c requirements/base.txt
     #   nodeenv
     #   pandas-gbq
     #   pydata-google-auth
