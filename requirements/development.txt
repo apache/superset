@@ -368,7 +368,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -884,7 +883,7 @@ rsa==4.9.1
     #   google-auth
 ruff==0.8.0
     # via apache-superset
-secretstorage==3.4.0
+secretstorage==3.4.1
     # via keyring
 selenium==4.32.0
     # via
@@ -892,8 +891,9 @@ selenium==4.32.0
     #   apache-superset
 semver==3.0.4
     # via apache-superset-extensions-cli
-setuptools==80.7.1
+setuptools==80.9.0
     # via
+    #   -c requirements/base-constraint.txt
     #   nodeenv
     #   pandas-gbq
     #   pydata-google-auth
