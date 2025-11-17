@@ -414,7 +414,17 @@ class CSVReader(BaseDataReader):
                         break
 
                 if chunks:
-                    result = pd.concat(chunks, ignore_index=False)
+                    try:
+                        result = pd.concat(chunks, ignore_index=False)
+                    except Exception as ex:
+                        logger.warning(
+                            "Error concatenating CSV chunks: %s. "
+                            "This may be due to inconsistent date parsing "
+                            "across chunks.",
+                            str(ex),
+                        )
+                        raise
+
                     # When using chunking, we need to reset and rebuild the index
                     if kwargs.get("index_col") is not None:
                         # The index was already set by pandas during read_csv
