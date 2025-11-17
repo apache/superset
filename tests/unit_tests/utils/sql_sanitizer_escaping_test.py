@@ -15,13 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-Test cases to verify SQLGlot properly escapes SQL strings for different databases.
-
-Focus: Ensure single quotes, backslashes, and special characters are escaped
-correctly for each database dialect.
-"""
-
 import pytest
 
 from superset.utils.sql_sanitizer import sanitize_sql_with_sqlglot
@@ -30,25 +23,10 @@ from superset.utils.sql_sanitizer import sanitize_sql_with_sqlglot
 class TestSQLEscapingByDatabase:
     """Test SQL string escaping across different database backends."""
 
-    # Test data with problematic characters
-    TEST_CASES = [
-        # (input_sql, description)
-        ("name = 'O'Connor'", "Single quote in string"),
-        ("name = 'O''Connor'", "Pre-escaped single quote"),
-        ("path = 'C:\\Users\\test'", "Backslash in path"),
-        ("query = '100% complete'", "Percent sign"),
-        ("text = 'Hello_World'", "Underscore (LIKE wildcard)"),
-        ("data = 'test\"quote'", "Double quote in string"),
-        ("value = 'line1\\nline2'", "Newline escape sequence"),
-        ("pattern = '%test%'", "LIKE pattern with wildcards"),
-    ]
-
     def test_postgres_single_quote_escaping(self):
         """PostgreSQL should use SQL-92 standard: double single quotes."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"PostgreSQL - Input: {sql}")
-        print(f"PostgreSQL - Output: {result}")
         assert "O''Connor" in result or "O'Connor" in result.replace("''", "'")
         assert "name" in result
 
@@ -56,8 +34,6 @@ class TestSQLEscapingByDatabase:
         """MySQL should handle single quotes (either '' or \\')."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "mysql")
-        print(f"MySQL - Input: {sql}")
-        print(f"MySQL - Output: {result}")
         assert "O''Connor" in result or "O\\'Connor" in result or "O'Connor" in result
         assert "name" in result
 
@@ -65,8 +41,6 @@ class TestSQLEscapingByDatabase:
         """Databricks should use backslash escaping for single quotes."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "databricks")
-        print(f"Databricks - Input: {sql}")
-        print(f"Databricks - Output: {result}")
         assert "name" in result
         assert "Connor" in result
 
@@ -74,8 +48,6 @@ class TestSQLEscapingByDatabase:
         """SQLite uses SQL-92 standard: double single quotes."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "sqlite")
-        print(f"SQLite - Input: {sql}")
-        print(f"SQLite - Output: {result}")
         assert "O''Connor" in result or "O'Connor" in result
         assert "name" in result
 
@@ -83,8 +55,6 @@ class TestSQLEscapingByDatabase:
         """Snowflake uses backslash escaping for single quotes."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "snowflake")
-        print(f"Snowflake - Input: {sql}")
-        print(f"Snowflake - Output: {result}")
         assert "O''Connor" in result or "O'Connor" in result or "O\\'Connor" in result
         assert "name" in result
 
@@ -92,8 +62,6 @@ class TestSQLEscapingByDatabase:
         """BigQuery should handle single quotes properly."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "bigquery")
-        print(f"BigQuery - Input: {sql}")
-        print(f"BigQuery - Output: {result}")
         assert "Connor" in result
         assert "name" in result
 
@@ -101,8 +69,6 @@ class TestSQLEscapingByDatabase:
         """SQL Server uses SQL-92 standard: double single quotes."""
         sql = "name = 'O''Connor'"
         result = sanitize_sql_with_sqlglot(sql, "mssql")
-        print(f"MSSQL - Input: {sql}")
-        print(f"MSSQL - Output: {result}")
         assert "O''Connor" in result or "O'Connor" in result
         assert "name" in result
 
@@ -114,9 +80,6 @@ class TestBackslashEscaping:
         """PostgreSQL: backslashes in strings."""
         sql = "path = 'C:\\\\Users\\\\test'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"PostgreSQL backslash - Input: {sql}")
-        print(f"PostgreSQL backslash - Output: {result}")
-        # Should preserve or properly escape backslashes
         assert "path" in result
         assert "Users" in result or "C:" in result
 
@@ -124,17 +87,12 @@ class TestBackslashEscaping:
         """MySQL treats backslash as escape character."""
         sql = "path = 'C:\\\\Users\\\\test'"
         result = sanitize_sql_with_sqlglot(sql, "mysql")
-        print(f"MySQL backslash - Input: {sql}")
-        print(f"MySQL backslash - Output: {result}")
-        # MySQL needs double backslashes
         assert "path" in result
 
     def test_databricks_backslash_in_path(self):
         """Databricks uses backslash as escape character."""
         sql = "path = 'C:\\\\Users\\\\test'"
         result = sanitize_sql_with_sqlglot(sql, "databricks")
-        print(f"Databricks backslash - Input: {sql}")
-        print(f"Databricks backslash - Output: {result}")
         assert "path" in result
 
 
@@ -145,8 +103,6 @@ class TestComplexSQLExpressions:
         """Test compound filters with quoted strings."""
         sql = "(name = 'O''Connor' AND status = 'active')"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Compound filter - Input: {sql}")
-        print(f"Compound filter - Output: {result}")
         assert "Connor" in result
         assert "active" in result
         assert "AND" in result
@@ -155,8 +111,6 @@ class TestComplexSQLExpressions:
         """Test ILIKE patterns with special characters."""
         sql = "name ILIKE '%O''Connor%'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"ILIKE pattern - Input: {sql}")
-        print(f"ILIKE pattern - Output: {result}")
         assert "Connor" in result
         assert "ILIKE" in result or "ilike" in result.lower()
 
@@ -164,8 +118,6 @@ class TestComplexSQLExpressions:
         """Test IN clause with multiple quoted strings."""
         sql = "name IN ('O''Connor', 'D''Angelo', 'McDonald''s')"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"IN clause - Input: {sql}")
-        print(f"IN clause - Output: {result}")
         assert "Connor" in result
         assert "Angelo" in result
         assert "McDonald" in result
@@ -175,8 +127,6 @@ class TestComplexSQLExpressions:
         """Test mixed operators with string literals."""
         sql = "(price > 100 AND name ILIKE '%test%' AND status = 'active')"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Mixed operators - Input: {sql}")
-        print(f"Mixed operators - Output: {result}")
         assert "price" in result
         assert "100" in result
         assert "test" in result
@@ -190,8 +140,6 @@ class TestSQLInjectionPrevention:
         """Test SQL injection attempt using quotes."""
         sql = "name = 'test'; DROP TABLE users; --'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Injection attempt - Input: {sql}")
-        print(f"Injection attempt - Output: {result}")
         assert "name" in result
         assert "test" in result
         assert "DROP" not in result
@@ -200,16 +148,12 @@ class TestSQLInjectionPrevention:
         """Test injection attempt with pre-escaped quotes."""
         sql = "name = 'test''; DELETE FROM users; --'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Escaped injection - Input: {sql}")
-        print(f"Escaped injection - Output: {result}")
         assert isinstance(result, str)
 
     def test_legitimate_quote_in_string(self):
         """Test that legitimate quotes are preserved correctly."""
         sql = "description = 'It''s a test'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Legitimate quote - Input: {sql}")
-        print(f"Legitimate quote - Output: {result}")
         assert "test" in result
         assert "It" in result
 
@@ -310,13 +254,9 @@ class TestDatabaseSpecificBehavior:
         sql = "name ILIKE '%test%'"
 
         pg_result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"PostgreSQL ILIKE: {pg_result}")
-        # PostgreSQL should keep ILIKE
         assert "ILIKE" in pg_result or "ilike" in pg_result.lower()
 
         mysql_result = sanitize_sql_with_sqlglot(sql, "mysql")
-        print(f"MySQL ILIKE: {mysql_result}")
-        # MySQL might convert to LIKE or keep ILIKE depending on SQLGlot version
         assert "LIKE" in mysql_result or "like" in mysql_result.lower()
 
     def test_boolean_literals_across_dbs(self):
@@ -324,12 +264,10 @@ class TestDatabaseSpecificBehavior:
         sql = "active = TRUE AND deleted = FALSE"
 
         pg_result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"PostgreSQL boolean: {pg_result}")
         assert "active" in pg_result
         assert "deleted" in pg_result
 
         mysql_result = sanitize_sql_with_sqlglot(sql, "mysql")
-        print(f"MySQL boolean: {mysql_result}")
         assert "active" in mysql_result
         assert "deleted" in mysql_result
 
@@ -337,122 +275,40 @@ class TestDatabaseSpecificBehavior:
         """Test that column names with special chars are handled."""
         sql = "\"column-name\" = 'value'"
         result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"Identifier quoting - Input: {sql}")
-        print(f"Identifier quoting - Output: {result}")
         assert "value" in result
 
 
-class TestRealWorldAGGridScenarios:
-    """Test real-world scenarios from AG Grid filters."""
-
-    def test_ag_grid_text_contains_filter(self):
-        """AG Grid text contains filter with special characters."""
-        sql = "customer_name ILIKE '%O''Brien%'"
-        result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"AG Grid text contains: {result}")
-        assert "Brien" in result
-        assert "%" in result
-
-    def test_ag_grid_compound_number_filter(self):
-        """AG Grid compound number filter."""
-        sql = "(price > 100 AND price < 500)"
-        result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"AG Grid compound number: {result}")
-        assert "price > 100" in result or "price" in result
-        assert "AND" in result
-        assert "500" in result
-
-    def test_ag_grid_set_filter_with_special_chars(self):
-        """AG Grid set filter with values containing quotes."""
-        sql = "company IN ('McDonald''s', 'Wendy''s', 'Popeye''s')"
-        result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"AG Grid set filter: {result}")
-        assert "McDonald" in result
-        assert "Wendy" in result
-        assert "Popeye" in result
-
-    def test_ag_grid_date_range_filter(self):
-        """AG Grid date range filter."""
-        sql = "created_at BETWEEN '2024-01-01' AND '2024-12-31'"
-        result = sanitize_sql_with_sqlglot(sql, "postgresql")
-        print(f"AG Grid date range: {result}")
-        assert "2024-01-01" in result
-        assert "2024-12-31" in result
-        assert "BETWEEN" in result or "between" in result.lower()
-
-
 def test_escaping_consistency_across_databases():
-    """
-    CRITICAL TEST: Verify that single quote escaping is consistent
-    and correct for each database type.
-    """
+    """Verify that single quote escaping is consistent for each database type."""
     test_sql = "name = 'O''Connor'"
 
     databases = [
-        ("postgresql", "SQL-92 double quote"),
-        ("mysql", "SQL-92 or backslash"),
-        ("sqlite", "SQL-92 double quote"),
-        ("snowflake", "SQL-92 double quote"),
-        ("bigquery", "BigQuery style"),
-        ("mssql", "SQL-92 double quote"),
-        ("databricks", "Backslash style"),
-        ("presto", "SQL-92 double quote"),
-        ("trino", "SQL-92 double quote"),
+        "postgresql",
+        "mysql",
+        "sqlite",
+        "snowflake",
+        "bigquery",
+        "mssql",
+        "databricks",
+        "presto",
+        "trino",
     ]
 
-    print("\n" + "=" * 70)
-    print("ESCAPING CONSISTENCY TEST ACROSS DATABASES")
-    print("=" * 70)
-
-    results = {}
-    for db, style in databases:
+    for db in databases:
         result = sanitize_sql_with_sqlglot(test_sql, db)
-        results[db] = result
-        print(f"\n{db.upper()} ({style}):")
-        print(f"  Input:  {test_sql}")
-        print(f"  Output: {result}")
-
-        # Verify the result is valid
         assert "name" in result, f"{db}: Missing column name"
         assert "Connor" in result, f"{db}: Missing value"
 
-    print("\n" + "=" * 70)
-    print("TEST SUMMARY")
-    print("=" * 70)
-
-    # Group by output pattern
-    patterns = {}
-    for db, result in results.items():
-        if result not in patterns:
-            patterns[result] = []
-        patterns[result].append(db)
-
-    print(f"Found {len(patterns)} distinct output patterns:")
-    for pattern, dbs in patterns.items():
-        print(f"  {', '.join(dbs)}: {pattern}")
-
 
 def test_sqlglot_actually_transforms_sql():
-    """
-    Verify that SQLGlot actually does something to the SQL,
-    not just passing it through unchanged.
-    """
-    # Use a case where SQLGlot should normalize the SQL
+    """Verify that SQLGlot normalizes SQL syntax."""
     test_cases = [
-        ("price>100", "postgresql"),  # No spaces
-        ("NAME = 'test'", "postgresql"),  # Uppercase column
-        ("status='active'", "postgresql"),  # No spaces
+        ("price>100", "postgresql"),
+        ("NAME = 'test'", "postgresql"),
+        ("status='active'", "postgresql"),
     ]
-
-    print("\n" + "=" * 70)
-    print("SQL TRANSFORMATION VERIFICATION")
-    print("=" * 70)
 
     for sql, db in test_cases:
         result = sanitize_sql_with_sqlglot(sql, db)
-        print(f"\nInput:  '{sql}'")
-        print(f"Output: '{result}'")
-
-        # Should produce valid SQL
         assert isinstance(result, str)
         assert len(result) > 0

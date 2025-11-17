@@ -75,8 +75,8 @@ export type QueryObjectExtras = Partial<{
 
   time_compare?: string;
 
-  /** Visualization type for escape sanitisation */
-  viz_type?: string;
+  /** Enable SQLGlot escaping for WHERE/HAVING clauses */
+  use_sqlglot_escaping?: boolean;
 }>;
 
 export type ResidualQueryObjectData = {

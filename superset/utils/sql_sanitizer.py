@@ -93,8 +93,3 @@ def _validate_sql_structure(parsed: exp.Expression) -> None:
 
         if isinstance(node, (exp.Union, exp.Intersect, exp.Except)):
             raise ValueError("Set operations are not allowed in filter clauses")
-
-
-def is_ag_grid_viz_type(viz_type: str | None) -> bool:
-    """Check if the visualization type is AG Grid table."""
-    return viz_type == "ag-grid-table"
