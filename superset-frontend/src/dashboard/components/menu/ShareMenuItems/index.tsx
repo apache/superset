@@ -36,7 +36,7 @@ interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   addSuccessToast: Function;
   dashboardId: string | number;
   dashboardComponentId?: string;
-  latestQueryFormData?: object;
+  latestQueryFormData?: LatestQueryFormData;
   maxWidth?: string;
   copyMenuItemRef?: RefObject<any>;
   shareByEmailMenuItemRef?: RefObject<any>;
