@@ -238,9 +238,20 @@ class Model3D extends PureComponent<Model3DProps> {
     }
 
     if (modelError) {
+      const isHttp = modelUrl.startsWith('http://');
       return (
         <div className="model3d-placeholder">
-          {t('Failed to load 3D model. Please check the URL and try again.')}
+          <div>{t('Failed to load 3D model.')}</div>
+          {isHttp && (
+            <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#999' }}>
+              {t('Tip: Try using HTTPS instead of HTTP, or ensure the server allows CORS requests.')}
+            </div>
+          )}
+          {!isHttp && (
+            <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#999' }}>
+              {t('Please check the URL and ensure the server allows CORS requests.')}
+            </div>
+          )}
         </div>
       );
     }
@@ -275,6 +286,20 @@ class Model3D extends PureComponent<Model3DProps> {
         }}
         onError={(e: any) => {
           console.error('Model viewer error:', e);
+          const errorDetail = e.detail || {};
+          const errorMessage = errorDetail.message || '';
+          
+          // Check for CORS errors
+          if (errorMessage.includes('CORS') || errorMessage.includes('Cross-Origin')) {
+            console.error('CORS error detected. The server needs to send Access-Control-Allow-Origin headers.');
+            console.error('Try using HTTPS if the URL redirects from HTTP to HTTPS.');
+          }
+          
+          // Check for 301 redirects (HTTP to HTTPS)
+          if (errorMessage.includes('301') || modelUrl.startsWith('http://')) {
+            console.warn('301 redirect detected. Try using HTTPS URL instead:', modelUrl.replace('http://', 'https://'));
+          }
+          
           this.setState({ modelError: true });
         }}
         onLoad={(e: any) => {
