@@ -117,6 +117,18 @@ const Model3DContainer = styled.div`
       
       /* Add some visual depth */
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+      
+      /* Ensure canvas renders properly */
+      &::part(default-ar-button) {
+        display: none;
+      }
+      
+      /* Fix for texture rendering */
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
     }
 
     .model3d-placeholder {
@@ -152,12 +164,14 @@ declare global {
         'skybox-image'?: string;
         'tone-mapping'?: string;
         'interaction-policy'?: string;
+        'min-camera-orbit'?: string;
+        'max-camera-orbit'?: string;
         ar?: boolean;
         'ar-modes'?: string;
         style?: React.CSSProperties;
         className?: string;
         onError?: (e: Event) => void;
-        onLoad?: () => void;
+        onLoad?: (e: any) => void;
         children?: ReactNode;
       };
     }
@@ -247,11 +261,13 @@ class Model3D extends PureComponent<Model3DProps> {
         camera-controls
         loading="auto"
         reveal="auto"
-        exposure="1.5"
-        shadow-intensity="1.5"
+        exposure="0.8"
+        shadow-intensity="1"
         environment-image="neutral"
         skybox-image=""
-        tone-mapping="commerce"
+        tone-mapping="auto"
+        min-camera-orbit="auto auto auto"
+        max-camera-orbit="auto auto auto"
         interaction-policy="allow-when-focused"
         ar
         ar-modes="webxr scene-viewer quick-look"
@@ -265,8 +281,29 @@ class Model3D extends PureComponent<Model3DProps> {
         onError={(e: any) => {
           console.error('Model viewer error:', e);
         }}
-        onLoad={() => {
+        onLoad={(e: any) => {
           console.log('Model loaded successfully');
+          const modelViewer = e.target;
+          if (modelViewer && modelViewer.model) {
+            // Wait a bit for textures to fully load
+            setTimeout(() => {
+              // Check if model has materials and textures
+              modelViewer.model.traverse((node: any) => {
+                if (node.isMesh && node.material) {
+                  console.log('Mesh material:', node.material);
+                  // Log texture information
+                  if (node.material.map) {
+                    console.log('Material has texture map');
+                  }
+                  // Ensure material is visible
+                  if (node.material.transparent) {
+                    node.material.transparent = false;
+                  }
+                  node.material.needsUpdate = true;
+                }
+              });
+            }, 500);
+          }
         }}
       >
         {/* Add a default material if the model doesn't have one */}
