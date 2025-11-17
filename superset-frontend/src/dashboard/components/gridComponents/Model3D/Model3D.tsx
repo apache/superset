@@ -187,48 +187,24 @@ class Model3D extends PureComponent<Model3DProps> {
   private loadTimeout: NodeJS.Timeout | null = null;
 
   componentDidMount() {
-    // Since we're importing the module, check if custom element is available
-    // It might be registered asynchronously, so poll briefly
-    this.checkCustomElement();
+    // Since we're importing @google/model-viewer as a module, set loaded immediately
+    // The module import should register the custom element, but we don't need to wait
+    // The model-viewer element will work even if not in the registry yet
+    this.setState({ scriptLoaded: true });
     
-    // Set a timeout to prevent infinite hanging (10 seconds max)
-    this.loadTimeout = setTimeout(() => {
-      if (!this.state.scriptLoaded) {
-        console.warn('Model3D: Script loading timeout, proceeding anyway');
-        this.setState({ scriptLoaded: true });
-      }
-    }, 10000);
+    // Also check if it's in registry (for logging/debugging)
+    if (customElements.get('model-viewer')) {
+      console.log('model-viewer custom element found in registry');
+    } else {
+      console.log('model-viewer not in registry yet, but proceeding (module imported)');
+    }
   }
 
   componentWillUnmount() {
     if (this.loadTimeout) {
       clearTimeout(this.loadTimeout);
+      this.loadTimeout = null;
     }
-  }
-
-  checkCustomElement() {
-    // Check if custom element is already defined
-    if (customElements.get('model-viewer')) {
-      this.setState({ scriptLoaded: true });
-      return;
-    }
-
-    // Since we're importing the module, it should be available
-    // Set loaded immediately - the element will work even if not in registry yet
-    // (web components can work before being registered in customElements registry)
-    this.setState({ scriptLoaded: true });
-
-    // Also poll briefly in case registration is delayed (reduced attempts for faster loading)
-    let attempts = 0;
-    const maxAttempts = 5; // 0.5 seconds max (faster)
-    const checkInterval = setInterval(() => {
-      attempts++;
-      if (customElements.get('model-viewer')) {
-        clearInterval(checkInterval);
-      } else if (attempts >= maxAttempts) {
-        clearInterval(checkInterval);
-      }
-    }, 100);
   }
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
