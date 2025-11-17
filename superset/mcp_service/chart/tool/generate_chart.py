@@ -61,7 +61,17 @@ async def generate_chart(  # noqa: C901
     - Embed preview_url as image: ![Chart Preview](preview_url)
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (either 'xy' or 'table')
+ """
+ IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
+    which chart configuration schema to use. It MUST be included and MUST match the
+    other fields in your configuration:
 
+    - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
+      Required fields: x, y
+
+    - Use chart_type='table' for tabular visualizations
+      Required fields: columns
+ """
     Example usage for XY chart:
     ```json
     {
