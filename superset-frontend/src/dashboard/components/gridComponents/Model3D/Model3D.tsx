@@ -204,12 +204,14 @@ class Model3D extends PureComponent<Model3DProps> {
   loadModelViewerScript() {
     // Check if custom element is already defined
     if (this.checkCustomElementDefined()) {
+      console.log('model-viewer already loaded');
       return;
     }
 
     // Check if script tag already exists
     const existingScript = document.querySelector('script[src*="model-viewer"]');
     if (existingScript) {
+      console.log('model-viewer script tag found, waiting for custom element...');
       // Start polling for custom element
       this.checkInterval = setInterval(() => {
         this.checkCustomElementDefined();
@@ -217,44 +219,54 @@ class Model3D extends PureComponent<Model3DProps> {
       
       // Also listen for load event
       existingScript.addEventListener('load', () => {
+        console.log('model-viewer script loaded, checking for custom element...');
         // Wait a bit for custom element registration
         setTimeout(() => {
           this.checkCustomElementDefined();
-        }, 100);
+        }, 200);
       });
       
       // Check immediately in case it's already loaded
       setTimeout(() => {
         this.checkCustomElementDefined();
-      }, 100);
+      }, 200);
       return;
     }
 
     // Load model-viewer from CDN (try unpkg first, then Google CDN as fallback)
     const tryLoadScript = (url: string, isFallback = false) => {
+      console.log(`Loading model-viewer from ${url}...`);
       const script = document.createElement('script');
       script.type = 'module';
       script.src = url;
+      script.crossOrigin = 'anonymous';
       script.onload = () => {
+        console.log(`model-viewer script loaded from ${url}, waiting for custom element registration...`);
         // ES modules may register custom elements asynchronously, so poll
         this.checkInterval = setInterval(() => {
           if (this.checkCustomElementDefined()) {
+            console.log('model-viewer custom element detected!');
             // Already handled in checkCustomElementDefined
           }
         }, 100);
         
-        // Also check after a short delay
+        // Also check after delays (ES modules can take time)
         setTimeout(() => {
           this.checkCustomElementDefined();
-        }, 500);
+        }, 300);
+        setTimeout(() => {
+          this.checkCustomElementDefined();
+        }, 1000);
       };
       script.onerror = (error) => {
         console.error(`Failed to load model-viewer script from ${url}:`, error);
         if (!isFallback) {
           // Try fallback CDN
+          console.log('Trying fallback CDN...');
           tryLoadScript('https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js', true);
         } else {
           // Both CDNs failed
+          console.error('All CDN attempts failed');
           if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
