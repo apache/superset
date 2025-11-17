@@ -25,9 +25,10 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
@@ -180,7 +181,7 @@ class AlertCommand(BaseCommand):
                 stop = default_timer()
                 logger.info(
                     "Query for %s took %.2f ms",
-                    self._report_schedule.name,
+                    self._execution_id,
                     (stop - start) * 1000.0,
                 )
                 return df

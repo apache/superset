@@ -42,8 +42,8 @@ describe('Test explore links', () => {
     cy.wait('@chartData').then(() => {
       cy.get('code');
     });
-    cy.get('.antd5-modal-content').within(() => {
-      cy.get('button.antd5-modal-close').first().click({ force: true });
+    cy.get('.ant-modal-content').within(() => {
+      cy.get('button.ant-modal-close').first().click({ force: true });
     });
   });
 
@@ -124,7 +124,7 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 
@@ -154,10 +154,10 @@ describe('Test explore links', () => {
     // This time around, typing the same dashboard name
     // will select the existing one
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('input[aria-label="Select a dashboard"]')
+      .find('input[aria-label^="Select a dashboard"]')
       .type(`${dashboardTitle}{enter}`, { force: true });
 
-    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 

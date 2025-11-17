@@ -31,8 +31,8 @@ import fetchMock from 'fetch-mock';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 
-jest.mock('src/components', () => ({
-  ...jest.requireActual('src/components'),
+jest.mock('@superset-ui/core/components/Select', () => ({
+  ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }) => (
     <input
       data-test="mock-async-select"
@@ -314,4 +314,34 @@ test('make sure slice_id in the URLSearchParams before the redirect', () => {
     { id: 1 },
   );
   expect(result.get('slice_id')).toEqual('1');
+});
+
+test('removes form_data_key from URL parameters after save', () => {
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: jest.fn(),
+      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: jest.fn(),
+    },
+    user: { userId: 1 },
+    history: {
+      replace: jest.fn(),
+    },
+    dispatch: jest.fn(),
+  };
+
+  const saveModal = new PureSaveModal(myProps);
+
+  // Test with form_data_key in the URL
+  const urlWithFormDataKey = '?form_data_key=12345&other_param=value';
+  const result = saveModal.handleRedirect(urlWithFormDataKey, { id: 1 });
+
+  // form_data_key should be removed
+  expect(result.has('form_data_key')).toBe(false);
+  // other parameters should remain
+  expect(result.get('other_param')).toEqual('value');
+  expect(result.get('slice_id')).toEqual('1');
+  expect(result.get('save_action')).toEqual('overwrite');
 });

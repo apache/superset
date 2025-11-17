@@ -27,6 +27,7 @@ from alembic import op
 from sqlalchemy_utils import EncryptedType
 
 from superset.migrations.shared.utils import (
+    create_index,
     create_table,
     drop_fks_for_table,
 )
@@ -77,9 +78,9 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "idx_user_id_database_id",
+    create_index(
         "database_user_oauth2_tokens",
+        "idx_user_id_database_id",
         ["user_id", "database_id"],
     )
 

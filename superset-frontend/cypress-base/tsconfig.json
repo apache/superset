@@ -10,7 +10,7 @@
     "allowJs": true,
     "noEmit": true
   },
-  "files": ["cypress/support/index.d.ts", "./node_modules/@applitools/eyes-cypress/eyes-index.d.ts"],
+  "files": ["cypress/support/index.d.ts", "./node_modules/@applitools/eyes-cypress/types/index.d.ts"],
   "include": ["cypress/**/*.ts", "./cypress.config.ts"],
   "exclude": ["node_modules"]
 }

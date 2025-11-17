@@ -122,7 +122,7 @@ export const setInScopeStatusOfFilters =
     // need to update native_filter_configuration in the dashboard metadata
     const metadata = cloneDeep(getState().dashboardInfo.metadata);
     const filterConfig: FilterConfiguration =
-      metadata.native_filter_configuration;
+      metadata.native_filter_configuration || [];
     const mergedFilterConfig = filterConfig.map(filter => {
       const filterWithScope = filtersWithScopes.find(
         scope => scope.id === filter.id,
@@ -196,6 +196,32 @@ export function unsetHoveredNativeFilter(): UnsetHoveredNativeFilter {
   };
 }
 
+export const SET_HOVERED_CHART_CUSTOMIZATION =
+  'SET_HOVERED_CHART_CUSTOMIZATION';
+export interface SetHoveredChartCustomization {
+  type: typeof SET_HOVERED_CHART_CUSTOMIZATION;
+  id: string;
+}
+export const UNSET_HOVERED_CHART_CUSTOMIZATION =
+  'UNSET_HOVERED_CHART_CUSTOMIZATION';
+export interface UnsetHoveredChartCustomization {
+  type: typeof UNSET_HOVERED_CHART_CUSTOMIZATION;
+}
+
+export function setHoveredChartCustomization(
+  id: string,
+): SetHoveredChartCustomization {
+  return {
+    type: SET_HOVERED_CHART_CUSTOMIZATION,
+    id,
+  };
+}
+export function unsetHoveredChartCustomization(): UnsetHoveredChartCustomization {
+  return {
+    type: UNSET_HOVERED_CHART_CUSTOMIZATION,
+  };
+}
+
 export const UPDATE_CASCADE_PARENT_IDS = 'UPDATE_CASCADE_PARENT_IDS';
 export interface UpdateCascadeParentIds {
   type: typeof UPDATE_CASCADE_PARENT_IDS;
@@ -223,4 +249,6 @@ export type AnyFilterAction =
   | UnsetFocusedNativeFilter
   | SetHoveredNativeFilter
   | UnsetHoveredNativeFilter
+  | SetHoveredChartCustomization
+  | UnsetHoveredChartCustomization
   | UpdateCascadeParentIds;

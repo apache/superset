@@ -25,26 +25,35 @@ import {
   MouseEvent,
 } from 'react';
 
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
-import ButtonGroup from 'src/components/ButtonGroup';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
+import {
+  Button,
+  ButtonGroup,
+  Tooltip,
+  Card,
+  Input,
+  Label,
+  Loading,
+} from '@superset-ui/core/components';
+import {
+  CopyToClipboard,
+  FilterableTable,
+  ErrorMessageWithStackTrace,
+} from 'src/components';
 import { nanoid } from 'nanoid';
 import {
   QueryState,
-  styled,
   t,
   tn,
-  useTheme,
   usePrevious,
-  css,
   getNumberFormatter,
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -53,17 +62,10 @@ import {
 import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import ProgressBar from 'src/components/ProgressBar';
-import Loading from 'src/components/Loading';
-import Card from 'src/components/Card';
-import Label from 'src/components/Label';
-import { Tooltip } from 'src/components/Tooltip';
-import FilterableTable from 'src/components/FilterableTable';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -79,8 +81,10 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -98,7 +102,6 @@ export interface ResultSetProps {
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
-  height: number;
   queryId: string;
   search?: boolean;
   showSql?: boolean;
@@ -110,24 +113,25 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  height: 100%;
 `;
 
 const ResultlessStyles = styled.div`
   position: relative;
-  min-height: ${({ theme }) => theme.gridUnit * 25}px;
+  min-height: ${({ theme }) => theme.sizeUnit * 25}px;
   [role='alert'] {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
   .sql-result-track-job {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
   white-space: pre;
   word-break: break-word;
   overflow-x: auto;
@@ -135,27 +139,30 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   line-height: 1;
 `;
 
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
+  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
+  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
 `;
 
-const copyButtonStyles = css`
+const CopyStyledButton = styled(Button)`
   &:hover {
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: unset;
   }
+
   span > :first-of-type {
-    margin: 0px;
+    margin: 0;
   }
 `;
 
@@ -169,7 +176,6 @@ const ResultSet = ({
   csv = true,
   database = {},
   displayLimit,
-  height,
   queryId,
   search = true,
   showSql = false,
@@ -189,7 +195,9 @@ const ResultSet = ({
         'dbId',
         'tab',
         'sql',
+        'executedSql',
         'sqlEditorId',
+        'sqlEditorImmutableId',
         'templateParams',
         'schema',
         'rows',
@@ -216,11 +224,11 @@ const ResultSet = ({
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
-  const [alertIsOpen, setAlertIsOpen] = useState(false);
 
   const history = useHistory();
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
+  const { showConfirm, ConfirmModal } = useConfirmModal();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -251,14 +259,6 @@ const ResultSet = ({
     }
   }, [query, cache]);
 
-  const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
-    if (alertElement) {
-      setAlertIsOpen(true);
-    } else {
-      setAlertIsOpen(false);
-    }
-  };
-
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
       id: nanoid(11),
@@ -283,9 +283,8 @@ const ResultSet = ({
       const key = await postFormData(results.query_id, 'query', {
         ...EXPLORE_CHART_DEFAULT,
         datasource: `${results.query_id}__query`,
-        ...{
-          all_columns: results.columns.map(column => column.column_name),
-        },
+
+        all_columns: results.columns.map(column => column.column_name),
       });
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -301,11 +300,11 @@ const ResultSet = ({
   };
 
   const getExportCsvUrl = (clientId: string) =>
-    `/api/v1/sqllab/export/${clientId}/`;
+    ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
 
   const renderControls = () => {
     if (search || visualize || csv) {
-      const { results, queryLimit, limitingFactor, rows } = query;
+      const { limitingFactor, queryLimit, results, rows } = query;
       const limit = queryLimit || results.query.limit;
       const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
       let { data } = query.results;
@@ -313,7 +312,6 @@ const ResultSet = ({
         data = cachedData;
       }
       const { columns } = query.results;
-      // Added compute logic to stop user from being able to Save & Explore
 
       const datasource: ISaveableDatasource = {
         columns: query.results.columns as ISimpleColumn[],
@@ -329,6 +327,27 @@ const ResultSet = ({
         'SQLLab',
         user?.roles,
       );
+
+      const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
+        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+
+        if (limitingFactor === LimitingFactor.Dropdown && limit === rowsCount) {
+          event.preventDefault();
+
+          showConfirm({
+            title: t('Download is on the way'),
+            body: t(
+              'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
+              { rows: rowsCount.toLocaleString() },
+            ),
+            onConfirm: () => {
+              window.location.href = getExportCsvUrl(query.id);
+            },
+            confirmText: t('OK'),
+            cancelText: t('Close'),
+          });
+        }
+      };
 
       return (
         <ResultSetControls>
@@ -350,51 +369,28 @@ const ResultSet = ({
               />
             )}
             {csv && canExportData && (
-              <Button
-                css={copyButtonStyles}
+              <CopyStyledButton
                 buttonSize="small"
+                buttonStyle="secondary"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
-                onClick={() => {
-                  logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
-                  if (
-                    limitingFactor === LimitingFactor.Dropdown &&
-                    limit === rowsCount
-                  ) {
-                    Modal.warning({
-                      title: t('Download is on the way'),
-                      content: t(
-                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
-                        { rows: rowsCount.toLocaleString() },
-                      ),
-                    });
-                  }
-                }}
+                onClick={handleDownloadCsv}
               >
-                <Icons.DownloadOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.primary.dark2}
-                />{' '}
-                {t('Download to CSV')}
-              </Button>
+                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
+              </CopyStyledButton>
             )}
-
             {canExportData && (
               <CopyToClipboard
                 text={prepareCopyToClipboardTabularData(data, columns)}
                 wrapped={false}
                 copyNode={
-                  <Button
-                    css={copyButtonStyles}
+                  <CopyStyledButton
                     buttonSize="small"
+                    buttonStyle="secondary"
                     data-test="copy-to-clipboard-button"
                   >
-                    <Icons.CopyOutlined
-                      iconSize="s"
-                      iconColor={theme.colors.primary.dark2}
-                    />{' '}
-                    {t('Copy to Clipboard')}
-                  </Button>
+                    <Icons.CopyOutlined iconSize="s" /> {t('Copy to Clipboard')}
+                  </CopyStyledButton>
                 }
                 hideTooltip
                 onCopyEnd={() =>
@@ -404,8 +400,7 @@ const ResultSet = ({
             )}
           </ResultSetButtons>
           {search && (
-            <input
-              type="text"
+            <Input
               onChange={changeSearch}
               value={searchText}
               className="form-control input-sm"
@@ -473,12 +468,11 @@ const ResultSet = ({
       return (
         <>
           {!limitReached && shouldUseDefaultDropdownAlert && (
-            <div ref={calculateAlertRefHeight}>
+            <div>
               <Alert
+                closable
                 type="warning"
-                message={t('%(rows)d rows returned', { rows })}
-                onClose={() => setAlertIsOpen(false)}
-                description={t(
+                message={t(
                   'The number of rows displayed is limited to %(rows)d by the dropdown.',
                   { rows },
                 )}
@@ -486,12 +480,11 @@ const ResultSet = ({
             </div>
           )}
           {limitReached && (
-            <div ref={calculateAlertRefHeight}>
+            <div>
               <Alert
+                closable
                 type="warning"
-                onClose={() => setAlertIsOpen(false)}
-                message={t('%(rows)d rows returned', { rows: rowsCount })}
-                description={
+                message={
                   isAdmin
                     ? displayMaxRowsReachedMessage.withAdmin
                     : displayMaxRowsReachedMessage.withoutAdmin
@@ -516,14 +509,14 @@ const ResultSet = ({
             >
               <Label
                 css={css`
-                  line-height: ${theme.typography.sizes.l}px;
+                  line-height: ${theme.fontSizeLG}px;
                 `}
               >
                 {limitMessage && (
                   <Icons.ExclamationCircleOutlined
                     css={css`
-                      font-size: ${theme.typography.sizes.m}px;
-                      margin-right: ${theme.gridUnit}px;
+                      font-size: ${theme.fontSize}px;
+                      margin-right: ${theme.sizeUnit}px;
                     `}
                   />
                 )}
@@ -536,7 +529,6 @@ const ResultSet = ({
     );
   };
 
-  const limitReached = query?.results?.displayLimitReached;
   let sql;
   let exploreDBId = query.dbId;
   if (database?.explore_database_id) {
@@ -567,6 +559,7 @@ const ResultSet = ({
     sql = (
       <HighlightedSql
         sql={query.sql}
+        rawSql={query.executedSql}
         {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
       />
     );
@@ -630,7 +623,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  css={{ marginRight: theme.gridUnit }}
+                  css={{ marginRight: theme.sizeUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}
@@ -650,17 +643,6 @@ const ResultSet = ({
 
   if (query.state === QueryState.Success && query.results) {
     const { results } = query;
-    // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
-    const rowMessageHeight = !limitReached ? 32 : 0;
-    // Accounts for offset needed for height of Alert if this.state.alertIsOpen
-    const alertContainerHeight = 70;
-    // We need to calculate the height of this.renderRowsReturned()
-    // if we want results panel to be proper height because the
-    // FilterTable component needs an explicit height to render
-    // the Table component
-    const rowsHeight = alertIsOpen
-      ? height - alertContainerHeight
-      : height - rowMessageHeight;
     let data;
     if (cache && query.cached) {
       data = cachedData;
@@ -676,55 +658,73 @@ const ResultSet = ({
         true,
       );
       return (
-        <ResultContainer>
-          {renderControls()}
-          {showSql && showSqlInline ? (
-            <>
-              <div
-                css={css`
-                  display: flex;
-                  justify-content: space-between;
-                  gap: ${GAP}px;
-                `}
-              >
-                <Card
-                  css={[
-                    css`
-                      height: 28px;
-                      width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
-                      code {
-                        width: 100%;
-                        overflow: hidden;
-                        white-space: nowrap !important;
-                        text-overflow: ellipsis;
-                        display: block;
-                      }
-                    `,
-                  ]}
+        <>
+          <ResultContainer>
+            {renderControls()}
+            {showSql && showSqlInline ? (
+              <>
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    padding-left: ${theme.sizeUnit * 4}px;
+                    align-items: center;
+                    gap: ${GAP}px;
+                  `}
                 >
-                  {sql}
-                </Card>
+                  <Card
+                    css={[
+                      css`
+                        height: 28px;
+                        width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
+                        code {
+                          width: 100%;
+                          overflow: hidden;
+                          white-space: nowrap !important;
+                          text-overflow: ellipsis;
+                          display: block;
+                        }
+                      `,
+                    ]}
+                  >
+                    {sql}
+                  </Card>
+                  {renderRowsReturned(false)}
+                </div>
+                {renderRowsReturned(true)}
+              </>
+            ) : (
+              <>
                 {renderRowsReturned(false)}
-              </div>
-              {renderRowsReturned(true)}
-            </>
-          ) : (
-            <>
-              {renderRowsReturned(false)}
-              {renderRowsReturned(true)}
-              {sql}
-            </>
-          )}
-          <ResultTable
-            data={data}
-            queryId={query.id}
-            orderedColumnKeys={results.columns.map(col => col.column_name)}
-            height={rowsHeight}
-            filterText={searchText}
-            expandedColumns={expandedColumns}
-            allowHTML={allowHTML}
-          />
-        </ResultContainer>
+                {renderRowsReturned(true)}
+                {sql}
+              </>
+            )}
+            <div
+              css={css`
+                flex: 1 1 auto;
+                padding-left: ${theme.sizeUnit * 4}px;
+              `}
+            >
+              <AutoSizer disableWidth>
+                {({ height }) => (
+                  <ResultTable
+                    data={data}
+                    queryId={query.id}
+                    orderedColumnKeys={results.columns.map(
+                      col => col.column_name,
+                    )}
+                    height={height}
+                    filterText={searchText}
+                    expandedColumns={expandedColumns}
+                    allowHTML={allowHTML}
+                  />
+                )}
+              </AutoSizer>
+            </div>
+          </ResultContainer>
+          {ConfirmModal}
+        </>
       );
     }
     if (data && data.length === 0) {

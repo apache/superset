@@ -33,6 +33,7 @@ cover
 .env
 .envrc
 .idea
+.roo
 .mypy_cache
 .python-version
 .tox
@@ -43,7 +44,7 @@ _modules
 _static
 build
 app.db
-apache_superset.egg-info/
+*.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -92,6 +93,7 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
+.venv
 @eaDir/
 
 # PyCharm
@@ -120,10 +122,19 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+docker/superset-websocket/config.json
+docker-compose.override.yml
 
 .temp_cache
 
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+
+# LLM-related
+CLAUDE.local.md
+PROJECT.md
 .aider*
+.claude_rc*
+.env.local
+oxc-custom-build/

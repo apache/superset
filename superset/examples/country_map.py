@@ -17,7 +17,6 @@
 import datetime
 import logging
 
-import pandas as pd
 from sqlalchemy import BigInteger, Date, inspect, String
 from sqlalchemy.sql import column
 
@@ -25,15 +24,15 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,8 +48,9 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("birth_france_data_for_country_map.csv")
-            data = pd.read_csv(url, encoding="utf-8")
+            data = read_example_data(
+                "examples://birth_france_data_for_country_map.csv", encoding="utf-8"
+            )
             data["dttm"] = datetime.datetime.now().date()
             data.to_sql(
                 tbl_name,

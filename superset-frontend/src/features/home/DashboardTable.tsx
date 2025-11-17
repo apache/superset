@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t, useTheme } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -36,11 +36,10 @@ import {
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
-import DeleteModal from 'src/components/DeleteModal';
+import { DeleteModal, Loading } from '@superset-ui/core/components';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
@@ -56,7 +55,6 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
@@ -120,12 +118,17 @@ function DashboardTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dashboard', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected dashboards'));
+    }
   };
 
   const handleDashboardEdit = (edits: Dashboard) =>
@@ -184,19 +187,18 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={activeTab}
+        backgroundColor="transparent"
         tabs={menuTabs}
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconColor={theme.colors.primary.dark1}
-                  iconSize="m"
-                />
-                {t('Dashboard')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
-            buttonStyle: 'tertiary',
+            name: t('Dashboard'),
+            buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/dashboard/new', { assign: true });
             },

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   cleanup,
   render,
@@ -168,9 +168,9 @@ function getCheckboxState(name: string): CheckboxState {
   const element = screen.getByRole('link', { name });
   const svgPath = getCheckboxIcon(element).children[1].children[0].children[0];
   const fill = svgPath.getAttribute('fill');
-  return fill === supersetTheme.colors.primary.base
+  return fill === supersetTheme.colorPrimary
     ? CHECKED
-    : fill === supersetTheme.colors.grayscale.light1
+    : fill === supersetTheme.colorTextSecondary
       ? INDETERMINATE
       : UNCHECKED;
 }

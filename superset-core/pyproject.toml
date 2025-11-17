@@ -1,0 +1,67 @@
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+[project]
+name = "apache-superset-core"
+version = "0.0.1rc2"
+description = "Core Python package for building Apache Superset backend extensions and integrations"
+readme = "README.md"
+authors = [
+    { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
+]
+license = { file="LICENSE.txt" }
+requires-python = ">=3.10"
+keywords = ["superset", "apache", "analytics", "business-intelligence", "extensions", "visualization"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "flask-appbuilder>=5.0.2,<6",
+    "sqlalchemy>=1.4.0,<2.0",
+    "sqlalchemy-utils>=0.38.0",
+    "sqlglot>=27.15.2, <28",
+    "typing-extensions>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://superset.apache.org/"
+Documentation = "https://superset.apache.org/docs/"
+Repository = "https://github.com/apache/superset"
+"Bug Tracker" = "https://github.com/apache/superset/issues"
+Changelog = "https://github.com/apache/superset/blob/master/CHANGELOG.md"
+
+[build-system]
+requires = ["setuptools>=76.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

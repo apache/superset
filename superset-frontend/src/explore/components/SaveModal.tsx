@@ -22,24 +22,26 @@ import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
-  css,
+  InfoTooltip,
+  Button,
+  AsyncSelect,
+  Form,
+  FormItem,
+  Modal,
+  Input,
+  Loading,
+  Divider,
+} from '@superset-ui/core/components';
+import {
   DatasourceType,
   isDefined,
   logging,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Form, FormItem } from 'src/components/Form';
-import Alert from 'src/components/Alert';
-import Modal from 'src/components/Modal';
-import { Radio } from 'src/components/Radio';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import Loading from 'src/components/Loading';
+import { css, styled, Alert } from '@apache-superset/core/ui';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
@@ -73,13 +75,13 @@ type SaveModalState = {
 };
 
 export const StyledModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     overflow: visible;
   }
   i {
     position: absolute;
-    top: -${({ theme }) => theme.gridUnit * 5.25}px;
-    left: ${({ theme }) => theme.gridUnit * 26.75}px;
+    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
+    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
@@ -165,9 +167,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
     searchParams.set('save_action', this.state.action);
-    if (this.state.action !== 'overwrite') {
-      searchParams.delete('form_data_key');
-    }
+
+    searchParams.delete('form_data_key');
 
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
@@ -354,7 +355,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             {t('Save as...')}
           </Radio>
         </FormItem>
-        <hr />
+        <Divider />
         <FormItem label={t('Chart name')} required>
           <Input
             name="new_slice_name"
@@ -367,7 +368,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         </FormItem>
         {this.props.datasource?.type === 'query' && (
           <FormItem label={t('Dataset Name')} required>
-            <InfoTooltipWithTrigger
+            <InfoTooltip
               tooltip={t('A reusable dataset will be saved with your chart.')}
               placement="right"
             />
@@ -438,7 +439,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderFooter = () => (
     <div data-test="save-modal-footer">
-      <Button id="btn_cancel" buttonSize="small" onClick={this.onHide}>
+      <Button
+        id="btn_cancel"
+        buttonSize="small"
+        onClick={this.onHide}
+        buttonStyle="secondary"
+      >
         {t('Cancel')}
       </Button>
       <Button

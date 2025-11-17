@@ -16,11 +16,10 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
-
 from datetime import datetime
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
@@ -38,7 +37,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -660,6 +659,14 @@ def test_get_schema_access_for_file_upload() -> None:
     """
     Test the `get_schema_access_for_file_upload` method.
     """
+    # Skip if gsheets dialect is not available (Shillelagh not installed in Docker)
+    try:
+        from sqlalchemy import create_engine
+
+        create_engine("gsheets://")
+    except Exception:
+        pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
+
     database = Database(
         database_name="first-database",
         sqlalchemy_uri="gsheets://",
@@ -676,14 +683,16 @@ def test_get_schema_access_for_file_upload() -> None:
     assert database.get_schema_access_for_file_upload() == {"public"}
 
 
-def test_engine_context_manager(mocker: MockerFixture) -> None:
+def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> None:
     """
     Test the engine context manager.
     """
-    engine_context_manager = mocker.MagicMock()
-    mocker.patch(
-        "superset.models.core.config",
-        new={"ENGINE_CONTEXT_MANAGER": engine_context_manager},
+    from unittest.mock import MagicMock
+
+    engine_context_manager = MagicMock()
+    mocker.patch.dict(
+        current_app.config,
+        {"ENGINE_CONTEXT_MANAGER": engine_context_manager},
     )
     _get_sqla_engine = mocker.patch.object(Database, "_get_sqla_engine")
 
@@ -910,3 +919,144 @@ def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
             ("third_view", "public", "examples"),
         }
     )
+
+
+@pytest.mark.parametrize(
+    "sql, limit, force, method, expected",
+    [
+        (
+            "SELECT * FROM table",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM table LIMIT 100",
+            10,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            True,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM a  \t \n   ; \t  \n  ",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM a\nLIMIT 1000",
+        ),
+        (
+            "SELECT 'LIMIT 777'",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777'\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM table",
+            1000,
+            False,
+            LimitMethod.FETCH_MANY,
+            "SELECT\n  *\nFROM table",
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            """SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM a
+  LIMIT 10
+)
+LIMIT 1000""",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+    table
+LIMIT 99990""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT         99990            ;""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990, 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 99990",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990
+OFFSET 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 999999",
+        ),
+    ],
+)
+def test_apply_limit_to_sql(
+    sql: str,
+    limit: int,
+    force: bool,
+    method: LimitMethod,
+    expected: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `apply_limit_to_sql` method.
+    """
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    db_engine_spec = mocker.MagicMock(limit_method=method)
+    db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
+
+    limited = db.apply_limit_to_sql(sql, limit, force)
+    assert limited == expected

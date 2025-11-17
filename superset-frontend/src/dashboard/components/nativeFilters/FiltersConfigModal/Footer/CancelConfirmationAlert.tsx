@@ -18,8 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
-import Alert from 'src/components/Alert';
-import Button, { OnClickHandler } from 'src/components/Button';
+import { Button, type OnClickHandler } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/ui';
 
 export interface ConfirmationAlertProps {
   title: string;
@@ -43,7 +43,7 @@ export function CancelConfirmationAlert({
       css={{
         textAlign: 'left',
         flex: 1,
-        '& .antd5-alert-action': { alignSelf: 'center' },
+        '& .ant-alert-action': { alignSelf: 'center' },
       }}
       description={children}
       action={

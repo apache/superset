@@ -35,7 +35,7 @@ afterEach(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 
-jest.mock('src/components/AsyncAceEditor', () => ({
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   SQLEditor: ({ value, onChange }: IAceEditorProps) => (
     <textarea
       defaultValue={value}

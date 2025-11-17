@@ -94,9 +94,9 @@ under the License.
 | can available domains on Superset                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can request access on Superset                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can dashboard on Superset                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can post on TableSchemaView                      |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can expanded on TableSchemaView                  |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can delete on TableSchemaView                    |:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can post on TableSchemaView                      |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can expanded on TableSchemaView                  |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can delete on TableSchemaView                    |:heavy_check_mark:|O|O|:heavy_check_mark:|
 | can get on TabStateView                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can post on TabStateView                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can delete query on TabStateView                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -132,13 +132,6 @@ under the License.
 | can download on DynamicPlugin                    |:heavy_check_mark:|O|O|O|
 | can add on DynamicPlugin                         |:heavy_check_mark:|O|O|O|
 | can delete on DynamicPlugin                      |:heavy_check_mark:|O|O|O|
-| can edit on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can list on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can show on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can download on RowLevelSecurityFiltersModelView |:heavy_check_mark:|O|O|O|
-| can add on RowLevelSecurityFiltersModelView      |:heavy_check_mark:|O|O|O|
-| can delete on RowLevelSecurityFiltersModelView   |:heavy_check_mark:|O|O|O|
-| muldelete on RowLevelSecurityFiltersModelView    |:heavy_check_mark:|O|O|O|
 | can external metadata by name on Datasource      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can get value on KV                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can store on KV                                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

@@ -17,15 +17,10 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import {
-  css,
-  t,
-  getChartMetadataRegistry,
-  styled,
-  SupersetTheme,
-} from '@superset-ui/core';
-import { usePluginContext } from 'src/components/DynamicPlugins';
-import Modal from 'src/components/Modal';
+import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { usePluginContext } from 'src/components';
+import { Icons, Modal } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { FilterPlugins } from 'src/constants';
@@ -52,19 +47,17 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
     <div
       className="text-danger"
       css={(theme: SupersetTheme) => css`
-        margin-top: ${theme.gridUnit}px;
+        margin-top: ${theme.sizeUnit}px;
       `}
     >
-      {/* TODO: Remove fa-icon */}
-      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i className="fa fa-exclamation-circle text-danger" />{' '}
+      <Icons.ExclamationCircleOutlined className="text-danger" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>
   );
 }
 
 const UnpaddedModal = styled(Modal)`
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 0;
   }
 `;
@@ -101,7 +94,7 @@ const VizTypeControl = ({
     <>
       <div
         css={(theme: SupersetTheme) => css`
-          min-width: ${theme.gridUnit * 72}px;
+          min-width: ${theme.sizeUnit * 72}px;
           max-width: fit-content;
         `}
       >
@@ -112,9 +105,11 @@ const VizTypeControl = ({
         css={(theme: SupersetTheme) => css`
           display: flex;
           justify-content: flex-end;
-          margin-top: ${theme.gridUnit * 3}px;
-          color: ${theme.colors.grayscale.base};
+          margin-top: ${theme.sizeUnit * 2}px;
+          color: ${theme.colorTextSecondary};
           text-decoration: underline;
+          font-size: ${theme.fontSizeSM}px;
+          color: ${theme.colorTextTertiary};
         `}
       >
         <span role="button" tabIndex={0} onClick={openModal}>

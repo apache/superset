@@ -24,19 +24,19 @@ import {
   RefObject,
 } from 'react';
 
-import { withTheme } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/ui';
 
-import {
-  FilterValue,
-  Filters,
+import type {
+  ListViewFilterValue as FilterValue,
+  ListViewFilters as Filters,
   InternalFilter,
   SelectOption,
-} from 'src/components/ListView/types';
+} from '../types';
+import type { FilterHandler } from './types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
-import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -80,6 +80,7 @@ function UIFilters(
             dateFilterValueType,
             min,
             max,
+            dropdownStyle,
           },
           index,
         ) => {
@@ -109,6 +110,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
+                dropdownStyle={dropdownStyle}
               />
             );
           }

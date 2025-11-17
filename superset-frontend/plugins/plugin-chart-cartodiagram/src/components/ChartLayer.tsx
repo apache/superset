@@ -20,7 +20,7 @@ import Layer from 'ol/layer/Layer';
 import { FrameState } from 'ol/Map';
 import { apply as applyTransform } from 'ol/transform';
 import ReactDOM from 'react-dom';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { ChartConfig, ChartLayerOptions, ChartSizeValues } from '../types';
 import { createChartComponent } from '../util/chartUtil';
 import { getProjectedCoordinateFromPointGeoJson } from '../util/geometryUtil';
@@ -51,6 +51,8 @@ export class ChartLayer extends Layer {
   chartBackgroundBorderRadius = 0;
 
   theme: SupersetTheme;
+
+  locale: string;
 
   /**
    * Create a ChartLayer.
@@ -89,6 +91,10 @@ export class ChartLayer extends Layer {
 
     if (options.theme) {
       this.theme = options.theme;
+    }
+
+    if (options.locale) {
+      this.locale = options.locale;
     }
 
     const spinner = document.createElement('img');
@@ -183,6 +189,7 @@ export class ChartLayer extends Layer {
         chartWidth,
         chartHeight,
         this.theme,
+        this.locale,
       );
       ReactDOM.render(chartComponent, container);
 
@@ -218,6 +225,7 @@ export class ChartLayer extends Layer {
         chartWidth,
         chartHeight,
         this.theme,
+        this.locale,
       );
       ReactDOM.render(chartComponent, chart.htmlElement);
 

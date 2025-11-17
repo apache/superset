@@ -17,12 +17,14 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { useTheme, t, GenericDataType } from '@superset-ui/core';
-
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
 } from '@superset-ui/chart-controls';
+import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
 import {
   ColumnConfigInfo,
@@ -129,8 +131,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       <ControlHeader {...props} />
       <div
         css={{
-          border: `1px solid ${theme.colors.grayscale.light2}`,
-          borderRadius: theme.gridUnit,
+          border: `1px solid ${theme.colorBorder}`,
+          borderRadius: theme.borderRadius,
         }}
       >
         {columnsWithChildInfo.map(col => (
@@ -166,29 +168,24 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             role="button"
             tabIndex={-1}
             css={{
-              padding: theme.gridUnit * 2,
+              padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
-              fontSize: theme.typography.sizes.xs,
-              color: theme.colors.text.label,
+              fontSize: theme.fontSizeXS,
+              color: theme.colorTextLabel,
               ':hover': {
-                backgroundColor: theme.colors.grayscale.light4,
+                backgroundColor: theme.colorFillContentHover,
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}
           >
             {showAllColumns ? (
               <>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-angle-up" /> &nbsp; {t('Show less columns')}
+                <Icons.UpOutlined /> &nbsp; {t('Show less columns')}
               </>
             ) : (
               <>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-angle-down" /> &nbsp;
-                {t('Show all columns')}
+                <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
           </div>

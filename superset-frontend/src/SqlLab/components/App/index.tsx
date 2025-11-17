@@ -20,7 +20,8 @@ import { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { throttle } from 'lodash';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
@@ -45,13 +46,13 @@ const SqlLabStyles = styled.div`
       right: 0;
       bottom: 0;
       left: 0;
-      padding: 0 ${theme.gridUnit * 2}px;
+      padding: 0 ${theme.sizeUnit * 2}px;
 
       pre:not(.code) {
         padding: 0 !important;
         margin: 0;
         border: none;
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
         background: transparent !important;
       }
 
@@ -76,7 +77,7 @@ const SqlLabStyles = styled.div`
       .ant-tabs-content {
         height: 100%;
         position: relative;
-        background-color: ${theme.colors.grayscale.light5};
+        background-color: ${theme.colorBgContainer};
         overflow-x: auto;
         overflow-y: auto;
 
@@ -89,11 +90,11 @@ const SqlLabStyles = styled.div`
         }
       }
 
-      .ResultsModal .antd5-modal-body {
-        min-height: ${theme.gridUnit * 140}px;
+      .ResultsModal .ant-modal-body {
+        min-height: ${theme.sizeUnit * 140}px;
       }
 
-      .antd5-modal-body {
+      .ant-modal-body {
         overflow: auto;
       }
     }

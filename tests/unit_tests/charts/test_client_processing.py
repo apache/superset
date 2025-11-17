@@ -24,6 +24,7 @@ from sqlalchemy.orm.session import Session
 from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
+from tests.conftest import with_config
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -2060,6 +2061,97 @@ COUNT(is_software_dev)
     }
 
 
+def test_apply_client_processing_csv_format_simple_table():
+    """
+    It should be able to process csv results
+    And not show a default column
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": """
+COUNT(is_software_dev)
+4725
+""",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "table",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_client_processing(result, form_data) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "COUNT(is_software_dev)\n4725\n",
+                "colnames": ["COUNT(is_software_dev)"],
+                "indexnames": [0],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            }
+        ]
+    }
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
@@ -2562,3 +2654,137 @@ def test_pivot_multi_level_index():
 | ('Total (Sum)', '', '')           |            210 |            105 |              0 |
     """.strip()
     )
+
+
+@with_config({"REPORTS_CSV_NA_NAMES": []})
+def test_apply_client_processing_csv_format_preserves_na_strings():
+    """
+    Test that apply_client_processing preserves "NA" when REPORTS_CSV_NA_NAMES is [].
+
+    This ensures that scheduled reports can be configured to
+    preserve strings like "NA" as literal values.
+    """
+
+    # CSV data with "NA" string that should be preserved
+    csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["first_name", "last_name"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    # Test with REPORTS_CSV_NA_NAMES set to empty list (disable NA conversion)
+
+    processed_result = apply_client_processing(result, form_data)
+
+    # Verify the CSV data still contains "NA" as string, not converted to null
+    output_data = processed_result["queries"][0]["data"]
+    assert "NA" in output_data
+    # The "NA" should be preserved in the output CSV
+    lines = output_data.strip().split("\n")
+    assert "Alice,NA" in lines[2]  # Second data row should preserve "NA"
+
+
+@with_config({"REPORTS_CSV_NA_NAMES": ["MISSING"]})
+def test_apply_client_processing_csv_format_custom_na_values():
+    """
+    Test that apply_client_processing respects custom NA values configuration.
+    """
+
+    csv_data = "name,status\nJeff,MISSING\nAlice,OK"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "status"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    # Test with custom NA values - only "MISSING" should be treated as NA
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    assert len(lines) >= 3  # header + 2 data rows
+    assert "Jeff," in lines[1]  # First data row should have empty status after "Jeff,"
+    assert "Alice,OK" in lines[2]  # Second data row should preserve "OK"
+
+
+@with_config({"REPORTS_CSV_NA_NAMES": []})
+def test_apply_client_processing_csv_format_default_na_behavior():
+    """
+    Test that apply_client_processing uses default pandas NA behavior
+    when REPORTS_CSV_NA_NAMES is not configured.
+    This ensures backwards compatibility.
+    """
+
+    # CSV data with "NA" string that should be converted to null in default behavior
+    csv_data = "first_name,last_name\nJeff,Smith\nAlice,NA"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["first_name", "last_name"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    # Verify the CSV data has "NA" converted to empty (default pandas behavior)
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    assert len(lines) >= 3  # header + 2 data rows
+    # The "NA" should be converted to empty by default pandas behavior
+    assert (
+        "Alice," in lines[2]
+    )  # Second data row should have empty last_name (NA converted to null)

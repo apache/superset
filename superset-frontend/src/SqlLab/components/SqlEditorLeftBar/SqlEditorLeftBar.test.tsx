@@ -129,7 +129,7 @@ test('table should be visible when expanded is true', async () => {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema or type to search schemas: main',
   });
   const tableSelect = getAllByLabelText(
     /Select table or type to search tables/i,
@@ -275,7 +275,7 @@ test('When changing database the schema and table list must be updated', async (
     await screen.findByRole('option', { name: 'new_schema' }),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getAllByText('new_schema')[1]);
+  userEvent.click(screen.getByText('new_schema'));
 
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();

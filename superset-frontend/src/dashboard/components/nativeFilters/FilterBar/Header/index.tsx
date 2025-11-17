@@ -17,10 +17,11 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { memo, FC } from 'react';
-import { Icons } from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 
@@ -31,12 +32,12 @@ const TitleArea = styled.div`
     flex-direction: row;
     justify-content: space-between;
     margin: 0;
-    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
 
     & > span {
-      font-size: ${theme.typography.sizes.l}px;
+      font-size: ${theme.fontSizeLG}px;
       flex-grow: 1;
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     & > div:first-of-type {
@@ -55,8 +56,8 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-      theme.gridUnit
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
+      theme.sizeUnit
     }px;
   `}
 `;
@@ -68,7 +69,7 @@ type HeaderProps = {
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
   <Wrapper>
     <TitleArea>
-      <span>{t('Filters')}</span>
+      <span>{t('Actions')}</span>
       <FilterBarSettings />
       <HeaderButton
         {...getFilterBarTestId('collapse-button')}

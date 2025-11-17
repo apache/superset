@@ -25,10 +25,10 @@ import {
   FC,
 } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
+import { Input, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const TitleLabel = styled.span`
   display: inline-block;
@@ -38,7 +38,7 @@ const TitleLabel = styled.span`
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
-  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
 `;
 
 export interface AdhocMetricEditPopoverTitleProps {
@@ -123,9 +123,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
         <Icons.EditOutlined
-          iconColor={
-            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
-          }
+          iconColor={isHovered ? theme.colorPrimary : theme.colorIcon}
           iconSize="m"
         />
       </span>

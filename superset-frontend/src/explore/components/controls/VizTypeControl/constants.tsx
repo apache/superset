@@ -17,7 +17,8 @@
  * under the License.
  */
 import { VizType } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { css } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
 
 export const FEATURED_CHARTS: VizMeta[] = [
@@ -33,7 +34,17 @@ export const FEATURED_CHARTS: VizMeta[] = [
   { name: VizType.Table, icon: <Icons.TableOutlined iconSize="l" /> },
   {
     name: VizType.BigNumberTotal,
-    icon: <Icons.BigNumberChartTile />,
+    icon: (
+      <Icons.BigNumberChartTile
+        iconSize="l"
+        viewBox="0 0 16 14"
+        css={css`
+          path {
+            fill: currentColor;
+          }
+        `}
+      />
+    ),
   },
   { name: VizType.Pie, icon: <Icons.PieChartOutlined iconSize="l" /> },
 ];

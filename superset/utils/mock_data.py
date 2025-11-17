@@ -34,7 +34,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 
 logger = logging.getLogger(__name__)

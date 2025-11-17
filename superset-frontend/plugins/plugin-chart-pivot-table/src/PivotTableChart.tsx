@@ -31,10 +31,9 @@ import {
   isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
-  styled,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
@@ -55,21 +54,50 @@ const Styles = styled.div<PivotTableStylesProps>`
 `;
 
 const PivotTableWrapper = styled.div`
-  height: 100%;
-  max-width: inherit;
-  overflow: auto;
+  ${({ theme }) => `
+    height: 100%;
+    max-width: inherit;
+    overflow: auto;
+
+    /* Chrome/Safari/Edge webkit scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
+  `}
 `;
 
 const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
 const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
@@ -404,7 +432,7 @@ export default function PivotTableChart(props: PivotTableProps) {
 
       const [key, val] = filtersEntries[filtersEntries.length - 1];
 
-      let updatedFilters = { ...(selectedFilters || {}) };
+      let updatedFilters = { ...selectedFilters };
       // multi select
       // if (selectedFilters && isActiveFilterValue(key, val)) {
       //   updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);
@@ -538,7 +566,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   return (
-    <Styles height={height} width={width} margin={theme.gridUnit * 4}>
+    <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
       <PivotTableWrapper>
         <PivotTable
           data={unpivotedData}

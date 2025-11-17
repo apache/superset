@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  supersetTheme,
-  TimeGranularity,
-  VizType,
-} from '@superset-ui/core';
+import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -128,9 +124,10 @@ describe('BigNumberWithTrendline', () => {
       expect(lastDatum?.[0]).toStrictEqual(100);
       expect(lastDatum?.[1]).toBeNull();
 
-      // should note this is a fallback
+      // should get the last non-null value
       expect(transformed.bigNumber).toStrictEqual(1.2345);
-      expect(transformed.bigNumberFallback).not.toBeNull();
+      // bigNumberFallback is only set when bigNumber is null after aggregation
+      expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
       // @ts-ignore

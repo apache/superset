@@ -26,7 +26,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Literal, TYPE_CHECKING
 
-from flask import g, request
+from flask import g, has_request_context, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -193,14 +193,15 @@ class AbstractEventLogger(ABC):
 
         # Whenever a user is not bounded to a session we
         # need to add them back before logging to capture user_id
-        if user_id is None:
+        if user_id is None and has_request_context():
             try:
-                db.session.add(g.user)
-                user_id = get_user_id()
-            except Exception as ex:  # pylint: disable=broad-except
-                logging.warning(ex)
+                actual_user = g.get("user", None)
+                if actual_user is not None:
+                    db.session.add(actual_user)
+                    user_id = get_user_id()
+            except Exception as ex:
+                logging.warning("Failed to add user to db session: %s", ex)
                 user_id = None
-
         payload = collect_request_payload()
         if object_ref:
             payload["object_ref"] = object_ref
@@ -309,11 +310,13 @@ class AbstractEventLogger(ABC):
         """Decorator that uses the function name as the action"""
         return self._wrapper(f)
 
-    def log_this_with_context(self, **kwargs: Any) -> Callable[..., Any]:
+    def log_this_with_context(
+        self, allow_extra_payload: bool = False, **kwargs: Any
+    ) -> Callable[..., Any]:
         """Decorator that can override kwargs of log_context"""
 
         def func(f: Callable[..., Any]) -> Callable[..., Any]:
-            return self._wrapper(f, **kwargs)
+            return self._wrapper(f, allow_extra_payload=allow_extra_payload, **kwargs)
 
         return func
 
@@ -342,7 +345,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             textwrap.dedent(
                 """
                 In superset private config, EVENT_LOGGER has been assigned a class
-                object. In order to accomodate pre-configured instances without a
+                object. In order to accommodate pre-configured instances without a
                 default constructor, assignment of a class is deprecated and may no
                 longer work at some point in the future. Please assign an object
                 instance of a type that implements

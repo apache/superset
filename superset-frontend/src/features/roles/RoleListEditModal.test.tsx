@@ -23,6 +23,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import RoleListEditModal from './RoleListEditModal';
 import {
   updateRoleName,
@@ -41,15 +42,30 @@ const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
 const mockUpdateRoleUsers = jest.mocked(updateRoleUsers);
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
 
+jest.mock('@superset-ui/core', () => {
+  const original = jest.requireActual('@superset-ui/core');
+  return {
+    ...original,
+    SupersetClient: {
+      get: jest.fn(),
+    },
+    t: (str: string) => str,
+  };
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RoleListEditModal', () => {
   const mockRole = {
     id: 1,
     name: 'Admin',
     permission_ids: [10, 20],
     user_ids: [5, 7],
+    group_ids: [1, 2],
   };
 
   const mockPermissions = [
@@ -74,6 +90,17 @@ describe('RoleListEditModal', () => {
     },
   ];
 
+  const mockGroups = [
+    {
+      id: 1,
+      name: 'Group A',
+      label: 'Group A',
+      description: 'Description A',
+      roles: [],
+      users: [],
+    },
+  ];
+
   const mockProps = {
     role: mockRole,
     show: true,
@@ -81,9 +108,10 @@ describe('RoleListEditModal', () => {
     onSave: jest.fn(),
     permissions: mockPermissions,
     users: mockUsers,
+    groups: mockGroups,
   };
 
-  it('renders modal with correct title and fields', () => {
+  test('renders modal with correct title and fields', () => {
     render(<RoleListEditModal {...mockProps} />);
     expect(screen.getAllByText('Edit Role')[0]).toBeInTheDocument();
     expect(screen.getByText('Role Name')).toBeInTheDocument();
@@ -91,13 +119,13 @@ describe('RoleListEditModal', () => {
     expect(screen.getAllByText('Users')[0]).toBeInTheDocument();
   });
 
-  it('calls onHide when cancel button is clicked', () => {
+  test('calls onHide when cancel button is clicked', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.click(screen.getByTestId('modal-cancel-button'));
     expect(mockProps.onHide).toHaveBeenCalled();
   });
 
-  it('disables save button when role name is empty', () => {
+  test('disables save button when role name is empty', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: '' },
@@ -105,7 +133,7 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
   });
 
-  it('enables save button when role name is entered', () => {
+  test('enables save button when role name is entered', () => {
     render(<RoleListEditModal {...mockProps} />);
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },
@@ -113,7 +141,37 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  it('calls update functions when save button is clicked', async () => {
+  test('calls update functions when save button is clicked', async () => {
+    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/users/')) {
+        return Promise.resolve({
+          json: {
+            count: 2,
+            result: [
+              {
+                id: 5,
+                first_name: 'John',
+                last_name: 'Doe',
+                username: 'johndoe',
+                email: 'john@example.com',
+                is_active: true,
+              },
+              {
+                id: 7,
+                first_name: 'Jane',
+                last_name: 'Smith',
+                username: 'janesmith',
+                email: 'jane@example.com',
+                is_active: true,
+              },
+            ],
+          },
+        });
+      }
+
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
     render(<RoleListEditModal {...mockProps} />);
 
     fireEvent.change(screen.getByTestId('role-name-input'), {
@@ -139,15 +197,15 @@ describe('RoleListEditModal', () => {
     });
   });
 
-  it('switches tabs correctly', () => {
+  test('switches tabs correctly', () => {
     render(<RoleListEditModal {...mockProps} />);
 
     const usersTab = screen.getByRole('tab', { name: 'Users' });
     fireEvent.click(usersTab);
 
-    expect(screen.getByText('First Name')).toBeInTheDocument();
-    expect(screen.getByText('Last Name')).toBeInTheDocument();
-    expect(screen.getByText('User Name')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
+    expect(screen.getByTitle('First Name')).toBeInTheDocument();
+    expect(screen.getByTitle('Last Name')).toBeInTheDocument();
+    expect(screen.getByTitle('User Name')).toBeInTheDocument();
+    expect(screen.getByTitle('Email')).toBeInTheDocument();
   });
 });

@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  GenericDataType,
-  t,
-  validateInteger,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import { t, validateInteger, validateNonEmpty } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelConfig,
   formatSelectOptionsForRange,
@@ -122,7 +118,6 @@ const config: ControlPanelConfig = {
               label: t('X Axis Title'),
               renderTrigger: true,
               default: '',
-              description: t('Changing this control takes effect instantly'),
             },
           },
         ],
@@ -148,7 +143,6 @@ const config: ControlPanelConfig = {
               label: t('Y Axis Title'),
               renderTrigger: true,
               default: '',
-              description: t('Changing this control takes effect instantly'),
             },
           },
         ],

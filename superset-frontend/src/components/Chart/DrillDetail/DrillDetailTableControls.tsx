@@ -18,16 +18,15 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Tag } from 'src/components/Tags';
+import { Tag } from 'src/components/Tag';
 import {
   BinaryQueryObjectFilterClause,
-  css,
   isAdhocColumn,
   t,
-  useTheme,
 } from '@superset-ui/core';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { Icons } from 'src/components/Icons';
+import { css, useTheme } from '@apache-superset/core/ui';
+import RowCountLabel from 'src/components/RowCountLabel';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];
@@ -62,7 +61,7 @@ export default function TableControls({
     colName => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
-      setFilters([...Object.values(updatedFilterMap)]);
+      setFilters(Object.values(updatedFilterMap));
     },
     [filterMap, setFilters],
   );
@@ -83,8 +82,8 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.gridUnit / 2}px 0;
-        margin-bottom: ${theme.gridUnit * 2}px;
+        padding: ${theme.sizeUnit / 2}px 0;
+        margin-bottom: ${theme.sizeUnit * 2}px;
       `}
     >
       <div
@@ -105,7 +104,7 @@ export default function TableControls({
           >
             <span
               css={css`
-                margin-right: ${theme.gridUnit}px;
+                margin-right: ${theme.sizeUnit}px;
               `}
             >
               {colName}
@@ -123,7 +122,7 @@ export default function TableControls({
       >
         <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
         <Icons.ReloadOutlined
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           iconSize="l"
           aria-label={t('Reload')}
           role="button"

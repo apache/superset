@@ -18,17 +18,18 @@
  */
 import {
   QueryFormData,
-  supersetTheme,
   TimeseriesDataRecord,
   Metric,
   SimpleAdhocFilter,
 } from '@superset-ui/core';
 
+export type FontSizeOptions = 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
+
 export interface PopKPIStylesProps {
   height: number;
   width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
-  subheaderFontSize: keyof typeof supersetTheme.typography.sizes;
+  headerFontSize: FontSizeOptions;
+  subheaderFontSize: FontSizeOptions;
   boldText: boolean;
   comparisonColorEnabled: boolean;
 }
@@ -44,7 +45,7 @@ interface PopKPICustomizeProps {
 }
 
 export interface PopKPIComparisonValueStyleProps {
-  subheaderFontSize?: keyof typeof supersetTheme.typography.sizes;
+  subheaderFontSize?: FontSizeOptions;
 }
 
 export interface PopKPIComparisonSymbolStyleProps {
@@ -61,6 +62,8 @@ export type PopKPIProps = PopKPIStylesProps &
     data: TimeseriesDataRecord[];
     metrics: Metric[];
     metricName: string;
+    metricNameFontSize?: number;
+    showMetricName: boolean;
     bigNumber: string;
     prevNumber: string;
     subtitle?: string;

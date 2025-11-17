@@ -103,6 +103,7 @@ import iran from './countries/iran.geojson';
 import israel from './countries/israel.geojson';
 import italy from './countries/italy.geojson';
 import italy_regions from './countries/italy_regions.geojson';
+import ivory_coast from './countries/ivory_coast.geojson';
 import japan from './countries/japan.geojson';
 import jordan from './countries/jordan.geojson';
 import kazakhstan from './countries/kazakhstan.geojson';
@@ -160,6 +161,7 @@ import philippines_regions from './countries/philippines_regions.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
 import qatar from './countries/qatar.geojson';
+import republic_of_serbia from './countries/republic_of_serbia.geojson';
 import romania from './countries/romania.geojson';
 import russia from './countries/russia.geojson';
 import rwanda from './countries/rwanda.geojson';
@@ -304,6 +306,7 @@ export const countries = {
   israel,
   italy,
   italy_regions,
+  ivory_coast,
   japan,
   jordan,
   kazakhstan,
@@ -361,6 +364,7 @@ export const countries = {
   poland,
   portugal,
   qatar,
+  republic_of_serbia,
   romania,
   russia,
   rwanda,

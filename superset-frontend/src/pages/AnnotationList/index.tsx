@@ -19,21 +19,18 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  t,
-  useTheme,
-  styled,
-  SupersetClient,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import dayjs from 'dayjs';
+import { t, SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import rison from 'rison';
 
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps } from 'src/components/ListView';
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
+import {
+  ListView,
+  ListViewActionsBar,
+  type ListViewProps,
+  type ListViewActionProps,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -41,7 +38,8 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const PAGE_SIZE = 25;
 
@@ -57,9 +55,9 @@ const StyledHeader = styled.div`
 
     a,
     Link {
-      margin-left: ${theme.gridUnit * 4}px;
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.normal};
+      margin-left: ${theme.sizeUnit * 4}px;
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightNormal};
       text-decoration: underline;
     }
   `}
@@ -69,7 +67,6 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const theme = useTheme();
   const { annotationLayerId }: any = useParams();
   const {
     state: {
@@ -163,10 +160,13 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
+        id: 'short_descr',
       },
       {
         accessor: 'long_descr',
         Header: t('Description'),
+        id: 'long_descr',
       },
       {
         Cell: ({
@@ -178,6 +178,7 @@ function AnnotationList({
         }) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
+        id: 'start_dttm',
       },
       {
         Cell: ({
@@ -189,6 +190,7 @@ function AnnotationList({
         }) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
+        id: 'end_dttm',
       },
       {
         Cell: ({
@@ -214,7 +216,9 @@ function AnnotationList({
               onClick: handleDelete,
             },
           ];
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -227,30 +231,19 @@ function AnnotationList({
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
-        {t('Annotation')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    onClick: () => {
-      handleAnnotationEdit(null);
-    },
-  });
-
-  subMenuButtons.push({
     name: t('Bulk select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
+  });
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Annotation'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      handleAnnotationEdit(null);
+    },
   });
 
   let hasHistory = true;
@@ -270,14 +263,7 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
-          iconSize="m"
-          css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation')}
       </>
     ),
@@ -293,7 +279,9 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <a href="/annotationlayer/list/">{t('Back to all')}</a>
+                <Typography.Link href="/annotationlayer/list/">
+                  {t('Back to all')}
+                </Typography.Link>
               )}
             </span>
           </StyledHeader>

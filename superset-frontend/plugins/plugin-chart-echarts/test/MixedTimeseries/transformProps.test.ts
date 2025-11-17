@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme, VizType } from '@superset-ui/core';
+import { ChartProps, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesSeriesType,
-} from '@superset-ui/plugin-chart-echarts';
+} from '../../src';
 import transformProps from '../../src/MixedTimeseries/transformProps';
 import {
   EchartsMixedTimeseriesFormData,
@@ -81,6 +82,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastPeriods: [],
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
+  legendSort: null,
 };
 
 const queriesData = [
@@ -116,46 +118,207 @@ const chartPropsConfig = {
   theme: supersetTheme,
 };
 
-it('should transform chart props for viz', () => {
-  const chartProps = new ChartProps(chartPropsConfig);
-  expect(transformProps(chartProps as EchartsMixedTimeseriesProps)).toEqual(
-    expect.objectContaining({
-      echartOptions: expect.objectContaining({
-        series: expect.arrayContaining([
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'boy',
-            stack: 'obs\na',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'girl',
-            stack: 'obs\na',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'boy (1)',
-            stack: 'obs\nb',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'girl (1)',
-            stack: 'obs\nb',
-          }),
-        ]),
-      }),
-    }),
+test('should transform chart props for viz with showQueryIdentifiers=false', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      showQueryIdentifiers: false,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  // Check that series IDs don't include query identifiers
+  const seriesIds = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.id,
   );
+  expect(seriesIds).toContain('sum__num, girl');
+  expect(seriesIds).toContain('sum__num, boy');
+  expect(seriesIds).not.toContain('sum__num (Query A), girl');
+  expect(seriesIds).not.toContain('sum__num (Query A), boy');
+  expect(seriesIds).not.toContain('sum__num (Query B), girl');
+  expect(seriesIds).not.toContain('sum__num (Query B), boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num, girl');
+  expect(seriesName).toContain('sum__num, boy');
+  expect(seriesName).not.toContain('sum__num (Query A), girl');
+  expect(seriesName).not.toContain('sum__num (Query A), boy');
+  expect(seriesName).not.toContain('sum__num (Query B), girl');
+  expect(seriesName).not.toContain('sum__num (Query B), boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num, girl',
+    'sum__num, boy',
+    'sum__num, girl',
+    'sum__num, boy',
+  ]);
+});
+
+test('should transform chart props for viz with showQueryIdentifiers=true', () => {
+  const chartPropsConfigWithIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      showQueryIdentifiers: true,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  // Check that series IDs include query identifiers
+  const seriesIds = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.id,
+  );
+  expect(seriesIds).toContain('sum__num (Query A), girl');
+  expect(seriesIds).toContain('sum__num (Query A), boy');
+  expect(seriesIds).toContain('sum__num (Query B), girl');
+  expect(seriesIds).toContain('sum__num (Query B), boy');
+  expect(seriesIds).not.toContain('sum__num, girl');
+  expect(seriesIds).not.toContain('sum__num, boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num (Query A), girl');
+  expect(seriesName).toContain('sum__num (Query A), boy');
+  expect(seriesName).toContain('sum__num (Query B), girl');
+  expect(seriesName).toContain('sum__num (Query B), boy');
+  expect(seriesName).not.toContain('sum__num, girl');
+  expect(seriesName).not.toContain('sum__num, boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
+});
+
+describe('legend sorting', () => {
+  const getChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...overrides,
+        showQueryIdentifiers: true,
+      },
+    });
+
+  it('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+    ]);
+  });
+
+  it('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query B), girl',
+    ]);
+  });
+
+  it('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+    ]);
+  });
+});
+
+test('legend margin: top orientation sets grid.top correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).top).toEqual(270);
+});
+
+test('legend margin: bottom orientation sets grid.bottom correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Bottom,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).bottom).toEqual(270);
+});
+
+test('legend margin: left orientation sets grid.left correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Left,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).left).toEqual(270);
+});
+
+test('legend margin: right orientation sets grid.right correctly', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      legendMargin: 270,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Right,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  expect((transformed.echartOptions.grid as any).right).toEqual(270);
 });

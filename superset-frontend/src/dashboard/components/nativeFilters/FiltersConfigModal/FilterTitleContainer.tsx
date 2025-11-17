@@ -18,8 +18,9 @@
  */
 import { forwardRef, ReactNode } from 'react';
 
-import { styled, t, useTheme } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -27,32 +28,31 @@ export const FilterTitle = styled.div`
   ${({ theme }) => `
       display: flex;
       align-items: center;
-      padding: ${theme.gridUnit * 2}px;
-      width: 100%;
+      padding: ${theme.sizeUnit * 2}px;
       border-radius: ${theme.borderRadius}px;
       cursor: pointer;
       &.active {
-        color: ${theme.colors.grayscale.dark1};
+        color: ${theme.colorPrimaryActive};
         border-radius: ${theme.borderRadius}px;
-        background-color: ${theme.colors.secondary.light4};
+        background-color: ${theme.colorPrimaryBg};
         span, .anticon {
-          color: ${theme.colors.grayscale.dark1};
+          color: ${theme.colorIcon};
         }
       }
       &:hover {
-        color: ${theme.colors.primary.light1};
+        color: ${theme.colorPrimaryHover};
         span, .anticon {
-          color: ${theme.colors.primary.light1};
+          color: ${theme.colorPrimaryHover};
         }
       }
       &.errored div, &.errored .warning {
-        color: ${theme.colors.error.base};
+        color: ${theme.colorError};
       }
   `}
 `;
 
 const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
-  color: ${({ theme }) => theme.colors.error.base};
+  color: ${({ theme }) => theme.colorErrorText};
   &.anticon {
     margin-left: auto;
   }
@@ -90,7 +90,6 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
     },
     ref,
   ) => {
-    const theme = useTheme();
     const renderComponent = (id: string) => {
       const isRemoved = !!removedFilters[id];
       const isErrored = erroredFilters.includes(id);
@@ -109,7 +108,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
         >
-          <div css={{ display: 'flex', width: '100%' }}>
+          <div css={{ display: 'flex', width: '100%', alignItems: 'center' }}>
             <div
               css={{
                 alignItems: 'center',
@@ -120,7 +119,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (
-              <StyledWarning className="warning" />
+              <StyledWarning className="warning" iconSize="s" />
             )}
             {isRemoved && (
               <span
@@ -140,9 +139,8 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>
             {isRemoved ? null : (
               <Icons.DeleteOutlined
-                iconColor={theme.colors.grayscale.light3}
-                iconSize="m"
-                onClick={event => {
+                iconSize="l"
+                onClick={(event: React.MouseEvent<HTMLElement>) => {
                   event.stopPropagation();
                   onRemove(id);
                 }}

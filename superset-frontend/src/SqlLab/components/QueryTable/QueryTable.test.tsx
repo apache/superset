@@ -29,6 +29,7 @@ const mockedProps = {
   latestQueryId: 'ryhMUZCGb',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('QueryTable', () => {
   test('is valid', () => {
     expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
@@ -48,7 +49,11 @@ describe('QueryTable', () => {
     expect(screen.getByRole('table')).toBeVisible();
     expect(container.querySelector('.table-condensed')).toBeVisible();
     expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
-    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(2);
+    expect(
+      container.querySelectorAll(
+        'table > tbody > tr:not(.ant-table-measure-row)',
+      ),
+    ).toHaveLength(2);
   });
 
   test('renders empty table when no queries provided', () => {
@@ -59,10 +64,14 @@ describe('QueryTable', () => {
     );
 
     expect(screen.getByTestId('listview-table')).toBeVisible();
-    expect(screen.getByRole('table')).toBeVisible();
+    expect(screen.getAllByRole('table')[0]).toBeVisible();
     expect(container.querySelector('.table-condensed')).toBeVisible();
     expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
-    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(0);
+    expect(
+      container.querySelectorAll(
+        'table > tbody > tr:not(.ant-table-measure-row):not(.ant-table-placeholder)',
+      ),
+    ).toHaveLength(0);
   });
 
   test('renders with custom displayLimit', () => {
@@ -77,6 +86,10 @@ describe('QueryTable', () => {
     });
 
     expect(screen.getByTestId('listview-table')).toBeVisible();
-    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(1);
+    expect(
+      container.querySelectorAll(
+        'table > tbody > tr:not(.ant-table-measure-row)',
+      ),
+    ).toHaveLength(1);
   });
 });

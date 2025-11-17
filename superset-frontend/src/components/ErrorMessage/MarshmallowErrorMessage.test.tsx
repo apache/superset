@@ -19,8 +19,9 @@
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorTypeEnum } from '@superset-ui/core';
-import MarshmallowErrorMessage from './MarshmallowErrorMessage';
+import { MarshmallowErrorMessage } from './MarshmallowErrorMessage';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('MarshmallowErrorMessage', () => {
   const mockError = {
     extra: {

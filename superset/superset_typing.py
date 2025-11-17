@@ -59,6 +59,7 @@ class AdhocColumn(TypedDict, total=False):
     hasCustomLabel: Optional[bool]
     label: str
     sqlExpression: str
+    isColumnReference: Optional[bool]
     columnType: Optional[Literal["BASE_AXIS", "SERIES"]]
     timeGrain: Optional[str]
 
@@ -108,7 +109,7 @@ FormData = dict[str, Any]
 Granularity = Union[str, dict[str, Union[str, float]]]
 Column = Union[AdhocColumn, str]
 Metric = Union[AdhocMetric, str]
-OrderBy = tuple[Metric, bool]
+OrderBy = tuple[Union[Metric, Column], bool]
 QueryObjectDict = dict[str, Any]
 VizData = Optional[Union[list[Any], dict[Any, Any]]]
 VizPayload = dict[str, Any]

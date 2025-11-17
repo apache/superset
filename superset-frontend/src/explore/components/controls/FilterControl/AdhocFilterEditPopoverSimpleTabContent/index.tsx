@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ChangeEvent, useEffect, useState } from 'react';
+import { FC, ChangeEvent, useEffect, useState, useRef } from 'react';
 
-import FormItem from 'src/components/Form/FormItem';
-import { Select } from 'src/components';
+import { Input, InputRef, Select, Tooltip } from '@superset-ui/core/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
   isDefined,
-  styled,
   SupersetClient,
-  SupersetTheme,
   t,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -41,8 +39,6 @@ import {
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Tooltip } from 'src/components/Tooltip';
-import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import {
   ColumnMeta,
@@ -54,22 +50,12 @@ import { useDatePickerInAdhocFilter } from '../utils';
 import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
 
-const StyledInput = styled(Input)`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-export const StyledFormItem = styled(FormItem)`
-  &.ant-row.ant-form-item {
-    margin: 0;
-  }
-`;
-
 const SelectWithLabel = styled(Select)<{ labelText: string }>`
   .ant-select-selector::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorTextSecondary};
     width: max-content;
   }
 `;
@@ -275,12 +261,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     onComparatorChange,
     onDatePickerChange,
   } = useSimpleTabFilterProps(props);
+  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
+  const comparatorInputRef = useRef<InputRef | null>(null);
   const [suggestions, setSuggestions] = useState<
     Record<'label' | 'value', any>[]
   >([]);
-  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
-    useState(false);
+    useState<boolean>(false);
+  const [hasFocusedComparator, setHasFocusedComparator] =
+    useState<boolean>(false);
 
   const {
     advancedDataTypesState,
@@ -373,7 +362,6 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     notFoundContent: t('Type a value here'),
     disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
-    autoFocus: shouldFocusComparator,
   };
 
   const labelText =
@@ -423,16 +411,33 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           });
       }
     };
+
     if (!datePicker) {
       refreshComparatorSuggestions();
     }
-  }, [props.adhocFilter.subject]);
+    // loadingComparatorSuggestions intentionally omitted - set inside effect, would cause infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.adhocFilter.subject,
+    props.adhocFilter.clause,
+    props.datasource,
+    datePicker,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
-      fetchSubjectAdvancedDataType(props);
+      fetchSubjectAdvancedDataType(
+        props.options,
+        props.adhocFilter.subject,
+        props.validHandler,
+      );
     }
-  }, [props.adhocFilter.subject]);
+  }, [
+    props.adhocFilter.subject,
+    props.options,
+    props.validHandler,
+    fetchSubjectAdvancedDataType,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -442,6 +447,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         subjectAdvancedDataType,
       );
     }
+    // advancedDataTypesState intentionally omitted - set by the callback, would cause infinite API calls
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
 
   useEffect(() => {
@@ -450,28 +457,41 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     }
   }, [props.adhocFilter.comparator]);
 
+  useEffect(() => {
+    if (
+      shouldFocusComparator &&
+      !hasFocusedComparator &&
+      comparatorInputRef.current
+    ) {
+      comparatorInputRef.current.focus();
+      setHasFocusedComparator(true);
+    }
+
+    if (!shouldFocusComparator) {
+      setHasFocusedComparator(false);
+    }
+  }, [shouldFocusComparator, hasFocusedComparator]);
+
+  const theme = useTheme();
+
   // another name for columns, just for following previous naming.
   const subjectComponent = (
     <Select
-      css={(theme: SupersetTheme) => ({
-        marginTop: theme.gridUnit * 4,
-        marginBottom: theme.gridUnit * 4,
-      })}
+      css={{
+        marginTop: theme.sizeUnit * 4,
+        marginBottom: theme.sizeUnit * 4,
+      }}
       data-test="select-element"
       options={columns.map(column => ({
         value:
           ('column_name' in column && column.column_name) ||
           ('optionName' in column && column.optionName) ||
           '',
-        label:
-          ('saved_metric_name' in column && column.saved_metric_name) ||
-          ('column_name' in column && column.column_name) ||
-          ('label' in column && column.label),
         key:
           ('id' in column && column.id) ||
           ('optionName' in column && column.optionName) ||
           undefined,
-        customLabel: renderSubjectOptionLabel(column),
+        label: renderSubjectOptionLabel(column),
       }))}
       {...subjectSelectProps}
     />
@@ -480,7 +500,6 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const operatorsAndOperandComponent = (
     <>
       <Select
-        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevantWrapper(op, subject))
           .map((option, index) => ({
@@ -499,6 +518,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           }
         >
           <SelectWithLabel
+            css={css`
+              margin-top: ${theme.sizeUnit * 4}px;
+            `}
             labelText={labelText}
             options={suggestions}
             {...comparatorSelectProps}
@@ -511,14 +533,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             advancedDataTypesState.parsedAdvancedDataType
           }
         >
-          <StyledInput
+          <div
+            css={css`
+              margin-top: ${theme.sizeUnit * 4}px;
+            `}
+          />
+          <Input
             data-test="adhoc-filter-simple-value"
             name="filter-value"
-            ref={ref => {
-              if (ref && shouldFocusComparator) {
-                ref.focus();
-              }
-            }}
+            ref={comparatorInputRef}
             onChange={onInputComparatorChange}
             value={comparator}
             placeholder={t('Filter value (case sensitive)')}

@@ -19,21 +19,22 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled, t, useTheme, css } from '@superset-ui/core';
-import { MenuProps } from 'src/components/Menu';
+import { t } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   saveFilterBarOrientation,
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
-import { Icons } from 'src/components/Icons';
-import Checkbox from 'src/components/Checkbox';
-import { Dropdown } from 'src/components/Dropdown';
-import { Button } from 'src/components';
-import { Space } from 'src/components/Space';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button, Checkbox, Dropdown } from '@superset-ui/core/components';
+import { Space } from '@superset-ui/core/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
+import { useChartCustomizationModal } from '../../ChartCustomization/useChartCustomizationModal';
+import ChartCustomizationModal from '../../ChartCustomization/ChartCustomizationModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -45,24 +46,14 @@ const StyledMenuLabel = styled.span`
   justify-content: space-between;
 
   .enable-cross-filters-text {
-    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
+    padding-left: ${({ theme }) => `${theme.sizeUnit * 2}px`};
   }
-`;
-
-const StyledCheckbox = styled(Checkbox)`
-  ${({ theme }) => `
-  &,
-  svg {
-    display: inline-block;
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-  }
-`}
 `;
 
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
 const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
 const ADD_EDIT_FILTERS_MENU_KEY = 'add-edit-filters-menu-key';
+const CHART_CUSTOMIZATION_MENU_KEY = 'chart-customization-menu-key';
 
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
@@ -90,6 +81,15 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
+
+  const {
+    isOpen: isChartCustomizationModalOpen,
+    dashboardId: chartCustomizationDashboardId,
+    chartId: chartCustomizationChartId,
+    openChartCustomizationModal,
+    closeChartCustomizationModal,
+    handleSave: handleChartCustomizationSave,
+  } = useChartCustomizationModal();
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -147,6 +147,8 @@ const FilterBarSettings = () => {
         openScopingModal();
       } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
         openFilterConfigModal();
+      } else if (selectedKey === CHART_CUSTOMIZATION_MENU_KEY) {
+        openChartCustomizationModal();
       }
     },
     [
@@ -154,20 +156,20 @@ const FilterBarSettings = () => {
       toggleCrossFiltering,
       toggleFilterBarOrientation,
       openFilterConfigModal,
+      openChartCustomizationModal,
     ],
   );
 
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
-        <StyledCheckbox
-          className="enable-cross-filters"
+        <Checkbox
+          name="enable-cross-filters"
           checked={crossFiltersEnabled}
-          onChange={checked => setCrossFiltersEnabled(checked || false)}
-        />{' '}
-        <span className="enable-cross-filters-text">
+          onChange={e => setCrossFiltersEnabled(e.target.checked)}
+        >
           {t('Enable cross-filtering')}
-        </span>
+        </Checkbox>
       </StyledMenuLabel>
     ),
     [crossFiltersEnabled],
@@ -200,10 +202,15 @@ const FilterBarSettings = () => {
       });
       items.push({ type: 'divider' });
     }
+    items.push({
+      key: CHART_CUSTOMIZATION_MENU_KEY,
+      label: t('Chart customization'),
+    });
     if (canEdit) {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
+        className: 'filter-bar-orientation-submenu',
         children: [
           {
             key: FilterBarOrientation.Vertical,
@@ -213,11 +220,9 @@ const FilterBarSettings = () => {
                 {selectedFilterBarOrientation ===
                   FilterBarOrientation.Vertical && (
                   <Icons.CheckOutlined
-                    iconColor={theme.colors.primary.base}
-                    css={css`
-                      vertical-align: -${theme.gridUnit * 0.03125}em;
-                    `}
+                    iconColor={theme.colorPrimary}
                     iconSize="m"
+                    aria-label="check"
                   />
                 )}
               </Space>
@@ -235,13 +240,13 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
+                    aria-label="check"
                   />
                 )}
               </Space>
             ),
           },
         ],
-        ...{ 'data-test': 'dropdown-selectable-icon-submenu' },
       });
     }
     return items;
@@ -253,7 +258,7 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length) {
+  if (!menuItems.length || !canEdit) {
     return null;
   }
 
@@ -266,9 +271,21 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
+        popupRender={menu => (
+          <div
+            css={css`
+              .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
+                > .ant-dropdown-menu-submenu-title {
+                color: inherit;
+              }
+            `}
+          >
+            {menu}
+          </div>
+        )}
       >
         <Button
-          type="link"
+          buttonStyle="link"
           css={css`
             padding: 0;
           `}
@@ -282,6 +299,15 @@ const FilterBarSettings = () => {
       </Dropdown>
       {scopingModal}
       {FilterConfigModalComponent}
+      {isChartCustomizationModalOpen && (
+        <ChartCustomizationModal
+          isOpen={isChartCustomizationModalOpen}
+          dashboardId={chartCustomizationDashboardId}
+          chartId={chartCustomizationChartId}
+          onCancel={closeChartCustomizationModal}
+          onSave={handleChartCustomizationSave}
+        />
+      )}
     </>
   );
 };
