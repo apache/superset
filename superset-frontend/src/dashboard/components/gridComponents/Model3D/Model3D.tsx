@@ -254,8 +254,8 @@ class Model3D extends PureComponent<Model3DProps> {
         alt="3D Model"
         auto-rotate
         camera-controls
-        loading="lazy"
-        reveal="interaction"
+        loading="auto"
+        reveal="auto"
         exposure="0.8"
         shadow-intensity="1"
         environment-image="neutral"
