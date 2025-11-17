@@ -18,7 +18,6 @@
  */
 import {
   AdhocColumn,
-  // BinaryQueryObjectFilterClause,
   BuildQuery,
   PostProcessingRule,
   QueryFormOrderBy,
@@ -258,6 +257,21 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ...moreProps,
     };
 
+    if (
+      formData.server_pagination &&
+      options?.extras?.cachedChanges?.[formData.slice_id] &&
+      JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
+        JSON.stringify(queryObject.filters)
+    ) {
+      queryObject = { ...queryObject, row_offset: 0 };
+      const modifiedOwnState = {
+        ...options?.ownState,
+        currentPage: 0,
+        pageSize: queryObject.row_limit ?? 0,
+      };
+      updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
+    }
+
     if (formData.server_pagination) {
       // Add search filter if search text exists
       if (ownState.searchText && ownState?.searchColumn) {
@@ -274,21 +288,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
     }
-
-    if (
-      formData.server_pagination &&
-      options?.extras?.cachedChanges?.[formData.slice_id] &&
-      JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
-        JSON.stringify(queryObject.filters)
-    ) {
-      queryObject = { ...queryObject, row_offset: 0 };
-      const modifiedOwnState = {
-        ...options?.ownState,
-        currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
-      };
-      updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
-    }
+    
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
       [formData.slice_id]: queryObject.filters,

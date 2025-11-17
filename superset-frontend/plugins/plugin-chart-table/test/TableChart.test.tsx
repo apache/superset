@@ -1107,12 +1107,13 @@ describe('plugin-chart-table', () => {
           ...testData.basic,
           formData: formDataWithTotals,
         });
-
         props.totals = { sum__num: totalBeforeFilter };
-        
         props.includeSearch = true;
-        
-        render(<TableChart {...props} sticky={false} />);
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>
+        );
         
         const table = screen.getByRole('table');
         const totalCellBefore = within(table).getByText(String(totalBeforeFilter));

@@ -243,7 +243,7 @@ export default typedMemo(function DataTable<D extends object>({
 
   const rowSignature = useMemo(
     // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
-    () => rows.map(row => row.id).sort().join('|'),
+    () => rows.map((row, index) => row.id ?? index).sort().join('|'),
     [rows],
   );
 
