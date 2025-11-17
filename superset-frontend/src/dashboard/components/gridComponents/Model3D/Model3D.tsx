@@ -110,6 +110,13 @@ const Model3DContainer = styled.div`
       height: 100%;
       flex: 1;
       min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
+      background-color: ${theme.colorFillQuaternary};
+      
+      /* Ensure model-viewer renders properly */
+      display: block;
+      
+      /* Add some visual depth */
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
     }
 
     .model3d-placeholder {
@@ -139,10 +146,19 @@ declare global {
         'camera-controls'?: boolean;
         loading?: string;
         reveal?: string;
+        exposure?: string;
+        'shadow-intensity'?: string;
+        'environment-image'?: string;
+        'skybox-image'?: string;
+        'tone-mapping'?: string;
+        'interaction-policy'?: string;
+        ar?: boolean;
+        'ar-modes'?: string;
         style?: React.CSSProperties;
         className?: string;
         onError?: (e: Event) => void;
         onLoad?: () => void;
+        children?: ReactNode;
       };
     }
   }
@@ -231,15 +247,41 @@ class Model3D extends PureComponent<Model3DProps> {
         camera-controls
         loading="auto"
         reveal="auto"
+        exposure="1.5"
+        shadow-intensity="1.5"
+        environment-image="neutral"
+        skybox-image=""
+        tone-mapping="commerce"
+        interaction-policy="allow-when-focused"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
         className="model3d-viewer"
-        style={{ width: '100%', height: '100%' }}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          backgroundColor: '#e8e8e8',
+          minHeight: '400px'
+        }}
         onError={(e: any) => {
           console.error('Model viewer error:', e);
         }}
         onLoad={() => {
           console.log('Model loaded successfully');
         }}
-      />
+      >
+        {/* Add a default material if the model doesn't have one */}
+        <div slot="poster" style={{ 
+          width: '100%', 
+          height: '100%', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#e8e8e8',
+          color: '#666'
+        }}>
+          {t('Loading 3D model...')}
+        </div>
+      </model-viewer>
     );
   }
 
