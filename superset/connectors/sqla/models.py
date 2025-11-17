@@ -100,12 +100,14 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SQLA_QUERY_KEYS,
 )
 from superset.models.slice import Slice
 from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    BaseDatasourceData,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
@@ -133,8 +135,6 @@ class MetadataResult:
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
 
-
-logger = logging.getLogger(__name__)
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -165,7 +165,10 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class BaseDatasource(
+    AuditMixinNullable,
+    ImportExportMixin,
+):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -362,7 +365,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return verb_map
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> BaseDatasourceData:
         """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
@@ -407,7 +410,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         Used to reduce the payload when loading a dashboard.
         """
-        data = self.data
+        # Cast to dict[str, Any] since we'll be mutating with del and .update()
+        data = cast(dict[str, Any], self.data)
         metric_names = set()
         column_names = set()
         for slc in slices:
@@ -470,14 +474,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             or metric["verbose_name"] in metric_names
         ]
 
-        filtered_columns: list[Column] = []
+        filtered_columns: list[dict[str, Any]] = []
         column_types: set[utils.GenericDataType] = set()
-        for column_ in data["columns"]:
-            generic_type = column_.get("type_generic")
+        for column_ in cast(list[dict[str, Any]], data["columns"]):  # type: ignore[assignment]
+            column_dict = cast(dict[str, Any], column_)
+            generic_type = column_dict.get("type_generic")
             if generic_type is not None:
                 column_types.add(generic_type)
-            if column_["column_name"] in column_names:
-                filtered_columns.append(column_)
+            if column_dict["column_name"] in column_names:
+                filtered_columns.append(column_dict)
 
         data["column_types"] = list(column_types)
         del data["description"]
@@ -509,7 +514,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """Returns a query as a string
 
         This is used to be displayed to the user so that they can
-        understand what is taking place behind the scene"""
+        understand what is taking place behind the scene
+        """
         raise NotImplementedError()
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
@@ -613,7 +619,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
-        :param query_obj: The dict representation of a query object
+        :param query_obj: The dict representation of a query object (QueryObjectDict
+            structure expected)
         :return: list of keys
         """
         return []
@@ -1351,7 +1358,7 @@ class SqlaTable(
         return [(g.duration, g.name) for g in self.database.grains() or []]
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> BaseDatasourceData:
         data_ = super().data
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
@@ -1877,7 +1884,7 @@ class SqlaTable(
         template code unnecessarily, as it may contain expensive calls, e.g. to extract
         the latest partition of a database.
 
-        :param query_obj: query object to analyze
+        :param query_obj: query object to analyze (QueryObjectDict structure expected)
         :return: True if there are call(s) to an `ExtraCache` method, False otherwise
         """
         templatable_statements: list[str] = []
@@ -1934,7 +1941,11 @@ class SqlaTable(
 
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
-            sqla_query = self.get_sqla_query(**query_obj)
+            # Filter out keys that aren't parameters to get_sqla_query
+            filtered_query_obj = {
+                k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
+            }
+            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key

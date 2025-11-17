@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, Literal, NamedTuple, Optional, Union
+from typing import Any, cast, Literal, NamedTuple, Optional, Union
 from re import Pattern
 from unittest.mock import Mock, patch
 import pytest
@@ -35,6 +35,7 @@ from sqlalchemy.sql.elements import TextClause
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.superset_typing import QueryObjectDict
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import (
@@ -975,8 +976,11 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
 
     query_obj = {**base_query_obj, **items}
 
-    extra_cache_keys = table.get_extra_cache_keys(query_obj)
-    assert table.has_extra_cache_key_calls(query_obj) == has_extra_cache_keys
+    extra_cache_keys = table.get_extra_cache_keys(cast(QueryObjectDict, query_obj))
+    assert (
+        table.has_extra_cache_key_calls(cast(QueryObjectDict, query_obj))
+        == has_extra_cache_keys
+    )
     assert extra_cache_keys == expected_cache_keys
 
 
@@ -1017,8 +1021,8 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
         "filter": [],
     }
 
-    extra_cache_keys = table.get_extra_cache_keys(query_obj)
-    assert table.has_extra_cache_key_calls(query_obj) is True
+    extra_cache_keys = table.get_extra_cache_keys(cast(QueryObjectDict, query_obj))
+    assert table.has_extra_cache_key_calls(cast(QueryObjectDict, query_obj)) is True
     assert set(extra_cache_keys) == {"abc", None}
 
 
