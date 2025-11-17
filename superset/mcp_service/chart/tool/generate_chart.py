@@ -59,6 +59,36 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=False for temporary preview only
     - LLM clients MUST display returned chart URL to users
     - Embed preview_url as image: ![Chart Preview](preview_url)
+    - Use numeric dataset ID or UUID (NOT schema.table_name format)
+    - MUST include chart_type in config (either 'xy' or 'table')
+
+    Example usage for XY chart:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "order_date"},
+            "y": [{"name": "revenue", "aggregate": "SUM"}],
+            "kind": "line"
+        }
+    }
+    ```
+
+    Example usage for Table chart:
+    ```json
+    {
+        "dataset_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        "config": {
+            "chart_type": "table",
+            "columns": [
+                {"name": "product_name"},
+                {"name": "quantity", "aggregate": "SUM"},
+                {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
+            ]
+        }
+    }
+    ```
 
     VALIDATION:
     - 5-layer pipeline: Schema, business logic, dataset, Superset compatibility, runtime

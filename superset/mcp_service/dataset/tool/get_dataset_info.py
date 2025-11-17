@@ -48,6 +48,25 @@ async def get_dataset_info(
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
+
+    IMPORTANT FOR LLM CLIENTS:
+    - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
+    - DO NOT use schema.table_name format (e.g., "public.customers")
+    - To find a dataset ID, use the list_datasets tool first
+
+    Example usage:
+    ```json
+    {
+        "identifier": 123
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
     """
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
