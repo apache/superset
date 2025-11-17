@@ -181,12 +181,29 @@ declare global {
 class Model3D extends PureComponent<Model3DProps> {
   state = {
     scriptLoaded: false,
+    modelError: false,
   };
+
+  private loadTimeout: NodeJS.Timeout | null = null;
 
   componentDidMount() {
     // Since we're importing the module, check if custom element is available
     // It might be registered asynchronously, so poll briefly
     this.checkCustomElement();
+    
+    // Set a timeout to prevent infinite hanging (10 seconds max)
+    this.loadTimeout = setTimeout(() => {
+      if (!this.state.scriptLoaded) {
+        console.warn('Model3D: Script loading timeout, proceeding anyway');
+        this.setState({ scriptLoaded: true });
+      }
+    }, 10000);
+  }
+
+  componentWillUnmount() {
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+    }
   }
 
   checkCustomElement() {
@@ -201,9 +218,9 @@ class Model3D extends PureComponent<Model3DProps> {
     // (web components can work before being registered in customElements registry)
     this.setState({ scriptLoaded: true });
 
-    // Also poll briefly in case registration is delayed
+    // Also poll briefly in case registration is delayed (reduced attempts for faster loading)
     let attempts = 0;
-    const maxAttempts = 10; // 1 second max
+    const maxAttempts = 5; // 0.5 seconds max (faster)
     const checkInterval = setInterval(() => {
       attempts++;
       if (customElements.get('model-viewer')) {
@@ -216,6 +233,8 @@ class Model3D extends PureComponent<Model3DProps> {
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { updateComponents, component } = this.props;
+    // Clear error state when URL changes
+    this.setState({ modelError: false });
     updateComponents({
       [component.id]: {
         ...component,
@@ -234,13 +253,21 @@ class Model3D extends PureComponent<Model3DProps> {
 
   renderModelViewer(): ReactNode {
     const { component } = this.props;
-    const { scriptLoaded } = this.state;
+    const { scriptLoaded, modelError } = this.state;
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
       return (
         <div className="model3d-placeholder">
           {t('Enter a 3D model URL (GLTF, GLB, OBJ, etc.)')}
+        </div>
+      );
+    }
+
+    if (modelError) {
+      return (
+        <div className="model3d-placeholder">
+          {t('Failed to load 3D model. Please check the URL and try again.')}
         </div>
       );
     }
@@ -259,8 +286,8 @@ class Model3D extends PureComponent<Model3DProps> {
         alt="3D Model"
         auto-rotate
         camera-controls
-        loading="auto"
-        reveal="auto"
+        loading="lazy"
+        reveal="interaction"
         exposure="0.8"
         shadow-intensity="1"
         environment-image="neutral"
@@ -280,21 +307,17 @@ class Model3D extends PureComponent<Model3DProps> {
         }}
         onError={(e: any) => {
           console.error('Model viewer error:', e);
+          this.setState({ modelError: true });
         }}
         onLoad={(e: any) => {
           console.log('Model loaded successfully');
           const modelViewer = e.target;
           if (modelViewer && modelViewer.model) {
-            // Wait a bit for textures to fully load
-            setTimeout(() => {
+            // Use requestAnimationFrame for better performance instead of setTimeout
+            requestAnimationFrame(() => {
               // Check if model has materials and textures
               modelViewer.model.traverse((node: any) => {
                 if (node.isMesh && node.material) {
-                  console.log('Mesh material:', node.material);
-                  // Log texture information
-                  if (node.material.map) {
-                    console.log('Material has texture map');
-                  }
                   // Ensure material is visible
                   if (node.material.transparent) {
                     node.material.transparent = false;
@@ -302,7 +325,7 @@ class Model3D extends PureComponent<Model3DProps> {
                   node.material.needsUpdate = true;
                 }
               });
-            }, 500);
+            });
           }
         }}
       >

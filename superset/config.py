@@ -1919,6 +1919,11 @@ TALISMAN_CONFIG = {
             # Allow loading 3D models from external sources
             "https://raw.githubusercontent.com",
             "https://github.com",
+            # Allow loading from IDT Cities domains
+            "http://home.idtcities.com",
+            "https://home.idtcities.com",
+            "http://home.snap4idtcity.com",
+            "https://home.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1959,6 +1964,11 @@ TALISMAN_DEV_CONFIG = {
             # Allow loading 3D models from external sources
             "https://raw.githubusercontent.com",
             "https://github.com",
+            # Allow loading from IDT Cities domains
+            "http://home.idtcities.com",
+            "https://home.idtcities.com",
+            "http://home.snap4idtcity.com",
+            "https://home.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
