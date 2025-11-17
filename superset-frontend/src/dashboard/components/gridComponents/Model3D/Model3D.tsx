@@ -166,20 +166,20 @@ class Model3D extends PureComponent<Model3DProps> {
       return;
     }
 
-    // Poll for a short time (module import may register asynchronously)
+    // Since we're importing the module, it should be available
+    // Set loaded immediately - the element will work even if not in registry yet
+    // (web components can work before being registered in customElements registry)
+    this.setState({ scriptLoaded: true });
+
+    // Also poll briefly in case registration is delayed
     let attempts = 0;
-    const maxAttempts = 20; // 2 seconds max
+    const maxAttempts = 10; // 1 second max
     const checkInterval = setInterval(() => {
       attempts++;
       if (customElements.get('model-viewer')) {
-        this.setState({ scriptLoaded: true });
         clearInterval(checkInterval);
       } else if (attempts >= maxAttempts) {
-        // After max attempts, assume it's loaded or there's an issue
-        // Try to set loaded anyway - the element might work even if not in registry yet
-        this.setState({ scriptLoaded: true });
         clearInterval(checkInterval);
-        console.warn('model-viewer custom element not found in registry, but continuing...');
       }
     }, 100);
   }
