@@ -178,7 +178,7 @@ et-xmlfile==2.0.0
     #   openpyxl
 filelock==3.20.3
     # via
-    #   -c requirements/base-constraint.txt
+    #   -c requirements/base.txt
     #   virtualenv
 flask==2.3.3
     # via
@@ -753,8 +753,9 @@ selenium==4.32.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-setuptools==80.7.1
+setuptools==80.9.0
     # via
+    #   -c requirements/base.txt
     #   nodeenv
     #   pandas-gbq
     #   pydata-google-auth

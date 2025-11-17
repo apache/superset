@@ -238,6 +238,7 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
+    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openapi-schema-validator==0.6.3
@@ -270,7 +271,7 @@ parsedatetime==2.6
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
 pillow==11.3.0
-    # via apache_superset (pyproject.toml)
+    # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
 ply==3.11
@@ -354,6 +355,8 @@ rsa==4.9.1
     # via google-auth
 selenium==4.32.0
     # via apache-superset (pyproject.toml)
+setuptools==80.9.0
+    # via -r requirements/base.in
 shillelagh==1.4.3
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
@@ -374,7 +377,6 @@ sqlalchemy==1.4.54
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   apache-superset-core
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -383,12 +385,9 @@ sqlalchemy==1.4.54
 sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
-    #   apache-superset-core
     #   flask-appbuilder
 sqlglot==27.15.2
-    # via
-    #   apache-superset (pyproject.toml)
-    #   apache-superset-core
+    # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
@@ -403,7 +402,6 @@ typing-extensions==4.14.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   apache-superset-core
     #   cattrs
     #   limits
     #   pyopenssl
