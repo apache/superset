@@ -135,8 +135,12 @@ declare global {
         alt?: string;
         'auto-rotate'?: boolean;
         'camera-controls'?: boolean;
+        loading?: string;
+        reveal?: string;
         style?: React.CSSProperties;
         className?: string;
+        onError?: (e: Event) => void;
+        onLoad?: () => void;
       };
     }
   }
@@ -145,43 +149,124 @@ declare global {
 class Model3D extends PureComponent<Model3DProps> {
   state = {
     scriptLoaded: false,
+    loadError: false,
   };
+
+  private checkInterval: NodeJS.Timeout | null = null;
+  private checkTimeout: NodeJS.Timeout | null = null;
+  private pollCount = 0;
+  private readonly MAX_POLL_COUNT = 50; // 5 seconds max (50 * 100ms)
 
   componentDidMount() {
     this.loadModelViewerScript();
   }
 
-  loadModelViewerScript() {
-    // Check if script is already loaded by checking if custom element is defined
+  componentWillUnmount() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+    if (this.checkTimeout) {
+      clearTimeout(this.checkTimeout);
+      this.checkTimeout = null;
+    }
+  }
+
+  checkCustomElementDefined() {
+    // Poll for custom element to be defined (ES modules may register asynchronously)
     if (customElements.get('model-viewer')) {
       this.setState({ scriptLoaded: true });
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+      if (this.checkTimeout) {
+        clearTimeout(this.checkTimeout);
+        this.checkTimeout = null;
+      }
+      this.pollCount = 0;
+      return true;
+    }
+    
+    this.pollCount++;
+    if (this.pollCount >= this.MAX_POLL_COUNT) {
+      // Stop polling after max attempts
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+      console.warn('model-viewer custom element not found after polling');
+      this.setState({ loadError: true });
+    }
+    return false;
+  }
+
+  loadModelViewerScript() {
+    // Check if custom element is already defined
+    if (this.checkCustomElementDefined()) {
       return;
     }
 
     // Check if script tag already exists
     const existingScript = document.querySelector('script[src*="model-viewer"]');
     if (existingScript) {
+      // Start polling for custom element
+      this.checkInterval = setInterval(() => {
+        this.checkCustomElementDefined();
+      }, 100);
+      
+      // Also listen for load event
       existingScript.addEventListener('load', () => {
-        this.setState({ scriptLoaded: true });
+        // Wait a bit for custom element registration
+        setTimeout(() => {
+          this.checkCustomElementDefined();
+        }, 100);
       });
-      // If script is already in DOM, check if it's loaded
-      if (customElements.get('model-viewer')) {
-        this.setState({ scriptLoaded: true });
-      }
+      
+      // Check immediately in case it's already loaded
+      setTimeout(() => {
+        this.checkCustomElementDefined();
+      }, 100);
       return;
     }
 
-    // Load model-viewer from CDN
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
-    script.onload = () => {
-      this.setState({ scriptLoaded: true });
+    // Load model-viewer from CDN (try unpkg first, then Google CDN as fallback)
+    const tryLoadScript = (url: string, isFallback = false) => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = url;
+      script.onload = () => {
+        // ES modules may register custom elements asynchronously, so poll
+        this.checkInterval = setInterval(() => {
+          if (this.checkCustomElementDefined()) {
+            // Already handled in checkCustomElementDefined
+          }
+        }, 100);
+        
+        // Also check after a short delay
+        setTimeout(() => {
+          this.checkCustomElementDefined();
+        }, 500);
+      };
+      script.onerror = (error) => {
+        console.error(`Failed to load model-viewer script from ${url}:`, error);
+        if (!isFallback) {
+          // Try fallback CDN
+          tryLoadScript('https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js', true);
+        } else {
+          // Both CDNs failed
+          if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+          }
+          this.setState({ loadError: true });
+        }
+      };
+      document.head.appendChild(script);
     };
-    script.onerror = () => {
-      console.error('Failed to load model-viewer script');
-    };
-    document.head.appendChild(script);
+
+    // Try unpkg first (more reliable)
+    tryLoadScript('https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js');
   }
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,13 +289,21 @@ class Model3D extends PureComponent<Model3DProps> {
 
   renderModelViewer(): ReactNode {
     const { component } = this.props;
-    const { scriptLoaded } = this.state;
+    const { scriptLoaded, loadError } = this.state;
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
       return (
         <div className="model3d-placeholder">
           {t('Enter a 3D model URL (GLTF, GLB, OBJ, etc.)')}
+        </div>
+      );
+    }
+
+    if (loadError) {
+      return (
+        <div className="model3d-placeholder">
+          {t('Failed to load 3D viewer. Please refresh the page.')}
         </div>
       );
     }
@@ -229,8 +322,16 @@ class Model3D extends PureComponent<Model3DProps> {
         alt="3D Model"
         auto-rotate
         camera-controls
+        loading="auto"
+        reveal="auto"
         className="model3d-viewer"
         style={{ width: '100%', height: '100%' }}
+        onError={(e: any) => {
+          console.error('Model viewer error:', e);
+        }}
+        onLoad={() => {
+          console.log('Model loaded successfully');
+        }}
       />
     );
   }
