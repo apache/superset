@@ -217,6 +217,8 @@ describe('should collect control values and create SFD', () => {
     // advanced analytics - resample
     resample_rule: '1D',
     resample_method: 'zerofill',
+    // dashboard context
+    dashboardId: 123,
   };
   const sourceMockFormData: QueryFormData = {
     ...sharedControlsFormData,
@@ -240,12 +242,15 @@ describe('should collect control values and create SFD', () => {
   };
 
   beforeAll(() => {
+    // dashboardId is not a control, it's just context, so exclude it from control definitions
+    const publicControlFields = publicControls.filter(c => c !== 'dashboardId');
+
     getChartControlPanelRegistry().registerValue('source_viz', {
       controlPanelSections: [
         sections.advancedAnalyticsControls,
         {
           label: 'transform controls',
-          controlSetRows: publicControls.map(control => [control]),
+          controlSetRows: publicControlFields.map(control => [control]),
         },
         {
           label: 'axis column',
@@ -258,7 +263,7 @@ describe('should collect control values and create SFD', () => {
         sections.advancedAnalyticsControls,
         {
           label: 'transform controls',
-          controlSetRows: publicControls.map(control => [control]),
+          controlSetRows: publicControlFields.map(control => [control]),
         },
         {
           label: 'axis column',

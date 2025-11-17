@@ -218,7 +218,10 @@ export class StandardizedFormData {
     });
     const targetFormData = {
       ...getFormDataFromControls(targetControlsState),
-      ...publicFormData,
+      // Preserve dashboard context when switching viz types.
+      ...(publicFormData.dashboardId && {
+        dashboardId: publicFormData.dashboardId,
+      }),
       standardizedFormData: this.serialize(),
     };
 
