@@ -120,7 +120,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
         {emailMenuItemTitle}
       </Menu.Item>
       {isEmbedCodeEnabled && sliceExists && (
-        <Menu.Item key="embed_code">
+        <Menu.Item key={MenuKeys.EMBED_CODE}>
           <div onClick={e => e.stopPropagation()} role="button" tabIndex={0}>
             <ModalTrigger
               triggerNode={
