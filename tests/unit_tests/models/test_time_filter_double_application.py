@@ -26,10 +26,12 @@ from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
+from superset.superset_typing import QueryObjectDict
 
 
 def test_time_filter_applied_once_with_remove_filter_in_virtual_dataset(
-    mocker: MockerFixture, app: Flask
+    mocker: MockerFixture,
+    app: Flask,
 ) -> None:
     """
     Test that time filter is applied only once when using get_time_filter with
@@ -42,11 +44,11 @@ def test_time_filter_applied_once_with_remove_filter_in_virtual_dataset(
     Expected behavior: When remove_filter=True is used in the virtual dataset,
     the time filter should only be applied in the inner query, not in the outer query.
     """
-    # Mock the database connection
+    # use a sqlite database just for the dttm conversion from its DB engine spec
     database = Database(
         id=1,
         database_name="test_db",
-        sqlalchemy_uri="postgresql://test",
+        sqlalchemy_uri="sqlite://",
     )
 
     # Create a virtual dataset that uses get_time_filter with
@@ -89,7 +91,7 @@ def test_time_filter_applied_once_with_remove_filter_in_virtual_dataset(
     )
 
     # Create a query object with a time filter
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "granularity": "dttm",
         "from_dttm": datetime(2024, 1, 1),
         "to_dttm": datetime(2024, 1, 31),
@@ -173,10 +175,11 @@ def test_time_filter_removed_from_outer_query_simple_case(
 
     This is a simpler test that verifies the core mechanism works at a single level.
     """
+    # use a sqlite database just for the dttm conversion from its DB engine spec
     database = Database(
         id=1,
         database_name="test_db",
-        sqlalchemy_uri="postgresql://test",
+        sqlalchemy_uri="sqlite://",
     )
 
     columns = [
@@ -210,7 +213,7 @@ def test_time_filter_removed_from_outer_query_simple_case(
         return_value=False,
     )
 
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "granularity": "dttm",
         "from_dttm": datetime(2024, 1, 1),
         "to_dttm": datetime(2024, 1, 31),
@@ -269,10 +272,11 @@ def test_time_filter_with_timestamp_alias(mocker: MockerFixture, app: Flask) -> 
     alias in timeseries queries, but get_time_filter uses the actual column name.
     The fix ensures both are recognized as the same column.
     """
+    # use a sqlite database just for the dttm conversion from its DB engine spec
     database = Database(
         id=1,
         database_name="test_db",
-        sqlalchemy_uri="postgresql://test",
+        sqlalchemy_uri="sqlite://",
     )
 
     columns = [
@@ -312,7 +316,7 @@ def test_time_filter_with_timestamp_alias(mocker: MockerFixture, app: Flask) -> 
     )
 
     # Query using __timestamp alias (as timeseries charts do)
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "granularity": "dttm",
         "from_dttm": datetime(2024, 1, 1),
         "to_dttm": datetime(2024, 1, 31),

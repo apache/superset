@@ -840,9 +840,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_row_level_filters(
         self,
-        template_processor: Optional[
-            BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -2213,9 +2211,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = app.config.get(
-                    "ADVANCED_DATA_TYPES", {}
-                )  # noqa: N806
+                ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
 
                 if (
                     col_advanced_data_type != ""
@@ -2383,9 +2379,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (_orig_col, ascending) in zip(
-            orderby_exprs, orderby, strict=False
-        ):  # noqa: B007
+        for col, (_orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column
