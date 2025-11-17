@@ -602,7 +602,7 @@ describe('plugin-chart-table', () => {
         // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
         const props = transformProps(testData.comparison);
 
-        const { container } = render(<TableChart {...props} sticky={false} />);
+        render(<TableChart {...props} sticky={false} />);
 
         const headers = screen.getAllByRole('columnheader');
 
@@ -632,24 +632,41 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid characters: alphanumeric, underscore, hyphen
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // CRITICAL: Verify ALL cells reference valid headers (no broken ARIA)
+      test('should validate ARIA references for time-comparison table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.comparison);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        const allCells = container.querySelectorAll('tbody td');
         const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
+          'tbody td[aria-labelledby]',
         );
+
+        // First assertion: Table must render data cells (catch empty table regression)
+        expect(allCells.length).toBeGreaterThan(0);
+
+        // Second assertion: ALL data cells must have aria-labelledby (no unlabeled cells)
+        expect(cellsWithLabels.length).toBe(allCells.length);
+
+        // Third assertion: ALL aria-labelledby values should be valid
         cellsWithLabels.forEach(cell => {
           const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Check that the ID doesn't contain special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
+          expect(labelledBy).not.toBeNull();
+          expect(labelledBy).not.toBe('');
+          const labelledByValue = labelledBy as string;
+          // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
+          expect(labelledByValue).not.toMatch(/\s/);
+          // Check that the ID doesn't contain special characters
+          expect(labelledByValue).not.toMatch(/[%#△]/);
+          // Verify the referenced header actually exists
+          const referencedHeader = container.querySelector(
+            `#${CSS.escape(labelledByValue)}`,
+          );
+          expect(referencedHeader).toBeTruthy();
         });
       });
 
@@ -711,24 +728,45 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid CSS selector characters
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // Test 6: Verify ALL cells reference valid headers (no broken ARIA)
-        const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
+      test('should validate ARIA references for regular table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.advanced);
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
         );
+
+        const allCells = container.querySelectorAll('tbody td');
+        const cellsWithLabels = container.querySelectorAll(
+          'tbody td[aria-labelledby]',
+        );
+
+        // First assertion: Table must render data cells (catch empty table regression)
+        expect(allCells.length).toBeGreaterThan(0);
+
+        // Second assertion: ALL data cells must have aria-labelledby (no unlabeled cells)
+        expect(cellsWithLabels.length).toBe(allCells.length);
+
+        // Third assertion: ALL aria-labelledby values should be valid
         cellsWithLabels.forEach(cell => {
           const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Verify no spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Verify no special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
+          expect(labelledBy).not.toBeNull();
+          expect(labelledBy).not.toBe('');
+          const labelledByValue = labelledBy as string;
+          // Verify no spaces (would be interpreted as multiple IDs)
+          expect(labelledByValue).not.toMatch(/\s/);
+          // Verify no special characters
+          expect(labelledByValue).not.toMatch(/[%#△]/);
+          // Verify the referenced header actually exists
+          const referencedHeader = container.querySelector(
+            `#${CSS.escape(labelledByValue)}`,
+          );
+          expect(referencedHeader).toBeTruthy();
         });
       });
 
