@@ -637,11 +637,11 @@ class XYChartConfig(BaseModel):
     chart_type: Literal["xy"] = Field(
         ...,
         description=(
-            "Chart type discriminator - MUST be 'xy' for XY charts (line, bar, area, scatter). "
-            "This field is REQUIRED and tells Superset which chart configuration schema to use."
-        )
-    )
-        ..., description="Chart type (REQUIRED: must be 'xy')"
+            "Chart type discriminator - MUST be 'xy' for XY charts "
+            "(line, bar, area, scatter). "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
     )
     x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
