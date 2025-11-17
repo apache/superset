@@ -26,6 +26,7 @@ import nh3
 from flask import current_app
 from flask_babel import gettext as __
 from pytz import timezone
+import requests
 
 from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
@@ -43,7 +44,34 @@ class WebhookNotification(BaseNotification):
 
     type = ReportRecipientType.WEBHOOK
 
+    def _get_webhook_url(self):
+        return json.loads(self._recipient.recipient_config_json)["target"]
+
+    def _get_req_payload(self):
+        print("Header data: ", self._content.header_data)
+        header_content = {
+            "notification_format": self._content.header_data.get("nofitication_format"),
+            "notification_type": self._content.header_data.get("notification_type"),
+            "notification_source": self._content.header_data.get("notification_source"),
+            "chart_id": self._content.header_data.get("chart_id"),
+            "dashboard_id": self._content.header_data.get("dashboard_id"),
+        }
+        content = {
+            "name": self._content.name,
+            "header": header_content,
+            "text": self._content.text,
+            "description:": self._content.description,
+            "url": self._content.url,
+        }
+        return content
+
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:
-        print("WEBHOOK SEND CALLED!!!!!", self._recipient)
+        wh_url = self._get_webhook_url()
+        payload = self._get_req_payload()
+    
+        requests.post(
+            url=wh_url,
+            json=payload
+        )
         pass
