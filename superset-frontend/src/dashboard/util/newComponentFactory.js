@@ -29,6 +29,7 @@ import {
   TABS_TYPE,
   TAB_TYPE,
   BUTTON_TYPE,
+  MODEL3D_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -53,6 +54,7 @@ const typeToDefaultMetaData = {
     background: BACKGROUND_TRANSPARENT,
   },
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
+  [MODEL3D_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50, modelUrl: '' },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {

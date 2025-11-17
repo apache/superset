@@ -114,6 +114,9 @@ const Model3DContainer = styled.div`
       color: ${theme.colorTextSecondary};
       background-color: ${theme.colorFillQuaternary};
       border-radius: ${theme.borderRadius}px;
+      border: 2px dashed ${theme.colorBorder};
+      padding: ${theme.sizeUnit * 4}px;
+      text-align: center;
     }
   `}
 `;
@@ -135,18 +138,31 @@ declare global {
 }
 
 class Model3D extends PureComponent<Model3DProps> {
-  private modelViewerScriptLoaded = false;
+  state = {
+    scriptLoaded: false,
+  };
 
   componentDidMount() {
     this.loadModelViewerScript();
   }
 
   loadModelViewerScript() {
-    if (this.modelViewerScriptLoaded) return;
+    // Check if script is already loaded by checking if custom element is defined
+    if (customElements.get('model-viewer')) {
+      this.setState({ scriptLoaded: true });
+      return;
+    }
 
-    // Check if script is already loaded
-    if (document.querySelector('script[src*="model-viewer"]')) {
-      this.modelViewerScriptLoaded = true;
+    // Check if script tag already exists
+    const existingScript = document.querySelector('script[src*="model-viewer"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => {
+        this.setState({ scriptLoaded: true });
+      });
+      // If script is already in DOM, check if it's loaded
+      if (customElements.get('model-viewer')) {
+        this.setState({ scriptLoaded: true });
+      }
       return;
     }
 
@@ -155,8 +171,10 @@ class Model3D extends PureComponent<Model3DProps> {
     script.type = 'module';
     script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
     script.onload = () => {
-      this.modelViewerScriptLoaded = true;
-      this.forceUpdate();
+      this.setState({ scriptLoaded: true });
+    };
+    script.onerror = () => {
+      console.error('Failed to load model-viewer script');
     };
     document.head.appendChild(script);
   }
@@ -181,12 +199,21 @@ class Model3D extends PureComponent<Model3DProps> {
 
   renderModelViewer(): ReactNode {
     const { component } = this.props;
+    const { scriptLoaded } = this.state;
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
       return (
         <div className="model3d-placeholder">
           {t('Enter a 3D model URL (GLTF, GLB, OBJ, etc.)')}
+        </div>
+      );
+    }
+
+    if (!scriptLoaded) {
+      return (
+        <div className="model3d-placeholder">
+          {t('Loading 3D viewer...')}
         </div>
       );
     }
