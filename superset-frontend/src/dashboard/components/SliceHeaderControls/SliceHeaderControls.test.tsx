@@ -599,7 +599,9 @@ test('Should NOT show "Embed code" in Share menu when feature flag is disabled',
   renderWrapper(props);
   openMenu();
   userEvent.hover(screen.getByText('Share'));
-  expect(await screen.findByText('Copy permalink to clipboard')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Copy permalink to clipboard'),
+  ).toBeInTheDocument();
   expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
 });
 
