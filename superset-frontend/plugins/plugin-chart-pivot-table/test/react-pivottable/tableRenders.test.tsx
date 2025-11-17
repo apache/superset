@@ -19,7 +19,7 @@
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 
 let tableRenderer: TableRenderer;
-let mockCalculateGroups: jest.Mock;
+let mockGetAggregatedData: jest.Mock;
 let mockSortAndCacheData: jest.Mock;
 
 const columnIndex = 0;
@@ -58,10 +58,10 @@ const mockProps = {
 beforeEach(() => {
   tableRenderer = new TableRenderer(mockProps);
 
-  mockCalculateGroups = jest.fn();
+  mockGetAggregatedData = jest.fn();
   mockSortAndCacheData = jest.fn();
 
-  tableRenderer.calculateGroups = mockCalculateGroups;
+  tableRenderer.getAggregatedData = mockGetAggregatedData;
   tableRenderer.sortAndCacheData = mockSortAndCacheData;
 
   tableRenderer.cachedBasePivotSettings = {
@@ -103,7 +103,7 @@ const mockGroups = {
 };
 
 test('should set initial ascending sort when no active sort column', () => {
-  mockCalculateGroups.mockReturnValue({
+  mockGetAggregatedData.mockReturnValue({
     A: { currentVal: 30 },
     B: { currentVal: 10 },
     C: { currentVal: 20 },
@@ -130,9 +130,10 @@ test('should set initial ascending sort when no active sort column', () => {
   expect(newState.sortingOrder[columnIndex]).toBe('asc');
   expect(newState.activeSortColumn).toBe(columnIndex);
 
-  expect(mockCalculateGroups).toHaveBeenCalledWith(
+  expect(mockGetAggregatedData).toHaveBeenCalledWith(
     pivotData,
     visibleColKeys[columnIndex],
+    false,
   );
 
   expect(mockSortAndCacheData).toHaveBeenCalledWith(
@@ -145,7 +146,7 @@ test('should set initial ascending sort when no active sort column', () => {
 });
 
 test('should toggle from asc to desc when clicking same column', () => {
-  mockCalculateGroups.mockReturnValue({
+  mockGetAggregatedData.mockReturnValue({
     A: { currentVal: 30 },
     B: { currentVal: 10 },
     C: { currentVal: 20 },
@@ -177,7 +178,7 @@ test('should toggle from asc to desc when clicking same column', () => {
 });
 
 test('should check second call in sequence', () => {
-  mockCalculateGroups.mockReturnValue({
+  mockGetAggregatedData.mockReturnValue({
     A: { currentVal: 30 },
     B: { currentVal: 10 },
     C: { currentVal: 20 },
@@ -328,7 +329,11 @@ test('should calculate groups from pivot data', () => {
       .mockReturnValueOnce(mockAggregator(20)),
   };
 
-  const result = tableRenderer.calculateGroups(mockPivotData as any, ['col1']);
+  const result = tableRenderer.getAggregatedData(
+    mockPivotData as any,
+    ['col1'],
+    false,
+  );
 
   expect(result).toEqual({
     A: { currentVal: 30 },

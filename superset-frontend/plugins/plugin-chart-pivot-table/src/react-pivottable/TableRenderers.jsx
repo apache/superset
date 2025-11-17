@@ -433,7 +433,7 @@ export class TableRenderer extends Component {
     return spans;
   }
 
-  calculateGroups(pivotData, visibleColName) {
+  getAggregatedData(pivotData, visibleColName, rowPartialOnTop) {
     // Transforms flat row keys into a hierarchical group structure where each level
     // represents a grouping dimension. For each row key path, it calculates the
     // aggregated value for the specified column and builds a nested object that
@@ -441,16 +441,21 @@ export class TableRenderer extends Component {
     const groups = {};
     const rows = pivotData.rowKeys;
     rows.forEach(rowKey => {
-      const aggValue = pivotData.getAggregator(rowKey, visibleColName).value();
-      let current = groups;
-      let sumGroup = 0;
-      rowKey.forEach(key => {
-        if (!current[key]) {
-          current[key] = { currentVal: 0 };
-        }
-        current[key].currentVal = aggValue ?? 0;
-        current = current[key];
-      });
+      const aggValue =
+        pivotData.getAggregator(rowKey, visibleColName).value() ?? 0;
+
+      if (rowPartialOnTop) {
+        const parent = rowKey
+          .slice(0, -1)
+          .reduce((acc, key) => (acc[key] ??= {}), groups);
+        parent[rowKey.at(-1)] = { currentVal: aggValue };
+      } else {
+        rowKey.reduce((acc, key, index) => {
+          acc[key] = acc[key] || { currentVal: 0 };
+          acc[key].currentVal = aggValue;
+          return acc[key];
+        }, groups);
+      }
     });
     return groups;
   }
@@ -503,9 +508,10 @@ export class TableRenderer extends Component {
         const cachedRowKeys = this.sortCache.get(cacheKey);
         newRowKeys = cachedRowKeys;
       } else {
-        const groups = this.calculateGroups(
+        const groups = this.getAggregatedData(
           pivotData,
           visibleColKeys[columnIndex],
+          rowPartialOnTop,
         );
         const sortedRowKeys = this.sortAndCacheData(
           groups,
