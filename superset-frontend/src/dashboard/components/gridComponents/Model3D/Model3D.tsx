@@ -180,24 +180,21 @@ declare global {
 
 class Model3D extends PureComponent<Model3DProps> {
   state = {
-    scriptLoaded: false,
+    scriptLoaded: true, // Set to true by default since we import the module directly
     modelError: false,
   };
 
   private loadTimeout: NodeJS.Timeout | null = null;
 
   componentDidMount() {
-    // Since we're importing @google/model-viewer as a module, set loaded immediately
-    // The module import should register the custom element, but we don't need to wait
-    // The model-viewer element will work even if not in the registry yet
-    this.setState({ scriptLoaded: true });
-    
-    // Also check if it's in registry (for logging/debugging)
-    if (customElements.get('model-viewer')) {
-      console.log('model-viewer custom element found in registry');
-    } else {
-      console.log('model-viewer not in registry yet, but proceeding (module imported)');
-    }
+    // Log registry status for debugging
+    setTimeout(() => {
+      if (customElements.get('model-viewer')) {
+        console.log('Model3D: model-viewer custom element found in registry');
+      } else {
+        console.warn('Model3D: model-viewer not in registry - module may not have loaded');
+      }
+    }, 100);
   }
 
   componentWillUnmount() {
@@ -229,7 +226,7 @@ class Model3D extends PureComponent<Model3DProps> {
 
   renderModelViewer(): ReactNode {
     const { component } = this.props;
-    const { scriptLoaded, modelError } = this.state;
+    const { modelError } = this.state;
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
@@ -248,13 +245,8 @@ class Model3D extends PureComponent<Model3DProps> {
       );
     }
 
-    if (!scriptLoaded) {
-      return (
-        <div className="model3d-placeholder">
-          {t('Loading 3D viewer...')}
-        </div>
-      );
-    }
+    // Skip scriptLoaded check - we import the module directly, so it should be available
+    // The model-viewer element will handle its own loading state
 
     return (
       <model-viewer
