@@ -3027,15 +3027,6 @@ msgstr "Couleurs"
 msgid "Column"
 msgstr "Colonne"
 
-msgid "Column for labels"
-msgstr "Colonne pour les libellés"
-
-msgid "Column for values"
-msgstr "Colonne pour les valeurs"
-
-msgid "Column used for labels and values or only labels if a value is defined on 'Column for values'"
-msgstr "Colonne utilisée pour les libellés et valeurs où seulement les libellés si une valeur est définie dans 'Colonne pour les valeurs'"
-
 #, python-format
 msgid ""
 "Column \"%(column)s\" is not numeric or does not exists in the query "
@@ -3077,6 +3068,12 @@ msgstr "Types de données des colonnes"
 msgid "Column datatype"
 msgstr "Type de données de la colonne"
 
+msgid "Column for labels"
+msgstr "Colonne pour les libellés"
+
+msgid "Column for values"
+msgstr "Colonne pour les valeurs"
+
 msgid "Column header tooltip"
 msgstr "Infobulle de l'en-tête de colonne"
 
@@ -3112,6 +3109,13 @@ msgstr "Fichier en colonnes"
 
 msgid "Columns"
 msgstr "Colonnes"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
+"Colonne utilisée pour les libellés et valeurs où seulement les libellés "
+"si une valeur est définie dans 'Colonne pour les valeurs'"
 
 #, fuzzy
 msgid "Columns To Be Parsed as Dates"
@@ -3490,6 +3494,10 @@ msgid "Create Chart"
 msgstr "Créer un graphique"
 
 #, fuzzy
+msgid "Create Tag"
+msgstr "Créer un ensemble de données"
+
+#, fuzzy
 msgid "Create a dataset"
 msgstr "Créer un ensemble de données"
 
@@ -3500,8 +3508,17 @@ msgstr ""
 "Créer un ensemble de données pour commencer à visualiser vos données sous"
 " forme de graphique ou aller à SQL Lab pour interroger vos données."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "créer un nouveau graphique"
+
 msgid "Create a new chart"
 msgstr "Créer un nouveau graphique"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create chart"
@@ -6245,9 +6262,6 @@ msgstr "Ce tableau de filtre existe déjà"
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Si une mesure est définie, le tri sera basé sur sa valeur"
 
-msgid "If value is specified, filtering will be done based on this value. Default value will be column name."
-msgstr "Si une valeur est spécifiée, le tri sera basé sur cette valeur. Par défaut, la valeur sera le nom de la colonne."
-
 msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
@@ -6257,6 +6271,13 @@ msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
 "Si sélectionné, veuillez indiquer les schémas permis pour le "
 "téléversement csv dans Extra."
+
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr ""
+"Si une valeur est spécifiée, le tri sera basé sur cette valeur. Par "
+"défaut, la valeur sera le nom de la colonne."
 
 #, fuzzy
 msgid "Ignore cache when generating report"
@@ -7508,7 +7529,7 @@ msgstr "Modifié"
 
 #, python-format
 msgid "Modified %s"
-msgstr "%s modifié"
+msgstr "Modifié %s"
 
 msgid "Modified by"
 msgstr "Modifié"
@@ -10037,6 +10058,9 @@ msgstr "Recherche dans les filtres"
 
 msgid "Search..."
 msgstr "Rechercher…"
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Seconde"

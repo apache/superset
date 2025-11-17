@@ -2888,6 +2888,14 @@ msgstr "Kolom gegevenstypen"
 msgid "Column datatype"
 msgstr "Kolom gegevenstype"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "De kolomkop label"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Som waarden"
+
 msgid "Column header tooltip"
 msgstr "Kolomkop tooltip"
 
@@ -2922,6 +2930,11 @@ msgstr "Columnar bestand"
 
 msgid "Columns"
 msgstr "Kolommen"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "Kolommen die als datums worden geparsed"
@@ -3273,6 +3286,10 @@ msgstr "Maak"
 msgid "Create Chart"
 msgstr "Grafiek aanmaken"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "Dataset aanmaken"
+
 msgid "Create a dataset"
 msgstr "Een dataset aanmaken"
 
@@ -3284,8 +3301,17 @@ msgstr ""
 "naar\n"
 "          SQL Lab om uw gegevens op te vragen."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "maak een nieuwe grafiek"
+
 msgid "Create a new chart"
 msgstr "Maak een nieuwe grafiek"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "Grafiek aanmaken"
@@ -5847,6 +5873,14 @@ msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
 "Indien geselecteerd, gelieve de toegestane schema’s voor csv upload in "
 "Extra in te stellen."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr ""
+"Als een metriek is opgegeven, zal sortering worden gedaan op basis van de"
+" metrische waarde"
 
 msgid "Ignore cache when generating report"
 msgstr "Negeer cache bij genereren van rapport"
@@ -9274,6 +9308,9 @@ msgstr "Zoek in filters"
 
 msgid "Search..."
 msgstr "Zoek…"
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Seconde"

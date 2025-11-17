@@ -2819,6 +2819,14 @@ msgstr "نوع بيانات العمود"
 msgid "Column datatype"
 msgstr "نوع بيانات العمود"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "تسمية رأس العمود"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "قيم المجموع"
+
 msgid "Column header tooltip"
 msgstr "تلميح أداة رأس العمود"
 
@@ -2853,6 +2861,11 @@ msgstr "ملف عمودي"
 
 msgid "Columns"
 msgstr "الاعمده"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "الأعمدة المراد تحليلها كتواريخ"
@@ -3198,6 +3211,10 @@ msgstr "خلق"
 msgid "Create Chart"
 msgstr "إنشاء مخطط"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "إنشاء مجموعة بيانات"
+
 msgid "Create a dataset"
 msgstr "إنشاء مجموعة بيانات"
 
@@ -3208,8 +3225,17 @@ msgstr ""
 "إنشاء مجموعة بيانات لبدء تصور بياناتك كمخطط أو الانتقال إلى\n"
 "          SQL Lab للاستعلام عن بياناتك."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "إنشاء مخطط جديد"
+
 msgid "Create a new chart"
 msgstr "إنشاء مخطط جديد"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "إنشاء مخطط"
@@ -5790,6 +5816,12 @@ msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr "في حالة التحديد، يرجى تعيين المخططات المسموح بها لتحميل csv في Extra."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr "إذا تم تحديد مقياس، فسيتم الفرز استنادًا إلى قيمة المقياس"
 
 msgid "Ignore cache when generating report"
 msgstr "تجاهل ذاكرة التخزين المؤقت عند إنشاء التقرير"
@@ -9182,6 +9214,9 @@ msgstr "البحث في الفلاتر"
 
 msgid "Search..."
 msgstr "ابحث..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "ثانيا"

@@ -2600,15 +2600,6 @@ msgstr ""
 msgid "Column"
 msgstr ""
 
-msgid "Column for labels"
-msgstr ""
-
-msgid "Column for values"
-msgstr ""
-
-msgid "Column used for labels and values or only labels if a value is defined on 'Column for values'"
-msgstr ""
-
 #, python-format
 msgid ""
 "Column \"%(column)s\" is not numeric or does not exists in the query "
@@ -2641,6 +2632,12 @@ msgstr ""
 msgid "Column datatype"
 msgstr ""
 
+msgid "Column for labels"
+msgstr ""
+
+msgid "Column for values"
+msgstr ""
+
 msgid "Column header tooltip"
 msgstr ""
 
@@ -2670,6 +2667,11 @@ msgid "Columnar Upload"
 msgstr ""
 
 msgid "Columns"
+msgstr ""
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
 msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
@@ -2998,6 +3000,9 @@ msgstr ""
 msgid "Create Chart"
 msgstr ""
 
+msgid "Create Tag"
+msgstr ""
+
 #, fuzzy
 msgid "Create a dataset"
 msgstr ""
@@ -3007,7 +3012,15 @@ msgid ""
 "          SQL Lab to query your data."
 msgstr ""
 
+msgid "Create a new Tag"
+msgstr ""
+
 msgid "Create a new chart"
+msgstr ""
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
 msgstr ""
 
 msgid "Create chart"
@@ -5349,15 +5362,17 @@ msgstr ""
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
 
-msgid "If value is specified, filtering will be done based on this value. Default value will be column name."
-msgstr ""
-
 msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
+msgstr ""
+
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
 msgstr ""
 
 msgid "Ignore cache when generating report"
@@ -8580,6 +8595,9 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search..."
+msgstr ""
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
 msgstr ""
 
 msgid "Second"

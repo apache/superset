@@ -34,7 +34,7 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import g
+from flask import g, session
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
@@ -172,6 +172,10 @@ def convert_uuids(obj: Any) -> Any:
         return {k: convert_uuids(v) for k, v in obj.items()}
 
     return obj
+
+
+def get_locale() -> str:
+    return session.get("locale", "en")
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
@@ -556,10 +560,12 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
+        _t = humanize.i18n.activate(get_locale())
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
+        _t = humanize.i18n.activate(get_locale())
         return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")

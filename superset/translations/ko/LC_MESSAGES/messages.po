@@ -2781,6 +2781,14 @@ msgstr "차트 유형"
 msgid "Column datatype"
 msgstr "컬럼 추가"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "주석"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "테이블 명"
+
 msgid "Column header tooltip"
 msgstr ""
 
@@ -2815,6 +2823,11 @@ msgstr "컬럼 추가"
 
 msgid "Columns"
 msgstr "칼럼"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr ""
@@ -3167,6 +3180,10 @@ msgid "Create Chart"
 msgstr "차트 보기"
 
 #, fuzzy
+msgid "Create Tag"
+msgstr "데이터소스 선택"
+
+#, fuzzy
 msgid "Create a dataset"
 msgstr "차트 수정"
 
@@ -3175,8 +3192,17 @@ msgid ""
 "          SQL Lab to query your data."
 msgstr ""
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "새 차트 생성"
+
 msgid "Create a new chart"
 msgstr "새 차트 생성"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create chart"
@@ -5658,6 +5684,11 @@ msgid ""
 msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
+msgstr ""
+
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
 msgstr ""
 
 msgid "Ignore cache when generating report"
@@ -9080,6 +9111,9 @@ msgstr "필터"
 
 msgid "Search..."
 msgstr "검색"
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "초"

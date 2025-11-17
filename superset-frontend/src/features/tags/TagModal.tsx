@@ -81,7 +81,7 @@ const TagModal: FC<TagModalProps> = ({
   const [description, setDescription] = useState<string>('');
 
   const isEditMode = !!editTag;
-  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
+  const modalTitle = isEditMode ? t('Edit Tag') : t('Create Tag');
 
   const clearResources = () => {
     setDashboardsToTag([]);

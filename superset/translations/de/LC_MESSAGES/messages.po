@@ -2928,6 +2928,14 @@ msgstr "Spaltendatentypen"
 msgid "Column datatype"
 msgstr "Datentyp der Spalte"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "Die Spaltenüberschrift"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Summenwerte"
+
 msgid "Column header tooltip"
 msgstr "Tooltip zur Spaltenüberschrift"
 
@@ -2962,6 +2970,11 @@ msgstr "Tabellen-Datei"
 
 msgid "Columns"
 msgstr "Spalten"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "Spalten, die als Datumsangaben interpretiert werden sollen"
@@ -3326,6 +3339,10 @@ msgstr "Erstellen"
 msgid "Create Chart"
 msgstr "Diagramm erstellen"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "Datensatz erstellen"
+
 msgid "Create a dataset"
 msgstr "Datensatz erstellen"
 
@@ -3337,8 +3354,17 @@ msgstr ""
 "Diagramm zu beginnen, oder wechseln Sie zu\n"
 "          SQL Lab, um Ihre Daten abzufragen."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "Neues Diagramm erstellen"
+
 msgid "Create a new chart"
 msgstr "Neues Diagramm erstellen"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "Diagramm erstellen"
@@ -5903,6 +5929,14 @@ msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
 "Falls ausgewählt, legen Sie bitte die Schemata fest, die für den CSV-"
 "Upload in Extra zulässig sind."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr ""
+"Wenn eine Metrik angegeben wird, erfolgt die Sortierung basierend auf dem"
+" Metrikwert"
 
 msgid "Ignore cache when generating report"
 msgstr "Cache beim Erstellen von Berichten ignorieren"
@@ -9368,6 +9402,9 @@ msgstr "Suche in Filtern"
 
 msgid "Search..."
 msgstr "Suche..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Sekunde"

@@ -2863,6 +2863,14 @@ msgstr "Тип столбца"
 msgid "Column datatype"
 msgstr "Тип столбца"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "Заголовок столбца"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Суммарные значения"
+
 msgid "Column header tooltip"
 msgstr "Всплывающая подсказка заголовка столбца"
 
@@ -2896,6 +2904,11 @@ msgstr "Файл столбчатого формата"
 
 msgid "Columns"
 msgstr "Столбцы"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "Столбцы, которые должны быть интерпретированы как даты"
@@ -3235,6 +3248,10 @@ msgstr "Создать"
 msgid "Create Chart"
 msgstr "Создать диаграмму"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "Создать датасет"
+
 msgid "Create a dataset"
 msgstr "Создать датасет"
 
@@ -3245,8 +3262,17 @@ msgstr ""
 "Создайте датасет для визуализации ваших данных на диаграмме или перейдите"
 " в SQL Lab для просмотра данных"
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "создать новую диаграмму"
+
 msgid "Create a new chart"
 msgstr "Создать новую диаграмму"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "Создать диаграмму"
@@ -5780,6 +5806,12 @@ msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
 "Если установлено, выберите схемы, в которые разрешена загрузка CSV на "
 "вкладке \"Дополнительно\"."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr "Если выбрать меру, список значений фильтров будет отсортирован по ней"
 
 msgid "Ignore cache when generating report"
 msgstr "Игнорировать кэш при создании отчета"
@@ -9217,6 +9249,9 @@ msgstr "Поиск / Фильтр"
 
 msgid "Search..."
 msgstr "Поиск..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Секунда"

@@ -341,7 +341,7 @@ holidays==0.25
     #   -c requirements/base.txt
     #   apache-superset
     #   prophet
-humanize==4.11.0
+humanize==4.14.0
     # via
     #   -c requirements/base.txt
     #   apache-superset

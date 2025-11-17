@@ -2869,6 +2869,14 @@ msgstr "Типи даних стовпців"
 msgid "Column datatype"
 msgstr "Тип даних стовпців"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "Мітка заголовка стовпчика"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Значення суми"
+
 msgid "Column header tooltip"
 msgstr "Підказка заголовка стовпців"
 
@@ -2903,6 +2911,11 @@ msgstr "Стовпчик"
 
 msgid "Columns"
 msgstr "Колони"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "Стовпці, які слід проаналізувати як дати"
@@ -3255,6 +3268,10 @@ msgstr "Створити"
 msgid "Create Chart"
 msgstr "Створити діаграму"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "Створити набір даних"
+
 msgid "Create a dataset"
 msgstr "Створіть набір даних"
 
@@ -3266,8 +3283,17 @@ msgstr ""
 "перейти до\n"
 "          SQL Lab, щоб запитати ваші дані."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "cтворіть нову діаграму"
+
 msgid "Create a new chart"
 msgstr "Створіть нову діаграму"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "Створити діаграму"
@@ -5829,6 +5855,14 @@ msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr "Якщо вибрано, встановіть схеми, дозволені для завантаження CSV додатково."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr ""
+"Якщо вказано метрику, сортування буде здійснено на основі метричного "
+"значення"
 
 #, fuzzy
 msgid "Ignore cache when generating report"
@@ -9283,6 +9317,9 @@ msgstr "Пошук у фільтрах"
 
 msgid "Search..."
 msgstr "Пошук ..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Другий"

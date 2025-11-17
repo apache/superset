@@ -2801,6 +2801,14 @@ msgstr "Analytics avanzate"
 msgid "Column datatype"
 msgstr "Colonna"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "Formato Datetime"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Valore del filtro"
+
 msgid "Column header tooltip"
 msgstr ""
 
@@ -2834,6 +2842,11 @@ msgid "Columnar Upload"
 msgstr "Colonna"
 
 msgid "Columns"
+msgstr ""
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
 msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
@@ -3191,6 +3204,10 @@ msgid "Create Chart"
 msgstr "Esplora grafico"
 
 #, fuzzy
+msgid "Create Tag"
+msgstr "Seleziona una destinazione"
+
+#, fuzzy
 msgid "Create a dataset"
 msgstr "Mostra database"
 
@@ -3199,7 +3216,16 @@ msgid ""
 "          SQL Lab to query your data."
 msgstr ""
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "Creato il"
+
 msgid "Create a new chart"
+msgstr ""
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
 msgstr ""
 
 #, fuzzy
@@ -5716,6 +5742,11 @@ msgid ""
 msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
+msgstr ""
+
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
 msgstr ""
 
 msgid "Ignore cache when generating report"
@@ -9185,6 +9216,9 @@ msgstr "Cerca / Filtra"
 
 msgid "Search..."
 msgstr "Cerca"
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr ""

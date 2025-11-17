@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import humanize
+from flask import session
 from sqlalchemy import and_, or_
 from sqlalchemy.sql import functions as func
 
@@ -133,6 +134,9 @@ class LogDAO(BaseDAO[Log]):
                 item_type = "slice"
                 item_url = Slice.build_explore_url(log.slice_id)
                 item_title = log.slice_name or "<empty>"
+
+            locale = session.get("locale", "en")
+            _t = humanize.i18n.activate(locale)
 
             payload.append(
                 {

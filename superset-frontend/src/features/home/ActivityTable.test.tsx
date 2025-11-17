@@ -33,6 +33,8 @@ const mockData = {
       url: '/fakeUrl/explore',
       id: '4',
       table: {},
+      time: 1763371396538.823,
+      time_delta_humanized: '3 days ago',
     },
   ],
   [TableTab.Created]: [
@@ -41,6 +43,7 @@ const mockData = {
       changed_on_utc: '24 Feb 2014 10:13:14',
       url: '/fakeUrl/dashboard',
       id: '3',
+      changed_on_delta_humanized: '3 minutes ago',
     },
   ],
 };
@@ -121,6 +124,12 @@ test('renders tabs with three buttons', async () => {
 test('renders Viewed tab with ActivityCards', async () => {
   renderActivityTable(activityViewedTabProps);
   expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
+  expect(screen.getByText(/3 days ago/i)).toBeInTheDocument();
+});
+test('renders Created tab with ActivityCards', async () => {
+  renderActivityTable(activityProps);
+  expect(screen.getByText(/Dashboard_Test/i)).toBeInTheDocument();
+  expect(screen.getByText(/3 minutes ago/i)).toBeInTheDocument();
 });
 test('calls the getEdited batch call when edited tab is clicked', async () => {
   const { rerender } = renderActivityTable(activityProps);

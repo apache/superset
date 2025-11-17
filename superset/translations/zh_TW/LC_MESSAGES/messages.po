@@ -2824,6 +2824,14 @@ msgid "Column datatype"
 msgstr "列數據類型"
 
 #, fuzzy
+msgid "Column for labels"
+msgstr "列的標題"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "值求和"
+
+#, fuzzy
 msgid "Column header tooltip"
 msgstr "列標題提示"
 
@@ -2857,6 +2865,11 @@ msgstr "列式儲存文件"
 
 msgid "Columns"
 msgstr "列"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 #, fuzzy
 msgid "Columns To Be Parsed as Dates"
@@ -3204,6 +3217,10 @@ msgid "Create Chart"
 msgstr "創建圖表"
 
 #, fuzzy
+msgid "Create Tag"
+msgstr "創建數據集"
+
+#, fuzzy
 msgid "Create a dataset"
 msgstr "創建數據集"
 
@@ -3212,8 +3229,17 @@ msgid ""
 "          SQL Lab to query your data."
 msgstr "創建一個數據集以開始將您的數據可視化為圖表，或者前往 SQL 工具箱查詢您的數據。"
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "創建新圖表"
+
 msgid "Create a new chart"
 msgstr "創建新圖表"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 #, fuzzy
 msgid "Create chart"
@@ -5733,6 +5759,12 @@ msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr "如果選擇，請額外設定 csv 上傳允許的模式。"
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr "如果指定了度量，则將根据該度量值進行排序"
 
 #, fuzzy
 msgid "Ignore cache when generating report"
@@ -9205,6 +9237,9 @@ msgstr "搜索 / 過濾"
 
 msgid "Search..."
 msgstr "搜索..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "秒"

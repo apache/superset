@@ -2883,6 +2883,14 @@ msgstr "Podatkovni tipi stolpcev"
 msgid "Column datatype"
 msgstr "Podatkovni tipi stolpcev"
 
+#, fuzzy
+msgid "Column for labels"
+msgstr "Naslov stolpca"
+
+#, fuzzy
+msgid "Column for values"
+msgstr "Vsote"
+
 msgid "Column header tooltip"
 msgstr "Opis glave stolpca"
 
@@ -2915,6 +2923,11 @@ msgstr "Nalaganje stolpčne datoteke"
 
 msgid "Columns"
 msgstr "Stolpci"
+
+msgid ""
+"Column used for labels and values or only labels if a value is defined on"
+" 'Column for values'"
+msgstr ""
 
 msgid "Columns To Be Parsed as Dates"
 msgstr "Stolpci, ki bodo prepoznani kot datumi"
@@ -3254,6 +3267,10 @@ msgstr "Ustvari"
 msgid "Create Chart"
 msgstr "Ustvarite grafikon"
 
+#, fuzzy
+msgid "Create Tag"
+msgstr "Ustvarite podatkovni set"
+
 msgid "Create a dataset"
 msgstr "Ustvarite podatkovni set"
 
@@ -3265,8 +3282,17 @@ msgstr ""
 "ali\n"
 "          pojdite v SQL laboratorij za poizvedovanje nad podatki."
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "ustvarite nov grafikon"
+
 msgid "Create a new chart"
 msgstr "Ustvarite nov grafikon"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create chart"
 msgstr "Ustvarite grafikon"
@@ -5807,6 +5833,12 @@ msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
 "Če je izbrano, nastavite dovoljene sheme za nalaganje CSV v razdelku "
 "\"Dodatno\"."
+
+#, fuzzy
+msgid ""
+"If value is specified, filtering will be done based on this value. "
+"Default value will be column name."
+msgstr "Če je določena mera, bo razvrščanje izvedeno na podlagi vrednosti mere"
 
 msgid "Ignore cache when generating report"
 msgstr "Ne upoštevaj predpomnjenja pri ustvarjanju poročila"
@@ -9201,6 +9233,9 @@ msgstr "Iskanje v filtrih"
 
 msgid "Search..."
 msgstr "Iskanje ..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Sekunda"
