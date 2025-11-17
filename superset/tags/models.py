@@ -21,7 +21,6 @@ import enum
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from markupsafe import escape
 from sqlalchemy import (
     Column,
     Enum,
@@ -138,7 +137,7 @@ def get_tag(
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=escape(tag_name), type=type_)
+        tag = Tag(name=tag_name, type=type_)
         session.add(tag)
         session.commit()
     return tag
