@@ -1924,6 +1924,8 @@ TALISMAN_CONFIG = {
             "https://home.idtcities.com",
             "http://home.snap4idtcity.com",
             "https://home.snap4idtcity.com",
+            # Allow API calls from Button component
+            "https://app.idtcities.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1969,6 +1971,8 @@ TALISMAN_DEV_CONFIG = {
             "https://home.idtcities.com",
             "http://home.snap4idtcity.com",
             "https://home.snap4idtcity.com",
+            # Allow API calls from Button component
+            "https://app.idtcities.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
