@@ -63,7 +63,9 @@ export function ApiKeyList() {
     async (keyId: number) => {
       Modal.confirm({
         title: t('Revoke API Key'),
-        content: t('Are you sure you want to revoke this API key? This action cannot be undone.'),
+        content: t(
+          'Are you sure you want to revoke this API key? This action cannot be undone.',
+        ),
         okText: t('Revoke'),
         okType: 'danger',
         cancelText: t('Cancel'),
@@ -94,12 +96,36 @@ export function ApiKeyList() {
 
   const getStatusBadge = (key: ApiKey) => {
     if (key.revoked_on) {
-      return <span css={css`color: ${theme.colorError};`}>{t('Revoked')}</span>;
+      return (
+        <span
+          css={css`
+            color: ${theme.colorError};
+          `}
+        >
+          {t('Revoked')}
+        </span>
+      );
     }
     if (key.expires_on && new Date(key.expires_on) < new Date()) {
-      return <span css={css`color: ${theme.colorWarning};`}>{t('Expired')}</span>;
+      return (
+        <span
+          css={css`
+            color: ${theme.colorWarning};
+          `}
+        >
+          {t('Expired')}
+        </span>
+      );
     }
-    return <span css={css`color: ${theme.colorSuccess};`}>{t('Active')}</span>;
+    return (
+      <span
+        css={css`
+          color: ${theme.colorSuccess};
+        `}
+      >
+        {t('Active')}
+      </span>
+    );
   };
 
   const columns = [
@@ -113,7 +139,13 @@ export function ApiKeyList() {
       dataIndex: 'key_prefix',
       key: 'key_prefix',
       render: (prefix: string) => (
-        <code css={css`background: ${theme.colorFillSecondary}; padding: 2px 6px; border-radius: 3px;`}>
+        <code
+          css={css`
+            background: ${theme.colorFillSecondary};
+            padding: 2px 6px;
+            border-radius: 3px;
+          `}
+        >
           {prefix}...
         </code>
       ),
@@ -172,17 +204,24 @@ export function ApiKeyList() {
         `}
       >
         <div>
-          <p css={css`margin-bottom: ${theme.sizeUnit * 2}px;`}>
-            {t('API keys allow programmatic access to Superset without requiring OAuth/JWT authentication.')}
+          <p
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            {t(
+              'API keys allow programmatic access to Superset without requiring OAuth/JWT authentication.',
+            )}
           </p>
-          <p css={css`margin-bottom: 0;`}>
+          <p
+            css={css`
+              margin-bottom: 0;
+            `}
+          >
             {t('Keys are shown only once at creation. Store them securely.')}
           </p>
         </div>
-        <Button
-          type="primary"
-          onClick={() => setShowCreateModal(true)}
-        >
+        <Button type="primary" onClick={() => setShowCreateModal(true)}>
           {t('Create API Key')}
         </Button>
       </div>

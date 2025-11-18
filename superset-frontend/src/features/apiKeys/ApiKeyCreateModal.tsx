@@ -18,12 +18,11 @@
  */
 import { useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme, Alert } from '@apache-superset/core/ui';
 import {
   FormModal,
   FormItem,
   Input,
-  Alert,
   Button,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

@@ -56,9 +56,7 @@ def upgrade():
     with op.batch_alter_table("ab_api_key") as batch_op:
         batch_op.create_index("idx_api_key_hash", ["key_hash"], unique=True)
         batch_op.create_index("idx_api_key_user", ["user_id"], unique=False)
-        batch_op.create_index(
-            "idx_api_key_workspace", ["workspace_name"], unique=False
-        )
+        batch_op.create_index("idx_api_key_workspace", ["workspace_name"], unique=False)
         batch_op.create_index(
             "idx_api_key_workspace_user", ["workspace_name", "user_id"], unique=False
         )
