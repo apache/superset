@@ -23,6 +23,18 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+- [31590](https://github.com/apache/superset/pull/31590): The `APP_ICON` configuration variable is now deprecated and ignored by the frontend. Custom logos should now be configured using the theme system with `brandLogoUrl`. To migrate, replace:
+  ```
+  APP_ICON = "/static/assets/images/custom_logo.png"
+  ```
+  with:
+  ```
+  THEME_DEFAULT = {
+    "token": {
+      "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+  }
+  ```
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
