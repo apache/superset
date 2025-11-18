@@ -393,7 +393,7 @@ export default function transformProps(
   });
       
   // ----- ensure series data are sorted naturally on the x-value -----
-// Run after all series have been created so each series.data is complete.
+  // Run after all series have been created so each series.data is complete.
 series.forEach((s: SeriesOption) => {
   const dataArr = (s as any).data;
   if (!Array.isArray(dataArr) || dataArr.length <= 1) return;
