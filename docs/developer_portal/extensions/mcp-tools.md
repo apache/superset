@@ -28,40 +28,66 @@ under the License.
 
 Model Context Protocol (MCP) tools allow extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. This enables extensions to provide specialized functionality that AI agents can discover and execute.
 
-## Overview
+## What are MCP Tools?
 
-MCP tools are Python functions that can be called by AI agents to perform specific tasks. Extensions can register these tools using the `superset-core` MCP abstractions, making them available to AI agents without requiring changes to the core Superset MCP service.
+MCP tools are Python functions that AI agents can call to perform specific tasks. When you create an extension, you can register these tools to extend Superset's capabilities with your custom business logic.
 
-## Key Concepts
+**Examples of MCP tools:**
+- Data processing and transformation functions
+- Custom analytics calculations  
+- Integration with external APIs
+- Specialized report generation
+- Business-specific operations
 
-- **Tool Registration**: Extensions use `@mcp_tool` to register functions as MCP tools
-- **Pydantic Schemas**: Input validation using Pydantic models ensures type safety
-- **Namespacing**: Extension tools are prefixed with extension ID to prevent conflicts
-- **FastMCP Integration**: Tools integrate directly with Superset's existing FastMCP service
+## Getting Started
 
-## Creating MCP Tools
+### Basic Tool Registration
 
-### Tool Implementation
+The simplest way to create an MCP tool is using the `@mcp_tool` decorator:
 
-Create a Python module in your extension's backend directory with MCP tools:
+```python
+from superset_core.mcp import mcp_tool
+
+@mcp_tool()
+def hello_world() -> dict:
+    """A simple greeting tool."""
+    return {"message": "Hello from my extension!"}
+```
+
+This creates a tool that AI agents can call by name. The tool name defaults to the function name.
+
+### Decorator Parameters
+
+The `@mcp_tool` decorator accepts several optional parameters:
+
+**Parameter details:**
+- **`name`**: Tool identifier (AI agents use this to call your tool)
+- **`description`**: Explains what the tool does (helps AI agents decide when to use it)
+- **`tags`**: Categories for organization and discovery
+- **`auth`**: Whether the tool requires user authentication (defaults to `True`)
+
+### Naming Your Tools
+
+For extensions, include your extension ID in tool names to avoid conflicts:
+
+## Complete Example
+
+Here's a more comprehensive example showing best practices:
 
 ```python
 # backend/mcp_tools.py
 import random
 from datetime import datetime, timezone
-
-from fastmcp import Context
 from pydantic import BaseModel, Field
 from superset_core.mcp import mcp_tool
-
 
 class RandomNumberRequest(BaseModel):
     """Request schema for random number generation."""
 
     min_value: int = Field(
         description="Minimum value (inclusive) for random number generation",
-        ge=-2147483648,  # 32-bit int minimum
-        le=2147483647    # 32-bit int maximum
+        ge=-2147483648,
+        le=2147483647
     )
     max_value: int = Field(
         description="Maximum value (inclusive) for random number generation",
@@ -69,212 +95,144 @@ class RandomNumberRequest(BaseModel):
         le=2147483647
     )
 
-
 @mcp_tool(
     name="example_extension.random_number",
-    description="Generate a random integer between min and max values (inclusive). Useful for creating test data, sampling, or demonstrations.",
     tags=["extension", "utility", "random", "generator"]
 )
-async def random_number_generator(ctx: Context, request: RandomNumberRequest) -> dict:
+def random_number_generator(request: RandomNumberRequest) -> dict:
     """
     Generate a random integer between specified bounds.
 
-    Args:
-        ctx: FastMCP context for logging
-        request: Request object with min_value and max_value
-
-    Returns:
-        Dictionary containing the generated random number and metadata
+    This tool validates input ranges and provides detailed error messages
+    for invalid requests.
     """
-    min_value = request.min_value
-    max_value = request.max_value
-
-    await ctx.info(f"Generating random number between {min_value} and {max_value}")
 
     # Validate business logic (Pydantic handles type/range validation)
-    if min_value > max_value:
-        error_msg = f"min_value ({min_value}) cannot be greater than max_value ({max_value})"
-        await ctx.error(error_msg)
+    if request.min_value > request.max_value:
         return {
             "status": "error",
-            "error": error_msg,
+            "error": f"min_value ({request.min_value}) cannot be greater than max_value ({request.max_value})",
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     # Generate random number
-    result = random.randint(min_value, max_value)
-
-    await ctx.info(f"Generated random number: {result}")
+    result = random.randint(request.min_value, request.max_value)
 
     return {
         "status": "success",
         "random_number": result,
-        "min_value": min_value,
-        "max_value": max_value,
-        "range_size": max_value - min_value + 1,
+        "min_value": request.min_value,
+        "max_value": request.max_value,
+        "range_size": request.max_value - request.min_value + 1,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 ```
 
-## Unified `@mcp_tool` Decorator
+## Best Practices
 
-The `@mcp_tool` decorator provides a unified API that combines FastMCP tool registration with Superset authentication, replacing the need for separate `@mcp.tool` and `@mcp_auth_hook` decorators.
+### Response Format
 
-### Decorator Parameters
-
-```python
-@mcp_tool(
-    name="tool_name", # Optional: defaults to function name
-    description="Tool purpose", # Optional: defaults to function docstring
-    tags=["tag1", "tag2"] # Optional: defaults to empty list
-)
-def my_tool():
-    pass
-```
-
-### Using Defaults
-
-You can omit parameters to use function introspection:
+Use consistent response structures:
 
 ```python
-@mcp_tool()  # Uses function name and docstring
-def calculate_metrics(data: dict) -> dict:
-    """Calculate business metrics from input data."""
-    # Implementation here
-    return {"metrics": data}
-```
+# Success response
+{
+    "status": "success",
+    "result": "your_data_here",
+    "timestamp": "2024-01-01T00:00:00Z"
+}
 
-This creates a tool with:
-- **Name**: `extension_id.calculate_metrics` (automatically prefixed)
-- **Description**: "Calculate business metrics from input data."
-- **Tags**: `[]` (empty list)
-
-### Migration from Legacy Pattern
-
-**Old pattern** (avoid in new code):
-```python
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
-
-@mcp.tool
-@mcp_auth_hook
-def old_tool(ctx: Context, request: MyRequest) -> dict:
-    pass
-```
-
-**New unified pattern** (recommended):
-```python
-from superset_core.mcp import mcp_tool
-
-@mcp_tool(name="my_tool", description="Does something useful", tags=["utility"])
-def new_tool(ctx: Context, request: MyRequest) -> dict:
-    pass
-```
-
-### Authentication & Session Management
-
-The `@mcp_tool` decorator automatically provides:
-- **User authentication** via `mcp_auth_hook` wrapper
-- **User context** available through Flask `g.user`
-- **Session management** with proper cleanup
-- **Error handling** with database rollback
-
-## Tool Design Patterns
-
-### Input Validation
-
-Always use Pydantic models for input validation:
-
-```python
-class ToolRequest(BaseModel):
-    """Strongly typed request schema."""
-
-    parameter: str = Field(
-        description="Clear parameter description",
-        min_length=1,
-        max_length=100
-    )
-    optional_param: int = Field(
-        default=10,
-        description="Optional parameter with default",
-        ge=1,
-        le=100
-    )
-```
-
-### Error Handling
-
-Provide structured error responses:
-
-```python
-@mcp_tool(name="extension.example_tool", description="...", tags=[])
-async def example_tool(ctx: Context, request: ToolRequest) -> dict:
-    try:
-        # Tool logic here
-        result = perform_operation(request.parameter)
-
-        await ctx.info(f"Operation completed successfully")
-
-        return {
-            "status": "success",
-            "result": result,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-
-    except ValueError as e:
-        error_msg = f"Invalid input: {str(e)}"
-        await ctx.error(error_msg)
-        return {
-            "status": "error",
-            "error": error_msg,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-```
-
-### Logging
-
-Use the FastMCP context for logging:
-
-```python
-await ctx.info("Informational message")
-await ctx.warning("Warning message")  
-await ctx.error("Error message")
-```
-
-## Tool Naming Conventions
-
-- **Prefix with extension ID**: `extension_id.tool_name`
-- **Use descriptive names**: `data_processor.clean_dataset` vs `data_processor.clean`
-- **Avoid conflicts**: Check existing tool names before registration
-
-## Integration with AI Agents
-
-Once registered, your tools become available to AI agents through the MCP service:
-
-```
-Agent: "Generate a random number between 1 and 100"
-→ Calls: example_extension.random_number(min_value=1, max_value=100)
-← Returns: {"status": "success", "random_number": 42, ...}
+# Error response  
+{
+    "status": "error",
+    "error": "Clear error message",
+    "timestamp": "2024-01-01T00:00:00Z"
+}
 ```
 
 ### Documentation
-- **Clear descriptions**: Write helpful tool and parameter descriptions
-- **Examples**: Include usage examples in docstrings
-- **Tags**: Use meaningful tags for tool discovery
+
+Write clear descriptions and docstrings:
+
+```python
+@mcp_tool(
+    name="my_extension.process_data",
+    description="Process customer data and generate insights. Requires valid customer ID and date range.",
+    tags=["analytics", "customer", "reporting"]
+)
+def process_data(customer_id: int, start_date: str, end_date: str) -> dict:
+    """
+    Process customer data for the specified date range.
+
+    This tool analyzes customer behavior patterns and generates
+    actionable insights for business decision-making.
+
+    Args:
+        customer_id: Unique customer identifier
+        start_date: Analysis start date (YYYY-MM-DD format)
+        end_date: Analysis end date (YYYY-MM-DD format)
+
+    Returns:
+        Dictionary containing analysis results and recommendations
+    """
+    # Implementation here
+    pass
+```
+
+### Tool Naming
+
+- **Extension tools**: Use prefixed names like `my_extension.tool_name`
+- **Descriptive names**: `calculate_tax_amount` vs `calculate`  
+- **Consistent naming**: Follow patterns within your extension
+
+## How AI Agents Use Your Tools
+
+Once registered, AI agents can discover and use your tools automatically:
+
+```
+User: "Generate a random number between 1 and 100"
+Agent: I'll use the random number generator tool.
+→ Calls: example_extension.random_number(min_value=1, max_value=100)
+← Returns: {"status": "success", "random_number": 42, ...}
+Agent: I generated the number 42 for you.
+```
+
+The AI agent sees your tool's:
+- **Name**: How to call it
+- **Description**: What it does and when to use it  
+- **Parameters**: What inputs it expects (from Pydantic schema)
+- **Tags**: Categories for discovery
 
 ## Troubleshooting
 
-### Tool Not Discovered
-- Verify the module is registered in the entrypoints
-- Check that `@mcp_tool` decorator is applied
-- Ensure the extension is properly loaded
+### Tool Not Available to AI Agents
 
-### Type Validation Errors
-- Confirm Pydantic model fields match tool parameters
-- Check that field constraints are reasonable
-- Verify required vs optional parameters
+1. **Check extension registration**: Verify your tool module is listed in extension entrypoints
+2. **Verify decorator**: Ensure `@mcp_tool` is correctly applied
+3. **Extension loading**: Confirm your extension is installed and enabled
 
-### Runtime Errors
-- Check FastMCP context usage (`await ctx.info()`)
-- Verify async/await patterns are correct
-- Ensure proper error handling and logging
+### Input Validation Errors
+
+1. **Pydantic models**: Ensure field types match expected inputs
+2. **Field constraints**: Check min/max values and string lengths are reasonable  
+3. **Required fields**: Verify which parameters are required vs optional
+
+### Runtime Issues
+
+1. **Error handling**: Add try/catch blocks with clear error messages
+2. **Response format**: Use consistent status/error/timestamp structure
+3. **Testing**: Test your tools with various input scenarios
+
+### Development Tips
+
+1. **Start simple**: Begin with basic tools, add complexity gradually
+2. **Test locally**: Use MCP clients (like Claude Desktop) to test your tools  
+3. **Clear descriptions**: Write tool descriptions as if explaining to a new user
+4. **Meaningful tags**: Use tags that help categorize and discover tools
+5. **Error messages**: Provide specific, actionable error messages
+
+## Next Steps
+
+- **[Extension Project Structure](./extension-project-structure)** - Organize larger extensions
+- **[Development Mode](./development-mode)** - Faster iteration during development  
+- **[Security Implications](./security-implications)** - Security best practices for extensions

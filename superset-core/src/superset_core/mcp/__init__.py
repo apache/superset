@@ -35,26 +35,28 @@ Usage:
         return str(value * 2)
 """
 
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
 
 def mcp_tool(
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    tags: Optional[list[str]] = None,
+    name: str | None = None,
+    description: str | None = None,
+    tags: list[str] | None = None,
+    auth: bool = True,
 ) -> Callable[[F], F]:
     """
-    Decorator to register an MCP tool with authentication.
+    Decorator to register an MCP tool with optional authentication.
 
-    This decorator combines FastMCP tool registration with Superset authentication.
+    This decorator combines FastMCP tool registration with optional authentication.
 
     Args:
         name: Tool name (defaults to function name, prefixed with extension ID)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
+        auth: Whether to apply Superset authentication (defaults to True)
 
     Returns:
         Decorator function that registers and wraps the tool
@@ -67,10 +69,15 @@ def mcp_tool(
         def my_custom_tool(param: str) -> dict:
             return {"result": param}
 
-        @mcp_tool()  # Uses function name and docstring
+        @mcp_tool()  # Uses function name and docstring with auth
         def simple_tool(value: int) -> str:
             '''Doubles the input value'''
             return str(value * 2)
+
+        @mcp_tool(auth=False)  # No authentication required
+        def public_tool() -> str:
+            '''Public tool accessible without auth'''
+            return "Hello world"
     """
 
     def decorator(func: F) -> F:
