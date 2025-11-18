@@ -21,18 +21,8 @@ import PropTypes from 'prop-types';
 import { css, styled } from '@apache-superset/core/ui';
 import { t } from '@superset-ui/core';
 import { Input } from '@superset-ui/core/components';
-// Lazy load model-viewer to avoid blocking during drag operations
-let modelViewerLoaded = false;
-const loadModelViewer = async () => {
-  if (!modelViewerLoaded && typeof window !== 'undefined') {
-    try {
-      await import('@google/model-viewer');
-      modelViewerLoaded = true;
-    } catch (error) {
-      console.error('Failed to load model-viewer:', error);
-    }
-  }
-};
+// Import model-viewer as a module (bundled, avoids CSP issues)
+import '@google/model-viewer';
 
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -190,97 +180,40 @@ declare global {
 
 class Model3D extends PureComponent<Model3DProps> {
   state = {
+    scriptLoaded: true, // Set to true by default since we import the module directly
     modelError: false,
-    viewerReady: false,
   };
 
-  private isLoadingViewer = false;
-  private hasCheckedViewerReady = false;
+  private loadTimeout: NodeJS.Timeout | null = null;
 
   componentDidMount() {
-    // Check if model-viewer is already loaded
-    if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
-      this.setState({ viewerReady: true });
-    } else {
-      // Lazy load model-viewer only when component mounts and has a URL
-      const { component } = this.props;
-      const modelUrl = component.meta?.modelUrl || '';
-      if (modelUrl) {
-        this.loadViewer();
+    // Log registry status for debugging
+    setTimeout(() => {
+      if (customElements.get('model-viewer')) {
+        console.log('Model3D: model-viewer custom element found in registry');
+      } else {
+        console.warn('Model3D: model-viewer not in registry - module may not have loaded');
       }
-    }
+    }, 100);
   }
-
-  componentDidUpdate(prevProps: Model3DProps) {
-    // Load model-viewer when URL is added (only once)
-    const { component } = this.props;
-    const modelUrl = component.meta?.modelUrl || '';
-    const prevModelUrl = prevProps.component.meta?.modelUrl || '';
-    
-    // Only load if URL was just added and viewer isn't ready
-    if (modelUrl && !prevModelUrl && !this.state.viewerReady && !this.isLoadingViewer) {
-      this.loadViewer();
-    }
-    
-    // Check if viewer became ready (only check once to avoid render loops)
-    if (!this.hasCheckedViewerReady && !this.state.viewerReady && typeof window !== 'undefined' && customElements.get('model-viewer')) {
-      this.hasCheckedViewerReady = true;
-      // Use requestAnimationFrame to avoid calling setState during render cycle
-      requestAnimationFrame(() => {
-        if (!this.state.viewerReady) {
-          this.setState({ viewerReady: true });
-        }
-      });
-    }
-  }
-
-  loadViewer = async () => {
-    if (this.state.viewerReady || modelViewerLoaded || this.isLoadingViewer) {
-      return;
-    }
-    this.isLoadingViewer = true;
-    try {
-      await loadModelViewer();
-      // Wait a bit for custom element to register, use requestAnimationFrame to avoid blocking
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
-            // Use requestAnimationFrame again to ensure we're not in a render cycle
-            requestAnimationFrame(() => {
-              if (!this.state.viewerReady) {
-                this.setState({ viewerReady: true });
-              }
-            });
-          }
-          this.isLoadingViewer = false;
-        }, 100);
-      });
-    } catch (error) {
-      console.error('Failed to load model-viewer:', error);
-      this.isLoadingViewer = false;
-    }
-  };
 
   componentWillUnmount() {
-    // Cleanup if needed
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+      this.loadTimeout = null;
+    }
   }
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { updateComponents, component } = this.props;
-    const newUrl = e.target.value;
-    
-    // Clear error state when URL changes (only if needed)
-    if (this.state.modelError) {
-      this.setState({ modelError: false });
-    }
-    
-    // Update component meta synchronously for responsive input
+    // Clear error state when URL changes
+    this.setState({ modelError: false });
     updateComponents({
       [component.id]: {
         ...component,
         meta: {
           ...component.meta,
-          modelUrl: newUrl,
+          modelUrl: e.target.value,
         },
       },
     });
@@ -323,14 +256,8 @@ class Model3D extends PureComponent<Model3DProps> {
       );
     }
 
-    // Show loading state if viewer isn't ready yet (only if we have a URL)
-    if (!this.state.viewerReady && modelUrl) {
-      return (
-        <div className="model3d-placeholder">
-          {t('Loading 3D viewer...')}
-        </div>
-      );
-    }
+    // Skip scriptLoaded check - we import the module directly, so it should be available
+    // The model-viewer element will handle its own loading state
 
     return (
       <model-viewer
@@ -426,21 +353,11 @@ class Model3D extends PureComponent<Model3DProps> {
       onResizeStart,
     } = this.props;
 
-    if (!component || !component.meta) {
-      console.error('Model3D: Missing component or meta', { component });
-      return null;
-    }
-
-    if (!parentComponent) {
-      console.error('Model3D: Missing parentComponent', { component });
-      return null;
-    }
-
     // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta?.width || GRID_MIN_COLUMN_COUNT
-        : component.meta?.width || GRID_MIN_COLUMN_COUNT;
+        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
+        : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
     const modelUrl = component.meta?.modelUrl || '';
 
@@ -512,4 +429,3 @@ Model3D.propTypes = propTypes;
 Model3D.defaultProps = defaultProps;
 
 export default Model3D;
-
