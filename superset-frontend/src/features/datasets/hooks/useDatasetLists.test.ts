@@ -121,16 +121,10 @@ test('useDatasetsList extracts dataset names correctly', async () => {
 });
 
 test('useDatasetsList handles API 500 error gracefully', async () => {
-  // Mock error on first call, then return empty result to break the loop
+  // Mock error - loop should break immediately
   const getSpy = jest
     .spyOn(SupersetClient, 'get')
-    .mockRejectedValueOnce(new Error('Internal Server Error'))
-    .mockResolvedValueOnce({
-      json: {
-        count: 0,
-        result: [],
-      },
-    } as any);
+    .mockRejectedValue(new Error('Internal Server Error'));
 
   const { result, waitForNextUpdate } = renderHook(() =>
     useDatasetsList(mockDb, 'public'),
@@ -143,8 +137,8 @@ test('useDatasetsList handles API 500 error gracefully', async () => {
   expect(mockAddDangerToast).toHaveBeenCalledWith(
     'There was an error fetching dataset',
   );
-  // Should be called twice - once for error, once to complete
-  expect(getSpy).toHaveBeenCalledTimes(2);
+  // Should only be called once - error causes break
+  expect(getSpy).toHaveBeenCalledTimes(1);
 });
 
 test('useDatasetsList handles empty dataset response', async () => {
@@ -248,13 +242,7 @@ test('useDatasetsList handles network timeout gracefully', async () => {
 
   const getSpy = jest
     .spyOn(SupersetClient, 'get')
-    .mockRejectedValueOnce(timeoutError)
-    .mockResolvedValueOnce({
-      json: {
-        count: 0,
-        result: [],
-      },
-    } as any);
+    .mockRejectedValue(timeoutError);
 
   const { result, waitForNextUpdate } = renderHook(() =>
     useDatasetsList(mockDb, 'public'),
@@ -267,7 +255,59 @@ test('useDatasetsList handles network timeout gracefully', async () => {
   expect(mockAddDangerToast).toHaveBeenCalledWith(
     'There was an error fetching dataset',
   );
+  // Should only be called once - error causes break
+  expect(getSpy).toHaveBeenCalledTimes(1);
+});
+
+test('useDatasetsList breaks pagination loop on persistent API errors', async () => {
+  // Mock API that always fails (persistent error)
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Persistent server error'));
+
+  const { result, waitForNextUpdate } = renderHook(() =>
+    useDatasetsList(mockDb, 'public'),
+  );
+
+  await waitForNextUpdate();
+
+  // Should only attempt once, then break (not infinite loop)
+  expect(getSpy).toHaveBeenCalledTimes(1);
+  expect(result.current.datasets).toEqual([]);
+  expect(result.current.datasetNames).toEqual([]);
+  expect(mockAddDangerToast).toHaveBeenCalledWith(
+    'There was an error fetching dataset',
+  );
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(1);
+});
+
+test('useDatasetsList handles error on second page gracefully', async () => {
+  // First page succeeds, second page fails
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValueOnce({
+      json: {
+        count: 3, // Indicates more data exists
+        result: [{ id: 1, table_name: 'table1' }],
+      },
+    } as any)
+    .mockRejectedValue(new Error('Second page error'));
+
+  const { result, waitForNextUpdate } = renderHook(() =>
+    useDatasetsList(mockDb, 'public'),
+  );
+
+  await waitForNextUpdate();
+
+  // Should have first page data, then stop on error
   expect(getSpy).toHaveBeenCalledTimes(2);
+  expect(result.current.datasets).toHaveLength(1);
+  expect(result.current.datasets[0].table_name).toBe('table1');
+  expect(result.current.datasetNames).toEqual(['table1']);
+  expect(mockAddDangerToast).toHaveBeenCalledWith(
+    'There was an error fetching dataset',
+  );
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(1);
 });
 
 test('useDatasetsList skips fetching when schema is null or undefined', () => {
@@ -289,6 +329,34 @@ test('useDatasetsList skips fetching when schema is null or undefined', () => {
   expect(getSpy).not.toHaveBeenCalled();
   expect(resultNull.current.datasets).toEqual([]);
   expect(resultNull.current.datasetNames).toEqual([]);
+});
+
+test('useDatasetsList skips fetching when db is undefined', () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+
+  const { result } = renderHook(() => useDatasetsList(undefined, 'public'));
+
+  // db is undefined - should NOT call API
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(result.current.datasets).toEqual([]);
+  expect(result.current.datasetNames).toEqual([]);
+});
+
+test('useDatasetsList skips fetching when db.id is undefined', () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+
+  // Create db object without id property
+  const dbWithoutId = {
+    database_name: 'test_db',
+    owners: [1] as [number],
+  } as any;
+
+  const { result } = renderHook(() => useDatasetsList(dbWithoutId, 'public'));
+
+  // db.id is undefined - should NOT call API
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(result.current.datasets).toEqual([]);
+  expect(result.current.datasetNames).toEqual([]);
 });
 
 test('useDatasetsList encodes schemas with spaces and special characters in endpoint URL', async () => {

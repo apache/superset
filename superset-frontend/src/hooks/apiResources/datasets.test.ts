@@ -419,4 +419,35 @@ describe('useDatasetDrillInfo - extension path', () => {
     expect(result.current.result).toEqual({ verbose_map: {} });
     expect(result.current.error).toBeNull();
   });
+
+  test('falls back to REST API when extension exists but formData is undefined', async () => {
+    // Extension is registered (mockGetExtensionsRegistry returns it)
+    // But formData is NOT provided (undefined)
+    const mockDataset = {
+      id: 123,
+      columns: [{ column_name: 'col1', verbose_name: 'Column 1' }],
+      metrics: [],
+    };
+
+    mockedCachedSupersetGet.mockResolvedValue({
+      json: { result: mockDataset },
+    } as any);
+
+    const { result, waitForNextUpdate } = renderHook(
+      () => useDatasetDrillInfo(123, 456, undefined), // formData is undefined
+    );
+
+    await waitForNextUpdate();
+
+    // Should use REST API, NOT extension
+    expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
+    });
+    expect(mockExtension).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('complete');
+    expect(result.current.result).toEqual({
+      ...mockDataset,
+      verbose_map: { col1: 'Column 1' },
+    });
+  });
 });
