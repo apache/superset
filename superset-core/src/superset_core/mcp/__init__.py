@@ -35,8 +35,6 @@ Usage:
 
 from typing import Any, Callable
 
-from .types import MCPToolDefinition
-
 
 def mcp_tool(
     name: str,
@@ -72,6 +70,5 @@ def mcp_tool(
 
 
 __all__ = [
-    "MCPToolDefinition",
     "mcp_tool",
 ]
