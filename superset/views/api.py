@@ -20,7 +20,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 import requests
-from flask import request
+from flask import g, request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
@@ -133,14 +133,21 @@ class Api(BaseSupersetView):
     @event_logger.log_this
     @api
     @handle_api_exception
-    @has_access_api
     @expose("/v1/proxy/", methods=("POST",))
     def proxy_external_api(self) -> FlaskResponse:
         """
         Proxy external API calls to bypass CSP restrictions.
         This endpoint allows Button components to make external API calls
         through Superset's backend, avoiding browser CSP limitations.
+        
+        Requires authenticated user (any logged-in user can use this).
         """
+        # Check if user is authenticated
+        if not hasattr(g, "user") or not g.user:
+            return self.json_response(
+                {"error": "Authentication required"}, 401
+            )
+        
         try:
             data = request.get_json() or {}
             url = data.get("url")
