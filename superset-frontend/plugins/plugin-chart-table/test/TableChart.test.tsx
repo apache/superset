@@ -25,6 +25,33 @@ import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
+const expectValidAriaLabels = (container: HTMLElement) => {
+  const allCells = container.querySelectorAll('tbody td');
+  const cellsWithLabels = container.querySelectorAll(
+    'tbody td[aria-labelledby]',
+  );
+
+  // Table must render data cells (catch empty table regression)
+  expect(allCells.length).toBeGreaterThan(0);
+
+  // ALL data cells must have aria-labelledby (no unlabeled cells)
+  expect(cellsWithLabels.length).toBe(allCells.length);
+
+  // ALL aria-labelledby values should be valid
+  cellsWithLabels.forEach(cell => {
+    const labelledBy = cell.getAttribute('aria-labelledby');
+    expect(labelledBy).not.toBeNull();
+    expect(labelledBy).toEqual(expect.stringMatching(/\S/));
+    const labelledByValue = labelledBy as string;
+    expect(labelledByValue).not.toMatch(/\s/);
+    expect(labelledByValue).not.toMatch(/[%#△]/);
+    const referencedHeader = container.querySelector(
+      `#${CSS.escape(labelledByValue)}`,
+    );
+    expect(referencedHeader).toBeTruthy();
+  });
+};
+
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
 });
@@ -641,33 +668,7 @@ describe('plugin-chart-table', () => {
 
         const { container } = render(<TableChart {...props} sticky={false} />);
 
-        const allCells = container.querySelectorAll('tbody td');
-        const cellsWithLabels = container.querySelectorAll(
-          'tbody td[aria-labelledby]',
-        );
-
-        // First assertion: Table must render data cells (catch empty table regression)
-        expect(allCells.length).toBeGreaterThan(0);
-
-        // Second assertion: ALL data cells must have aria-labelledby (no unlabeled cells)
-        expect(cellsWithLabels.length).toBe(allCells.length);
-
-        // Third assertion: ALL aria-labelledby values should be valid
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          expect(labelledBy).not.toBeNull();
-          expect(labelledBy).toEqual(expect.stringMatching(/\S/));
-          const labelledByValue = labelledBy as string;
-          // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
-          expect(labelledByValue).not.toMatch(/\s/);
-          // Check that the ID doesn't contain special characters
-          expect(labelledByValue).not.toMatch(/[%#△]/);
-          // Verify the referenced header actually exists
-          const referencedHeader = container.querySelector(
-            `#${CSS.escape(labelledByValue)}`,
-          );
-          expect(referencedHeader).toBeTruthy();
-        });
+        expectValidAriaLabels(container);
       });
 
       test('should set meaningful header IDs for regular table columns', () => {
@@ -741,33 +742,7 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        const allCells = container.querySelectorAll('tbody td');
-        const cellsWithLabels = container.querySelectorAll(
-          'tbody td[aria-labelledby]',
-        );
-
-        // First assertion: Table must render data cells (catch empty table regression)
-        expect(allCells.length).toBeGreaterThan(0);
-
-        // Second assertion: ALL data cells must have aria-labelledby (no unlabeled cells)
-        expect(cellsWithLabels.length).toBe(allCells.length);
-
-        // Third assertion: ALL aria-labelledby values should be valid
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          expect(labelledBy).not.toBeNull();
-          expect(labelledBy).toEqual(expect.stringMatching(/\S/));
-          const labelledByValue = labelledBy as string;
-          // Verify no spaces (would be interpreted as multiple IDs)
-          expect(labelledByValue).not.toMatch(/\s/);
-          // Verify no special characters
-          expect(labelledByValue).not.toMatch(/[%#△]/);
-          // Verify the referenced header actually exists
-          const referencedHeader = container.querySelector(
-            `#${CSS.escape(labelledByValue)}`,
-          );
-          expect(referencedHeader).toBeTruthy();
-        });
+        expectValidAriaLabels(container);
       });
 
       test('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
