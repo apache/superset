@@ -187,11 +187,14 @@ class Api(BaseSupersetView):
             except ValueError:
                 response_data = response.text
 
+            # Always return 200 from proxy, but include the actual status in the response body
+            # This allows the frontend to handle different status codes appropriately
             return self.json_response({
                 "status": response.status_code,
                 "data": response_data,
                 "headers": dict(response.headers),
-            }, status=response.status_code)
+                "ok": 200 <= response.status_code < 300,
+            })
 
         except requests.exceptions.RequestException as e:
             logger.error("Proxy request failed: %s", str(e))

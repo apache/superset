@@ -365,15 +365,25 @@ const DashboardButton = ({
 
         // Check if the proxy returned an error
         if (response.json && typeof response.json === 'object') {
-          const proxyResponse = response.json as { status?: number; error?: string; data?: any };
+          const proxyResponse = response.json as { 
+            status?: number; 
+            error?: string; 
+            data?: any; 
+            ok?: boolean;
+          };
+          
           if (proxyResponse.error) {
             throw new Error(proxyResponse.error);
           }
-          // If status is not 2xx, treat as error
-          if (proxyResponse.status && proxyResponse.status >= 400) {
-            throw new Error(
-              `Request failed with status ${proxyResponse.status}: ${JSON.stringify(proxyResponse.data)}`
-            );
+          
+          // Check if the external API call was successful
+          if (proxyResponse.ok === false || (proxyResponse.status && proxyResponse.status >= 400)) {
+            const errorMsg = proxyResponse.data 
+              ? (typeof proxyResponse.data === 'string' 
+                  ? proxyResponse.data 
+                  : JSON.stringify(proxyResponse.data))
+              : `Request failed with status ${proxyResponse.status}`;
+            throw new Error(errorMsg);
           }
         }
 
