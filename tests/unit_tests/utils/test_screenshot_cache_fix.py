@@ -76,9 +76,7 @@ class TestCacheOnlyOnSuccess:
 
     def _setup_mocks(self, mocker: MockerFixture, screenshot_obj):
         """Helper method to set up common mocks."""
-        mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
-        )
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"image_data"
         )
@@ -89,9 +87,7 @@ class TestCacheOnlyOnSuccess:
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
         """Test that cache is not saved when screenshot generation fails."""
-        mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
-        )
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=Exception("Screenshot failed"),
@@ -149,9 +145,7 @@ class TestCacheOnlyOnSuccess:
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
         """Test that cache is not saved during COMPUTING state."""
-        mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
-        )
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         BaseScreenshot.cache = MockCache()
 
         # Mock get_screenshot to check cache state during execution
@@ -161,9 +155,9 @@ class TestCacheOnlyOnSuccess:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
             # Cache should be empty during screenshot generation
-            assert (
-                cached_value is None
-            ), "Cache should not be saved during COMPUTING state"
+            assert cached_value is None, (
+                "Cache should not be saved during COMPUTING state"
+            )
             return b"image_data"
 
         mocker.patch(
@@ -192,7 +186,9 @@ class TestShouldTriggerTask:
 
         # Create payload with COMPUTING status from 400 seconds ago (stale)
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.COMPUTING, timestamp=old_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=old_timestamp
+        )
 
         # Should trigger task because COMPUTING is stale
         assert payload.should_trigger_task(force=False) is True
@@ -205,7 +201,9 @@ class TestShouldTriggerTask:
 
         # Create payload with COMPUTING status from 100 seconds ago (fresh)
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.COMPUTING, timestamp=fresh_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=fresh_timestamp
+        )
 
         # Should NOT trigger task because COMPUTING is still fresh
         assert payload.should_trigger_task(force=False) is False
@@ -241,7 +239,9 @@ class TestShouldTriggerTask:
 
         # Create payload with ERROR status from 400 seconds ago (expired)
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.ERROR, timestamp=old_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.ERROR, timestamp=old_timestamp
+        )
 
         assert payload.should_trigger_task(force=False) is True
 
@@ -253,7 +253,9 @@ class TestShouldTriggerTask:
 
         # Create payload with ERROR status from 100 seconds ago (fresh)
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.ERROR, timestamp=fresh_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.ERROR, timestamp=fresh_timestamp
+        )
 
         assert payload.should_trigger_task(force=False) is False
 
@@ -278,7 +280,9 @@ class TestIsComputingStale:
 
         # Timestamp from 400 seconds ago
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.COMPUTING, timestamp=old_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=old_timestamp
+        )
 
         assert payload.is_computing_stale() is True
 
@@ -289,7 +293,9 @@ class TestIsComputingStale:
 
         # Timestamp from 100 seconds ago
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.COMPUTING, timestamp=fresh_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=fresh_timestamp
+        )
 
         assert payload.is_computing_stale() is False
 
@@ -300,7 +306,9 @@ class TestIsComputingStale:
 
         # Timestamp from exactly 300 seconds ago
         exact_timestamp = (datetime.now() - timedelta(seconds=300)).isoformat()
-        payload = ScreenshotCachePayload(status=StatusValues.COMPUTING, timestamp=exact_timestamp)
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING, timestamp=exact_timestamp
+        )
 
         # At exactly TTL, should not be stale yet (needs to be > TTL)
         assert payload.is_computing_stale() is False
@@ -330,9 +338,7 @@ class TestIntegrationCacheBugFix:
         Integration test: Failed screenshot should not leave cache entry
         that triggers 404 errors.
         """
-        mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
-        )
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=Exception("Network error"),

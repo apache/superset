@@ -310,7 +310,9 @@ class BaseScreenshot:
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
             self.cache.set(cache_key, cache_payload.to_dict())
-            logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
+            logger.info(
+                "Updated thumbnail cache; Status: %s", cache_payload.get_status()
+            )
         return
 
     @classmethod
