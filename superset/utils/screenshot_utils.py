@@ -25,6 +25,9 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+# Time to wait after scrolling for content to settle and load (in milliseconds)
+SCROLL_SETTLE_TIMEOUT_MS = 1000
+
 if TYPE_CHECKING:
     try:
         from playwright.sync_api import Page
@@ -77,7 +80,7 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
 
 
 def take_tiled_screenshot(
-    page: "Page", element_name: str, viewport_height: int = 2000
+    page: "Page", element_name: str, tile_height: int
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -85,7 +88,7 @@ def take_tiled_screenshot(
     Args:
         page: Playwright page object
         element_name: CSS class name of the element to screenshot
-        viewport_height: Height of each tile in pixels
+        tile_height: Height of each tile in pixels
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -100,17 +103,17 @@ def take_tiled_screenshot(
             const el = document.querySelector(".{element_name}");
             const rect = el.getBoundingClientRect();
             return {{
+                width: el.scrollWidth,
                 height: el.scrollHeight,
-                top: rect.top + window.scrollY,
                 left: rect.left + window.scrollX,
-                width: el.scrollWidth
+                top: rect.top + window.scrollY,
             }};
         }}""")
 
-        dashboard_height = element_info["height"]
-        dashboard_top = element_info["top"]
-        dashboard_left = element_info["left"]
         dashboard_width = element_info["width"]
+        dashboard_height = element_info["height"]
+        dashboard_left = element_info["left"]
+        dashboard_top = element_info["top"]
 
         logger.info(
             "Dashboard: %sx%spx at (%s, %s)",
@@ -121,47 +124,55 @@ def take_tiled_screenshot(
         )
 
         # Calculate number of tiles needed
-        num_tiles = max(1, (dashboard_height + viewport_height - 1) // viewport_height)
+        num_tiles = max(1, (dashboard_height + tile_height - 1) // tile_height)
         logger.info("Taking %s screenshot tiles", num_tiles)
 
         screenshot_tiles = []
 
         for i in range(num_tiles):
             # Calculate scroll position to show this tile's content
-            scroll_y = dashboard_top + (i * viewport_height)
+            scroll_y = dashboard_top + (i * tile_height)
 
-            # Scroll the window to the desired position
             page.evaluate(f"window.scrollTo(0, {scroll_y})")
             logger.debug(
                 "Scrolled window to %s for tile %s/%s", scroll_y, i + 1, num_tiles
             )
-
             # Wait for scroll to settle and content to load
-            page.wait_for_timeout(2000)  # 2 second wait per tile
-
-            # Get the current element position after scroll
-            current_element_box = page.evaluate(f"""() => {{
-                const el = document.querySelector(".{element_name}");
-                const rect = el.getBoundingClientRect();
-                return {{
-                    x: rect.left,
-                    y: rect.top,
-                    width: rect.width,
-                    height: rect.height
-                }};
-            }}""")
+            page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
 
             # Calculate what portion of the element we want to capture for this tile
-            tile_start_in_element = i * viewport_height
+            tile_start_in_element = i * tile_height
             remaining_content = dashboard_height - tile_start_in_element
-            tile_content_height = min(viewport_height, remaining_content)
+            clip_height = min(tile_height, remaining_content)
+            clip_y = (
+                0
+                if tile_height < remaining_content
+                else tile_height - remaining_content
+            )
+            clip_x = dashboard_left
+
+            # Skip tile if dimensions are invalid (width or height <= 0)
+            # This can happen if element is completely scrolled out of viewport
+            if clip_height <= 0 or clip_y < 0:
+                logger.warning(
+                    "Skipping tile %s/%s due to invalid clip dimensions: "
+                    "x=%s, y=%s, width=%s, height=%s "
+                    "(element may be scrolled out of viewport)",
+                    i + 1,
+                    num_tiles,
+                    clip_x,
+                    clip_y,
+                    dashboard_width,
+                    clip_height,
+                )
+                continue
 
             # Clip to capture only the current tile portion of the element
             clip = {
-                "x": current_element_box["x"],
-                "y": current_element_box["y"],
-                "width": current_element_box["width"],
-                "height": min(tile_content_height, current_element_box["height"]),
+                "x": clip_x,
+                "y": clip_y,
+                "width": dashboard_width,
+                "height": clip_height,
             }
 
             # Take screenshot with clipping to capture only this tile's content
@@ -173,9 +184,6 @@ def take_tiled_screenshot(
         # Combine all tiles
         logger.info("Combining screenshot tiles...")
         combined_screenshot = combine_screenshot_tiles(screenshot_tiles)
-
-        # Reset window scroll position
-        page.evaluate("window.scrollTo(0, 0)")
 
         return combined_screenshot
 

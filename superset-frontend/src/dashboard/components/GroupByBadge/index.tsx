@@ -18,12 +18,34 @@
  */
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { createSelector } from '@reduxjs/toolkit';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
 import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
+
+const makeSelectChartDataset = (chartId: number) =>
+  createSelector(
+    (state: RootState) => state.charts[chartId]?.latestQueryFormData,
+    latestQueryFormData => {
+      if (!latestQueryFormData?.datasource) {
+        return null;
+      }
+      const chartDatasetParts = String(latestQueryFormData.datasource).split(
+        '__',
+      );
+      return chartDatasetParts[0];
+    },
+  );
+
+const makeSelectChartFormData = (chartId: number) =>
+  createSelector(
+    (state: RootState) => state.charts[chartId]?.latestQueryFormData,
+    latestQueryFormData => latestQueryFormData,
+  );
 
 export interface GroupByBadgeProps {
   chartId: number;
@@ -141,16 +163,19 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       dashboardInfo.metadata?.chart_customization_config || [],
   );
 
-  const chartDataset = useSelector<RootState, string | null>(state => {
-    const chart = state.charts[chartId];
-    if (!chart?.latestQueryFormData?.datasource) {
-      return null;
-    }
-    const chartDatasetParts = String(
-      chart.latestQueryFormData.datasource,
-    ).split('__');
-    return chartDatasetParts[0];
-  });
+  // Use memoized selectors for chart data
+  const selectChartDataset = useMemo(
+    () => makeSelectChartDataset(chartId),
+    [chartId],
+  );
+  const selectChartFormData = useMemo(
+    () => makeSelectChartFormData(chartId),
+    [chartId],
+  );
+
+  const chartDataset = useSelector(selectChartDataset);
+  const chartFormData = useSelector(selectChartFormData);
+  const chartType = chartFormData?.viz_type;
 
   const applicableGroupBys = useMemo(() => {
     if (!chartDataset) {
@@ -172,9 +197,6 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     });
   }, [chartCustomizationItems, chartDataset]);
 
-  const chart = useSelector<RootState, any>(state => state.charts[chartId]);
-  const chartType = chart?.latestQueryFormData?.viz_type;
-
   const effectiveGroupBys = useMemo(() => {
     if (!chartType || applicableGroupBys.length === 0) {
       return [];
@@ -184,7 +206,6 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
-    const chartFormData = chart?.latestQueryFormData;
     if (!chartFormData) {
       return applicableGroupBys;
     }
@@ -277,7 +298,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
 
       return columnNames.length > 0;
     });
-  }, [applicableGroupBys, chartType, chart]);
+  }, [applicableGroupBys, chartType, chartFormData]);
 
   const groupByCount = effectiveGroupBys.length;
 

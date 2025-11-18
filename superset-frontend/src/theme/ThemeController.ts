@@ -22,12 +22,12 @@ import {
   type ThemeControllerOptions,
   type ThemeStorage,
   isThemeConfigDark,
-  makeApi,
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
-} from '@superset-ui/core';
-import { normalizeThemeConfig } from '@superset-ui/core/theme/utils';
+  normalizeThemeConfig,
+} from '@apache-superset/core/ui';
+import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -237,7 +237,7 @@ export class ThemeController {
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
-        const { Theme } = await import('@superset-ui/core');
+        const { Theme } = await import('@apache-superset/core/ui');
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base

@@ -103,6 +103,9 @@ const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFilterScopes = useNativeFilterScopes();
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -192,7 +195,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
+  }, [
+    chartIds,
+    JSON.stringify(nativeFilterScopes),
+    dashboardLayout,
+    dispatch,
+    JSON.stringify(nativeFilters),
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -305,6 +314,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           renderTabBar={renderTabBar}
           animated={false}
           allowOverflow
+          fullHeight
           onFocus={handleFocus}
           items={tabItems}
           tabBarStyle={{ paddingLeft: 0 }}

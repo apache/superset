@@ -18,9 +18,17 @@
  */
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging } from '@superset-ui/core';
+import {
+  t,
+  logging,
+  FeatureFlag,
+  isFeatureEnabled,
+  LatestQueryFormData,
+} from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
+import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
@@ -32,17 +40,19 @@ export interface ShareMenuItemProps
   emailMenuItemTitle: string;
   emailSubject: string;
   emailBody: string;
-  addDangerToast: Function;
-  addSuccessToast: Function;
+  addDangerToast: (message: string) => void;
+  addSuccessToast: (message: string) => void;
   dashboardId: string | number;
   dashboardComponentId?: string;
-  copyMenuItemRef?: RefObject<any>;
-  shareByEmailMenuItemRef?: RefObject<any>;
+  latestQueryFormData?: LatestQueryFormData;
+  maxWidth?: string;
+  copyMenuItemRef?: RefObject<HTMLElement>;
+  shareByEmailMenuItemRef?: RefObject<HTMLElement>;
   selectedKeys?: string[];
-  setOpenKeys?: Function;
+  setOpenKeys?: (keys: string[] | undefined) => void;
   title: string;
   disabled?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
@@ -55,10 +65,17 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
+    latestQueryFormData,
+    maxWidth,
     title,
     disabled,
     ...rest
   } = props;
+  const sliceExists = !!(
+    latestQueryFormData && Object.keys(latestQueryFormData).length > 0
+  );
+  const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddableCharts);
+
   const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
     (state: RootState) => ({
       dataMask: state.dataMask,
@@ -109,23 +126,48 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     }
   }
 
+  const children: MenuItem[] = [
+    {
+      key: MenuKeys.CopyLink,
+      label: copyMenuItemTitle,
+      onClick: onCopyLink,
+    },
+    {
+      key: MenuKeys.ShareByEmail,
+      label: emailMenuItemTitle,
+      onClick: onShareByEmail,
+    },
+  ];
+
+  // Add embed code option if feature is enabled and chart data exists
+  if (isEmbedCodeEnabled && sliceExists) {
+    children.push({
+      key: MenuKeys.EmbedCode,
+      label: (
+        <ModalTrigger
+          triggerNode={
+            <span data-test="embed-code-button">{t('Embed code')}</span>
+          }
+          modalTitle={t('Embed code')}
+          modalBody={
+            <EmbedCodeContent
+              formData={latestQueryFormData}
+              addDangerToast={addDangerToast}
+            />
+          }
+          maxWidth={maxWidth}
+          responsive
+        />
+      ),
+    });
+  }
+
   return {
     ...rest,
     type: 'submenu',
     label: title,
     key: MenuKeys.Share,
     disabled,
-    children: [
-      {
-        key: MenuKeys.CopyLink,
-        label: copyMenuItemTitle,
-        onClick: onCopyLink,
-      },
-      {
-        key: MenuKeys.ShareByEmail,
-        label: emailMenuItemTitle,
-        onClick: onShareByEmail,
-      },
-    ],
+    children,
   };
 };

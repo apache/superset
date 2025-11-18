@@ -45,14 +45,13 @@ class HealthCheckResponse(BaseModel):
 
 class GetSupersetInstanceInfoRequest(BaseModel):
     """
-    Request schema for get_superset_instance_info tool.
+    Request schema for get_instance_info tool.
 
     Currently has no parameters but provides consistent API for future extensibility.
     """
 
     model_config = ConfigDict(
         extra="forbid",
-        str_strip_whitespace=True,
     )
 
 

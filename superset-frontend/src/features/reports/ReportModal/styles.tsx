@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 import { Button, CronPicker, Modal } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 
