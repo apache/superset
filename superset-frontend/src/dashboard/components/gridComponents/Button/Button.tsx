@@ -51,13 +51,24 @@ import type { DashboardButtonMeta, ButtonActionType } from './types';
 const ButtonStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-button {
+      width: 100%;
+      height: 100%;
       display: flex;
-      align-items: stretch;
-      padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-      min-height: ${GRID_BASE_UNIT * 5}px;
+      flex-direction: column;
+      background-color: ${theme.colorBgContainer};
+      min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
 
       .dashboard--editing & {
         cursor: move;
+      }
+
+      .dashboard-component-chart-holder {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: ${theme.sizeUnit}px;
+        min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
       }
 
       .superset-button {
