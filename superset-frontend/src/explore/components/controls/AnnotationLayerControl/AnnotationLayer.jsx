@@ -32,11 +32,10 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
-  styled,
   getColumnLabel,
-  withTheme,
   VizType,
 } from '@superset-ui/core';
+import { styled, withTheme } from '@apache-superset/core/ui';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -854,8 +853,10 @@ class AnnotationLayer extends PureComponent {
               if (useAutomatic) {
                 this.setState({ color: AUTOMATIC_COLOR });
               } else {
-                // Set to first theme color or black as fallback
-                this.setState({ color: colorScheme[0] || '#000000' });
+                // Set to first theme color or dark color as fallback
+                this.setState({
+                  color: colorScheme[0] || this.props.theme.colorTextBase,
+                });
               }
             }}
           />

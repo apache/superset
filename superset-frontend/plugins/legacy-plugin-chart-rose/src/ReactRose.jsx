@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled, css } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Global } from '@emotion/react';
 import Component from './Rose';
 

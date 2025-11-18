@@ -262,7 +262,7 @@ export const setDashboardMetadata =
     dispatch(
       dashboardInfoChanged({
         metadata: {
-          ...(dashboardInfo?.metadata || {}),
+          ...dashboardInfo?.metadata,
           ...updatedMetadata,
         },
       }),
@@ -458,7 +458,7 @@ export function saveDashboardRequest(data, id, saveType) {
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({
-                ...(cleanedData?.metadata || {}),
+                ...cleanedData?.metadata,
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
@@ -746,6 +746,27 @@ export function unsetFocusedFilterField(chartId, column) {
 export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
 export function setFullSizeChartId(chartId) {
   return { type: SET_FULL_SIZE_CHART_ID, chartId };
+}
+
+export const UPDATE_CHART_STATE = 'UPDATE_CHART_STATE';
+export function updateChartState(chartId, vizType, chartState) {
+  return {
+    type: UPDATE_CHART_STATE,
+    chartId,
+    vizType,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
+export const REMOVE_CHART_STATE = 'REMOVE_CHART_STATE';
+export function removeChartState(chartId) {
+  return { type: REMOVE_CHART_STATE, chartId };
+}
+
+export const RESTORE_CHART_STATES = 'RESTORE_CHART_STATES';
+export function restoreChartStates(chartStates) {
+  return { type: RESTORE_CHART_STATES, chartStates };
 }
 
 // Undo history ---------------------------------------------------------------

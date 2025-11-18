@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
@@ -70,8 +70,13 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def get_data(self, pk: int) -> Response:
+    def get_data(  # noqa: C901
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """
         Take a chart ID and uses the query context stored when the chart was saved
         to return payload data response.
@@ -166,7 +171,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
             form_data = json.loads(chart.params)
@@ -174,7 +179,10 @@ class ChartDataRestApi(ChartRestApi):
             form_data = {}
 
         return self._get_data_response(
-            command=command, form_data=form_data, datasource=query_context.datasource
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
 
     @expose("/data", methods=("POST",))
@@ -183,8 +191,11 @@ class ChartDataRestApi(ChartRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def data(self) -> Response:
+    def data(  # noqa: C901
+        self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
+    ) -> Response:
         """
         Take a query context constructed in the client and return payload
         data response for the given query
@@ -254,11 +265,14 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+            command=command,
+            form_data=form_data,
+            datasource=query_context.datasource,
+            add_extra_log_payload=add_extra_log_payload,
         )
 
     @expose("/data/<cache_key>", methods=("GET",))
@@ -320,7 +334,10 @@ class ChartDataRestApi(ChartRestApi):
         return self._get_data_response(command, True)
 
     def _run_async(
-        self, form_data: dict[str, Any], command: ChartDataCommand
+        self,
+        form_data: dict[str, Any],
+        command: ChartDataCommand,
+        add_extra_log_payload: Callable[..., None] | None = None,
     ) -> Response:
         """
         Execute command as an async query.
@@ -329,6 +346,10 @@ class ChartDataRestApi(ChartRestApi):
         with contextlib.suppress(ChartDataCacheLoadError):
             result = command.run(force_cached=True)
             if result is not None:
+                # Log is_cached if extra payload callback is provided.
+                # This indicates no async job was triggered - data was already cached
+                # and a synchronous response is being returned immediately.
+                self._log_is_cached(result, add_extra_log_payload)
                 return self._send_chart_response(result)
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
@@ -410,6 +431,25 @@ class ChartDataRestApi(ChartRestApi):
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    def _log_is_cached(
+        self,
+        result: dict[str, Any],
+        add_extra_log_payload: Callable[..., None] | None,
+    ) -> None:
+        """
+        Log is_cached values from query results to event logger.
+
+        Extracts is_cached from each query in the result and logs it.
+        If there's a single query, logs the boolean value directly.
+        If multiple queries, logs as a list.
+        """
+        if add_extra_log_payload and result and "queries" in result:
+            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+            if len(is_cached_values) == 1:
+                add_extra_log_payload(is_cached=is_cached_values[0])
+            elif is_cached_values:
+                add_extra_log_payload(is_cached=is_cached_values)
+
     @event_logger.log_this
     def _get_data_response(
         self,
@@ -417,13 +457,18 @@ class ChartDataRestApi(ChartRestApi):
         force_cached: bool = False,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
+        add_extra_log_payload: Callable[..., None] | None = None,
     ) -> Response:
+        """Get data response and optionally log is_cached information."""
         try:
             result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
+
+        # Log is_cached if extra payload callback is provided
+        self._log_is_cached(result, add_extra_log_payload)
 
         return self._send_chart_response(result, form_data, datasource)
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, ReactElement, RefObject } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
@@ -111,6 +111,7 @@ const TabsRenderer = memo<TabsRendererProps>(
         type={editMode ? 'editable-card' : 'card'}
         items={tabItems}
         tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+        fullHeight
       />
     </StyledTabsContainer>
   ),

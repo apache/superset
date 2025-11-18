@@ -26,10 +26,14 @@ import {
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
-import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
 import Tab from './Tab';
 import Markdown from '../Markdown';
+
+jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
+  jest.fn(() => []),
+);
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(() => <div data-test="DashboardComponent" />),
@@ -65,6 +69,9 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   setEditMode: jest.fn(() => ({
     type: 'SET_EDIT_MODE',
+  })),
+  onRefresh: jest.fn(() => ({
+    type: 'ON_REFRESH',
   })),
 }));
 
@@ -444,4 +451,92 @@ test('AnchorLink does not render in embedded mode', () => {
   });
 
   expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
+});
+
+test('Should refresh charts when tab becomes active after dashboard refresh', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000, // Dashboard was refreshed 5 seconds ago
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000, // Tab was activated 10 seconds ago (before refresh)
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // onRefresh should not be called when tab is not visible
+  expect(onRefresh).not.toHaveBeenCalled();
+
+  // Make tab visible - this should trigger refresh since lastRefreshTime > tabActivationTime
+  rerender(<Tab {...props} isComponentVisible />);
+
+  // Wait for the refresh to be triggered after the delay
+  await waitFor(
+    () => {
+      expect(onRefresh).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  expect(onRefresh).toHaveBeenCalledWith(
+    [101, 102], // Chart IDs from the tab
+    true, // Force refresh
+    0, // Interval
+    23, // Dashboard ID
+  );
+});
+
+test('Should not refresh charts when tab becomes active if no dashboard refresh occurred', async () => {
+  jest.clearAllMocks();
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const currentTime = Date.now();
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: currentTime - 10000, // Dashboard was refreshed 10 seconds ago
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': currentTime - 5000, // Tab was activated 5 seconds ago (after refresh)
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  // Make tab visible - should NOT trigger refresh since tabActivationTime > lastRefreshTime
+  rerender(<Tab {...props} isComponentVisible />);
+
+  // Wait a bit to ensure no refresh is triggered
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  expect(onRefresh).not.toHaveBeenCalled();
 });

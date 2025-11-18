@@ -22,19 +22,22 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
-  css,
   isFeatureEnabled,
   getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
-  styled,
   SupersetClient,
-  themeObject,
   t,
-  withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  themeObject,
+  Alert,
+  withTheme,
+} from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -45,7 +48,6 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
-  Alert,
   AsyncSelect,
   Badge,
   Button,
@@ -69,6 +71,7 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -278,7 +281,7 @@ function ColumnCollectionTable({
                 label={t('SQL expression')}
                 control={
                   <TextAreaControl
-                    language="markdown"
+                    language="sql"
                     offerEditInModal={false}
                     resize="vertical"
                   />
@@ -691,11 +694,13 @@ class DatasourceEditor extends PureComponent {
     const { datasourceType, datasource } = this.state;
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
+
     this.props.onChange(newDatasource, this.state.errors);
   }
 
@@ -836,6 +841,9 @@ class DatasourceEditor extends PureComponent {
           col => !col.expression, // remove calculated columns
         ),
       });
+
+      clearDatasetCache(datasource.id);
+
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
@@ -1886,6 +1894,49 @@ class DatasourceEditor extends PureComponent {
         />
       </DatasourceContainer>
     );
+  }
+
+  componentDidUpdate(prevProps) {
+    // Preserve calculated columns order when props change to prevent jumping
+    if (this.props.datasource !== prevProps.datasource) {
+      const newCalculatedColumns = this.props.datasource.columns.filter(
+        col => !!col.expression,
+      );
+      const currentCalculatedColumns = this.state.calculatedColumns;
+
+      if (newCalculatedColumns.length === currentCalculatedColumns.length) {
+        // Try to preserve the order by matching with existing calculated columns
+        const orderedCalculatedColumns = [];
+        const usedIds = new Set();
+
+        // First, add existing columns in their current order
+        currentCalculatedColumns.forEach(currentCol => {
+          const id = currentCol.id || currentCol.column_name;
+          const updatedCol = newCalculatedColumns.find(
+            newCol => (newCol.id || newCol.column_name) === id,
+          );
+          if (updatedCol) {
+            orderedCalculatedColumns.push(updatedCol);
+            usedIds.add(id);
+          }
+        });
+
+        // Then add any new columns that weren't in the current list
+        newCalculatedColumns.forEach(newCol => {
+          const id = newCol.id || newCol.column_name;
+          if (!usedIds.has(id)) {
+            orderedCalculatedColumns.push(newCol);
+          }
+        });
+
+        this.setState({
+          calculatedColumns: orderedCalculatedColumns,
+          databaseColumns: this.props.datasource.columns.filter(
+            col => !col.expression,
+          ),
+        });
+      }
+    }
   }
 
   componentDidMount() {
