@@ -29,6 +29,7 @@ import {
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
 import { Icons, Collapse } from '@superset-ui/core/components';
+import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -158,7 +159,10 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
     <StyledLayout>
       <StyledHeader>Your user information</StyledHeader>
       <DescriptionsContainer>
-        <Collapse defaultActiveKey={['userInfo', 'personalInfo']} ghost>
+        <Collapse
+          defaultActiveKey={['userInfo', 'personalInfo', 'apiKeys']}
+          ghost
+        >
           <Collapse.Panel
             header={<DescriptionTitle>User info</DescriptionTitle>}
             key="userInfo"
@@ -201,6 +205,12 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               </Descriptions.Item>
               <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
             </Descriptions>
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={<DescriptionTitle>API Keys</DescriptionTitle>}
+            key="apiKeys"
+          >
+            <ApiKeyList />
           </Collapse.Panel>
         </Collapse>
       </DescriptionsContainer>
