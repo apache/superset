@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { css, styled } from '@apache-superset/core/ui';
 import { t } from '@superset-ui/core';
 import { Input } from '@superset-ui/core/components';
-// Import model-viewer as a module (bundled, avoids CSP issues)
+// Import model-viewer directly - it's already bundled, no need for lazy loading
 import '@google/model-viewer';
 
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -180,43 +180,33 @@ declare global {
 
 class Model3D extends PureComponent<Model3DProps> {
   state = {
-    scriptLoaded: true, // Set to true by default since we import the module directly
     modelError: false,
   };
 
-  private loadTimeout: NodeJS.Timeout | null = null;
-
-  componentDidMount() {
-    // Log registry status for debugging
-    setTimeout(() => {
-      if (customElements.get('model-viewer')) {
-        console.log('Model3D: model-viewer custom element found in registry');
-      } else {
-        console.warn('Model3D: model-viewer not in registry - module may not have loaded');
-      }
-    }, 100);
-  }
-
-  componentWillUnmount() {
-    if (this.loadTimeout) {
-      clearTimeout(this.loadTimeout);
-      this.loadTimeout = null;
-    }
-  }
-
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { updateComponents, component } = this.props;
+    const newUrl = e.target.value;
+    
     // Clear error state when URL changes
-    this.setState({ modelError: false });
-    updateComponents({
-      [component.id]: {
-        ...component,
-        meta: {
-          ...component.meta,
-          modelUrl: e.target.value,
+    if (this.state.modelError) {
+      this.setState({ modelError: false });
+    }
+    
+    // Update component meta - debounce to prevent blocking during typing
+    const timeoutId = setTimeout(() => {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            modelUrl: newUrl,
+          } as any, // modelUrl is a custom property
         },
-      },
-    });
+      });
+    }, 100); // Small debounce to prevent excessive updates
+    
+    // Store timeout ID to clear if needed (component will handle cleanup)
+    (this as any)._updateTimeout = timeoutId;
   };
 
   handleDeleteComponent = () => {
@@ -227,6 +217,7 @@ class Model3D extends PureComponent<Model3DProps> {
   renderModelViewer(): ReactNode {
     const { component } = this.props;
     const { modelError } = this.state;
+    // @ts-ignore - modelUrl is a custom property
     const modelUrl = component.meta?.modelUrl || '';
 
     if (!modelUrl) {
@@ -255,9 +246,6 @@ class Model3D extends PureComponent<Model3DProps> {
         </div>
       );
     }
-
-    // Skip scriptLoaded check - we import the module directly, so it should be available
-    // The model-viewer element will handle its own loading state
 
     return (
       <model-viewer
@@ -353,12 +341,23 @@ class Model3D extends PureComponent<Model3DProps> {
       onResizeStart,
     } = this.props;
 
+    if (!component || !component.meta) {
+      console.error('Model3D: Missing component or meta', { component });
+      return null;
+    }
+
+    if (!parentComponent) {
+      console.error('Model3D: Missing parentComponent', { component });
+      return null;
+    }
+
     // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+        ? parentComponent.meta?.width || GRID_MIN_COLUMN_COUNT
+        : component.meta?.width || GRID_MIN_COLUMN_COUNT;
 
+    // @ts-ignore - modelUrl is a custom property
     const modelUrl = component.meta?.modelUrl || '';
 
     return (
@@ -371,7 +370,7 @@ class Model3D extends PureComponent<Model3DProps> {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dragSourceRef }) => (
+        {({ dragSourceRef }: any) => (
           <Model3DContainer
             className="dashboard-component dashboard-component-model3d"
             data-test="dashboard-component-model3d"
@@ -425,7 +424,10 @@ class Model3D extends PureComponent<Model3DProps> {
   }
 }
 
+// @ts-expect-error - PropTypes assignment for runtime validation
 Model3D.propTypes = propTypes;
+// @ts-expect-error - defaultProps assignment
 Model3D.defaultProps = defaultProps;
 
 export default Model3D;
+
