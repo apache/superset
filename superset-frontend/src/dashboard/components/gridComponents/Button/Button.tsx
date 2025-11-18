@@ -52,8 +52,7 @@ const ButtonStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-button {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: stretch;
       padding: ${theme.sizeUnit * 2}px;
       min-height: ${GRID_BASE_UNIT * 5}px;
 
@@ -62,7 +61,9 @@ const ButtonStyles = styled.div`
       }
 
       .superset-button {
+        width: 100%;
         min-width: 120px;
+        justify-content: center;
       }
     }
   `}
@@ -71,7 +72,9 @@ const ButtonStyles = styled.div`
 const ButtonContent = styled.div`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${({ theme }) => theme.sizeUnit}px;
+  width: 100%;
 `;
 
 const normalizeActionType = (actionType?: string | null): ButtonActionType =>
