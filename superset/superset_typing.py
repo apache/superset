@@ -16,7 +16,7 @@
 # under the License.
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, Optional, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING, TypeAlias, TypedDict, Union
 
 from sqlalchemy.sql.type_api import TypeEngine
 from typing_extensions import NotRequired
@@ -100,22 +100,24 @@ DbapiDescriptionRow = tuple[
     Optional[int],
     bool,
 ]
-DbapiDescription = Union[list[DbapiDescriptionRow], tuple[DbapiDescriptionRow, ...]]
-DbapiResult = Sequence[Union[list[Any], tuple[Any, ...]]]
-FilterValue = Union[bool, datetime, float, int, str]
-FilterValues = Union[FilterValue, list[FilterValue], tuple[FilterValue]]
-FormData = dict[str, Any]
-Granularity = Union[str, dict[str, Union[str, float]]]
-Column = Union[AdhocColumn, str, int]
-Metric = Union[AdhocMetric, str, int]
-OrderBy = tuple[Union[Metric, Column], bool]
-QueryObjectDict = dict[str, Any]
-VizData = Optional[Union[list[Any], dict[Any, Any]]]
-VizPayload = dict[str, Any]
+DbapiDescription: TypeAlias = (
+    list[DbapiDescriptionRow] | tuple[DbapiDescriptionRow, ...]
+)
+DbapiResult: TypeAlias = Sequence[list[Any] | tuple[Any, ...]]
+FilterValue: TypeAlias = bool | datetime | float | int | str
+FilterValues: TypeAlias = FilterValue | list[FilterValue] | tuple[FilterValue]
+FormData: TypeAlias = dict[str, Any]
+Granularity: TypeAlias = str | dict[str, str | float]
+Column: TypeAlias = AdhocColumn | str | int
+Metric: TypeAlias = AdhocMetric | str | int
+OrderBy: TypeAlias = tuple[Metric | Column, bool]
+QueryObjectDict: TypeAlias = dict[str, Any]
+VizData: TypeAlias = list[Any] | dict[Any, Any] | None
+VizPayload: TypeAlias = dict[str, Any]
 
 # Flask response.
-Base = Union[bytes, str]
-Status = Union[int, str]
+Base: TypeAlias = bytes | str
+Status: TypeAlias = int | str
 Headers = dict[str, Any]
 FlaskResponse = Union[
     Response,
