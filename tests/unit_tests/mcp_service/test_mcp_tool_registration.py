@@ -59,13 +59,8 @@ def test_concrete_mcp_tool_graceful_handling():
         description = "Test tool for testing"
         tags = ["test", "extension"]
 
-        # Call the concrete implementation - it should not raise an exception
-        # even if MCP service import fails (graceful degradation)
-        try:
-            concrete_mcp_tool(tool_name, test_tool, description, tags)
-        except ImportError:
-            # This is expected and acceptable behavior
-            pass
-        except Exception as e:
-            # Any other exception is unexpected
-            raise AssertionError(f"Unexpected exception: {e}") from e
+        # Call the concrete implementation - it should either succeed
+        # or handle errors gracefully
+        concrete_mcp_tool(tool_name, test_tool, description, tags)
+
+        # If we get here without exception, the function works correctly

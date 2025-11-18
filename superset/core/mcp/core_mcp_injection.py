@@ -56,9 +56,13 @@ def initialize_mcp_dependencies() -> None:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
 
+            # Set function name and docstring for FastMCP to use
+            func.__name__ = name
+            func.__doc__ = description
+
             # Register directly with FastMCP instance
-            # Note: FastMCP's add_tool method handles the @mcp.tool decoration
-            mcp.add_tool(func, name=name, description=description)
+            # FastMCP's add_tool method uses function name and docstring
+            mcp.add_tool(func)
 
             logger.info("Registered extension MCP tool: %s", name)
 
