@@ -143,9 +143,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
 
             # Execute query with streaming
             with merged_database.get_sqla_engine() as engine:
-                connection = engine.connect()
-
-                try:
+                with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
                     ).execute(text(sql))
@@ -181,9 +179,6 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         total_mb,
                         total_time,
                     )
-
-                finally:
-                    connection.close()
 
     def run(self) -> Callable[[], Generator[str, None, None]]:
         """

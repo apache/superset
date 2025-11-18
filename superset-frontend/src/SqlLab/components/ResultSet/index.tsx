@@ -237,7 +237,7 @@ const ResultSet = ({
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
-  const { progress, startExport, resetExport, retryExport } =
+  const { progress, startExport, resetExport, retryExport, cancelExport } =
     useStreamingExport({
       onComplete: () => {},
       onError: error => {
@@ -318,6 +318,7 @@ const ResultSet = ({
     ensureAppRoot(`/api/v1/sqllab/export/${clientId}/`);
 
   const handleCloseStreamingModal = () => {
+    cancelExport();
     setShowStreamingModal(false);
     resetExport();
   };

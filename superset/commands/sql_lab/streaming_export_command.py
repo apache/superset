@@ -101,10 +101,7 @@ class StreamingSqlResultExportCommand(BaseStreamingCSVExportCommand):
         database = self._query.database
 
         # Get the SQL query
-        if select_sql:
-            sql = select_sql
-        else:
-            sql = executed_sql
+        sql = select_sql or executed_sql
 
         return sql, database
 

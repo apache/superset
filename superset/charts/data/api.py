@@ -489,10 +489,7 @@ class ChartDataRestApi(ChartRestApi):
             # Log is_cached if extra payload callback is provided
         if add_extra_log_payload and result and "queries" in result:
             is_cached_values = [query.get("is_cached") for query in result["queries"]]
-            if len(is_cached_values) == 1:
-                add_extra_log_payload(is_cached=is_cached_values[0])
-            elif is_cached_values:
-                add_extra_log_payload(is_cached=is_cached_values)
+            add_extra_log_payload(is_cached=is_cached_values)
 
         return self._send_chart_response(
             result, form_data, datasource, filename, expected_rows
@@ -588,10 +585,7 @@ class ChartDataRestApi(ChartRestApi):
                 actual_row_count = int(row_limit) if row_limit else 0
 
         # Use streaming if row count meets or exceeds threshold
-        if actual_row_count is not None and actual_row_count >= threshold:
-            return True
-
-        return False
+        return actual_row_count is not None and actual_row_count >= threshold
 
     def _create_streaming_csv_response(
         self,
@@ -616,16 +610,13 @@ class ChartDataRestApi(ChartRestApi):
             # Sanitize chart name for filename
             filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
 
-        logger.info(
-            "Creating streaming CSV response: %s (from frontend: %s)",
-            filename,
-            filename is not None,
-        )
+        logger.info("Creating streaming CSV response: %s", filename)
         if expected_rows:
             logger.info("Using expected_rows from frontend: %d", expected_rows)
 
         # Execute streaming command
-        chunk_size = 1000
+        # TODO: Make chunk size configurable via SUPERSET_CONFIG
+        chunk_size = 1024
         command = StreamingCSVExportCommand(query_context, chunk_size)
         command.validate()
 

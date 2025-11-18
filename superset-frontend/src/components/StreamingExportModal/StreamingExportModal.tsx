@@ -35,7 +35,6 @@ export enum ExportStatus {
   CANCELLED = 'cancelled',
 }
 
-const MAX_PROGRESS_PERCENT = 99;
 const COMPLETED_PERCENT = 100;
 
 export interface StreamingProgress {
@@ -200,7 +199,7 @@ const calculateProgressPercentage = (
   if (!totalRows || totalRows <= 0 || !rowsProcessed) return 0;
 
   const percentage = (rowsProcessed / totalRows) * 100;
-  return Math.round(Math.min(MAX_PROGRESS_PERCENT, percentage));
+  return Math.floor(percentage);
 };
 
 const getProgressStatus = (

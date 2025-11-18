@@ -373,13 +373,12 @@ class SqlLabRestApi(BaseSupersetApi):
     ) -> Response:
         """Create a streaming CSV response for large SQL Lab result sets."""
         # Execute streaming command
-        chunk_size = 1000
+        # TODO: Make chunk size configurable via SUPERSET_CONFIG
+        chunk_size = 1024
         command = StreamingSqlResultExportCommand(client_id, chunk_size)
         command.validate()
 
         if not filename:
-            query = command._query
-            assert query is not None
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = secure_filename(f"sqllab_{client_id}_{timestamp}.csv")
 

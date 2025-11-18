@@ -681,9 +681,7 @@ const Chart = props => {
       <StreamingExportModal
         visible={isStreamingModalVisible}
         onCancel={() => {
-          if (isExporting) {
-            cancelExport();
-          }
+          cancelExport();
           setIsStreamingModalVisible(false);
           resetExport();
         }}
