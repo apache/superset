@@ -112,6 +112,7 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
 
 const Chart = props => {
   const dispatch = useDispatch();
@@ -312,7 +313,8 @@ const Chart = props => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chartCustomizationItems = useSelector(
-    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+    state =>
+      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
@@ -324,8 +326,8 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
-  const chartStates = useSelector(
-    state => state.dashboardState.chartStates || EMPTY_OBJECT,
+  const chartState = useSelector(
+    state => state.dashboardState.chartStates?.[props.id],
   );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
@@ -342,7 +344,7 @@ const Chart = props => {
   const formData = useMemo(
     () =>
       getFormDataWithExtraFilters({
-        chart,
+        chart: { id: chart.id, form_data: chart.form_data }, // avoid passing the whole chart object
         chartConfiguration,
         chartCustomizationItems,
         filters: getAppliedFilterValues(props.id),
@@ -359,7 +361,8 @@ const Chart = props => {
         ownColorScheme,
       }),
     [
-      chart,
+      chart.id,
+      chart.form_data,
       chartConfiguration,
       chartCustomizationItems,
       props.id,
@@ -377,6 +380,25 @@ const Chart = props => {
   );
 
   formData.dashboardId = dashboardInfo.id;
+
+  const ownState = useMemo(() => {
+    const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
+
+    if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
+      return {
+        ...baseOwnState,
+        ...convertChartStateToOwnState(slice.viz_type, chartState.state),
+        chartState: chartState.state,
+      };
+    }
+
+    return baseOwnState;
+  }, [
+    dataMask[props.id]?.ownState,
+    props.id,
+    slice.viz_type,
+    chartState?.state,
+  ]);
 
   const onExploreChart = useCallback(
     async clickEvent => {
@@ -467,13 +489,10 @@ const Chart = props => {
       let ownState = dataMask[props.id]?.ownState || {};
 
       // Convert chart-specific state to backend format using registered converter
-      if (
-        hasChartStateConverter(slice.viz_type) &&
-        chartStates[props.id]?.state
-      ) {
+      if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
         const convertedState = convertChartStateToOwnState(
           slice.viz_type,
-          chartStates[props.id].state,
+          chartState.state,
         );
         ownState = {
           ...ownState,
@@ -506,7 +525,7 @@ const Chart = props => {
       formData,
       maxRows,
       dataMask[props.id]?.ownState,
-      chartStates,
+      chartState,
       props.id,
       boundActionCreators.logEvent,
       queriesResponse,
@@ -652,19 +671,7 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={{
-            ...dataMask[props.id]?.ownState,
-            ...(hasChartStateConverter(slice.viz_type) &&
-            chartStates[props.id]?.state
-              ? {
-                  ...convertChartStateToOwnState(
-                    slice.viz_type,
-                    chartStates[props.id].state,
-                  ),
-                  chartState: chartStates[props.id].state,
-                }
-              : {}),
-          }}
+          ownState={ownState}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}

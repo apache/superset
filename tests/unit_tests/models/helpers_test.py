@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn
 
@@ -1127,6 +1128,269 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
         assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
             f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
         )
+
+
+def test_reapply_query_filters_with_granularity(database: Database) -> None:
+    """
+    Test that _reapply_query_filters correctly applies filters with granularity.
+
+    When granularity is provided, both time_filters and where_clause_and should
+    be combined in the WHERE clause.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # Create mock filter conditions
+    time_filter = sa.column("time_col") >= "2025-01-01"
+    where_filter = sa.column("value") > 10
+
+    time_filters = [time_filter]
+    where_clause_and = [where_filter]
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity="time_col",
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify WHERE clause is present
+    assert "WHERE" in sql
+    # Both filters should be in the query
+    assert "time_col" in sql
+    assert "value" in sql
+
+
+def test_reapply_query_filters_without_granularity(database: Database) -> None:
+    """
+    Test that _reapply_query_filters works correctly without granularity.
+
+    This test verifies the bug fix where time_filters was not initialized
+    when granularity is None. The method should handle empty time_filters
+    gracefully and only apply where_clause_and.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # Empty time_filters (as would happen without granularity)
+    time_filters: list[ColumnElement] = []
+    where_filter = sa.column("value") > 10
+    where_clause_and = [where_filter]
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method with granularity=None
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify WHERE clause is present with the where_filter
+    assert "WHERE" in sql
+    assert "value" in sql
+
+
+def test_reapply_query_filters_with_having_clause(database: Database) -> None:
+    """
+    Test that _reapply_query_filters correctly applies HAVING clause.
+
+    HAVING clauses are used for filtering on aggregated metrics.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a query with GROUP BY
+    qry = sa.select(sa.column("category"), sa.func.sum(sa.column("value"))).group_by(
+        sa.column("category")
+    )
+
+    # Create HAVING condition
+    having_filter = sa.func.sum(sa.column("value")) > 100
+    having_clause_and = [having_filter]
+
+    # Call the method
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=[],
+        where_clause_and=[],
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify HAVING clause is present
+    assert "HAVING" in sql
+    assert "sum" in sql.lower()
+
+
+def test_reapply_query_filters_with_fetch_values_predicate(database: Database) -> None:
+    """
+    Test that _reapply_query_filters applies fetch_values_predicate when enabled.
+
+    Fetch values predicate is used for filtering specific column values.
+    """
+    from unittest.mock import Mock
+
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Mock fetch_values_predicate
+    fetch_predicate = sa.column("value").in_([1, 2, 3])
+    table.fetch_values_predicate = True
+
+    # Mock get_fetch_values_predicate method
+    mock_template_processor = Mock()
+    with patch.object(
+        table, "get_fetch_values_predicate", return_value=fetch_predicate
+    ):
+        # Create a simple query
+        qry = sa.select(sa.column("value"))
+
+        # Call the method with apply_fetch_values_predicate=True
+        result_qry = table._reapply_query_filters(
+            qry=qry,
+            apply_fetch_values_predicate=True,
+            template_processor=mock_template_processor,
+            granularity=None,
+            time_filters=[],
+            where_clause_and=[],
+            having_clause_and=[],
+        )
+
+        # Compile the query to SQL
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                result_qry.compile(
+                    dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+                )
+            )
+
+        # Verify WHERE clause with IN condition is present
+        assert "WHERE" in sql
+        assert "IN" in sql
+
+
+def test_reapply_query_filters_with_empty_filters(database: Database) -> None:
+    """
+    Test that _reapply_query_filters handles empty filter lists gracefully.
+
+    This is an edge case test to ensure the method doesn't fail when
+    all filter lists are empty.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # All empty filter lists
+    time_filters: list[ColumnElement] = []
+    where_clause_and: list[ColumnElement] = []
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method with empty filters
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Should not raise an error
+    # Compile the query to verify it's valid
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Query should be valid without WHERE or HAVING
+    assert "SELECT" in sql
+    assert "value" in sql
 
 
 def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
