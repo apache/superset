@@ -385,6 +385,7 @@ sqlalchemy==1.4.54
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   apache-superset-core
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -393,9 +394,12 @@ sqlalchemy==1.4.54
 sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
     #   flask-appbuilder
 sqlglot==27.15.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
@@ -410,6 +414,7 @@ typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   apache-superset-core
     #   cattrs
     #   limits
     #   pydantic
