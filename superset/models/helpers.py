@@ -837,7 +837,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def cache_timeout(self) -> int:
+    def cache_timeout(self) -> int | None:
         raise NotImplementedError()
 
     @property

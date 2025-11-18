@@ -198,7 +198,7 @@ class BaseDatasource(
     is_featured = Column(Boolean, default=False)  # TODO deprecating
     filter_select_enabled = Column(Boolean, default=True)
     offset = Column(Integer, default=0)
-    cache_timeout = Column(Integer)
+    _cache_timeout = Column("cache_timeout", Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
@@ -211,6 +211,28 @@ class BaseDatasource(
     update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
+
+    @property
+    def cache_timeout(self) -> int | None:
+        """
+        Get the cache timeout for this datasource.
+
+        Implements the Explorable protocol by handling the fallback chain:
+        1. Datasource-specific timeout (if set)
+        2. Database default timeout (if no datasource timeout)
+        3. None (use system default)
+
+        This allows each datasource to override caching, while falling back
+        to database-level defaults when appropriate.
+        """
+        if self._cache_timeout is not None:
+            return self._cache_timeout
+        return self.database.cache_timeout
+
+    @cache_timeout.setter
+    def cache_timeout(self, value: int | None) -> None:
+        """Set the datasource-specific cache timeout."""
+        self._cache_timeout = value
 
     @property
     def kind(self) -> DatasourceKind:
@@ -864,6 +886,25 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     @property
     def database(self) -> Database:
         return self.table.database if self.table else self._database  # type: ignore
+
+    def get_time_grains(self) -> list[dict[str, Any]]:
+        """
+        Get available time granularities from the database.
+
+        Implements the Explorable protocol by delegating to the database's
+        time grain definitions. Each database engine spec defines its own
+        set of supported time grains.
+
+        :return: List of time grain dictionaries with name, function, and duration
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
 
     @property
     def db_engine_spec(self) -> builtins.type[BaseEngineSpec]:

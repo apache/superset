@@ -115,6 +115,7 @@ from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, TableColumn
+    from superset.explorables.base import Explorable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -1656,7 +1657,7 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
     return "string"  # If no match is found, return "string" as default
 
 
-def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query) -> str:
+def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Explorable | Query) -> str:
     """
     Determine the metric type from a given column in a datasource.
 
@@ -1673,6 +1674,10 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
     """
 
     from superset.connectors.sqla.models import SqlMetric
+
+    # Explorable datasources may not have metrics attribute
+    if not hasattr(datasource, "metrics"):
+        return ""
 
     metric: SqlMetric = next(
         (metric for metric in datasource.metrics if metric.metric_name == column),
@@ -1698,7 +1703,7 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: BaseDatasource | Query | None = None,
+    datasource: BaseDatasource | Explorable | Query | None = None,
 ) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1718,7 +1723,8 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column
+                if column_name := column.get("column_name"):
+                    columns_by_name[column_name] = column
             else:
                 columns_by_name[column.column_name] = column
 
@@ -1768,11 +1774,11 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: BaseDatasource,
+    datasource: BaseDatasource | Explorable,
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
-        col.column_name for col in datasource.columns if col.is_dttm
+        (col.column_name if hasattr(col, "column_name") else col.get("column_name")) for col in datasource.columns if (col.is_dttm if hasattr(col, "is_dttm") else col.get("is_dttm"))
     }
     applied: list[dict[str, str]] = []
     rejected: list[dict[str, str]] = []

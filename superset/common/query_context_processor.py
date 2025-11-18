@@ -29,8 +29,8 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
+from superset.explorables.base import Explorable
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -70,7 +70,7 @@ class QueryContextProcessor:
     """
 
     _query_context: QueryContext
-    _qc_datasource: BaseDatasource
+    _qc_datasource: Explorable
 
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
@@ -483,6 +483,6 @@ class QueryContextProcessor:
             query.validate()
 
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            security_manager.raise_for_access(datasource=self._qc_datasource)
         else:
             security_manager.raise_for_access(query_context=self._query_context)
