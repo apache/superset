@@ -518,13 +518,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def init_core_api_dependencies(self) -> None:
-        """Initialize core API dependency injection for direct import patterns."""
+    def init_core_dependencies(self) -> None:
+        """Initialize core dependency injection for direct import patterns."""
         from superset.core.api.core_api_injection import (
             initialize_core_api_dependencies,
         )
+        from superset.core.mcp.core_mcp_injection import initialize_mcp_dependencies
 
         initialize_core_api_dependencies()
+        initialize_mcp_dependencies()
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -579,7 +581,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            self.init_core_api_dependencies()
+            self.init_core_dependencies()
             self.init_extensions()
 
     def check_secret_key(self) -> None:
