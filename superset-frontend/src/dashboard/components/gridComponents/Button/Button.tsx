@@ -53,7 +53,7 @@ const ButtonStyles = styled.div`
     &.dashboard-button {
       display: flex;
       align-items: stretch;
-      padding: ${theme.sizeUnit * 2}px;
+      padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       min-height: ${GRID_BASE_UNIT * 5}px;
 
       .dashboard--editing & {
@@ -274,8 +274,7 @@ const DashboardButton = ({
       ? sanitizedEndpoint.length === 0
       : !isUrlValid;
 
-  const buttonDisabled =
-    editMode || meta.disabled || isPending || missingConfiguration;
+  const buttonDisabled = meta.disabled || isPending || missingConfiguration;
 
   const tooltip =
     meta.tooltip ||
