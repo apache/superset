@@ -17,12 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  screen,
-  waitFor,
-  userEvent,
-  cleanup,
-} from 'spec/helpers/testing-library';
+import { screen, waitFor, userEvent } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
   props,
@@ -133,7 +128,7 @@ test('can modify columns', async () => {
   await waitFor(() => {
     expect(props.onChange).toHaveBeenCalled();
   });
-}, 40000);
+}, 20000);
 
 test('can delete columns', async () => {
   await asyncRender({
@@ -162,7 +157,7 @@ test('can delete columns', async () => {
     const countRows = screen.getAllByRole('button', { name: /delete item/i });
     expect(countRows.length).toBe(initialCount - 1);
   });
-}, 60000); // 60 seconds timeout to avoid timeouts
+}, 30000);
 
 test('can add new columns', async () => {
   await asyncRender({
@@ -185,7 +180,7 @@ test('can add new columns', async () => {
     const newColumn = screen.getAllByRole('textbox')[0];
     expect(newColumn).toHaveValue('<new column>');
   });
-}, 60000);
+}, 30000);
 
 test('renders isSqla fields', async () => {
   await asyncRender({
@@ -254,9 +249,6 @@ test('Source Tab: readOnly mode', async () => {
 
 test('calls onChange with empty SQL when switching to physical dataset', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
-
-  // Clean previous render
-  cleanup();
 
   props.onChange.mockClear();
 

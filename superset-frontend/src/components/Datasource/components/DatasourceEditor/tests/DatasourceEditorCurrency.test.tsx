@@ -79,7 +79,7 @@ test('renders currency section in metrics tab', async () => {
   const expandToggles = await screen.findAllByLabelText(
     /expand row/i,
     {},
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
   await userEvent.click(expandToggles[6]);
 
@@ -87,7 +87,7 @@ test('renders currency section in metrics tab', async () => {
   const currencyHeader = await screen.findByText(
     'Metric currency',
     {},
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
   expect(currencyHeader).toBeVisible();
 
@@ -117,7 +117,7 @@ test('changes currency position from prefix to suffix', async () => {
   const expandToggles = await screen.findAllByLabelText(
     /expand row/i,
     {},
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
   await userEvent.click(expandToggles[6]);
 
@@ -140,7 +140,7 @@ test('changes currency position from prefix to suffix', async () => {
       if (!suffixOpt) throw new Error('Suffix option not found');
       return suffixOpt;
     },
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
 
   // Click the suffix option
@@ -160,9 +160,9 @@ test('changes currency position from prefix to suffix', async () => {
       expect(updatedMetric).toBeDefined();
       expect(updatedMetric?.currency?.symbol).toBe('USD');
     },
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
-}, 60000);
+}, 30000);
 
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
@@ -177,7 +177,7 @@ test('changes currency symbol from USD to GBP', async () => {
   const expandToggles = await screen.findAllByLabelText(
     /expand row/i,
     {},
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
   await userEvent.click(expandToggles[6]);
 
@@ -187,7 +187,7 @@ test('changes currency symbol from USD to GBP', async () => {
     {
       name: 'Currency symbol',
     },
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
 
   // Open the currency dropdown
@@ -204,7 +204,7 @@ test('changes currency symbol from USD to GBP', async () => {
       if (!gbpOpt) throw new Error('GBP option not found');
       return gbpOpt;
     },
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
 
   // Click the GBP option
@@ -224,6 +224,6 @@ test('changes currency symbol from USD to GBP', async () => {
       expect(updatedMetric).toBeDefined();
       expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
     },
-    { timeout: 5000 },
+    { timeout: 2000 },
   );
-}, 60000);
+}, 30000);
