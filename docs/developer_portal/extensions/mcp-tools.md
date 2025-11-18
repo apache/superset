@@ -15,7 +15,7 @@ MCP tools are Python functions that can be called by AI agents to perform specif
 
 ## Key Concepts
 
-- **Tool Registration**: Extensions use `@register_mcp_tool` to register functions as MCP tools
+- **Tool Registration**: Extensions use `@mcp_tool` to register functions as MCP tools
 - **Pydantic Schemas**: Input validation using Pydantic models ensures type safety
 - **Namespacing**: Extension tools are prefixed with extension ID to prevent conflicts
 - **FastMCP Integration**: Tools integrate directly with Superset's existing FastMCP service
@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 from pydantic import BaseModel, Field
-from superset_core.mcp import register_mcp_tool
+from superset_core.mcp import mcp_tool
 
 
 class RandomNumberRequest(BaseModel):
@@ -51,7 +51,7 @@ class RandomNumberRequest(BaseModel):
     )
 
 
-@register_mcp_tool(
+@mcp_tool(
     name="example_extension.random_number",
     description="Generate a random integer between min and max values (inclusive). Useful for creating test data, sampling, or demonstrations.",
     tags=["extension", "utility", "random", "generator"]
@@ -125,7 +125,7 @@ class ToolRequest(BaseModel):
 Provide structured error responses:
 
 ```python
-@register_mcp_tool(name="extension.example_tool", description="...", tags=[])
+@mcp_tool(name="extension.example_tool", description="...", tags=[])
 async def example_tool(ctx: Context, request: ToolRequest) -> dict:
     try:
         # Tool logic here
@@ -184,7 +184,7 @@ Agent: "Generate a random number between 1 and 100"
 
 ### Tool Not Discovered
 - Verify the module is registered in the entrypoints
-- Check that `@register_mcp_tool` decorator is applied
+- Check that `@mcp_tool` decorator is applied
 - Ensure the extension is properly loaded
 
 ### Type Validation Errors

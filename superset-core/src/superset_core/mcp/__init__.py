@@ -22,9 +22,9 @@ This module provides an interface for extensions to register MCP
 tools with the host application.
 
 Usage:
-    from superset_core.mcp import register_mcp_tool
+    from superset_core.mcp import mcp_tool
 
-    @register_mcp_tool(
+    @mcp_tool(
         name="my_extension.my_extension_tool",
         description="Custom business logic from my extension",
         tags=["extension", "custom"]
@@ -38,7 +38,7 @@ from typing import Any, Callable
 from .types import MCPToolDefinition
 
 
-def register_mcp_tool(
+def mcp_tool(
     name: str,
     func: Callable[..., Any],
     description: str,
@@ -60,7 +60,7 @@ def register_mcp_tool(
         NotImplementedError: If called before host implementation is initialized
 
     Example:
-        @register_mcp_tool(
+        @mcp_tool(
             name="my_extension.my_custom_tool",
             description="Does something useful",
             tags=["extension", "utility"]
@@ -73,5 +73,5 @@ def register_mcp_tool(
 
 __all__ = [
     "MCPToolDefinition",
-    "register_mcp_tool",
+    "mcp_tool",
 ]

@@ -34,13 +34,13 @@ def initialize_mcp_dependencies() -> None:
     """
     Initialize MCP dependency injection.
 
-    This function replaces the abstract register_mcp_tool function in
+    This function replaces the abstract mcp_tool function in
     superset-core with a concrete implementation that registers directly
     with the FastMCP instance.
     """
     import superset_core.mcp as mcp_module
 
-    def concrete_register_mcp_tool(
+    def concrete_mcp_tool(
         name: str, func: Callable[..., Any], description: str, tags: list[str]
     ) -> None:
         """
@@ -72,6 +72,6 @@ def initialize_mcp_dependencies() -> None:
             raise
 
     # Replace the abstract function with concrete implementation
-    mcp_module.register_mcp_tool = concrete_register_mcp_tool
+    mcp_module.mcp_tool = concrete_mcp_tool
 
     logger.info("Initialized MCP dependency injection")
