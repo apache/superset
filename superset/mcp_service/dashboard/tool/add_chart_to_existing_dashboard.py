@@ -25,9 +25,8 @@ import logging
 from typing import Any, Dict
 
 from fastmcp import Context
+from superset_core.mcp import mcp_tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -134,8 +133,7 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
-@mcp.tool
-@mcp_auth_hook
+@mcp_tool()
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:

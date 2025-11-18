@@ -116,6 +116,69 @@ async def random_number_generator(ctx: Context, request: RandomNumberRequest) ->
     }
 ```
 
+## Unified `@mcp_tool` Decorator
+
+The `@mcp_tool` decorator provides a unified API that combines FastMCP tool registration with Superset authentication, replacing the need for separate `@mcp.tool` and `@mcp_auth_hook` decorators.
+
+### Decorator Parameters
+
+```python
+@mcp_tool(
+    name="tool_name", # Optional: defaults to function name
+    description="Tool purpose", # Optional: defaults to function docstring
+    tags=["tag1", "tag2"] # Optional: defaults to empty list
+)
+def my_tool():
+    pass
+```
+
+### Using Defaults
+
+You can omit parameters to use function introspection:
+
+```python
+@mcp_tool()  # Uses function name and docstring
+def calculate_metrics(data: dict) -> dict:
+    """Calculate business metrics from input data."""
+    # Implementation here
+    return {"metrics": data}
+```
+
+This creates a tool with:
+- **Name**: `extension_id.calculate_metrics` (automatically prefixed)
+- **Description**: "Calculate business metrics from input data."
+- **Tags**: `[]` (empty list)
+
+### Migration from Legacy Pattern
+
+**Old pattern** (avoid in new code):
+```python
+from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import mcp_auth_hook
+
+@mcp.tool
+@mcp_auth_hook
+def old_tool(ctx: Context, request: MyRequest) -> dict:
+    pass
+```
+
+**New unified pattern** (recommended):
+```python
+from superset_core.mcp import mcp_tool
+
+@mcp_tool(name="my_tool", description="Does something useful", tags=["utility"])
+def new_tool(ctx: Context, request: MyRequest) -> dict:
+    pass
+```
+
+### Authentication & Session Management
+
+The `@mcp_tool` decorator automatically provides:
+- **User authentication** via `mcp_auth_hook` wrapper
+- **User context** available through Flask `g.user`
+- **Session management** with proper cleanup
+- **Error handling** with database rollback
+
 ## Tool Design Patterns
 
 ### Input Validation

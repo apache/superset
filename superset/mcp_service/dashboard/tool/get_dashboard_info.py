@@ -26,9 +26,8 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from superset_core.mcp import mcp_tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
@@ -40,8 +39,7 @@ from superset.mcp_service.mcp_core import ModelGetInfoCore
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@mcp_tool()
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:

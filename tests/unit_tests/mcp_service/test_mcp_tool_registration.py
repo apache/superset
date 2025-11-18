@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for MCP tool registration system."""
+"""Test MCP tool registration through superset-core dependency injection."""
 
 import sys
 from unittest.mock import MagicMock, patch
@@ -23,44 +23,29 @@ from unittest.mock import MagicMock, patch
 from superset.core.mcp.core_mcp_injection import initialize_mcp_dependencies
 
 
-def test_initialize_mcp_dependencies_replaces_abstract_function():
-    """Test that initialize_mcp_dependencies replaces the abstract mcp_tool function."""
+def test_initialize_mcp_dependencies_replaces_decorator():
+    """Test that initialize_mcp_dependencies replaces the abstract mcp_tool
+    decorator."""
     # Mock the superset_core.mcp module
     mock_mcp_module = MagicMock()
 
     with patch.dict(sys.modules, {"superset_core.mcp": mock_mcp_module}):
         initialize_mcp_dependencies()
 
-        # Verify the abstract function was replaced
+        # Verify the abstract decorator was replaced
         assert hasattr(mock_mcp_module, "mcp_tool")
         assert callable(mock_mcp_module.mcp_tool)
 
 
-def test_concrete_mcp_tool_graceful_handling():
-    """Test concrete mcp_tool handles missing MCP service gracefully."""
-    # Mock the superset_core.mcp module
-    mock_mcp_module = MagicMock()
+def test_mcp_tool_import_works():
+    """Test that mcp_tool can be imported from superset_core.mcp after
+    initialization."""
+    # This test verifies the basic import works (dependency injection has happened)
+    from superset_core.mcp import mcp_tool
 
-    with patch.dict(sys.modules, {"superset_core.mcp": mock_mcp_module}):
-        # Initialize dependencies to inject the concrete function
-        initialize_mcp_dependencies()
+    # Should be callable
+    assert callable(mcp_tool)
 
-        # Get the concrete function that was injected
-        concrete_mcp_tool = mock_mcp_module.mcp_tool
-
-        # Verify it's a callable function (not the original abstract one)
-        assert callable(concrete_mcp_tool)
-
-        # Test function and parameters
-        def test_tool():
-            return {"result": "test"}
-
-        tool_name = "test_extension.test_tool"
-        description = "Test tool for testing"
-        tags = ["test", "extension"]
-
-        # Call the concrete implementation - it should either succeed
-        # or handle errors gracefully
-        concrete_mcp_tool(tool_name, test_tool, description, tags)
-
-        # If we get here without exception, the function works correctly
+    # Should return a decorator function
+    decorator = mcp_tool(name="test", description="test")
+    assert callable(decorator)

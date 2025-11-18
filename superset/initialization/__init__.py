@@ -528,6 +528,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         initialize_core_api_dependencies()
         initialize_mcp_dependencies()
 
+    def init_all_dependencies_and_extensions(self) -> None:
+        """
+        Initialize all core dependencies and extensions.
+
+        This is the shared logic used by both main Superset initialization
+        and the MCP service to ensure consistent dependency injection.
+
+        Core dependencies (like MCP) are always initialized.
+        Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
+        is enabled.
+        """
+        # Always initialize core dependencies
+        self.init_core_dependencies()
+
+        # Conditionally initialize extensions based on feature flag
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_extensions()
+
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
             eager_import,
@@ -580,9 +598,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
-        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            self.init_core_dependencies()
-            self.init_extensions()
+        self.init_all_dependencies_and_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
