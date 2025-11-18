@@ -84,3 +84,15 @@ export const setupDatasourceEditorMocks = () => {
     { overwriteRoutes: true },
   );
 };
+
+/**
+ * Cleanup async operations to prevent test pollution.
+ * Waits for pending animation frames and microtasks to complete.
+ * Call this in afterEach to prevent "document global is not defined" errors.
+ */
+export const cleanupAsyncOperations = async () => {
+  // Wait for pending animation frames
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  // Flush remaining microtasks
+  await new Promise(resolve => setTimeout(resolve, 0));
+};

@@ -29,6 +29,7 @@ import {
   DATASOURCE_ENDPOINT,
   asyncRender,
   setupDatasourceEditorMocks,
+  cleanupAsyncOperations,
 } from './DatasourceEditor.test.utils';
 
 jest.mock('@superset-ui/core', () => ({
@@ -42,7 +43,8 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanupAsyncOperations();
   fetchMock.restore();
 });
 

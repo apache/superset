@@ -25,6 +25,7 @@ import {
   props,
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
+  cleanupAsyncOperations,
 } from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
@@ -58,7 +59,8 @@ beforeEach(() => {
   setupDatasourceEditorMocks();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanupAsyncOperations();
   fetchMock.restore();
 });
 
