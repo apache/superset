@@ -21,8 +21,18 @@ import PropTypes from 'prop-types';
 import { css, styled } from '@apache-superset/core/ui';
 import { t } from '@superset-ui/core';
 import { Input } from '@superset-ui/core/components';
-// Import model-viewer as a module (bundled, avoids CSP issues)
-import '@google/model-viewer';
+// Lazy load model-viewer to avoid blocking during drag operations
+let modelViewerLoaded = false;
+const loadModelViewer = async () => {
+  if (!modelViewerLoaded && typeof window !== 'undefined') {
+    try {
+      await import('@google/model-viewer');
+      modelViewerLoaded = true;
+    } catch (error) {
+      console.error('Failed to load model-viewer:', error);
+    }
+  }
+};
 
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -180,28 +190,30 @@ declare global {
 
 class Model3D extends PureComponent<Model3DProps> {
   state = {
-    scriptLoaded: true, // Set to true by default since we import the module directly
     modelError: false,
   };
 
-  private loadTimeout: NodeJS.Timeout | null = null;
-
   componentDidMount() {
-    // Log registry status for debugging
-    setTimeout(() => {
-      if (customElements.get('model-viewer')) {
-        console.log('Model3D: model-viewer custom element found in registry');
-      } else {
-        console.warn('Model3D: model-viewer not in registry - module may not have loaded');
-      }
-    }, 100);
+    // Lazy load model-viewer only when component mounts and has a URL
+    const { component } = this.props;
+    const modelUrl = component.meta?.modelUrl || '';
+    if (modelUrl) {
+      loadModelViewer();
+    }
+  }
+
+  componentDidUpdate(prevProps: Model3DProps) {
+    // Load model-viewer when URL is added
+    const { component } = this.props;
+    const modelUrl = component.meta?.modelUrl || '';
+    const prevModelUrl = prevProps.component.meta?.modelUrl || '';
+    if (modelUrl && !prevModelUrl) {
+      loadModelViewer();
+    }
   }
 
   componentWillUnmount() {
-    if (this.loadTimeout) {
-      clearTimeout(this.loadTimeout);
-      this.loadTimeout = null;
-    }
+    // Cleanup if needed
   }
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,8 +268,18 @@ class Model3D extends PureComponent<Model3DProps> {
       );
     }
 
-    // Skip scriptLoaded check - we import the module directly, so it should be available
-    // The model-viewer element will handle its own loading state
+    // Ensure model-viewer is loaded before rendering
+    // Check if custom element is registered
+    if (typeof window !== 'undefined' && !customElements.get('model-viewer')) {
+      // Trigger lazy load if not already loaded
+      loadModelViewer();
+      // Show loading state while model-viewer loads
+      return (
+        <div className="model3d-placeholder">
+          {t('Loading 3D viewer...')}
+        </div>
+      );
+    }
 
     return (
       <model-viewer
