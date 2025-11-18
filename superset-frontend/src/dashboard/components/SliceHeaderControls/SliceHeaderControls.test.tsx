@@ -579,3 +579,40 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
 
   expect(mockCachedSupersetGet).not.toHaveBeenCalled();
 });
+
+test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(await screen.findByText('Embed code')).toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" in Share menu when feature flag is disabled', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: false,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(
+    await screen.findByText('Copy permalink to clipboard'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should pass formData to Share menu for embed code feature', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const { container } = renderWrapper(props);
+
+  expect(container).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByText('Share')).toBeInTheDocument();
+});
