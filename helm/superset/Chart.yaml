@@ -21,21 +21,12 @@ name: superset
 icon: https://artifacthub.io/image/68c1d717-0e97-491f-b046-754e46f46922@2x
 home: https://superset.apache.org/
 keywords:
-  - business intelligence
-  - data science
+- business intelligence
+- data science
 sources:
-  - https://github.com/apache/superset
+- https://github.com/apache/superset
 maintainers:
-  - name: craig-rueda
-    email: craig@craigrueda.com
-    url: https://github.com/craig-rueda
+- name: craig-rueda
+  email: craig@craigrueda.com
+  url: https://github.com/craig-rueda
 version: 0.15.1 # See [README](https://github.com/apache/superset/blob/master/helm/superset/README.md#versioning) for version details.
-dependencies:
-  - name: postgresql
-    version: 13.4.4
-    repository: oci://registry-1.docker.io/bitnamicharts
-    condition: postgresql.enabled
-  - name: redis
-    version: 17.9.4
-    repository: oci://registry-1.docker.io/bitnamicharts
-    condition: redis.enabled

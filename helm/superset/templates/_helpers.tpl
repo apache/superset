@@ -172,3 +172,23 @@ release: {{ .Release.Name }}
 app: {{ include "superset.name" . }}-worker
 release: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "superset.labels" -}}
+helm.sh/chart: {{ include "superset.chart" . }}
+{{ include "superset.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "superset.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

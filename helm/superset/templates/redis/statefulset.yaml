@@ -1,0 +1,77 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "superset.fullname" . }}-redis
+  labels:
+    {{- include "superset.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  serviceName: {{ include "superset.fullname" . }}-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "superset.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "superset.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+    spec:
+      {{- with .Values.redis.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          {{- with .Values.redis.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command: ["redis-server"]
+          args:
+            - "--appendonly"
+            - "yes"
+            {{- if .Values.redis.auth.enabled }}
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+            {{- end }}
+          env:
+            {{- if .Values.redis.auth.enabled }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.redis.auth.existingSecret }}{{ .Values.redis.auth.existingSecret }}{{ else }}{{ include "superset.fullname" . }}-redis{{ end }}
+                  key: password
+            {{- end }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          {{- toYaml .Values.redis.persistence.accessModes | nindent 10 }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size }}
+        {{- if .Values.redis.persistence.storageClass }}
+        storageClassName: {{ .Values.redis.persistence.storageClass }}
+        {{- end }}
+  {{- else }}
+  volumes:
+    - name: data
+      emptyDir: {}
+  {{- end }}
+{{- end }}
