@@ -655,6 +655,7 @@ describe('plugin-chart-table', () => {
         // Third assertion: ALL aria-labelledby values should be valid
         cellsWithLabels.forEach(cell => {
           const labelledBy = cell.getAttribute('aria-labelledby');
+          expect(labelledBy).not.toBeNull();
           expect(labelledBy).toEqual(expect.stringMatching(/\S/));
           const labelledByValue = labelledBy as string;
           // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
@@ -754,6 +755,7 @@ describe('plugin-chart-table', () => {
         // Third assertion: ALL aria-labelledby values should be valid
         cellsWithLabels.forEach(cell => {
           const labelledBy = cell.getAttribute('aria-labelledby');
+          expect(labelledBy).not.toBeNull();
           expect(labelledBy).toEqual(expect.stringMatching(/\S/));
           const labelledByValue = labelledBy as string;
           // Verify no spaces (would be interpreted as multiple IDs)
