@@ -187,6 +187,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
+        from superset.views.aiassistant import AIAssistantView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
@@ -420,6 +421,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SqllabView)
+        appbuilder.add_view_no_menu(AIAssistantView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
@@ -458,6 +460,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-flask",
             category="SQL Lab",
             category_label=_("SQL Lab"),
+        )
+        appbuilder.add_link(
+            "AI Assistant",
+            label=_("AI Assistant"),
+            href=f"{app_root}/aiassistant/",
+            icon="fa-robot",
+            category="AI",
+            category_label=_("AI"),
+            category_icon="fa-robot",
         )
         appbuilder.add_view(
             TagModelView,
