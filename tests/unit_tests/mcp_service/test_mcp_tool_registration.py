@@ -27,9 +27,7 @@ def test_initialize_mcp_dependencies_replaces_abstract_function():
     # Mock the superset_core.mcp module
     mock_mcp_module = MagicMock()
 
-    with patch(
-        "superset.core.mcp.core_mcp_injection.superset_core.mcp", mock_mcp_module
-    ):
+    with patch("superset_core.mcp", mock_mcp_module):
         initialize_mcp_dependencies()
 
         # Verify the abstract function was replaced
@@ -45,9 +43,7 @@ def test_concrete_mcp_tool_registers_with_fastmcp():
     # Mock the FastMCP instance
     mock_fastmcp = MagicMock()
 
-    with patch(
-        "superset.core.mcp.core_mcp_injection.superset_core.mcp", mock_mcp_module
-    ):
+    with patch("superset_core.mcp", mock_mcp_module):
         with patch("superset.mcp_service.app.mcp", mock_fastmcp):
             # Initialize dependencies to get concrete implementation
             initialize_mcp_dependencies()
