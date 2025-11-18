@@ -16,8 +16,10 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import Any, TYPE_CHECKING
 
+import requests
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
@@ -36,6 +38,8 @@ from superset.utils import json
 from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView
 from superset.views.error_handling import handle_api_exception
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
@@ -125,6 +129,73 @@ class Api(BaseSupersetView):
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
+
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
+    @expose("/v1/proxy/", methods=("POST",))
+    def proxy_external_api(self) -> FlaskResponse:
+        """
+        Proxy external API calls to bypass CSP restrictions.
+        This endpoint allows Button components to make external API calls
+        through Superset's backend, avoiding browser CSP limitations.
+        """
+        try:
+            data = request.get_json() or {}
+            url = data.get("url")
+            method = data.get("method", "GET").upper()
+            headers = data.get("headers", {})
+            payload = data.get("payload")
+
+            if not url:
+                return self.json_response(
+                    {"error": "URL is required"}, 400
+                )
+
+            # Validate URL format
+            if not url.startswith(("http://", "https://")):
+                return self.json_response(
+                    {"error": "Invalid URL format. Must start with http:// or https://"}, 400
+                )
+
+            # Make the external API request
+            request_kwargs = {
+                "method": method,
+                "headers": headers,
+                "timeout": 30,
+            }
+
+            if payload and method in ("POST", "PUT", "PATCH"):
+                if isinstance(payload, dict):
+                    request_kwargs["json"] = payload
+                else:
+                    request_kwargs["data"] = payload
+
+            response = requests.request(url=url, **request_kwargs)
+
+            # Return the response
+            try:
+                response_data = response.json()
+            except ValueError:
+                response_data = response.text
+
+            return self.json_response({
+                "status": response.status_code,
+                "data": response_data,
+                "headers": dict(response.headers),
+            }, status=response.status_code)
+
+        except requests.exceptions.RequestException as e:
+            logger.error("Proxy request failed: %s", str(e))
+            return self.json_response(
+                {"error": f"Request failed: {str(e)}"}, 500
+            )
+        except Exception as e:
+            logger.error("Unexpected error in proxy: %s", str(e))
+            return self.json_response(
+                {"error": f"Unexpected error: {str(e)}"}, 500
+            )
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

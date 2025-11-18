@@ -343,18 +343,57 @@ const DashboardButton = ({
           ? `/${endpoint}`
           : endpoint;
 
-      const requestConfig: RequestConfig = isAbsoluteUrl
-        ? { url: normalizedEndpoint, method }
-        : { endpoint: normalizedEndpoint, method };
+      // For external URLs, use the proxy endpoint to bypass CSP
+      if (isAbsoluteUrl) {
+        // Use the proxy endpoint to avoid CSP restrictions
+        const proxyPayload: JsonObject = {
+          url: normalizedEndpoint,
+          method,
+        };
+        if (headers) {
+          proxyPayload.headers = headers;
+        }
+        if (payload && method !== 'GET') {
+          proxyPayload.payload = payload;
+        }
 
-      if (headers) {
-        requestConfig.headers = headers;
+        const response = await SupersetClient.request({
+          endpoint: '/api/v1/proxy/',
+          method: 'POST',
+          jsonPayload: proxyPayload,
+        });
+
+        // Check if the proxy returned an error
+        if (response.json && typeof response.json === 'object') {
+          const proxyResponse = response.json as { status?: number; error?: string; data?: any };
+          if (proxyResponse.error) {
+            throw new Error(proxyResponse.error);
+          }
+          // If status is not 2xx, treat as error
+          if (proxyResponse.status && proxyResponse.status >= 400) {
+            throw new Error(
+              `Request failed with status ${proxyResponse.status}: ${JSON.stringify(proxyResponse.data)}`
+            );
+          }
+        }
+
+        addSuccessToast(meta.successMessage ?? t('Action executed successfully.'));
+      } else {
+        // For internal endpoints, use the normal request flow
+        const requestConfig: RequestConfig = {
+          endpoint: normalizedEndpoint,
+          method,
+        };
+
+        if (headers) {
+          requestConfig.headers = headers;
+        }
+        if (payload && method !== 'GET') {
+          requestConfig.jsonPayload = payload;
+        }
+        await SupersetClient.request(requestConfig);
+        addSuccessToast(meta.successMessage ?? t('Action executed successfully.'));
       }
-      if (payload && method !== 'GET') {
-        requestConfig.jsonPayload = payload;
-      }
-      await SupersetClient.request(requestConfig);
-      addSuccessToast(meta.successMessage ?? t('Action executed successfully.'));
     } catch (error) {
       const errorRecord = error as Record<string, any>;
       const responseStatus = errorRecord?.response?.statusText;
