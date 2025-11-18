@@ -19,7 +19,8 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -38,6 +39,10 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from '../../../util/chartStateConverter';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -49,6 +54,7 @@ import {
   setFocusedFilterField,
   toggleExpandSlice,
   unsetFocusedFilterField,
+  updateChartState,
 } from '../../../actions/dashboardState';
 import { changeFilter } from '../../../actions/dashboardFilters';
 import { refreshChart } from '../../../../components/Chart/chartAction';
@@ -104,6 +110,7 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
 
 const Chart = props => {
   const dispatch = useDispatch();
@@ -200,6 +207,16 @@ const Chart = props => {
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart.id],
   );
 
+  // Chart state handler for stateful charts
+  const handleChartStateChange = useCallback(
+    chartState => {
+      if (hasChartStateConverter(slice?.viz_type)) {
+        dispatch(updateChartState(props.id, slice.viz_type, chartState));
+      }
+    },
+    [dispatch, props.id, slice?.viz_type],
+  );
+
   useEffect(() => {
     if (isExpanded) {
       const descriptionHeight =
@@ -268,7 +285,8 @@ const Chart = props => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chartCustomizationItems = useSelector(
-    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+    state =>
+      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );
   const colorScheme = useSelector(state => state.dashboardState.colorScheme);
   const colorNamespace = useSelector(
@@ -280,6 +298,9 @@ const Chart = props => {
   const allSliceIds = useSelector(state => state.dashboardState.sliceIds);
   const nativeFilters = useSelector(state => state.nativeFilters?.filters);
   const dataMask = useSelector(state => state.dataMask);
+  const chartState = useSelector(
+    state => state.dashboardState.chartStates?.[props.id],
+  );
   const labelsColor = useSelector(
     state => state.dashboardInfo?.metadata?.label_colors || EMPTY_OBJECT,
   );
@@ -295,7 +316,7 @@ const Chart = props => {
   const formData = useMemo(
     () =>
       getFormDataWithExtraFilters({
-        chart,
+        chart: { id: chart.id, form_data: chart.form_data }, // avoid passing the whole chart object
         chartConfiguration,
         chartCustomizationItems,
         filters: getAppliedFilterValues(props.id),
@@ -312,7 +333,8 @@ const Chart = props => {
         ownColorScheme,
       }),
     [
-      chart,
+      chart.id,
+      chart.form_data,
       chartConfiguration,
       chartCustomizationItems,
       props.id,
@@ -330,6 +352,25 @@ const Chart = props => {
   );
 
   formData.dashboardId = dashboardInfo.id;
+
+  const ownState = useMemo(() => {
+    const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
+
+    if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
+      return {
+        ...baseOwnState,
+        ...convertChartStateToOwnState(slice.viz_type, chartState.state),
+        chartState: chartState.state,
+      };
+    }
+
+    return baseOwnState;
+  }, [
+    dataMask[props.id]?.ownState,
+    props.id,
+    slice.viz_type,
+    chartState?.state,
+  ]);
 
   const onExploreChart = useCallback(
     async clickEvent => {
@@ -383,20 +424,38 @@ const Chart = props => {
         slice_id: slice.slice_id,
         is_cached: isCached,
       });
+
+      let ownState = dataMask[props.id]?.ownState || {};
+
+      // Convert chart-specific state to backend format using registered converter
+      if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
+        const convertedState = convertChartStateToOwnState(
+          slice.viz_type,
+          chartState.state,
+        );
+        ownState = {
+          ...ownState,
+          ...convertedState,
+        };
+      }
+
       exportChart({
         formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
-        ownState: dataMask[props.id]?.ownState,
+        ownState,
       });
     },
     [
       slice.slice_id,
+      slice.viz_type,
       isCached,
       formData,
-      props.maxRows,
+      maxRows,
       dataMask[props.id]?.ownState,
+      chartState,
+      props.id,
       boundActionCreators.logEvent,
     ],
   );
@@ -537,7 +596,7 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={dataMask[props.id]?.ownState}
+          ownState={ownState}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}
@@ -547,6 +606,7 @@ const Chart = props => {
           datasetsStatus={datasetsStatus}
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
+          onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
     </SliceContainer>

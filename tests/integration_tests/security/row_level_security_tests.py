@@ -311,6 +311,105 @@ class TestRowLevelSecurity(SupersetTestCase):
             "gender = 'boy'-gender",
         ]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_applies_to_virtual_dataset(self):
+        """
+        Test that RLS filters from underlying tables are applied to virtual
+        datasets.
+        """
+        # Get the physical birth_names table which has RLS filters
+        physical_table = self.get_table(name="birth_names")
+
+        # Create a virtual dataset that queries the birth_names table
+        virtual_dataset = SqlaTable(
+            table_name="virtual_birth_names",
+            database=physical_table.database,
+            schema=physical_table.schema,
+            sql="SELECT * FROM birth_names",
+        )
+        db.session.add(virtual_dataset)
+        db.session.commit()
+
+        try:
+            # Test as gamma user who has RLS filters
+            g.user = self.get_user(username="gamma")
+
+            # Get the SQL query for the virtual dataset
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Verify that RLS filters from the physical table are applied
+            # Gamma user should have the name filters (A%, B%, Q%) and gender filter
+            # Note: SQL uses uppercase LIKE and %% escaping
+            sql_lower = sql.lower()
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"RLS name filters not found in virtual dataset query: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"RLS gender filter not found in virtual dataset query: {sql}"
+            )
+
+            # Test as admin user who has no RLS filters
+            g.user = self.get_user(username="admin")
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Admin should not have RLS filters applied
+            assert not self.NAMES_A_REGEX.search(sql)
+            assert not self.NAMES_B_REGEX.search(sql)
+            assert not self.NAMES_Q_REGEX.search(sql)
+            assert not self.BASE_FILTER_REGEX.search(sql)
+
+        finally:
+            # Cleanup
+            db.session.delete(virtual_dataset)
+            db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
+    def test_rls_filter_applies_to_virtual_dataset_with_join(self):
+        """
+        Test that RLS filters are applied when virtual dataset joins
+        multiple tables.
+        """
+        # Get the physical tables
+        birth_names_table = self.get_table(name="birth_names")
+        self.get_table(name="energy_usage")  # Load the table for the test
+
+        # Create a virtual dataset with a JOIN query
+        virtual_dataset = SqlaTable(
+            table_name="virtual_joined",
+            database=birth_names_table.database,
+            schema=birth_names_table.schema,
+            sql="SELECT b.name, e.value FROM birth_names b JOIN energy_usage e ON 1=1",
+        )
+        db.session.add(virtual_dataset)
+        db.session.commit()
+
+        try:
+            # Test as gamma user who has RLS filters on both tables
+            g.user = self.get_user(username="gamma")
+
+            # Get the SQL query for the virtual dataset
+            sql = virtual_dataset.get_query_str(self.query_obj)
+
+            # Verify that RLS filters from both physical tables are applied
+            # birth_names filters
+            sql_lower = sql.lower()
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"birth_names RLS filters not found: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"birth_names gender filter not found: {sql}"
+            )
+
+            # energy_usage filter
+            assert "value > 1" in sql_lower, f"energy_usage RLS filter not found: {sql}"
+
+        finally:
+            # Cleanup
+            db.session.delete(virtual_dataset)
+            db.session.commit()
+
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

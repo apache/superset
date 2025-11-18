@@ -67,6 +67,7 @@ from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
+from superset_core.api.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -100,12 +101,14 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
+    SQLA_QUERY_KEYS,
 )
 from superset.models.slice import Slice
 from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    BaseDatasourceData,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
@@ -133,8 +136,6 @@ class MetadataResult:
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
 
-
-logger = logging.getLogger(__name__)
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -165,7 +166,10 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class BaseDatasource(
+    AuditMixinNullable,
+    ImportExportMixin,
+):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -362,7 +366,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return verb_map
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> BaseDatasourceData:
         """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
@@ -407,7 +411,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         Used to reduce the payload when loading a dashboard.
         """
-        data = self.data
+        # Cast to dict[str, Any] since we'll be mutating with del and .update()
+        data = cast(dict[str, Any], self.data)
         metric_names = set()
         column_names = set()
         for slc in slices:
@@ -470,14 +475,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             or metric["verbose_name"] in metric_names
         ]
 
-        filtered_columns: list[Column] = []
+        filtered_columns: list[dict[str, Any]] = []
         column_types: set[utils.GenericDataType] = set()
-        for column_ in data["columns"]:
-            generic_type = column_.get("type_generic")
+        for column_ in cast(list[dict[str, Any]], data["columns"]):  # type: ignore[assignment]
+            column_dict = cast(dict[str, Any], column_)
+            generic_type = column_dict.get("type_generic")
             if generic_type is not None:
                 column_types.add(generic_type)
-            if column_["column_name"] in column_names:
-                filtered_columns.append(column_)
+            if column_dict["column_name"] in column_names:
+                filtered_columns.append(column_dict)
 
         data["column_types"] = list(column_types)
         del data["description"]
@@ -509,7 +515,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """Returns a query as a string
 
         This is used to be displayed to the user so that they can
-        understand what is taking place behind the scene"""
+        understand what is taking place behind the scene
+        """
         raise NotImplementedError()
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
@@ -613,7 +620,8 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         """If a datasource needs to provide additional keys for calculation of
         cache keys, those can be provided via this method
 
-        :param query_obj: The dict representation of a query object
+        :param query_obj: The dict representation of a query object (QueryObjectDict
+            structure expected)
         :return: list of keys
         """
         return []
@@ -1090,7 +1098,7 @@ sqlatable_user = DBTable(
 
 
 class SqlaTable(
-    Model,
+    CoreDataset,
     BaseDatasource,
     ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
@@ -1200,7 +1208,7 @@ class SqlaTable(
 
     @property
     def description_markeddown(self) -> str:
-        return utils.markdown(self.description)
+        return utils.markdown(self.description or "")
 
     @property
     def datasource_name(self) -> str:
@@ -1351,7 +1359,7 @@ class SqlaTable(
         return [(g.duration, g.name) for g in self.database.grains() or []]
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> BaseDatasourceData:
         data_ = super().data
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
@@ -1502,8 +1510,14 @@ class SqlaTable(
         """
         label = utils.get_column_name(col)
         try:
+            sql_expression = col["sqlExpression"]
+
+            # For column references, conditionally quote identifiers that need it
+            if col.get("isColumnReference"):
+                sql_expression = self.database.quote_identifier(sql_expression)
+
             expression = self._process_select_expression(
-                expression=col["sqlExpression"],
+                expression=sql_expression,
                 database_id=self.database_id,
                 engine=self.database.backend,
                 schema=self.schema,
@@ -1629,6 +1643,16 @@ class SqlaTable(
                 if len(df.columns) > len(labels_expected):
                     df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+
+                extras = query_obj.get("extras", {})
+                column_order = extras.get("column_order")
+                if column_order and isinstance(column_order, list):
+                    existing_cols = [col for col in column_order if col in df.columns]
+                    remaining_cols = [
+                        col for col in df.columns if col not in existing_cols
+                    ]
+                    final_order = existing_cols + remaining_cols
+                    df = df[final_order]
             return df
 
         try:
@@ -1803,7 +1827,7 @@ class SqlaTable(
         #
         #   table.column IN (SELECT 1 FROM (SELECT 1) WHERE 1!=1)
         filters = [
-            method.in_(perms)
+            method.in_(perms)  # type: ignore[union-attr]
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
@@ -1850,7 +1874,7 @@ class SqlaTable(
         template code unnecessarily, as it may contain expensive calls, e.g. to extract
         the latest partition of a database.
 
-        :param query_obj: query object to analyze
+        :param query_obj: query object to analyze (QueryObjectDict structure expected)
         :return: True if there are call(s) to an `ExtraCache` method, False otherwise
         """
         templatable_statements: list[str] = []
@@ -1897,13 +1921,35 @@ class SqlaTable(
         The cache key of a SqlaTable needs to consider any keys added by the parent
         class and any keys added via `ExtraCache`.
 
+        For virtual datasets, RLS predicates are included in the cache key to ensure
+        users with different RLS rules get different cached results.
+
         :param query_obj: query object to analyze
         :return: The extra cache keys
         """
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
-            sqla_query = self.get_sqla_query(**query_obj)
+            # Filter out keys that aren't parameters to get_sqla_query
+            filtered_query_obj = {
+                k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
+            }
+            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
             extra_cache_keys += sqla_query.extra_cache_keys
+
+        # For virtual datasets, include RLS predicates in the cache key
+        if self.is_virtual and self.sql:
+            default_schema = self.database.get_default_schema(self.catalog)
+            rls_predicates = collect_rls_predicates_for_sql(
+                self.sql,
+                self.database,
+                self.catalog,
+                self.schema or default_schema or "",
+            )
+            # Add each predicate as a separate cache key component
+            extra_cache_keys.extend(rls_predicates)
+
         return list(set(extra_cache_keys))
 
     @property

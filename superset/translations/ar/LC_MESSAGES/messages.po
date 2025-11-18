@@ -751,10 +751,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "اغسطس"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "هامش عنوان المحور"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "موضع عنوان المحور"
 
 msgid "About"
@@ -13452,7 +13452,7 @@ msgstr "اكتب وصفًا لاستعلامك"
 msgid "Write a handlebars template to render the data"
 msgstr "اكتب قالب المقاود لعرض البيانات"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "هامش عنوان المحور X"
 
 msgid "X Axis"
@@ -13501,7 +13501,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "حدود Y 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "هامش عنوان المحور Y"
 
 msgid "Y Axis"

@@ -31,13 +31,10 @@ import {
   DataMaskStateWithId,
   Filter,
   Divider,
-  css,
-  SupersetTheme,
   t,
   isNativeFilterWithDataMask,
-  useTheme,
-  styled,
 } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -57,7 +54,6 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -144,10 +140,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
 
-  const chartCustomizationItems = useSelector<
-    RootState,
-    ChartCustomizationItem[]
-  >(state => selectChartCustomizationItems(state));
+  const chartCustomizationItems = useSelector(selectChartCustomizationItems);
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -323,12 +316,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       chartCustomizationItems,
       sectionsOpen,
       toggleSection,
-      SectionContainer,
-      SectionHeader,
-      SectionContent,
-      StyledDivider,
-      StyledIcon,
-      ChartCustomizationContent,
       hideHeader,
     ],
   );

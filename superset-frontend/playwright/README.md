@@ -26,7 +26,7 @@ This directory contains Playwright end-to-end tests for Apache Superset, designe
 ```
 playwright/
 ├── components/core/     # Reusable UI components
-├── pages/              # Page Object Models  
+├── pages/              # Page Object Models
 ├── tests/              # Test files organized by feature
 ├── utils/              # Shared constants and utilities
 └── README.md           # This file
@@ -51,6 +51,7 @@ Reusable UI interaction classes for common elements:
 - **Button**: Standard click, hover, focus interactions
 
 **Usage Example:**
+
 ```typescript
 import { Form } from '../components/core';
 
@@ -62,12 +63,14 @@ await usernameInput.fill('admin');
 ### Page Objects (`pages/`)
 
 Each page object encapsulates:
+
 - **Actions**: What you can do on the page
-- **Queries**: Information you can get from the page  
+- **Queries**: Information you can get from the page
 - **Selectors**: Centralized in private static SELECTORS constant
 - **NO Assertions**: Keep assertions in test files
 
 **Page Object Pattern:**
+
 ```typescript
 export class AuthPage {
   // Selectors centralized in the page object
@@ -77,10 +80,10 @@ export class AuthPage {
   } as const;
 
   // Actions - what you can do
-  async loginWithCredentials(username: string, password: string) { }
+  async loginWithCredentials(username: string, password: string) {}
 
-  // Queries - information you can get  
-  async getCurrentUrl(): Promise<string> { }
+  // Queries - information you can get
+  async getCurrentUrl(): Promise<string> {}
 
   // NO assertions - those belong in tests
 }
@@ -89,11 +92,13 @@ export class AuthPage {
 ### Tests (`tests/`)
 
 Organized by feature/area (auth, dashboard, charts, etc.):
+
 - Use page objects for actions
-- Keep assertions in test files  
+- Keep assertions in test files
 - Import shared constants from `utils/`
 
 **Test Pattern:**
+
 ```typescript
 import { test, expect } from '@playwright/test';
 import { AuthPage } from '../../pages/AuthPage';
@@ -112,6 +117,7 @@ test('should login with correct credentials', async ({ page }) => {
 ### Utilities (`utils/`)
 
 Shared constants and utilities:
+
 - **urls.ts**: URL paths and request patterns
 - Keep flat exports (no premature namespacing)
 
@@ -120,7 +126,7 @@ Shared constants and utilities:
 ### Adding New Tests
 
 1. **Check existing components** before creating new ones
-2. **Use page objects** for page interactions  
+2. **Use page objects** for page interactions
 3. **Keep assertions in tests**, not page objects
 4. **Follow naming conventions**: `feature.spec.ts`
 
@@ -184,6 +190,7 @@ npx playwright show-trace test-results/[test-name]/trace.zip
 ### Debugging Failed Tests
 
 When tests fail, Playwright automatically captures:
+
 - **Screenshots** at the point of failure
 - **Videos** of the entire test run
 - **Traces** with timeline and network activity
@@ -211,7 +218,7 @@ When porting Cypress tests:
 ## Best Practices
 
 - **Centralize selectors** in page objects
-- **Centralize URLs** in `utils/urls.ts`  
+- **Centralize URLs** in `utils/urls.ts`
 - **Use meaningful test descriptions**
 - **Keep page objects action-focused**
 - **Put assertions in tests, not page objects**

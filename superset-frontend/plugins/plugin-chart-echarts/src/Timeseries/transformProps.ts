@@ -189,6 +189,7 @@ export default function transformProps(
     xAxisSort,
     xAxisSortAsc,
     xAxisTimeFormat,
+    xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
     yAxisBounds,
@@ -200,6 +201,7 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
   const labelMap: { [key: string]: string[] } = Object.entries(
@@ -301,7 +303,24 @@ export default function transformProps(
 
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
-    const colorScaleKey = getOriginalSeries(seriesName, array);
+
+    let colorScaleKey = getOriginalSeries(seriesName, array);
+
+    // If this series name exactly matches a time compare value, it's a time-shifted series
+    // and we need to find the corresponding original series for color matching
+    if (array && array.includes(seriesName)) {
+      // Find the original series (first non-time-compare series)
+      const originalSeries = rawSeries.find(s => {
+        const sName = inverted[String(s.name || '')] || String(s.name || '');
+        return !array.includes(sName);
+      });
+      if (originalSeries) {
+        const originalSeriesName =
+          inverted[String(originalSeries.name || '')] ||
+          String(originalSeries.name || '');
+        colorScaleKey = getOriginalSeries(originalSeriesName, array);
+      }
+    }
 
     const transformedSeries = transformSeries(
       entry,
@@ -467,7 +486,9 @@ export default function transformProps(
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
-      : String;
+      : xAxisDataType === GenericDataType.Numeric
+        ? getNumberFormatter(xAxisNumberFormat)
+        : String;
 
   const {
     setDataMask = () => {},
