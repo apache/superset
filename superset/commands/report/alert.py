@@ -32,6 +32,7 @@ from superset import jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
+    AlertQueryInfoException,
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
@@ -125,7 +126,7 @@ class AlertCommand(BaseCommand):
             isinstance(rows[0][1], float) and np.isnan(rows[0][1])
         ):
             self._result = None
-            return
+            raise AlertQueryInfoException("Query returned NULL value")
 
         if rows[0][1] == 0:
             self._result = 0.0
@@ -229,7 +230,7 @@ class AlertCommand(BaseCommand):
             )
 
             self._result = None
-            return
+            raise AlertQueryInfoException("Query returned no rows (empty result set)")
         rows = df.to_records()
         if self._is_validator_not_null:
             self._validate_not_null(rows)

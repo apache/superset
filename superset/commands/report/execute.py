@@ -29,6 +29,7 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
+    AlertQueryInfoException,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
@@ -827,6 +828,11 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
+        except AlertQueryInfoException as info_ex:
+            self.update_report_schedule_and_log(
+                ReportState.NOOP, error_message=str(info_ex)
+            )
+            return
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -952,6 +958,11 @@ class ReportSuccessState(BaseReportState):
                 if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
+            except AlertQueryInfoException as info_ex:
+                self.update_report_schedule_and_log(
+                    ReportState.NOOP, error_message=str(info_ex)
+                )
+                return
             except Exception as ex:
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"
