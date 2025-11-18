@@ -195,6 +195,7 @@ class Model3D extends PureComponent<Model3DProps> {
   };
 
   private isLoadingViewer = false;
+  private hasCheckedViewerReady = false;
 
   componentDidMount() {
     // Check if model-viewer is already loaded
@@ -211,17 +212,25 @@ class Model3D extends PureComponent<Model3DProps> {
   }
 
   componentDidUpdate(prevProps: Model3DProps) {
-    // Load model-viewer when URL is added
+    // Load model-viewer when URL is added (only once)
     const { component } = this.props;
     const modelUrl = component.meta?.modelUrl || '';
     const prevModelUrl = prevProps.component.meta?.modelUrl || '';
-    if (modelUrl && !prevModelUrl && !this.state.viewerReady) {
+    
+    // Only load if URL was just added and viewer isn't ready
+    if (modelUrl && !prevModelUrl && !this.state.viewerReady && !this.isLoadingViewer) {
       this.loadViewer();
     }
     
-    // Check if viewer became ready
-    if (!this.state.viewerReady && typeof window !== 'undefined' && customElements.get('model-viewer')) {
-      this.setState({ viewerReady: true });
+    // Check if viewer became ready (only check once to avoid render loops)
+    if (!this.hasCheckedViewerReady && !this.state.viewerReady && typeof window !== 'undefined' && customElements.get('model-viewer')) {
+      this.hasCheckedViewerReady = true;
+      // Use requestAnimationFrame to avoid calling setState during render cycle
+      requestAnimationFrame(() => {
+        if (!this.state.viewerReady) {
+          this.setState({ viewerReady: true });
+        }
+      });
     }
   }
 
@@ -232,13 +241,20 @@ class Model3D extends PureComponent<Model3DProps> {
     this.isLoadingViewer = true;
     try {
       await loadModelViewer();
-      // Wait a bit for custom element to register
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
-          this.setState({ viewerReady: true });
-        }
-        this.isLoadingViewer = false;
-      }, 100);
+      // Wait a bit for custom element to register, use requestAnimationFrame to avoid blocking
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
+            // Use requestAnimationFrame again to ensure we're not in a render cycle
+            requestAnimationFrame(() => {
+              if (!this.state.viewerReady) {
+                this.setState({ viewerReady: true });
+              }
+            });
+          }
+          this.isLoadingViewer = false;
+        }, 100);
+      });
     } catch (error) {
       console.error('Failed to load model-viewer:', error);
       this.isLoadingViewer = false;
@@ -251,14 +267,20 @@ class Model3D extends PureComponent<Model3DProps> {
 
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { updateComponents, component } = this.props;
-    // Clear error state when URL changes
-    this.setState({ modelError: false });
+    const newUrl = e.target.value;
+    
+    // Clear error state when URL changes (only if needed)
+    if (this.state.modelError) {
+      this.setState({ modelError: false });
+    }
+    
+    // Update component meta synchronously for responsive input
     updateComponents({
       [component.id]: {
         ...component,
         meta: {
           ...component.meta,
-          modelUrl: e.target.value,
+          modelUrl: newUrl,
         },
       },
     });
