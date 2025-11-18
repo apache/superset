@@ -191,14 +191,22 @@ declare global {
 class Model3D extends PureComponent<Model3DProps> {
   state = {
     modelError: false,
+    viewerReady: false,
   };
 
+  private isLoadingViewer = false;
+
   componentDidMount() {
-    // Lazy load model-viewer only when component mounts and has a URL
-    const { component } = this.props;
-    const modelUrl = component.meta?.modelUrl || '';
-    if (modelUrl) {
-      loadModelViewer();
+    // Check if model-viewer is already loaded
+    if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
+      this.setState({ viewerReady: true });
+    } else {
+      // Lazy load model-viewer only when component mounts and has a URL
+      const { component } = this.props;
+      const modelUrl = component.meta?.modelUrl || '';
+      if (modelUrl) {
+        this.loadViewer();
+      }
     }
   }
 
@@ -207,10 +215,35 @@ class Model3D extends PureComponent<Model3DProps> {
     const { component } = this.props;
     const modelUrl = component.meta?.modelUrl || '';
     const prevModelUrl = prevProps.component.meta?.modelUrl || '';
-    if (modelUrl && !prevModelUrl) {
-      loadModelViewer();
+    if (modelUrl && !prevModelUrl && !this.state.viewerReady) {
+      this.loadViewer();
+    }
+    
+    // Check if viewer became ready
+    if (!this.state.viewerReady && typeof window !== 'undefined' && customElements.get('model-viewer')) {
+      this.setState({ viewerReady: true });
     }
   }
+
+  loadViewer = async () => {
+    if (this.state.viewerReady || modelViewerLoaded || this.isLoadingViewer) {
+      return;
+    }
+    this.isLoadingViewer = true;
+    try {
+      await loadModelViewer();
+      // Wait a bit for custom element to register
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && customElements.get('model-viewer')) {
+          this.setState({ viewerReady: true });
+        }
+        this.isLoadingViewer = false;
+      }, 100);
+    } catch (error) {
+      console.error('Failed to load model-viewer:', error);
+      this.isLoadingViewer = false;
+    }
+  };
 
   componentWillUnmount() {
     // Cleanup if needed
@@ -268,12 +301,8 @@ class Model3D extends PureComponent<Model3DProps> {
       );
     }
 
-    // Ensure model-viewer is loaded before rendering
-    // Check if custom element is registered
-    if (typeof window !== 'undefined' && !customElements.get('model-viewer')) {
-      // Trigger lazy load if not already loaded
-      loadModelViewer();
-      // Show loading state while model-viewer loads
+    // Show loading state if viewer isn't ready yet (only if we have a URL)
+    if (!this.state.viewerReady && modelUrl) {
       return (
         <div className="model3d-placeholder">
           {t('Loading 3D viewer...')}
