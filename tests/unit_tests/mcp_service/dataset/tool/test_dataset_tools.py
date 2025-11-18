@@ -1199,11 +1199,11 @@ class TestDatasetSortableColumns:
             SORTABLE_DATASET_COLUMNS,
         )
 
-        # Check list_datasets docstring (stored in description after @mcp.tool)
-        assert hasattr(list_datasets, "description")
-        assert "Sortable columns for order_column:" in list_datasets.description
+        # Check list_datasets docstring for sortable columns documentation
+        assert list_datasets.__doc__ is not None
+        assert "Sortable columns for order_column:" in list_datasets.__doc__
         for col in SORTABLE_DATASET_COLUMNS:
-            assert col in list_datasets.description
+            assert col in list_datasets.__doc__
 
     @pytest.mark.asyncio
     async def test_default_ordering(self):

@@ -566,8 +566,8 @@ class TestDashboardSortableColumns:
             SORTABLE_DASHBOARD_COLUMNS,
         )
 
-        # Check list_dashboards docstring (stored in description after @mcp.tool)
-        assert hasattr(list_dashboards, "description")
-        assert "Sortable columns for order_column:" in list_dashboards.description
+        # Check list_dashboards docstring for sortable columns documentation
+        assert list_dashboards.__doc__ is not None
+        assert "Sortable columns for order_column:" in list_dashboards.__doc__
         for col in SORTABLE_DASHBOARD_COLUMNS:
-            assert col in list_dashboards.description
+            assert col in list_dashboards.__doc__
