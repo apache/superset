@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch } from 'react-redux';
 import { logEvent } from 'src/logger/actions';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { addDangerToast, addSuccessToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
 import getDetailedComponentWidth from 'src/dashboard/util/getDetailedComponentWidth';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -75,6 +75,7 @@ const DashboardComponent = props => {
       bindActionCreators(
         {
           addDangerToast,
+          addSuccessToast,
           createComponent,
           deleteComponent,
           updateComponents,
