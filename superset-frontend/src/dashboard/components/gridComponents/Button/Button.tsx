@@ -242,6 +242,12 @@ const DashboardButton = ({
   const [isPending, setIsPending] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
+  // Add safety check for component and meta
+  if (!component || !component.meta) {
+    console.error('DashboardButton: Missing component or meta', { component, id });
+    return null;
+  }
+
   const meta = useMemo(
     () => normalizeMeta(component.meta),
     [component.meta],
@@ -498,13 +504,19 @@ const DashboardButton = ({
     }
   }, []);
 
+  // Add safety check for parentComponent
+  if (!parentComponent) {
+    console.error('DashboardButton: Missing parentComponent', { id, parentId });
+    return null;
+  }
+
   const widthMultiple =
     parentComponent.type === COLUMN_TYPE
-      ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-      : component.meta.width || GRID_MIN_COLUMN_COUNT;
+      ? parentComponent.meta?.width || GRID_MIN_COLUMN_COUNT
+      : component.meta?.width || GRID_MIN_COLUMN_COUNT;
 
   const heightMultiple =
-    component.meta.height && component.meta.height > 0
+    component.meta?.height && component.meta.height > 0
       ? component.meta.height
       : GRID_MIN_ROW_UNITS;
 

@@ -353,11 +353,21 @@ class Model3D extends PureComponent<Model3DProps> {
       onResizeStart,
     } = this.props;
 
+    if (!component || !component.meta) {
+      console.error('Model3D: Missing component or meta', { component });
+      return null;
+    }
+
+    if (!parentComponent) {
+      console.error('Model3D: Missing parentComponent', { component });
+      return null;
+    }
+
     // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+        ? parentComponent.meta?.width || GRID_MIN_COLUMN_COUNT
+        : component.meta?.width || GRID_MIN_COLUMN_COUNT;
 
     const modelUrl = component.meta?.modelUrl || '';
 
