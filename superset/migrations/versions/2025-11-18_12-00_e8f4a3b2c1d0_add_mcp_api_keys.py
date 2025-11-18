@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add mcp api keys
+"""add api keys
 
 Revision ID: e8f4a3b2c1d0
 Revises: x2s8ocx6rto6
@@ -31,7 +31,7 @@ down_revision = "x2s8ocx6rto6"
 
 
 def upgrade():
-    """Create ab_api_key table for MCP service API key authentication."""
+    """Create ab_api_key table for API key authentication."""
     op.create_table(
         "ab_api_key",
         sa.Column("id", sa.Integer(), nullable=False),

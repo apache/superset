@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Models for MCP (Model Context Protocol) service.
+Models for API key authentication.
 
-This module contains database models specific to the MCP service,
-including API key authentication.
+This module contains database models for API key-based authentication,
+providing an alternative to JWT tokens for programmatic access.
 """
 
 from datetime import datetime
@@ -31,7 +31,7 @@ from superset.models.core import Model
 
 class ApiKey(Model):
     """
-    API key for MCP service authentication.
+    API key for authentication.
 
     API keys provide an alternative authentication method to JWT tokens,
     useful for programmatic access, CI/CD pipelines, and service-to-service
