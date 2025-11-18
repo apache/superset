@@ -71,8 +71,9 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     disabled,
     ...rest
   } = props;
-  const sliceExists =
-     !!(latestQueryFormData && Object.keys(latestQueryFormData).length > 0);
+  const sliceExists = !!(
+    latestQueryFormData && Object.keys(latestQueryFormData).length > 0
+  );
   const isEmbedCodeEnabled = isFeatureEnabled(FeatureFlag.EmbeddableCharts);
 
   const { dataMask, activeTabs, chartStates, sliceEntities } = useSelector(
