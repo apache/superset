@@ -753,10 +753,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_chart_data_async_cached_sync_response(self):
+    @mock.patch("superset.extensions.event_logger.log")
+    def test_chart_data_async_cached_sync_response(self, mock_event_logger):
         """
         Chart data API: Test chart data query returns results synchronously
-        when results are already cached.
+        when results are already cached, and that is_cached is logged.
         """
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
@@ -767,7 +768,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         cmd_run_val = {
             "query_context": QueryContext(),
-            "queries": [{"query": "select * from foo"}],
+            "queries": [{"query": "select * from foo", "is_cached": True}],
         }
 
         with mock.patch.object(
@@ -780,7 +781,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
             patched_run.assert_called_once_with(force_cached=True)
-            assert data == {"result": [{"query": "select * from foo"}]}
+            assert data == {
+                "result": [{"query": "select * from foo", "is_cached": True}]
+            }
+
+            # Verify that is_cached was logged to event logger
+            call_kwargs = mock_event_logger.call_args[1]
+            records = call_kwargs.get("records", [])
+            assert len(records) > 0
+            # is_cached should be True when retrieved from cache in async path
+            assert records[0]["is_cached"] is True
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch("superset.extensions.event_logger.log")

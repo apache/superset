@@ -15,15 +15,4 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
-
-from sqlglot import Dialects  # pylint: disable=disallowed-sql-import
-from superset_core.api.types.query import CoreQueryApi
-
-from superset.sql.parse import SQLGLOT_DIALECTS
-
-
-class HostQueryApi(CoreQueryApi):
-    @staticmethod
-    def get_sqlglot_dialect(database: Any) -> Dialects:
-        return SQLGLOT_DIALECTS.get(database.backend) or Dialects.DIALECT
+"""System-level MCP service tools and utilities."""

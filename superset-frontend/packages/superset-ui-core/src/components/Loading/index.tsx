@@ -49,7 +49,9 @@ const LoaderWrapper = styled.div<{
 
   &.inline-centered {
     margin: 0 auto;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   &.floating {
     position: absolute;

@@ -17,9 +17,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-20 15:10+0300\n"
-"PO-Revision-Date: 2025-10-20 16:03+0300\n"
-"Last-Translator: innovark\n"
+"POT-Creation-Date: 2025-10-30 12:49+0300\n"
+"PO-Revision-Date: 2025-10-30 12:54+0300\n"
+"Last-Translator: Polina Fam\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -15082,6 +15082,9 @@ msgstr "изменение"
 msgid "chart"
 msgstr "диаграмма"
 
+msgid "charts"
+msgstr "диаграмм"
+
 msgid "choose WHERE or HAVING..."
 msgstr "выберите WHERE или HAVING..."
 
@@ -15149,6 +15152,9 @@ msgstr "кумулятивная сумма"
 
 msgid "dashboard"
 msgstr "дашборд"
+
+msgid "dashboards"
+msgstr "дашбордов"
 
 msgid "database"
 msgstr "база данных"

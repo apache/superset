@@ -18,11 +18,10 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
-import { debounce } from 'lodash';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MainNav, MenuMode } from '@superset-ui/core/components/Menu';
+import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -36,6 +35,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 interface MenuProps {
   data: MenuData;
@@ -67,7 +67,6 @@ const StyledBrandText = styled.div`
     color: ${theme.colorText};
     padding-left: ${theme.sizeUnit * 4}px;
     padding-right: ${theme.sizeUnit * 4}px;
-    margin-right: ${theme.sizeUnit * 6}px;
     font-size: ${theme.fontSizeLG}px;
     float: left;
     display: flex;
@@ -96,27 +95,7 @@ const StyledMainNav = styled(MainNav)`
       margin-inline-start: 0;
     }
 
-    @media (max-width: 767px) {
-      .ant-menu-item {
-        padding: 0 ${theme.sizeUnit * 6}px 0 ${theme.sizeUnit * 3}px !important;
-      }
-
-      .ant-menu > .ant-menu-item > span > a {
-        padding: 0;
-      }
-
-      &.main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
-        display: none;
-      }
-    }
-  `}
-`;
-
-const { SubMenu } = MainNav;
-
-const StyledSubMenu = styled(SubMenu)`
-  ${({ theme }) => css`
-    &.ant-menu-submenu.ant-menu-submenu-horizontal {
+    .ant-menu-submenu.ant-menu-submenu-horizontal {
       display: flex;
       align-items: center;
       height: 100%;
@@ -159,7 +138,7 @@ const StyledSubMenu = styled(SubMenu)`
       }
     }
 
-    &.ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
+    .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
   `}
@@ -200,6 +179,10 @@ const StyledCol = styled(Col)`
   `}
 `;
 
+const StyledImage = styled(Image)`
+  object-fit: contain;
+`;
+
 const { useBreakpoint } = Grid;
 
 export function Menu({
@@ -212,22 +195,9 @@ export function Menu({
   },
   isFrontendRoute = () => false,
 }: MenuProps) {
-  const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
   const theme = useTheme();
-
-  useEffect(() => {
-    function handleResize() {
-      if (window.innerWidth <= 767) {
-        setMenu('inline');
-      } else setMenu('horizontal');
-    }
-    handleResize();
-    const windowResize = debounce(() => handleResize(), 10);
-    window.addEventListener('resize', windowResize);
-    return () => window.removeEventListener('resize', windowResize);
-  }, []);
 
   enum Paths {
     Explore = '/explore',
@@ -264,65 +234,55 @@ export function Menu({
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
 
-  const renderSubMenu = ({
+  const buildMenuItem = ({
     label,
     childs,
     url,
-    index,
     isFrontendRoute,
-  }: MenuObjectProps) => {
+  }: MenuObjectProps): MenuItem => {
     if (url && isFrontendRoute) {
-      return (
-        <MainNav.Item key={label} role="presentation">
+      return {
+        key: label,
+        label: (
           <NavLink role="button" to={url} activeClassName="is-active">
             {label}
           </NavLink>
-        </MainNav.Item>
-      );
+        ),
+      };
     }
+
     if (url) {
-      return (
-        <MainNav.Item key={label}>
-          <Typography.Link href={url}>{label}</Typography.Link>
-        </MainNav.Item>
-      );
+      return {
+        key: label,
+        label: <Typography.Link href={url}>{label}</Typography.Link>,
+      };
     }
-    return (
-      <StyledSubMenu
-        key={label}
-        title={label}
-        popupOffset={[0, -8]}
-        icon={
-          showMenu === 'inline' ? <></> : <Icons.DownOutlined iconSize="xs" />
-        }
-      >
-        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-' && label !== 'Data') {
-            return <MainNav.Divider key={`$${index1}`} />;
-          }
-          if (typeof child !== 'string') {
-            return (
-              <MainNav.Item key={`${child.label}`}>
-                {child.isFrontendRoute ? (
-                  <NavLink
-                    to={child.url || ''}
-                    exact
-                    activeClassName="is-active"
-                  >
-                    {child.label}
-                  </NavLink>
-                ) : (
-                  <Typography.Link href={child.url}>
-                    {child.label}
-                  </Typography.Link>
-                )}
-              </MainNav.Item>
-            );
-          }
-          return null;
-        })}
-      </StyledSubMenu>
-    );
+
+    const childItems: MenuItem[] = [];
+    childs?.forEach((child: MenuObjectChildProps | string, index1: number) => {
+      if (typeof child === 'string' && child === '-' && label !== 'Data') {
+        childItems.push({ type: 'divider', key: `divider-${index1}` });
+      } else if (typeof child !== 'string') {
+        childItems.push({
+          key: `${child.label}`,
+          label: child.isFrontendRoute ? (
+            <NavLink to={child.url || ''} exact activeClassName="is-active">
+              {child.label}
+            </NavLink>
+          ) : (
+            <Typography.Link href={child.url}>{child.label}</Typography.Link>
+          ),
+        });
+      }
+    });
+
+    return {
+      key: label,
+      label,
+      icon: <Icons.DownOutlined iconSize="xs" />,
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      children: childItems,
+    };
   };
   const renderBrand = () => {
     let link;
@@ -330,7 +290,7 @@ export function Menu({
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
           <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
-            <Image
+            <StyledImage
               preview={false}
               src={ensureStaticPrefix(theme.brandLogoUrl)}
               alt={theme.brandLogoAlt || 'Apache Superset'}
@@ -345,7 +305,7 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <Image
+          <StyledImage
             preview={false}
             src={ensureStaticPrefix(brand.icon)}
             alt={brand.alt}
@@ -359,7 +319,7 @@ export function Menu({
           href={ensureAppRoot(brand.path)}
           tabIndex={-1}
         >
-          <Image
+          <StyledImage
             preview={false}
             src={ensureStaticPrefix(brand.icon)}
             alt={brand.alt}
@@ -388,15 +348,13 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode={showMenu}
+            mode="horizontal"
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
             disabledOverflow
-          >
-            {menu.map((item, index) => {
+            items={menu.map(item => {
               const props = {
-                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
@@ -411,9 +369,9 @@ export function Menu({
                 }),
               };
 
-              return renderSubMenu(props);
+              return buildMenuItem(props);
             })}
-          </StyledMainNav>
+          />
         </StyledCol>
         <Col md={8} xs={24}>
           <RightMenu

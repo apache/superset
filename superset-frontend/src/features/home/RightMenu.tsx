@@ -53,6 +53,7 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -379,6 +380,7 @@ const RightMenu = ({
               label: menu.label,
               icon: menu.icon,
               children: childItems,
+              popupOffset: NAVBAR_MENU_POPUP_OFFSET,
             });
           } else if (menu.url) {
             if (
@@ -559,6 +561,7 @@ const RightMenu = ({
         className: 'submenu-with-caret',
         icon: <Icons.DownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       });
     }
 
@@ -576,6 +579,7 @@ const RightMenu = ({
       icon: <Icons.DownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
       className: 'submenu-with-caret',
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
     });
 
     return items;
@@ -660,6 +664,8 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
+          height: 100%;
+          border-bottom: none !important;
 
           /* Remove the underline from menu items */
           .ant-menu-item:after,
@@ -668,11 +674,14 @@ const RightMenu = ({
           }
 
           .submenu-with-caret {
+            height: 100%;
             padding: 0;
             .ant-menu-submenu-title {
+              align-items: center;
               display: flex;
               gap: ${theme.sizeUnit * 2}px;
               flex-direction: row-reverse;
+              height: 100%;
             }
             &.ant-menu-submenu::after {
               inset-inline: ${theme.sizeUnit}px;
