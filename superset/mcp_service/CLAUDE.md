@@ -74,7 +74,7 @@ superset/mcp_service/
 ### How to Add a New Tool
 
 1. **Create the tool file** in the appropriate directory (e.g., `chart/tool/my_new_tool.py`)
-2. **Decorate with `@tool()`** to register it with the decorator
+2. **Decorate with `@tool`** to register it with the decorator
 3. **Add import to `app.py`** at the bottom of the file where other tools are imported (around line 210-242)
 
 **Example**:
@@ -98,7 +98,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 ```
 
-**Why this matters**: Tools use `@tool()` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after dependency injection is initialized). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
+**Why this matters**: Tools use `@tool` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after dependency injection is initialized). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
 
 ### How to Add a New Prompt
 
@@ -445,7 +445,7 @@ def my_tool():
 
 ### 10. ❌ Circular Imports
 **Problem**: Importing too many things from `app.py` can create circular dependencies.
-**Solution**: Use the unified `@tool()` decorator from `superset_core.mcp`:
+**Solution**: Use the unified `@tool` decorator from `superset_core.mcp`:
 ```python
 # GOOD - New pattern
 from superset_core.mcp import tool
@@ -457,7 +457,7 @@ def my_tool():
 # ACCEPTABLE - For prompts/resources (when needed)
 from superset.mcp_service.app import mcp
 
-@prompt("my_prompt")
+@prompt
 def my_prompt():
     pass
 
@@ -479,7 +479,7 @@ MCP_JWT_PUBLIC_KEY = "your_public_key"
 ## Tool Discovery
 
 MCP clients discover tools via:
-1. **Tool listing**: All tools with `@tool()` are automatically listed
+1. **Tool listing**: All tools with `@tool` are automatically listed
 2. **Schema introspection**: Pydantic schemas generate JSON Schema for LLMs
 3. **Instructions**: `DEFAULT_INSTRUCTIONS` in `app.py` documents available tools
 
