@@ -212,6 +212,15 @@ SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 # Set this in superset_config.py or use `HF_API_TOKEN` environment variable
 HF_API_TOKEN = os.environ.get("HF_API_TOKEN") or os.environ.get("HF_TOKEN")
 
+# HuggingFace model for AI-powered SQL generation
+# Default: "Qwen/Qwen2.5-Coder-32B-Instruct" (free tier, excellent for SQL)
+# Other good options:
+#   - "Qwen/Qwen2.5-Coder-32B-Instruct" (free, recommended)
+#   - "meta-llama/Meta-Llama-3.1-70B-Instruct" (paid, very powerful)
+#   - "mistralai/Mistral-7B-Instruct-v0.3" (free, smaller/faster)
+# Set this in superset_config.py or use `HF_MODEL` environment variable
+HF_MODEL = os.environ.get("HF_MODEL") or "Qwen/Qwen2.5-Coder-32B-Instruct"
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""

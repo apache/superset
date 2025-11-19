@@ -27,8 +27,6 @@ logger = logging.getLogger(__name__)
 class SQLGeneratorService:
     """Service for generating SQL from natural language using AI models."""
 
-    DEFAULT_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
-
     @staticmethod
     def get_api_token() -> str | None:
         """
@@ -40,6 +38,16 @@ class SQLGeneratorService:
         return current_app.config.get("HF_API_TOKEN") or current_app.config.get(
             "HF_TOKEN"
         )
+
+    @staticmethod
+    def get_model() -> str:
+        """
+        Get HuggingFace model from Superset config.
+
+        Returns:
+            Model name string, defaults to Qwen/Qwen2.5-Coder-32B-Instruct
+        """
+        return current_app.config.get("HF_MODEL") or "Qwen/Qwen2.5-Coder-32B-Instruct"
 
     @staticmethod
     def generate_sql(user_query: str, schema_info: str, db_dialect: str = "SQL") -> dict[str, Any]:
@@ -88,10 +96,14 @@ class SQLGeneratorService:
                 f"Generating SQL for query: {user_query[:100]}..."
             )  # Log first 100 chars
 
+            # Get the model to use
+            model = SQLGeneratorService.get_model()
+            logger.info(f"Using HuggingFace model: {model}")
+
             # Call the model using chat completion
             response = client.chat_completion(
                 messages=messages,
-                model=SQLGeneratorService.DEFAULT_MODEL,
+                model=model,
                 max_tokens=500,
                 temperature=0.1,  # Low temperature for deterministic output
             )

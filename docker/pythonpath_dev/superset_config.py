@@ -130,6 +130,20 @@ if os.getenv("CYPRESS_CONFIG") == "true":
     sys.path.pop(0)
 
 #
+# HuggingFace AI Assistant Configuration
+# Uncomment and configure these to enable AI-powered SQL generation
+#
+# HF_API_TOKEN = os.getenv("HF_API_TOKEN") or os.getenv("HF_TOKEN")
+# HF_MODEL = os.getenv("HF_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
+#
+# Popular model options:
+#   - "Qwen/Qwen2.5-Coder-32B-Instruct" (free, recommended for SQL)
+#   - "meta-llama/Meta-Llama-3.1-70B-Instruct" (paid, very powerful)
+#   - "mistralai/Mistral-7B-Instruct-v0.3" (free, smaller/faster)
+#
+# Get your free token at: https://huggingface.co/settings/tokens
+
+#
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
 #
