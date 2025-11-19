@@ -424,7 +424,7 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 
 **Note**: LLM instruction files like `CLAUDE.md`, `AGENTS.md`, etc. are excluded from this requirement (listed in `.rat-excludes`) to avoid token overhead.
 
-### 9. ❌ ❌ Using `@tool()` with Empty Parentheses
+### 9. ❌ Using `@tool()` with Empty Parentheses
 **Problem**: Inconsistent decorator style.
 **Solution**: Use `@tool` without parentheses unless passing arguments.
 ```python
