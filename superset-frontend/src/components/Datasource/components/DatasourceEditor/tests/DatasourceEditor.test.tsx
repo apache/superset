@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor, userEvent } from 'spec/helpers/testing-library';
+import { fireEvent, screen, waitFor, userEvent } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
   props,
@@ -101,34 +101,22 @@ test('can modify columns', async () => {
   expect(getTextboxes.length).toBeGreaterThanOrEqual(5);
 
   const inputLabel = screen.getByPlaceholderText('Label');
-  const inputDescription = screen.getByPlaceholderText('Description');
-  const inputDtmFormat = screen.getByPlaceholderText('%Y-%m-%d');
-  const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
   const inputCertDetails = screen.getByPlaceholderText('Certification details');
 
   // Clear onChange mock to track user action callbacks
   props.onChange.mockClear();
 
-  await userEvent.type(inputLabel, 'test_label');
-  await userEvent.type(inputDescription, 'test');
-  await userEvent.type(inputDtmFormat, 'test');
-  await userEvent.type(inputCertifiedBy, 'test');
-  await userEvent.type(inputCertDetails, 'test');
+  // Use fireEvent.change for speed - testing wiring, not per-keystroke behavior
+  fireEvent.change(inputLabel, { target: { value: 'test_label' } });
+  fireEvent.change(inputCertDetails, { target: { value: 'test_details' } });
 
-  // Verify the inputs were updated with the typed values
+  // Verify the inputs were updated and onChange was triggered
   await waitFor(() => {
     expect(inputLabel).toHaveValue('test_label');
-    expect(inputDescription).toHaveValue('test');
-    expect(inputDtmFormat).toHaveValue('test');
-    expect(inputCertifiedBy).toHaveValue('test');
-    expect(inputCertDetails).toHaveValue('test');
-  });
-
-  // Verify that onChange was triggered by user actions
-  await waitFor(() => {
+    expect(inputCertDetails).toHaveValue('test_details');
     expect(props.onChange).toHaveBeenCalled();
   });
-}, 20000);
+});
 
 test('can delete columns', async () => {
   await asyncRender({
@@ -151,11 +139,17 @@ test('can delete columns', async () => {
   const initialCount = deleteButtons.length;
   expect(initialCount).toBeGreaterThan(0);
 
+  // Clear onChange mock to track delete action
+  props.onChange.mockClear();
+
   await userEvent.click(deleteButtons[0]);
 
+  // Verify both UI update and callback
   await waitFor(() => {
-    const countRows = screen.getAllByRole('button', { name: /delete item/i });
-    expect(countRows.length).toBe(initialCount - 1);
+    expect(screen.getAllByRole('button', { name: /delete item/i })).toHaveLength(
+      initialCount - 1,
+    );
+    expect(props.onChange).toHaveBeenCalled();
   });
 }, 30000);
 

@@ -17,8 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+  selectOption,
+} from 'spec/helpers/testing-library';
 import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
 import {
@@ -121,47 +126,22 @@ test('changes currency position from prefix to suffix', async () => {
   );
   await userEvent.click(expandToggles[6]);
 
-  // Find position selector
-  const positionSelector = screen.getByRole('combobox', {
-    name: 'Currency prefix or suffix',
-  });
-
-  // Open the dropdown
-  await userEvent.click(positionSelector);
-
-  // Wait for dropdown to open and find the suffix option
-  const suffixOption = await waitFor(
-    () => {
-      const options = document.querySelectorAll('.ant-select-item-option');
-      const suffixOpt = Array.from(options).find(opt =>
-        opt.textContent?.toLowerCase().includes('suffix'),
-      );
-
-      if (!suffixOpt) throw new Error('Suffix option not found');
-      return suffixOpt;
-    },
-    { timeout: 2000 },
-  );
-
-  // Click the suffix option
-  await userEvent.click(suffixOption);
+  // Select suffix option using helper
+  await selectOption('Suffix', 'Currency prefix or suffix');
 
   // Verify onChange was called with suffix position
-  await waitFor(
-    () => {
-      expect(testProps.onChange).toHaveBeenCalledTimes(1);
-      const callArg = testProps.onChange.mock.calls[0][0];
+  await waitFor(() => {
+    expect(testProps.onChange).toHaveBeenCalledTimes(1);
+    const callArg = testProps.onChange.mock.calls[0][0];
 
-      const metrics = callArg.metrics || [];
-      const updatedMetric = metrics.find(
-        (m: MetricType) => m.currency && m.currency.symbolPosition === 'suffix',
-      );
+    const metrics = callArg.metrics || [];
+    const updatedMetric = metrics.find(
+      (m: MetricType) => m.currency && m.currency.symbolPosition === 'suffix',
+    );
 
-      expect(updatedMetric).toBeDefined();
-      expect(updatedMetric?.currency?.symbol).toBe('USD');
-    },
-    { timeout: 2000 },
-  );
+    expect(updatedMetric).toBeDefined();
+    expect(updatedMetric?.currency?.symbol).toBe('USD');
+  });
 }, 30000);
 
 test('changes currency symbol from USD to GBP', async () => {
@@ -181,49 +161,20 @@ test('changes currency symbol from USD to GBP', async () => {
   );
   await userEvent.click(expandToggles[6]);
 
-  // Find currency symbol selector
-  const currencySymbol = await screen.findByRole(
-    'combobox',
-    {
-      name: 'Currency symbol',
-    },
-    { timeout: 2000 },
-  );
-
-  // Open the currency dropdown
-  await userEvent.click(currencySymbol);
-
-  // Wait for dropdown to open and find the GBP option
-  const gbpOption = await waitFor(
-    () => {
-      const options = document.querySelectorAll('.ant-select-item-option');
-      const gbpOpt = Array.from(options).find(opt =>
-        opt.textContent?.includes('GBP'),
-      );
-
-      if (!gbpOpt) throw new Error('GBP option not found');
-      return gbpOpt;
-    },
-    { timeout: 2000 },
-  );
-
-  // Click the GBP option
-  await userEvent.click(gbpOption);
+  // Select GBP option using helper (text includes symbol: "£ (GBP)")
+  await selectOption('£ (GBP)', 'Currency symbol');
 
   // Verify onChange was called with GBP
-  await waitFor(
-    () => {
-      expect(testProps.onChange).toHaveBeenCalledTimes(1);
-      const callArg = testProps.onChange.mock.calls[0][0];
+  await waitFor(() => {
+    expect(testProps.onChange).toHaveBeenCalledTimes(1);
+    const callArg = testProps.onChange.mock.calls[0][0];
 
-      const metrics = callArg.metrics || [];
-      const updatedMetric = metrics.find(
-        (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
-      );
+    const metrics = callArg.metrics || [];
+    const updatedMetric = metrics.find(
+      (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
+    );
 
-      expect(updatedMetric).toBeDefined();
-      expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
-    },
-    { timeout: 2000 },
-  );
+    expect(updatedMetric).toBeDefined();
+    expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
+  });
 }, 30000);
