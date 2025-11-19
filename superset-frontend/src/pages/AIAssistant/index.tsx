@@ -168,6 +168,12 @@ interface ChatMessageType {
   isUser: boolean;
   timestamp: Date;
   sql?: string;  // Optional SQL code to display
+  queryResults?: {
+    columns: string[];
+    data: Array<Record<string, any>>;
+    rowCount: number;
+  };
+  isExecuting?: boolean;
 }
 
 interface DatasetData {
@@ -381,6 +387,82 @@ export default function AIAssistant() {
     }
   };
 
+  const executeQuery = async (messageId: string, sql: string) => {
+    if (!selectedDataset) return;
+
+    // Find the dataset to get database_id
+    const dataset = datasets.find(d => d.id === selectedDataset);
+    if (!dataset) return;
+
+    // Update message to show executing state
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isExecuting: true } : msg
+      )
+    );
+
+    try {
+      // Fetch dataset details to get database_id and schema
+      const datasetResponse = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${selectedDataset}`,
+      });
+
+      const datasetDetails = datasetResponse.json.result;
+      const databaseId = datasetDetails.database.id;
+      const schema = datasetDetails.schema;
+
+      // Execute the SQL query using SQL Lab API
+      const response = await SupersetClient.post({
+        endpoint: '/api/v1/sqllab/execute/',
+        jsonPayload: {
+          database_id: databaseId,
+          sql: sql,
+          schema: schema,
+          runAsync: false,
+        },
+      });
+
+      const result = response.json;
+      
+      // Extract column names and data from result
+      const columns = result.columns?.map((col: any) => col.name) || [];
+      const data = result.data || [];
+
+      // Update message with results
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                isExecuting: false,
+                queryResults: {
+                  columns,
+                  data,
+                  rowCount: data.length,
+                },
+              }
+            : msg
+        )
+      );
+    } catch (error: any) {
+      console.error('Error executing query:', error);
+      
+      // Add error message
+      const errorMessage: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        text: `❌ Query execution failed: ${error?.message || 'Unknown error'}`,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [
+        ...prev.map(msg =>
+          msg.id === messageId ? { ...msg, isExecuting: false } : msg
+        ),
+        errorMessage,
+      ]);
+    }
+  };
+
   const datasetOptions = datasets.map(ds => ({
     label: `${ds.table_name} (${ds.database_name}${ds.schema ? ` - ${ds.schema}` : ''})`,
     value: ds.id,
@@ -404,9 +486,56 @@ export default function AIAssistant() {
                     <ChatMessage key={msg.id} isUser={msg.isUser}>
                       {msg.text}
                       {msg.sql && (
-                        <SQLCodeBlock>
-                          <code>{msg.sql}</code>
-                        </SQLCodeBlock>
+                        <div>
+                          <SQLCodeBlock>
+                            <code>{msg.sql}</code>
+                          </SQLCodeBlock>
+                          <div style={{ marginTop: '8px' }}>
+                            <Button
+                              size="small"
+                              type="primary"
+                              onClick={() => executeQuery(msg.id, msg.sql!)}
+                              loading={msg.isExecuting}
+                              disabled={msg.isExecuting}
+                            >
+                              {msg.isExecuting ? 'Executing...' : 'Execute Query'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {msg.queryResults && (
+                        <div style={{ marginTop: '16px' }}>
+                          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+                            📊 Results ({msg.queryResults.rowCount} rows):
+                          </div>
+                          <DataPreviewContainer>
+                            <ColumnTable>
+                              <thead>
+                                <tr>
+                                  {msg.queryResults.columns.map((col, idx) => (
+                                    <th key={idx}>{col}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {msg.queryResults.data.map((row, rowIdx) => {
+                                  const results = msg.queryResults!;
+                                  return (
+                                    <tr key={rowIdx}>
+                                      {results.columns.map((col, colIdx) => (
+                                        <td key={colIdx}>
+                                          {row[col] !== null && row[col] !== undefined
+                                            ? String(row[col])
+                                            : '—'}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </ColumnTable>
+                          </DataPreviewContainer>
+                        </div>
                       )}
                     </ChatMessage>
                   ))}
