@@ -534,10 +534,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         Initialize all core dependencies and extensions.
 
-        This is the shared logic used by both main Superset initialization
-        and the MCP service to ensure consistent dependency injection.
-
-        Core dependencies (like MCP) are always initialized.
+        Core dependencies are always initialized.
         Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
         is enabled.
         """

@@ -88,8 +88,8 @@ def create_mcp_tool_decorator(
             )
             mcp.add_tool(tool)
 
-            auth_status = "with auth" if protect else "without auth"
-            logger.info("Registered MCP tool: %s (%s)", tool_name, auth_status)
+            protected_status = "protected" if protect else "public"
+            logger.info("Registered MCP tool: %s (%s)", tool_name, protected_status)
             return wrapped_func
 
         except Exception as e:
