@@ -45,7 +45,7 @@ def mcp_tool(
     name: str | None = None,
     description: str | None = None,
     tags: list[str] | None = None,
-    auth: bool = True,
+    secure: bool = True,
 ) -> Callable[[F], F]:
     """
     Decorator to register an MCP tool with optional authentication.
@@ -56,7 +56,7 @@ def mcp_tool(
         name: Tool name (defaults to function name, prefixed with extension ID)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
-        auth: Whether to apply Superset authentication (defaults to True)
+        secure: Whether to require Superset authentication (defaults to True)
 
     Returns:
         Decorator function that registers and wraps the tool

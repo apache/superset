@@ -64,7 +64,7 @@ The `@mcp_tool` decorator accepts several optional parameters:
 - **`name`**: Tool identifier (AI agents use this to call your tool)
 - **`description`**: Explains what the tool does (helps AI agents decide when to use it)
 - **`tags`**: Categories for organization and discovery
-- **`auth`**: Whether the tool requires user authentication (defaults to `True`)
+- **`secure`**: Whether the tool requires user authentication (defaults to `True`)
 
 ### Naming Your Tools
 
