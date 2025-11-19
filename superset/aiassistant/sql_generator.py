@@ -50,7 +50,9 @@ class SQLGeneratorService:
         return current_app.config.get("HF_MODEL") or "Qwen/Qwen2.5-Coder-32B-Instruct"
 
     @staticmethod
-    def generate_sql(user_query: str, schema_info: str, db_dialect: str = "SQL") -> dict[str, Any]:
+    def generate_sql(
+        user_query: str, schema_info: str, db_dialect: str = "SQL"
+    ) -> dict[str, Any]:
         """
         Generate SQL from natural language query.
 
@@ -67,7 +69,10 @@ class SQLGeneratorService:
         except ImportError:
             logger.error("huggingface_hub package is not installed")
             return {
-                "error": "AI SQL generation is not available. Missing huggingface_hub package."
+                "error": (
+                    "AI SQL generation is not available. "
+                    "Missing huggingface_hub package."
+                )
             }
 
         api_token = SQLGeneratorService.get_api_token()
@@ -78,7 +83,10 @@ class SQLGeneratorService:
                 "Set HF_API_TOKEN in superset_config.py"
             )
             return {
-                "error": "AI SQL generation is not configured. Please set HF_API_TOKEN in superset_config.py"
+                "error": (
+                    "AI SQL generation is not configured. "
+                    "Please set HF_API_TOKEN in superset_config.py"
+                )
             }
 
         try:
@@ -86,19 +94,27 @@ class SQLGeneratorService:
             client = InferenceClient(token=api_token)
 
             # Construct the messages for chat completion
-            system_prompt = f"{schema_info}\n\nIMPORTANT: Generate {db_dialect} dialect SQL. Use {db_dialect}-specific syntax and functions."
+            system_prompt = (
+                f"{schema_info}\n\nIMPORTANT: Generate {db_dialect} dialect SQL. "
+                f"Use {db_dialect}-specific syntax and functions."
+            )
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Convert this request into {db_dialect} SQL: {user_query}"},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Convert this request into {db_dialect} SQL: {user_query}"
+                    ),
+                },
             ]
 
             logger.info(
-                f"Generating SQL for query: {user_query[:100]}..."
+                "Generating SQL for query: %s...", user_query[:100]
             )  # Log first 100 chars
 
             # Get the model to use
             model = SQLGeneratorService.get_model()
-            logger.info(f"Using HuggingFace model: {model}")
+            logger.info("Using HuggingFace model: %s", model)
 
             # Call the model using chat completion
             response = client.chat_completion(
@@ -116,13 +132,15 @@ class SQLGeneratorService:
                 sql_query = sql_query.split("```sql")[1].split("```")[0].strip()
             elif "```" in sql_query:
                 sql_query = sql_query.split("```")[1].split("```")[0].strip()
-            
+
             # Remove newlines and extra whitespace to create single-line SQL
             sql_query = " ".join(sql_query.split())
 
             # Validate it's a SELECT query
             if not sql_query.upper().strip().startswith("SELECT"):
-                logger.warning(f"Generated query is not a SELECT statement: {sql_query}")
+                logger.warning(
+                    "Generated query is not a SELECT statement: %s", sql_query
+                )
                 return {
                     "error": "Only SELECT queries are supported",
                     "sql": sql_query,

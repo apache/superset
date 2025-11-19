@@ -76,13 +76,11 @@ class AIAssistantView(BaseSupersetView):
                     status=400,
                 )
 
-            logger.info(f"AI SQL generation request for query: {user_query[:50]}...")
-
             # Generate SQL using the AI service
             result = SQLGeneratorService.generate_sql(user_query, schema_info)
 
             if "error" in result:
-                logger.warning(f"AI SQL generation failed: {result['error']}")
+                logger.warning("AI SQL generation failed")
                 return self.json_response(result, status=400)
 
             return self.json_response(result)

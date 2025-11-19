@@ -18,7 +18,7 @@
 
 import logging
 
-from flask import Response, request
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
@@ -80,7 +80,9 @@ class AIAssistantRestApi(BaseSupersetApi):
                     summary: "Complex query with filters"
                     value:
                       dataset_id: 1
-                      user_query: "Get the top 10 users by login count who were created in 2024"
+                      user_query: >
+                        Get the top 10 users by login count
+                        who were created in 2024
           responses:
             200:
               description: SQL generated successfully
@@ -124,17 +126,17 @@ class AIAssistantRestApi(BaseSupersetApi):
 
         # Build schema information from dataset
         schema_info = self._build_schema_info(dataset)
-        
+
         # Get database dialect
         db_dialect = dataset.database.db_engine_spec.engine_name or "SQL"
 
-        logger.info(f"AI SQL generation request for dataset {dataset_id}")
+        logger.info("AI SQL generation request for dataset %s", dataset_id)
 
         # Generate SQL using AI service
         result = SQLGeneratorService.generate_sql(user_query, schema_info, db_dialect)
 
         if "error" in result:
-            logger.warning(f"AI SQL generation failed: {result['error']}")
+            logger.warning("AI SQL generation failed: %s", result["error"])
             return self.response_400(message=result)
 
         return self.response(200, **result)
@@ -158,7 +160,12 @@ class AIAssistantRestApi(BaseSupersetApi):
                 schema_info += f": {col.description}"
             schema_info += "\n"
 
-        schema_info += "\nGenerate a valid SQL SELECT query using ONLY these column names.\n"
-        schema_info += "Return ONLY the SQL query on a single line, with no explanations or markdown formatting."
+        schema_info += (
+            "\nGenerate a valid SQL SELECT query using ONLY these column names.\n"
+        )
+        schema_info += (
+            "Return ONLY the SQL query on a single line, "
+            "with no explanations or markdown formatting."
+        )
 
         return schema_info

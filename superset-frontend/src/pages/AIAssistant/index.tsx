@@ -18,7 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import {
   Row,
   Col,
@@ -51,51 +51,55 @@ const StyledCard = styled(Card)`
 `;
 
 const ChatContainer = styled.div`
-  min-height: 400px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 32px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  background-color: #f5f5f5;
-  margin-bottom: 32px;
+  ${({ theme }) => `
+    min-height: 400px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 32px;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: 8px;
+    background-color: ${theme.colorBgLayout};
+    margin-bottom: 32px;
+  `}
 `;
 
 const ChatMessage = styled.div<{ isUser?: boolean }>`
-  padding: 24px;
-  margin-bottom: 16px;
-  border-radius: 8px;
-  background-color: ${(props: { isUser?: boolean }) =>
-    props.isUser ? '#e6f7ff' : '#ffffff'};
-  max-width: 80%;
-  ${(props: { isUser?: boolean }) =>
-    props.isUser ? 'margin-left: auto;' : 'margin-right: auto;'}
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  
-  pre {
-    background-color: #f5f5f5;
-    padding: 12px;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin: 8px 0;
-  }
-  
-  code {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 13px;
-  }
+  ${({ theme, isUser }) => `
+    padding: 24px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: ${isUser ? theme.colorInfoBg : theme.colorBgContainer};
+    max-width: 80%;
+    ${isUser ? 'margin-left: auto;' : 'margin-right: auto;'}
+    white-space: pre-wrap;
+    word-wrap: break-word;
+
+    pre {
+      background-color: ${theme.colorBgLayout};
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    code {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px;
+    }
+  `}
 `;
 
 const LoadingMessage = styled.div`
-  padding: 24px;
-  margin-bottom: 16px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  max-width: 80%;
-  margin-right: auto;
-  color: #999;
-  font-style: italic;
+  ${({ theme }) => `
+    padding: 24px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: ${theme.colorBgContainer};
+    max-width: 80%;
+    margin-right: auto;
+    color: ${theme.colorTextSecondary};
+    font-style: italic;
+  `}
 `;
 
 const DatasetSelectorContainer = styled.div`
@@ -107,52 +111,58 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const DataPreviewContainer = styled.div`
-  max-height: 500px;
-  overflow: auto;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  margin-top: 16px;
+  ${({ theme }) => `
+    max-height: 500px;
+    overflow: auto;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: 8px;
+    margin-top: 16px;
+  `}
 `;
 
 const ColumnTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
+  ${({ theme }) => `
+    width: 100%;
+    border-collapse: collapse;
 
-  th,
-  td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #d9d9d9;
-    white-space: nowrap;
-  }
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid ${theme.colorBorder};
+      white-space: nowrap;
+    }
 
-  th {
-    font-weight: 600;
-    background-color: #fafafa;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
+    th {
+      font-weight: 600;
+      background-color: ${theme.colorFillQuaternary};
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
 
-  tr:hover {
-    background-color: #f5f5f5;
-  }
+    tr:hover {
+      background-color: ${theme.colorBgLayout};
+    }
+  `}
 `;
 
 const SQLCodeBlock = styled.pre`
-  background-color: #f5f5f5;
-  padding: 16px;
-  border-radius: 4px;
-  overflow-x: auto;
-  margin: 8px 0;
-  border: 1px solid #d9d9d9;
-  
-  code {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #333;
-  }
+  ${({ theme }) => `
+    background-color: ${theme.colorBgLayout};
+    padding: 16px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border: 1px solid ${theme.colorBorder};
+
+    code {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: ${theme.colorText};
+    }
+  `}
 `;
 
 interface Dataset {
@@ -167,7 +177,7 @@ interface ChatMessageType {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  sql?: string;  // Optional SQL code to display
+  sql?: string; // Optional SQL code to display
   queryResults?: {
     columns: string[];
     data: Array<Record<string, any>>;
@@ -182,6 +192,7 @@ interface DatasetData {
 }
 
 export default function AIAssistant() {
+  const theme = useTheme();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<number | null>(null);
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
@@ -245,11 +256,12 @@ export default function AIAssistant() {
       const dataset = datasetResponse.json.result;
 
       // Get column information including descriptions
-      const columns = dataset.columns?.map((col: any) => ({
-        name: col.column_name,
-        type: col.type,
-        description: col.description,
-      })) || [];
+      const columns =
+        dataset.columns?.map((col: any) => ({
+          name: col.column_name,
+          type: col.type,
+          description: col.description,
+        })) || [];
 
       // Log column info for debugging
       console.log('Dataset columns with descriptions:', columns);
@@ -291,11 +303,12 @@ export default function AIAssistant() {
         endpoint: `/api/v1/dataset/${datasetId}`,
       });
       const dataset = datasetResponse.json.result;
-      const columns = dataset.columns?.map((col: any) => ({
-        name: col.column_name,
-        type: col.type,
-        description: col.description,
-      })) || [];
+      const columns =
+        dataset.columns?.map((col: any) => ({
+          name: col.column_name,
+          type: col.type,
+          description: col.description,
+        })) || [];
       setDatasetData({
         columns,
         data: [],
@@ -309,7 +322,8 @@ export default function AIAssistant() {
   const buildSchemaInfo = (): string => {
     if (!selectedDataset || !datasetData) return '';
 
-    const datasetName = datasets.find(d => d.id === selectedDataset)?.table_name || 'Unknown';
+    const datasetName =
+      datasets.find(d => d.id === selectedDataset)?.table_name || 'Unknown';
     let schemaInfo = `The dataset "${datasetName}" has the following columns:\n\n`;
 
     datasetData.columns.forEach(col => {
@@ -320,15 +334,17 @@ export default function AIAssistant() {
       schemaInfo += '\n';
     });
 
-    schemaInfo += '\nGenerate a valid SQL SELECT query using ONLY these column names.\n';
-    schemaInfo += 'DO NOT explain your reasoning, and DO NOT return anything other than the SQL query itself.';
+    schemaInfo +=
+      '\nGenerate a valid SQL SELECT query using ONLY these column names.\n';
+    schemaInfo +=
+      'DO NOT explain your reasoning, and DO NOT return anything other than the SQL query itself.';
 
     return schemaInfo;
   };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-    
+
     if (!selectedDataset) {
       // Show error if no dataset selected
       const errorMessage: ChatMessageType = {
@@ -374,7 +390,7 @@ export default function AIAssistant() {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error: any) {
       console.error('Error generating SQL:', error);
-      
+
       const errorResponse: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         text: `❌ Error: ${error?.message || 'Failed to generate SQL. Please try again.'}`,
@@ -397,8 +413,8 @@ export default function AIAssistant() {
     // Update message to show executing state
     setMessages(prev =>
       prev.map(msg =>
-        msg.id === messageId ? { ...msg, isExecuting: true } : msg
-      )
+        msg.id === messageId ? { ...msg, isExecuting: true } : msg,
+      ),
     );
 
     try {
@@ -423,7 +439,7 @@ export default function AIAssistant() {
       });
 
       const result = response.json;
-      
+
       // Extract column names and data from result
       const columns = result.columns?.map((col: any) => col.name) || [];
       const data = result.data || [];
@@ -441,12 +457,12 @@ export default function AIAssistant() {
                   rowCount: data.length,
                 },
               }
-            : msg
-        )
+            : msg,
+        ),
       );
     } catch (error: any) {
       console.error('Error executing query:', error);
-      
+
       // Add error message
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
@@ -456,7 +472,7 @@ export default function AIAssistant() {
       };
       setMessages(prev => [
         ...prev.map(msg =>
-          msg.id === messageId ? { ...msg, isExecuting: false } : msg
+          msg.id === messageId ? { ...msg, isExecuting: false } : msg,
         ),
         errorMessage,
       ]);
@@ -477,7 +493,13 @@ export default function AIAssistant() {
           <StyledCard title={t('Chat with AI')} bordered={false}>
             <ChatContainer>
               {messages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#999', marginTop: '150px' }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    color: theme.colorTextSecondary,
+                    marginTop: '150px',
+                  }}
+                >
                   {t('Start a conversation with the AI Assistant')}
                 </div>
               ) : (
@@ -498,14 +520,18 @@ export default function AIAssistant() {
                               loading={msg.isExecuting}
                               disabled={msg.isExecuting}
                             >
-                              {msg.isExecuting ? 'Executing...' : 'Execute Query'}
+                              {msg.isExecuting
+                                ? 'Executing...'
+                                : 'Execute Query'}
                             </Button>
                           </div>
                         </div>
                       )}
                       {msg.queryResults && (
                         <div style={{ marginTop: '16px' }}>
-                          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+                          <div
+                            style={{ marginBottom: '8px', fontWeight: 'bold' }}
+                          >
                             📊 Results ({msg.queryResults.rowCount} rows):
                           </div>
                           <DataPreviewContainer>
@@ -524,7 +550,8 @@ export default function AIAssistant() {
                                     <tr key={rowIdx}>
                                       {results.columns.map((col, colIdx) => (
                                         <td key={colIdx}>
-                                          {row[col] !== null && row[col] !== undefined
+                                          {row[col] !== null &&
+                                          row[col] !== undefined
                                             ? String(row[col])
                                             : '—'}
                                         </td>
@@ -540,9 +567,7 @@ export default function AIAssistant() {
                     </ChatMessage>
                   ))}
                   {loadingAI && (
-                    <LoadingMessage>
-                      🤖 Generating SQL query...
-                    </LoadingMessage>
+                    <LoadingMessage>🤖 Generating SQL query...</LoadingMessage>
                   )}
                 </>
               )}
@@ -565,8 +590,8 @@ export default function AIAssistant() {
             />
 
             <div style={{ textAlign: 'right' }}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 onClick={handleSendMessage}
                 disabled={loadingAI || !inputValue.trim()}
                 loading={loadingAI}
@@ -610,7 +635,12 @@ export default function AIAssistant() {
                               <th key={idx} title={col.description || ''}>
                                 {col.name}
                                 <br />
-                                <small style={{ fontWeight: 'normal', color: '#888' }}>
+                                <small
+                                  style={{
+                                    fontWeight: 'normal',
+                                    color: theme.colorTextTertiary,
+                                  }}
+                                >
                                   {col.type}
                                   {col.description && ' 📝'}
                                 </small>
@@ -630,7 +660,8 @@ export default function AIAssistant() {
                               <tr key={rowIdx}>
                                 {datasetData.columns.map((col, colIdx) => (
                                   <td key={colIdx}>
-                                    {row[col.name] !== null && row[col.name] !== undefined
+                                    {row[col.name] !== null &&
+                                    row[col.name] !== undefined
                                       ? String(row[col.name])
                                       : '—'}
                                   </td>
@@ -641,24 +672,32 @@ export default function AIAssistant() {
                         </tbody>
                       </ColumnTable>
                     </DataPreviewContainer>
-                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
-                      {t('Showing {{count}} rows', { count: datasetData.data.length })}
-                    </div>
-                    
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        fontSize: '12px',
+                        color: theme.colorTextTertiary,
+                      }}
+                     />
+
                     {/* Schema info for AI context - for debugging */}
                     <div style={{ marginTop: '16px' }}>
                       <details>
-                        <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                        <summary
+                          style={{ cursor: 'pointer', fontWeight: 'bold' }}
+                        >
                           {t('Schema Information for AI')}
                         </summary>
-                        <pre style={{ 
-                          marginTop: '8px', 
-                          padding: '12px', 
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          overflow: 'auto'
-                        }}>
+                        <pre
+                          style={{
+                            marginTop: '8px',
+                            padding: '12px',
+                            backgroundColor: theme.colorBgLayout,
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            overflow: 'auto',
+                          }}
+                        >
                           {buildSchemaInfo()}
                         </pre>
                       </details>
