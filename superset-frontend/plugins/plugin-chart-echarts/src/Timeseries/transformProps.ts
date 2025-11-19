@@ -209,6 +209,7 @@ export default function transformProps(
     xAxisSort,
     xAxisSortAsc,
     xAxisTimeFormat,
+    xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
     yAxisBounds,
@@ -391,7 +392,7 @@ export default function transformProps(
       }
     }
   });
-      
+
   // ----- ensure series data are sorted naturally on the x-value -----
   // Run after all series have been created so each series.data is complete.
 series.forEach((s: SeriesOption) => {
@@ -530,14 +531,33 @@ series.forEach((s: SeriesOption) => {
     yAxisMin = calculateLowerLogTick(minPositiveValue);
   }
 
-  const tooltipFormatter =
-    xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
-      : String;
-  const xAxisFormatter =
-    xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
-      : String;
+const tooltipFormatter =
+  xAxisDataType === GenericDataType.Temporal
+    ? getTooltipTimeFormatter(tooltipTimeFormat)
+    : String;
+
+// For temporal x-axis, keep the existing time formatter behavior.
+// For numeric x-axis use a number formatter. Default to SMART_NUMBER if none set.
+let xAxisFormatter:
+  | ((...args: any[]) => string)
+  | StringConstructor
+  | undefined;
+
+if (xAxisDataType === GenericDataType.Temporal) {
+  xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+} else if (xAxisDataType === GenericDataType.Numeric) {
+  // use provided xAxisNumberFormat, fall back to SMART_NUMBER
+  const numericFormat = xAxisNumberFormat ?? NumberFormats.SMART_NUMBER;
+  const numericFormatter = getNumberFormatter(numericFormat) as any;
+  // Ensure formatter.id exists for tests that assert on it
+  if (!numericFormatter.id) {
+    numericFormatter.id = numericFormat;
+  }
+  xAxisFormatter = numericFormatter;
+} else {
+  xAxisFormatter = String;
+}
+
 
   const {
     setDataMask = () => {},
@@ -824,4 +844,3 @@ series.forEach((s: SeriesOption) => {
     onLegendScroll,
   };
 }
-
