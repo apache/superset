@@ -20,17 +20,17 @@
 import sys
 from unittest.mock import MagicMock, patch
 
-from superset.core.mcp.core_mcp_injection import initialize_mcp_dependencies
+from superset.core.mcp.core_mcp_injection import initialize_core_mcp_dependencies
 
 
-def test_initialize_mcp_dependencies_replaces_decorator():
-    """Test that initialize_mcp_dependencies replaces the abstract mcp_tool
+def test_initialize_core_mcp_dependencies_replaces_decorator():
+    """Test that initialize_core_mcp_dependencies replaces the abstract mcp_tool
     decorator."""
     # Mock the superset_core.mcp module
     mock_mcp_module = MagicMock()
 
     with patch.dict(sys.modules, {"superset_core.mcp": mock_mcp_module}):
-        initialize_mcp_dependencies()
+        initialize_core_mcp_dependencies()
 
         # Verify the abstract decorator was replaced
         assert hasattr(mock_mcp_module, "mcp_tool")
