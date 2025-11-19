@@ -52,9 +52,8 @@ def test_get_shared_value_fallback_to_md5() -> None:
     }
 
     with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
-        with patch("superset.key_value.shared_entries.current_app", mock_app):
-            with patch("superset.key_value.utils.current_app", mock_app):
-                result = get_shared_value(key)
+        with patch("superset.key_value.utils.current_app", mock_app):
+            result = get_shared_value(key)
 
     # Should have found the MD5 entry
     assert result == expected_value
@@ -83,9 +82,8 @@ def test_get_shared_value_no_fallback_when_md5() -> None:
     }
 
     with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
-        with patch("superset.key_value.shared_entries.current_app", mock_app):
-            with patch("superset.key_value.utils.current_app", mock_app):
-                result = get_shared_value(key)
+        with patch("superset.key_value.utils.current_app", mock_app):
+            result = get_shared_value(key)
 
     # Should return None (not found)
     assert result is None
@@ -127,9 +125,8 @@ def test_get_shared_value_finds_sha256_first() -> None:
     }
 
     with patch("superset.key_value.shared_entries.KeyValueDAO", mock_dao):
-        with patch("superset.key_value.shared_entries.current_app", mock_app):
-            with patch("superset.key_value.utils.current_app", mock_app):
-                result = get_shared_value(key)
+        with patch("superset.key_value.utils.current_app", mock_app):
+            result = get_shared_value(key)
 
     # Should have found the SHA-256 entry
     assert result == expected_value
