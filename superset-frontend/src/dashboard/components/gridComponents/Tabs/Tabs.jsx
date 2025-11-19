@@ -214,8 +214,12 @@ const Tabs = props => {
         });
 
         props.onChangeTab({ pathToTabIndex });
+        setSelectedTabIndex(tabIndex);
       }
-      setActiveKey(tabIds[tabIndex]);
+      // Always set activeKey to ensure it's synchronized
+      if (tabIds[tabIndex]) {
+        setActiveKey(tabIds[tabIndex]);
+      }
     },
     [
       props.component,
@@ -352,6 +356,10 @@ const Tabs = props => {
       // Update selected index to match the active tab's new position
       if (newActiveIndex !== -1 && newActiveIndex !== selectedTabIndex) {
         setSelectedTabIndex(newActiveIndex);
+      }
+      // Always update activeKey to ensure it stays synchronized after reorder
+      if (newActiveIndex !== -1) {
+        setActiveKey(currentActiveTabId);
       }
     },
     [props.component, props.updateComponents, selectedTabIndex],

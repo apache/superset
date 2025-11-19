@@ -61,11 +61,13 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
     height: calc(100% - 47px);
   }
 
+  /* Hide ink-bar during drag */
   ${({ isDragging }) =>
     isDragging &&
     `
-    .ant-tabs-ink-bar {
-      visibility: hidden !important;
+    .ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar,
+    .ant-tabs > .ant-tabs-nav .ant-tabs-ink-bar {
+      display: none !important;
     }
   `}
 `;
@@ -127,6 +129,7 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabNodeProps>> = ({
     transition,
     cursor: disabled ? 'default' : 'move',
     zIndex: isDragging ? 1000 : 'auto',
+    opacity: 1,
   };
 
   return cloneElement(props.children as React.ReactElement, {
