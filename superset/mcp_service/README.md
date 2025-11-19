@@ -142,7 +142,8 @@ cd superset-frontend && npm run dev
 
 # 9. Start MCP service (in another terminal, only if you want MCP features)
 source venv/bin/activate
-superset mcp run --port 5008 --debug
+# IMPORTANT: Set PYTHONPATH to allow superset_config.py to be imported
+PYTHONPATH=. superset mcp run --port 5008 --debug
 ```
 
 Access Superset at http://localhost:9001 (login: admin/admin)
