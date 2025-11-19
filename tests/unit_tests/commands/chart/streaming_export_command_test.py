@@ -102,6 +102,9 @@ def test_csv_generation_with_small_dataset(mocker: MockerFixture) -> None:
     mock_connection.execution_options.return_value.execute.return_value = (
         mock_result_proxy
     )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = mocker.MagicMock()
     mock_engine.connect.return_value = mock_connection
     datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -137,6 +140,9 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
 
     mock_connection = mocker.MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = mocker.MagicMock()
     mock_engine.connect.return_value = mock_connection
     datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -167,6 +173,9 @@ def test_streaming_with_null_values(mocker: MockerFixture) -> None:
 
     mock_connection = mocker.MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = mocker.MagicMock()
     mock_engine.connect.return_value = mock_connection
     datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -203,6 +212,8 @@ def test_streaming_execution_options_enabled(mocker: MockerFixture) -> None:
     mock_execution_options = mocker.MagicMock()
     mock_connection.execution_options.return_value = mock_execution_options
     mock_execution_options.execute.return_value = mock_result_proxy
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
 
     mock_engine = mocker.MagicMock()
     mock_engine.connect.return_value = mock_connection
@@ -228,6 +239,9 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
 
     mock_connection = mocker.MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = mocker.MagicMock()
     mock_engine.connect.return_value = mock_connection
     datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
