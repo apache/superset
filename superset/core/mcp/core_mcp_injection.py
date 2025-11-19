@@ -37,7 +37,7 @@ def create_mcp_tool_decorator(
     name: Optional[str] = None,
     description: Optional[str] = None,
     tags: Optional[list[str]] = None,
-    secure: bool = True,
+    protect: bool = True,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -53,7 +53,7 @@ def create_mcp_tool_decorator(
         name: Tool name (defaults to function name)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
-        secure: Whether to apply Superset authentication (defaults to True)
+        protect: Whether to apply Superset authentication (defaults to True)
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -71,7 +71,7 @@ def create_mcp_tool_decorator(
             tool_tags = tags or []
 
             # Conditionally apply authentication wrapper
-            if secure:
+            if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
 
                 wrapped_func = mcp_auth_hook(func)
@@ -88,7 +88,7 @@ def create_mcp_tool_decorator(
             )
             mcp.add_tool(tool)
 
-            auth_status = "with auth" if secure else "without auth"
+            auth_status = "with auth" if protect else "without auth"
             logger.info("Registered MCP tool: %s (%s)", tool_name, auth_status)
             return wrapped_func
 

@@ -216,7 +216,7 @@ def my_tool() -> dict:
     # g.user is set by mcp_tool decorator
     return {"user": g.user.username}
 
-@mcp_tool(secure=False)  # Only for truly public tools
+@mcp_tool(protect=False)  # Only for truly public tools
 def public_tool() -> dict:
     # No authentication required
     return {"status": "public"}
@@ -375,7 +375,7 @@ def test_tool_with_flask_context(app):
 
 ### 3. ❌ Missing Authentication
 **Problem**: Tool bypasses authentication and authorization.
-**Solution**: Always use `@mcp_tool` with default secure=True, or explicitly set secure=False only for public tools.
+**Solution**: Always use `@mcp_tool` with default protect=True, or explicitly set protect=False only for public tools.
 
 ### 4. ❌ Using `Optional` Instead of Union Syntax
 **Problem**: Old-style Optional[T] is not Python 3.10+ style.
