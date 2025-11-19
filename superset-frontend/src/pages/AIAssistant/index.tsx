@@ -70,6 +70,32 @@ const ChatMessage = styled.div<{ isUser?: boolean }>`
   max-width: 80%;
   ${(props: { isUser?: boolean }) =>
     props.isUser ? 'margin-left: auto;' : 'margin-right: auto;'}
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  
+  pre {
+    background-color: #f5f5f5;
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  
+  code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+  }
+`;
+
+const LoadingMessage = styled.div`
+  padding: 24px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  max-width: 80%;
+  margin-right: auto;
+  color: #999;
+  font-style: italic;
 `;
 
 const DatasetSelectorContainer = styled.div`
@@ -113,6 +139,22 @@ const ColumnTable = styled.table`
   }
 `;
 
+const SQLCodeBlock = styled.pre`
+  background-color: #f5f5f5;
+  padding: 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid #d9d9d9;
+  
+  code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+  }
+`;
+
 interface Dataset {
   id: number;
   table_name: string;
@@ -125,6 +167,7 @@ interface ChatMessageType {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  sql?: string;  // Optional SQL code to display
 }
 
 interface DatasetData {
@@ -138,6 +181,7 @@ export default function AIAssistant() {
   const [datasetData, setDatasetData] = useState<DatasetData | null>(null);
   const [loadingDatasets, setLoadingDatasets] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
 
@@ -276,8 +320,20 @@ export default function AIAssistant() {
     return schemaInfo;
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+    
+    if (!selectedDataset) {
+      // Show error if no dataset selected
+      const errorMessage: ChatMessageType = {
+        id: Date.now().toString(),
+        text: 'Please select a dataset first before asking questions.',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const newMessage: ChatMessageType = {
       id: Date.now().toString(),
@@ -286,19 +342,43 @@ export default function AIAssistant() {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
     setInputValue('');
+    setLoadingAI(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call the AI SQL generation API
+      const response = await SupersetClient.post({
+        endpoint: '/api/v1/aiassistant/generate_sql',
+        jsonPayload: {
+          dataset_id: selectedDataset,
+          user_query: inputValue,
+        },
+      });
+
+      const { sql, error } = response.json;
+
       const aiResponse: ChatMessageType = {
         id: (Date.now() + 1).toString(),
-        text: 'AI response functionality will be implemented in the next phase. For now, you can select a dataset to view its structure.',
+        text: error ? `❌ Error: ${error}` : '✅ Generated SQL:',
+        isUser: false,
+        timestamp: new Date(),
+        sql: error ? undefined : sql,
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    } catch (error: any) {
+      console.error('Error generating SQL:', error);
+      
+      const errorResponse: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        text: `❌ Error: ${error?.message || 'Failed to generate SQL. Please try again.'}`,
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 500);
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setLoadingAI(false);
+    }
   };
 
   const datasetOptions = datasets.map(ds => ({
@@ -319,11 +399,23 @@ export default function AIAssistant() {
                   {t('Start a conversation with the AI Assistant')}
                 </div>
               ) : (
-                messages.map(msg => (
-                  <ChatMessage key={msg.id} isUser={msg.isUser}>
-                    {msg.text}
-                  </ChatMessage>
-                ))
+                <>
+                  {messages.map(msg => (
+                    <ChatMessage key={msg.id} isUser={msg.isUser}>
+                      {msg.text}
+                      {msg.sql && (
+                        <SQLCodeBlock>
+                          <code>{msg.sql}</code>
+                        </SQLCodeBlock>
+                      )}
+                    </ChatMessage>
+                  ))}
+                  {loadingAI && (
+                    <LoadingMessage>
+                      🤖 Generating SQL query...
+                    </LoadingMessage>
+                  )}
+                </>
               )}
             </ChatContainer>
 
@@ -334,8 +426,9 @@ export default function AIAssistant() {
               }
               placeholder={t('Type your message here...')}
               rows={3}
+              disabled={loadingAI}
               onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (!e.shiftKey) {
+                if (!e.shiftKey && !loadingAI) {
                   e.preventDefault();
                   handleSendMessage();
                 }
@@ -343,7 +436,12 @@ export default function AIAssistant() {
             />
 
             <div style={{ textAlign: 'right' }}>
-              <Button type="primary" onClick={handleSendMessage}>
+              <Button 
+                type="primary" 
+                onClick={handleSendMessage}
+                disabled={loadingAI || !inputValue.trim()}
+                loading={loadingAI}
+              >
                 {t('Send')}
               </Button>
             </div>
