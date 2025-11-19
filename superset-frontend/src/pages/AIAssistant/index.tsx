@@ -80,21 +80,32 @@ const StyledTextArea = styled(TextArea)`
   margin-bottom: 16px;
 `;
 
+const DataPreviewContainer = styled.div`
+  max-height: 500px;
+  overflow: auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  margin-top: 16px;
+`;
+
 const ColumnTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: 16px;
 
   th,
   td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #d9d9d9;
+    white-space: nowrap;
   }
 
   th {
     font-weight: 600;
     background-color: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   tr:hover {
@@ -176,12 +187,12 @@ export default function AIAssistant() {
   const fetchDatasetData = async (datasetId: number) => {
     setLoadingData(true);
     try {
-      // Fetch dataset samples using the dataset API
-      const response = await SupersetClient.get({
+      // First, fetch dataset metadata to get column information
+      const datasetResponse = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${datasetId}`,
       });
 
-      const dataset = response.json.result;
+      const dataset = datasetResponse.json.result;
 
       // Get column information
       const columns = dataset.columns?.map((col: any) => ({
@@ -189,14 +200,51 @@ export default function AIAssistant() {
         type: col.type,
       })) || [];
 
-      // For now, we'll just show column info
-      // In a real implementation, you'd query for sample data
+      // Now fetch sample data using the chart data API
+      const queryPayload = {
+        datasource: {
+          id: datasetId,
+          type: 'table',
+        },
+        queries: [
+          {
+            columns: columns.map((col: { name: string }) => col.name),
+            row_limit: 50,
+            orderby: [],
+          },
+        ],
+        result_format: 'json',
+        result_type: 'full',
+      };
+
+      const dataResponse = await SupersetClient.post({
+        endpoint: '/api/v1/chart/data',
+        jsonPayload: queryPayload,
+      });
+
+      // Extract the data from the response
+      const result = dataResponse.json.result?.[0];
+      const data = result?.data || [];
+
+      setDatasetData({
+        columns,
+        data,
+      });
+    } catch (error) {
+      console.error('Error fetching dataset data:', error);
+      // Still show columns even if data fetch fails
+      const datasetResponse = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      });
+      const dataset = datasetResponse.json.result;
+      const columns = dataset.columns?.map((col: any) => ({
+        name: col.column_name,
+        type: col.type,
+      })) || [];
       setDatasetData({
         columns,
         data: [],
       });
-    } catch (error) {
-      console.error('Error fetching dataset data:', error);
     } finally {
       setLoadingData(false);
     }
@@ -296,26 +344,53 @@ export default function AIAssistant() {
 
             {selectedDataset && datasetData && (
               <div>
-                <h3>{t('Dataset Columns')}</h3>
+                <h3>{t('Dataset Preview (Top 50 Rows)')}</h3>
                 {loadingData ? (
                   <div>{t('Loading...')}</div>
                 ) : (
-                  <ColumnTable>
-                    <thead>
-                      <tr>
-                        <th>{t('Column')}</th>
-                        <th>{t('Type')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {datasetData.columns.map((col, idx) => (
-                        <tr key={idx}>
-                          <td>{col.name}</td>
-                          <td>{col.type}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </ColumnTable>
+                  <>
+                    <DataPreviewContainer>
+                      <ColumnTable>
+                        <thead>
+                          <tr>
+                            {datasetData.columns.map((col, idx) => (
+                              <th key={idx}>
+                                {col.name}
+                                <br />
+                                <small style={{ fontWeight: 'normal', color: '#888' }}>
+                                  {col.type}
+                                </small>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {datasetData.data.length === 0 ? (
+                            <tr>
+                              <td colSpan={datasetData.columns.length}>
+                                {t('No data available')}
+                              </td>
+                            </tr>
+                          ) : (
+                            datasetData.data.map((row: any, rowIdx: number) => (
+                              <tr key={rowIdx}>
+                                {datasetData.columns.map((col, colIdx) => (
+                                  <td key={colIdx}>
+                                    {row[col.name] !== null && row[col.name] !== undefined
+                                      ? String(row[col.name])
+                                      : '—'}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </ColumnTable>
+                    </DataPreviewContainer>
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
+                      {t('Showing {{count}} rows', { count: datasetData.data.length })}
+                    </div>
+                  </>
                 )}
               </div>
             )}
