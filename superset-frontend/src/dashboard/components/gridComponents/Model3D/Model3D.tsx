@@ -181,19 +181,58 @@ declare global {
 class Model3D extends PureComponent<Model3DProps> {
   state = {
     modelError: false,
+    localModelUrl: '', // Local state for input to prevent blocking
   };
 
+  private updateTimeout: NodeJS.Timeout | null = null;
+
+  componentDidMount() {
+    // Initialize local state from props
+    // @ts-ignore - modelUrl is a custom property
+    const modelUrl = this.props.component.meta?.modelUrl || '';
+    if (modelUrl) {
+      this.setState({ localModelUrl: modelUrl });
+    }
+  }
+
+  componentDidUpdate(prevProps: Model3DProps) {
+    // Sync local state if prop changed externally (not from our input)
+    // @ts-ignore - modelUrl is a custom property
+    const modelUrl = this.props.component.meta?.modelUrl || '';
+    // @ts-ignore
+    const prevModelUrl = prevProps.component.meta?.modelUrl || '';
+    if (modelUrl !== prevModelUrl && modelUrl !== this.state.localModelUrl) {
+      this.setState({ localModelUrl: modelUrl });
+    }
+  }
+
+  componentWillUnmount() {
+    // Clear any pending updates
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+  }
+
   handleModelUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { updateComponents, component } = this.props;
     const newUrl = e.target.value;
+    
+    // Update local state immediately for responsive input
+    this.setState({ localModelUrl: newUrl });
     
     // Clear error state when URL changes
     if (this.state.modelError) {
       this.setState({ modelError: false });
     }
     
-    // Update component meta - debounce to prevent blocking during typing
-    const timeoutId = setTimeout(() => {
+    // Clear previous timeout
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
+    
+    // Debounce the actual component update - only update after user stops typing
+    this.updateTimeout = setTimeout(() => {
+      const { updateComponents, component } = this.props;
       updateComponents({
         [component.id]: {
           ...component,
@@ -203,10 +242,26 @@ class Model3D extends PureComponent<Model3DProps> {
           } as any, // modelUrl is a custom property
         },
       });
-    }, 100); // Small debounce to prevent excessive updates
-    
-    // Store timeout ID to clear if needed (component will handle cleanup)
-    (this as any)._updateTimeout = timeoutId;
+      this.updateTimeout = null;
+    }, 500); // Longer debounce - only update after 500ms of no typing
+  };
+
+  handleModelUrlBlur = () => {
+    // Update immediately on blur to ensure value is saved
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+    const { updateComponents, component } = this.props;
+    updateComponents({
+      [component.id]: {
+        ...component,
+        meta: {
+          ...component.meta,
+          modelUrl: this.state.localModelUrl,
+        } as any,
+      },
+    });
   };
 
   handleDeleteComponent = () => {
@@ -215,10 +270,8 @@ class Model3D extends PureComponent<Model3DProps> {
   };
 
   renderModelViewer(): ReactNode {
-    const { component } = this.props;
-    const { modelError } = this.state;
-    // @ts-ignore - modelUrl is a custom property
-    const modelUrl = component.meta?.modelUrl || '';
+    const { modelError, localModelUrl } = this.state;
+    const modelUrl = localModelUrl;
 
     if (!modelUrl) {
       return (
@@ -408,8 +461,9 @@ class Model3D extends PureComponent<Model3DProps> {
                     <Input
                       type="url"
                       placeholder={t('Enter 3D model URL (GLTF, GLB, OBJ, etc.)')}
-                      value={modelUrl}
+                      value={this.state.localModelUrl}
                       onChange={this.handleModelUrlChange}
+                      onBlur={this.handleModelUrlBlur}
                       data-test="model3d-url-input"
                     />
                   </div>
