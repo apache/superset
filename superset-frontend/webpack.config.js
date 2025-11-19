@@ -139,7 +139,11 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
+    patterns: [
+      'package.json',
+      { from: 'src/assets/images', to: 'images' },
+      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
+    ],
   }),
 
   // static pages
@@ -300,6 +304,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
+    'service-worker': path.join(APP_DIR, '/src/service-worker.ts'),
   },
   cache: {
     type: 'filesystem', // Enable filesystem caching

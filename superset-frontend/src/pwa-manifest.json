@@ -1,0 +1,30 @@
+{
+  "name": "Apache Superset",
+  "short_name": "Superset",
+  "description": "Modern data exploration and visualization platform",
+  "start_url": "/superset/welcome/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#20a7c9",
+  "icons": [
+    {
+      "src": "/static/assets/images/superset-logo-horiz.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/file-handler",
+      "accept": {
+        "text/csv": [".csv"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ],
+        "application/vnd.apache.parquet": [".parquet"]
+      }
+    }
+  ]
+}

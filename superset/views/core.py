@@ -907,6 +907,20 @@ class Superset(BaseSupersetView):
 
         return self.render_app_template(extra_bootstrap_data=payload)
 
+    @event_logger.log_this
+    @expose("/file-handler")
+    def file_handler(self) -> FlaskResponse:
+        """File handler page for PWA file handling"""
+        if not g.user or not get_user_id():
+            return redirect_to_login()
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
     @has_access
     @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
