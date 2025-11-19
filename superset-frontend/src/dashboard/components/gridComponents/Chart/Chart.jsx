@@ -621,8 +621,9 @@ export default memo(Chart, (prevProps, nextProps) => {
   }
   return (
     !nextProps.isComponentVisible ||
-    (prevProps.isInView === nextProps.isInView &&
-      prevProps.componentId === nextProps.componentId &&
+    (prevProps.componentId === nextProps.componentId &&
+      prevProps.isComponentVisible &&
+      prevProps.isInView === nextProps.isInView &&
       prevProps.id === nextProps.id &&
       prevProps.dashboardId === nextProps.dashboardId &&
       prevProps.extraControls === nextProps.extraControls &&
