@@ -22,7 +22,11 @@ import { css, styled } from '@apache-superset/core/ui';
 import { Button as SupersetButton } from '@superset-ui/core/components/Button';
 import { EditableTitle } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import type { OnClickHandler } from '@superset-ui/core/components/Button/types';
+import type {
+  OnClickHandler,
+  ButtonSize,
+  ButtonStyle,
+} from '@superset-ui/core/components/Button/types';
 import type { Method, RequestConfig } from '@superset-ui/core/connection/types';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
