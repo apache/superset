@@ -33,6 +33,7 @@ from superset.key_value.utils import (
     encode_permalink_key,
     get_deterministic_uuid,
     get_deterministic_uuid_with_algorithm,
+    get_fallback_algorithms,
 )
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
@@ -81,12 +82,15 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         uuid_key = get_deterministic_uuid(self.salt, payload)
         entry = KeyValueDAO.get_entry(self.resource, uuid_key)
 
-        # Fallback: check if entry exists with MD5 (for backward compatibility)
-        from flask import current_app
-
-        if not entry and current_app.config["HASH_ALGORITHM"] != "md5":
-            uuid_md5 = get_deterministic_uuid_with_algorithm(self.salt, payload, "md5")
-            entry = KeyValueDAO.get_entry(self.resource, uuid_md5)
+        # Fallback: check configured fallback algorithms for backward compatibility
+        if not entry:
+            for fallback_algo in get_fallback_algorithms():
+                uuid_fallback = get_deterministic_uuid_with_algorithm(
+                    self.salt, payload, fallback_algo
+                )
+                entry = KeyValueDAO.get_entry(self.resource, uuid_fallback)
+                if entry:
+                    break
 
         if entry:
             # Return existing entry

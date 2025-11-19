@@ -214,6 +214,17 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # For backward compatibility with existing deployments, keep as 'md5'
 HASH_ALGORITHM: Literal["md5", "sha256"] = "md5"
 
+# Fallback hash algorithms for UUID lookup (backward compatibility)
+# When looking up entries by UUID, try these algorithms after the primary one fails.
+# This enables gradual migration from MD5 to SHA-256 without breaking existing entries.
+#
+# Example: When HASH_ALGORITHM='sha256', lookups will try:
+#   1. SHA-256 UUID (primary)
+#   2. MD5 UUID (fallback for legacy entries)
+#
+# Set to empty list to disable fallback (strict mode - only use HASH_ALGORITHM)
+HASH_ALGORITHM_FALLBACKS: list[Literal["md5", "sha256"]] = ["md5"]
+
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py

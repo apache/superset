@@ -68,6 +68,28 @@ def decode_permalink_id(key: str, salt: str) -> int:
     raise KeyValueParseKeyError(_("Invalid permalink key"))
 
 
+def _uuid_namespace_from_md5(seed: str) -> UUID:
+    """Generate UUID namespace from MD5 hash (legacy compatibility)."""
+    md5_obj = md5()  # noqa: S324
+    md5_obj.update(seed.encode("utf-8"))
+    return UUID(md5_obj.hexdigest())
+
+
+def _uuid_namespace_from_sha256(seed: str) -> UUID:
+    """Generate UUID namespace from SHA-256 hash (first 16 bytes)."""
+    sha256_obj = hashlib.sha256()
+    sha256_obj.update(seed.encode("utf-8"))
+    # Use first 16 bytes of SHA-256 digest for UUID
+    return UUID(bytes=sha256_obj.digest()[:16])
+
+
+# UUID namespace generator dispatch table
+_UUID_NAMESPACE_GENERATORS = {
+    "md5": _uuid_namespace_from_md5,
+    "sha256": _uuid_namespace_from_sha256,
+}
+
+
 def get_uuid_namespace_with_algorithm(seed: str, algorithm: str) -> UUID:
     """
     Generate a UUID namespace from a seed string using specified hash algorithm.
@@ -79,16 +101,10 @@ def get_uuid_namespace_with_algorithm(seed: str, algorithm: str) -> UUID:
     Returns:
         UUID namespace
     """
-    if algorithm == "sha256":
-        sha256_obj = hashlib.sha256()
-        sha256_obj.update(seed.encode("utf-8"))
-        # Use first 16 bytes of SHA-256 digest for UUID
-        return UUID(bytes=sha256_obj.digest()[:16])
-    else:
-        # Legacy MD5 path for backward compatibility
-        md5_obj = md5()  # noqa: S324
-        md5_obj.update(seed.encode("utf-8"))
-        return UUID(md5_obj.hexdigest())
+    generator = _UUID_NAMESPACE_GENERATORS.get(algorithm)
+    if generator is None:
+        raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+    return generator(seed)
 
 
 def get_uuid_namespace(seed: str, app: Any = None) -> UUID:
@@ -129,3 +145,17 @@ def get_deterministic_uuid(namespace: str, payload: Any) -> UUID:
     """Get a deterministic UUID (uuid3) from a salt and a JSON-serializable payload."""
     payload_str = json_dumps_w_dates(payload, sort_keys=True)
     return uuid3(get_uuid_namespace(namespace), payload_str)
+
+
+def get_fallback_algorithms(app: Any = None) -> list[str]:
+    """
+    Get the list of fallback hash algorithms from config.
+
+    Args:
+        app: Flask app instance (optional, uses current_app if not provided)
+
+    Returns:
+        List of fallback algorithm names (empty list if none configured)
+    """
+    app = app or current_app
+    return app.config.get("HASH_ALGORITHM_FALLBACKS", [])

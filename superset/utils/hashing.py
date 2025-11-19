@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 
 HashAlgorithm = Literal["md5", "sha256"]
 
+# Hash function lookup table for efficient dispatch
+_HASH_FUNCTIONS: dict[str, Callable[[bytes], str]] = {
+    "sha256": lambda data: hashlib.sha256(data).hexdigest(),
+    "md5": lambda data: hashlib.md5(data).hexdigest(),  # noqa: S324
+}
+
 
 def get_hash_algorithm() -> HashAlgorithm:
     """
@@ -59,13 +65,11 @@ def hash_from_str(val: str, algorithm: Optional[HashAlgorithm] = None) -> str:
     if algorithm is None:
         algorithm = get_hash_algorithm()
 
-    if algorithm == "sha256":
-        return hashlib.sha256(val.encode("utf-8")).hexdigest()
-    elif algorithm == "md5":
-        # MD5 is only acceptable for legacy compatibility
-        return hashlib.md5(val.encode("utf-8")).hexdigest()  # noqa: S324
-    else:
+    hash_func = _HASH_FUNCTIONS.get(algorithm)
+    if hash_func is None:
         raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+
+    return hash_func(val.encode("utf-8"))
 
 
 def hash_from_dict(

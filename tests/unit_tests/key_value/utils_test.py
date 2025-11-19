@@ -154,3 +154,34 @@ def test_get_deterministic_uuid_different_algorithms() -> None:
     uuid_md5 = get_deterministic_uuid_with_algorithm("salt", payload, "md5")
     uuid_sha256 = get_deterministic_uuid_with_algorithm("salt", payload, "sha256")
     assert uuid_md5 != uuid_sha256
+
+
+@pytest.mark.parametrize(
+    "config_value,expected_fallbacks",
+    [
+        (["md5"], ["md5"]),
+        (["md5", "sha256"], ["md5", "sha256"]),
+        ([], []),
+    ],
+    ids=["single_fallback", "multiple_fallbacks", "no_fallbacks"],
+)
+def test_get_fallback_algorithms(config_value, expected_fallbacks) -> None:
+    """Test getting fallback algorithms from config."""
+    from superset.key_value.utils import get_fallback_algorithms
+
+    mock_app = MagicMock()
+    mock_app.config = {"HASH_ALGORITHM_FALLBACKS": config_value}
+    fallbacks = get_fallback_algorithms(app=mock_app)
+
+    assert fallbacks == expected_fallbacks
+
+
+def test_get_fallback_algorithms_default() -> None:
+    """Test fallback algorithms default to empty list if not configured."""
+    from superset.key_value.utils import get_fallback_algorithms
+
+    mock_app = MagicMock()
+    mock_app.config = {}  # No HASH_ALGORITHM_FALLBACKS key
+    fallbacks = get_fallback_algorithms(app=mock_app)
+
+    assert fallbacks == []
