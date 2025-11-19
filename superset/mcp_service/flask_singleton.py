@@ -25,7 +25,6 @@ Following the Stack Overflow recommendation:
 """
 
 import logging
-import os
 
 from flask import Flask
 
@@ -34,51 +33,17 @@ logger = logging.getLogger(__name__)
 logger.info("Creating Flask app instance for MCP service")
 
 try:
-    from superset.extensions import (
-        APP_DIR,
-        cache_manager,
-        db,
-        feature_flag_manager,
-        migrate,
-    )
     from superset.mcp_service.mcp_config import get_mcp_config
 
-    # Create minimal Flask app for MCP service
+    # Create a temporary context to avoid
+    # "Working outside of application context" errors.
     _temp_app = Flask(__name__)
 
-    # Load default configuration
-    _temp_app.config.from_object("superset.config")
-
-    # Try to load user configuration if available
-    try:
-        if "SUPERSET_CONFIG_PATH" in os.environ:
-            _temp_app.config.from_envvar("SUPERSET_CONFIG_PATH")
-        else:
-            _temp_app.config.from_pyfile("superset_config.py", silent=True)
-    except Exception as e:
-        logger.warning("Could not load user configuration: %s", e)
-
-    # Apply MCP configuration - reads from app.config first, falls back to defaults
-    mcp_config = get_mcp_config(_temp_app.config)
-    _temp_app.config.update(mcp_config)
-
-    # Push an application context for initialization
+    # Push an application context and initialize core dependencies and extensions
     with _temp_app.app_context():
-        # Initialize minimal required components for MCP service
-
-        # 1. Feature flags (needed for extension detection)
-        feature_flag_manager.init_app(_temp_app)
-
-        # 2. Database (needed for authentication)
-        db.init_app(_temp_app)
-        migrate.init_app(_temp_app, db=db, directory=APP_DIR + "/migrations")
-
-        # 3. Cache (needed for some database operations)
-        cache_manager.init_app(_temp_app)
-
-        # 4. Initialize core dependencies and extensions BEFORE tool module
-        # are imported. This uses the same shared logic as main Superset
-        # initialization
+        # Apply MCP configuration - reads from app.config first, falls back to defaults
+        mcp_config = get_mcp_config(_temp_app.config)
+        _temp_app.config.update(mcp_config)
         try:
             from superset.initialization import SupersetAppInitializer
 
