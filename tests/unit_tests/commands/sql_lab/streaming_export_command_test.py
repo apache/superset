@@ -151,6 +151,9 @@ def test_csv_generation_with_select_sql(mocker, mock_query, mock_result_proxy):
     mock_connection.execution_options.return_value.execute.return_value = (
         mock_result_proxy
     )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -200,6 +203,9 @@ def test_csv_generation_with_executed_sql_and_limit(
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -232,6 +238,9 @@ def test_csv_generation_with_special_characters(mocker, mock_query):
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -276,6 +285,9 @@ def test_limiting_factor_dropdown(mocker, mock_query):
         mock_connection.execution_options.return_value.execute.return_value = (
             mock_result
         )
+        mock_connection.__enter__.return_value = mock_connection
+        mock_connection.__exit__.return_value = None
+
         mock_engine = MagicMock()
         mock_engine.connect.return_value = mock_connection
         mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -318,6 +330,9 @@ def test_limiting_factor_query_and_dropdown(mocker, mock_query):
         mock_connection.execution_options.return_value.execute.return_value = (
             mock_result
         )
+        mock_connection.__enter__.return_value = mock_connection
+        mock_connection.__exit__.return_value = None
+
         mock_engine = MagicMock()
         mock_engine.connect.return_value = mock_connection
         mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -347,6 +362,9 @@ def test_empty_result_set(mocker, mock_query):
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -402,6 +420,9 @@ def test_connection_is_closed_after_streaming(mocker, mock_query, mock_result_pr
     mock_connection.execution_options.return_value.execute.return_value = (
         mock_result_proxy
     )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -415,7 +436,8 @@ def test_connection_is_closed_after_streaming(mocker, mock_query, mock_result_pr
     generator = csv_generator_callable()
     list(generator)
 
-    mock_connection.close.assert_called_once()
+    # With context managers, __exit__ is called to cleanup the connection
+    mock_connection.__exit__.assert_called_once()
 
 
 def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_proxy):
@@ -428,6 +450,8 @@ def test_streaming_execution_options_enabled(mocker, mock_query, mock_result_pro
     mock_execution_options = Mock()
     mock_connection.execution_options.return_value = mock_execution_options
     mock_execution_options.execute.return_value = mock_result_proxy
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
 
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
@@ -456,6 +480,9 @@ def test_completion_logging(mock_logger, mocker, mock_query, mock_result_proxy):
     mock_connection.execution_options.return_value.execute.return_value = (
         mock_result_proxy
     )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
@@ -490,6 +517,9 @@ def test_null_values_handling(mocker, mock_query):
 
     mock_connection = MagicMock()
     mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
     mock_engine = MagicMock()
     mock_engine.connect.return_value = mock_connection
     mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
