@@ -72,11 +72,10 @@ def _fetch_channels_without_search(
     """Fetch channels without search filtering, paginating for large limits."""
     channels: list[SlackChannelSchema] = []
     slack_cursor = cursor
-    page_size = min(limit, 1000)
 
     while True:
         response = client.conversations_list(
-            limit=page_size,
+            limit=999,
             cursor=slack_cursor,
             exclude_archived=True,
             types=types_param,
@@ -89,7 +88,7 @@ def _fetch_channels_without_search(
 
         slack_cursor = response.data.get("response_metadata", {}).get("next_cursor")
 
-        if not slack_cursor or len(page_channels) < page_size or len(channels) >= limit:
+        if not slack_cursor or len(channels) >= limit:
             break
 
     return {
@@ -117,7 +116,7 @@ def _fetch_channels_with_search(
 
     while len(matches) < limit:
         response = client.conversations_list(
-            limit=1000,
+            limit=999,
             cursor=slack_cursor,
             exclude_archived=True,
             types=types_param,
@@ -247,7 +246,6 @@ def _fetch_from_cache(  # noqa: C901
             offset = 0
 
     # Check if we're trying to paginate beyond cached data
-    # This happens when cache is partial (hit SLACK_CACHE_MAX_CHANNELS limit)
     if offset >= len(channels):
         logger.info(
             "Pagination offset (%d) exceeds cached data (%d channels). "

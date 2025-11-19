@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -41,7 +41,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
-from superset.extensions import event_logger
+from superset.extensions import cache_manager, event_logger
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
@@ -51,7 +51,12 @@ from superset.reports.schemas import (
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
-from superset.utils.slack import get_channels_with_search
+from superset.tasks.slack import cache_channels
+from superset.utils.slack import (
+    get_channels_with_search,
+    SLACK_CHANNELS_CACHE_KEY,
+    SLACK_CHANNELS_CONTINUATION_CURSOR_KEY,
+)
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -579,6 +584,20 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             exact_match = params.get("exact_match", False)
             cursor = params.get("cursor")
             limit = params.get("limit", 100)
+            force = params.get("force", False)
+
+            # Clear cache if force refresh requested
+            if force:
+                cache_manager.cache.delete(SLACK_CHANNELS_CACHE_KEY)
+                cache_manager.cache.delete(
+                    SLACK_CHANNELS_CONTINUATION_CURSOR_KEY
+                )
+                logger.info("Slack channels cache cleared due to force=True")
+
+                # Trigger async cache warmup if caching is enabled
+                if current_app.config.get("SLACK_ENABLE_CACHING", True):
+                    cache_channels.delay()
+                    logger.info("Triggered async cache warmup task")
 
             channels_data = get_channels_with_search(
                 search_string=search_string,

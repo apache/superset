@@ -52,7 +52,7 @@ test('fetches channels successfully', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  const channels = await result.current.fetchChannels('', 0, 100);
+  const channels = await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
   expect(channels.data).toHaveLength(3);
   expect(channels.data[0]).toEqual({ label: 'general', value: 'C001' });
@@ -70,11 +70,9 @@ test('caches results and avoids duplicate requests', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // First call
-  await result.current.fetchChannels('', 0, 100);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
-  // Second call with same parameters
-  await result.current.fetchChannels('', 0, 100);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
   // Should only call API once
   expect(SupersetClient.get).toHaveBeenCalledTimes(1);
@@ -100,9 +98,8 @@ test('deduplicates concurrent requests', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // Make concurrent requests
-  const promise1 = result.current.fetchChannels('', 0, 100);
-  const promise2 = result.current.fetchChannels('', 0, 100);
+  const promise1 = result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
+  const promise2 = result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
   const [result1, result2] = await Promise.all([promise1, promise2]);
 
@@ -124,11 +121,9 @@ test('clears cache when search changes', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // First search
-  await result.current.fetchChannels('eng', 0, 100);
+  await result.current.fetchChannels({ search: 'eng', page: 0, pageSize: 100 });
 
-  // Different search
-  await result.current.fetchChannels('gen', 0, 100);
+  await result.current.fetchChannels({ search: 'gen', page: 0, pageSize: 100 });
 
   // Should call API twice (once for each search)
   expect(SupersetClient.get).toHaveBeenCalledTimes(2);
@@ -153,17 +148,15 @@ test('handles pagination with cursors', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // First page
-  const page1 = await result.current.fetchChannels('', 0, 2);
+  const page1 = await result.current.fetchChannels({ search: '', page: 0, pageSize: 2 });
   expect(page1.data).toHaveLength(2);
   expect(page1.has_more).toBe(true);
 
-  // Second page
-  const page2 = await result.current.fetchChannels('', 1, 2);
+  const page2 = await result.current.fetchChannels({ search: '', page: 1, pageSize: 2 });
   expect(page2.data).toHaveLength(1);
 });
 
-test('refreshChannels clears cache and refetches', async () => {
+test('refreshChannels clears cache and refetches with force=true', async () => {
   (SupersetClient.get as jest.Mock).mockResolvedValue({
     json: {
       result: mockChannels,
@@ -174,18 +167,17 @@ test('refreshChannels clears cache and refetches', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // Initial fetch
-  await result.current.fetchChannels('', 0, 100);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
-  // Cache hit - no new API call
-  await result.current.fetchChannels('', 0, 100);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
   expect(SupersetClient.get).toHaveBeenCalledTimes(1);
 
-  // Refresh
   await result.current.refreshChannels();
 
-  // Should call API again
   expect(SupersetClient.get).toHaveBeenCalledTimes(2);
+  const lastCall = (SupersetClient.get as jest.Mock).mock.calls[1][0];
+  expect(lastCall.endpoint).toContain('force:!t');
+  expect(lastCall.endpoint).toContain('limit:999');
 });
 
 test('isRefreshing state updates correctly', async () => {
@@ -203,7 +195,6 @@ test('isRefreshing state updates correctly', async () => {
 
   await result.current.refreshChannels();
 
-  // Should be false after refresh completes
   expect(result.current.isRefreshing).toBe(false);
 });
 
@@ -213,7 +204,7 @@ test('calls onError callback when fetch fails', async () => {
   const onError = jest.fn();
   const { result } = renderHook(() => useSlackChannels(onError));
 
-  await result.current.fetchChannels('', 0, 100);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
   expect(onError).toHaveBeenCalledWith(
     expect.stringContaining('Unable to load Slack channels'),
@@ -225,7 +216,7 @@ test('returns empty data on error', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  const channels = await result.current.fetchChannels('', 0, 100);
+  const channels = await result.current.fetchChannels({ search: '', page: 0, pageSize: 100 });
 
   expect(channels.data).toEqual([]);
   expect(channels.totalCount).toBe(0);
@@ -242,7 +233,7 @@ test('includes search_string in API params when provided', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  await result.current.fetchChannels('engineering', 0, 100);
+  await result.current.fetchChannels({ search: 'engineering', page: 0, pageSize: 100 });
 
   expect(SupersetClient.get).toHaveBeenCalledWith({
     endpoint: expect.stringContaining('search_string'),
@@ -268,11 +259,9 @@ test('includes cursor in API params for pagination', async () => {
 
   const { result } = renderHook(() => useSlackChannels());
 
-  // First page
-  await result.current.fetchChannels('', 0, 2);
+  await result.current.fetchChannels({ search: '', page: 0, pageSize: 2 });
 
-  // Second page
-  await result.current.fetchChannels('', 1, 2);
+  await result.current.fetchChannels({ search: '', page: 1, pageSize: 2 });
 
   expect(SupersetClient.get).toHaveBeenCalledWith({
     endpoint: expect.stringContaining('cursor'),

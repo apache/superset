@@ -317,15 +317,17 @@ The server responded with: missing scope: channels:read"""
 
     def test_handle_pagination_without_search(self, mocker):
         """Test pagination returns single page with cursor"""
+        channels = [
+            {
+                "name": f"channel-{i}",
+                "id": f"C{i}",
+                "is_private": False,
+                "is_member": True,
+            }
+            for i in range(150)
+        ]
         mock_data_page1 = {
-            "channels": [
-                {
-                    "name": "general",
-                    "id": "C12345",
-                    "is_private": False,
-                    "is_member": True,
-                }
-            ],
+            "channels": channels,
             "response_metadata": {"next_cursor": "page2_cursor"},
         }
 
@@ -335,18 +337,9 @@ The server responded with: missing scope: channels:read"""
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         result = get_channels_with_search(limit=100)
-        assert result == {
-            "result": [
-                {
-                    "name": "general",
-                    "id": "C12345",
-                    "is_private": False,
-                    "is_member": True,
-                }
-            ],
-            "next_cursor": "page2_cursor",
-            "has_more": True,
-        }
+        assert len(result["result"]) == 100
+        assert result["next_cursor"] == "page2_cursor"
+        assert result["has_more"] is True
 
     def test_handle_pagination_with_cursor(self, mocker):
         """Test pagination with cursor fetches next page"""
@@ -659,18 +652,17 @@ The server responded with: missing scope: channels:read"""
 
         def mock_conversations_list(**kwargs):
             nonlocal call_count
-            limit = kwargs.get("limit", 100)
+            limit = kwargs.get("limit", 999)
             cursor = kwargs.get("cursor")
 
-            # Simulate Slack API pagination (max 1000 per page)
             if cursor is None:
                 start = 0
-            elif cursor == "cursor_1000":
-                start = 1000
-            elif cursor == "cursor_2000":
-                start = 2000
+            elif cursor == "cursor_999":
+                start = 999
+            elif cursor == "cursor_1998":
+                start = 1998
             else:
-                start = 3000
+                start = 2500
 
             end = min(start + limit, 2500)
             next_cursor = f"cursor_{end}" if end < 2500 else None
@@ -687,14 +679,14 @@ The server responded with: missing scope: channels:read"""
         mock_client.conversations_list.side_effect = mock_conversations_list
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        # Request 1500 channels (requires 2 pages of 1000 each)
+        # Request 1500 channels (requires 2 pages of 999 each)
         result = get_channels_with_search(limit=1500)
 
         # Should return exactly 1500 channels
         assert len(result["result"]) == 1500
         assert result["has_more"] is True
-        assert result["next_cursor"] == "cursor_2000"
-        # Should have made 2 API calls
+        assert result["next_cursor"] == "cursor_1998"
+        # Should have made 2 API calls (999 + 501)
         assert call_count == 2
 
     def test_search_with_exact_match_optimization(self, mocker):

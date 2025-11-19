@@ -59,7 +59,7 @@ get_slack_channels_schema = {
         },
         "exact_match": {"type": "boolean"},
         "cursor": {"type": ["string", "null"]},
-        "limit": {"type": "integer", "default": 100, "minimum": 1, "maximum": 1000},
+        "limit": {"type": "integer", "default": 100, "minimum": 1, "maximum": 999},
         "force": {"type": "boolean"},
     },
 }

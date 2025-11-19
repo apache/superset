@@ -33,12 +33,15 @@ export interface SlackChannelsResult {
   next_cursor?: string | null;
 }
 
+export interface FetchChannelsParams {
+  search: string;
+  page: number;
+  pageSize: number;
+  force?: boolean;
+}
+
 export interface UseSlackChannelsResult {
-  fetchChannels: (
-    search: string,
-    page: number,
-    pageSize: number,
-  ) => Promise<SlackChannelsResult>;
+  fetchChannels: (params: FetchChannelsParams) => Promise<SlackChannelsResult>;
   refreshChannels: () => Promise<void>;
   isRefreshing: boolean;
 }
@@ -62,18 +65,19 @@ export function useSlackChannels(
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchChannels = useCallback(
-    async (
-      search: string,
-      page: number,
-      pageSize: number,
-    ): Promise<SlackChannelsResult> => {
+    async ({
+      search,
+      page,
+      pageSize,
+      force = false,
+    }: FetchChannelsParams): Promise<SlackChannelsResult> => {
       const cacheKey = `${search}:${page}`;
 
-      if (dataCache.current[cacheKey]) {
+      if (!force && dataCache.current[cacheKey]) {
         return dataCache.current[cacheKey];
       }
 
-      if (cacheKey in pendingRequests.current) {
+      if (!force && cacheKey in pendingRequests.current) {
         return pendingRequests.current[cacheKey];
       }
 
@@ -90,6 +94,10 @@ export function useSlackChannels(
 
       if (cursor) {
         params.cursor = cursor;
+      }
+
+      if (force) {
+        params.force = true;
       }
 
       const queryString = rison.encode(params);
@@ -163,7 +171,7 @@ export function useSlackChannels(
       dataCache.current = {};
       pendingRequests.current = {};
 
-      await fetchChannels('', 0, 100);
+      await fetchChannels({ search: '', page: 0, pageSize: 999, force: true });
     } catch (error) {
       logging.error('Error refreshing channels:', error);
 

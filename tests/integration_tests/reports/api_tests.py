@@ -2261,3 +2261,61 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         data = json.loads(rv.data.decode("utf-8"))
         assert "Slack API error" in data["message"]
+
+    @patch("superset.reports.api.cache_channels")
+    @patch("superset.reports.api.cache_manager")
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_with_force_clears_cache(
+        self, mock_get_channels, mock_cache_manager, mock_cache_channels
+    ):
+        """
+        Test /api/v1/report/slack_channels/ endpoint with force=true clears cache
+        and triggers async cache warmup
+        """
+        self.login(ADMIN_USERNAME)
+
+        mock_get_channels.return_value = {
+            "result": [{"id": "C123", "name": "general"}],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        uri = "api/v1/report/slack_channels/?q=(force:!t)"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        # Verify cache was cleared
+        assert mock_cache_manager.cache.delete.call_count == 2
+
+        # Verify async cache warmup was triggered
+        mock_cache_channels.delay.assert_called_once()
+
+    @patch("superset.reports.api.cache_channels")
+    @patch("superset.reports.api.cache_manager")
+    @patch("superset.reports.api.get_channels_with_search")
+    def test_slack_channels_api_force_respects_caching_config(
+        self, mock_get_channels, mock_cache_manager, mock_cache_channels
+    ):
+        """
+        Test /api/v1/report/slack_channels/ with force=true
+        respects SLACK_ENABLE_CACHING
+        """
+        self.login(ADMIN_USERNAME)
+
+        mock_get_channels.return_value = {
+            "result": [{"id": "C123", "name": "general"}],
+            "next_cursor": None,
+            "has_more": False,
+        }
+
+        # Test with caching disabled
+        with patch.dict(self.app.config, {"SLACK_ENABLE_CACHING": False}, clear=False):
+            uri = "api/v1/report/slack_channels/?q=(force:!t)"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            # Cache should still be cleared
+            assert mock_cache_manager.cache.delete.call_count == 2
+
+            # But async warmup should NOT be triggered
+            mock_cache_channels.delay.assert_not_called()
