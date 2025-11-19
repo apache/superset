@@ -157,7 +157,7 @@ Use consistent response structures:
     "timestamp": "2024-01-01T00:00:00Z"
 }
 
-# Error response  
+# Error response
 {
     "status": "error",
     "error": "Clear error message",
@@ -197,7 +197,7 @@ def process_data(customer_id: int, start_date: str, end_date: str) -> dict:
 ### Tool Naming
 
 - **Extension tools**: Use prefixed names like `my_extension.tool_name`
-- **Descriptive names**: `calculate_tax_amount` vs `calculate`  
+- **Descriptive names**: `calculate_tax_amount` vs `calculate`
 - **Consistent naming**: Follow patterns within your extension
 
 ## How AI Agents Use Your Tools
@@ -214,7 +214,7 @@ Agent: I generated the number 42 for you.
 
 The AI agent sees your tool's:
 - **Name**: How to call it
-- **Description**: What it does and when to use it  
+- **Description**: What it does and when to use it
 - **Parameters**: What inputs it expects (from Pydantic schema)
 - **Tags**: Categories for discovery
 
@@ -229,7 +229,7 @@ The AI agent sees your tool's:
 ### Input Validation Errors
 
 1. **Pydantic models**: Ensure field types match expected inputs
-2. **Field constraints**: Check min/max values and string lengths are reasonable  
+2. **Field constraints**: Check min/max values and string lengths are reasonable
 3. **Required fields**: Verify which parameters are required vs optional
 
 ### Runtime Issues
@@ -241,7 +241,7 @@ The AI agent sees your tool's:
 ### Development Tips
 
 1. **Start simple**: Begin with basic tools, add complexity gradually
-2. **Test locally**: Use MCP clients (like Claude Desktop) to test your tools  
+2. **Test locally**: Use MCP clients (like Claude Desktop) to test your tools
 3. **Clear descriptions**: Write tool descriptions as if explaining to a new user
 4. **Meaningful tags**: Use tags that help categorize and discover tools
 5. **Error messages**: Provide specific, actionable error messages
