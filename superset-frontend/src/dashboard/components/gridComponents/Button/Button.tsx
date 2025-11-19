@@ -91,11 +91,11 @@ const ButtonContent = styled.div`
 const normalizeActionType = (actionType?: string | null): ButtonActionType =>
   actionType === 'api' ? 'api' : 'link';
 
-const normalizeButtonSize = (size?: string | null) =>
-  size === 'middle' || !size ? 'default' : size;
+const normalizeButtonSize = (size?: string | null): ButtonSize =>
+  (size === 'middle' || !size ? 'default' : size) as ButtonSize;
 
-const normalizeButtonStyle = (style?: string | null) =>
-  style ?? 'primary';
+const normalizeButtonStyle = (style?: string | null): ButtonStyle =>
+  (style ?? 'primary') as ButtonStyle;
 
 const isValidUrl = (url: string): boolean => {
   if (!url || url.trim().length === 0) {
@@ -534,7 +534,7 @@ const DashboardButton = ({
       disableDragDrop={isFocused}
       editMode={editMode}
     >
-      {({ dragSourceRef }) => (
+      {({ dragSourceRef }: { dragSourceRef?: (element: HTMLDivElement | null) => void }) => (
         <WithPopoverMenu
           isFocused={isFocused}
           onChangeFocus={updateFocus}

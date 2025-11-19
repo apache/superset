@@ -69,16 +69,7 @@ const TextArea = styled(Input.TextArea)`
   `}
 `;
 
-const BUTTON_STYLE_OPTIONS: ButtonStyle[] = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'danger',
-  'link',
-  'dashed',
-];
-
-const BUTTON_SIZE_OPTIONS: ButtonSize[] = ['default', 'small', 'xsmall'];
+// Removed unused constants - using inline options in Select components
 
 export type ButtonConfig = Pick<
   DashboardButtonMeta,
@@ -242,7 +233,6 @@ const ButtonConfigMenuItem = ({
         title={t('Button configuration')}
         show={modalVisible}
         onHide={handleCancel}
-        destroyOnClose
         footer={
           <div className="config-form-footer">
             <SupersetButton
@@ -319,7 +309,6 @@ const ButtonConfigMenuItem = ({
                 <Form.Item<FormValues>
                   name="url"
                   label={t('Destination URL')}
-                  requiredMark="optional"
                   rules={[
                     {
                       validator: (_, value) => {
@@ -378,7 +367,6 @@ const ButtonConfigMenuItem = ({
                 <Form.Item<FormValues>
                   name="apiEndpoint"
                   label={t('API endpoint')}
-                  requiredMark="optional"
                   rules={[
                     {
                       validator: (_, value) => {

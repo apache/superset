@@ -29,7 +29,7 @@ export default function NewModel3D() {
       id={NEW_MODEL3D_ID}
       type={MODEL3D_TYPE}
       label={t('3D Model')}
-      IconComponent={Icons.BlockOutlined}
+      IconComponent={Icons.AppstoreOutlined}
     />
   );
 }
