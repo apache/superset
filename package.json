@@ -1,0 +1,16 @@
+{
+  "name": "superset",
+  "version": "1.0.0",
+  "description": "<!--\r Licensed to the Apache Software Foundation (ASF) under one\r or more contributor license agreements.  See the NOTICE file\r distributed with this work for additional information\r regarding copyright ownership.  The ASF licenses this file\r to you under the Apache License, Version 2.0 (the\r \"License\"); you may not use this file except in compliance\r with the License.  You may obtain a copy of the License at",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
