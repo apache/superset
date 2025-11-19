@@ -9278,6 +9278,10 @@ msgstr "اختار"
 msgid "Select ..."
 msgstr "حدد..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "إلغاء تحديد الكل"
+
 msgid "Select Delivery Method"
 msgstr "حدد طريقة التسليم"
 

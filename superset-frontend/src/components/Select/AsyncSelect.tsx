@@ -41,6 +41,7 @@ import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   getValue,
   hasOption,
@@ -171,6 +172,11 @@ const AsyncSelect = forwardRef(
       () => setOnChangeCount(onChangeCount + 1),
       [onChangeCount],
     );
+
+    const renderNotFoundContent = () =>
+      notFoundContent || (
+        <EmptyState title={t('No Data')} description="" size="small" />
+      );
 
     useEffect(() => {
       if (oneLine) {
@@ -610,7 +616,9 @@ const AsyncSelect = forwardRef(
           labelInValue
           maxTagCount={maxTagCount}
           mode={mappedMode}
-          notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          notFoundContent={
+            isLoading ? t('Loading...') : renderNotFoundContent()
+          }
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}

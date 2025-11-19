@@ -9424,6 +9424,10 @@ msgstr "Executar a query selecionada"
 msgid "Select ..."
 msgstr "Selecione ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Repor Estado"
+
 msgid "Select Delivery Method"
 msgstr ""
 

@@ -38,6 +38,7 @@ type Option = {
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
 const NO_DATA = 'No Data';
+const NO_DATA_CUSTOM = 'No results found';
 const LOADING = 'Loading...';
 const OPTIONS: Option[] = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -487,6 +488,14 @@ test('opens the select without any data', async () => {
   render(<Select {...defaultProps} options={[]} />);
   await open();
   expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('opens the select without any data with notFoundContent customize', async () => {
+  render(
+    <Select {...defaultProps} notFoundContent={NO_DATA_CUSTOM} options={[]} />,
+  );
+  await open();
+  expect(screen.getByText(NO_DATA_CUSTOM)).toBeInTheDocument();
 });
 
 test('makes a selection in single mode', async () => {

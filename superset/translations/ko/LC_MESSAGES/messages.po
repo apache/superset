@@ -9179,6 +9179,10 @@ msgstr "삭제"
 msgid "Select ..."
 msgstr ""
 
+#, fuzzy
+msgid "Select All"
+msgstr "테이블 선택"
+
 msgid "Select Delivery Method"
 msgstr ""
 

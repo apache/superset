@@ -9283,6 +9283,10 @@ msgstr "Seleziona %s"
 msgid "Select ..."
 msgstr ""
 
+#, fuzzy
+msgid "Select All"
+msgstr "Seleziona data finale"
+
 msgid "Select Delivery Method"
 msgstr ""
 

@@ -9304,6 +9304,10 @@ msgstr "選擇"
 msgid "Select ..."
 msgstr "選擇 ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "反選所有"
+
 msgid "Select Delivery Method"
 msgstr "增加通知方法"
 

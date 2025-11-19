@@ -55,8 +55,12 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+
+const bootstrapData = getBootstrapData();
+const { locale } = bootstrapData.common;
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
@@ -300,6 +304,8 @@ const SliceHeaderControls = (
   } = props;
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
+  extendedDayjs.locale(locale);
+
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     extendedDayjs.utc(itemCachedDttm).fromNow(),
   );

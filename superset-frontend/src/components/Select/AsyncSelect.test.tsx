@@ -30,6 +30,7 @@ import { AsyncSelect } from 'src/components';
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
 const NO_DATA = 'No Data';
+const NO_DATA_CUSTOM = 'No results found';
 const LOADING = 'Loading...';
 const OPTIONS = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -501,7 +502,19 @@ test('opens the select without any data', async () => {
     />,
   );
   await open();
-  expect(await screen.findByText(/no data/i)).toBeInTheDocument();
+  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('opens the select without any data with notFoundContent customize', async () => {
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      notFoundContent={NO_DATA_CUSTOM}
+      options={async () => ({ data: [], totalCount: 0 })}
+    />,
+  );
+  await open();
+  expect(await screen.findByText(NO_DATA_CUSTOM)).toBeInTheDocument();
 });
 
 test('displays the loading indicator when opening', async () => {

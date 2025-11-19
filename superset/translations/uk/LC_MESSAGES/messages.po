@@ -9382,6 +9382,10 @@ msgstr "Обраний"
 msgid "Select ..."
 msgstr "Виберіть ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Скасувати всі"
+
 msgid "Select Delivery Method"
 msgstr "Виберіть метод доставки"
 

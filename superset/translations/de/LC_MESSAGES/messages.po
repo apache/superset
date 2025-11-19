@@ -9465,6 +9465,10 @@ msgstr "Auswählen"
 msgid "Select ..."
 msgstr "Auswählen …"
 
+#, fuzzy
+msgid "Select All"
+msgstr "Alle abwählen"
+
 msgid "Select Delivery Method"
 msgstr "Übermittlungsmethode hinzufügen"
 

@@ -8714,6 +8714,10 @@ msgstr "Seç"
 msgid "Select ..."
 msgstr "Seç…"
 
+#, fuzzy
+msgid "Select All"
+msgstr "Dosya seç"
+
 msgid "Select Delivery Method"
 msgstr ""
 

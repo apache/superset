@@ -8659,6 +8659,9 @@ msgstr ""
 msgid "Select ..."
 msgstr ""
 
+msgid "Select All"
+msgstr ""
+
 msgid "Select Delivery Method"
 msgstr ""
 

@@ -9296,6 +9296,10 @@ msgstr "Izberi"
 msgid "Select ..."
 msgstr "Izberite ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Počisti izbor"
+
 msgid "Select Delivery Method"
 msgstr "Izberite način dostave"
 

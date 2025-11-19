@@ -8729,6 +8729,10 @@ msgstr ""
 msgid "Select ..."
 msgstr ""
 
+#, fuzzy
+msgid "Select All"
+msgstr "Grafy"
+
 msgid "Select Delivery Method"
 msgstr ""
 

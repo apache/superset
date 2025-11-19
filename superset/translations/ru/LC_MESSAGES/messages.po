@@ -9313,6 +9313,10 @@ msgstr "Выбрать"
 msgid "Select ..."
 msgstr "Выбрать ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Снять выделение"
+
 msgid "Select Delivery Method"
 msgstr "Выберите способ отправки"
 

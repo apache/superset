@@ -87,7 +87,7 @@ export default function AllEntitiesTable({
         columns={[
           {
             accessor: type,
-            Header: 'Title',
+            Header: t('Title'),
           },
           {
             Cell: ({

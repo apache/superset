@@ -9491,6 +9491,10 @@ msgstr "Selecione"
 msgid "Select ..."
 msgstr "Selecione ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Desmarcar tudo"
+
 msgid "Select Delivery Method"
 msgstr "Selecione o método de entrega"
 

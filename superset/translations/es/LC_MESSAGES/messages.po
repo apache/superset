@@ -9655,6 +9655,10 @@ msgid "Select ..."
 msgstr "Selecciona ..."
 
 #, fuzzy
+msgid "Select All"
+msgstr "¿Realmente quieres borrar todo?"
+
+#, fuzzy
 msgid "Select Delivery Method"
 msgstr "Agregar método de entrega"
 

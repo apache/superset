@@ -8902,6 +8902,10 @@ msgstr "選択する"
 msgid "Select ..."
 msgstr "選択する"
 
+#, fuzzy
+msgid "Select All"
+msgstr "すべての選択を解除"
+
 msgid "Select Delivery Method"
 msgstr "配送方法の選択"
 
