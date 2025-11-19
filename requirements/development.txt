@@ -466,6 +466,7 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
+    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
@@ -536,6 +537,7 @@ pgsanity==0.2.9
     #   apache-superset
 pillow==11.3.0
     # via
+    #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
 pip==25.1.1
