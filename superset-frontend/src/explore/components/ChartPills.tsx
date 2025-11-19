@@ -17,7 +17,8 @@
  * under the License.
  */
 import { forwardRef, RefObject } from 'react';
-import { css, QueryData, SupersetTheme } from '@superset-ui/core';
+import { QueryData } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
 import {
   CachedLabel,
   type LabelType,

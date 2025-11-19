@@ -33,6 +33,7 @@ from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
 )
+from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -101,7 +102,7 @@ SQLGLOT_DIALECTS = {
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
     "shillelagh": Dialects.SQLITE,
-    "singlestore": Dialects.MYSQL,
+    "singlestoredb": SingleStore,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
@@ -167,14 +168,7 @@ class RLSTransformer:
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
-            return (
-                exp.And(
-                    this=predicates[0],
-                    expressions=predicates[1:],
-                )
-                if len(predicates) > 1
-                else predicates[0]
-            )
+            return sqlglot.and_(*predicates)
 
         return None
 
@@ -310,6 +304,21 @@ class Table:
 
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
+
+    def qualify(
+        self,
+        *,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Table:
+        """
+        Return a new Table with the given schema and/or catalog, if not already set.
+        """
+        return Table(
+            table=self.table,
+            schema=self.schema or schema,
+            catalog=self.catalog or catalog,
+        )
 
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of

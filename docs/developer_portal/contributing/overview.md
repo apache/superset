@@ -1,5 +1,5 @@
 ---
-title: Contributing Overview
+title: Overview
 sidebar_position: 1
 ---
 
@@ -22,7 +22,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Contributing to Apache Superset
+# Contributing
 
 Superset is an [Apache Software foundation](https://www.apache.org/theapacheway/index.html) project.
 The core contributors (or committers) to Superset communicate primarily in the following channels (which can be joined by anyone):

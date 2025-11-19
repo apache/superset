@@ -22,13 +22,8 @@ import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import URI from 'urijs';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import {
-  FeatureFlag,
-  styled,
-  t,
-  isFeatureEnabled,
-  css,
-} from '@superset-ui/core';
+import { FeatureFlag, t, isFeatureEnabled } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';

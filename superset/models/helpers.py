@@ -120,6 +120,34 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 
+# Keys used to filter QueryObjectDict for get_sqla_query parameters
+SQLA_QUERY_KEYS = {
+    "apply_fetch_values_predicate",
+    "columns",
+    "extras",
+    "filter",
+    "from_dttm",
+    "granularity",
+    "groupby",
+    "inner_from_dttm",
+    "inner_to_dttm",
+    "is_rowcount",
+    "is_timeseries",
+    "metrics",
+    "orderby",
+    "order_desc",
+    "to_dttm",
+    "series_columns",
+    "series_limit",
+    "series_limit_metric",
+    "group_others_when_limit_reached",
+    "row_limit",
+    "row_offset",
+    "timeseries_limit",
+    "timeseries_limit_metric",
+    "time_shift",
+}
+
 
 def validate_adhoc_subquery(
     sql: str,
@@ -824,7 +852,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def columns(self) -> list[Any]:
         raise NotImplementedError()
 
-    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
@@ -974,7 +1002,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         mutate: bool = True,
     ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
+        # Filter out keys that aren't parameters to get_sqla_query
+        filtered_query_obj = {
+            k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
+        }
+        sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -1188,6 +1220,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
+
+        For virtual datasets, RLS filters from underlying tables are applied to
+        prevent RLS bypass.
         """
         from_sql = self.get_rendered_sql(template_processor) + "\n"
         parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
@@ -1195,6 +1230,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
+
+        # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
+        # For each table referenced in the virtual dataset, apply its RLS filters
+        if parsed_script.statements:
+            default_schema = self.database.get_default_schema(self.catalog)
+            try:
+                for statement in parsed_script.statements:
+                    apply_rls(
+                        self.database,
+                        self.catalog,
+                        self.schema or default_schema or "",
+                        statement,
+                    )
+                # Regenerate the SQL after RLS application
+                from_sql = parsed_script.format()
+            except Exception as ex:
+                # Log the error but don't fail - RLS application is best-effort
+                logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
@@ -1341,6 +1394,54 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
             )
         return ob
+
+    def _reapply_query_filters(
+        self,
+        qry: Select,
+        apply_fetch_values_predicate: bool,
+        template_processor: Optional[BaseTemplateProcessor],
+        granularity: str | None,
+        time_filters: list[ColumnElement],
+        where_clause_and: list[ColumnElement],
+        having_clause_and: list[ColumnElement],
+    ) -> Select:
+        """
+        Re-apply WHERE and HAVING clauses to a reconstructed query.
+
+        When group_others_when_limit_reached=True, the query is reconstructed
+        with sa.select(), losing previously applied filters. This method
+        re-applies those filters to maintain query correctness.
+
+        The WHERE clause includes: user filters, RLS filters, extra WHERE
+        clauses, and time range filters accumulated in where_clause_and
+        and time_filters.
+
+        :param qry: The reconstructed SQLAlchemy Select object
+        :param apply_fetch_values_predicate: Whether to apply fetch values predicate
+        :param template_processor: Template processor for dynamic filters
+        :param granularity: Time granularity (if None, time_filters not applied)
+        :param time_filters: Time-based filter conditions
+        :param where_clause_and: Accumulated WHERE clause conditions
+        :param having_clause_and: Accumulated HAVING clause conditions
+        :return: The query with filters re-applied
+        """
+        if apply_fetch_values_predicate and self.fetch_values_predicate:
+            qry = qry.where(
+                self.get_fetch_values_predicate(template_processor=template_processor)
+            )
+
+        if granularity:
+            if time_filters or where_clause_and:
+                qry = qry.where(and_(*(time_filters + where_clause_and)))
+        else:
+            all_filters = time_filters + where_clause_and
+            if all_filters:
+                qry = qry.where(and_(*all_filters))
+
+        if having_clause_and:
+            qry = qry.having(and_(*having_clause_and))
+
+        return qry
 
     def adhoc_column_to_sqla(
         self,
@@ -1972,6 +2073,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             metrics_exprs = []
 
+        time_filters = []
+
+        # Process FROM clause early to populate removed_filters from virtual dataset
+        # templates before we decide whether to add time filters
+        tbl, cte = self.get_from_clause(template_processor)
+
         if granularity:
             if granularity not in columns_by_name or not dttm_col:
                 raise QueryObjectValidationError(
@@ -1980,7 +2087,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         col=granularity,
                     )
                 )
-            time_filters = []
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
@@ -1995,6 +2101,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 self.always_filter_main_dttm
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
+                and self.main_dttm_col not in removed_filters
             ):
                 time_filters.append(
                     self.get_time_filter(
@@ -2005,13 +2112,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 )
 
-            time_filter_column = self.get_time_filter(
-                time_col=dttm_col,
-                start_dttm=from_dttm,
-                end_dttm=to_dttm,
-                template_processor=template_processor,
+            # Check if time filter should be skipped because it was handled in template.
+            # Check both the actual column name and __timestamp alias
+            should_skip_time_filter = (
+                dttm_col.column_name in removed_filters
+                or utils.DTTM_ALIAS in removed_filters
             )
-            time_filters.append(time_filter_column)
+
+            if not should_skip_time_filter:
+                time_filter_column = self.get_time_filter(
+                    time_col=dttm_col,
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
+                )
+                time_filters.append(time_filter_column)
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -2030,13 +2145,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = sa.select(select_exprs)
 
-        tbl, cte = self.get_from_clause(template_processor)
-
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
 
-        where_clause_and = []
-        having_clause_and = []
+        where_clause_and: list[ColumnElement] = []
+        having_clause_and: list[ColumnElement] = []
 
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
@@ -2047,6 +2160,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
+            is_metric_filter = (
+                False  # Track if this is a filter on a metric (needs HAVING clause)
+            )
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
@@ -2057,12 +2173,41 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
+                # Check if it's a regular column first
                 col_obj = columns_by_name.get(cast(str, flt_col))
+                # If not found in columns, check if it's a metric
+                # This supports filtering on metric columns for any chart type
+                if (
+                    col_obj is None
+                    and isinstance(flt_col, str)
+                    and flt_col in metrics_by_name
+                ):
+                    # Convert metric to SQLA column expression
+                    sqla_col = metrics_by_name[flt_col].get_sqla_col(
+                        template_processor=template_processor
+                    )
+                    is_metric_filter = True
             filter_grain = flt.get("grain")
 
-            if get_column_name(flt_col) in removed_filters:
+            # Check if this filter should be skipped because it was handled in
+            # template. Special handling for __timestamp alias: check both the
+            # alias and the actual column name
+            filter_col_name = get_column_name(flt_col)
+            should_skip_filter = filter_col_name in removed_filters
+            if not should_skip_filter and flt_col == utils.DTTM_ALIAS and col_obj:
+                # For __timestamp, also check if the actual datetime column was
+                # removed
+                should_skip_filter = col_obj.column_name in removed_filters
+
+            if should_skip_filter:
                 # Skip generating SQLA filter when the jinja template handles it.
                 continue
+
+            # Determine which clause list to use: HAVING for metrics, WHERE for columns
+            # Metric filters use HAVING clause because they involve aggregate functions
+            target_clause_list = (
+                having_clause_and if is_metric_filter else where_clause_and
+            )
 
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
@@ -2121,7 +2266,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _(bus_resp["error_message"])
                         )
 
-                    where_clause_and.append(
+                    target_clause_list.append(
                         ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
@@ -2144,20 +2289,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
-                    where_clause_and.append(cond)
+                    target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
                     utils.FilterOperator.IS_NOT_NULL,
                 }:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
                     )
                 elif op == utils.FilterOperator.IS_TRUE:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, True)
                     )
                 elif op == utils.FilterOperator.IS_FALSE:
-                    where_clause_and.append(
+                    target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, False)
                     )
                 else:
@@ -2183,7 +2328,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.GREATER_THAN_OR_EQUALS,
                         utils.FilterOperator.LESS_THAN_OR_EQUALS,
                     }:
-                        where_clause_and.append(
+                        target_clause_list.append(
                             db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
                         )
                     elif op in {
@@ -2194,14 +2339,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         if op == utils.FilterOperator.LIKE:
-                            where_clause_and.append(sqla_col.like(eq))
+                            target_clause_list.append(sqla_col.like(eq))
                         else:
-                            where_clause_and.append(sqla_col.ilike(eq))
+                            target_clause_list.append(sqla_col.ilike(eq))
                     elif op in {utils.FilterOperator.NOT_LIKE}:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        where_clause_and.append(sqla_col.not_like(eq))
+                        target_clause_list.append(sqla_col.not_like(eq))
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
@@ -2212,7 +2357,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_shift=time_shift,
                             extras=extras,
                         )
-                        where_clause_and.append(
+                        target_clause_list.append(
                             self.get_time_filter(
                                 time_col=col_obj,
                                 start_dttm=_since,
@@ -2226,6 +2371,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
+            else:
+                # col_obj is None and sqla_col is None - column not found!
+                # Silently skip - this can happen for removed columns or invalid filters
+                pass
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -2253,6 +2402,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
+
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
@@ -2365,6 +2515,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
+
+                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
+                    qry = self._reapply_query_filters(
+                        qry,
+                        apply_fetch_values_predicate,
+                        template_processor,
+                        granularity,
+                        time_filters,
+                        where_clause_and,
+                        having_clause_and,
+                    )
                 else:
                     tbl = tbl.join(
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
@@ -2384,7 +2545,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ]
 
                 # run prequery to get top groups
-                prequery_obj = {
+                prequery_obj: QueryObjectDict = {
                     "is_timeseries": False,
                     "row_limit": series_limit,
                     "metrics": metrics,
@@ -2392,7 +2553,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "groupby": groupby,
                     "from_dttm": inner_from_dttm or from_dttm,
                     "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter,
+                    "filter": filter or [],
                     "orderby": orderby,
                     "extras": extras,
                     "columns": get_non_base_axis_columns(columns),
@@ -2428,6 +2589,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
+
+                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
+                    qry = self._reapply_query_filters(
+                        qry,
+                        apply_fetch_values_predicate,
+                        template_processor,
+                        granularity,
+                        time_filters,
+                        where_clause_and,
+                        having_clause_and,
+                    )
                 else:
                     # Original behavior: filter to only top groups
                     qry = qry.where(top_groups)

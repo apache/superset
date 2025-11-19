@@ -35,7 +35,7 @@ Learn how to create and submit high-quality pull requests to Apache Superset.
 - [ ] You've found or created an issue to work on
 
 ### PR Readiness Checklist
-- [ ] Code follows [coding guidelines](../coding-guidelines/overview)
+- [ ] Code follows [coding guidelines](../guidelines/design-guidelines)
 - [ ] Tests are passing locally
 - [ ] Linting passes (`pre-commit run --all-files`)
 - [ ] Documentation is updated if needed

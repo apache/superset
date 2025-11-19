@@ -50,7 +50,7 @@ export const atLeastOneRoleOrGroup =
   }: {
     getFieldValue: (field: string) => Array<SelectOption>;
   }) => ({
-    validator(_: Object, value: Array<SelectOption>) {
+    validator(_: object, value: Array<SelectOption>) {
       const current = value || [];
       const other = getFieldValue(fieldToCheck) || [];
       if (current.length === 0 && other.length === 0) {
