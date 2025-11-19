@@ -8,6 +8,8 @@ amqp==5.3.1
     # via kombu
 annotated-types==0.7.0
     # via pydantic
+anyio==4.11.0
+    # via httpx
 apispec==6.6.1
     # via
     #   -r requirements/base.in
@@ -50,6 +52,8 @@ celery==5.5.2
     # via apache-superset (pyproject.toml)
 certifi==2025.6.15
     # via
+    #   httpcore
+    #   httpx
     #   requests
     #   selenium
 cffi==1.17.1
@@ -68,6 +72,7 @@ click==8.2.1
     #   click-repl
     #   flask
     #   flask-appbuilder
+    #   typer-slim
 click-didyoumean==0.3.1
     # via celery
 click-option-group==0.5.7
@@ -101,6 +106,8 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
+filelock==3.20.0
+    # via huggingface-hub
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -150,6 +157,8 @@ flask-wtf==1.2.2
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
+fsspec==2025.10.0
+    # via huggingface-hub
 geographiclib==2.0
     # via geopy
 geopy==2.4.1
@@ -160,19 +169,32 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
-    # via wsproto
+    # via
+    #   httpcore
+    #   wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
+hf-xet==1.2.0
+    # via huggingface-hub
 holidays==0.82
     # via apache-superset (pyproject.toml)
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via huggingface-hub
+huggingface-hub==1.1.4
+    # via -r requirements/base.in
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
 idna==3.10
     # via
+    #   anyio
     #   email-validator
+    #   httpx
     #   requests
     #   trio
     #   url-normalize
@@ -261,6 +283,7 @@ packaging==25.0
     #   apispec
     #   deprecation
     #   gunicorn
+    #   huggingface-hub
     #   limits
     #   marshmallow
     #   shillelagh
@@ -339,6 +362,7 @@ pyyaml==6.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
+    #   huggingface-hub
 redis==4.6.0
     # via apache-superset (pyproject.toml)
 referencing==0.36.2
@@ -365,6 +389,8 @@ selenium==4.32.0
     # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
+shellingham==1.5.4
+    # via huggingface-hub
 shillelagh==1.4.3
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
@@ -378,13 +404,16 @@ six==1.17.0
 slack-sdk==3.35.0
     # via apache-superset (pyproject.toml)
 sniffio==1.3.1
-    # via trio
+    # via
+    #   anyio
+    #   trio
 sortedcontainers==2.4.0
     # via trio
 sqlalchemy==1.4.54
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   apache-superset-core
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -393,24 +422,34 @@ sqlalchemy==1.4.54
 sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
     #   flask-appbuilder
 sqlglot==27.15.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
     # via apache-superset (pyproject.toml)
+tqdm==4.67.1
+    # via huggingface-hub
 trio==0.30.0
     # via
     #   selenium
     #   trio-websocket
 trio-websocket==0.12.2
     # via selenium
+typer-slim==0.20.0
+    # via huggingface-hub
 typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   anyio
+    #   apache-superset-core
     #   cattrs
+    #   huggingface-hub
     #   limits
     #   pydantic
     #   pydantic-core
@@ -418,6 +457,7 @@ typing-extensions==4.15.0
     #   referencing
     #   selenium
     #   shillelagh
+    #   typer-slim
     #   typing-inspection
 typing-inspection==0.4.1
     # via pydantic
