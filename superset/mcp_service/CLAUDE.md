@@ -103,24 +103,20 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 ### How to Add a New Prompt
 
 1. **Create the prompt file** in the appropriate directory (e.g., `chart/prompts/my_new_prompt.py`)
-2. **Decorate with `@mcp.prompt`** to register it with FastMCP (prompts still use direct FastMCP)
+2. **Decorate with `@mcp_prompt`** to register it with the unified decorator
 3. **Add import to module's `__init__.py`** (e.g., `chart/prompts/__init__.py`)
 4. **Ensure module is imported in `app.py`** (around line 244-253)
 
 **Example**:
 ```python
 # superset/mcp_service/chart/prompts/my_new_prompt.py
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset_core.mcp import mcp_prompt
 
-@mcp.prompt("my_new_prompt")
-@mcp_auth_hook
+@mcp_prompt("my_new_prompt")
 async def my_new_prompt_handler(ctx: Context) -> str:
     """Interactive prompt for doing something."""
     return "Prompt instructions here..."
 ```
-
-**Note**: Prompts continue to use the direct FastMCP decorators (`@mcp.prompt`) rather than the unified `@mcp_tool()` decorator.
 
 **Then add to `chart/prompts/__init__.py`**:
 ```python
@@ -461,7 +457,7 @@ def my_tool():
 # ACCEPTABLE - For prompts/resources (when needed)
 from superset.mcp_service.app import mcp
 
-@mcp.prompt("my_prompt")
+@mcp_prompt("my_prompt")
 def my_prompt():
     pass
 
@@ -509,8 +505,7 @@ MCP clients discover tools via:
 ## Quick Checklist for New Prompts
 
 - [ ] Created prompt file in `{module}/prompts/{prompt_name}.py`
-- [ ] Added `@mcp.prompt("prompt_name")` decorator
-- [ ] Added `@mcp_auth_hook` decorator
+- [ ] Added `@mcp_prompt("prompt_name")` decorator
 - [ ] Made function async: `async def prompt_handler(ctx: Context) -> str`
 - [ ] Added import to `{module}/prompts/__init__.py`
 - [ ] Verified module import exists in `app.py` (around line 244-253)

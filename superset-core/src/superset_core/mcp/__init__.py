@@ -48,7 +48,7 @@ def mcp_tool(
     description: str | None = None,
     tags: list[str] | None = None,
     protect: bool = True,
-) -> Callable[[F], F] | F:
+) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
 
@@ -91,22 +91,71 @@ def mcp_tool(
             '''Public tool accessible without auth'''
             return "Hello world"
     """
+    raise NotImplementedError(
+        "MCP tool decorator not initialized. "
+        "This decorator should be replaced during Superset startup."
+    )
 
-    def decorator(func: F) -> F:
-        raise NotImplementedError(
-            "MCP tool decorator not initialized. "
-            "This decorator should be replaced during Superset startup."
-        )
 
-    # If called as @mcp_tool (without parentheses)
-    if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+def mcp_prompt(
+    func_or_name: str | Callable[..., Any] | None = None,
+    *,
+    name: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    tags: set[str] | None = None,
+    protect: bool = True,
+) -> Any:  # Use Any to avoid mypy issues with dependency injection
+    """
+    Decorator to register an MCP prompt with optional authentication.
 
-    # If called as @mcp_tool() or @mcp_tool(name="...")
-    return decorator
+    This decorator combines FastMCP prompt registration with optional authentication.
+
+    Can be used as:
+        @mcp_prompt
+        async def my_prompt_handler(): ...
+
+    Or:
+        @mcp_prompt("my_prompt")
+        async def my_prompt_handler(): ...
+
+    Or:
+        @mcp_prompt("my_prompt", protected=False, title="Custom Title")
+        async def my_prompt_handler(): ...
+
+    Args:
+        func_or_name: When used as @mcp_prompt, this will be the function.
+                     When used as @mcp_prompt("name"), this will be the name.
+        name: Prompt name (defaults to function name if not provided)
+        title: Prompt title (defaults to function name)
+        description: Prompt description (defaults to function docstring)
+        tags: Set of tags for categorizing the prompt
+        protect: Whether to require Superset authentication (defaults to True)
+
+    Returns:
+        Decorator function that registers and wraps the prompt, or the wrapped function
+
+    Raises:
+        NotImplementedError: If called before host implementation is initialized
+
+    Example:
+        @mcp_prompt
+        async def my_prompt_handler(ctx: Context) -> str:
+            '''Interactive prompt for doing something.'''
+            return "Prompt instructions here..."
+
+        @mcp_prompt("custom_prompt", protect=False, title="Custom Title")
+        async def public_prompt_handler(ctx: Context) -> str:
+            '''Public prompt accessible without auth'''
+            return "Public prompt accessible without auth"
+    """
+    raise NotImplementedError(
+        "MCP prompt decorator not initialized. "
+        "This decorator should be replaced during Superset startup."
+    )
 
 
 __all__ = [
     "mcp_tool",
+    "mcp_prompt",
 ]
