@@ -207,6 +207,11 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # a sufficiently random sequence, ex: openssl rand -base64 42"
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
+# HuggingFace API token for AI-powered SQL generation
+# Get your free token at https://huggingface.co/settings/tokens
+# Set this in superset_config.py or use `HF_API_TOKEN` environment variable
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN") or os.environ.get("HF_TOKEN")
+
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""
