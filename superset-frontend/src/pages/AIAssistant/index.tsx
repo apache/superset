@@ -678,7 +678,7 @@ export default function AIAssistant() {
                         fontSize: '12px',
                         color: theme.colorTextTertiary,
                       }}
-                     />
+                    />
 
                     {/* Schema info for AI context - for debugging */}
                     <div style={{ marginTop: '16px' }}>
