@@ -283,7 +283,7 @@ describe('useDatasetDrillInfo', () => {
 describe('getDatasetId - malformed IDs', () => {
   test('handles non-numeric string ID', () => {
     const result = getDatasetId('abc');
-    expect(result).toBeNaN();
+    expect(Number.isNaN(result)).toBe(true);
   });
 
   test('handles empty string ID', () => {
