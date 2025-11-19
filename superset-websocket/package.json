@@ -27,8 +27,8 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
-    "@types/eslint__js": "^8.42.3",
+    "@eslint/js": "^9.39.1",
+    "@types/eslint__js": "^9.14.0",
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
