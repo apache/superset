@@ -176,7 +176,6 @@ cryptography==44.0.3
     #   paramiko
     #   pyjwt
     #   pyopenssl
-    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==3.24.0
@@ -211,7 +210,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==0.10.3
+duckdb==1.4.2
     # via
     #   apache-superset
     #   duckdb-engine
@@ -440,10 +439,6 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.3.0
     # via keyring
-jeepney==0.9.0
-    # via
-    #   keyring
-    #   secretstorage
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -883,8 +878,6 @@ rsa==4.9.1
     #   google-auth
 ruff==0.8.0
     # via apache-superset
-secretstorage==3.4.1
-    # via keyring
 selenium==4.32.0
     # via
     #   -c requirements/base-constraint.txt
@@ -932,6 +925,7 @@ sqlalchemy==1.4.54
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
+    #   apache-superset-core
     #   duckdb-engine
     #   flask-appbuilder
     #   flask-sqlalchemy
@@ -945,11 +939,13 @@ sqlalchemy-utils==0.38.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   flask-appbuilder
 sqlglot==27.15.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 sqloxide==0.1.51
     # via apache-superset
 sse-starlette==3.0.2
@@ -989,6 +985,7 @@ typing-extensions==4.15.0
     #   alembic
     #   anyio
     #   apache-superset
+    #   apache-superset-core
     #   cattrs
     #   exceptiongroup
     #   limits
