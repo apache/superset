@@ -44,7 +44,7 @@ from superset.mcp_service.utils.url_utils import get_mcp_service_url
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:

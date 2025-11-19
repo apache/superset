@@ -58,7 +58,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp_tool()
+@mcp_tool
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:

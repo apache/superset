@@ -33,7 +33,7 @@ from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 def get_chart_available_filters(
     request: GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:

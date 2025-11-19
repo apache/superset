@@ -36,7 +36,7 @@ from superset.mcp_service.chart.schemas import (
 )
 
 
-@mcp_tool()
+@mcp_tool
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:

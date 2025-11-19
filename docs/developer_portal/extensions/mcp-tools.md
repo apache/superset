@@ -48,7 +48,7 @@ The simplest way to create an MCP tool is using the `@mcp_tool` decorator:
 ```python
 from superset_core.mcp import mcp_tool
 
-@mcp_tool()
+@mcp_tool
 def hello_world() -> dict:
     """A simple greeting tool."""
     return {"message": "Hello from my extension!"}

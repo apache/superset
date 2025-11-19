@@ -46,7 +46,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:

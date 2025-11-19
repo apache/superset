@@ -64,7 +64,7 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp_tool()
+@mcp_tool
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 

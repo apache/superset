@@ -116,7 +116,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@mcp_tool()
+@mcp_tool
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:

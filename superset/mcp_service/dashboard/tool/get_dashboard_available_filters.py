@@ -32,7 +32,7 @@ from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 async def get_dashboard_available_filters(
     request: GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:

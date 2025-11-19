@@ -82,7 +82,7 @@ superset/mcp_service/
 # superset/mcp_service/chart/tool/my_new_tool.py
 from superset_core.mcp import mcp_tool
 
-@mcp_tool()
+@mcp_tool
 def my_new_tool(param: str) -> dict:
     """Tool description for LLMs."""
     return {"result": "success"}
@@ -196,14 +196,14 @@ list_core = ModelListCore(
     logger=logger,
 )
 
-@mcp_tool()
+@mcp_tool
 def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardList:
     return list_core.run_tool(filters=filters, page=page, page_size=10)
 ```
 
 ### 2. Always Use Authentication
 
-**Every tool must use `@mcp_tool()`** with authentication enabled (default) to ensure:
+**Every tool must use `@mcp_tool`** with authentication enabled (default) to ensure:
 - User authentication from JWT or configured admin user
 - Permission checking via JWT scopes
 - Audit logging of tool access
@@ -211,12 +211,12 @@ def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardL
 ```python
 from superset_core.mcp import mcp_tool
 
-@mcp_tool()  # REQUIRED - auth=True by default
+@mcp_tool  # REQUIRED - secure=True by default
 def my_tool() -> dict:
     # g.user is set by mcp_tool decorator
     return {"user": g.user.username}
 
-@mcp_tool(auth=False)  # Only for truly public tools
+@mcp_tool(secure=False)  # Only for truly public tools
 def public_tool() -> dict:
     # No authentication required
     return {"status": "public"}
@@ -312,7 +312,7 @@ class MyError(BaseModel):
         description="Error timestamp"
     )
 
-@mcp_tool()
+@mcp_tool
 def my_tool(id: int) -> MyResponse:
     try:
         result = process_data(id)
@@ -375,7 +375,7 @@ def test_tool_with_flask_context(app):
 
 ### 3. ❌ Missing Authentication
 **Problem**: Tool bypasses authentication and authorization.
-**Solution**: Always use `@mcp_tool()` with default auth=True, or explicitly set auth=False only for public tools.
+**Solution**: Always use `@mcp_tool` with default secure=True, or explicitly set secure=False only for public tools.
 
 ### 4. ❌ Using `Optional` Instead of Union Syntax
 **Problem**: Old-style Optional[T] is not Python 3.10+ style.
@@ -428,23 +428,21 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 
 **Note**: LLM instruction files like `CLAUDE.md`, `AGENTS.md`, etc. are excluded from this requirement (listed in `.rat-excludes`) to avoid token overhead.
 
-### 9. ❌ Using Old `@mcp.tool` Pattern
-**Problem**: Deprecated pattern with separate decorators.
-**Solution**: Use unified `@mcp_tool()` decorator.
+### 9. ❌ ❌ Using `@mcp_tool()` with Empty Parentheses
+**Problem**: Inconsistent decorator style.
+**Solution**: Use `@mcp_tool` without parentheses unless passing arguments.
 ```python
-# GOOD - New unified pattern
+# GOOD
 from superset_core.mcp import mcp_tool
 
-@mcp_tool()
+@mcp_tool
 def my_tool():
     pass
 
-# BAD - Old separate decorators (deprecated)
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+# BAD
+from superset_core.mcp import mcp_tool
 
-@mcp.tool
-@mcp_auth_hook
+@mcp_tool
 def my_tool():
     pass
 ```
@@ -456,7 +454,7 @@ def my_tool():
 # GOOD - New pattern
 from superset_core.mcp import mcp_tool
 
-@mcp_tool()
+@mcp_tool
 def my_tool():
     pass
 
@@ -499,7 +497,7 @@ MCP clients discover tools via:
 ## Quick Checklist for New Tools
 
 - [ ] Created tool file in `{module}/tool/{tool_name}.py`
-- [ ] Added `@mcp_tool()` decorator
+- [ ] Added `@mcp_tool` decorator
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
 - [ ] Used DAO classes instead of direct queries when querying Superset entities
 - [ ] Added tool import to `app.py` (around line 210-242)

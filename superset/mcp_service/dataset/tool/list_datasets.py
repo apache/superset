@@ -61,7 +61,7 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@mcp_tool()
+@mcp_tool
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 

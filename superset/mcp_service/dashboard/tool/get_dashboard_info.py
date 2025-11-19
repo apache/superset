@@ -39,7 +39,7 @@ from superset.mcp_service.mcp_core import ModelGetInfoCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:

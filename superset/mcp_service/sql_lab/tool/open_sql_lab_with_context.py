@@ -35,7 +35,7 @@ from superset.mcp_service.sql_lab.schemas import (
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:

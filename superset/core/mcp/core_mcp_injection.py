@@ -32,25 +32,32 @@ logger = logging.getLogger(__name__)
 
 
 def create_mcp_tool_decorator(
+    func_or_name: str | Callable[..., Any] | None = None,
+    *,
     name: Optional[str] = None,
     description: Optional[str] = None,
     tags: Optional[list[str]] = None,
-    auth: bool = True,
-) -> Callable[[F], F]:
+    secure: bool = True,
+) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
 
     This combines FastMCP tool registration with optional Superset authentication,
     replacing the need for separate @mcp.tool and @mcp_auth_hook decorators.
 
+    Supports both @mcp_tool and @mcp_tool() syntax.
+
     Args:
+        func_or_name: When used as @mcp_tool, this will be the function.
+                     When used as @mcp_tool("name"), this will be the name.
         name: Tool name (defaults to function name)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
-        auth: Whether to apply Superset authentication (defaults to True)
+        secure: Whether to apply Superset authentication (defaults to True)
 
     Returns:
-        Decorator that registers and wraps the tool with optional authentication
+        Decorator that registers and wraps the tool with optional authentication,
+        or the wrapped function when used without parentheses
     """
 
     def decorator(func: F) -> F:
@@ -64,7 +71,7 @@ def create_mcp_tool_decorator(
             tool_tags = tags or []
 
             # Conditionally apply authentication wrapper
-            if auth:
+            if secure:
                 from superset.mcp_service.auth import mcp_auth_hook
 
                 wrapped_func = mcp_auth_hook(func)
@@ -81,7 +88,7 @@ def create_mcp_tool_decorator(
             )
             mcp.add_tool(tool)
 
-            auth_status = "with auth" if auth else "without auth"
+            auth_status = "with auth" if secure else "without auth"
             logger.info("Registered MCP tool: %s (%s)", tool_name, auth_status)
             return wrapped_func
 
@@ -90,10 +97,26 @@ def create_mcp_tool_decorator(
             # Return the original function so extension doesn't break
             return func
 
-    return decorator
+    # If called as @mcp_tool (without parentheses)
+    if callable(func_or_name):
+        # Type cast is safe here since we've confirmed it's callable
+        return decorator(func_or_name)  # type: ignore[arg-type]
+
+    # If called as @mcp_tool() or @mcp_tool(name="...")
+    # func_or_name would be the name parameter or None
+    actual_name = func_or_name if isinstance(func_or_name, str) else name
+
+    def parameterized_decorator(func: F) -> F:
+        # Use the actual_name if provided via func_or_name
+        nonlocal name
+        if actual_name is not None:
+            name = actual_name
+        return decorator(func)
+
+    return parameterized_decorator
 
 
-def initialize_mcp_dependencies() -> None:
+def initialize_core_mcp_dependencies() -> None:
     """
     Initialize MCP dependency injection by replacing abstract functions
     in superset_core.mcp with concrete implementations.

@@ -36,7 +36,7 @@ from superset.mcp_service.sql_lab.schemas import (
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool()
+@mcp_tool
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 

@@ -68,7 +68,7 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@mcp_tool()
+@mcp_tool
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
