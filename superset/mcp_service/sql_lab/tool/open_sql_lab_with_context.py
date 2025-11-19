@@ -25,7 +25,7 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
@@ -35,7 +35,7 @@ from superset.mcp_service.sql_lab.schemas import (
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:

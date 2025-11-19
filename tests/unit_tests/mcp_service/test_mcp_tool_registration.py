@@ -24,7 +24,7 @@ from superset.core.mcp.core_mcp_injection import initialize_core_mcp_dependencie
 
 
 def test_initialize_core_mcp_dependencies_replaces_decorator():
-    """Test that initialize_core_mcp_dependencies replaces the abstract mcp_tool
+    """Test that initialize_core_mcp_dependencies replaces the abstract tool
     decorator."""
     # Mock the superset_core.mcp module
     mock_mcp_module = MagicMock()
@@ -33,19 +33,19 @@ def test_initialize_core_mcp_dependencies_replaces_decorator():
         initialize_core_mcp_dependencies()
 
         # Verify the abstract decorator was replaced
-        assert hasattr(mock_mcp_module, "mcp_tool")
-        assert callable(mock_mcp_module.mcp_tool)
+        assert hasattr(mock_mcp_module, "tool")
+        assert callable(mock_mcp_module.tool)
 
 
-def test_mcp_tool_import_works():
-    """Test that mcp_tool can be imported from superset_core.mcp after
+def test_tool_import_works():
+    """Test that tool can be imported from superset_core.mcp after
     initialization."""
     # This test verifies the basic import works (dependency injection has happened)
-    from superset_core.mcp import mcp_tool
+    from superset_core.mcp import tool
 
     # Should be callable
-    assert callable(mcp_tool)
+    assert callable(tool)
 
     # Should return a decorator function
-    decorator = mcp_tool(name="test", description="test")
+    decorator = tool(name="test", description="test")
     assert callable(decorator)

@@ -21,7 +21,7 @@ Get available filters FastMCP tool
 import logging
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.dashboard.schemas import (
     DashboardAvailableFilters,
@@ -32,7 +32,7 @@ from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 async def get_dashboard_available_filters(
     request: GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:

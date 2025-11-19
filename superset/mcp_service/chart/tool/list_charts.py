@@ -23,7 +23,7 @@ import logging
 from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
@@ -64,7 +64,7 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp_tool
+@tool
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 

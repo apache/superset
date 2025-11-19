@@ -21,12 +21,12 @@ Chart prompts for visualization guidance
 
 import logging
 
-from superset_core.mcp import mcp_prompt
+from superset_core.mcp import prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp_prompt("create_chart_guided")
+@prompt("create_chart_guided")
 async def create_chart_guided_prompt(
     chart_type: str = "auto", business_goal: str = "exploration"
 ) -> str:

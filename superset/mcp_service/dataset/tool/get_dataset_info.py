@@ -26,7 +26,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
@@ -39,7 +39,7 @@ from superset.mcp_service.mcp_core import ModelGetInfoCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:

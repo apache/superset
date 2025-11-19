@@ -22,7 +22,7 @@ MCP tool: get_chart_info
 import logging
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -35,7 +35,7 @@ from superset.mcp_service.mcp_core import ModelGetInfoCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:

@@ -24,7 +24,7 @@ import time
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -44,7 +44,7 @@ from superset.mcp_service.utils.url_utils import get_mcp_service_url
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:

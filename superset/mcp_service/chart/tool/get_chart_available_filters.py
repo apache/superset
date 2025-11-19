@@ -22,7 +22,7 @@ MCP tool: get_chart_available_filters
 import logging
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.chart.schemas import (
     ChartAvailableFiltersResponse,
@@ -33,7 +33,7 @@ from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
 logger = logging.getLogger(__name__)
 
 
-@mcp_tool
+@tool
 def get_chart_available_filters(
     request: GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:

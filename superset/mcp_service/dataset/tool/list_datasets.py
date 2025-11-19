@@ -25,7 +25,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 import logging
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
@@ -61,7 +61,7 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@mcp_tool
+@tool
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 

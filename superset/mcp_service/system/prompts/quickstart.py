@@ -21,12 +21,12 @@ System prompts for general Superset guidance
 
 import logging
 
-from superset_core.mcp import mcp_prompt
+from superset_core.mcp import prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp_prompt("superset_quickstart")
+@prompt("superset_quickstart")
 async def superset_quickstart_prompt(
     user_type: str = "analyst", focus_area: str = "general"
 ) -> str:

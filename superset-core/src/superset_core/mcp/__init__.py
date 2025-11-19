@@ -22,14 +22,14 @@ This module provides a decorator interface to register MCP tools with the
 host application.
 
 Usage:
-    from superset_core.mcp import mcp_tool
+    from superset_core.mcp import tool
 
-    @mcp_tool(name="my_tool", description="Custom business logic", tags=["extension"])
+    @tool(name="my_tool", description="Custom business logic", tags=["extension"])
     def my_extension_tool(param: str) -> dict:
         return {"message": f"Hello {param}!"}
 
     # Or use function name and docstring:
-    @mcp_tool
+    @tool
     def another_tool(value: int) -> str:
         '''Tool description from docstring'''
         return str(value * 2)
@@ -41,7 +41,7 @@ from typing import Any, Callable, TypeVar
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def mcp_tool(
+def tool(
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: str | None = None,
@@ -55,16 +55,16 @@ def mcp_tool(
     This decorator combines FastMCP tool registration with optional authentication.
 
     Can be used as:
-        @mcp_tool
+        @tool
         def my_tool(): ...
 
     Or:
-        @mcp_tool(name="custom_name", protect=False)
+        @tool(name="custom_name", protect=False)
         def my_tool(): ...
 
     Args:
-        func_or_name: When used as @mcp_tool, this will be the function.
-                     When used as @mcp_tool("name"), this will be the name.
+        func_or_name: When used as @tool, this will be the function.
+                     When used as @tool("name"), this will be the name.
         name: Tool name (defaults to function name, prefixed with extension ID)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
@@ -77,16 +77,16 @@ def mcp_tool(
         NotImplementedError: If called before host implementation is initialized
 
     Example:
-        @mcp_tool(name="my_tool", description="Does something useful", tags=["utility"])
+        @tool(name="my_tool", description="Does something useful", tags=["utility"])
         def my_custom_tool(param: str) -> dict:
             return {"result": param}
 
-        @mcp_tool  # Uses function name and docstring with auth
+        @tool  # Uses function name and docstring with auth
         def simple_tool(value: int) -> str:
             '''Doubles the input value'''
             return str(value * 2)
 
-        @mcp_tool(secure=False)  # No authentication required
+        @tool(secure=False)  # No authentication required
         def public_tool() -> str:
             '''Public tool accessible without auth'''
             return "Hello world"
@@ -97,7 +97,7 @@ def mcp_tool(
     )
 
 
-def mcp_prompt(
+def prompt(
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: str | None = None,
@@ -112,20 +112,20 @@ def mcp_prompt(
     This decorator combines FastMCP prompt registration with optional authentication.
 
     Can be used as:
-        @mcp_prompt
+        @prompt
         async def my_prompt_handler(): ...
 
     Or:
-        @mcp_prompt("my_prompt")
+        @prompt("my_prompt")
         async def my_prompt_handler(): ...
 
     Or:
-        @mcp_prompt("my_prompt", protected=False, title="Custom Title")
+        @prompt("my_prompt", protected=False, title="Custom Title")
         async def my_prompt_handler(): ...
 
     Args:
-        func_or_name: When used as @mcp_prompt, this will be the function.
-                     When used as @mcp_prompt("name"), this will be the name.
+        func_or_name: When used as @prompt, this will be the function.
+                     When used as @prompt("name"), this will be the name.
         name: Prompt name (defaults to function name if not provided)
         title: Prompt title (defaults to function name)
         description: Prompt description (defaults to function docstring)
@@ -139,12 +139,12 @@ def mcp_prompt(
         NotImplementedError: If called before host implementation is initialized
 
     Example:
-        @mcp_prompt
+        @prompt
         async def my_prompt_handler(ctx: Context) -> str:
             '''Interactive prompt for doing something.'''
             return "Prompt instructions here..."
 
-        @mcp_prompt("custom_prompt", protect=False, title="Custom Title")
+        @prompt("custom_prompt", protect=False, title="Custom Title")
         async def public_prompt_handler(ctx: Context) -> str:
             '''Public prompt accessible without auth'''
             return "Public prompt accessible without auth"
@@ -156,6 +156,6 @@ def mcp_prompt(
 
 
 __all__ = [
-    "mcp_tool",
-    "mcp_prompt",
+    "tool",
+    "prompt",
 ]

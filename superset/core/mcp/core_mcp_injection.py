@@ -31,7 +31,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 
-def create_mcp_tool_decorator(
+def create_tool_decorator(
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: Optional[str] = None,
@@ -45,11 +45,11 @@ def create_mcp_tool_decorator(
     This combines FastMCP tool registration with optional Superset authentication,
     replacing the need for separate @mcp.tool and @mcp_auth_hook decorators.
 
-    Supports both @mcp_tool and @mcp_tool() syntax.
+    Supports both @tool and @tool() syntax.
 
     Args:
-        func_or_name: When used as @mcp_tool, this will be the function.
-                     When used as @mcp_tool("name"), this will be the name.
+        func_or_name: When used as @tool, this will be the function.
+                     When used as @tool("name"), this will be the name.
         name: Tool name (defaults to function name)
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
@@ -97,12 +97,12 @@ def create_mcp_tool_decorator(
             # Return the original function so extension doesn't break
             return func
 
-    # If called as @mcp_tool (without parentheses)
+    # If called as @tool (without parentheses)
     if callable(func_or_name):
         # Type cast is safe here since we've confirmed it's callable
         return decorator(func_or_name)  # type: ignore[arg-type]
 
-    # If called as @mcp_tool() or @mcp_tool(name="...")
+    # If called as @tool() or @tool(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
@@ -116,7 +116,7 @@ def create_mcp_tool_decorator(
     return parameterized_decorator
 
 
-def create_mcp_prompt_decorator(
+def create_prompt_decorator(
     func_or_name: str | Callable[..., Any] | None = None,
     *,
     name: Optional[str] = None,
@@ -131,11 +131,11 @@ def create_mcp_prompt_decorator(
     This combines FastMCP prompt registration with optional Superset authentication,
     replacing the need for separate @mcp.prompt and @mcp_auth_hook decorators.
 
-    Supports both @mcp_prompt and @mcp_prompt(...) syntax.
+    Supports both @prompt and @prompt(...) syntax.
 
     Args:
-        func_or_name: When used as @mcp_prompt, this will be the function.
-                     When used as @mcp_prompt("name"), this will be the name.
+        func_or_name: When used as @prompt, this will be the function.
+                     When used as @prompt("name"), this will be the name.
         name: Prompt name (defaults to function name)
         title: Prompt title (defaults to function name)
         description: Prompt description (defaults to function docstring)
@@ -185,12 +185,12 @@ def create_mcp_prompt_decorator(
             # Return the original function so extension doesn't break
             return func
 
-    # If called as @mcp_prompt (without parentheses)
+    # If called as @prompt (without parentheses)
     if callable(func_or_name):
         # Type cast is safe here since we've confirmed it's callable
         return decorator(func_or_name)  # type: ignore[arg-type]
 
-    # If called as @mcp_prompt() or @mcp_prompt(name="...")
+    # If called as @prompt() or @prompt(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
@@ -213,8 +213,8 @@ def initialize_core_mcp_dependencies() -> None:
         import superset_core.mcp
 
         # Replace the abstract decorators with concrete implementations
-        superset_core.mcp.mcp_tool = create_mcp_tool_decorator
-        superset_core.mcp.mcp_prompt = create_mcp_prompt_decorator
+        superset_core.mcp.tool = create_tool_decorator
+        superset_core.mcp.prompt = create_prompt_decorator
 
         logger.info("MCP dependency injection initialized successfully")
 

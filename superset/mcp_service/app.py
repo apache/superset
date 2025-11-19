@@ -260,7 +260,7 @@ mcp = create_mcp_app(stateless_http=True)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
-# Tools use the @mcp_tool decorator from `superset-core` and register automatically
+# Tools use the @tool decorator from `superset-core` and register automatically
 # on import. Import prompts and resources to register them with the mcp instance
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.

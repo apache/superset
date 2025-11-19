@@ -74,15 +74,15 @@ superset/mcp_service/
 ### How to Add a New Tool
 
 1. **Create the tool file** in the appropriate directory (e.g., `chart/tool/my_new_tool.py`)
-2. **Decorate with `@mcp_tool()`** to register it with the decorator
+2. **Decorate with `@tool()`** to register it with the decorator
 3. **Add import to `app.py`** at the bottom of the file where other tools are imported (around line 210-242)
 
 **Example**:
 ```python
 # superset/mcp_service/chart/tool/my_new_tool.py
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool
+@tool
 def my_new_tool(param: str) -> dict:
     """Tool description for LLMs."""
     return {"result": "success"}
@@ -98,21 +98,21 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 ```
 
-**Why this matters**: Tools use `@mcp_tool()` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after dependency injection is initialized). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
+**Why this matters**: Tools use `@tool()` decorators and register automatically on import. The import MUST be in `app.py` at the bottom of the file (after dependency injection is initialized). If you don't import the tool in `app.py`, it won't be available to MCP clients. DO NOT add imports to `server.py` - that file is for running the server only.
 
 ### How to Add a New Prompt
 
 1. **Create the prompt file** in the appropriate directory (e.g., `chart/prompts/my_new_prompt.py`)
-2. **Decorate with `@mcp_prompt`** to register it with the unified decorator
+2. **Decorate with `@prompt`** to register it with the unified decorator
 3. **Add import to module's `__init__.py`** (e.g., `chart/prompts/__init__.py`)
 4. **Ensure module is imported in `app.py`** (around line 244-253)
 
 **Example**:
 ```python
 # superset/mcp_service/chart/prompts/my_new_prompt.py
-from superset_core.mcp import mcp_prompt
+from superset_core.mcp import prompt
 
-@mcp_prompt("my_new_prompt")
+@prompt("my_new_prompt")
 async def my_new_prompt_handler(ctx: Context) -> str:
     """Interactive prompt for doing something."""
     return "Prompt instructions here..."
@@ -151,7 +151,7 @@ def get_my_resource() -> str:
     return "Resource data here..."
 ```
 
-**Note**: Resources continue to use the direct FastMCP decorators (`@mcp.resource`) rather than the unified `@mcp_tool()` decorator.
+**Note**: Resources continue to use the direct FastMCP decorators (`@mcp.resource`) rather than the unified `@tool()` decorator.
 
 **Then add to `chart/resources/__init__.py`**:
 ```python
@@ -180,7 +180,7 @@ The `mcp_core.py` module provides reusable patterns:
 
 **Example**:
 ```python
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.daos.dashboard import DashboardDAO
@@ -192,27 +192,27 @@ list_core = ModelListCore(
     logger=logger,
 )
 
-@mcp_tool
+@tool
 def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardList:
     return list_core.run_tool(filters=filters, page=page, page_size=10)
 ```
 
 ### 2. Always Use Authentication
 
-**Every tool must use `@mcp_tool`** with authentication enabled (default) to ensure:
+**Every tool must use `@tool`** with authentication enabled (default) to ensure:
 - User authentication from JWT or configured admin user
 - Permission checking via JWT scopes
 - Audit logging of tool access
 
 ```python
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool  # REQUIRED - secure=True by default
+@tool  # REQUIRED - secure=True by default
 def my_tool() -> dict:
-    # g.user is set by mcp_tool decorator
+    # g.user is set by tool decorator
     return {"user": g.user.username}
 
-@mcp_tool(protect=False)  # Only for truly public tools
+@tool(protect=False)  # Only for truly public tools
 def public_tool() -> dict:
     # No authentication required
     return {"status": "public"}
@@ -308,7 +308,7 @@ class MyError(BaseModel):
         description="Error timestamp"
     )
 
-@mcp_tool
+@tool
 def my_tool(id: int) -> MyResponse:
     try:
         result = process_data(id)
@@ -371,7 +371,7 @@ def test_tool_with_flask_context(app):
 
 ### 3. ❌ Missing Authentication
 **Problem**: Tool bypasses authentication and authorization.
-**Solution**: Always use `@mcp_tool` with default protect=True, or explicitly set protect=False only for public tools.
+**Solution**: Always use `@tool` with default protect=True, or explicitly set protect=False only for public tools.
 
 ### 4. ❌ Using `Optional` Instead of Union Syntax
 **Problem**: Old-style Optional[T] is not Python 3.10+ style.
@@ -424,40 +424,40 @@ def my_function(param: Optional[str] = None) -> Optional[int]:
 
 **Note**: LLM instruction files like `CLAUDE.md`, `AGENTS.md`, etc. are excluded from this requirement (listed in `.rat-excludes`) to avoid token overhead.
 
-### 9. ❌ ❌ Using `@mcp_tool()` with Empty Parentheses
+### 9. ❌ ❌ Using `@tool()` with Empty Parentheses
 **Problem**: Inconsistent decorator style.
-**Solution**: Use `@mcp_tool` without parentheses unless passing arguments.
+**Solution**: Use `@tool` without parentheses unless passing arguments.
 ```python
 # GOOD
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool
+@tool
 def my_tool():
     pass
 
 # BAD
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool
+@tool
 def my_tool():
     pass
 ```
 
 ### 10. ❌ Circular Imports
 **Problem**: Importing too many things from `app.py` can create circular dependencies.
-**Solution**: Use the unified `@mcp_tool()` decorator from `superset_core.mcp`:
+**Solution**: Use the unified `@tool()` decorator from `superset_core.mcp`:
 ```python
 # GOOD - New pattern
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool
+@tool
 def my_tool():
     pass
 
 # ACCEPTABLE - For prompts/resources (when needed)
 from superset.mcp_service.app import mcp
 
-@mcp_prompt("my_prompt")
+@prompt("my_prompt")
 def my_prompt():
     pass
 
@@ -479,7 +479,7 @@ MCP_JWT_PUBLIC_KEY = "your_public_key"
 ## Tool Discovery
 
 MCP clients discover tools via:
-1. **Tool listing**: All tools with `@mcp_tool()` are automatically listed
+1. **Tool listing**: All tools with `@tool()` are automatically listed
 2. **Schema introspection**: Pydantic schemas generate JSON Schema for LLMs
 3. **Instructions**: `DEFAULT_INSTRUCTIONS` in `app.py` documents available tools
 
@@ -493,7 +493,7 @@ MCP clients discover tools via:
 ## Quick Checklist for New Tools
 
 - [ ] Created tool file in `{module}/tool/{tool_name}.py`
-- [ ] Added `@mcp_tool` decorator
+- [ ] Added `@tool` decorator
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
 - [ ] Used DAO classes instead of direct queries when querying Superset entities
 - [ ] Added tool import to `app.py` (around line 210-242)
@@ -505,7 +505,7 @@ MCP clients discover tools via:
 ## Quick Checklist for New Prompts
 
 - [ ] Created prompt file in `{module}/prompts/{prompt_name}.py`
-- [ ] Added `@mcp_prompt("prompt_name")` decorator
+- [ ] Added `@prompt("prompt_name")` decorator
 - [ ] Made function async: `async def prompt_handler(ctx: Context) -> str`
 - [ ] Added import to `{module}/prompts/__init__.py`
 - [ ] Verified module import exists in `app.py` (around line 244-253)

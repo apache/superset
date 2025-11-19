@@ -25,7 +25,7 @@ import logging
 from typing import Any, Dict, List
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
@@ -116,7 +116,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@mcp_tool
+@tool
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:

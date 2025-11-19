@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -2018,7 +2018,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@mcp_tool
+@tool
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:

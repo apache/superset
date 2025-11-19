@@ -25,7 +25,7 @@ chart configuration.
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
@@ -36,7 +36,7 @@ from superset.mcp_service.chart.schemas import (
 )
 
 
-@mcp_tool
+@tool
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:

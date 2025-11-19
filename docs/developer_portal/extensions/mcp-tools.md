@@ -43,12 +43,12 @@ MCP tools are Python functions that AI agents can call to perform specific tasks
 
 ### Basic Tool Registration
 
-The simplest way to create an MCP tool is using the `@mcp_tool` decorator:
+The simplest way to create an MCP tool is using the `@tool` decorator:
 
 ```python
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
-@mcp_tool
+@tool
 def hello_world() -> dict:
     """A simple greeting tool."""
     return {"message": "Hello from my extension!"}
@@ -58,7 +58,7 @@ This creates a tool that AI agents can call by name. The tool name defaults to t
 
 ### Decorator Parameters
 
-The `@mcp_tool` decorator accepts several optional parameters:
+The `@tool` decorator accepts several optional parameters:
 
 **Parameter details:**
 - **`name`**: Tool identifier (AI agents use this to call your tool)
@@ -79,7 +79,7 @@ Here's a more comprehensive example showing best practices:
 import random
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
-from superset_core.mcp import mcp_tool
+from superset_core.mcp import tool
 
 class RandomNumberRequest(BaseModel):
     """Request schema for random number generation."""
@@ -95,7 +95,7 @@ class RandomNumberRequest(BaseModel):
         le=2147483647
     )
 
-@mcp_tool(
+@tool(
     name="example_extension.random_number",
     tags=["extension", "utility", "random", "generator"]
 )
@@ -155,7 +155,7 @@ Use consistent response structures:
 Write clear descriptions and docstrings:
 
 ```python
-@mcp_tool(
+@tool(
     name="my_extension.process_data",
     description="Process customer data and generate insights. Requires valid customer ID and date range.",
     tags=["analytics", "customer", "reporting"]
@@ -208,7 +208,7 @@ The AI agent sees your tool's:
 ### Tool Not Available to AI Agents
 
 1. **Check extension registration**: Verify your tool module is listed in extension entrypoints
-2. **Verify decorator**: Ensure `@mcp_tool` is correctly applied
+2. **Verify decorator**: Ensure `@tool` is correctly applied
 3. **Extension loading**: Confirm your extension is installed and enabled
 
 ### Input Validation Errors
