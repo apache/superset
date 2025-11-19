@@ -14,11 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-# To set the images of your preferred database, you may create a mapping here with engine and locations of the relevant images. The image can be hosted locally inside your static/file directory or online (e.g. S3).
-
-# DB_IMAGES:
-#   postgresql: "path/to/image/postgres.jpg"
-#   bigquery: "path/to/s3bucket/bigquery.jpg"
-#   snowflake: "path/to/image/snowflake.jpg"
