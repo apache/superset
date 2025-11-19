@@ -42,13 +42,14 @@ class SQLGeneratorService:
         )
 
     @staticmethod
-    def generate_sql(user_query: str, schema_info: str) -> dict[str, Any]:
+    def generate_sql(user_query: str, schema_info: str, db_dialect: str = "SQL") -> dict[str, Any]:
         """
         Generate SQL from natural language query.
 
         Args:
             user_query: Natural language question from the user
             schema_info: Schema information about the dataset
+            db_dialect: Database dialect (e.g., "PostgreSQL", "MySQL", "SQLite")
 
         Returns:
             Dictionary with 'sql' and optional 'error' keys
@@ -77,9 +78,10 @@ class SQLGeneratorService:
             client = InferenceClient(token=api_token)
 
             # Construct the messages for chat completion
+            system_prompt = f"{schema_info}\n\nIMPORTANT: Generate {db_dialect} dialect SQL. Use {db_dialect}-specific syntax and functions."
             messages = [
-                {"role": "system", "content": schema_info},
-                {"role": "user", "content": f"Convert this request into SQL: {user_query}"},
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Convert this request into {db_dialect} SQL: {user_query}"},
             ]
 
             logger.info(
@@ -102,6 +104,9 @@ class SQLGeneratorService:
                 sql_query = sql_query.split("```sql")[1].split("```")[0].strip()
             elif "```" in sql_query:
                 sql_query = sql_query.split("```")[1].split("```")[0].strip()
+            
+            # Remove newlines and extra whitespace to create single-line SQL
+            sql_query = " ".join(sql_query.split())
 
             # Validate it's a SELECT query
             if not sql_query.upper().strip().startswith("SELECT"):

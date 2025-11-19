@@ -124,11 +124,14 @@ class AIAssistantRestApi(BaseSupersetApi):
 
         # Build schema information from dataset
         schema_info = self._build_schema_info(dataset)
+        
+        # Get database dialect
+        db_dialect = dataset.database.db_engine_spec.engine_name or "SQL"
 
         logger.info(f"AI SQL generation request for dataset {dataset_id}")
 
         # Generate SQL using AI service
-        result = SQLGeneratorService.generate_sql(user_query, schema_info)
+        result = SQLGeneratorService.generate_sql(user_query, schema_info, db_dialect)
 
         if "error" in result:
             logger.warning(f"AI SQL generation failed: {result['error']}")
@@ -156,6 +159,6 @@ class AIAssistantRestApi(BaseSupersetApi):
             schema_info += "\n"
 
         schema_info += "\nGenerate a valid SQL SELECT query using ONLY these column names.\n"
-        schema_info += "DO NOT explain your reasoning, and DO NOT return anything other than the SQL query itself."
+        schema_info += "Return ONLY the SQL query on a single line, with no explanations or markdown formatting."
 
         return schema_info
