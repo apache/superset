@@ -1,0 +1,86 @@
+#
+# Docker Compose for Custom Superset Image
+# This uses a pre-built image instead of building from source
+#
+
+version: '3.8'
+
+x-superset-user: &superset-user root
+x-superset-volumes: &superset-volumes
+  - superset_home:/app/superset_home
+  - superset_data:/app/data
+
+services:
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:16
+    container_name: superset_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    volumes:
+      - db_home:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset-init:
+    image: superset-custom:latest
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file:
+      - path: docker/.env
+        required: true
+      - path: docker/.env-local
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    user: *superset-user
+    volumes: *superset-volumes
+    healthcheck:
+      disable: true
+
+  superset:
+    image: superset-custom:latest
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    user: *superset-user
+    volumes: *superset-volumes
+    env_file:
+      - path: docker/.env
+        required: true
+      - path: docker/.env-local
+        required: false
+    environment:
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+
+volumes:
+  superset_home:
+  superset_data:
+  db_home:
+  redis:
+
