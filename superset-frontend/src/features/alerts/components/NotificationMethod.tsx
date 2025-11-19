@@ -341,7 +341,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       totalCount: number;
     }> => {
       try {
-        const result = await fetchSlackChannelsFromHook(search, page, pageSize);
+        const result = await fetchSlackChannelsFromHook({ search, page, pageSize });
 
         hasShownErrorToast.current = false;
 
