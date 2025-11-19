@@ -128,7 +128,7 @@ interface ChatMessageType {
 }
 
 interface DatasetData {
-  columns: Array<{ name: string; type: string }>;
+  columns: Array<{ name: string; type: string; description?: string }>;
   data: Array<Record<string, any>>;
 }
 
@@ -194,11 +194,15 @@ export default function AIAssistant() {
 
       const dataset = datasetResponse.json.result;
 
-      // Get column information
+      // Get column information including descriptions
       const columns = dataset.columns?.map((col: any) => ({
         name: col.column_name,
         type: col.type,
+        description: col.description,
       })) || [];
+
+      // Log column info for debugging
+      console.log('Dataset columns with descriptions:', columns);
 
       // Now fetch sample data using the chart data API
       const queryPayload = {
@@ -240,6 +244,7 @@ export default function AIAssistant() {
       const columns = dataset.columns?.map((col: any) => ({
         name: col.column_name,
         type: col.type,
+        description: col.description,
       })) || [];
       setDatasetData({
         columns,
@@ -248,6 +253,27 @@ export default function AIAssistant() {
     } finally {
       setLoadingData(false);
     }
+  };
+
+  // Build schema information for AI context
+  const buildSchemaInfo = (): string => {
+    if (!selectedDataset || !datasetData) return '';
+
+    const datasetName = datasets.find(d => d.id === selectedDataset)?.table_name || 'Unknown';
+    let schemaInfo = `The dataset "${datasetName}" has the following columns:\n\n`;
+
+    datasetData.columns.forEach(col => {
+      schemaInfo += `- ${col.name} (${col.type})`;
+      if (col.description) {
+        schemaInfo += `: ${col.description}`;
+      }
+      schemaInfo += '\n';
+    });
+
+    schemaInfo += '\nGenerate a valid SQL SELECT query using ONLY these column names.\n';
+    schemaInfo += 'DO NOT explain your reasoning, and DO NOT return anything other than the SQL query itself.';
+
+    return schemaInfo;
   };
 
   const handleSendMessage = () => {
@@ -354,11 +380,12 @@ export default function AIAssistant() {
                         <thead>
                           <tr>
                             {datasetData.columns.map((col, idx) => (
-                              <th key={idx}>
+                              <th key={idx} title={col.description || ''}>
                                 {col.name}
                                 <br />
                                 <small style={{ fontWeight: 'normal', color: '#888' }}>
                                   {col.type}
+                                  {col.description && ' 📝'}
                                 </small>
                               </th>
                             ))}
@@ -389,6 +416,25 @@ export default function AIAssistant() {
                     </DataPreviewContainer>
                     <div style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
                       {t('Showing {{count}} rows', { count: datasetData.data.length })}
+                    </div>
+                    
+                    {/* Schema info for AI context - for debugging */}
+                    <div style={{ marginTop: '16px' }}>
+                      <details>
+                        <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                          {t('Schema Information for AI')}
+                        </summary>
+                        <pre style={{ 
+                          marginTop: '8px', 
+                          padding: '12px', 
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          overflow: 'auto'
+                        }}>
+                          {buildSchemaInfo()}
+                        </pre>
+                      </details>
                     </div>
                   </>
                 )}
