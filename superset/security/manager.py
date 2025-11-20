@@ -2895,10 +2895,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config.get("AUTH_RATE_LIMITED", False)
         current_app.config["AUTH_RATE_LIMITED"] = False
 
-        super().register_views()
-
-        # Restore original value
-        current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
+        try:
+            super().register_views()
+        finally:
+            # Restore original value even if an exception occurs
+            current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
