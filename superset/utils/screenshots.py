@@ -275,10 +275,7 @@ class BaseScreenshot:
         """
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        if (
-            cache_payload.status in [StatusValues.COMPUTING, StatusValues.UPDATED]
-            and not force
-        ):
+        if not cache_payload.should_trigger_task(force=force):
             logger.info(
                 "Skipping compute - already processed for thumbnail: %s", cache_key
             )

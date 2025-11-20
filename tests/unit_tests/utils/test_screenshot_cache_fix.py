@@ -80,6 +80,10 @@ class TestCacheOnlyOnSuccess:
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"image_data"
         )
+        # Mock resize_image to avoid PIL errors with fake image data
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+        )
         BaseScreenshot.cache = MockCache()
         return get_screenshot
 
@@ -342,7 +346,6 @@ class TestIntegrationCacheBugFix:
         Integration test: Failed screenshot should cache error status
         to prevent immediate retries, not leave corrupted cache with image=None.
         """
-        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=Exception("Network error"),
@@ -373,21 +376,23 @@ class TestIntegrationCacheBugFix:
         to recover from stuck tasks.
         """
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        BaseScreenshot.cache = MockCache()
 
-        # Create stale COMPUTING entry in cache
+        # Create stale COMPUTING entry and seed it in the cache
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
         stale_payload = ScreenshotCachePayload(
             status=StatusValues.COMPUTING, timestamp=old_timestamp
         )
+        cache_key = screenshot_obj.get_cache_key()
+        BaseScreenshot.cache.set(cache_key, stale_payload.to_dict())
 
-        mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_from_cache_key",
-            return_value=stale_payload,
-        )
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"recovered_image"
         )
-        BaseScreenshot.cache = MockCache()
+        # Mock resize to avoid PIL errors
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image"
+        )
 
         # Should trigger task because COMPUTING is stale
         assert stale_payload.should_trigger_task() is True
@@ -395,7 +400,6 @@ class TestIntegrationCacheBugFix:
         # Retry should succeed and update cache
         screenshot_obj.compute_and_cache(user=mock_user, force=False)
 
-        cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
         assert cached_value is not None
         assert cached_value["status"] == "Updated"
