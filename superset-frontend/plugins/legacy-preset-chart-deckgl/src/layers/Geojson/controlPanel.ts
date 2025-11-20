@@ -36,8 +36,19 @@ import {
   lineWidth,
   tooltipContents,
   tooltipTemplate,
+  jsFunctionControl,
 } from '../../utilities/Shared_DeckGL';
 import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
+import { BLACK_COLOR } from '../../utilities/controls';
+
+const defaultLabelConfigGenerator = `() => ({
+  // Check the documentation at:
+  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-2
+  getText: f => f.properties.name,
+  getTextColor: [0, 0, 0, 255],
+  getTextSize: 24,
+  textSizeUnits: 'pixels',
+})`;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -63,6 +74,119 @@ const config: ControlPanelConfig = {
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
         [extruded],
+        [
+          {
+            name: 'enable_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable labels'),
+              description: t('Enables rendering of labels for GeoJSON points'),
+              default: false,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'enable_label_javascript_mode',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable label JavaScript mode'),
+              description: t(
+                'Enables custom label configuration via JavaScript',
+              ),
+              visibility: ({ form_data }) => !!form_data.enable_labels,
+              default: false,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_property_name',
+            config: {
+              type: 'TextControl',
+              label: t('Label property name'),
+              description: t('The feature property to use for point labels'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_labels &&
+                !form_data.enable_label_javascript_mode,
+              default: 'name',
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Label color'),
+              description: t('The color of the point labels'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_labels &&
+                !form_data.enable_label_javascript_mode,
+              default: BLACK_COLOR,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_size',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Label size'),
+              description: t('The font size of the point labels'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_labels &&
+                !form_data.enable_label_javascript_mode,
+              validators: [legacyValidateInteger],
+              choices: formatSelectOptions([8, 16, 24, 32, 64, 128]),
+              default: 24,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_size_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Label size unit'),
+              description: t('The unit for label size'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_labels &&
+                !form_data.enable_label_javascript_mode,
+              choices: [
+                ['meters', t('Meters')],
+                ['pixels', t('Pixels')],
+              ],
+              default: 'pixels',
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_javascript_config_generator',
+            config: {
+              ...jsFunctionControl(
+                t('Label JavaScript config generator'),
+                t(
+                  'A JavaScript function that generates a label configuration object',
+                ),
+                undefined,
+                undefined,
+                defaultLabelConfigGenerator,
+              ),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_labels &&
+                !!form_data.enable_label_javascript_mode,
+            },
+          },
+        ],
         [lineWidth],
         [
           {
