@@ -172,6 +172,8 @@ def import_dashboard(  # noqa: C901
             "have permission to create dashboards"
         )
 
+    original_config = config.copy()
+
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
 
@@ -193,5 +195,12 @@ def import_dashboard(  # noqa: C901
 
     if (user := get_user()) and user not in dashboard.owners:
         dashboard.owners.append(user)
+
+    # Authorized roles to dashboards
+    dashboard.roles.clear()
+    if "roles" in original_config:
+        for role_item in original_config["roles"]:
+            role = security_manager.find_role(role_item["name"])
+            dashboard.roles.append(role)
 
     return dashboard

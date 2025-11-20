@@ -47,6 +47,7 @@ def session_with_data(session: Session) -> Generator[Session, None, None]:
     )
 
     session.add(dashboard)
+
     session.flush()
     yield session
     session.rollback()
@@ -56,6 +57,9 @@ def session_with_data(session: Session) -> Generator[Session, None, None]:
 def session_with_schema(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+
+    import_role = Role(name="Import role")
+    session.add(import_role)
 
     yield session
     session.rollback()
@@ -68,12 +72,15 @@ def test_import_dashboard(mocker: MockerFixture, session_with_schema: Session) -
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )
+    config = copy.deepcopy(dashboard_config)
+    config["roles"] = [{"name": "Import role"}]
 
-    dashboard = import_dashboard(dashboard_config)
+    dashboard = import_dashboard(config)
     assert dashboard.dashboard_title == "Test dash"
     assert dashboard.description is None
     assert dashboard.is_managed_externally is False
     assert dashboard.external_url is None
+    assert dashboard.roles[0].name == "Import role"
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
 
