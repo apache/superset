@@ -21,6 +21,10 @@
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from '@playwright/test';
+import path from 'path';
+
+const authFile = path.join(__dirname, '../playwright/.auth/admin.json');
+
 
 export default defineConfig({
   // Test directory
@@ -60,7 +64,8 @@ export default defineConfig({
   // Global test setup
   use: {
     // Use environment variable for base URL in CI, default to localhost:8088 for local
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088',
+    // baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088/',
+    baseURL: 'http://localhost:8088', // hardcode for testing
 
     // Browser settings
     headless: !!process.env.CI,
@@ -82,6 +87,19 @@ export default defineConfig({
         browserName: 'chromium',
         testIdAttribute: 'data-test',
       },
+      // don't pre-authenticate for general tests
+      testIgnore: '.playwright/tests/docs/*.spec.ts'
+    },
+    {
+      name: 'chromium-authenticated',
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        storageState: authFile,
+        // baseURL: "http://localhost:8088/",
+      },
+      // only run the playwright files for docs with pre-authentication
+      testMatch: './playwright/tests/docs/*.spec.ts'
     },
   ],
 
