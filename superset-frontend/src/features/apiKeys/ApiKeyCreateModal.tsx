@@ -132,7 +132,7 @@ export function ApiKeyCreateModal({
       show={show}
       onHide={handleClose}
       title={t('Create API Key')}
-      onSave={onSuccess}
+      onSave={() => {}}
       formSubmitHandler={handleFormSubmit}
       requiredFields={['name']}
     >

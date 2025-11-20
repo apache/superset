@@ -235,9 +235,11 @@ export function ApiKeyList() {
       {showCreateModal && (
         <ApiKeyCreateModal
           show={showCreateModal}
-          onHide={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onHide={() => {
             setShowCreateModal(false);
+            fetchApiKeys();
+          }}
+          onSuccess={() => {
             fetchApiKeys();
           }}
         />
