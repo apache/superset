@@ -47,22 +47,24 @@ x-common-build: &common-build
     LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
-  nginx:
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    image: nginx:latest
-    container_name: superset_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/templates:/etc/nginx/templates:ro
+  # Nginx service commented out - using existing Nginx on host
+  # Your Nginx should proxy to Superset at http://localhost:8088
+  # nginx:
+  #   env_file:
+  #     - path: docker/.env # default
+  #       required: true
+  #     - path: docker/.env-local # optional override
+  #       required: false
+  #   image: nginx:latest
+  #   container_name: superset_nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   volumes:
+  #     - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./docker/nginx/templates:/etc/nginx/templates:ro
 
   # Redis service commented out - using existing Redis on host
   # To use host Redis, set REDIS_HOST=host.docker.internal in environment
