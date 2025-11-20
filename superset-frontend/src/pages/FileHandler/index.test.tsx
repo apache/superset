@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentType } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
@@ -24,26 +25,48 @@ const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
 const mockHistoryPush = jest.fn();
 
+type ToastInjectedProps = {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+};
+
 // Mock the withToasts HOC
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default: (Component: any) => (props: any) => (
-    <Component
-      {...props}
-      addDangerToast={mockAddDangerToast}
-      addSuccessToast={mockAddSuccessToast}
-    />
-  ),
+  default:
+    <P extends object>(Component: ComponentType<P & ToastInjectedProps>) =>
+    (props: P) => (
+      <Component
+        {...props}
+        addDangerToast={mockAddDangerToast}
+        addSuccessToast={mockAddSuccessToast}
+      />
+    ),
 }));
+
+interface UploadDataModalProps {
+  show: boolean;
+  onHide: () => void;
+  type: string;
+  allowedExtensions: string[];
+  fileListOverride?: File[];
+}
 
 // Mock the UploadDataModal
 jest.mock('src/features/databases/UploadDataModel', () => ({
   __esModule: true,
-  default: ({ show, onHide, type, allowedExtensions }: any) => (
+  default: ({
+    show,
+    onHide,
+    type,
+    allowedExtensions,
+    fileListOverride,
+  }: UploadDataModalProps) => (
     <div data-test="upload-modal">
       <div data-test="modal-show">{show.toString()}</div>
       <div data-test="modal-type">{type}</div>
       <div data-test="modal-extensions">{allowedExtensions.join(',')}</div>
+      <div data-test="modal-file">{fileListOverride?.[0]?.name ?? ''}</div>
       <button onClick={onHide}>Close</button>
     </div>
   ),
@@ -58,28 +81,36 @@ jest.mock('react-router-dom', () => ({
 }));
 
 // Mock the File API
-class MockFile {
+type MockFileHandle = {
+  kind: 'file';
   name: string;
-
-  constructor(name: string) {
-    this.name = name;
-  }
-}
-
-interface MockFileHandle {
-  getFile: () => Promise<MockFile>;
-}
+  getFile: () => Promise<File>;
+  isSameEntry: () => Promise<boolean>;
+  queryPermission: () => Promise<PermissionState>;
+  requestPermission: () => Promise<PermissionState>;
+};
 
 const createMockFileHandle = (fileName: string): MockFileHandle => ({
-  getFile: async () => new MockFile(fileName),
+  kind: 'file',
+  name: fileName,
+  getFile: async () => new File(['test'], fileName),
+  isSameEntry: async () => false,
+  queryPermission: async () => 'granted',
+  requestPermission: async () => 'granted',
 });
 
+type LaunchQueue = {
+  setConsumer: (
+    consumer: (params: { files?: MockFileHandle[] }) => void,
+  ) => void;
+};
+
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
-  let savedConsumer: ((params: any) => void) | null = null;
-  (window as any).launchQueue = {
-    setConsumer: (consumer: (params: any) => void) => {
+  let savedConsumer: ((params: { files?: MockFileHandle[] }) => void) | null =
+    null;
+  (window as Window & { launchQueue: LaunchQueue }).launchQueue = {
+    setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
-      // Automatically trigger the consumer if a fileHandle is provided
       if (fileHandle) {
         setTimeout(() => {
           consumer({
@@ -90,10 +121,8 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     },
   };
   return {
-    triggerConsumer: (params: any) => {
-      if (savedConsumer) {
-        savedConsumer(params);
-      }
+    triggerConsumer: (params: { files?: MockFileHandle[] }) => {
+      savedConsumer?.(params);
     },
   };
 };
@@ -158,7 +187,8 @@ test('handles CSV file correctly', async () => {
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-show')).toHaveTextContent('true');
   expect(screen.getByTestId('modal-type')).toHaveTextContent('csv');
-  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('.csv');
+  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('csv');
+  expect(screen.getByTestId('modal-file')).toHaveTextContent('test.csv');
 });
 
 test('handles Excel (.xls) file correctly', async () => {
@@ -177,9 +207,7 @@ test('handles Excel (.xls) file correctly', async () => {
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-type')).toHaveTextContent('excel');
-  expect(screen.getByTestId('modal-extensions')).toHaveTextContent(
-    '.xls,.xlsx',
-  );
+  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('xls,xlsx');
 });
 
 test('handles Excel (.xlsx) file correctly', async () => {
@@ -198,9 +226,7 @@ test('handles Excel (.xlsx) file correctly', async () => {
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-type')).toHaveTextContent('excel');
-  expect(screen.getByTestId('modal-extensions')).toHaveTextContent(
-    '.xls,.xlsx',
-  );
+  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('xls,xlsx');
 });
 
 test('handles Parquet file correctly', async () => {
@@ -219,7 +245,7 @@ test('handles Parquet file correctly', async () => {
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-type')).toHaveTextContent('columnar');
-  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('.parquet');
+  expect(screen.getByTestId('modal-extensions')).toHaveTextContent('parquet');
 });
 
 test('shows error for unsupported file type', async () => {
