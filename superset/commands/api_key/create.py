@@ -70,9 +70,9 @@ class CreateApiKeyCommand(BaseCommand):
         if not self._properties.get("name"):
             raise ApiKeyRequiredFieldValidationError("name")
 
-        # Default workspace name if not provided
+        # Workspace name is required
         if not self._properties.get("workspace_name"):
-            self._properties["workspace_name"] = "default"
+            raise ApiKeyRequiredFieldValidationError("workspace_name")
 
     @transaction(on_error=partial(on_error, reraise=ApiKeyCreateFailedError))
     def _create_api_key(self) -> tuple[ApiKey, str]:
