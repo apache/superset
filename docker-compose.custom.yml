@@ -67,6 +67,8 @@ services:
     volumes: *superset-volumes
     environment:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      # Set to "no" to skip loading examples (avoids DuckDB requirement)
+      SUPERSET_LOAD_EXAMPLES: ${SUPERSET_LOAD_EXAMPLES:-yes}
     healthcheck:
       disable: true
 

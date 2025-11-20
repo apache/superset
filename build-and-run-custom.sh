@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Quick script to build custom Superset image and run with Docker Compose
+# For Linux servers
 # Usage: ./build-and-run-custom.sh [image-tag]
 #
 
