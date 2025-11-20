@@ -2883,8 +2883,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # temporarily disable AUTH_RATE_LIMITED during the super() call.
         if (
             self.is_auth_limited
-            and hasattr(self.auth_view, "blueprint")
-            and self.auth_view.blueprint is not None
+            and getattr(self.auth_view, "blueprint", None) is not None
         ):
             self.limiter.limit(self.auth_rate_limit, methods=["POST"])(
                 self.auth_view.blueprint
@@ -2892,7 +2891,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Temporarily disable AUTH_RATE_LIMITED to prevent parent from trying to
         # apply rate limiting to a potentially None blueprint
-        original_auth_rate_limited = current_app.config.get("AUTH_RATE_LIMITED", False)
+        original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
         try:
