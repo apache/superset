@@ -29,14 +29,14 @@ jest.mock('@deck.gl/react', () => ({
   default: () => null,
 }));
 
-test('computeGeoJsonTextOptionsFromJsOutput should return an empty object for non-object input', () => {
+test('computeGeoJsonTextOptionsFromJsOutput returns an empty object for non-object input', () => {
   expect(computeGeoJsonTextOptionsFromJsOutput(null)).toEqual({});
   expect(computeGeoJsonTextOptionsFromJsOutput(42)).toEqual({});
   expect(computeGeoJsonTextOptionsFromJsOutput([1, 2, 3])).toEqual({});
   expect(computeGeoJsonTextOptionsFromJsOutput('string')).toEqual({});
 });
 
-test('computeGeoJsonTextOptionsFromJsOutput should extract valid text options from the input object', () => {
+test('computeGeoJsonTextOptionsFromJsOutput extracts valid text options from the input object', () => {
   const input = {
     getText: 'name',
     getTextColor: [1, 2, 3, 255],
@@ -49,7 +49,7 @@ test('computeGeoJsonTextOptionsFromJsOutput should extract valid text options fr
   expect(computeGeoJsonTextOptionsFromJsOutput(input)).toEqual(expectedOutput);
 });
 
-test('computeGeoJsonTextOptionsFromJsOutput should compute text options based on form data', () => {
+test('computeGeoJsonTextOptionsFromFormData computes text options based on form data', () => {
   const formData: SqlaFormData = {
     label_property_name: 'name',
     label_color: { r: 1, g: 2, b: 3, a: 1 },
@@ -73,14 +73,14 @@ test('computeGeoJsonTextOptionsFromJsOutput should compute text options based on
   expect(actualOutput.getText(sampleFeature)).toBe('Test');
 });
 
-test('computeGeoJsonIconOptionsFromJsOutput should return an empty object for non-object input', () => {
+test('computeGeoJsonIconOptionsFromJsOutput returns an empty object for non-object input', () => {
   expect(computeGeoJsonIconOptionsFromJsOutput(null)).toEqual({});
   expect(computeGeoJsonIconOptionsFromJsOutput(42)).toEqual({});
   expect(computeGeoJsonIconOptionsFromJsOutput([1, 2, 3])).toEqual({});
   expect(computeGeoJsonIconOptionsFromJsOutput('string')).toEqual({});
 });
 
-test('computeGeoJsonIconOptionsFromJsOutput should extract valid icon options from the input object', () => {
+test('computeGeoJsonIconOptionsFromJsOutput extracts valid icon options from the input object', () => {
   const input = {
     getIcon: 'icon_name',
     getIconColor: [1, 2, 3, 255],
@@ -95,7 +95,7 @@ test('computeGeoJsonIconOptionsFromJsOutput should extract valid icon options fr
   expect(computeGeoJsonIconOptionsFromJsOutput(input)).toEqual(expectedOutput);
 });
 
-test('computeGeoJsonIconOptionsFromFormData should compute icon options based on form data', () => {
+test('computeGeoJsonIconOptionsFromFormData computes icon options based on form data', () => {
   const formData: SqlaFormData = {
     icon_url: 'https://example.com/icon.png',
     icon_size: 123,
