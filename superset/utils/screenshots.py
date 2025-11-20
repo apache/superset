@@ -157,7 +157,7 @@ class ScreenshotCachePayload:
         computing_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
-        ).total_seconds() > computing_ttl
+        ).total_seconds() >= computing_ttl
 
     def should_trigger_task(self, force: bool = False) -> bool:
         return (
@@ -305,14 +305,16 @@ class BaseScreenshot:
                 cache_payload.error()
                 image = None
 
+        # Cache the result (success or error) to avoid immediate retries
         if image:
-            logger.info("Caching thumbnail: %s", cache_key)
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
-            self.cache.set(cache_key, cache_payload.to_dict())
-            logger.info(
-                "Updated thumbnail cache; Status: %s", cache_payload.get_status()
-            )
+
+        logger.info("Caching thumbnail: %s", cache_key)
+        self.cache.set(cache_key, cache_payload.to_dict())
+        logger.info(
+            "Updated thumbnail cache; Status: %s", cache_payload.get_status()
+        )
         return
 
     @classmethod

@@ -83,10 +83,10 @@ class TestCacheOnlyOnSuccess:
         BaseScreenshot.cache = MockCache()
         return get_screenshot
 
-    def test_cache_not_saved_when_screenshot_fails(
+    def test_cache_error_status_when_screenshot_fails(
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
-        """Test that cache is not saved when screenshot generation fails."""
+        """Test that error status is cached when screenshot generation fails."""
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
@@ -100,15 +100,17 @@ class TestCacheOnlyOnSuccess:
         # Verify get_screenshot was called
         get_screenshot.assert_called_once()
 
-        # Cache should not be set (no image was generated)
+        # Cache should be set with ERROR status (to prevent immediate retries)
         cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
-        assert cached_value is None
+        assert cached_value is not None
+        assert cached_value["status"] == "Error"
+        assert cached_value.get("image") is None
 
-    def test_cache_not_saved_when_resize_fails(
+    def test_cache_error_status_when_resize_fails(
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
-        """Test that cache is not saved when image resize fails."""
+        """Test that error status is cached when image resize fails."""
         self._setup_mocks(mocker, screenshot_obj)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".resize_image",
@@ -120,10 +122,12 @@ class TestCacheOnlyOnSuccess:
             user=mock_user, force=True, window_size=(800, 600), thumb_size=(400, 300)
         )
 
-        # Cache should not be set (resize failed, so image is None)
+        # Cache should be set with ERROR status (to prevent immediate retries)
         cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
-        assert cached_value is None
+        assert cached_value is not None
+        assert cached_value["status"] == "Error"
+        assert cached_value.get("image") is None
 
     def test_cache_saved_only_when_image_generated(
         self, mocker: MockerFixture, screenshot_obj, mock_user
@@ -310,8 +314,8 @@ class TestIsComputingStale:
             status=StatusValues.COMPUTING, timestamp=exact_timestamp
         )
 
-        # At exactly TTL, should not be stale yet (needs to be > TTL)
-        assert payload.is_computing_stale() is False
+        # At exactly TTL, should be stale (>= TTL)
+        assert payload.is_computing_stale() is True
 
     @patch("superset.utils.screenshots.app")
     def test_computing_just_past_ttl(self, mock_app):
@@ -335,8 +339,8 @@ class TestIntegrationCacheBugFix:
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
         """
-        Integration test: Failed screenshot should not leave cache entry
-        that triggers 404 errors.
+        Integration test: Failed screenshot should cache error status
+        to prevent immediate retries, not leave corrupted cache with image=None.
         """
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
@@ -348,16 +352,17 @@ class TestIntegrationCacheBugFix:
         # First attempt fails
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
 
-        # Verify cache is empty (no corrupted entry)
+        # Verify cache contains ERROR status (prevents immediate retry)
         cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
-        assert cached_value is None
+        assert cached_value is not None
+        assert cached_value["status"] == "Error"
+        assert cached_value.get("image") is None
 
-        # Subsequent request should trigger new computation
-        # (not return 404 from corrupted cache)
-        if cached_payload := screenshot_obj.get_from_cache_key(cache_key):
-            # If there was a cache entry, it should trigger recomputation
-            assert cached_payload.should_trigger_task() is True
+        # Cache entry should not trigger task immediately (error is fresh)
+        cached_payload = screenshot_obj.get_from_cache_key(cache_key)
+        assert cached_payload is not None
+        assert cached_payload.should_trigger_task(force=False) is False
 
     @patch("superset.utils.screenshots.app")
     def test_stale_computing_triggers_retry(
