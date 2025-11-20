@@ -85,6 +85,7 @@ export function EditableTitle({
   renderLink,
   maxWidth,
   autoSize = true,
+  onEditingChange,
   ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
@@ -130,7 +131,8 @@ export function EditableTitle({
         textArea.scrollTop = textArea.scrollHeight;
       }
     }
-  }, [isEditing]);
+    onEditingChange?.(isEditing);
+  }, [isEditing, onEditingChange]);
 
   function handleClick() {
     if (!canEdit || isEditing) return;
