@@ -64,6 +64,18 @@ export const asyncRender = (renderProps: DatasourceEditorProps) =>
   );
 
 /**
+ * Fast render without waitFor wrapper.
+ * Use when mount side-effects aren't being asserted.
+ * After calling, use findBy* to ensure mount completion.
+ */
+export const fastRender = (renderProps: DatasourceEditorProps) =>
+  render(<DatasourceEditor {...renderProps} {...routeProps} />, {
+    useRedux: true,
+    initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
+    useRouter: true,
+  });
+
+/**
  * Setup common API mocks for DatasourceEditor tests.
  * Mocks the 3 endpoints called on component mount to prevent test hangs and async warnings.
  */

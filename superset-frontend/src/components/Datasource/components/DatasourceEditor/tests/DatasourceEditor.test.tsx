@@ -17,12 +17,18 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fireEvent, screen, waitFor, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
   props,
   DATASOURCE_ENDPOINT,
   asyncRender,
+  fastRender,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
 } from './DatasourceEditor.test.utils';
@@ -119,19 +125,19 @@ test('can modify columns', async () => {
 });
 
 test('can delete columns', async () => {
-  await asyncRender({
+  fastRender({
     ...props,
     datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
   });
 
-  const columnsTab = screen.getByTestId('collection-tab-Columns');
-  await userEvent.click(columnsTab);
+  const columnsTab = await screen.findByTestId('collection-tab-Columns');
+  fireEvent.click(columnsTab);
 
-  const getToggles = screen.getAllByRole('button', {
+  const getToggles = await screen.findAllByRole('button', {
     name: /expand row/i,
   });
 
-  await userEvent.click(getToggles[0]);
+  fireEvent.click(getToggles[0]);
 
   const deleteButtons = await screen.findAllByRole('button', {
     name: /delete item/i,
@@ -142,16 +148,16 @@ test('can delete columns', async () => {
   // Clear onChange mock to track delete action
   props.onChange.mockClear();
 
-  await userEvent.click(deleteButtons[0]);
+  fireEvent.click(deleteButtons[0]);
 
   // Verify both UI update and callback
   await waitFor(() => {
-    expect(screen.getAllByRole('button', { name: /delete item/i })).toHaveLength(
-      initialCount - 1,
-    );
+    expect(
+      screen.getAllByRole('button', { name: /delete item/i }),
+    ).toHaveLength(initialCount - 1);
     expect(props.onChange).toHaveBeenCalled();
   });
-}, 30000);
+}, 25000); // Extended timeout: test involves render, tab nav, row expansion, and complex DOM queries in parallel execution
 
 test('can add new columns', async () => {
   await asyncRender({
@@ -174,7 +180,7 @@ test('can add new columns', async () => {
     const newColumn = screen.getAllByRole('textbox')[0];
     expect(newColumn).toHaveValue('<new column>');
   });
-}, 30000);
+});
 
 test('renders isSqla fields', async () => {
   await asyncRender({
@@ -305,21 +311,18 @@ test('properly updates the metric information', async () => {
   await userEvent.click(expandToggle[1]);
 
   const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
-  // Use userEvent.clear and userEvent.type instead of directly setting value
-  await userEvent.clear(certifiedBy);
-  await userEvent.type(certifiedBy, 'I am typing a new name');
-
   const certificationDetails = await screen.findByPlaceholderText(
     /certification details/i,
   );
-  await waitFor(() => {
-    expect(certifiedBy).toHaveValue('I am typing a new name');
+
+  // Use fireEvent.change for speed - we're testing wiring, not keystroke behavior
+  fireEvent.change(certifiedBy, { target: { value: 'I am typing a new name' } });
+  fireEvent.change(certificationDetails, {
+    target: { value: 'I am typing something new' },
   });
 
-  await userEvent.clear(certificationDetails);
-  await userEvent.type(certificationDetails, 'I am typing something new');
-
   await waitFor(() => {
+    expect(certifiedBy).toHaveValue('I am typing a new name');
     expect(certificationDetails).toHaveValue('I am typing something new');
   });
 });

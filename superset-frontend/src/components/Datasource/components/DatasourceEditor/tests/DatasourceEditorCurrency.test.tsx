@@ -18,30 +18,21 @@
  */
 import fetchMock from 'fetch-mock';
 import {
-  render,
   screen,
   waitFor,
-  userEvent,
+  fireEvent,
   selectOption,
 } from 'spec/helpers/testing-library';
 import type { DatasetObject } from 'src/features/datasets/types';
-import DatasourceEditor from '..';
 import {
   props,
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
+  fastRender,
 } from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
-
-// Optimized render function that doesn't use waitFor initially
-// This helps prevent one source of the timeout
-const fastRender = (renderProps: typeof props) =>
-  render(<DatasourceEditor {...renderProps} />, {
-    useRedux: true,
-    initialState: { common: { currencies: ['USD', 'GBP', 'EUR'] } },
-  });
 
 // Factory function for currency props - returns fresh copy to prevent test pollution
 const createPropsWithCurrency = () => ({
@@ -75,25 +66,17 @@ test('renders currency section in metrics tab', async () => {
   fastRender(testProps);
 
   // Navigate to metrics tab
-  const metricButton = screen.getByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
+  const metricButton = await screen.findByTestId('collection-tab-Metrics');
+  fireEvent.click(metricButton);
 
   // Find and expand the metric row with currency
   // Metrics are sorted by ID descending, so metric with id=1 (which has currency)
   // is at position 6 (last). Expand that one.
-  const expandToggles = await screen.findAllByLabelText(
-    /expand row/i,
-    {},
-    { timeout: 2000 },
-  );
-  await userEvent.click(expandToggles[6]);
+  const expandToggles = await screen.findAllByLabelText(/expand row/i);
+  fireEvent.click(expandToggles[6]);
 
   // Check for currency section header
-  const currencyHeader = await screen.findByText(
-    'Metric currency',
-    {},
-    { timeout: 2000 },
-  );
+  const currencyHeader = await screen.findByText('Metric currency');
   expect(currencyHeader).toBeVisible();
 
   // Verify currency position selector exists
@@ -115,16 +98,12 @@ test('changes currency position from prefix to suffix', async () => {
   fastRender(testProps);
 
   // Navigate to metrics tab
-  const metricButton = screen.getByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
+  const metricButton = await screen.findByTestId('collection-tab-Metrics');
+  fireEvent.click(metricButton);
 
   // Expand the metric with currency
-  const expandToggles = await screen.findAllByLabelText(
-    /expand row/i,
-    {},
-    { timeout: 2000 },
-  );
-  await userEvent.click(expandToggles[6]);
+  const expandToggles = await screen.findAllByLabelText(/expand row/i);
+  fireEvent.click(expandToggles[6]);
 
   // Select suffix option using helper
   await selectOption('Suffix', 'Currency prefix or suffix');
@@ -142,7 +121,7 @@ test('changes currency position from prefix to suffix', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
-}, 30000);
+}, 25000); // Extended timeout: selectOption uses userEvent internally, plus render/nav/expansion overhead
 
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
@@ -150,16 +129,12 @@ test('changes currency symbol from USD to GBP', async () => {
   fastRender(testProps);
 
   // Navigate to metrics tab
-  const metricButton = screen.getByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
+  const metricButton = await screen.findByTestId('collection-tab-Metrics');
+  fireEvent.click(metricButton);
 
   // Expand the metric with currency
-  const expandToggles = await screen.findAllByLabelText(
-    /expand row/i,
-    {},
-    { timeout: 2000 },
-  );
-  await userEvent.click(expandToggles[6]);
+  const expandToggles = await screen.findAllByLabelText(/expand row/i);
+  fireEvent.click(expandToggles[6]);
 
   // Select GBP option using helper (text includes symbol: "£ (GBP)")
   await selectOption('£ (GBP)', 'Currency symbol');
@@ -177,4 +152,4 @@ test('changes currency symbol from USD to GBP', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
-}, 30000);
+}, 25000); // Extended timeout: selectOption uses userEvent internally, plus render/nav/expansion overhead
