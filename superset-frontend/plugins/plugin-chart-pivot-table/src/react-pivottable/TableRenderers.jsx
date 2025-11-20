@@ -689,7 +689,11 @@ export class TableRenderer extends Component {
               onClick={e => {
                 e.stopPropagation();
               }}
-              aria-label={`Sorted by ${columnName}`}
+              aria-label={
+                this.state.activeSortColumn === i
+                  ? `Sorted by ${columnName} ${this.state.sortingOrder[i] === 'asc' ? 'ascending' : 'descending'}`
+                  : undefined
+              }
             >
               {visibleSortIcon && getSortIcon(i)}
             </span>
@@ -1108,6 +1112,8 @@ export class TableRenderer extends Component {
   render() {
     if (this.cachedProps !== this.props) {
       this.sortCache.clear();
+      this.state.sortingOrder = [];
+      this.state.activeSortColumn = null;
       this.cachedProps = this.props;
       this.cachedBasePivotSettings = this.getBasePivotSettings();
     }
