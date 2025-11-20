@@ -1519,3 +1519,123 @@ def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> 
 
         # Verify the column name is present
         assert "time_col" in result_str
+
+
+def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> None:
+    """
+    Test that column names with spaces are properly quoted in the generated SQL.
+
+    This verifies that even though we look up columns using unquoted names,
+    the final SQL still properly quotes column names that need quoting (like those with spaces).
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="Customer Name", type="TEXT"),
+            TableColumn(column_name="Order Total", type="NUMERIC"),
+        ],
+    )
+
+    # Test column reference with spaces
+    col_with_spaces: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    result = table.adhoc_column_to_sqla(col_with_spaces)
+
+    # Compile the column to SQL to see how it's rendered
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # The SQL should quote the column name (SQLite uses double quotes)
+    # Column names with spaces MUST be quoted in SQL
+    assert '"Customer Name"' in sql, f"Expected quoted column name in SQL: {sql}"
+
+    # Also test that it works in a query context
+    col_numeric: AdhocColumn = {
+        "sqlExpression": "Order Total",
+        "label": "Order Total",
+        "isColumnReference": True,
+    }
+
+    result_numeric = table.adhoc_column_to_sqla(col_numeric)
+
+    with database.get_sqla_engine() as engine:
+        sql_numeric = str(
+            result_numeric.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    assert '"Order Total"' in sql_numeric, f"Expected quoted column name in SQL: {sql_numeric}"
+
+
+def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
+    """
+    Test that column names with spaces work correctly in a full SELECT query.
+
+    This demonstrates that the fix properly handles column names with spaces
+    throughout the entire query generation process, with proper quoting in the final SQL.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="Customer Name", type="TEXT"),
+            TableColumn(column_name="Order Total", type="NUMERIC"),
+        ],
+    )
+
+    # Create adhoc columns for both columns with spaces
+    customer_col: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    order_col: AdhocColumn = {
+        "sqlExpression": "Order Total",
+        "label": "Order Total",
+        "isColumnReference": True,
+    }
+
+    # Get SQLAlchemy columns
+    customer_sqla = table.adhoc_column_to_sqla(customer_col)
+    order_sqla = table.adhoc_column_to_sqla(order_col)
+
+    # Build a full query
+    tbl = table.get_sqla_table()
+    query = sa.select(customer_sqla, order_sqla).select_from(tbl)
+
+    # Compile to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify both column names are quoted in the final SQL
+    assert '"Customer Name"' in sql, f"Customer Name not properly quoted in SQL: {sql}"
+    assert '"Order Total"' in sql, f"Order Total not properly quoted in SQL: {sql}"
+
+    # Verify SELECT and FROM clauses are present
+    assert "SELECT" in sql
+    assert "FROM" in sql
+
+    print(f"\nGenerated SQL:\n{sql}")  # This will show in test output with -v flag
