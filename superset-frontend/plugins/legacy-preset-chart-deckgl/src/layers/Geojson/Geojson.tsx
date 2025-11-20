@@ -289,7 +289,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   if (fd.enable_labels) {
     if (fd.enable_label_javascript_mode) {
       const generator = sandboxedEval(fd.label_javascript_config_generator);
-      labelOpts = computeGeoJsonTextOptionsFromJsOutput(generator());
+      if (typeof generator === 'function') {
+        labelOpts = computeGeoJsonTextOptionsFromJsOutput(generator());
+      }
     } else {
       labelOpts = computeGeoJsonTextOptionsFromFormData(fd);
     }
@@ -299,7 +301,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   if (fd.enable_icons) {
     if (fd.enable_icon_javascript_mode) {
       const generator = sandboxedEval(fd.icon_javascript_config_generator);
-      iconOpts = computeGeoJsonIconOptionsFromJsOutput(generator());
+      if (typeof generator === 'function') {
+        iconOpts = computeGeoJsonIconOptionsFromJsOutput(generator());
+      }
     } else {
       iconOpts = computeGeoJsonIconOptionsFromFormData(fd);
     }
