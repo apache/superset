@@ -33,11 +33,12 @@ logger = logging.getLogger(__name__)
 logger.info("Creating Flask app instance for MCP service")
 
 try:
+    from superset.app import create_app
     from superset.mcp_service.mcp_config import get_mcp_config
 
     # Create a temporary context to avoid
     # "Working outside of application context" errors.
-    _temp_app = Flask(__name__)
+    _temp_app = create_app()
 
     # Push an application context and initialize core dependencies and extensions
     with _temp_app.app_context():
