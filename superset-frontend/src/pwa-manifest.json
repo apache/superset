@@ -3,6 +3,7 @@
   "short_name": "Superset",
   "description": "Modern data exploration and visualization platform",
   "start_url": "/superset/welcome/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#20a7c9",

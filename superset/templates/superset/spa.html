@@ -74,7 +74,10 @@
       <script nonce="{{ macros.get_nonce() }}">
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', function() {
-            navigator.serviceWorker.register('{{ assets_prefix }}/static/assets/service-worker.js')
+            navigator.serviceWorker
+              .register('{{ assets_prefix }}/static/service-worker.js', {
+                scope: '/',
+              })
               .catch(function(err) {
                 console.error('Service Worker registration failed:', err);
               });

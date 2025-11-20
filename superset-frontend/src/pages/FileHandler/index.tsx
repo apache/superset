@@ -23,8 +23,16 @@ import { Loading } from '@superset-ui/core/components';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
-interface LaunchParams {
-  readonly files: readonly FileSystemFileHandle[];
+interface FileLaunchParams {
+  readonly files?: readonly FileSystemFileHandle[];
+}
+
+interface LaunchQueue {
+  setConsumer: (consumer: (params: FileLaunchParams) => void) => void;
+}
+
+interface WindowWithLaunchQueue extends Window {
+  launchQueue?: LaunchQueue;
 }
 
 interface FileHandlerProps {
@@ -43,7 +51,9 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
 
   useEffect(() => {
     const handleFileLaunch = async () => {
-      if (!('launchQueue' in window)) {
+      const { launchQueue } = window as WindowWithLaunchQueue;
+
+      if (!launchQueue) {
         addDangerToast(
           t(
             'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
@@ -53,8 +63,7 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
         return;
       }
 
-      const launchQueue = (window as any).launchQueue;
-      launchQueue.setConsumer(async (launchParams: LaunchParams) => {
+      launchQueue.setConsumer(async (launchParams: FileLaunchParams) => {
         if (!launchParams.files || launchParams.files.length === 0) {
           history.push('/superset/welcome/');
           return;
@@ -70,13 +79,13 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
 
           if (fileName.endsWith('.csv')) {
             type = 'csv';
-            extensions = ['.csv'];
+            extensions = ['csv'];
           } else if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
             type = 'excel';
-            extensions = ['.xls', '.xlsx'];
+            extensions = ['xls', 'xlsx'];
           } else if (fileName.endsWith('.parquet')) {
             type = 'columnar';
-            extensions = ['.parquet'];
+            extensions = ['parquet'];
           } else {
             addDangerToast(
               t(
@@ -117,6 +126,7 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
     <UploadDataModal
       show={showModal}
       onHide={handleModalClose}
+      fileListOverride={[uploadFile]}
       allowedExtensions={allowedExtensions}
       type={uploadType}
       addDangerToast={addDangerToast}

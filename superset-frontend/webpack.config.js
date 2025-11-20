@@ -71,20 +71,30 @@ const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 // TypeScript checker memory limit (in MB)
 const TYPESCRIPT_MEMORY_LIMIT = 4096;
 
+const defaultEntryFilename = isDevMode
+  ? '[name].[contenthash:8].entry.js'
+  : nameChunks
+    ? '[name].[chunkhash].entry.js'
+    : '[name].[chunkhash].entry.js';
+
+const defaultChunkFilename = isDevMode
+  ? '[name].[contenthash:8].chunk.js'
+  : nameChunks
+    ? '[name].[chunkhash].chunk.js'
+    : '[chunkhash].chunk.js';
+
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
+  filename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultEntryFilename,
+  chunkFilename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultChunkFilename,
 };
-if (isDevMode) {
-  output.filename = '[name].[contenthash:8].entry.js';
-  output.chunkFilename = '[name].[contenthash:8].chunk.js';
-} else if (nameChunks) {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
-} else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[chunkhash].chunk.js';
-}
 
 if (!isDevMode) {
   output.clean = true;

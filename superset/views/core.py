@@ -907,6 +907,7 @@ class Superset(BaseSupersetView):
 
         return self.render_app_template(extra_bootstrap_data=payload)
 
+    @has_access
     @event_logger.log_this
     @expose("/file-handler")
     def file_handler(self) -> FlaskResponse:
