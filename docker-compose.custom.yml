@@ -2,18 +2,10 @@
 # Docker Compose for Custom Superset Image
 # This uses a pre-built image instead of building from source
 #
-# USAGE:
-# 1. Build your custom image first:
-#    docker build --target lean --tag superset-custom:latest --build-arg BUILD_TRANSLATIONS=false --build-arg DEV_MODE=false .
-#
-# 2. Start services:
-#    docker-compose -f docker-compose.custom.yml up -d
-#
-# 3. Access Superset at: http://localhost:8088
-#
+
+version: '3.8'
 
 x-superset-user: &superset-user root
-x-superset-image: &superset-image superset-custom:latest
 x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
   - superset_data:/app/data
@@ -32,25 +24,23 @@ services:
       retries: 5
 
   db:
-    env_file:
-      - path: docker/.env
-        required: true
-      - path: docker/.env-local
-        required: false
     image: postgres:16
     container_name: superset_db
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
     volumes:
       - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-superset}"]
+      test: ["CMD-SHELL", "pg_isready -U superset"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   superset-init:
-    image: *superset-image
+    image: superset-custom:latest
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
@@ -65,20 +55,16 @@ services:
         condition: service_healthy
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
-      # Set to "no" to skip loading examples (avoids DuckDB requirement)
-      SUPERSET_LOAD_EXAMPLES: ${SUPERSET_LOAD_EXAMPLES:-yes}
     healthcheck:
       disable: true
 
   superset:
-    image: *superset-image
+    image: superset-custom:latest
     container_name: superset_app
-    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      - 8088:8088
     depends_on:
       superset-init:
         condition: service_completed_successfully
@@ -91,58 +77,10 @@ services:
         required: false
     environment:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  superset-worker:
-    image: *superset-image
-    container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    restart: unless-stopped
-    env_file:
-      - path: docker/.env
-        required: true
-      - path: docker/.env-local
-        required: false
-    depends_on:
-      superset-init:
-        condition: service_completed_successfully
-    user: *superset-user
-    volumes: *superset-volumes
-    environment:
-      CELERYD_CONCURRENCY: 2
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  superset-worker-beat:
-    image: *superset-image
-    container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    restart: unless-stopped
-    env_file:
-      - path: docker/.env
-        required: true
-      - path: docker/.env-local
-        required: false
-    depends_on:
-      - superset-worker
-    user: *superset-user
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
 
 volumes:
   superset_home:
-    external: false
   superset_data:
-    external: false
   db_home:
-    external: false
   redis:
-    external: false
 

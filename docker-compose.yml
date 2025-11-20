@@ -64,14 +64,14 @@ services:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/templates:/etc/nginx/templates:ro
 
-  redis:
-    image: redis:7
-    container_name: superset_cache
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:6379:6379"
-    volumes:
-      - redis:/data
+  # Redis service commented out - using existing Redis on host
+  # To use host Redis, set REDIS_HOST=host.docker.internal in environment
+  # redis:
+  #   image: redis:7
+  #   container_name: superset_cache
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis:/data
 
   db:
     env_file:
@@ -120,8 +120,8 @@ services:
       - 8080:8080
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - redis
+    # depends_on:
+    #   - redis  # Using external Redis on host
     # Mount everything in superset-websocket into container and
     # then exclude node_modules and dist with bogus volume mount.
     # This is necessary because host and container need to have
@@ -142,7 +142,7 @@ services:
       - ./docker/superset-websocket/config.example.json:/home/superset-websocket/config.json:ro
     environment:
       - PORT=8080
-      - REDIS_HOST=redis
+      - REDIS_HOST=host.docker.internal  # Use host Redis
       - REDIS_PORT=6379
       - REDIS_SSL=false
 
@@ -159,8 +159,10 @@ services:
     depends_on:
       db:
         condition: service_started
-      redis:
-        condition: service_started
+      # redis:  # Using external Redis on host
+      #   condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Access host Redis
     user: *superset-user
     volumes: *superset-volumes
     environment:
@@ -233,6 +235,8 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Access host Redis
     restart: unless-stopped
     depends_on:
       - superset-worker
@@ -274,7 +278,7 @@ volumes:
     external: false
   db_home:
     external: false
-  redis:
-    external: false
+  # redis:  # Not needed - using external Redis on host
+  #   external: false
   superset_data:
     external: false
