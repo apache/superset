@@ -18,14 +18,12 @@
  */
 import { useMemo } from 'react';
 import {
-  css,
   DataMaskState,
   DataMaskStateWithId,
   t,
   isDefined,
-  SupersetTheme,
-  styled,
 } from '@superset-ui/core';
+import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
@@ -154,7 +152,6 @@ const ActionButtons = ({
       <Button
         disabled={!isClearAllEnabled}
         buttonStyle="link"
-        buttonSize="small"
         className="filter-clear-all-button"
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}

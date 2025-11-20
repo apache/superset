@@ -1,5 +1,5 @@
 ---
-title: Extensions Overview
+title: Overview
 sidebar_position: 1
 ---
 
@@ -22,7 +22,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Extensions Overview
+# Overview
 
 Apache Superset's extension system allows developers to enhance and customize Superset's functionality through a modular, plugin-based architecture. Extensions can add new visualization types, custom UI components, data processing capabilities, and integration points.
 
@@ -32,8 +32,7 @@ Superset extensions are self-contained packages that extend the core platform's 
 
 ## Extension Architecture
 
-- **[Architectural Principles](./architectural-principles)** - Core design principles guiding extension development
-- **[High-level Architecture](./high-level-architecture)** - System overview and component relationships
+- **[Architecture](./architecture)** - Architectural principles and high-level system overview
 - **[Extension Project Structure](./extension-project-structure)** - Standard project layout and organization
 - **[Extension Metadata](./extension-metadata)** - Configuration and manifest structure
 
@@ -41,19 +40,18 @@ Superset extensions are self-contained packages that extend the core platform's 
 
 - **[Frontend Contribution Types](./frontend-contribution-types)** - Types of UI contributions available
 - **[Interacting with Host](./interacting-with-host)** - Communication patterns with Superset core
-- **[Dynamic Module Loading](./dynamic-module-loading)** - Runtime loading and dependency management
 - **[Development Mode](./development-mode)** - Tools and workflows for extension development
+
+For information about runtime loading and dependency management, see the [Dynamic Module Loading](./architecture#dynamic-module-loading) section in the Architecture page.
 
 ## Deployment & Management
 
 - **[Deploying Extension](./deploying-extension)** - Packaging and distribution strategies
-- **[Lifecycle Management](./lifecycle-management)** - Installation, updates, and removal
-- **[Versioning](./versioning)** - Version management and compatibility
 - **[Security Implications](./security-implications)** - Security considerations and best practices
 
 ## Hands-on Examples
 
-- **[Proof of Concept](./proof-of-concept)** - Complete Hello World extension walkthrough
+- **[Quick Start](./quick-start)** - Complete Hello World extension walkthrough
 
 ## Extension Capabilities
 
@@ -68,9 +66,9 @@ Extensions can provide:
 
 ## Getting Started
 
-1. **Learn the Architecture**: Start with [Architectural Principles](./architectural-principles) to understand the design philosophy
+1. **Learn the Architecture**: Start with [Architecture](./architecture) to understand the design philosophy
 2. **Set up Development**: Follow the [Development Mode](./development-mode) guide to configure your environment
-3. **Build Your First Extension**: Complete the [Proof of Concept](./proof-of-concept) tutorial
+3. **Build Your First Extension**: Complete the [Quick Start](./quick-start) tutorial
 4. **Deploy and Share**: Use the [Deploying Extension](./deploying-extension) guide to package your extension
 
 ## Extension Ecosystem

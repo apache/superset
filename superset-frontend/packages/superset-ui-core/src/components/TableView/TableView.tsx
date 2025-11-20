@@ -18,7 +18,7 @@
  */
 import { memo, useEffect, useRef, useMemo, useCallback } from 'react';
 import { isEqual } from 'lodash';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
 import TableCollection from '@superset-ui/core/components/TableCollection';

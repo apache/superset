@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { Behavior, ChartProps, supersetTheme } from '@superset-ui/core';
+import { Behavior, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 
 const RAW_FORM_DATA = {
   some_field: 1,

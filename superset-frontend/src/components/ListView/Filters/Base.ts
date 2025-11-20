@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
 import { Flex } from '@superset-ui/core/components';
 
 interface FilterContainerProps {

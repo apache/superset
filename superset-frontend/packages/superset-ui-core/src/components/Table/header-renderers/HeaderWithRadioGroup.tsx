@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { css, useTheme } from '../../..';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Icons, Radio, Popover } from '../..';
 
 export interface HeaderWithRadioGroupProps {
