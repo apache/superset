@@ -44,6 +44,7 @@ import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
+import { PRIMARY_COLOR } from '../../utilities/controls';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -147,8 +148,8 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData;
-  const fc = fd.fill_color_picker;
-  const sc = fd.stroke_color_picker;
+  const fc = fd.fill_color_picker ?? PRIMARY_COLOR;
+  const sc = fd.stroke_color_picker ?? PRIMARY_COLOR;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
   const strokeColor = [sc.r, sc.g, sc.b, 255 * sc.a];
   const propOverrides: JsonObject = {};
