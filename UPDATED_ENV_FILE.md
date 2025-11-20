@@ -1,3 +1,8 @@
+# Updated docker/.env File with Your PostgreSQL Credentials
+
+## Complete Updated .env File
+
+```bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -34,11 +39,11 @@ EXAMPLES_HOST=host.docker.internal
 EXAMPLES_USER=examples
 # Make sure you set this to a unique secure random value on production
 EXAMPLES_PASSWORD=examples
-EXAMPLES_PORT=5444
+EXAMPLES_PORT=5432
 
 # database engine specific environment variables
 # change the below if you prefer another database engine
-DATABASE_PORT=5444
+DATABASE_PORT=5432
 DATABASE_DIALECT=postgresql+psycopg2
 
 POSTGRES_DB=superset
@@ -86,3 +91,39 @@ ENABLE_PLAYWRIGHT=false
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 BUILD_SUPERSET_FRONTEND_IN_DOCKER=true
+```
+
+## Important Notes
+
+Since `keycloak_postgres` is a Docker container, you have two options:
+
+### Option 1: Use host.docker.internal (if port is exposed)
+
+If `keycloak_postgres` exposes port 5432 to the host, use:
+- `DATABASE_HOST=host.docker.internal`
+- `DATABASE_PORT=5432` (or whatever port is exposed)
+
+### Option 2: Use Docker network (if containers are on same network)
+
+If both Superset and `keycloak_postgres` are on the same Docker network, you can use:
+- `DATABASE_HOST=keycloak_postgres`
+- `DATABASE_PORT=5432`
+
+**Check which port keycloak_postgres exposes:**
+```bash
+docker ps | grep keycloak_postgres
+# Look for the port mapping, e.g., 0.0.0.0:5444->5432/tcp
+```
+
+If you see a port mapping like `5444->5432`, then:
+- Use `DATABASE_HOST=host.docker.internal`
+- Use `DATABASE_PORT=5444` (the host port)
+
+## Updated Values
+
+✅ `DATABASE_PASSWORD=idtcities123`  
+✅ `POSTGRES_PASSWORD=idtcities123`  
+✅ `DATABASE_HOST=host.docker.internal` (or `keycloak_postgres` if on same network)  
+✅ `REDIS_HOST=host.docker.internal`  
+✅ `SUPERSET_LOAD_EXAMPLES=no`
+
