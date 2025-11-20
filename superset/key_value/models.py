@@ -16,9 +16,9 @@
 # under the License.
 from datetime import datetime
 
-from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import relationship
+from superset_core.api.models import KeyValue as CoreKeyValue
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -26,7 +26,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 VALUE_MAX_SIZE = 2**24 - 1
 
 
-class KeyValueEntry(AuditMixinNullable, ImportExportMixin, Model):
+class KeyValueEntry(CoreKeyValue, AuditMixinNullable, ImportExportMixin):
     """Key value store entity"""
 
     __tablename__ = "key_value"

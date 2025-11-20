@@ -711,3 +711,134 @@ test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
 
   expect(setShowModal).toHaveBeenCalledWith(false);
 });
+
+test('should clear history and unsaved changes when entering edit mode', () => {
+  const clearDashboardHistory = jest.fn();
+
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    addSuccessToast,
+    addDangerToast,
+    addWarningToast,
+    onUndo,
+    onRedo,
+    setEditMode,
+    setUnsavedChanges,
+    fetchFaveStar,
+    saveFaveStar,
+    savePublished,
+    fetchCharts,
+    updateDashboardTitle,
+    updateCss,
+    onChange,
+    onSave,
+    setMaxUndoHistoryExceeded,
+    maxUndoHistoryToast,
+    logEvent,
+    setRefreshFrequency,
+    onRefresh,
+    dashboardInfoChanged,
+    dashboardTitleChanged,
+    clearDashboardHistory,
+  }));
+
+  const canEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+    },
+  };
+
+  setup(canEditState);
+
+  const editButton = screen.getByText('Edit dashboard');
+  userEvent.click(editButton);
+
+  expect(clearDashboardHistory).toHaveBeenCalledTimes(1);
+  expect(setUnsavedChanges).toHaveBeenCalledWith(false);
+});
+
+test('should mark theme change as unsaved when in edit mode', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardInfo: {
+        ...editableState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+  });
+});
+
+test('should not mark initial theme as unsaved change', () => {
+  setup({
+    ...editableState,
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      theme: 'LIGHT',
+    },
+  });
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+});
+
+test('should sync theme ref when navigating between dashboards', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      dashboardInfo: {
+        ...initialState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      id: 2,
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
+  });
+});

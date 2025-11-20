@@ -471,6 +471,8 @@ const SliceHeaderControls = (
     addSuccessToast,
     addDangerToast,
     title: t('Share'),
+    latestQueryFormData: props.formData,
+    maxWidth: `${theme.sizeUnit * 100}px`,
   });
 
   if (isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail) {

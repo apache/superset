@@ -46,7 +46,8 @@ const Row = styled.div`
 `;
 
 export const OuterRow = styled(Row)`
-  flex: 1 0 auto;
+  flex: 1 0 0;
+  min-height: 0;
   position: relative;
 `;
 

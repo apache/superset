@@ -14,11 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from .types.models import CoreModelsApi
-from .types.query import CoreQueryApi
-from .types.rest_api import CoreRestApi
-
-models: CoreModelsApi
-rest_api: CoreRestApi
-query: CoreQueryApi

@@ -195,7 +195,6 @@ function RoleListEditModal({
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}
-      bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
       {(form: FormInstance) => {

@@ -26,6 +26,8 @@ under the License.
 
 Extensions interact with Superset through well-defined, versioned APIs provided by the `@apache-superset/core` (frontend) and `apache-superset-core` (backend) packages. These APIs are designed to be stable, discoverable, and consistent for both built-in and external extensions.
 
+**Note**: The `superset_core.api` module provides abstract classes that are replaced with concrete implementations via dependency injection when Superset initializes. This allows extensions to use the same interfaces as the host application.
+
 **Frontend APIs** (via `@apache-superset/core)`:
 
 The frontend extension APIs in Superset are organized into logical namespaces such as `authentication`, `commands`, `extensions`, `sqlLab`, and others. Each namespace groups related functionality, making it easy for extension authors to discover and use the APIs relevant to their needs. For example, the `sqlLab` namespace provides events and methods specific to SQL Lab, allowing extensions to react to user actions and interact with the SQL Lab environment:
@@ -90,31 +92,38 @@ Backend APIs follow a similar pattern, providing access to Superset's models, se
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
 ``` python
-from superset_core.api import rest_api, models, query
+from superset_core.api.models import Database, get_session
+from superset_core.api.daos import DatabaseDAO
+from superset_core.api.rest_api import add_extension_api
 from .api import DatasetReferencesAPI
 
 # Register a new extension REST API
-rest_api.add_extension_api(DatasetReferencesAPI)
+add_extension_api(DatasetReferencesAPI)
 
-# Access Superset models with simple queries that filter out entities that
-# the user doesn't have access to
-databases = models.get_databases(id=database_id)
+# Fetch Superset entities via the DAO to apply base filters that filter out entities
+# that the user doesn't have access to
+databases = DatabaseDAO.find_all()
+
+# ..or apply simple filters on top of base filters
+databases = DatabaseDAO.filter_by(uuid=database.uuid)
 if not databases:
-    return self.response_404()
+    raise Exception("Database not found")
 
-database = databases[0]
+return databases[0]
 
-# Perform complex queries using SQLAlchemy BaseQuery, also filtering
-# out inaccessible entities
-session = models.get_session()
-db_model = models.get_database_model())
-database_query = session.query(db_model.database_name.ilike("%abc%")
-databases_containing_abc = models.get_databases(query)
+# Perform complex queries using SQLAlchemy Query, also filtering out
+# inaccessible entities
+session = get_session()
+databases_query = session.query(Database).filter(
+    Database.database_name.ilike("%abc%")
+)
+return DatabaseDAO.query(databases_query)
 
 # Bypass security model for highly custom use cases
-session = models.get_session()
-db_model = models.get_database_model())
-all_databases_containg_abc = session.query(db_model.database_name.ilike("%abc%").all()
+session = get_session()
+all_databases_containing_abc = session.query(Database).filter(
+    Database.database_name.ilike("%abc%")
+).all()
 ```
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.

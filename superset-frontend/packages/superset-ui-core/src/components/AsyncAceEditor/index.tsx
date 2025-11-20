@@ -26,6 +26,7 @@ import type {
 } from 'brace';
 import type AceEditor from 'react-ace';
 import type { IAceEditorProps } from 'react-ace';
+import type { Ace } from 'ace-builds';
 
 import {
   AsyncEsmComponent,
@@ -207,6 +208,68 @@ export function AsyncAceEditor(
           }
         }, [keywords, setCompleters]);
 
+        // Move autocomplete popup to the nearest parent container with data-ace-container
+        useEffect(() => {
+          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+            ?.editor;
+          if (!editorInstance) return;
+
+          const editorContainer = editorInstance.container;
+          if (!editorContainer) return;
+
+          // Cache DOM elements to avoid repeated queries on every command execution
+          let cachedAutocompletePopup: HTMLElement | null = null;
+          let cachedTargetContainer: Element | null = null;
+
+          const moveAutocompleteToContainer = () => {
+            // Revalidate cached popup if missing or detached from DOM
+            if (
+              !cachedAutocompletePopup ||
+              !document.body.contains(cachedAutocompletePopup)
+            ) {
+              cachedAutocompletePopup =
+                editorContainer.querySelector<HTMLElement>(
+                  '.ace_autocomplete',
+                ) ?? document.querySelector<HTMLElement>('.ace_autocomplete');
+            }
+
+            // Revalidate cached container if missing or detached
+            if (
+              !cachedTargetContainer ||
+              !document.body.contains(cachedTargetContainer)
+            ) {
+              cachedTargetContainer =
+                editorContainer.closest('#ace-editor') ??
+                editorContainer.parentElement;
+            }
+
+            if (
+              cachedAutocompletePopup &&
+              cachedTargetContainer &&
+              cachedTargetContainer !== document.body
+            ) {
+              cachedTargetContainer.appendChild(cachedAutocompletePopup);
+              cachedAutocompletePopup.dataset.aceAutocomplete = 'true';
+            }
+          };
+
+          const handleAfterExec = (e: Ace.Operation) => {
+            const name: string | undefined = e?.command?.name;
+            if (name === 'insertstring' || name === 'startAutocomplete') {
+              moveAutocompleteToContainer();
+            }
+          };
+
+          const { commands } = editorInstance;
+          commands.on('afterExec', handleAfterExec);
+
+          return () => {
+            commands.off('afterExec', handleAfterExec);
+            cachedAutocompletePopup = null;
+            cachedTargetContainer = null;
+          };
+        }, [ref]);
+
         return (
           <>
             <Global
@@ -288,14 +351,24 @@ export function AsyncAceEditor(
                   border: 1px solid ${token.colorBorderSecondary};
                   box-shadow: ${token.boxShadow};
                   border-radius: ${token.borderRadius}px;
+                  padding: ${token.paddingXS}px ${token.paddingXS}px;
                 }
 
-                & .tooltip-detail {
+                .ace_tooltip.ace_doc-tooltip {
+                  display: flex !important;
+                }
+
+                &&& .tooltip-detail {
+                  display: flex;
+                  justify-content: center;
+                  flex-direction: row;
+                  gap: ${token.paddingXXS}px;
+                  align-items: center;
                   background-color: ${token.colorBgContainer};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${token.sizeXXL * 5}px;
                   max-width: ${token.sizeXXL * 10}px;
+                  font-size: ${token.fontSize}px;
 
                   & .tooltip-detail-head {
                     background-color: ${token.colorBgElevated};
@@ -318,7 +391,9 @@ export function AsyncAceEditor(
 
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${token.padding}px ${token.paddingLG}px;
+                    background-color: ${token.colorBgLayout};
+                    padding: 0px ${token.paddingXXS}px;
+                    border: 1px ${token.colorSplit} solid;
                   }
 
                   & .tooltip-detail-footer {

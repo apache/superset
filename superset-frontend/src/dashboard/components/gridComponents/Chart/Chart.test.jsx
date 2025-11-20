@@ -267,3 +267,33 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
 
   stubbedExportXLSX.mockRestore();
 });
+
+test('should re-render when chart becomes visible', () => {
+  const { rerender, getByTestId } = setup({ isComponentVisible: false });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when componentId changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    componentId: 'test-1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible componentId="test-2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when cacheBusterProp changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    cacheBusterProp: 'v1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});

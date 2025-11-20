@@ -33,6 +33,7 @@ cover
 .env
 .envrc
 .idea
+.roo
 .mypy_cache
 .python-version
 .tox

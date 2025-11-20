@@ -458,7 +458,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         different time shifts will differ only in the `from_dttm`, `to_dttm`,
         `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
-        cache_dict = copy.copy(query_obj)
+        # Cast to dict[str, Any] to allow mutable operations (update, del)
+        # since TypedDict doesn't support these operations in the same way
+        cache_dict: dict[str, Any] = copy.copy(cast(dict[str, Any], query_obj))
         cache_dict.update(extra)
 
         for k in ["from_dttm", "to_dttm", "inner_from_dttm", "inner_to_dttm"]:
@@ -1313,6 +1315,7 @@ class WorldMapViz(BaseViz):
                         self.form_data["country_fieldtype"], row["country"]
                     )
             if country:
+                row["code"] = country[self.form_data["country_fieldtype"]]
                 row["country"] = country["cca3"]
                 row["latitude"] = country["lat"]
                 row["longitude"] = country["lng"]
