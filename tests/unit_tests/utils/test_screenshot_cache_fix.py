@@ -355,8 +355,7 @@ class TestIntegrationCacheBugFix:
 
         # Subsequent request should trigger new computation
         # (not return 404 from corrupted cache)
-        cached_payload = screenshot_obj.get_from_cache_key(cache_key)
-        if cached_payload:
+        if cached_payload := screenshot_obj.get_from_cache_key(cache_key):
             # If there was a cache entry, it should trigger recomputation
             assert cached_payload.should_trigger_task() is True
 
