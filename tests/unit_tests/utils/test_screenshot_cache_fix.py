@@ -172,6 +172,10 @@ class TestCacheOnlyOnSuccess:
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=check_cache_during_screenshot,
         )
+        # Mock resize to avoid PIL errors with fake image data
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+        )
 
         # Execute compute_and_cache
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
