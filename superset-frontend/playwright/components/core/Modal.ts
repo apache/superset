@@ -96,6 +96,19 @@ export class Modal {
   }
 
   /**
+   * Waits for the modal to be fully ready for interaction.
+   * This includes waiting for the modal dialog to be visible AND for React to finish
+   * rendering the modal content. Use this before interacting with modal elements
+   * to avoid race conditions with React state updates.
+   *
+   * @param options - Optional wait options
+   */
+  async waitForReady(options?: { timeout?: number }): Promise<void> {
+    await this.waitForVisible(options);
+    await this.body.waitFor({ state: 'visible', ...options });
+  }
+
+  /**
    * Waits for the modal to be hidden
    * @param options - Optional wait options
    */

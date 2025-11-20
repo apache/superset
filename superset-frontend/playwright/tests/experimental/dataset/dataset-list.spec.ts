@@ -172,9 +172,9 @@ test.describe('Dataset List', () => {
     // Click duplicate action button
     await datasetListPage.clickDuplicateAction(originalName);
 
-    // Duplicate modal should appear
+    // Duplicate modal should appear and be ready for interaction
     const duplicateModal = new DuplicateDatasetModal(page);
-    await duplicateModal.waitForVisible();
+    await duplicateModal.waitForReady();
 
     // Fill in new dataset name
     await duplicateModal.fillDatasetName(duplicateName);
