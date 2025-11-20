@@ -78,7 +78,7 @@ const config: ControlPanelConfig = {
               description: t(
                 "Custom configuration that overrides the linear color scheme color codes and thresholds. Thresholds are defined in percentage, and color codes accept any valid CSS value. Copy-paste and edit following sample configuration to define your own thresholds and colors :\n\n" +
           "[\n" +
-          "  { \"percent\": 0, \"color\": \"#600000\" },\n" +
+          "  { \"percent\": 0, \"color\": \"white\" },\n" +
           "  { \"percent\": 0.01, \"color\": \"#A00000\" },\n" +
           "  { \"percent\": 20, \"color\": \"#E52B50\" },\n" +
           "  { \"percent\": 35, \"color\": \"#FFA500\" },\n" +
@@ -86,11 +86,11 @@ const config: ControlPanelConfig = {
           "  { \"percent\": 65, \"color\": \"#9ACD32\" },\n" +
           "  { \"percent\": 80, \"color\": \"#3CB371\" },\n" +
           "  { \"percent\": 99.99, \"color\": \"#228B22\" },\n" +
-          "  { \"percent\": 100, \"color\": \"#006400\" }\n" +
+          "  { \"percent\": 100, \"color\": \"black\" }\n" +
           "]"
               ),       
               default: `[
-  { "percent": 0, "color": "#600000" },
+  { "percent": 0, "color": "white" },
   { "percent": 0.01, "color": "#A00000" },
   { "percent": 20, "color": "#E52B50" },
   { "percent": 35, "color": "#FFA500" },
@@ -98,7 +98,7 @@ const config: ControlPanelConfig = {
   { "percent": 65, "color": "#9ACD32" },
   { "percent": 80, "color": "#3CB371" },
   { "percent": 99.99, "color": "#228B22" },
-  { "percent": 100, "color": "#006400" }
+  { "percent": 100, "color": "black" }
 ]`,
               language: 'json',
               rows: 10,

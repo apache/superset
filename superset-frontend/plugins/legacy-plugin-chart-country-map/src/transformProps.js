@@ -34,13 +34,19 @@ export default function transformProps(chartProps) {
   try {
     parsedColorRules = customColorRules ? JSON.parse(customColorRules) : [];
   } catch (error) {
-    console.warn('Invalid JSON in customColorRules:', error);
+    console.warn(
+      'Invalid JSON in customColorRules. Please check your configuration syntax:',
+      error && error.message ? error.message : error,
+    );
   }
 
   try {
     parsedColorScale = customColorScale ? JSON.parse(customColorScale) : [];
   } catch (error) {
-    console.warn('Invalid JSON in customColorScale:', error);
+    console.warn(
+      'Invalid JSON in customColorScale. Please check your configuration syntax:',
+      error && error.message ? error.message : error,
+    );
   }
 
   return {

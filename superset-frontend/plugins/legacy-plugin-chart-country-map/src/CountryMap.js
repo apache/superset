@@ -28,11 +28,25 @@ import {
 import countries, { countryOptions } from './countries';
 
 function normalizeColorKeyword(color) {
-  if (!color && color !== '') return '#000000';
-  const c = String(color).trim().toLowerCase();
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)) return c;
-  if (/^[a-z]+$/.test(c)) return c;
+  if (color == null) return '#000000';
+  const c = String(color).trim();
 
+  // Hex colors (#RGB, #RRGGBB, #RGBA, #RRGGBBAA)
+  if (/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c)) return c;
+
+  // CSS color functions (rgb, rgba, hsl, hsla) with flexible spacing and alpha
+  const colorFuncRegex =
+    /^(rgb|rgba)\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  const colorFuncHslRegex =
+    /^(hsl|hsla)\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  if (colorFuncRegex.test(c) || colorFuncHslRegex.test(c)) return c;
+
+  // Named CSS colors and system colors
+  const s = new Option().style;
+  s.color = c.toLowerCase();
+  if (s.color) return c;
+
+  // Fallback
   return '#000000';
 }
 
@@ -54,7 +68,7 @@ const propTypes = {
   customColorRules: PropTypes.array,
   minColor: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   maxColor: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-  customColorScale: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
+  customColorScale: PropTypes.array,
 };
 
 const maps = {};
@@ -121,11 +135,6 @@ function CountryMap(element, props) {
       })
     : [];
 
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v.metric));
-  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
-
   // Parse metrics to numbers safely
   const parsedData = Array.isArray(data)
     ? data.map(r => ({ ...r, metric: safeNumber(r.metric) }))
@@ -150,31 +159,44 @@ function CountryMap(element, props) {
   /** -------------------------
    * 1) Custom conditional rules
    * ------------------------- */
-  const getColorFromRules = value => {
-    if (!Array.isArray(customColorRules) || !Number.isFinite(value))
-      return null;
+  // Preprocess customColorRules for efficient lookup
+  let valueRuleMap = {};
+  let rangeRules = [];
+  if (Array.isArray(customColorRules)) {
     for (const rule of customColorRules) {
       if (
         rule &&
         typeof rule.color === 'string' &&
         (('min' in rule && 'max' in rule) || 'value' in rule)
       ) {
-        if ('value' in rule && Number(rule.value) === value) {
-          // 🆕 normalize possible keyword in conditional rules as well
-          return normalizeColorKeyword(rule.color);
-        }
-        if ('min' in rule && 'max' in rule) {
+        if ('value' in rule && Number.isFinite(Number(rule.value))) {
+          valueRuleMap[Number(rule.value)] = normalizeColorKeyword(rule.color);
+        } else if ('min' in rule && 'max' in rule) {
           const minR = safeNumber(rule.min);
           const maxR = safeNumber(rule.max);
-          if (
-            Number.isFinite(minR) &&
-            Number.isFinite(maxR) &&
-            value >= minR &&
-            value <= maxR
-          ) {
-            return normalizeColorKeyword(rule.color);
+          if (Number.isFinite(minR) && Number.isFinite(maxR)) {
+            rangeRules.push({
+              min: minR,
+              max: maxR,
+              color: normalizeColorKeyword(rule.color),
+            });
           }
         }
+      }
+    }
+    // Sort rangeRules by min for possible future optimizations
+    rangeRules.sort((a, b) => a.min - b.min);
+  }
+  const getColorFromRules = value => {
+    if (!Number.isFinite(value)) return null;
+    // Check for exact value match first
+    if (Object.prototype.hasOwnProperty.call(valueRuleMap, value)) {
+      return valueRuleMap[value];
+    }
+    // Check range rules
+    for (const rule of rangeRules) {
+      if (value >= rule.min && value <= rule.max) {
+        return rule.color;
       }
     }
     return null;
@@ -208,7 +230,7 @@ function CountryMap(element, props) {
   }
 
   /** -------------------------
-   * 3) Linear palette from registry (SI défini)
+   * 3) Linear palette from registry if defined)
    * ------------------------- */
   let linearPaletteScale = null;
   if (linearColorScheme) {
@@ -263,13 +285,24 @@ function CountryMap(element, props) {
     }
 
     if (percentColorScale) {
-      const percentNormalized = ((value - minValue) / valueRangeNonZero) * 100;
-      const p = Math.max(0, Math.min(100, percentNormalized));
-      try {
-        colorMap[iso] = percentColorScale(p);
-        return;
-      } catch {
-        // continue regardless of error
+      if (minValue === maxValue) {
+        // All values are the same; map to central color (e.g., 50%)
+        try {
+          colorMap[iso] = percentColorScale(50);
+          return;
+        } catch {
+          // continue regardless of error
+        }
+      } else {
+        const percentNormalized =
+          ((value - minValue) / valueRangeNonZero) * 100;
+        const p = Math.max(0, Math.min(100, percentNormalized));
+        try {
+          colorMap[iso] = percentColorScale(p);
+          return;
+        } catch {
+          // continue regardless of error
+        }
       }
     }
 
