@@ -142,7 +142,7 @@ const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-export const computeJavaScriptGeoJsonTextOptions = (
+export const computeGeoJsonTextOptionsFromJsOutput = (
   output: unknown,
 ): Partial<GeoJsonLayerProps> => {
   if (!isObject(output)) return {};
@@ -185,7 +185,7 @@ export const computeJavaScriptGeoJsonTextOptions = (
   return Object.fromEntries(validEntries);
 };
 
-export const computeBasicGeoJsonTextOptions = (
+export const computeGeoJsonTextOptionsFromFormData = (
   fd: SqlaFormData,
 ): Partial<GeoJsonLayerProps> => {
   const lc = fd.label_color ?? BLACK_COLOR;
@@ -198,7 +198,7 @@ export const computeBasicGeoJsonTextOptions = (
   };
 };
 
-export const computeJavaScriptDeckglIconOptions = (
+export const computeGeoJsonIconOptionsFromJsOutput = (
   output: unknown,
 ): Partial<GeoJsonLayerProps> => {
   if (!isObject(output)) return {};
@@ -228,7 +228,7 @@ export const computeJavaScriptDeckglIconOptions = (
   return Object.fromEntries(validEntries);
 };
 
-export const computeBasicDeckglIconOptions = (
+export const computeGeoJsonIconOptionsFromFormData = (
   fd: SqlaFormData,
 ): Partial<GeoJsonLayerProps> => ({
   getIcon: () => ({
@@ -289,9 +289,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   if (fd.enable_labels) {
     if (fd.enable_label_javascript_mode) {
       const generator = sandboxedEval(fd.label_javascript_config_generator);
-      labelOpts = computeJavaScriptGeoJsonTextOptions(generator());
+      labelOpts = computeGeoJsonTextOptionsFromJsOutput(generator());
     } else {
-      labelOpts = computeBasicGeoJsonTextOptions(fd);
+      labelOpts = computeGeoJsonTextOptionsFromFormData(fd);
     }
   }
 
@@ -299,9 +299,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   if (fd.enable_icons) {
     if (fd.enable_icon_javascript_mode) {
       const generator = sandboxedEval(fd.icon_javascript_config_generator);
-      iconOpts = computeJavaScriptDeckglIconOptions(generator());
+      iconOpts = computeGeoJsonIconOptionsFromJsOutput(generator());
     } else {
-      iconOpts = computeBasicDeckglIconOptions(fd);
+      iconOpts = computeGeoJsonIconOptionsFromFormData(fd);
     }
   }
 
