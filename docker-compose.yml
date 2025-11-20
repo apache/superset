@@ -116,9 +116,9 @@ services:
     volumes: *superset-volumes
     environment:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
-      # Database connection - using external PostgreSQL on host
+      # Database connection - using external PostgreSQL on host (keycloak_postgres container)
       DATABASE_HOST: host.docker.internal
-      DATABASE_PORT: 5432
+      DATABASE_PORT: 5444
       DATABASE_DIALECT: postgresql+psycopg2
 
   superset-websocket:
