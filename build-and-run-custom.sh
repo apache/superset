@@ -7,6 +7,20 @@
 
 set -e
 
+# Detect docker compose command (newer: docker compose, older: docker-compose)
+if docker compose version > /dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+elif docker-compose version > /dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "Error: Neither 'docker compose' nor 'docker-compose' found!"
+    echo "Please install Docker Compose:"
+    echo "  sudo apt install docker-compose"
+    echo "  OR"
+    echo "  sudo apt install docker-compose-plugin"
+    exit 1
+fi
+
 IMAGE_TAG=${1:-superset-custom:latest}
 COMPOSE_FILE="docker-compose.custom.yml"
 
@@ -14,6 +28,7 @@ echo "=========================================="
 echo "Build and Run Custom Superset"
 echo "=========================================="
 echo "Image Tag: $IMAGE_TAG"
+echo "Using: $DOCKER_COMPOSE"
 echo ""
 
 # Check if we're in the right directory
@@ -73,12 +88,12 @@ fi
 
 # Step 3: Stop any existing containers
 echo "Step 2: Stopping any existing containers..."
-docker-compose -f "$COMPOSE_FILE" down 2>/dev/null || true
+$DOCKER_COMPOSE -f "$COMPOSE_FILE" down 2>/dev/null || true
 echo ""
 
 # Step 4: Start services
 echo "Step 3: Starting services with Docker Compose..."
-docker-compose -f "$COMPOSE_FILE" up -d
+$DOCKER_COMPOSE -f "$COMPOSE_FILE" up -d
 
 if [ $? -ne 0 ]; then
     echo ""
@@ -100,15 +115,15 @@ sleep 5
 
 # Check initialization status
 echo "Checking initialization status..."
-INIT_LOGS=$(docker-compose -f "$COMPOSE_FILE" logs superset-init 2>/dev/null | tail -20)
+INIT_LOGS=$($DOCKER_COMPOSE -f "$COMPOSE_FILE" logs superset-init 2>/dev/null | tail -20)
 
 if echo "$INIT_LOGS" | grep -q "Initialization complete\|Database initialized"; then
     echo "✅ Initialization appears complete!"
-elif docker-compose -f "$COMPOSE_FILE" ps superset-init | grep -q "Exited (0)"; then
+elif $DOCKER_COMPOSE -f "$COMPOSE_FILE" ps superset-init 2>/dev/null | grep -q "Exited (0)"; then
     echo "✅ Initialization container completed!"
 else
     echo "⏳ Initialization still in progress..."
-    echo "   Check logs with: docker-compose -f $COMPOSE_FILE logs -f superset-init"
+    echo "   Check logs with: $DOCKER_COMPOSE -f $COMPOSE_FILE logs -f superset-init"
 fi
 
 echo ""
@@ -125,9 +140,9 @@ echo ""
 echo "⚠️  Change the admin password immediately after first login!"
 echo ""
 echo "Useful commands:"
-echo "  View logs:        docker-compose -f $COMPOSE_FILE logs -f"
-echo "  Stop services:    docker-compose -f $COMPOSE_FILE down"
-echo "  Restart:          docker-compose -f $COMPOSE_FILE restart"
-echo "  Check status:     docker-compose -f $COMPOSE_FILE ps"
+echo "  View logs:        $DOCKER_COMPOSE -f $COMPOSE_FILE logs -f"
+echo "  Stop services:    $DOCKER_COMPOSE -f $COMPOSE_FILE down"
+echo "  Restart:          $DOCKER_COMPOSE -f $COMPOSE_FILE restart"
+echo "  Check status:     $DOCKER_COMPOSE -f $COMPOSE_FILE ps"
 echo ""
 

@@ -7,9 +7,24 @@
 
 set -e
 
+# Detect docker compose command (newer: docker compose, older: docker-compose)
+if docker compose version > /dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+elif docker-compose version > /dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "Error: Neither 'docker compose' nor 'docker-compose' found!"
+    echo "Please install Docker Compose:"
+    echo "  sudo apt install docker-compose"
+    echo "  OR"
+    echo "  sudo apt install docker-compose-plugin"
+    exit 1
+fi
+
 echo "=========================================="
 echo "Updating Superset"
 echo "=========================================="
+echo "Using: $DOCKER_COMPOSE"
 echo ""
 
 # Check if we're in the right directory
@@ -53,8 +68,8 @@ echo ""
 
 # Step 3: Restart services
 echo "Step 3: Restarting services..."
-docker-compose -f docker-compose.custom.yml down
-docker-compose -f docker-compose.custom.yml up -d
+$DOCKER_COMPOSE -f docker-compose.custom.yml down
+$DOCKER_COMPOSE -f docker-compose.custom.yml up -d
 
 if [ $? -ne 0 ]; then
     echo ""
@@ -68,9 +83,9 @@ echo "Update Complete!"
 echo "=========================================="
 echo ""
 echo "Services are restarting. Monitor with:"
-echo "  docker-compose -f docker-compose.custom.yml logs -f"
+echo "  $DOCKER_COMPOSE -f docker-compose.custom.yml logs -f"
 echo ""
 echo "Check status:"
-echo "  docker-compose -f docker-compose.custom.yml ps"
+echo "  $DOCKER_COMPOSE -f docker-compose.custom.yml ps"
 echo ""
 
