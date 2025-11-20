@@ -1509,33 +1509,34 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         label = utils.get_column_name(col)
-        try:
-            sql_expression = col["sqlExpression"]
-
-            # For column references, conditionally quote identifiers that need it
-            if col.get("isColumnReference"):
-                sql_expression = self.database.quote_identifier(sql_expression)
-
-            expression = self._process_select_expression(
-                expression=sql_expression,
-                database_id=self.database_id,
-                engine=self.database.backend,
-                schema=self.schema,
-                template_processor=template_processor,
-            )
-        except SupersetSecurityException as ex:
-            raise QueryObjectValidationError(ex.message) from ex
+        sql_expression = col["sqlExpression"]
         time_grain = col.get("timeGrain")
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
-        if col_in_metadata := self.get_column(expression):
+        if col.get("isColumnReference"):
+            col_in_metadata = self.get_column(sql_expression)
+            if col_in_metadata is None:
+                # should not happen
+                raise ColumnNotFoundException("Column not found")
+
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
         else:
+            try:
+                expression = self._process_select_expression(
+                    expression=sql_expression,
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
+
             sqla_column = literal_column(expression)
             if has_timegrain or force_type_check:
                 try:
@@ -1866,7 +1867,9 @@ class SqlaTable(
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:  # noqa: C901
+    def has_extra_cache_key_calls(
+        self, query_obj: QueryObjectDict
+    ) -> bool:  # noqa: C901
         """
         Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract
