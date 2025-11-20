@@ -158,11 +158,11 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on:
-      # db:  # Using external PostgreSQL on host
-      #   condition: service_started
-      # redis:  # Using external Redis on host
-      #   condition: service_started
+    # depends_on:  # No dependencies - using external PostgreSQL and Redis on host
+    #   db:
+    #     condition: service_started
+    #   redis:
+    #     condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Access host PostgreSQL and Redis
     user: *superset-user
