@@ -450,7 +450,7 @@ export class TableRenderer extends Component {
           .reduce((acc, key) => (acc[key] ??= {}), groups);
         parent[rowKey.at(-1)] = { currentVal: aggValue };
       } else {
-        rowKey.reduce((acc, key, index) => {
+        rowKey.reduce((acc, key) => {
           acc[key] = acc[key] || { currentVal: 0 };
           acc[key].currentVal = aggValue;
           return acc[key];

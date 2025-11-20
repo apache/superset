@@ -102,6 +102,15 @@ const mockGroups = {
   },
 };
 
+const createMockPivotData = (rowData: Record<string, number>) => {
+  return {
+    rowKeys: Object.keys(rowData).map(key => key.split('.')),
+    getAggregator: (rowKey: string[], colName: string) => ({
+      value: () => rowData[rowKey.join('.')],
+    }),
+  };
+};
+
 test('should set initial ascending sort when no active sort column', () => {
   mockGetAggregatedData.mockReturnValue({
     A: { currentVal: 30 },
@@ -451,4 +460,132 @@ test('should handle rowEnabled = false and rowPartialOnTop = false , sorting des
     ['A', 'A1'],
     ['A', 'A2'],
   ]);
+});
+
+test('create hierarchical structure with subtotal at bottom', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const rowData = {
+    'A.A1': 10,
+    'A.A2': 20,
+    A: 30,
+    'B.B1': 30,
+    'B.B2': 40,
+    B: 70,
+    'C.C1': 50,
+    'C.C2': 60,
+    C: 110,
+  };
+
+  const pivotData = createMockPivotData(rowData);
+  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
+
+  expect(result).toEqual({
+    A: {
+      A1: { currentVal: 10 },
+      A2: { currentVal: 20 },
+      currentVal: 30,
+    },
+    B: {
+      B1: { currentVal: 30 },
+      B2: { currentVal: 40 },
+      currentVal: 70,
+    },
+    C: {
+      C1: { currentVal: 50 },
+      C2: { currentVal: 60 },
+      currentVal: 110,
+    },
+  });
+});
+
+test('create hierarchical structure with subtotal at top', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const rowData = {
+    A: 30,
+    'A.A1': 10,
+    'A.A2': 20,
+    B: 70,
+    'B.B1': 30,
+    'B.B2': 40,
+    C: 110,
+    'C.C1': 50,
+    'C.C2': 60,
+  };
+
+  const pivotData = createMockPivotData(rowData);
+  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
+
+  expect(result).toEqual({
+    A: {
+      A1: { currentVal: 10 },
+      A2: { currentVal: 20 },
+      currentVal: 30,
+    },
+    B: {
+      B1: { currentVal: 30 },
+      B2: { currentVal: 40 },
+      currentVal: 70,
+    },
+    C: {
+      C1: { currentVal: 50 },
+      C2: { currentVal: 60 },
+      currentVal: 110,
+    },
+  });
+});
+
+test('values ​​from the 3rd level of the hierarchy with a subtotal at the bottom', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const rowData = {
+    'A.A1.A11': 10,
+    'A.A1.A12': 20,
+    'A.A1': 30,
+    'A.A2': 30,
+    'A.A3': 50,
+    A: 110,
+  };
+
+  const pivotData = createMockPivotData(rowData);
+  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
+
+  expect(result).toEqual({
+    A: {
+      A1: {
+        A11: { currentVal: 10 },
+        A12: { currentVal: 20 },
+        currentVal: 30,
+      },
+      A2: { currentVal: 30 },
+      A3: { currentVal: 50 },
+      currentVal: 110,
+    },
+  });
+});
+
+test('values ​​from the 3rd level of the hierarchy with a subtotal at the top', () => {
+  tableRenderer = new TableRenderer(mockProps);
+  const rowData = {
+    A: 110,
+    'A.A1': 30,
+    'A.A1.A11': 10,
+    'A.A1.A12': 20,
+    'A.A2': 30,
+    'A.A3': 50,
+  };
+
+  const pivotData = createMockPivotData(rowData);
+  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
+
+  expect(result).toEqual({
+    A: {
+      A1: {
+        A11: { currentVal: 10 },
+        A12: { currentVal: 20 },
+        currentVal: 30,
+      },
+      A2: { currentVal: 30 },
+      A3: { currentVal: 50 },
+      currentVal: 110,
+    },
+  });
 });
