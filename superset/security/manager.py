@@ -2875,7 +2875,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SupersetRegisterUserView
         )
 
+        # Apply rate limiting to auth view if enabled
+        # This needs to be done after the view is added, otherwise the blueprint
+        # is not initialized. Only apply if blueprint exists.
+        # We also need to prevent the parent's register_views from trying to
+        # apply rate limiting again (since auth_view already exists), so we
+        # temporarily disable AUTH_RATE_LIMITED during the super() call.
+        if (
+            self.is_auth_limited
+            and hasattr(self.auth_view, "blueprint")
+            and self.auth_view.blueprint is not None
+        ):
+            self.limiter.limit(self.auth_rate_limit, methods=["POST"])(
+                self.auth_view.blueprint
+            )
+
+        # Temporarily disable AUTH_RATE_LIMITED to prevent parent from trying to
+        # apply rate limiting to a potentially None blueprint
+        original_auth_rate_limited = current_app.config.get("AUTH_RATE_LIMITED", False)
+        current_app.config["AUTH_RATE_LIMITED"] = False
+
         super().register_views()
+
+        # Restore original value
+        current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
