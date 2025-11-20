@@ -2875,6 +2875,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SupersetRegisterUserView
         )
 
+        # Validate auth_view has blueprint before calling parent's register_views
+        # to provide a better error message if config wasn't loaded properly
+        if not hasattr(self.auth_view, "blueprint") or self.auth_view.blueprint is None:
+            raise RuntimeError(
+                "Auth view blueprint is not initialized. This usually means "
+                "superset_config.py was not loaded. If running from command line, "
+                "ensure PYTHONPATH includes the directory containing "
+                "superset_config.py. Example: PYTHONPATH=. superset run"
+            )
+
         super().register_views()
 
         for view in list(self.appbuilder.baseviews):
