@@ -312,9 +312,7 @@ class BaseScreenshot:
 
         logger.info("Caching thumbnail: %s", cache_key)
         self.cache.set(cache_key, cache_payload.to_dict())
-        logger.info(
-            "Updated thumbnail cache; Status: %s", cache_payload.get_status()
-        )
+        logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
         return
 
     @classmethod
