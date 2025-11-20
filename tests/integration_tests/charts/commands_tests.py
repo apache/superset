@@ -406,6 +406,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart_to_update = db.session.query(Slice).get(pk)
         chart_to_update.last_saved_at = datetime.now()
         db.session.commit()
+        # Refresh to get the database value with MySQL's truncated microseconds
+        db.session.refresh(chart_to_update)
         last_saved_before = chart_to_update.last_saved_at
 
         command = UpdateChartCommand(
