@@ -385,6 +385,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "metrics": self.metrics,
             "order_desc": self.order_desc,
             "orderby": self.orderby,
+            "post_processing": self.post_processing,
             "row_limit": self.row_limit,
             "row_offset": self.row_offset,
             "series_columns": self.series_columns,
@@ -480,7 +481,16 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # datasource or database do not exist
             pass
 
-        return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
+        cache_key = md5_sha_from_dict(
+            cache_dict, default=json_int_dttm_ser, ignore_nan=True
+        )
+        # Log QueryObject cache key generation for debugging
+        logger.info(
+            "QueryObject CACHE KEY generated: %s from dict with keys: %s",
+            cache_key,
+            sorted(cache_dict.keys()),
+        )
+        return cache_key
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
         """

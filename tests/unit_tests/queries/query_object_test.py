@@ -52,6 +52,7 @@ def test_default_query_object_to_dict():
         "metrics": None,
         "order_desc": True,
         "orderby": [],
+        "post_processing": [],
         "row_limit": 1,
         "row_offset": 0,
         "series_columns": [],

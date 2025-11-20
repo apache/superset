@@ -39,7 +39,14 @@ logger = logging.getLogger(__name__)
 
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
     hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
-    return f"{key_prefix}{hash_str}"
+    cache_key = f"{key_prefix}{hash_str}"
+    # Log cache key generation for debugging
+    logger.debug(
+        "Cache key generated: %s from dict keys: %s",
+        cache_key,
+        list(values_dict.keys()),
+    )
+    return cache_key
 
 
 def set_and_log_cache(
@@ -67,6 +74,14 @@ def set_and_log_cache(
         cache_instance.set(cache_key, value, timeout=timeout)
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
+
+        # Log cache key details for debugging
+        logger.info(
+            "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
+            cache_key,
+            datasource_uid,
+            timeout,
+        )
 
         if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
