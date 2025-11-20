@@ -116,6 +116,10 @@ services:
     volumes: *superset-volumes
     environment:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      # Database connection - using external PostgreSQL on host
+      DATABASE_HOST: host.docker.internal
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql+psycopg2
 
   superset-websocket:
     container_name: superset_websocket
@@ -171,6 +175,14 @@ services:
     volumes: *superset-volumes
     environment:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
+      # Database connection - using external PostgreSQL on host
+      DATABASE_HOST: host.docker.internal
+      DATABASE_PORT: 5432
+      # These should be set in docker/.env, but can override here:
+      # DATABASE_USER: superset
+      # DATABASE_PASSWORD: your_password
+      # DATABASE_DB: superset
+      DATABASE_DIALECT: postgresql+psycopg2
     healthcheck:
       disable: true
 
