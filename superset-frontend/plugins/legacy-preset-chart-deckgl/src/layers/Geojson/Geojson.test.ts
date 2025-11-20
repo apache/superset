@@ -20,6 +20,8 @@ import { SqlaFormData } from '@superset-ui/core';
 import {
   computeGeoJsonTextOptionsFromJsOutput,
   computeGeoJsonTextOptionsFromFormData,
+  computeGeoJsonIconOptionsFromJsOutput,
+  computeGeoJsonIconOptionsFromFormData,
 } from './Geojson';
 
 jest.mock('@deck.gl/react', () => ({
@@ -69,4 +71,51 @@ test('computeGeoJsonTextOptionsFromJsOutput should compute text options based on
 
   const sampleFeature = { properties: { name: 'Test' } };
   expect(actualOutput.getText(sampleFeature)).toBe('Test');
+});
+
+test('computeGeoJsonIconOptionsFromJsOutput should return an empty object for non-object input', () => {
+  expect(computeGeoJsonIconOptionsFromJsOutput(null)).toEqual({});
+  expect(computeGeoJsonIconOptionsFromJsOutput(42)).toEqual({});
+  expect(computeGeoJsonIconOptionsFromJsOutput([1, 2, 3])).toEqual({});
+  expect(computeGeoJsonIconOptionsFromJsOutput('string')).toEqual({});
+});
+
+test('computeGeoJsonIconOptionsFromJsOutput should extract valid icon options from the input object', () => {
+  const input = {
+    getIcon: 'icon_name',
+    getIconColor: [1, 2, 3, 255],
+    invalidOption: false,
+  };
+
+  const expectedOutput = {
+    getIcon: 'icon_name',
+    getIconColor: [1, 2, 3, 255],
+  };
+
+  expect(computeGeoJsonIconOptionsFromJsOutput(input)).toEqual(expectedOutput);
+});
+
+test('computeGeoJsonIconOptionsFromFormData should compute icon options based on form data', () => {
+  const formData: SqlaFormData = {
+    icon_url: 'https://example.com/icon.png',
+    icon_size: 123,
+    icon_size_unit: 'pixels',
+    datasource: 'test_datasource',
+    viz_type: 'deck_geojson',
+  };
+
+  const expectedOutput = {
+    getIcon: expect.any(Function),
+    getIconSize: 123,
+    iconSizeUnits: 'pixels',
+  };
+
+  const actualOutput = computeGeoJsonIconOptionsFromFormData(formData);
+  expect(actualOutput).toEqual(expectedOutput);
+
+  expect(actualOutput.getIcon()).toEqual({
+    url: 'https://example.com/icon.png',
+    height: 128,
+    width: 128,
+  });
 });
