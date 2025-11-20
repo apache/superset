@@ -21,4 +21,9 @@ export const URL = {
   DATASET_LIST: 'tablemodelview/list',
   LOGIN: 'login/',
   WELCOME: 'superset/welcome/',
+  DASHBOARD_LIST: 'dashboard/list',
+  DATABASE_LIST: 'databaseview/list',
+  SQLLAB: 'sqllab',
+  CHART_LIST: 'chart/list',
 } as const;
+
