@@ -115,8 +115,16 @@ def extract_api_key_from_header(authorization_header: str | None) -> str | None:
     if not authorization_header:
         return None
 
-    # Remove "Bearer " prefix if present (case-insensitive)
-    if authorization_header.lower().startswith("bearer "):
-        return authorization_header[7:].strip()
+    # Strip whitespace first
+    header = authorization_header.strip()
+    if not header:
+        return None
 
-    return authorization_header.strip()
+    # Remove "Bearer " prefix if present (case-insensitive)
+    if header.lower().startswith("bearer "):
+        key = header[7:].strip()
+    else:
+        key = header
+
+    # Return None if empty after stripping
+    return key if key else None
