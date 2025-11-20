@@ -96,6 +96,7 @@ function SearchFilter(
         onChange={handleChange}
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
+        data-1p-ignore
         prefix={
           <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
         }
