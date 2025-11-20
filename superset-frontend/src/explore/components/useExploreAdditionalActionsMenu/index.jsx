@@ -36,6 +36,7 @@ import {
 } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
@@ -50,6 +51,7 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import { useStreamingExport } from 'src/components/StreamingExportModal';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
@@ -140,6 +142,32 @@ export const useExploreAdditionalActionsMenu = (
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
+  const streamingThreshold = useSelector(
+    state =>
+      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
+      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
+  );
+
+  // Streaming export state and handlers
+  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+  const { progress, startExport, resetExport, retryExport } =
+    useStreamingExport({
+      onComplete: () => {
+        // Don't show toast here - wait for user to click Download button
+      },
+      onError: () => {
+        addDangerToast(t('Export failed - please try again'));
+      },
+    });
+
+  const handleCloseStreamingModal = useCallback(() => {
+    setIsStreamingModalVisible(false);
+    resetExport();
+  }, [resetExport]);
+
+  const handleDownloadComplete = useCallback(() => {
+    addSuccessToast(t('CSV file downloaded successfully'));
+  }, [addSuccessToast]);
 
   // Use the updated report menu items hook
   const reportMenuItem = useHeaderReportMenuItems({
@@ -170,18 +198,67 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, latestQueryFormData]);
 
-  const exportCSV = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData,
-            ownState,
-            resultType: 'full',
-            resultFormat: 'csv',
-          })
+  const exportCSV = useCallback(() => {
+    if (!canDownloadCSV) return null;
+
+    // Determine row count for streaming threshold check
+    let actualRowCount;
+    const isTableViz = latestQueryFormData?.viz_type === 'table';
+    const queriesResponse = chart?.queriesResponse;
+
+    if (
+      isTableViz &&
+      queriesResponse?.length > 1 &&
+      queriesResponse[1]?.data?.[0]?.rowcount
+    ) {
+      actualRowCount = queriesResponse[1].data[0].rowcount;
+    } else if (queriesResponse?.[0]?.sql_rowcount != null) {
+      actualRowCount = queriesResponse[0].sql_rowcount;
+    } else {
+      actualRowCount = latestQueryFormData?.row_limit;
+    }
+
+    // Check if streaming should be used
+    const shouldUseStreaming =
+      actualRowCount && actualRowCount >= streamingThreshold;
+
+    let filename;
+    if (shouldUseStreaming) {
+      const now = new Date();
+      const date = now.toISOString().slice(0, 10);
+      const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+      const timestamp = `_${date}_${time}`;
+      const chartName =
+        slice?.slice_name || latestQueryFormData.viz_type || 'chart';
+      const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      filename = `${safeChartName}${timestamp}.csv`;
+    }
+
+    return exportChart({
+      formData: latestQueryFormData,
+      ownState,
+      resultType: 'full',
+      resultFormat: 'csv',
+      onStartStreamingExport: shouldUseStreaming
+        ? exportParams => {
+            setIsStreamingModalVisible(true);
+            startExport({
+              ...exportParams,
+              filename,
+              expectedRows: actualRowCount,
+            });
+          }
         : null,
-    [canDownloadCSV, latestQueryFormData],
-  );
+    });
+  }, [
+    canDownloadCSV,
+    latestQueryFormData,
+    ownState,
+    chart,
+    streamingThreshold,
+    slice,
+    startExport,
+  ]);
 
   const exportCSVPivoted = useCallback(
     () =>
@@ -545,5 +622,14 @@ export const useExploreAdditionalActionsMenu = (
     theme.sizeUnit,
   ]);
 
-  return [menu, isDropdownVisible, setIsDropdownVisible];
+  // Return streaming modal state and handlers for parent to render
+  const streamingExportState = {
+    isVisible: isStreamingModalVisible,
+    progress,
+    onCancel: handleCloseStreamingModal,
+    onRetry: retryExport,
+    onDownload: handleDownloadComplete,
+  };
+
+  return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
 };
