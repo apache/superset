@@ -50,6 +50,14 @@ const defaultLabelConfigGenerator = `() => ({
   textSizeUnits: 'pixels',
 })`;
 
+const defaultIconConfigGenerator = `() => ({
+  // Check the documentation at:
+  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-1
+  getIcon: () => ({ url: '', height: 128, width: 128 }),
+  getIconSize: 32,
+  iconSizeUnits: 'pixels',
+})`;
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -184,6 +192,108 @@ const config: ControlPanelConfig = {
               visibility: ({ form_data }) =>
                 !!form_data.enable_labels &&
                 !!form_data.enable_label_javascript_mode,
+            },
+          },
+        ],
+        [
+          {
+            name: 'enable_icons',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable icons'),
+              description: t('Enables rendering of icons for GeoJSON points'),
+              default: false,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'enable_icon_javascript_mode',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable icon JavaScript mode'),
+              description: t(
+                'Enables custom icon configuration via JavaScript',
+              ),
+              visibility: ({ form_data }) => !!form_data.enable_icons,
+              default: false,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'icon_url',
+            config: {
+              type: 'TextControl',
+              label: t('Icon URL'),
+              description: t(
+                'The image URL of the icon to display for GeoJSON points. ' +
+                  'Note that the image URL must conform to the content ' +
+                  'security policy (CSP) in order to load correctly.',
+              ),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_icons &&
+                !form_data.enable_icon_javascript_mode,
+              default: '',
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'icon_size',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Icon size'),
+              description: t('The size of the point icons'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_icons &&
+                !form_data.enable_icon_javascript_mode,
+              validators: [legacyValidateInteger],
+              choices: formatSelectOptions([16, 24, 32, 64, 128]),
+              default: 32,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'icon_size_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Icon size unit'),
+              description: t('The unit for icon size'),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_icons &&
+                !form_data.enable_icon_javascript_mode,
+              choices: [
+                ['meters', t('Meters')],
+                ['pixels', t('Pixels')],
+              ],
+              default: 'pixels',
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'icon_javascript_config_generator',
+            config: {
+              ...jsFunctionControl(
+                t('Icon JavaScript config generator'),
+                t(
+                  'A JavaScript function that generates an icon configuration object',
+                ),
+                undefined,
+                undefined,
+                defaultIconConfigGenerator,
+              ),
+              visibility: ({ form_data }) =>
+                !!form_data.enable_icons &&
+                !!form_data.enable_icon_javascript_mode,
             },
           },
         ],

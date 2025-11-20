@@ -198,6 +198,53 @@ export const computeBasicGeoJsonTextOptions = (
   };
 };
 
+export const computeJavaScriptDeckglIconOptions = (
+  output: unknown,
+): Partial<GeoJsonLayerProps> => {
+  if (!isObject(output)) return {};
+
+  // Properties sourced from:
+  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-1
+  const options: (keyof GeoJsonLayerProps)[] = [
+    'getIcon',
+    'getIconSize',
+    'getIconColor',
+    'getIconAngle',
+    'getIconPixelOffset',
+    'iconSizeUnits',
+    'iconSizeScale',
+    'iconSizeMinPixels',
+    'iconSizeMaxPixels',
+    'iconAtlas',
+    'iconMapping',
+    'iconBillboard',
+    'iconAlphaCutoff',
+  ];
+
+  const allEntries = Object.entries(output);
+  const validEntries = allEntries.filter(([k]) =>
+    options.includes(k as keyof GeoJsonLayerProps),
+  );
+  return Object.fromEntries(validEntries);
+};
+
+export const computeBasicDeckglIconOptions = (
+  fd: SqlaFormData,
+): Partial<GeoJsonLayerProps> => ({
+  getIcon: () => ({
+    url: fd.icon_url,
+    // This is the size deck.gl resizes the icon internally while preserving
+    // its aspect ratio. This is not the actual size the icon is rendered at,
+    // which is instead controlled by getIconSize below. These are set because
+    // deck.gl requires it, and 128x128 is a reasonable default. Read more at:
+    // https://deck.gl/docs/api-reference/layers/icon-layer#geticon
+    width: 128,
+    height: 128,
+  }),
+  getIconSize: fd.icon_size,
+  iconSizeUnits: fd.icon_size_unit,
+});
+
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   formData,
   onContextMenu,
@@ -234,6 +281,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   if (fd.enable_labels) {
     pointType = `${pointType}+text`;
   }
+  if (fd.enable_icons) {
+    pointType = `${pointType}+icon`;
+  }
 
   let labelOpts: Partial<GeoJsonLayerProps> = {};
   if (fd.enable_labels) {
@@ -242,6 +292,16 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       labelOpts = computeJavaScriptGeoJsonTextOptions(generator());
     } else {
       labelOpts = computeBasicGeoJsonTextOptions(fd);
+    }
+  }
+
+  let iconOpts: Partial<GeoJsonLayerProps> = {};
+  if (fd.enable_icons) {
+    if (fd.enable_icon_javascript_mode) {
+      const generator = sandboxedEval(fd.icon_javascript_config_generator);
+      iconOpts = computeJavaScriptDeckglIconOptions(generator());
+    } else {
+      iconOpts = computeBasicDeckglIconOptions(fd);
     }
   }
 
@@ -259,6 +319,7 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     lineWidthUnits: fd.line_width_unit,
     pointType,
     ...labelOpts,
+    ...iconOpts,
     ...commonLayerProps({
       formData: fd,
       setTooltip,
