@@ -29,6 +29,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
+  StreamingExportModal,
+  useStreamingExport,
+} from 'src/components/StreamingExportModal';
+import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
@@ -36,7 +40,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
-import { URL_PARAMS } from 'src/constants';
+import { URL_PARAMS, DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import {
@@ -82,8 +86,6 @@ const propTypes = {
   isInView: PropTypes.bool,
 };
 
-// we use state + shouldComponentUpdate() logic to prevent perf-wrecking
-// resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 500;
 const DEFAULT_HEADER_HEIGHT = 22;
 
@@ -164,6 +166,11 @@ const Chart = props => {
   const maxRows = useSelector(
     state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
   );
+  const streamingThreshold = useSelector(
+    state =>
+      state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD ||
+      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
+  );
   const datasource = useSelector(
     state =>
       (chart &&
@@ -182,6 +189,27 @@ const Chart = props => {
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
   const [width, setWidth] = useState(props.width);
+
+  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
+  const {
+    progress,
+    isExporting,
+    startExport,
+    cancelExport,
+    resetExport,
+    retryExport,
+  } = useStreamingExport({
+    onComplete: () => {
+      // Don't show toast here - wait for user to click Download button
+    },
+    onError: () => {
+      boundActionCreators.addDangerToast(t('Export failed - please try again'));
+    },
+  });
+
+  const handleDownloadComplete = useCallback(() => {
+    boundActionCreators.addSuccessToast(t('CSV file downloaded successfully'));
+  }, [boundActionCreators]);
   const history = useHistory();
   const resize = useCallback(
     debounce(() => {
@@ -425,6 +453,39 @@ const Chart = props => {
         is_cached: isCached,
       });
 
+      const exportFormData = isFullCSV
+        ? { ...formData, row_limit: maxRows }
+        : formData;
+      const resultType = isPivot ? 'post_processed' : 'full';
+
+      let actualRowCount;
+      const isTableViz = formData?.viz_type === 'table';
+
+      if (
+        isTableViz &&
+        queriesResponse?.length > 1 &&
+        queriesResponse[1]?.data?.[0]?.rowcount
+      ) {
+        actualRowCount = queriesResponse[1].data[0].rowcount;
+      } else if (queriesResponse?.[0]?.sql_rowcount != null) {
+        actualRowCount = queriesResponse[0].sql_rowcount;
+      } else {
+        actualRowCount = exportFormData?.row_limit;
+      }
+
+      // Handle streaming CSV exports based on row threshold
+      const shouldUseStreaming =
+        format === 'csv' && !isPivot && actualRowCount >= streamingThreshold;
+      let filename;
+      if (shouldUseStreaming) {
+        const now = new Date();
+        const date = now.toISOString().slice(0, 10);
+        const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+        const timestamp = `_${date}_${time}`;
+        const chartName = slice.slice_name || formData.viz_type || 'chart';
+        const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        filename = `${safeChartName}${timestamp}.csv`;
+      }
       let ownState = dataMask[props.id]?.ownState || {};
 
       // Convert chart-specific state to backend format using registered converter
@@ -440,11 +501,21 @@ const Chart = props => {
       }
 
       exportChart({
-        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
-        resultType: isPivot ? 'post_processed' : 'full',
+        formData: exportFormData,
+        resultType,
         resultFormat: format,
         force: true,
         ownState,
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              setIsStreamingModalVisible(true);
+              startExport({
+                ...exportParams,
+                filename,
+                expectedRows: actualRowCount,
+              });
+            }
+          : null,
       });
     },
     [
@@ -457,6 +528,10 @@ const Chart = props => {
       chartState,
       props.id,
       boundActionCreators.logEvent,
+      queriesResponse,
+      startExport,
+      resetExport,
+      streamingThreshold,
     ],
   );
 
@@ -609,6 +684,19 @@ const Chart = props => {
           onChartStateChange={handleChartStateChange}
         />
       </ChartWrapper>
+
+      <StreamingExportModal
+        visible={isStreamingModalVisible}
+        onCancel={() => {
+          cancelExport();
+          setIsStreamingModalVisible(false);
+          resetExport();
+        }}
+        onRetry={retryExport}
+        onDownload={handleDownloadComplete}
+        progress={progress}
+        exportType="csv"
+      />
     </SliceContainer>
   );
 };
