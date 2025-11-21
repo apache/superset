@@ -27,6 +27,7 @@ import {
   SqlaFormData,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
+import { test } from '@jest/globals';
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -724,41 +725,39 @@ describe('legend sorting', () => {
   });
 });
 
-describe('x-axis label behavior', () => {
-  it('should set hideOverlap to false for time-based x-axis', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
+test('x-axis label behavior - should set hideOverlap to false for time-based x-axis', () => {
+  const chartProps = new ChartProps(chartPropsConfig);
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
 
-    expect(transformed.echartOptions.xAxis).toEqual(
-      expect.objectContaining({
-        axisLabel: expect.objectContaining({
-          hideOverlap: false,
-        }),
+  expect(transformed.echartOptions.xAxis).toEqual(
+    expect.objectContaining({
+      axisLabel: expect.objectContaining({
+        hideOverlap: false,
       }),
-    );
+    }),
+  );
+});
+
+test('x-axis label behavior - should set hideOverlap to true for categorical x-axis', () => {
+  const categoricalFormData = {
+    ...formData,
+    xAxisForceCategorical: true,
+  };
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: categoricalFormData,
   });
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
 
-  it('should set hideOverlap to true for categorical x-axis', () => {
-    const categoricalFormData = {
-      ...formData,
-      xAxisForceCategorical: true,
-    };
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: categoricalFormData,
-    });
-    const transformed = transformProps(
-      chartProps as EchartsTimeseriesChartProps,
-    );
-
-    expect(transformed.echartOptions.xAxis).toEqual(
-      expect.objectContaining({
-        axisLabel: expect.objectContaining({
-          hideOverlap: true,
-        }),
+  expect(transformed.echartOptions.xAxis).toEqual(
+    expect.objectContaining({
+      axisLabel: expect.objectContaining({
+        hideOverlap: true,
       }),
-    );
-  });
+    }),
+  );
 });
