@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
+import { ReactElement, ReactNode, ReactText, ComponentType, FunctionComponent } from 'react';
 
 import type {
   AdhocColumn,
@@ -380,7 +380,7 @@ export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
 
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
 // interfere with other ControlSetItem types
-export type ExpandedControlItem = CustomControlItem | ReactElement | null;
+export type ExpandedControlItem = CustomControlItem | ReactElement | ComponentType<any> | FunctionComponent<any> | null;
 
 export type ControlSetItem =
   | SharedControlAlias

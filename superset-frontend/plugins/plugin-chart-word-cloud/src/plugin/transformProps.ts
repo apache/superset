@@ -41,8 +41,8 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     metric,
     rotation,
     series,
-    sizeFrom = 0,
-    sizeTo,
+    sizeFrom = 10,
+    sizeTo = 70, // Default value if control is removed
     sliceId,
   } = formData as WordCloudFormData;
 

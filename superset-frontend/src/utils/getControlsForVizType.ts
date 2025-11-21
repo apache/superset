@@ -18,6 +18,7 @@
  */
 
 import memoizeOne from 'memoize-one';
+import React from 'react';
 import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry, JsonObject } from '@superset-ui/core';
 import type { ControlMap } from 'src/components/AlteredSliceTag/types';
@@ -44,6 +45,29 @@ const memoizedControls = memoizeOne(
                   if (controlConfig) {
                     controlsMap[control] = controlConfig;
                   }
+                } else if (typeof control === 'function') {
+                  // Handle React component references (function components)
+                  const Component = control as React.ComponentType<any>;
+                  const componentName = Component.name || Component.displayName || '';
+                  
+                  // Convert component name to control name
+                  let controlName: string | null = null;
+                  if (componentName.endsWith('Control')) {
+                    const baseName = componentName.slice(0, -7);
+                    controlName = baseName
+                      .replace(/([A-Z])/g, '_$1')
+                      .toLowerCase()
+                      .replace(/^_/, '');
+                  }
+                  
+                  if (controlName) {
+                    // Create minimal config for React component controls
+                    const componentWithConfig = Component as any;
+                    controlsMap[controlName] = {
+                      type: 'CustomControl',
+                      ...(componentWithConfig.controlConfig || {}),
+                    };
+                  }
                 } else if (
                   typeof control === 'object' &&
                   control &&
@@ -56,6 +80,48 @@ const memoizedControls = memoizeOne(
                     config: JsonObject;
                   };
                   controlsMap[controlObj.name] = controlObj.config;
+                } else if (
+                  // Handle React elements (component-based controls)
+                  typeof control === 'object' &&
+                  control !== null &&
+                  'type' in control
+                ) {
+                  const element = control as any;
+                  const isComponent = typeof element.type === 'function';
+                  const isMarkerElement = typeof element.type === 'string' && element.props?.type;
+                  
+                  if (isMarkerElement) {
+                    // Marker element (div with type prop) - extract config from props
+                    const { name, type, ...configProps } = element.props;
+                    if (name && type && typeof type === 'string' && type.endsWith('Control')) {
+                      controlsMap[name] = {
+                        type,
+                        ...configProps,
+                      };
+                    }
+                  } else if (isComponent) {
+                    // React component - extract control name and create minimal config
+                    const ComponentType = element.type;
+                    const componentName = ComponentType.name || ComponentType.displayName || '';
+                    
+                    let controlName = element.props?.name;
+                    if (!controlName && componentName.endsWith('Control')) {
+                      const baseName = componentName.slice(0, -7);
+                      controlName = baseName
+                        .replace(/([A-Z])/g, '_$1')
+                        .toLowerCase()
+                        .replace(/^_/, '');
+                    }
+                    
+                    if (controlName) {
+                      // Create minimal config for React component controls
+                      // The component handles its own rendering
+                      controlsMap[controlName] = {
+                        type: 'CustomControl',
+                        ...(ComponentType.controlConfig || {}),
+                      };
+                    }
+                  }
                 }
               });
             }

@@ -19,6 +19,8 @@
 /* eslint camelcase: 0 */
 import {
   isValidElement,
+  ReactElement,
+  cloneElement,
   ReactNode,
   useCallback,
   useContext,
@@ -655,9 +657,146 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     // When the item is invalid
                     return null;
                   }
+                  // Handle React component references (function components)
+                  if (typeof controlItem === 'function') {
+                    const Component = controlItem as React.ComponentType<any>;
+                    const { controls, chart, exploreState, actions, form_data } = props;
+                    
+                    // Extract control name from component name or defaultProps
+                    const componentName = Component.name || Component.displayName || '';
+                    let controlName: string | null = null;
+                    
+                    // Try defaultProps first
+                    if (Component.defaultProps?.name) {
+                      controlName = Component.defaultProps.name;
+                    } else if (componentName.endsWith('Control')) {
+                      const baseName = componentName.slice(0, -7);
+                      controlName = baseName
+                        .replace(/([A-Z])/g, '_$1')
+                        .toLowerCase()
+                        .replace(/^_/, '');
+                    }
+                    
+                    if (!controlName) {
+                      // Can't determine control name, skip this control
+                      return null;
+                    }
+                    
+                    const controlState = controls[controlName];
+                    
+                    // Create onChange handler that calls setControlValue
+                    const handleChange = useCallback(
+                      (value: any, errors: any[] = []) => {
+                        actions.setControlValue(controlName!, value, errors);
+                      },
+                      [controlName, actions],
+                    );
+                    
+                    // Use a wrapper component to manage hover state
+                    const ControlWrapper = () => {
+                      const [hovered, setHovered] = useState(false);
+                      
+                      return (
+                        <div
+                          className="Control"
+                          data-test={controlName}
+                          onMouseEnter={() => setHovered(true)}
+                          onMouseLeave={() => setHovered(false)}
+                        >
+                          <Component
+                            name={controlName}
+                            actions={actions}
+                            controls={controls}
+                            chart={chart}
+                            exploreState={exploreState}
+                            form_data={form_data}
+                            onChange={handleChange}
+                            hovered={hovered}
+                            {...(controlState && {
+                              value: controlState.value,
+                              validationErrors: controlState.validationErrors,
+                              default: controlState.default,
+                            })}
+                          />
+                        </div>
+                      );
+                    };
+                    
+                    return <ControlWrapper key={controlName} />;
+                  }
                   if (isValidElement(controlItem)) {
-                    // When the item is a React element
-                    return controlItem;
+                    // When the item is a React element (component-based control)
+                    const element = controlItem as ReactElement;
+                    const { controls, chart, exploreState, actions, form_data } =
+                      props;
+                    
+                    // Check if this is a React component (function/class component)
+                    // vs a marker element (div with props)
+                    const isComponent = typeof element.type === 'function';
+                    
+                    // Get control name from:
+                    // 1. Props (if explicitly passed)
+                    // 2. Component name (RotationControl -> rotation, SizeFromControl -> size_from)
+                    // 3. Default props
+                    let controlName = element.props?.name;
+                    if (!controlName && isComponent) {
+                      const ComponentType = element.type as any;
+                      const componentName = ComponentType.name || ComponentType.displayName || '';
+                      
+                      // Convert component name to control name
+                      // RotationControl -> rotation
+                      // SizeFromControl -> size_from
+                      if (componentName.endsWith('Control')) {
+                        const baseName = componentName.slice(0, -7); // Remove 'Control'
+                        // Convert camelCase to snake_case
+                        controlName = baseName
+                          .replace(/([A-Z])/g, '_$1')
+                          .toLowerCase()
+                          .replace(/^_/, '');
+                      }
+                      
+                      // Fallback to default props
+                      if (!controlName && ComponentType.defaultProps?.name) {
+                        controlName = ComponentType.defaultProps.name;
+                      }
+                    }
+                    
+                    const controlState = controlName ? controls[controlName] : null;
+
+                    // If it's a marker element (div with type prop), wrap with Control
+                    if (element.props?.type && typeof element.type === 'string') {
+                      const controlProps = {
+                        ...element.props,
+                        actions,
+                        controls,
+                        chart,
+                        exploreState,
+                        form_data,
+                        ...(controlState && {
+                          value: controlState.value,
+                          validationErrors: controlState.validationErrors,
+                          default: controlState.default,
+                        }),
+                      };
+                      return <Control {...controlProps} />;
+                    }
+
+                    // If it's a React component, clone it with injected props
+                    // These are actual React components that render their own UI
+                    return cloneElement(element, {
+                      ...element.props,
+                      actions,
+                      controls,
+                      chart,
+                      exploreState,
+                      form_data,
+                      hovered: false, // Will be set by Control wrapper if needed
+                      ...(controlState && {
+                        value: controlState.value,
+                        validationErrors: controlState.validationErrors,
+                        default: controlState.default,
+                      }),
+                    } as any);
                   }
                   if (
                     isCustomControlItem(controlItem) &&

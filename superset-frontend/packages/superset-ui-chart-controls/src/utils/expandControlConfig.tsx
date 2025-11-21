@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement, ReactElement } from 'react';
+import { isValidElement, ReactElement, ComponentType } from 'react';
 import { sharedControls, sharedControlComponents } from '../shared-controls';
 import {
   ControlType,
@@ -62,9 +62,13 @@ export function expandControlConfig(
       },
     };
   }
-  // JSX/React element or NULL
+  // JSX/React element, function component, or NULL
   if (!control || typeof control === 'string' || isValidElement(control)) {
     return control as ReactElement;
+  }
+  // Function component (React component reference)
+  if (typeof control === 'function') {
+    return control as ComponentType<any>;
   }
   // already fully expanded control config, e.g.
   // {

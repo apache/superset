@@ -11,7 +11,12 @@
     "rootDir": "src",
     "declarationDir": "lib"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "types/**/*"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/plugin/controls/**/*.tsx",
+    "types/**/*"
+  ],
   "exclude": [
     "src/**/*.js",
     "src/**/*.jsx",

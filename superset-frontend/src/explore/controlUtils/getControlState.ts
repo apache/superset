@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import {
   DatasourceType,
   ensureIsArray,
@@ -157,8 +157,22 @@ export function getControlState(
   state: Partial<ControlPanelState>,
   value?: JsonValue,
 ) {
+  const controlConfig = getControlConfig(controlKey, vizType);
+  
+  // If getControlConfig returns a React component (function component),
+  // wrap it in a config object
+  if (typeof controlConfig === 'function') {
+    const Component = controlConfig as React.ComponentType<any>;
+    const componentWithConfig = Component as any;
+    const wrappedConfig: ControlConfig = {
+      type: 'CustomControl',
+      ...(componentWithConfig.controlConfig || {}),
+    };
+    return getControlStateFromControlConfig(wrappedConfig, state, value);
+  }
+  
   return getControlStateFromControlConfig(
-    getControlConfig(controlKey, vizType),
+    controlConfig,
     state,
     value,
   );
@@ -176,12 +190,98 @@ export function getAllControlsState(
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {
         if (field?.config && field.name) {
+          // Legacy config object format
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,
             state,
             formData[name],
           );
+        } else if (typeof field === 'function') {
+          // Handle React component references (function components)
+          const Component = field as React.ComponentType<any>;
+          const componentName = Component.name || Component.displayName || '';
+          
+          // Convert component name to control name
+          // RotationControl -> rotation, SizeFromControl -> size_from
+          let controlName: string | null = null;
+          if (componentName.endsWith('Control')) {
+            const baseName = componentName.slice(0, -7);
+            controlName = baseName
+              .replace(/([A-Z])/g, '_$1')
+              .toLowerCase()
+              .replace(/^_/, '');
+          }
+          
+          if (controlName) {
+            // Create minimal config for React component controls
+            const componentWithConfig = Component as any;
+            const config = {
+              type: 'CustomControl',
+              ...(componentWithConfig.controlConfig || {}),
+            };
+            controlsState[controlName] = getControlStateFromControlConfig(
+              config,
+              state,
+              formData[controlName],
+            );
+          }
+        } else if (
+          // Handle React elements (component-based controls)
+          typeof field === 'object' &&
+          field !== null &&
+          'type' in field
+        ) {
+          const element = field as any;
+          const isComponent = typeof element.type === 'function';
+          const isMarkerElement = typeof element.type === 'string' && element.props?.type;
+          
+          if (isMarkerElement) {
+            // Marker element (div with type prop) - extract config from props
+            const { name, type, ...configProps } = element.props;
+            if (name && type && typeof type === 'string' && type.endsWith('Control')) {
+              const config = {
+                type,
+                ...configProps,
+              };
+              controlsState[name] = getControlStateFromControlConfig(
+                config,
+                state,
+                formData[name],
+              );
+            }
+          } else if (isComponent) {
+            // React component - extract control name from component
+            const ComponentType = element.type;
+            const componentName = ComponentType.name || ComponentType.displayName || '';
+            
+            // Convert component name to control name
+            // RotationControl -> rotation, SizeFromControl -> size_from
+            let controlName = element.props?.name;
+            if (!controlName && componentName.endsWith('Control')) {
+              const baseName = componentName.slice(0, -7);
+              controlName = baseName
+                .replace(/([A-Z])/g, '_$1')
+                .toLowerCase()
+                .replace(/^_/, '');
+            }
+            
+            if (controlName) {
+              // For React components, we need to infer the control type from the component
+              // Since these are actual components, we'll use a generic config
+              // The component will handle its own rendering
+              const config = {
+                type: 'CustomControl', // Placeholder - component renders itself
+                // Extract any config from component static properties if available
+                ...(ComponentType.controlConfig || {}),
+              };
+              controlsState[controlName] = getControlStateFromControlConfig(
+                config,
+                state,
+                formData[controlName],
+              );
+            }
+          }
         }
       }),
     );

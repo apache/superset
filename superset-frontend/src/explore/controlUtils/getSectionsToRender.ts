@@ -94,7 +94,14 @@ const getMemoizedSectionsToRender = memoizeOne(
                     typeof control !== 'string' ||
                     !invalidControls.includes(control),
                 )
-                .map(item => expandControlConfig(item, controlOverrides)),
+                .map(item => {
+                  // If it's a function component, pass it through as-is
+                  // (expandControlConfig will handle it)
+                  if (typeof item === 'function') {
+                    return item;
+                  }
+                  return expandControlConfig(item, controlOverrides);
+                }),
             ) || [],
         };
       })
