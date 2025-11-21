@@ -243,7 +243,11 @@ export default typedMemo(function DataTable<D extends object>({
 
   const rowSignature = useMemo(
     // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
-    () => rows.map((row, index) => row.id ?? index).sort().join('|'),
+    () =>
+      rows
+        .map((row, index) => row.id ?? index)
+        .sort()
+        .join('|'),
     [rows],
   );
 
@@ -259,11 +263,7 @@ export default typedMemo(function DataTable<D extends object>({
       typeof filterValue === 'string' ? filterValue : undefined;
 
     onFilteredDataChange(rowsRef.current, searchText);
-  }, [
-    filterValue,
-    onFilteredDataChange,
-    rowSignature,
-  ]);
+  }, [filterValue, onFilteredDataChange, rowSignature]);
 
   const handleSearchChange = useCallback(
     (query: string) => {

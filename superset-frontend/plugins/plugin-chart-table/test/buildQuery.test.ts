@@ -250,9 +250,11 @@ describe('plugin-chart-table', () => {
         searchText: 'A',
         searchColumn: 'category',
       };
-      
+
       it('includes search filter in query payload when server pagination is enabled', () => {
-        const { queries } = buildQuery(baseFormDataWithServerPagination, { ownState });
+        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+          ownState,
+        });
 
         expect(queries[0].filters).toEqual(
           expect.arrayContaining([
@@ -266,14 +268,15 @@ describe('plugin-chart-table', () => {
       });
 
       it('does not include search filter when not provided', () => {
-        const { queries } = buildQuery({
-          ...baseFormDataWithServerPagination,
-          server_pagination: false,
-        }, { ownState });
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            server_pagination: false,
+          },
+          { ownState },
+        );
 
-        expect(
-          queries[0].filters?.some(f => f.op === 'ILIKE'),
-        ).toBeFalsy();
+        expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
       });
     });
   });

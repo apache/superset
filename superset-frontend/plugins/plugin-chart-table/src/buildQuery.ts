@@ -288,7 +288,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
     }
-    
+
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
       [formData.slice_id]: queryObject.filters,
