@@ -462,7 +462,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         if (whereClause || havingClause) {
           queryObject.extras = {
             ...queryObject.extras,
-            // SQL uses PostgreSQL syntax, backend will transpile to target dialect
             transpile_to_dialect: true,
             ...(whereClause && {
               where: queryObject.extras?.where

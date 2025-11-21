@@ -75,7 +75,7 @@ export type QueryObjectExtras = Partial<{
 
   time_compare?: string;
 
-  /** If true, WHERE/HAVING use PostgreSQL syntax and need transpilation to target dialect */
+  /** If true, WHERE/HAVING clauses need transpilation to target dialect */
   transpile_to_dialect?: boolean;
 }>;
 

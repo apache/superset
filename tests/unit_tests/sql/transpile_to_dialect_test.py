@@ -17,15 +17,6 @@
 
 """
 Tests for transpile_to_dialect function in superset/sql/parse.py
-
-The function parses PostgreSQL syntax SQL and transpiles it to the target
-database dialect using SQLGlot.
-
-Frontend generates PostgreSQL syntax: name ILIKE '%O''Hara%'
-Backend transpiles to target dialect:
-  - PostgreSQL: name ILIKE '%O''Hara%' (unchanged)
-  - MySQL: name LIKE '%O\\'Hara%' (ILIKE→LIKE, ''→\\')
-  - Databricks: name ILIKE '%O\\'Hara%'
 """
 
 import pytest

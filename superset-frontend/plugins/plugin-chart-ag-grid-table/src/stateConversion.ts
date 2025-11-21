@@ -28,7 +28,6 @@ import {
 
 /**
  * AG Grid text filter type to backend operator mapping
- * Uses PostgreSQL syntax - backend will transpile to target dialect via SQLGlot.
  */
 const TEXT_FILTER_OPERATORS: Record<string, string> = {
   equals: '==',
@@ -51,7 +50,7 @@ const NUMBER_FILTER_OPERATORS: Record<string, string> = {
   greaterThanOrEqual: '>=',
 };
 
-/** Escapes single quotes for PostgreSQL: O'Hara → O''Hara */
+/** Escapes single quotes in SQL strings: O'Hara → O''Hara */
 function escapeStringValue(value: string): string {
   return value.replace(/'/g, "''");
 }
@@ -103,9 +102,8 @@ export function convertColumnState(
 }
 
 /**
- * Converts any AG Grid filter to a SQL WHERE/HAVING clause (PostgreSQL syntax).
+ * Converts any AG Grid filter to a SQL WHERE/HAVING clause.
  * Recursively handles both simple filters (single condition) and complex filters (multiple conditions with AND/OR).
- * Backend will transpile PostgreSQL syntax to target database dialect via SQLGlot.
  *
  * Examples:
  * - Simple text: {filterType: 'text', type: 'contains', filter: 'abc'} → "column_name ILIKE '%abc%'"
@@ -144,8 +142,6 @@ function convertFilterToSQL(
     const escapedFilter = escapeStringValue(String(filter.filter));
     const val = getTextComparator(filter.type, escapedFilter);
 
-    // ILIKE for pattern matching, == for exact match
-    // Backend will transpile PostgreSQL syntax to target dialect
     return op === 'ILIKE' || op === 'NOT ILIKE'
       ? `${colId} ${op} '${val}'`
       : `${colId} ${op} '${escapedFilter}'`;

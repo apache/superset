@@ -1507,11 +1507,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
 
 def transpile_to_dialect(sql: str, target_engine: str) -> str:
     """
-    Transpile SQL from PostgreSQL syntax to target database dialect.
-    Parses as PostgreSQL, then generates for the target database.
-
-    Handles PostgreSQL-specific syntax (ILIKE, '' escaping) and transpiles
-    to equivalent constructs in the target dialect via SQLGlot.
+    Transpile SQL to the target database dialect using SQLGlot.
 
     If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
     """
@@ -1522,7 +1518,6 @@ def transpile_to_dialect(sql: str, target_engine: str) -> str:
         return sql
 
     try:
-        # Parse as PostgreSQL (AG Grid generates PostgreSQL syntax)
         parsed = sqlglot.parse_one(sql, dialect="postgres")
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
