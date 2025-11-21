@@ -86,7 +86,7 @@ def tool(
             '''Doubles the input value'''
             return str(value * 2)
 
-        @tool(secure=False)  # No authentication required
+        @tool(protect=False)  # No authentication required
         def public_tool() -> str:
             '''Public tool accessible without auth'''
             return "Hello world"
