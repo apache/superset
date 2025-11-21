@@ -864,12 +864,14 @@ def test_time_column_with_time_grain(app_context, physical_dataset):
         "label": "I_AM_AN_ORIGINAL_COLUMN",
         "sqlExpression": "col5",
         "timeGrain": "P1Y",
+        "isColumnReference": True,
     }
     adhoc_column: AdhocColumn = {
         "label": "I_AM_A_TRUNC_COLUMN",
         "sqlExpression": "col6",
         "columnType": "BASE_AXIS",
         "timeGrain": "P1Y",
+        "isColumnReference": True,
     }
     qc = QueryContextFactory().create(
         datasource={
@@ -1039,6 +1041,7 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
         "sqlExpression": "col6",
         "columnType": "BASE_AXIS",
         "timeGrain": "P3M",
+        "isColumnReference": True,
     }
     qc = QueryContextFactory().create(
         datasource={
@@ -1152,6 +1155,7 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
                         "sqlExpression": "col6",
                         "columnType": "BASE_AXIS",
                         "timeGrain": "P3M",
+                        "isColumnReference": True,
                     }
                 ],
                 "metrics": [
