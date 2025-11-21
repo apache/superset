@@ -595,6 +595,25 @@ def execute_sql_statements(  # noqa: C901
                 stats_logger.incr("sqllab.results_backend.write_failure")
                 # Don't set results_key to prevent 410 errors when fetching
                 query.results_key = None
+
+                # For async queries (not returning results inline), mark as FAILED
+                # because results are inaccessible to the user
+                if not return_results:
+                    query.status = QueryStatus.FAILED
+                    query.error_message = (
+                        "Failed to store query results in the results backend. "
+                        "Please try again or contact your administrator."
+                    )
+                    db.session.commit()
+                    raise SupersetErrorException(
+                        SupersetError(
+                            message=__(
+                                "Failed to store query results. Please try again."
+                            ),
+                            error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
             else:
                 # Write succeeded - set results_key in database
                 query.results_key = key
@@ -604,7 +623,9 @@ def execute_sql_statements(  # noqa: C901
                     key,
                 )
 
-    query.status = QueryStatus.SUCCESS
+    # Only set SUCCESS if we didn't already set FAILED above
+    if query.status != QueryStatus.FAILED:
+        query.status = QueryStatus.SUCCESS
     db.session.commit()
 
     if return_results:
