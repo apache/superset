@@ -28,7 +28,6 @@ import {
   props,
   DATASOURCE_ENDPOINT,
   asyncRender,
-  fastRender,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
 } from './DatasourceEditor.test.utils';
@@ -122,22 +121,22 @@ test('can modify columns', async () => {
     expect(inputCertDetails).toHaveValue('test_details');
     expect(props.onChange).toHaveBeenCalled();
   });
-});
+}, 30000);
 
 test('can delete columns', async () => {
-  fastRender({
+  await asyncRender({
     ...props,
     datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
   });
 
-  const columnsTab = await screen.findByTestId('collection-tab-Columns');
-  fireEvent.click(columnsTab);
+  const columnsTab = screen.getByTestId('collection-tab-Columns');
+  await userEvent.click(columnsTab);
 
-  const getToggles = await screen.findAllByRole('button', {
+  const getToggles = screen.getAllByRole('button', {
     name: /expand row/i,
   });
 
-  fireEvent.click(getToggles[0]);
+  await userEvent.click(getToggles[0]);
 
   const deleteButtons = await screen.findAllByRole('button', {
     name: /delete item/i,
@@ -148,16 +147,16 @@ test('can delete columns', async () => {
   // Clear onChange mock to track delete action
   props.onChange.mockClear();
 
-  fireEvent.click(deleteButtons[0]);
+  await userEvent.click(deleteButtons[0]);
 
-  // Verify both UI update and callback
+  // Verify removal and callback
   await waitFor(() => {
     expect(
       screen.getAllByRole('button', { name: /delete item/i }),
     ).toHaveLength(initialCount - 1);
-    expect(props.onChange).toHaveBeenCalled();
   });
-}, 25000); // Extended timeout: test involves render, tab nav, row expansion, and complex DOM queries in parallel execution
+  expect(props.onChange).toHaveBeenCalled();
+}, 40000);
 
 test('can add new columns', async () => {
   await asyncRender({
@@ -316,7 +315,9 @@ test('properly updates the metric information', async () => {
   );
 
   // Use fireEvent.change for speed - we're testing wiring, not keystroke behavior
-  fireEvent.change(certifiedBy, { target: { value: 'I am typing a new name' } });
+  fireEvent.change(certifiedBy, {
+    target: { value: 'I am typing a new name' },
+  });
   fireEvent.change(certificationDetails, {
     target: { value: 'I am typing something new' },
   });

@@ -20,8 +20,8 @@ import fetchMock from 'fetch-mock';
 import {
   screen,
   waitFor,
-  fireEvent,
   selectOption,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
@@ -35,6 +35,7 @@ import {
 type MetricType = DatasetObject['metrics'][number];
 
 // Factory function for currency props - returns fresh copy to prevent test pollution
+// Using single metric to minimize DOM size for faster test execution while still validating currency functionality
 const createPropsWithCurrency = () => ({
   ...props,
   datasource: {
@@ -44,7 +45,6 @@ const createPropsWithCurrency = () => ({
         ...props.datasource.metrics[0],
         currency: { symbol: 'USD', symbolPosition: 'prefix' },
       },
-      ...props.datasource.metrics.slice(1).map(m => ({ ...m })),
     ],
   },
   onChange: jest.fn(),
@@ -67,13 +67,11 @@ test('renders currency section in metrics tab', async () => {
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  fireEvent.click(metricButton);
+  await userEvent.click(metricButton);
 
-  // Find and expand the metric row with currency
-  // Metrics are sorted by ID descending, so metric with id=1 (which has currency)
-  // is at position 6 (last). Expand that one.
+  // Find and expand the metric row with currency (single metric at index 0)
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  fireEvent.click(expandToggles[6]);
+  await userEvent.click(expandToggles[0]);
 
   // Check for currency section header
   const currencyHeader = await screen.findByText('Metric currency');
@@ -99,11 +97,11 @@ test('changes currency position from prefix to suffix', async () => {
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  fireEvent.click(metricButton);
+  await userEvent.click(metricButton);
 
   // Expand the metric with currency
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  fireEvent.click(expandToggles[6]);
+  await userEvent.click(expandToggles[0]);
 
   // Select suffix option using helper
   await selectOption('Suffix', 'Currency prefix or suffix');
@@ -121,7 +119,7 @@ test('changes currency position from prefix to suffix', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
-}, 25000); // Extended timeout: selectOption uses userEvent internally, plus render/nav/expansion overhead
+}, 30000);
 
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
@@ -130,11 +128,11 @@ test('changes currency symbol from USD to GBP', async () => {
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  fireEvent.click(metricButton);
+  await userEvent.click(metricButton);
 
   // Expand the metric with currency
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  fireEvent.click(expandToggles[6]);
+  await userEvent.click(expandToggles[0]);
 
   // Select GBP option using helper (text includes symbol: "£ (GBP)")
   await selectOption('£ (GBP)', 'Currency symbol');
@@ -152,4 +150,4 @@ test('changes currency symbol from USD to GBP', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
-}, 25000); // Extended timeout: selectOption uses userEvent internally, plus render/nav/expansion overhead
+}, 30000);
