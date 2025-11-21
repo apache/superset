@@ -18,12 +18,11 @@
 from __future__ import annotations
 
 import builtins
-import dataclasses
 import logging
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Callable, cast, Optional, Union
 
 import pandas as pd
@@ -82,8 +81,6 @@ from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryObjectValidationError,
-    SupersetErrorException,
-    SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -1628,89 +1625,28 @@ class SqlaTable(
         return or_(*groups)
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
-        qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
-        sql = query_str_ext.sql
-        status = QueryStatus.SUCCESS
-        errors = None
-        error_message = None
+        """
+        Executes the query for SqlaTable with additional column ordering logic.
 
-        def assign_column_label(df: pd.DataFrame) -> pd.DataFrame | None:
-            """
-            Some engines change the case or generate bespoke column names, either by
-            default or due to lack of support for aliasing. This function ensures that
-            the column names in the DataFrame correspond to what is expected by
-            the viz components.
+        This overrides ExploreMixin.query() to add SqlaTable-specific behavior
+        for handling column_order from extras.
+        """
+        # Get the base result from ExploreMixin
+        # (explicitly, not super() which would hit BaseDatasource first)
+        result = ExploreMixin.query(self, query_obj)
 
-            Sometimes a query may also contain only order by columns that are not used
-            as metrics or groupby columns, but need to present in the SQL `select`,
-            filtering by `labels_expected` make sure we only return columns users want.
-
-            :param df: Original DataFrame returned by the engine
-            :return: Mutated DataFrame
-            """
-            labels_expected = query_str_ext.labels_expected
-            if df is not None and not df.empty:
-                if len(df.columns) < len(labels_expected):
-                    raise QueryObjectValidationError(
-                        _("Db engine did not return all queried columns")
-                    )
-                if len(df.columns) > len(labels_expected):
-                    df = df.iloc[:, 0 : len(labels_expected)]
-                df.columns = labels_expected
-
-                extras = query_obj.get("extras", {})
-                column_order = extras.get("column_order")
-                if column_order and isinstance(column_order, list):
-                    existing_cols = [col for col in column_order if col in df.columns]
-                    remaining_cols = [
-                        col for col in df.columns if col not in existing_cols
-                    ]
-                    final_order = existing_cols + remaining_cols
-                    df = df[final_order]
-            return df
-
-        try:
-            df = self.database.get_df(
-                sql,
-                self.catalog,
-                self.schema or None,
-                mutator=assign_column_label,
-            )
-        except (SupersetErrorException, SupersetErrorsException):
-            # SupersetError(s) exception should not be captured; instead, they should
-            # bubble up to the Flask error handler so they are returned as proper SIP-40
-            # errors. This is particularly important for database OAuth2, see SIP-85.
-            raise
-        except Exception as ex:  # pylint: disable=broad-except
-            # TODO (betodealmeida): review exception handling while querying the external  # noqa: E501
-            # database. Ideally we'd expect and handle external database error, but
-            # everything else / the default should be to let things bubble up.
-            df = pd.DataFrame()
-            status = QueryStatus.FAILED
-            logger.warning(
-                "Query %s on schema %s failed", sql, self.schema, exc_info=True
-            )
-            db_engine_spec = self.db_engine_spec
-            errors = [
-                dataclasses.asdict(error)
-                for error in db_engine_spec.extract_errors(
-                    ex, database_name=self.database.unique_name
-                )
+        # Apply SqlaTable-specific column ordering
+        extras = query_obj.get("extras", {})
+        column_order = extras.get("column_order")
+        if column_order and isinstance(column_order, list) and not result.df.empty:
+            existing_cols = [col for col in column_order if col in result.df.columns]
+            remaining_cols = [
+                col for col in result.df.columns if col not in existing_cols
             ]
-            error_message = utils.error_msg_from_exception(ex)
+            final_order = existing_cols + remaining_cols
+            result.df = result.df[final_order]
 
-        return QueryResult(
-            applied_template_filters=query_str_ext.applied_template_filters,
-            applied_filter_columns=query_str_ext.applied_filter_columns,
-            rejected_filter_columns=query_str_ext.rejected_filter_columns,
-            status=status,
-            df=df,
-            duration=datetime.now() - qry_start_dttm,
-            query=sql,
-            errors=errors,
-            error_message=error_message,
-        )
+        return result
 
     def get_sqla_table_object(self) -> Table:
         return self.database.get_table(
