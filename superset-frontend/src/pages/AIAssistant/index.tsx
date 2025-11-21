@@ -31,9 +31,6 @@ import SubMenu from 'src/features/home/SubMenu';
 
 const { TextArea } = Input;
 
-
-
-
 const StyledCard = styled(Card)`
   margin-bottom: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -483,7 +480,13 @@ export default function AIAssistant() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <StyledCard title={t('Chat with AI')} bordered={false}>
-            <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+            <div
+              style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <ChatContainer>
                 {messages.length === 0 ? (
                   <div
@@ -525,7 +528,10 @@ export default function AIAssistant() {
                         {msg.queryResults && (
                           <div style={{ marginTop: '16px' }}>
                             <div
-                              style={{ marginBottom: '8px', fontWeight: 'bold' }}
+                              style={{
+                                marginBottom: '8px',
+                                fontWeight: 'bold',
+                              }}
                             >
                               Results ({msg.queryResults.rowCount} rows):
                             </div>
@@ -533,9 +539,11 @@ export default function AIAssistant() {
                               <ColumnTable>
                                 <thead>
                                   <tr>
-                                    {msg.queryResults.columns.map((col, idx) => (
-                                      <th key={idx}>{col}</th>
-                                    ))}
+                                    {msg.queryResults.columns.map(
+                                      (col, idx) => (
+                                        <th key={idx}>{col}</th>
+                                      ),
+                                    )}
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -576,7 +584,9 @@ export default function AIAssistant() {
                   placeholder={t('Type your message here...')}
                   rows={3}
                   disabled={loadingAI}
-                  onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                  onPressEnter={(
+                    e: React.KeyboardEvent<HTMLTextAreaElement>,
+                  ) => {
                     if (!e.shiftKey && !loadingAI) {
                       e.preventDefault();
                       handleSendMessage();
