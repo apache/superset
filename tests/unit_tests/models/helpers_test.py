@@ -1396,7 +1396,8 @@ def test_reapply_query_filters_with_empty_filters(database: Database) -> None:
 def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
     """
     Test that adhoc_column_to_sqla properly handles column references
-    by looking up the column in metadata instead of quoting and processing through SQLGlot.
+    by looking up the column in metadata instead of quoting and processing through
+    SQLGlot.
 
     This tests the fix for column names with spaces being properly handled
     without going through SQLGlot which could misinterpret "column AS alias" patterns.
@@ -1432,12 +1433,12 @@ def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
     database: Database,
 ) -> None:
     """
-    Test that adhoc_column_to_sqla preserves column type information when using column references.
+    Test that adhoc_column_to_sqla preserves column type info in column references.
 
     This tests the fix where column references now look up metadata first, preserving
-    type information needed for time grain operations. Previously, quoting the column name
-    before metadata lookup would cause the column to not be found, resulting in NULL type
-    and failing to apply time grain transformations properly.
+    type information needed for time grain operations. Previously, quoting the column
+    name before metadata lookup would cause the column to not be found, resulting in
+    NULL type and failing to apply time grain transformations properly.
 
     The test verifies that:
     1. Column metadata is found by looking up the unquoted column name
@@ -1526,9 +1527,9 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
     Test that column names with spaces are properly quoted in the generated SQL.
 
     This verifies that even though we look up columns using unquoted names,
-    the final SQL still properly quotes column names that need quoting (like those with spaces).
+    the final SQL still properly quotes column names that need quoting (like those with
+    spaces).
     """
-    import sqlalchemy as sa
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
@@ -1578,7 +1579,9 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
             )
         )
 
-    assert '"Order Total"' in sql_numeric, f"Expected quoted column name in SQL: {sql_numeric}"
+    assert '"Order Total"' in sql_numeric, (
+        f"Expected quoted column name in SQL: {sql_numeric}"
+    )
 
 
 def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
@@ -1586,7 +1589,8 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     Test that column names with spaces work correctly in a full SELECT query.
 
     This demonstrates that the fix properly handles column names with spaces
-    throughout the entire query generation process, with proper quoting in the final SQL.
+    throughout the entire query generation process, with proper quoting in the final
+    SQL.
     """
     import sqlalchemy as sa
 
