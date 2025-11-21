@@ -871,7 +871,7 @@ def test_time_column_with_time_grain(app_context, physical_dataset):
         "sqlExpression": "col6",
         "columnType": "BASE_AXIS",
         "timeGrain": "P1Y",
-        "isColumnReference": False,
+        "isColumnReference": True,
     }
     qc = QueryContextFactory().create(
         datasource={

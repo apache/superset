@@ -1514,21 +1514,34 @@ class SqlaTable(
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
-        if col.get("isColumnReference"):
-            col_in_metadata = self.get_column(sql_expression)
-            if col_in_metadata is None:
-                # should not happen
-                raise ColumnNotFoundException("Column not found")
+        is_column_reference = col.get("isColumnReference")
 
+        # First, check if this is a column reference that exists in metadata
+        col_in_metadata = None
+        if is_column_reference:
+            col_in_metadata = self.get_column(sql_expression)
+
+        if col_in_metadata:
+            # Column exists in metadata - use it directly
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
         else:
+            # Column doesn't exist in metadata or is not a reference - treat as ad-hoc expression
+            # Note: If isColumnReference=true but column not found, we still quote it as a fallback
+            # for backwards compatibility, though this indicates the frontend sent incorrect metadata
             try:
+                # For column references, conditionally quote identifiers that need it
+                expression_to_process = sql_expression
+                if is_column_reference:
+                    expression_to_process = self.database.quote_identifier(
+                        sql_expression
+                    )
+
                 expression = self._process_select_expression(
-                    expression=sql_expression,
+                    expression=expression_to_process,
                     database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
