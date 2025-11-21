@@ -1529,9 +1529,10 @@ class SqlaTable(
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
         else:
-            # Column doesn't exist in metadata or is not a reference - treat as ad-hoc expression
-            # Note: If isColumnReference=true but column not found, we still quote it as a fallback
-            # for backwards compatibility, though this indicates the frontend sent incorrect metadata
+            # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
+            # expression Note: If isColumnReference=true but column not found, we still
+            # quote it as a fallback for backwards compatibility, though this indicates
+            # the frontend sent incorrect metadata
             try:
                 # For column references, conditionally quote identifiers that need it
                 expression_to_process = sql_expression
