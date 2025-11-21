@@ -1641,5 +1641,3 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     # Verify SELECT and FROM clauses are present
     assert "SELECT" in sql
     assert "FROM" in sql
-
-    print(f"\nGenerated SQL:\n{sql}")  # This will show in test output with -v flag
