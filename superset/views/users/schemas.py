@@ -67,8 +67,9 @@ class ApiKeyPostSchema(Schema):
         validate=[Length(1, 256)],
     )
     workspace_name = fields.String(
-        required=True,
-        metadata={"description": "Workspace this key is scoped to"},
+        required=False,
+        load_default="default",
+        metadata={"description": "Workspace this key is scoped to. Defaults to 'default'."},
         validate=[Length(1, 256)],
     )
     expires_on = fields.DateTime(

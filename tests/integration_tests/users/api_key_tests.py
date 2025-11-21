@@ -62,17 +62,19 @@ class TestApiKeyApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert "name" in response["message"]
 
-    def test_create_api_key_missing_workspace(self):
-        """Test creating API key without workspace fails."""
+    def test_create_api_key_missing_workspace_uses_default(self):
+        """Test creating API key without workspace uses default."""
         self.login(ADMIN_USERNAME)
 
         payload = {
-            "name": "Test Key",
+            "name": "Test Key Without Workspace",
         }
 
         rv = self.client.post(API_KEYS_URI, json=payload)
 
-        assert rv.status_code == 400
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["result"]["workspace_name"] == "default"
 
     def test_create_api_key_unauthenticated(self):
         """Test creating API key without authentication fails."""
