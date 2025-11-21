@@ -28,6 +28,7 @@ import {
   props,
   DATASOURCE_ENDPOINT,
   asyncRender,
+  fastRender,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
 } from './DatasourceEditor.test.utils';
@@ -89,15 +90,15 @@ test('can sync columns from source', async () => {
 
 // to add, remove and modify columns accordingly
 test('can modify columns', async () => {
-  await asyncRender({
+  fastRender({
     ...props,
     datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
   });
 
-  const columnsTab = screen.getByTestId('collection-tab-Columns');
+  const columnsTab = await screen.findByTestId('collection-tab-Columns');
   await userEvent.click(columnsTab);
 
-  const getToggles = screen.getAllByRole('button', {
+  const getToggles = await screen.findAllByRole('button', {
     name: /expand row/i,
   });
   await userEvent.click(getToggles[0]);
@@ -121,18 +122,18 @@ test('can modify columns', async () => {
     expect(inputCertDetails).toHaveValue('test_details');
     expect(props.onChange).toHaveBeenCalled();
   });
-}, 30000);
+});
 
 test('can delete columns', async () => {
-  await asyncRender({
+  fastRender({
     ...props,
     datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
   });
 
-  const columnsTab = screen.getByTestId('collection-tab-Columns');
+  const columnsTab = await screen.findByTestId('collection-tab-Columns');
   await userEvent.click(columnsTab);
 
-  const getToggles = screen.getAllByRole('button', {
+  const getToggles = await screen.findAllByRole('button', {
     name: /expand row/i,
   });
 
@@ -149,14 +150,13 @@ test('can delete columns', async () => {
 
   await userEvent.click(deleteButtons[0]);
 
-  // Verify removal and callback
-  await waitFor(() => {
+  await waitFor(() =>
     expect(
-      screen.getAllByRole('button', { name: /delete item/i }),
-    ).toHaveLength(initialCount - 1);
-  });
-  expect(props.onChange).toHaveBeenCalled();
-}, 40000);
+      screen.queryAllByRole('button', { name: /delete item/i }),
+    ).toHaveLength(initialCount - 1),
+  );
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+});
 
 test('can add new columns', async () => {
   await asyncRender({

@@ -62,14 +62,13 @@ afterEach(async () => {
 
 test('renders currency section in metrics tab', async () => {
   const testProps = createPropsWithCurrency();
-
   fastRender(testProps);
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
   await userEvent.click(metricButton);
 
-  // Find and expand the metric row with currency (single metric at index 0)
+  // Expand the single metric row with currency
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
@@ -119,7 +118,7 @@ test('changes currency position from prefix to suffix', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
-}, 30000);
+});
 
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
@@ -150,4 +149,4 @@ test('changes currency symbol from USD to GBP', async () => {
     expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
-}, 30000);
+});
