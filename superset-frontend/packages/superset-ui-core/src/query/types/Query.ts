@@ -75,8 +75,8 @@ export type QueryObjectExtras = Partial<{
 
   time_compare?: string;
 
-  /** Enable SQLGlot escaping for WHERE/HAVING clauses */
-  use_sqlglot_escaping?: boolean;
+  /** If true, WHERE/HAVING use PostgreSQL syntax and need transpilation to target dialect */
+  transpile_to_dialect?: boolean;
 }>;
 
 export type ResidualQueryObjectData = {

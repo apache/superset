@@ -28,6 +28,7 @@ import {
 
 /**
  * AG Grid text filter type to backend operator mapping
+ * Uses PostgreSQL syntax - backend will transpile to target dialect via SQLGlot.
  */
 const TEXT_FILTER_OPERATORS: Record<string, string> = {
   equals: '==',
@@ -49,6 +50,11 @@ const NUMBER_FILTER_OPERATORS: Record<string, string> = {
   greaterThan: '>',
   greaterThanOrEqual: '>=',
 };
+
+/** Escapes single quotes for PostgreSQL: O'Hara → O''Hara */
+function escapeStringValue(value: string): string {
+  return value.replace(/'/g, "''");
+}
 
 function getTextComparator(type: string, value: string): string {
   if (type === 'contains' || type === 'notContains') {
@@ -97,8 +103,9 @@ export function convertColumnState(
 }
 
 /**
- * Converts any AG Grid filter to a SQL WHERE/HAVING clause.
+ * Converts any AG Grid filter to a SQL WHERE/HAVING clause (PostgreSQL syntax).
  * Recursively handles both simple filters (single condition) and complex filters (multiple conditions with AND/OR).
+ * Backend will transpile PostgreSQL syntax to target database dialect via SQLGlot.
  *
  * Examples:
  * - Simple text: {filterType: 'text', type: 'contains', filter: 'abc'} → "column_name ILIKE '%abc%'"
@@ -134,10 +141,14 @@ function convertFilterToSQL(
 
   if (filter.filterType === 'text' && filter.filter && filter.type) {
     const op = TEXT_FILTER_OPERATORS[filter.type];
-    const val = getTextComparator(filter.type, String(filter.filter));
+    const escapedFilter = escapeStringValue(String(filter.filter));
+    const val = getTextComparator(filter.type, escapedFilter);
+
+    // ILIKE for pattern matching, == for exact match
+    // Backend will transpile PostgreSQL syntax to target dialect
     return op === 'ILIKE' || op === 'NOT ILIKE'
       ? `${colId} ${op} '${val}'`
-      : `${colId} ${op} '${filter.filter}'`;
+      : `${colId} ${op} '${escapedFilter}'`;
   }
 
   if (
@@ -151,7 +162,8 @@ function convertFilterToSQL(
 
   if (filter.filterType === 'date' && filter.dateFrom && filter.type) {
     const op = NUMBER_FILTER_OPERATORS[filter.type];
-    return `${colId} ${op} '${filter.dateFrom}'`;
+    const escapedDate = escapeStringValue(filter.dateFrom);
+    return `${colId} ${op} '${escapedDate}'`;
   }
 
   if (
@@ -159,7 +171,9 @@ function convertFilterToSQL(
     Array.isArray(filter.values) &&
     filter.values.length > 0
   ) {
-    const values = filter.values.map((v: string) => `'${v}'`).join(', ');
+    const values = filter.values
+      .map((v: string) => `'${escapeStringValue(v)}'`)
+      .join(', ');
     return `${colId} IN (${values})`;
   }
 
