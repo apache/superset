@@ -16,21 +16,28 @@
 # under the License.
 
 """
-Minimal authentication hooks for MCP tools.
-This is a placeholder implementation that provides basic user context.
+Authentication hooks for MCP tools.
 
-Future enhancements (to be added in separate PRs):
-- JWT token authentication and validation
-- User impersonation support
-- Permission checking with scopes
-- Comprehensive audit logging
-- Field-level permissions
+Supports multiple authentication methods:
+1. API Key authentication (Bearer token with pst_ prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via Superset UI (/profile -> API Keys)
+- Keys are prefixed with 'pst_' for identification
+- Keys are validated against bcrypt hashes stored in ab_api_key table
+- Keys inherit the user's roles and permissions
+
+Configuration:
+- MCP_API_KEY_AUTH_ENABLED: Enable API key authentication (default: True)
+- MCP_DEV_USERNAME: Fallback username for development (no auth required)
 """
 
 import logging
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, request
 from flask_appbuilder.security.sqla.models import User
 
 if TYPE_CHECKING:
@@ -42,13 +49,68 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 
+def _authenticate_with_api_key(api_key: str) -> User | None:
+    """
+    Authenticate using an API key.
+
+    Args:
+        api_key: The plaintext API key (e.g., pst_abc123...)
+
+    Returns:
+        User object if authentication succeeds, None otherwise
+    """
+    from sqlalchemy.orm import joinedload
+
+    from superset.daos.api_key import ApiKeyDAO
+    from superset.extensions import db
+    from superset.models.api_keys import ApiKey
+    from superset.utils.api_key import validate_api_key
+
+    # Get all active (non-revoked, non-expired) API keys
+    # We need to check each one since we can't look up by plaintext key
+    active_keys = (
+        db.session.query(ApiKey)
+        .filter(ApiKey.revoked_on.is_(None))
+        .all()
+    )
+
+    for stored_key in active_keys:
+        # Check if key is expired
+        if not stored_key.is_active():
+            continue
+
+        # Validate the API key against the stored hash
+        if validate_api_key(api_key, stored_key.key_hash):
+            # Update last_used_on timestamp
+            ApiKeyDAO.update_last_used(stored_key)
+
+            # Get the user with eager loading
+            user = (
+                db.session.query(User)
+                .options(joinedload(User.roles), joinedload(User.groups))
+                .filter(User.id == stored_key.user_id)
+                .first()
+            )
+
+            if user:
+                logger.info(
+                    "API key authentication successful: key_id=%s, user=%s",
+                    stored_key.id,
+                    user.username,
+                )
+                return user
+
+    return None
+
+
 def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (if MCP_API_KEY_AUTH_ENABLED)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -60,10 +122,34 @@ def get_user_from_request() -> User:
     from sqlalchemy.orm import joinedload
 
     from superset.extensions import db
+    from superset.utils.api_key import extract_api_key_from_header
 
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
+
+    # Try API key authentication if enabled
+    api_key_auth_enabled = current_app.config.get("MCP_API_KEY_AUTH_ENABLED", True)
+    if api_key_auth_enabled:
+        # Try to get API key from Authorization header
+        auth_header = None
+        try:
+            auth_header = request.headers.get("Authorization")
+        except RuntimeError:
+            # No request context (e.g., running in stdio mode)
+            pass
+
+        if auth_header:
+            api_key = extract_api_key_from_header(auth_header)
+            if api_key and api_key.startswith("pst_"):
+                user = _authenticate_with_api_key(api_key)
+                if user:
+                    return user
+                else:
+                    raise ValueError(
+                        "Invalid or expired API key. "
+                        "Create a new key at Settings -> User Info -> API Keys."
+                    )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -71,8 +157,8 @@ def get_user_from_request() -> User:
     if not username:
         raise ValueError(
             "No authenticated user found. "
-            "Either pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            "Either pass a valid API key (Bearer pst_...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Query user directly with eager loading to ensure fresh session-bound object
