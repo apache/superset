@@ -582,8 +582,27 @@ def execute_sql_statements(  # noqa: C901
                 "*** serialized payload size: %i", getsizeof(serialized_payload)
             )
             logger.debug("*** compressed payload size: %i", getsizeof(compressed))
-            results_backend.set(key, compressed, cache_timeout)
-        query.results_key = key
+
+            # Store results in backend and check if write succeeded
+            write_success = results_backend.set(key, compressed, cache_timeout)
+            if not write_success:
+                # Backend write failed - log error and don't set results_key
+                logger.error(
+                    "Query %s: Failed to store results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
+                stats_logger.incr("sqllab.results_backend.write_failure")
+                # Don't set results_key to prevent 410 errors when fetching
+                query.results_key = None
+            else:
+                # Write succeeded - set results_key in database
+                query.results_key = key
+                logger.info(
+                    "Query %s: Successfully stored results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
 
     query.status = QueryStatus.SUCCESS
     db.session.commit()
