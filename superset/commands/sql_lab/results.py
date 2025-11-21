@@ -66,7 +66,7 @@ class SqlExecutionResultsCommand(BaseCommand):
             db.session.query(Query).filter_by(results_key=self._key).one_or_none()
         )
         if self._query is None:
-            logger.error(
+            logger.warning(
                 "404 Error - Query not found in database for key: %s",
                 self._key,
             )
@@ -96,9 +96,9 @@ class SqlExecutionResultsCommand(BaseCommand):
             query_age_seconds = now_as_float() - (
                 self._query.end_time if self._query.end_time else now_as_float()
             )
-            logger.error(
-                "410 Error - Query exists in DB but results not in S3. "
-                "Query ID: %s, Status: %s, Age: %.2f seconds, "
+            logger.warning(
+                "410 Error - Query exists in DB but results not in results backend"
+                " Query ID: %s, Status: %s, Age: %.2f seconds, "
                 "End time: %s, Results key: %s",
                 self._query.id,
                 self._query.status,
