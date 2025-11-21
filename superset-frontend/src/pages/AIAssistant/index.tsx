@@ -27,39 +27,31 @@ import {
   Select,
   Button,
 } from '@superset-ui/core/components';
+import SubMenu from 'src/features/home/SubMenu';
 
 const { TextArea } = Input;
 
-const PageContainer = styled.div`
-  padding: 48px;
-  max-width: 1400px;
-  margin: 0 auto;
-`;
 
-const PageTitle = styled.h1`
-  font-size: 32px;
-  font-weight: 600;
-  margin-bottom: 48px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
+
 
 const StyledCard = styled(Card)`
   margin-bottom: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  height: 650px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ChatContainer = styled.div`
   ${({ theme }) => `
-    min-height: 400px;
-    max-height: 400px;
+    height: 420px;
     overflow-y: auto;
     padding: 32px;
     border: 1px solid ${theme.colorBorder};
     border-radius: 8px;
     background-color: ${theme.colorBgLayout};
-    margin-bottom: 32px;
+    margin-bottom: 0;
+    display: block;
   `}
 `;
 
@@ -112,7 +104,8 @@ const StyledTextArea = styled(TextArea)`
 
 const DataPreviewContainer = styled.div`
   ${({ theme }) => `
-    max-height: 500px;
+    width: calc(100% - 20px);
+    max-height: calc(500px - 20px);
     overflow: auto;
     border: 1px solid ${theme.colorBorder};
     border-radius: 8px;
@@ -135,10 +128,10 @@ const ColumnTable = styled.table`
 
     th {
       font-weight: 600;
-      background-color: ${theme.colorFillQuaternary};
+      background-color: ${theme.colorBgContainer};
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 2;
     }
 
     tr:hover {
@@ -485,119 +478,122 @@ export default function AIAssistant() {
   }));
 
   return (
-    <PageContainer>
-      <PageTitle>🤖 AI Assistant</PageTitle>
-
+    <>
+      <SubMenu name={t('AI Assistant')} buttons={[]} />
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <StyledCard title={t('Chat with AI')} bordered={false}>
-            <ChatContainer>
-              {messages.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: theme.colorTextSecondary,
-                    marginTop: '150px',
-                  }}
-                >
-                  {t('Start a conversation with the AI Assistant')}
-                </div>
-              ) : (
-                <>
-                  {messages.map(msg => (
-                    <ChatMessage key={msg.id} isUser={msg.isUser}>
-                      {msg.text}
-                      {msg.sql && (
-                        <div>
-                          <SQLCodeBlock>
-                            <code>{msg.sql}</code>
-                          </SQLCodeBlock>
-                          <div style={{ marginTop: '8px' }}>
-                            <Button
-                              size="small"
-                              type="primary"
-                              onClick={() => executeQuery(msg.id, msg.sql!)}
-                              loading={msg.isExecuting}
-                              disabled={msg.isExecuting}
+            <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+              <ChatContainer>
+                {messages.length === 0 ? (
+                  <div
+                    style={{
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: theme.colorTextSecondary,
+                    }}
+                  >
+                    {t('Start a conversation with the AI Assistant')}
+                  </div>
+                ) : (
+                  <>
+                    {messages.map(msg => (
+                      <ChatMessage key={msg.id} isUser={msg.isUser}>
+                        {msg.text}
+                        {msg.sql && (
+                          <div>
+                            <SQLCodeBlock>
+                              <code>{msg.sql}</code>
+                            </SQLCodeBlock>
+                            <div style={{ marginTop: '8px' }}>
+                              <Button
+                                size="small"
+                                type="primary"
+                                onClick={() => executeQuery(msg.id, msg.sql!)}
+                                loading={msg.isExecuting}
+                                disabled={msg.isExecuting}
+                              >
+                                {msg.isExecuting
+                                  ? 'Executing...'
+                                  : 'Execute Query'}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {msg.queryResults && (
+                          <div style={{ marginTop: '16px' }}>
+                            <div
+                              style={{ marginBottom: '8px', fontWeight: 'bold' }}
                             >
-                              {msg.isExecuting
-                                ? 'Executing...'
-                                : 'Execute Query'}
-                            </Button>
+                              Results ({msg.queryResults.rowCount} rows):
+                            </div>
+                            <DataPreviewContainer>
+                              <ColumnTable>
+                                <thead>
+                                  <tr>
+                                    {msg.queryResults.columns.map((col, idx) => (
+                                      <th key={idx}>{col}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {msg.queryResults.data.map((row, rowIdx) => {
+                                    const results = msg.queryResults!;
+                                    return (
+                                      <tr key={rowIdx}>
+                                        {results.columns.map((col, colIdx) => (
+                                          <td key={colIdx}>
+                                            {row[col] !== null &&
+                                            row[col] !== undefined
+                                              ? String(row[col])
+                                              : '—'}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </ColumnTable>
+                            </DataPreviewContainer>
                           </div>
-                        </div>
-                      )}
-                      {msg.queryResults && (
-                        <div style={{ marginTop: '16px' }}>
-                          <div
-                            style={{ marginBottom: '8px', fontWeight: 'bold' }}
-                          >
-                            📊 Results ({msg.queryResults.rowCount} rows):
-                          </div>
-                          <DataPreviewContainer>
-                            <ColumnTable>
-                              <thead>
-                                <tr>
-                                  {msg.queryResults.columns.map((col, idx) => (
-                                    <th key={idx}>{col}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {msg.queryResults.data.map((row, rowIdx) => {
-                                  const results = msg.queryResults!;
-                                  return (
-                                    <tr key={rowIdx}>
-                                      {results.columns.map((col, colIdx) => (
-                                        <td key={colIdx}>
-                                          {row[col] !== null &&
-                                          row[col] !== undefined
-                                            ? String(row[col])
-                                            : '—'}
-                                        </td>
-                                      ))}
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </ColumnTable>
-                          </DataPreviewContainer>
-                        </div>
-                      )}
-                    </ChatMessage>
-                  ))}
-                  {loadingAI && (
-                    <LoadingMessage>🤖 Generating SQL query...</LoadingMessage>
-                  )}
-                </>
-              )}
-            </ChatContainer>
-
-            <StyledTextArea
-              value={inputValue}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                setInputValue(e.target.value)
-              }
-              placeholder={t('Type your message here...')}
-              rows={3}
-              disabled={loadingAI}
-              onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (!e.shiftKey && !loadingAI) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-
-            <div style={{ textAlign: 'right' }}>
-              <Button
-                type="primary"
-                onClick={handleSendMessage}
-                disabled={loadingAI || !inputValue.trim()}
-                loading={loadingAI}
-              >
-                {t('Send')}
-              </Button>
+                        )}
+                      </ChatMessage>
+                    ))}
+                    {loadingAI && (
+                      <LoadingMessage>Generating SQL query...</LoadingMessage>
+                    )}
+                  </>
+                )}
+              </ChatContainer>
+              <div style={{ marginTop: 'auto' }}>
+                <StyledTextArea
+                  value={inputValue}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setInputValue(e.target.value)
+                  }
+                  placeholder={t('Type your message here...')}
+                  rows={3}
+                  disabled={loadingAI}
+                  onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                    if (!e.shiftKey && !loadingAI) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                <div style={{ textAlign: 'right' }}>
+                  <Button
+                    type="primary"
+                    onClick={handleSendMessage}
+                    disabled={loadingAI || !inputValue.trim()}
+                    loading={loadingAI}
+                  >
+                    {t('Send')}
+                  </Button>
+                </div>
+              </div>
             </div>
           </StyledCard>
         </Col>
@@ -709,6 +705,6 @@ export default function AIAssistant() {
           </StyledCard>
         </Col>
       </Row>
-    </PageContainer>
+    </>
   );
 }
