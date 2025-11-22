@@ -28,6 +28,8 @@ import {
   formatPersianDate,
   getCurrentPersianDate,
   gregorianToPersian,
+  isPersianLocale,
+  isRTLLayout,
   persianToGregorian,
 } from 'src/utils/persianCalendar';
 import { JalaliDatePicker } from './JalaliDatePicker';
@@ -118,7 +120,9 @@ const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '�
 const toPersianDigits = (value: string) =>
   value.replace(/\d/g, digit => PERSIAN_DIGITS[Number(digit)]);
 
-const MIN_GREGORIAN_YEAR = 1700;
+// Dates below this threshold are treated as Jalali years and converted to Gregorian.
+// Jalali years (13xx/14xx) stay below 1700, while persisted Gregorian years exceed it.
+const YEAR_THRESHOLD_GREGORIAN_VS_JALALI = 1700;
 
 interface FrameComponentProps {
   onChange: (value: string) => void;
@@ -194,39 +198,16 @@ export function PersianCalendarFrame({
   const [customEndDate, setCustomEndDate] = useState<Dayjs | null>(null);
   const [currentPersianDate] = useState(getCurrentPersianDate());
 
-  const isRTL = useMemo(() => {
-    if (typeof document === 'undefined') {
-      return false;
-    }
-    const doc = document.documentElement;
-    if (doc?.dir === 'rtl' || doc?.lang?.startsWith('fa')) {
-      return true;
-    }
-    if (typeof navigator !== 'undefined' && navigator.language?.startsWith('fa')) {
-      return true;
-    }
-    return false;
-  }, []);
+  const isRTL = useMemo(() => isRTLLayout(), []);
 
-  const shouldUsePersianText = useMemo(() => {
-    if (typeof document !== 'undefined') {
-      const doc = document.documentElement;
-      if (doc?.lang?.startsWith('fa')) {
-        return true;
-      }
-    }
-    if (typeof navigator !== 'undefined' && navigator.language?.startsWith('fa')) {
-      return true;
-    }
-    return false;
-  }, []);
+  const shouldUsePersianText = useMemo(() => isPersianLocale(), []);
 
   const normalizeToGregorian = useCallback(
     (date: Dayjs | null): Dayjs | null => {
       if (!date) {
         return null;
       }
-      if (date.year() >= MIN_GREGORIAN_YEAR) {
+      if (date.year() >= YEAR_THRESHOLD_GREGORIAN_VS_JALALI) {
         return date;
       }
       const converted = persianToGregorian(

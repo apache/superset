@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { isValidJalaaliDate, toGregorian, toJalaali } from 'jalaali-js';
 
 export interface PersianDateParts {
@@ -60,8 +61,101 @@ export const PERSIAN_WEEKDAYS = [
   'جمعه',
 ];
 
-const getWeekdayName = (year: number, month: number, day: number) =>
-  PERSIAN_WEEKDAYS[new Date(year, month - 1, day).getDay()];
+const PERSIAN_LANGUAGE_PREFIX = 'fa';
+
+type DayjsPlugin = (
+  option?: unknown,
+  dayjsClass?: unknown,
+  dayjsFactory?: unknown,
+) => void;
+
+let jalaliPluginLoaded = false;
+let jalaliPluginFailed = false;
+
+const getWeekdayName = (year: number, month: number, day: number) => {
+  const jsWeekdayIndex = new Date(year, month - 1, day).getDay();
+  const persianWeekdayIndex = (jsWeekdayIndex + 1) % 7;
+  return PERSIAN_WEEKDAYS[persianWeekdayIndex];
+};
+
+export const isPersianLocale = () => {
+  const locales: string[] = [];
+
+  if (typeof document !== 'undefined') {
+    const language = document.documentElement?.lang;
+    if (language) {
+      locales.push(language);
+    }
+  }
+
+  if (typeof navigator !== 'undefined') {
+    const { language, languages } = navigator;
+    if (Array.isArray(languages)) {
+      locales.push(...languages);
+    }
+    if (language) {
+      locales.push(language);
+    }
+  }
+
+  return locales.some(locale =>
+    locale?.toLowerCase().startsWith(PERSIAN_LANGUAGE_PREFIX),
+  );
+};
+
+export const isRTLLayout = () => {
+  if (typeof document !== 'undefined') {
+    const dir = document.documentElement?.dir;
+    const lang = document.documentElement?.lang;
+    if (dir?.toLowerCase() === 'rtl') {
+      return true;
+    }
+    if (lang?.toLowerCase().startsWith(PERSIAN_LANGUAGE_PREFIX)) {
+      return true;
+    }
+    if (dir) {
+      return dir.toLowerCase() === 'rtl';
+    }
+  }
+  return isPersianLocale();
+};
+
+export const ensureJalaliDayjsPlugin = (): boolean => {
+  if (jalaliPluginLoaded) {
+    return true;
+  }
+
+  if (jalaliPluginFailed) {
+    return false;
+  }
+
+  try {
+    // dayjs-jalali publishes a CommonJS plugin function
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const jalaliPlugin = require('dayjs-jalali') as {
+      default?: DayjsPlugin;
+    } & DayjsPlugin;
+    const plugin: DayjsPlugin | undefined =
+      typeof jalaliPlugin === 'function'
+        ? (jalaliPlugin as DayjsPlugin)
+        : jalaliPlugin.default;
+    if (plugin) {
+      dayjs.extend(plugin);
+      jalaliPluginLoaded = true;
+      return true;
+    }
+    jalaliPluginFailed = true;
+    return false;
+  } catch (error) {
+    if (!jalaliPluginFailed) {
+      // Avoid spamming the console on repeated failures
+      // eslint-disable-next-line no-console
+      console.warn('Failed to load dayjs-jalali plugin', error);
+    }
+    jalaliPluginFailed = true;
+    return false;
+  }
+};
 
 // Convert Gregorian date to Persian date (accurate Jalali conversion)
 export function gregorianToPersian(

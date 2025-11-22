@@ -1,6 +1,16 @@
 import { NO_TIME_RANGE } from '@superset-ui/core';
-import { screen, render, fireEvent, userEvent, waitFor } from 'spec/helpers/testing-library';
-import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import {
+  screen,
+  render,
+  fireEvent,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import {
+  extendedDayjs as dayjs,
+  type Dayjs,
+} from '@superset-ui/core/utils/dates';
+import type { JalaliDatePickerProps } from 'src/explore/components/controls/DateFilterControl/components/JalaliDatePicker';
 import { PersianCalendarFrame } from 'src/explore/components/controls/DateFilterControl/components/PersianCalendarFrame';
 
 jest.mock(
@@ -9,50 +19,45 @@ jest.mock(
     const { extendedDayjs } = jest.requireActual(
       '@superset-ui/core/utils/dates',
     );
+    const parseDate = (input: string) =>
+      input ? extendedDayjs(input, 'YYYY-MM-DD') : null;
     return {
-      JalaliDatePicker: ({ value, onChange, placeholder, mode }: any) => {
+      JalaliDatePicker: ({
+        value,
+        onChange,
+        placeholder,
+        mode,
+      }: JalaliDatePickerProps) => {
         if (mode === 'range') {
-          const [start, end] = (value as any[]) ?? [];
+          const [start, end] = (value as [Dayjs | null, Dayjs | null]) ?? [
+            null,
+            null,
+          ];
           return (
             <div>
               <input
                 aria-label={`${placeholder}-start`}
                 value={start ? start.format('YYYY-MM-DD') : ''}
                 onChange={event =>
-                  onChange([
-                    event.target.value
-                      ? extendedDayjs(event.target.value, 'YYYY-MM-DD')
-                      : null,
-                    end || null,
-                  ])
+                  onChange([parseDate(event.target.value), end ?? null])
                 }
               />
               <input
                 aria-label={`${placeholder}-end`}
                 value={end ? end.format('YYYY-MM-DD') : ''}
                 onChange={event =>
-                  onChange([
-                    start || null,
-                    event.target.value
-                      ? extendedDayjs(event.target.value, 'YYYY-MM-DD')
-                      : null,
-                  ])
+                  onChange([start ?? null, parseDate(event.target.value)])
                 }
               />
             </div>
           );
         }
+        const singleValue = value as Dayjs | null;
         return (
           <input
             aria-label={placeholder}
-            value={value ? (value as any).format('YYYY-MM-DD') : ''}
-            onChange={event =>
-              onChange(
-                event.target.value
-                  ? extendedDayjs(event.target.value, 'YYYY-MM-DD')
-                  : null,
-              )
-            }
+            value={singleValue ? singleValue.format('YYYY-MM-DD') : ''}
+            onChange={event => onChange(parseDate(event.target.value))}
           />
         );
       },
@@ -95,6 +100,30 @@ test('parses persisted custom range values', () => {
   expect(
     screen.getByText(/Selected Jalali range/i),
   ).toBeInTheDocument();
+});
+
+test('normalizes Jalali range strings to Gregorian inputs', () => {
+  render(
+    <PersianCalendarFrame
+      value="1403-01-02 : 1403-01-04"
+      onChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByLabelText('Select date range-start'),
+  ).toHaveValue('2024-03-21');
+  expect(screen.getByLabelText('Select date range-end')).toHaveValue(
+    '2024-03-23',
+  );
+});
+
+test('selects persisted relative range radio button', () => {
+  render(<PersianCalendarFrame value="Last year" onChange={jest.fn()} />);
+
+  expect(
+    screen.getByRole('radio', { name: /Last year/i }),
+  ).toBeChecked();
 });
 
 test('custom range defaults both inputs to today when enabled', async () => {
