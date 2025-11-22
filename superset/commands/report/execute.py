@@ -353,15 +353,6 @@ class BaseReportState:
             height = self._report_schedule.custom_height or window_height
             window_size = (width, height)
 
-            logger.info(
-                "Starting screenshot capture - execution_id: %s, chart_id: %s, "
-                "window_size: %s, webdriver: %s",
-                self._execution_id,
-                self._report_schedule.chart_id,
-                window_size,
-                app.config["WEBDRIVER_TYPE"],
-            )
-
             screenshots: list[Union[ChartScreenshot, DashboardScreenshot]] = [
                 ChartScreenshot(
                     url,
@@ -377,16 +368,6 @@ class BaseReportState:
             height = self._report_schedule.custom_height or window_height
             window_size = (width, height)
 
-            logger.info(
-                "Starting screenshot capture - execution_id: %s, dashboard_id: %s, "
-                "tab_count: %s, window_size: %s, webdriver: %s",
-                self._execution_id,
-                self._report_schedule.dashboard_id,
-                len(urls),
-                window_size,
-                app.config["WEBDRIVER_TYPE"],
-            )
-
             screenshots = [
                 DashboardScreenshot(
                     url,
@@ -401,40 +382,26 @@ class BaseReportState:
             for screenshot in screenshots:
                 if imge := screenshot.get_screenshot(user=user):
                     imges.append(imge)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Screenshot capture took %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            resource_type = "chart" if self._report_schedule.chart else "dashboard"
-            resource_id = (
-                self._report_schedule.chart_id
-                if self._report_schedule.chart
-                else self._report_schedule.dashboard_id
-            )
             logger.warning(
-                "Screenshot timeout - execution_id: %s, %s_id: %s, "
-                "elapsed_time: %.2fs, webdriver: %s",
-                self._execution_id,
-                resource_type,
-                resource_id,
+                "Screenshot timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
-                app.config["WEBDRIVER_TYPE"],
+                self._execution_id,
             )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            resource_type = "chart" if self._report_schedule.chart else "dashboard"
-            resource_id = (
-                self._report_schedule.chart_id
-                if self._report_schedule.chart
-                else self._report_schedule.dashboard_id
-            )
             logger.error(
-                "Screenshot failed - execution_id: %s, %s_id: %s, "
-                "elapsed_time: %.2fs, error: %s",
-                self._execution_id,
-                resource_type,
-                resource_id,
+                "Screenshot failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
-                str(ex),
+                self._execution_id,
             )
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
@@ -464,41 +431,31 @@ class BaseReportState:
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
-            logger.warning(
-                "No query context found, taking screenshot to generate it - "
-                "execution_id: %s, chart_id: %s",
-                self._execution_id,
-                self._report_schedule.chart_id,
-            )
+            logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
-
-        logger.info(
-            "Starting CSV data generation - execution_id: %s, chart_id: %s",
-            self._execution_id,
-            self._report_schedule.chart_id,
-        )
 
         try:
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "CSV data generation took %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.warning(
-                "CSV generation timeout - execution_id: %s, chart_id: %s, "
-                "elapsed_time: %.2fs",
-                self._execution_id,
-                self._report_schedule.chart_id,
+                "CSV generation timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
+                self._execution_id,
             )
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.error(
-                "CSV generation failed - execution_id: %s, chart_id: %s, "
-                "elapsed_time: %.2fs, error: %s",
-                self._execution_id,
-                self._report_schedule.chart_id,
+                "CSV generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
-                str(ex),
+                self._execution_id,
             )
             raise ReportScheduleCsvFailedError(
                 f"Failed generating csv {str(ex)}"
@@ -522,41 +479,31 @@ class BaseReportState:
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
-            logger.warning(
-                "No query context found, taking screenshot to generate it - "
-                "execution_id: %s, chart_id: %s",
-                self._execution_id,
-                self._report_schedule.chart_id,
-            )
+            logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
-
-        logger.info(
-            "Starting DataFrame generation - execution_id: %s, chart_id: %s",
-            self._execution_id,
-            self._report_schedule.chart_id,
-        )
 
         try:
             dataframe = get_chart_dataframe(url, auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "DataFrame generation took %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.warning(
-                "DataFrame generation timeout - execution_id: %s, chart_id: %s, "
-                "elapsed_time: %.2fs",
-                self._execution_id,
-                self._report_schedule.chart_id,
+                "DataFrame generation timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
+                self._execution_id,
             )
             raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.error(
-                "DataFrame generation failed - execution_id: %s, chart_id: %s, "
-                "elapsed_time: %.2fs, error: %s",
-                self._execution_id,
-                self._report_schedule.chart_id,
+                "DataFrame generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
-                str(ex),
+                self._execution_id,
             )
             raise ReportScheduleDataFrameFailedError(
                 f"Failed generating dataframe {str(ex)}"
@@ -911,21 +858,10 @@ class ReportWorkingState(BaseReportState):
                 if last_working
                 else None
             )
-            timeout_seconds = self._report_schedule.working_timeout
-            resource_type = "chart" if self._report_schedule.chart else "dashboard"
-            resource_id = (
-                self._report_schedule.chart_id
-                if self._report_schedule.chart
-                else self._report_schedule.dashboard_id
-            )
             logger.error(
-                "Working state timeout - execution_id: %s, %s_id: %s, "
-                "time_in_working_state: %.2fs, timeout_limit: %ss",
-                self._execution_id,
-                resource_type,
-                resource_id,
+                "Working state timeout after %.2fs - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
-                timeout_seconds,
+                self._execution_id,
             )
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.update_report_schedule_and_log(
@@ -1049,32 +985,17 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             )
             user = security_manager.find_user(username)
 
-            resource_type = "chart" if self._model.chart else "dashboard"
-            resource_id = (
-                self._model.chart_id if self._model.chart else self._model.dashboard_id
-            )
-
-            logger.info(
-                "Starting report execution - execution_id: %s, %s_id: %s, "
-                "report_type: %s, report_format: %s, state: %s",
-                self._execution_id,
-                resource_type,
-                resource_id,
-                self._model.type,
-                self._model.report_format,
-                self._model.last_state,
-            )
-
+            start_time = datetime.utcnow()
             with override_user(user):
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
 
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
-                "Report execution completed - execution_id: %s, %s_id: %s",
+                "Report execution completed in %.2fs - execution_id: %s",
+                elapsed_seconds,
                 self._execution_id,
-                resource_type,
-                resource_id,
             )
         except CommandException:
             raise
