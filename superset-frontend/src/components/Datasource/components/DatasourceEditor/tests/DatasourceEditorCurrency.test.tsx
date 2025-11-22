@@ -60,9 +60,18 @@ afterEach(async () => {
   fetchMock.restore();
 });
 
+const dismissDatasourceWarning = async () => {
+  const closeButton = screen.queryByRole('button', { name: /close/i });
+  if (closeButton) {
+    await userEvent.click(closeButton);
+  }
+};
+
 test('renders currency section in metrics tab', async () => {
   const testProps = createPropsWithCurrency();
   fastRender(testProps);
+
+  await dismissDatasourceWarning();
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
@@ -94,6 +103,8 @@ test('changes currency position from prefix to suffix', async () => {
 
   fastRender(testProps);
 
+  await dismissDatasourceWarning();
+
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
   await userEvent.click(metricButton);
@@ -124,6 +135,8 @@ test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
 
   fastRender(testProps);
+
+  await dismissDatasourceWarning();
 
   // Navigate to metrics tab
   const metricButton = await screen.findByTestId('collection-tab-Metrics');

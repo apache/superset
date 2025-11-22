@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
@@ -48,6 +49,13 @@ afterEach(async () => {
   await cleanupAsyncOperations();
   fetchMock.restore();
 });
+
+const dismissDatasourceWarning = async () => {
+  const warningCloseButton = screen.queryByRole('button', { name: /close/i });
+  if (warningCloseButton) {
+    await userEvent.click(warningCloseButton);
+  }
+};
 
 test('renders Tabs', async () => {
   await asyncRender({
@@ -90,10 +98,21 @@ test('can sync columns from source', async () => {
 
 // to add, remove and modify columns accordingly
 test('can modify columns', async () => {
-  fastRender({
+  const limitedProps = {
     ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
-  });
+    onChange: jest.fn(),
+    datasource: {
+      ...props.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: props.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+
+  fastRender(limitedProps);
+
+  await dismissDatasourceWarning();
 
   const columnsTab = await screen.findByTestId('collection-tab-Columns');
   await userEvent.click(columnsTab);
@@ -110,7 +129,7 @@ test('can modify columns', async () => {
   const inputCertDetails = screen.getByPlaceholderText('Certification details');
 
   // Clear onChange mock to track user action callbacks
-  props.onChange.mockClear();
+  limitedProps.onChange.mockClear();
 
   // Use fireEvent.change for speed - testing wiring, not per-keystroke behavior
   fireEvent.change(inputLabel, { target: { value: 'test_label' } });
@@ -120,42 +139,57 @@ test('can modify columns', async () => {
   await waitFor(() => {
     expect(inputLabel).toHaveValue('test_label');
     expect(inputCertDetails).toHaveValue('test_details');
-    expect(props.onChange).toHaveBeenCalled();
+    expect(limitedProps.onChange).toHaveBeenCalled();
   });
 });
 
 test('can delete columns', async () => {
-  fastRender({
+  const limitedProps = {
     ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
-  });
+    onChange: jest.fn(),
+    datasource: {
+      ...props.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: props.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+
+  fastRender(limitedProps);
+
+  await dismissDatasourceWarning();
 
   const columnsTab = await screen.findByTestId('collection-tab-Columns');
   await userEvent.click(columnsTab);
 
-  const getToggles = await screen.findAllByRole('button', {
+  const columnsPanel = within(
+    await screen.findByTestId('collection-panel-Columns'),
+  );
+
+  const getToggles = await columnsPanel.findAllByRole('button', {
     name: /expand row/i,
   });
 
   await userEvent.click(getToggles[0]);
 
-  const deleteButtons = await screen.findAllByRole('button', {
+  const deleteButtons = await columnsPanel.findAllByRole('button', {
     name: /delete item/i,
   });
   const initialCount = deleteButtons.length;
   expect(initialCount).toBeGreaterThan(0);
 
   // Clear onChange mock to track delete action
-  props.onChange.mockClear();
+  limitedProps.onChange.mockClear();
 
   await userEvent.click(deleteButtons[0]);
 
   await waitFor(() =>
     expect(
-      screen.queryAllByRole('button', { name: /delete item/i }),
+      columnsPanel.queryAllByRole('button', { name: /delete item/i }),
     ).toHaveLength(initialCount - 1),
   );
-  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  await waitFor(() => expect(limitedProps.onChange).toHaveBeenCalled());
 });
 
 test('can add new columns', async () => {
