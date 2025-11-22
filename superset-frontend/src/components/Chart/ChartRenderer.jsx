@@ -33,70 +33,6 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
-import { getItem, setItem } from 'src/utils/localStorageHelpers';
-
-// Global pathname tracker to detect page navigation
-let globalCleanupPathname = '';
-
-/**
- * Clean up ALL chart legend states from localStorage (including unmounted charts)
- */
-export function cleanupAllChartLegendStates() {
-  try {
-    // Get all localStorage keys
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (
-        key &&
-        (key.startsWith('chart_legend_state_') ||
-          key.startsWith('chart_legend_index_'))
-      ) {
-        keysToRemove.push(key);
-      }
-    }
-    // Remove all chart legend state keys
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-    });
-  } catch (e) {
-    logging.warn(
-      '[ChartRenderer] Failed to clean up all chart legend states from localStorage:',
-      e,
-    );
-  }
-}
-
-/**
- * Check if we should clean up all chart legend states based on pathname change
- */
-function checkAndCleanupAll(pathname) {
-  // If pathname changed, we're navigating to a different page - clean up all chart legend states
-  if (pathname !== globalCleanupPathname) {
-    cleanupAllChartLegendStates();
-    // Update the tracked pathname for the new page
-    globalCleanupPathname = pathname;
-  }
-}
-
-/**
- * Reset global cleanup pathname (for testing only)
- */
-export function resetGlobalCleanupPathname() {
-  globalCleanupPathname = '';
-}
-
-// Global handlers that work independently of component instances
-function globalBeforeUnloadHandler() {
-  // Browser is closing/navigating away - always clean up
-  cleanupAllChartLegendStates();
-}
-
-function globalRouteChangeHandler() {
-  // Handle all route changes (popstate, hashchange, SPA navigation)
-  const currentPathname = window.location.pathname;
-  checkAndCleanupAll(currentPathname);
-}
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -154,11 +90,27 @@ class ChartRenderer extends Component {
       props.formData.viz_type ?? props.vizType,
     )?.suppressContextMenu;
 
-    // Load legend state from localStorage (per-chart)
+    // Load legend state from sessionStorage (per-chart)
     const legendStateKey = `chart_legend_state_${props.chartId}`;
     const legendIndexKey = `chart_legend_index_${props.chartId}`;
-    const savedLegendState = getItem(legendStateKey, null);
-    const savedLegendIndex = getItem(legendIndexKey, 0);
+    let savedLegendState = null;
+    let savedLegendIndex = 0;
+    try {
+      const storedState = sessionStorage.getItem(legendStateKey);
+      if (storedState !== null) {
+        savedLegendState = JSON.parse(storedState);
+      }
+      const storedIndex = sessionStorage.getItem(legendIndexKey);
+      if (storedIndex !== null) {
+        console.log(storedIndex);
+        savedLegendIndex = JSON.parse(storedIndex);
+      }
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to load legend state from sessionStorage:',
+        e,
+      );
+    }
 
     this.state = {
       showContextMenu:
@@ -170,14 +122,6 @@ class ChartRenderer extends Component {
       legendIndex: savedLegendIndex,
     };
     this.hasQueryResponseChange = false;
-    // Initialize global cleanup tracking on first mount
-    // If pathname changed (new page), trigger cleanup check immediately
-    const currentPathname = window.location.pathname;
-    if (globalCleanupPathname === '') {
-      globalCleanupPathname = currentPathname;
-    } else {
-      checkAndCleanupAll(currentPathname);
-    }
 
     this.contextMenuRef = createRef();
 
@@ -213,31 +157,6 @@ class ChartRenderer extends Component {
     // the plugins, hence we need to clone it to avoid state mutation
     // until we change the reducers to use Redux Toolkit with Immer
     this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
-  }
-
-  componentDidMount() {
-    // Initialize count if it doesn't exist
-    if (!window.__chartRendererCount) {
-      window.__chartRendererCount = 0;
-    }
-
-    // Only set up global listeners if this is the FIRST ChartRenderer instance
-    if (window.__chartRendererCount === 0) {
-      // Listen for browser navigation (close tab, navigate away)
-      window.addEventListener('beforeunload', globalBeforeUnloadHandler);
-      // Listen for browser back/forward navigation
-      window.addEventListener('popstate', globalRouteChangeHandler);
-      // Listen for hash changes (manual URL changes)
-      window.addEventListener('hashchange', globalRouteChangeHandler);
-      // Check periodically to catch route changes (including SPA navigation via tabs/links)
-      window.__chartLegendCleanupInterval = setInterval(
-        globalRouteChangeHandler,
-        1000,
-      );
-    }
-
-    // Increment the count for this instance
-    window.__chartRendererCount += 1;
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -365,7 +284,17 @@ class ChartRenderer extends Component {
 
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
-    setItem(`chart_legend_state_${this.props.chartId}`, legendState);
+    try {
+      sessionStorage.setItem(
+        `chart_legend_state_${this.props.chartId}`,
+        JSON.stringify(legendState),
+      );
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to save legend state to sessionStorage:',
+        e,
+      );
+    }
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
@@ -379,29 +308,16 @@ class ChartRenderer extends Component {
 
   handleLegendScroll(legendIndex) {
     this.setState({ legendIndex });
-    setItem(`chart_legend_index_${this.props.chartId}`, legendIndex);
-  }
-
-  componentWillUnmount() {
-    // If pathname changed when unmounting, we're navigating away
-    // If scrolling out of view, pathname is the same, so no cleanup happens
-    checkAndCleanupAll(window.location.pathname);
-
-    // Ensure count exists and is positive before decrementing
-    if (window.__chartRendererCount && window.__chartRendererCount > 0) {
-      window.__chartRendererCount -= 1;
-    }
-
-    // If this is the LAST ChartRenderer instance unmounting, remove listeners
-    if (window.__chartRendererCount === 0) {
-      window.removeEventListener('beforeunload', globalBeforeUnloadHandler);
-      window.removeEventListener('popstate', globalRouteChangeHandler);
-      window.removeEventListener('hashchange', globalRouteChangeHandler);
-
-      if (window.__chartLegendCleanupInterval) {
-        clearInterval(window.__chartLegendCleanupInterval);
-        delete window.__chartLegendCleanupInterval;
-      }
+    try {
+      sessionStorage.setItem(
+        `chart_legend_index_${this.props.chartId}`,
+        JSON.stringify(legendIndex),
+      );
+    } catch (e) {
+      logging.warn(
+        '[ChartRenderer] Failed to save legend index to sessionStorage:',
+        e,
+      );
     }
   }
 
