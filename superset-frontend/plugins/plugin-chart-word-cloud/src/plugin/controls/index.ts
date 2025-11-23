@@ -19,4 +19,6 @@
 export { RotationControl } from './RotationControl';
 export { SizeFromControl } from './SizeFromControl';
 export { SizeToControl } from './SizeToControl';
-
+export { IntegerInputControl } from './IntegerInputControl';
+export type { ExtendedControlComponentProps } from './types';
+export type { IntegerInputControlConfig, IntegerInputControlProps } from './IntegerInputControl';

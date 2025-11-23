@@ -66,7 +66,10 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import { PluginContext } from 'src/components';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
-import { getSectionsToRender } from 'src/explore/controlUtils';
+import {
+  getSectionsToRender,
+  getControlNameFromComponent,
+} from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -76,7 +79,82 @@ import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
+import { AdhocFilterType } from './controls/FilterControl/adhocFilterType';
 import StashFormDataContainer from './StashFormDataContainer';
+import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
+
+/**
+ * Extended props that are passed to control components in ControlPanelsContainer.
+ * These are additional props beyond the base ExtendedControlComponentProps.
+ */
+type ControlComponentPropsWithExtras = ExtendedControlComponentProps & {
+  actions: ExploreActions;
+  controls: Record<string, ControlState>;
+  chart: ChartState;
+  exploreState: ExplorePageState['explore'];
+  form_data: QueryFormData;
+};
+
+/**
+ * Wrapper component for React component-based controls.
+ * Manages hover state and provides onChange handler that integrates with the control system.
+ */
+interface ReactControlWrapperProps {
+  Component: React.ComponentType<
+    ExtendedControlComponentProps | ControlComponentPropsWithExtras
+  >;
+  controlName: string;
+  controls: Record<string, ControlState>;
+  chart: ChartState;
+  exploreState: ExplorePageState['explore'];
+  actions: ExploreActions;
+  form_data: QueryFormData;
+}
+
+const ReactControlWrapper: React.FC<ReactControlWrapperProps> = ({
+  Component,
+  controlName,
+  controls,
+  chart,
+  exploreState,
+  actions,
+  form_data,
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const controlState = controls[controlName];
+
+  const handleChange = useCallback(
+    (value: JsonValue, errors: string[] = []) => {
+      actions.setControlValue(controlName, value, errors);
+    },
+    [controlName, actions],
+  );
+
+  return (
+    <div
+      className="Control"
+      data-test={controlName}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Component
+        name={controlName}
+        actions={actions}
+        controls={controls}
+        chart={chart}
+        exploreState={exploreState}
+        form_data={form_data}
+        onChange={handleChange}
+        hovered={hovered}
+        {...(controlState && {
+          value: controlState.value,
+          validationErrors: controlState.validationErrors,
+          default: controlState.default,
+        })}
+      />
+    </div>
+  );
+};
 
 const TABS_KEYS = {
   DATA: 'DATA',
@@ -270,7 +348,10 @@ function getState(
   };
 }
 
-function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
+function useResetOnChangeRef<T>(
+  initialValue: () => T,
+  resetOnChangeValue: unknown,
+) {
   const value = useRef(initialValue());
   const prevResetOnChangeValue = useRef(resetOnChangeValue);
   if (prevResetOnChangeValue.current !== resetOnChangeValue) {
@@ -490,7 +571,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       description: baseDescription,
       ...restProps
     } = controlData as ControlState & {
-      validationErrors?: any[];
+      validationErrors?: string[];
     };
 
     const isVisible = visibility
@@ -514,11 +595,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     if (name.includes('adhoc_filters')) {
       restProps.canDelete = (
-        valueToBeDeleted: Record<string, any>,
-        values: Record<string, any>[],
+        valueToBeDeleted: AdhocFilterType,
+        values: AdhocFilterType[],
       ) => {
-        const isTemporalRange = (filter: Record<string, any>) =>
-          filter.operator === Operators.TemporalRange;
+        const isTemporalRange = (filter: AdhocFilterType) =>
+          'operator' in filter && filter.operator === Operators.TemporalRange;
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
@@ -569,7 +650,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   };
 
-  const sectionHasHadNoErrors = useResetOnChangeRef(
+  const sectionHasHadNoErrors = useResetOnChangeRef<Record<string, boolean>>(
     () => ({}),
     form_data.viz_type,
   );
@@ -659,112 +740,76 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   // Handle React component references (function components)
                   if (typeof controlItem === 'function') {
-                    const Component = controlItem as React.ComponentType<any>;
-                    const { controls, chart, exploreState, actions, form_data } = props;
-                    
-                    // Extract control name from component name or defaultProps
-                    const componentName = Component.name || Component.displayName || '';
-                    let controlName: string | null = null;
-                    
-                    // Try defaultProps first
-                    if (Component.defaultProps?.name) {
-                      controlName = Component.defaultProps.name;
-                    } else if (componentName.endsWith('Control')) {
-                      const baseName = componentName.slice(0, -7);
-                      controlName = baseName
-                        .replace(/([A-Z])/g, '_$1')
-                        .toLowerCase()
-                        .replace(/^_/, '');
-                    }
-                    
+                    const Component =
+                      controlItem as React.ComponentType<ExtendedControlComponentProps>;
+                    const {
+                      controls,
+                      chart,
+                      exploreState,
+                      actions,
+                      form_data,
+                    } = props;
+
+                    // Extract control name from component
+                    const controlName = getControlNameFromComponent(Component);
+
                     if (!controlName) {
                       // Can't determine control name, skip this control
                       return null;
                     }
-                    
-                    const controlState = controls[controlName];
-                    
-                    // Create onChange handler that calls setControlValue
-                    const handleChange = useCallback(
-                      (value: any, errors: any[] = []) => {
-                        actions.setControlValue(controlName!, value, errors);
-                      },
-                      [controlName, actions],
+
+                    return (
+                      <ReactControlWrapper
+                        key={controlName}
+                        Component={Component}
+                        controlName={controlName}
+                        controls={controls}
+                        chart={chart}
+                        exploreState={exploreState}
+                        actions={actions}
+                        form_data={form_data}
+                      />
                     );
-                    
-                    // Use a wrapper component to manage hover state
-                    const ControlWrapper = () => {
-                      const [hovered, setHovered] = useState(false);
-                      
-                      return (
-                        <div
-                          className="Control"
-                          data-test={controlName}
-                          onMouseEnter={() => setHovered(true)}
-                          onMouseLeave={() => setHovered(false)}
-                        >
-                          <Component
-                            name={controlName}
-                            actions={actions}
-                            controls={controls}
-                            chart={chart}
-                            exploreState={exploreState}
-                            form_data={form_data}
-                            onChange={handleChange}
-                            hovered={hovered}
-                            {...(controlState && {
-                              value: controlState.value,
-                              validationErrors: controlState.validationErrors,
-                              default: controlState.default,
-                            })}
-                          />
-                        </div>
-                      );
-                    };
-                    
-                    return <ControlWrapper key={controlName} />;
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element (component-based control)
                     const element = controlItem as ReactElement;
-                    const { controls, chart, exploreState, actions, form_data } =
-                      props;
-                    
+                    const {
+                      controls,
+                      chart,
+                      exploreState,
+                      actions,
+                      form_data,
+                    } = props;
+
                     // Check if this is a React component (function/class component)
                     // vs a marker element (div with props)
                     const isComponent = typeof element.type === 'function';
-                    
+
                     // Get control name from:
                     // 1. Props (if explicitly passed)
                     // 2. Component name (RotationControl -> rotation, SizeFromControl -> size_from)
-                    // 3. Default props
+                    // 3. Extract from component (handles defaultProps and name conversion)
                     let controlName = element.props?.name;
                     if (!controlName && isComponent) {
-                      const ComponentType = element.type as any;
-                      const componentName = ComponentType.name || ComponentType.displayName || '';
-                      
-                      // Convert component name to control name
-                      // RotationControl -> rotation
-                      // SizeFromControl -> size_from
-                      if (componentName.endsWith('Control')) {
-                        const baseName = componentName.slice(0, -7); // Remove 'Control'
-                        // Convert camelCase to snake_case
-                        controlName = baseName
-                          .replace(/([A-Z])/g, '_$1')
-                          .toLowerCase()
-                          .replace(/^_/, '');
-                      }
-                      
-                      // Fallback to default props
-                      if (!controlName && ComponentType.defaultProps?.name) {
-                        controlName = ComponentType.defaultProps.name;
-                      }
+                      // Type assertion needed because element.type could be any component type
+                      const ComponentType =
+                        element.type as React.ComponentType<ExtendedControlComponentProps>;
+                      controlName = getControlNameFromComponent(
+                        ComponentType,
+                        element.props,
+                      );
                     }
-                    
-                    const controlState = controlName ? controls[controlName] : null;
+
+                    const controlState = controlName
+                      ? controls[controlName]
+                      : null;
 
                     // If it's a marker element (div with type prop), wrap with Control
-                    if (element.props?.type && typeof element.type === 'string') {
+                    if (
+                      element.props?.type &&
+                      typeof element.type === 'string'
+                    ) {
                       const controlProps = {
                         ...element.props,
                         actions,
@@ -796,7 +841,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         validationErrors: controlState.validationErrors,
                         default: controlState.default,
                       }),
-                    } as any);
+                    } as Partial<ControlComponentPropsWithExtras>);
                   }
                   if (
                     isCustomControlItem(controlItem) &&

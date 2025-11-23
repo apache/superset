@@ -16,123 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { t, legacyValidateInteger } from '@superset-ui/core';
-import { Input, FormLabel, Tooltip, InfoTooltip, Constants } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { debounce } from 'lodash';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
-import { useTheme } from '@apache-superset/core/ui';
+import React from 'react';
+import { t } from '@superset-ui/core';
+import { IntegerInputControl } from './IntegerInputControl';
 
 /**
  * React component-based control for Word Cloud maximum font size.
  * This is a proper React functional component that renders actual UI,
  * replacing the legacy configuration object approach.
  */
-interface SizeToControlProps extends ControlComponentProps {
-  default?: number;
-  placeholder?: string;
-  disabled?: boolean;
-}
-
-export const SizeToControl: React.FC<SizeToControlProps> = ({
-  name = 'size_to',
-  label = t('Maximum Font Size'),
-  description = t('Font size for the biggest value in the list'),
-  value,
-  onChange,
-  validationErrors,
-  renderTrigger = true,
-  hovered,
-  default: defaultValue = 70,
-  placeholder,
-  disabled,
-}) => {
-  const safeStringify = (val?: string | number | null) =>
-    val == null ? '' : String(val);
-
-  const theme = useTheme();
-  const labelText = typeof label === 'string' ? label : '';
-  const safeValue = typeof value === 'number' || typeof value === 'string' ? value : defaultValue;
-  
-  const [inputValue, setInputValue] = useState(safeStringify(safeValue));
-
-  useEffect(() => {
-    if (value !== undefined && value !== null && (typeof value === 'number' || typeof value === 'string')) {
-      setInputValue(safeStringify(value));
-    }
-  }, [value]);
-
-  const handleChange = useCallback((inputVal: string) => {
-    let parsedValue: string | number = inputVal;
-    const errors: any[] = [];
-
-    if (inputVal !== '') {
-      const error = legacyValidateInteger(inputVal);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = parseInt(inputVal, 10);
-      }
-    }
-
-    // ControlComponentProps onChange signature is (value: JsonValue) => void
-    // but we need to pass errors, so we use type assertion
-    (onChange as any)?.(parsedValue, errors);
-  }, [onChange]);
-
-  const debouncedOnChange = useMemo(
-    () => debounce(handleChange, Constants.FAST_DEBOUNCE),
-    [handleChange],
-  );
-
-  const onChangeWrapper = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    setInputValue(newValue);
-    debouncedOnChange(newValue);
-  }, [debouncedOnChange]);
-
+export const SizeToControl: React.FC<
+  React.ComponentProps<typeof IntegerInputControl>
+> = props => {
+  const { name, label, description, default: defaultValue, ...restProps } = props;
   return (
-    <div>
-      {label && (
-        <div className="ControlHeader" data-test={`${name}-header`}>
-          <FormLabel htmlFor={name}>
-            {labelText}
-            {description && hovered && (
-              <Tooltip id={`${name}-tooltip`} title={description} placement="top">
-                <Icons.InfoCircleOutlined />
-              </Tooltip>
-            )}
-            {renderTrigger && hovered && (
-              <InfoTooltip
-                label={t('bolt')}
-                tooltip={t('Changing this control takes effect instantly')}
-                placement="top"
-                type="notice"
-              />
-            )}
-            {validationErrors && validationErrors.length > 0 && (
-              <Tooltip
-                id="error-tooltip"
-                placement="top"
-                title={Array.isArray(validationErrors) ? validationErrors.join(' ') : String(validationErrors)}
-              >
-                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-              </Tooltip>
-            )}
-          </FormLabel>
-        </div>
-      )}
-      <Input
-        type="text"
-        data-test="inline-name"
-        placeholder={placeholder}
-        onChange={onChangeWrapper}
-        value={inputValue}
-        disabled={disabled}
-        aria-label={labelText}
-      />
-    </div>
+    <IntegerInputControl
+      name={name || 'size_to'}
+      label={label || t('Maximum Font Size')}
+      description={description || t('Font size for the biggest value in the list')}
+      default={defaultValue ?? 70}
+      config={{
+        defaultName: 'size_to',
+        defaultLabel: t('Maximum Font Size'),
+        defaultDescription: t('Font size for the biggest value in the list'),
+        defaultValue: 70,
+      }}
+      {...restProps}
+    />
   );
 };
 
@@ -140,4 +50,3 @@ export const SizeToControl: React.FC<SizeToControlProps> = ({
 SizeToControl.defaultProps = {
   name: 'size_to',
 };
-

@@ -18,17 +18,22 @@
  */
 import React, { useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import { Select, FormLabel, Tooltip, InfoTooltip } from '@superset-ui/core/components';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
+import {
+  Select,
+  FormLabel,
+  Tooltip,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useTheme } from '@apache-superset/core/ui';
+import { ExtendedControlComponentProps } from './types';
 
 /**
  * React component-based control for Word Cloud rotation setting.
  * This is a proper React functional component that renders actual UI,
  * replacing the legacy configuration object approach.
  */
-export const RotationControl: React.FC<ControlComponentProps> = ({
+export const RotationControl: React.FC<ExtendedControlComponentProps> = ({
   name = 'rotation',
   label = t('Word Rotation'),
   description = t('Rotation to apply to words in the cloud'),
@@ -63,10 +68,10 @@ export const RotationControl: React.FC<ControlComponentProps> = ({
   const labelText = typeof label === 'string' ? label : '';
 
   const handleChange = (selectedValue: string | string[]) => {
-    const value = Array.isArray(selectedValue) ? selectedValue[0] : selectedValue;
-    // ControlComponentProps onChange signature is (value: JsonValue) => void
-    // but we need to pass errors, so we use type assertion
-    (onChange as any)?.(value, []);
+    const value = Array.isArray(selectedValue)
+      ? selectedValue[0]
+      : selectedValue;
+    onChange?.(value, []);
   };
 
   return (
@@ -76,7 +81,11 @@ export const RotationControl: React.FC<ControlComponentProps> = ({
           <FormLabel htmlFor={name}>
             {labelText}
             {description && hovered && (
-              <Tooltip id={`${name}-tooltip`} title={description} placement="top">
+              <Tooltip
+                id={`${name}-tooltip`}
+                title={description}
+                placement="top"
+              >
                 <Icons.InfoCircleOutlined />
               </Tooltip>
             )}
@@ -116,4 +125,3 @@ export const RotationControl: React.FC<ControlComponentProps> = ({
 RotationControl.defaultProps = {
   name: 'rotation',
 };
-

@@ -23,6 +23,11 @@ import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry, JsonObject } from '@superset-ui/core';
 import type { ControlMap } from 'src/components/AlteredSliceTag/types';
 import { controls } from '../explore/controls';
+import {
+  getControlNameFromComponent,
+  getControlConfigFromComponent,
+} from '../explore/controlUtils';
+import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
 
 const memoizedControls = memoizeOne(
   (vizType: string, controlPanel: JsonObject | undefined): ControlMap => {
@@ -37,35 +42,38 @@ const memoizedControls = memoizeOne(
           section.controlSetRows.forEach(row => {
             if (Array.isArray(row)) {
               row.forEach(control => {
-                if (!control) return;
+                if (control === null || control === undefined) return;
                 if (typeof control === 'string') {
                   // For now, we have to look in controls.jsx to get the config for some controls.
                   // Once everything is migrated out, delete this if statement.
-                  const controlConfig = (controls as any)[control];
+                  // Type assertion needed because controls.jsx is not fully typed
+                  const controlConfig = (
+                    controls as Record<string, JsonObject>
+                  )[control];
                   if (controlConfig) {
                     controlsMap[control] = controlConfig;
                   }
                 } else if (typeof control === 'function') {
                   // Handle React component references (function components)
-                  const Component = control as React.ComponentType<any>;
-                  const componentName = Component.name || Component.displayName || '';
-                  
-                  // Convert component name to control name
-                  let controlName: string | null = null;
-                  if (componentName.endsWith('Control')) {
-                    const baseName = componentName.slice(0, -7);
-                    controlName = baseName
-                      .replace(/([A-Z])/g, '_$1')
-                      .toLowerCase()
-                      .replace(/^_/, '');
-                  }
-                  
+                  const Component =
+                    control as React.ComponentType<ExtendedControlComponentProps>;
+                  const controlName = getControlNameFromComponent(Component);
+
                   if (controlName) {
                     // Create minimal config for React component controls
-                    const componentWithConfig = Component as any;
+                    const componentConfig =
+                      getControlConfigFromComponent(Component);
+                    const componentName =
+                      Component.name ||
+                      Component.displayName ||
+                      'CustomControl';
+                    // ControlMap only expects type and label as strings
+                    const label = componentConfig?.label;
+                    const labelString =
+                      typeof label === 'string' ? label : undefined;
                     controlsMap[controlName] = {
-                      type: 'CustomControl',
-                      ...(componentWithConfig.controlConfig || {}),
+                      type: componentName,
+                      ...(labelString && { label: labelString }),
                     };
                   }
                 } else if (
@@ -83,17 +91,23 @@ const memoizedControls = memoizeOne(
                 } else if (
                   // Handle React elements (component-based controls)
                   typeof control === 'object' &&
-                  control !== null &&
+                  control != null &&
                   'type' in control
                 ) {
-                  const element = control as any;
+                  const element = control as React.ReactElement;
                   const isComponent = typeof element.type === 'function';
-                  const isMarkerElement = typeof element.type === 'string' && element.props?.type;
-                  
+                  const isMarkerElement =
+                    typeof element.type === 'string' && element.props?.type;
+
                   if (isMarkerElement) {
                     // Marker element (div with type prop) - extract config from props
                     const { name, type, ...configProps } = element.props;
-                    if (name && type && typeof type === 'string' && type.endsWith('Control')) {
+                    if (
+                      name &&
+                      type &&
+                      typeof type === 'string' &&
+                      type.endsWith('Control')
+                    ) {
                       controlsMap[name] = {
                         type,
                         ...configProps,
@@ -101,24 +115,29 @@ const memoizedControls = memoizeOne(
                     }
                   } else if (isComponent) {
                     // React component - extract control name and create minimal config
-                    const ComponentType = element.type;
-                    const componentName = ComponentType.name || ComponentType.displayName || '';
-                    
-                    let controlName = element.props?.name;
-                    if (!controlName && componentName.endsWith('Control')) {
-                      const baseName = componentName.slice(0, -7);
-                      controlName = baseName
-                        .replace(/([A-Z])/g, '_$1')
-                        .toLowerCase()
-                        .replace(/^_/, '');
-                    }
-                    
+                    const ComponentType =
+                      element.type as React.ComponentType<ExtendedControlComponentProps>;
+                    const controlName = getControlNameFromComponent(
+                      ComponentType,
+                      element.props,
+                    );
+
                     if (controlName) {
                       // Create minimal config for React component controls
                       // The component handles its own rendering
+                      const componentConfig =
+                        getControlConfigFromComponent(ComponentType);
+                      const componentName =
+                        ComponentType.name ||
+                        ComponentType.displayName ||
+                        'CustomControl';
+                      // ControlMap only expects type and label as strings
+                      const label = componentConfig?.label;
+                      const labelString =
+                        typeof label === 'string' ? label : undefined;
                       controlsMap[controlName] = {
-                        type: 'CustomControl',
-                        ...(ComponentType.controlConfig || {}),
+                        type: componentName,
+                        ...(labelString && { label: labelString }),
                       };
                     }
                   }

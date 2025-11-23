@@ -98,7 +98,19 @@ describe('controlUtils', () => {
   describe('getControlConfig', () => {
     test('returns a valid spatial controlConfig', () => {
       const spatialControl = getControlConfig('color_scheme', 'test-chart');
-      expect(spatialControl?.type).toEqual('ColorSchemeControl');
+      // Type guard: check if result is a BaseControlConfig with a string type property
+      if (
+        spatialControl &&
+        typeof spatialControl === 'object' &&
+        'type' in spatialControl &&
+        typeof spatialControl.type === 'string'
+      ) {
+        expect(spatialControl.type).toEqual('ColorSchemeControl');
+      } else {
+        throw new Error(
+          'Expected spatialControl to be a BaseControlConfig with string type',
+        );
+      }
     });
 
     test('overrides according to vizType', () => {

@@ -33,8 +33,44 @@ import {
 } from '@superset-ui/chart-controls';
 import { getSectionsToRender } from './getSectionsToRender';
 import { getControlConfig } from './getControlConfig';
+import { getControlNameFromComponent } from './getControlNameFromComponent';
+import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
 
 type ValidationError = JsonValue;
+
+/**
+ * Type for React components that can be used as controls.
+ * These components may have optional static properties for control configuration.
+ */
+type ControlComponent = React.ComponentType<ExtendedControlComponentProps> & {
+  controlConfig?: ControlConfig;
+  defaultProps?: { name?: string };
+};
+
+/**
+ * Type guard to check if a component has controlConfig property.
+ */
+function hasControlConfig(
+  component: React.ComponentType<ExtendedControlComponentProps>,
+): component is ControlComponent {
+  return (
+    typeof component === 'function' &&
+    'controlConfig' in component &&
+    (component as ControlComponent).controlConfig !== undefined
+  );
+}
+
+/**
+ * Safely extracts controlConfig from a component if it exists.
+ */
+export function getControlConfigFromComponent(
+  component: React.ComponentType<ExtendedControlComponentProps>,
+): ControlConfig | undefined {
+  if (hasControlConfig(component)) {
+    return component.controlConfig;
+  }
+  return undefined;
+}
 
 function execControlValidator<T = ControlType>(
   control: ControlState<T>,
@@ -158,24 +194,23 @@ export function getControlState(
   value?: JsonValue,
 ) {
   const controlConfig = getControlConfig(controlKey, vizType);
-  
+
   // If getControlConfig returns a React component (function component),
   // wrap it in a config object
   if (typeof controlConfig === 'function') {
-    const Component = controlConfig as React.ComponentType<any>;
-    const componentWithConfig = Component as any;
-    const wrappedConfig: ControlConfig = {
-      type: 'CustomControl',
-      ...(componentWithConfig.controlConfig || {}),
-    };
+    const Component =
+      controlConfig as React.ComponentType<ExtendedControlComponentProps>;
+    const componentConfig = getControlConfigFromComponent(Component);
+    // Use type assertion since ControlConfig has complex conditional types
+    // that don't work well with typeof Component
+    const wrappedConfig = {
+      type: Component,
+      ...componentConfig,
+    } as ControlConfig;
     return getControlStateFromControlConfig(wrappedConfig, state, value);
   }
-  
-  return getControlStateFromControlConfig(
-    controlConfig,
-    state,
-    value,
-  );
+
+  return getControlStateFromControlConfig(controlConfig, state, value);
 }
 
 export function getAllControlsState(
@@ -184,7 +219,9 @@ export function getAllControlsState(
   state: ControlPanelState | null,
   formData: QueryFormData,
 ) {
-  const controlsState: Record<string, ControlState<any> | null> = {};
+  // ControlState<any> is necessary here because we're storing heterogeneous control states
+  // with potentially different value types (string, number, object, etc.)
+  const controlsState: Record<string, ControlState | null> = {};
   getSectionsToRender(vizType, datasourceType).forEach(section => {
     if (!section || !section.controlSetRows) return;
     section.controlSetRows.forEach(fieldsetRow =>
@@ -199,27 +236,19 @@ export function getAllControlsState(
           );
         } else if (typeof field === 'function') {
           // Handle React component references (function components)
-          const Component = field as React.ComponentType<any>;
-          const componentName = Component.name || Component.displayName || '';
-          
-          // Convert component name to control name
-          // RotationControl -> rotation, SizeFromControl -> size_from
-          let controlName: string | null = null;
-          if (componentName.endsWith('Control')) {
-            const baseName = componentName.slice(0, -7);
-            controlName = baseName
-              .replace(/([A-Z])/g, '_$1')
-              .toLowerCase()
-              .replace(/^_/, '');
-          }
-          
+          const Component =
+            field as React.ComponentType<ExtendedControlComponentProps>;
+          const controlName = getControlNameFromComponent(Component);
+
           if (controlName) {
             // Create minimal config for React component controls
-            const componentWithConfig = Component as any;
+            const componentConfig = getControlConfigFromComponent(Component);
+            // Use type assertion since ControlConfig has complex conditional types
+            // that don't work well with typeof Component
             const config = {
-              type: 'CustomControl',
-              ...(componentWithConfig.controlConfig || {}),
-            };
+              type: Component,
+              ...componentConfig,
+            } as ControlConfig;
             controlsState[controlName] = getControlStateFromControlConfig(
               config,
               state,
@@ -232,14 +261,22 @@ export function getAllControlsState(
           field !== null &&
           'type' in field
         ) {
-          const element = field as any;
+          // Type assertion through unknown is necessary because CustomControlItem
+          // and ReactElement don't have sufficient type overlap
+          const element = field as unknown as React.ReactElement;
           const isComponent = typeof element.type === 'function';
-          const isMarkerElement = typeof element.type === 'string' && element.props?.type;
-          
+          const isMarkerElement =
+            typeof element.type === 'string' && element.props?.type;
+
           if (isMarkerElement) {
             // Marker element (div with type prop) - extract config from props
             const { name, type, ...configProps } = element.props;
-            if (name && type && typeof type === 'string' && type.endsWith('Control')) {
+            if (
+              name &&
+              type &&
+              typeof type === 'string' &&
+              type.endsWith('Control')
+            ) {
               const config = {
                 type,
                 ...configProps,
@@ -252,29 +289,27 @@ export function getAllControlsState(
             }
           } else if (isComponent) {
             // React component - extract control name from component
-            const ComponentType = element.type;
-            const componentName = ComponentType.name || ComponentType.displayName || '';
-            
-            // Convert component name to control name
-            // RotationControl -> rotation, SizeFromControl -> size_from
-            let controlName = element.props?.name;
-            if (!controlName && componentName.endsWith('Control')) {
-              const baseName = componentName.slice(0, -7);
-              controlName = baseName
-                .replace(/([A-Z])/g, '_$1')
-                .toLowerCase()
-                .replace(/^_/, '');
-            }
-            
+            // Type assertion needed because element.type could be string or ComponentType
+            const ComponentType =
+              element.type as React.ComponentType<ExtendedControlComponentProps>;
+            const controlName = getControlNameFromComponent(
+              ComponentType,
+              element.props,
+            );
+
             if (controlName) {
               // For React components, we need to infer the control type from the component
               // Since these are actual components, we'll use a generic config
               // The component will handle its own rendering
+              const componentConfig =
+                getControlConfigFromComponent(ComponentType);
+              // Use type assertion since ControlConfig has complex conditional types
+              // that don't work well with typeof ComponentType
               const config = {
-                type: 'CustomControl', // Placeholder - component renders itself
-                // Extract any config from component static properties if available
-                ...(ComponentType.controlConfig || {}),
-              };
+                type: ComponentType, // Component type - component renders itself
+                // Extract config from component static properties if available
+                ...componentConfig,
+              } as ControlConfig;
               controlsState[controlName] = getControlStateFromControlConfig(
                 config,
                 state,
