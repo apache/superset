@@ -23,10 +23,10 @@ from marshmallow import fields, Schema
 advanced_data_type_convert_schema = {
     "type": "object",
     "properties": {
-        "type": {"type": "string", "dump_default": "port"},
+        "type": {"type": "string", "default": "port"},
         "values": {
             "type": "array",
-            "items": {"dump_default": "http"},
+            "items": {"default": "http"},
             "minItems": 1,
         },
     },
