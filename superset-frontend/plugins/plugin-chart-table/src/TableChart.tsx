@@ -1163,7 +1163,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </th>
           ) : (
             <td key={`footer-total-${i}`} style={sharedStyle}>
-              <strong>{formatColumnValue(column, displayedTotals[key])[1]}</strong>
+              <strong>
+                {formatColumnValue(column, displayedTotals[key])[1]}
+              </strong>
             </td>
           )
         ) : undefined,
