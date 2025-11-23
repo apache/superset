@@ -1,0 +1,19 @@
+/* Fix: preserve dashboard grid spacing when Superset is embedded into
+   an external host app without an iframe. 
+   Scoped under .superset-embed so normal Superset UI is unaffected.
+*/
+
+.superset-embed .dashboard-grid,
+.superset-embed .grid,
+.superset-embed .superset-dashboard {
+  display: grid !important;
+  gap: 16px !important;
+  box-sizing: border-box !important;
+}
+
+.superset-embed .dashboard-grid > *,
+.superset-embed .slice_container,
+.superset-embed .chart-container {
+  min-width: 0 !important;
+  width: 100% !important;
+}
