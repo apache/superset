@@ -20,6 +20,8 @@ from typing import Any
 
 import backoff
 import requests
+
+from superset import feature_flag_manager
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import (
@@ -77,6 +79,10 @@ class WebhookNotification(BaseNotification):
     @backoff.on_exception(backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:
+        if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_WEBHOOK"):
+            raise NotificationUnprocessableException(
+                "Attempted to send a Webhook notification but Webhook feature flag is not enabled."
+            )
         wh_url = self._get_webhook_url()
         payload = self._get_req_payload()
         files = self._get_files()

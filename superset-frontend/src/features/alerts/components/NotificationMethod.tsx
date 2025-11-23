@@ -326,7 +326,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       updateSlackOptions();
     }
   }, []);
-
+  
   const methodOptions = useMemo(
     () =>
       (options || [])
@@ -338,9 +338,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
               useSlackV1) &&
               method === NotificationMethodOption.Slack) ||
-            method === NotificationMethodOption.Email ||
-            method === NotificationMethodOption.Webhook)
-        .map(method => ({
+            (isFeatureEnabled(FeatureFlag.AlertReportWebhook) && 
+              method === NotificationMethodOption.Webhook) ||
+            method === NotificationMethodOption.Email
+        ).map(method => ({
           label:
             method === NotificationMethodOption.SlackV2
               ? NotificationMethodOption.Slack
