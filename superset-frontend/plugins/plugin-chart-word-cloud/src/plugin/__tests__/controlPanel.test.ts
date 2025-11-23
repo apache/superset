@@ -17,11 +17,7 @@
  * under the License.
  */
 import controlPanelConfig from '../controlPanel';
-import {
-  RotationControl,
-  SizeFromControl,
-  SizeToControl,
-} from '../controls';
+import { RotationControl, SizeFromControl, SizeToControl } from '../controls';
 
 test('should have required control panel structure', () => {
   expect(controlPanelConfig).toBeDefined();
@@ -54,14 +50,14 @@ test('should have Options section with React component controls', () => {
   expect(optionsSection!.controlSetRows).toBeDefined();
 
   // Check that React components are present in controlSetRows
-  const hasSizeFromControl = controlSetRows.some((row: any) =>
-    Array.isArray(row) && row.includes(SizeFromControl),
+  const hasSizeFromControl = controlSetRows.some(
+    (row: any) => Array.isArray(row) && row.includes(SizeFromControl),
   );
-  const hasSizeToControl = controlSetRows.some((row: any) =>
-    Array.isArray(row) && row.includes(SizeToControl),
+  const hasSizeToControl = controlSetRows.some(
+    (row: any) => Array.isArray(row) && row.includes(SizeToControl),
   );
-  const hasRotationControl = controlSetRows.some((row: any) =>
-    Array.isArray(row) && row.includes(RotationControl),
+  const hasRotationControl = controlSetRows.some(
+    (row: any) => Array.isArray(row) && row.includes(RotationControl),
   );
 
   expect(hasSizeFromControl).toBe(true);
@@ -96,14 +92,15 @@ test('should mix React component controls with legacy string controls', () => {
   const { controlSetRows } = optionsSection!;
 
   // Should have both React components and string-based controls
-  const hasReactComponents = controlSetRows.some((row: any) =>
-    Array.isArray(row) &&
-    (row.includes(SizeFromControl) ||
-      row.includes(SizeToControl) ||
-      row.includes(RotationControl)),
+  const hasReactComponents = controlSetRows.some(
+    (row: any) =>
+      Array.isArray(row) &&
+      (row.includes(SizeFromControl) ||
+        row.includes(SizeToControl) ||
+        row.includes(RotationControl)),
   );
-  const hasLegacyControls = controlSetRows.some((row: any) =>
-    Array.isArray(row) && row.includes('color_scheme'),
+  const hasLegacyControls = controlSetRows.some(
+    (row: any) => Array.isArray(row) && row.includes('color_scheme'),
   );
 
   expect(hasReactComponents).toBe(true);
@@ -119,4 +116,3 @@ test('should have React components with correct defaultProps', () => {
   expect(SizeToControl.defaultProps).toBeDefined();
   expect(SizeToControl.defaultProps!.name).toBe('size_to');
 });
-

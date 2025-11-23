@@ -32,7 +32,9 @@ import { ExtendedControlComponentProps } from '@superset-ui/chart-controls';
  * @returns Control name string, or null if unable to determine
  */
 export function getControlNameFromComponent(
-  Component: React.ComponentType<ExtendedControlComponentProps> | React.ReactElement,
+  Component:
+    | React.ComponentType<ExtendedControlComponentProps>
+    | React.ReactElement,
   elementProps?: { name?: string },
 ): string | null {
   // First, check if there's a name in element props
@@ -52,9 +54,10 @@ export function getControlNameFromComponent(
 
   // Check defaultProps.name first (highest priority for explicit naming)
   // Type assertion needed because defaultProps is not always in the type definition
-  const componentWithDefaults = ComponentType as React.ComponentType<ExtendedControlComponentProps> & {
-    defaultProps?: { name?: string };
-  };
+  const componentWithDefaults =
+    ComponentType as React.ComponentType<ExtendedControlComponentProps> & {
+      defaultProps?: { name?: string };
+    };
   if (componentWithDefaults.defaultProps?.name) {
     return componentWithDefaults.defaultProps.name;
   }
@@ -62,11 +65,13 @@ export function getControlNameFromComponent(
   // Fall back to converting component name to control name
   // RotationControl -> rotation, SizeFromControl -> size_from
   // Type assertion needed because displayName is not always in the type definition
-  const componentWithDisplayName = ComponentType as React.ComponentType<ExtendedControlComponentProps> & {
-    name?: string;
-    displayName?: string;
-  };
-  const componentName = componentWithDisplayName.name || componentWithDisplayName.displayName || '';
+  const componentWithDisplayName =
+    ComponentType as React.ComponentType<ExtendedControlComponentProps> & {
+      name?: string;
+      displayName?: string;
+    };
+  const componentName =
+    componentWithDisplayName.name || componentWithDisplayName.displayName || '';
   if (componentName.endsWith('Control')) {
     const baseName = componentName.slice(0, -7); // Remove 'Control' suffix
     return baseName

@@ -67,9 +67,9 @@ test('should use default value when value is undefined', () => {
 test('should call onChange when value changes', async () => {
   const onChange = jest.fn();
   render(setup({ onChange }));
-  
+
   await selectOption('random');
-  
+
   expect(onChange).toHaveBeenCalledWith('random', []);
 });
 
@@ -102,17 +102,16 @@ test('should have correct default name prop', () => {
 test('should handle all rotation options', async () => {
   const onChange = jest.fn();
   render(setup({ onChange }));
-  
+
   // Test 'random' option
   await selectOption('random');
   expect(onChange).toHaveBeenCalledWith('random', []);
-  
+
   // Test 'flat' option
   await selectOption('flat');
   expect(onChange).toHaveBeenCalledWith('flat', []);
-  
+
   // Test 'square' option
   await selectOption('square');
   expect(onChange).toHaveBeenCalledWith('square', []);
 });
-

@@ -28,12 +28,20 @@ import { IntegerInputControl } from './IntegerInputControl';
 export const SizeToControl: React.FC<
   React.ComponentProps<typeof IntegerInputControl>
 > = props => {
-  const { name, label, description, default: defaultValue, ...restProps } = props;
+  const {
+    name,
+    label,
+    description,
+    default: defaultValue,
+    ...restProps
+  } = props;
   return (
     <IntegerInputControl
       name={name || 'size_to'}
       label={label || t('Maximum Font Size')}
-      description={description || t('Font size for the biggest value in the list')}
+      description={
+        description || t('Font size for the biggest value in the list')
+      }
       default={defaultValue ?? 70}
       config={{
         defaultName: 'size_to',

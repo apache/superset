@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { SizeToControl } from '../SizeToControl';
 
 const defaultProps = {
@@ -71,10 +76,10 @@ test('should call onChange with parsed integer when valid number is entered', as
   const onChange = jest.fn();
   render(setup({ onChange, value: undefined }));
   const input = screen.getByRole('textbox');
-  
+
   await userEvent.clear(input);
   await userEvent.type(input, '100');
-  
+
   // Wait for debounce
   await waitFor(
     () => {
@@ -82,7 +87,7 @@ test('should call onChange with parsed integer when valid number is entered', as
     },
     { timeout: 500 },
   );
-  
+
   // Check that onChange was called with parsed integer
   const calls = onChange.mock.calls;
   const lastCall = calls[calls.length - 1];
@@ -94,10 +99,10 @@ test('should call onChange with errors when invalid input is entered', async () 
   const onChange = jest.fn();
   render(setup({ onChange, value: undefined }));
   const input = screen.getByRole('textbox');
-  
+
   await userEvent.clear(input);
   await userEvent.type(input, 'xyz');
-  
+
   // Wait for debounce
   await waitFor(
     () => {
@@ -105,7 +110,7 @@ test('should call onChange with errors when invalid input is entered', async () 
     },
     { timeout: 500 },
   );
-  
+
   // Check that onChange was called with errors
   const calls = onChange.mock.calls;
   const lastCall = calls[calls.length - 1];
@@ -116,9 +121,9 @@ test('should handle empty input', async () => {
   const onChange = jest.fn();
   render(setup({ onChange, value: 70 }));
   const input = screen.getByRole('textbox');
-  
+
   await userEvent.clear(input);
-  
+
   // Wait for debounce
   await waitFor(
     () => {
@@ -126,7 +131,7 @@ test('should handle empty input', async () => {
     },
     { timeout: 500 },
   );
-  
+
   // Empty string should be passed without errors
   const calls = onChange.mock.calls;
   const lastCall = calls[calls.length - 1];
@@ -150,7 +155,7 @@ test('should update input value when value prop changes', () => {
   const { rerender } = render(setup({ value: 70 }));
   const input = screen.getByRole('textbox');
   expect(input).toHaveValue('70');
-  
+
   rerender(setup({ value: 120 }));
   expect(input).toHaveValue('120');
 });
@@ -176,13 +181,13 @@ test('should debounce onChange calls', async () => {
   const onChange = jest.fn();
   render(setup({ onChange, value: undefined }));
   const input = screen.getByRole('textbox');
-  
+
   // Type multiple characters quickly
   await userEvent.type(input, '999', { delay: 10 });
-  
+
   // Should not have been called immediately
   expect(onChange).not.toHaveBeenCalled();
-  
+
   // Wait for debounce
   await waitFor(
     () => {
@@ -191,4 +196,3 @@ test('should debounce onChange calls', async () => {
     { timeout: 500 },
   );
 });
-

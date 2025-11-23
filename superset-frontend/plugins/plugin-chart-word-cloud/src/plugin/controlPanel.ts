@@ -21,11 +21,7 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import {
-  RotationControl,
-  SizeFromControl,
-  SizeToControl,
-} from './controls';
+import { RotationControl, SizeFromControl, SizeToControl } from './controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -49,9 +45,7 @@ const config: ControlPanelConfig = {
           SizeFromControl,
           SizeToControl,
         ],
-        [
-          RotationControl,
-        ],
+        [RotationControl],
         // Legacy string-based control (still supported for backward compatibility)
         ['color_scheme'],
       ],
