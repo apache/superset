@@ -27,7 +27,7 @@ import {
   getControlNameFromComponent,
   getControlConfigFromComponent,
 } from '../explore/controlUtils';
-import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
+import { ExtendedControlComponentProps } from '@superset-ui/chart-controls';
 
 const memoizedControls = memoizeOne(
   (vizType: string, controlPanel: JsonObject | undefined): ControlMap => {
@@ -90,8 +90,11 @@ const memoizedControls = memoizeOne(
                   controlsMap[controlObj.name] = controlObj.config;
                 } else if (
                   // Handle React elements (component-based controls)
+                  control !== null &&
+                  control !== undefined &&
                   typeof control === 'object' &&
-                  control != null &&
+                  !(control instanceof Date) &&
+                  !(control instanceof RegExp) &&
                   'type' in control
                 ) {
                   const element = control as React.ReactElement;

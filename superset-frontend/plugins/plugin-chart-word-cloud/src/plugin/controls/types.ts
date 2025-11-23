@@ -16,27 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonValue } from '@superset-ui/core';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
 
 /**
- * Extended ControlComponentProps that properly types the onChange callback
- * to support validation errors as a second parameter.
+ * Re-export ExtendedControlComponentProps from the shared location.
  *
- * The actual Control component implementation (src/explore/components/Control.tsx)
- * accepts onChange with signature (value: any, errors: any[]) => void,
- * but the base ControlComponentProps interface only defines (value: JsonValue) => void.
- *
- * This interface extends the base props and overrides onChange to match the
- * actual implementation, providing proper type safety.
+ * This type has been moved to @superset-ui/chart-controls to avoid coupling
+ * core infrastructure to specific plugins. This file maintains backward
+ * compatibility for plugin-internal imports.
  */
-export interface ExtendedControlComponentProps<
-  ValueType extends JsonValue = JsonValue,
-> extends Omit<ControlComponentProps<ValueType>, 'onChange'> {
-  /**
-   * Callback invoked when the control value changes.
-   * @param value - The new value for the control
-   * @param errors - Array of validation error messages (empty array if no errors)
-   */
-  onChange?: (value: ValueType, errors?: string[]) => void;
-}
+export type { ExtendedControlComponentProps } from '@superset-ui/chart-controls';

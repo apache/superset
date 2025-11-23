@@ -81,7 +81,7 @@ import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import { AdhocFilterType } from './controls/FilterControl/adhocFilterType';
 import StashFormDataContainer from './StashFormDataContainer';
-import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
+import { ExtendedControlComponentProps } from '@superset-ui/chart-controls';
 
 /**
  * Extended props that are passed to control components in ControlPanelsContainer.

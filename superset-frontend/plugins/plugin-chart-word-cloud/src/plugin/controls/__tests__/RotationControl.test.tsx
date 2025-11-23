@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, selectOption } from 'spec/helpers/testing-library';
+import { render, screen, selectOption } from 'spec/helpers/testing-library';
 import { RotationControl } from '../RotationControl';
 
 const defaultProps = {

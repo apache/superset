@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
+import { ExtendedControlComponentProps } from '@superset-ui/chart-controls';
 
 /**
  * Extracts the control name from a React component.

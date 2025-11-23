@@ -34,7 +34,7 @@ import {
 import { getSectionsToRender } from './getSectionsToRender';
 import { getControlConfig } from './getControlConfig';
 import { getControlNameFromComponent } from './getControlNameFromComponent';
-import { ExtendedControlComponentProps } from 'plugins/plugin-chart-word-cloud/src/plugin/controls/types';
+import { ExtendedControlComponentProps } from '@superset-ui/chart-controls';
 
 type ValidationError = JsonValue;
 

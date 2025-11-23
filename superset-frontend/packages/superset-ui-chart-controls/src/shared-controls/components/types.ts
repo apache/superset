@@ -38,3 +38,25 @@ export interface ControlComponentProps<
   hovered?: boolean;
   onChange?: (value: ValueType) => void;
 }
+
+/**
+ * Extended ControlComponentProps that properly types the onChange callback
+ * to support validation errors as a second parameter.
+ *
+ * The actual Control component implementation (src/explore/components/Control.tsx)
+ * accepts onChange with signature (value: JsonValue, errors: string[]) => void,
+ * but the base ControlComponentProps interface only defines (value: JsonValue) => void.
+ *
+ * This interface extends the base props and overrides onChange to match the
+ * actual implementation, providing proper type safety.
+ */
+export interface ExtendedControlComponentProps<
+  ValueType extends JsonValue = JsonValue,
+> extends Omit<ControlComponentProps<ValueType>, 'onChange'> {
+  /**
+   * Callback invoked when the control value changes.
+   * @param value - The new value for the control
+   * @param errors - Array of validation error messages (empty array if no errors)
+   */
+  onChange?: (value: ValueType, errors?: string[]) => void;
+}
