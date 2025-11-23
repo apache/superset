@@ -254,6 +254,23 @@ def test_json_int_dttm_ser():
     assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
     assert json.json_int_dttm_ser(np.int64(1)) == 1
 
+    # Test edge cases for JavaScript Date range
+    # Dates outside JavaScript's safe range should return ISO strings
+    assert (
+        json.json_int_dttm_ser(datetime(1938, 4, 24, 22, 13, 19))
+        == "1938-04-24T22:13:19"
+    )
+    assert (
+        json.json_int_dttm_ser(datetime(2286, 11, 20, 17, 46, 40))
+        == "2286-11-20T17:46:40"
+    )
+    assert json.json_int_dttm_ser(date(1938, 4, 23)) == "1938-04-23"
+    assert json.json_int_dttm_ser(date(2286, 11, 21)) == "2286-11-21"
+
+    # Dates within JavaScript's safe range should return epoch milliseconds
+    assert isinstance(json.json_int_dttm_ser(datetime(2000, 1, 1)), (int, float))
+    assert isinstance(json.json_int_dttm_ser(date(2000, 1, 1)), (int, float))
+
     with pytest.raises(TypeError):
         json.json_int_dttm_ser(np.datetime64())
 
