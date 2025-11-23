@@ -1733,6 +1733,8 @@ ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
 # You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
+# Enforce HTTPS for webhook alerts/reports
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = False
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "

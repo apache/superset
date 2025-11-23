@@ -17,8 +17,10 @@
 
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 import backoff
+from flask import current_app
 import requests
 
 from superset import feature_flag_manager
@@ -84,6 +86,11 @@ class WebhookNotification(BaseNotification):
                 "Attempted to send a Webhook notification but Webhook feature flag is not enabled."
             )
         wh_url = self._get_webhook_url()
+        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
+            if urlparse(wh_url).scheme.lower() != "https":
+                raise NotificationParamException(
+                    "Webhook failed: HTTPS is required by config for webhook URLs."
+                )
         payload = self._get_req_payload()
         files = self._get_files()
 
