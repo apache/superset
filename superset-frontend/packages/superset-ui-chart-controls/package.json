@@ -24,10 +24,10 @@
     "lib"
   ],
   "dependencies": {
+    "@apache-superset/core": "*",
     "@react-icons/all-files": "^4.1.0",
     "@types/react": "*",
-    "lodash": "^4.17.21",
-    "prop-types": "^15.8.1"
+    "lodash": "^4.17.21"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",
@@ -35,7 +35,7 @@
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^13.0.0",
+    "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "*",
     "ace-builds": "^1.4.14",
     "brace": "^0.11.1",

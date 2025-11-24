@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
+import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 // eslint-disable-next-line no-restricted-imports
 import {
   configure,
@@ -25,6 +25,7 @@ import {
   SupersetClient,
   LanguagePack,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -33,10 +34,25 @@ import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import './hooks/useLocale';
 
+// Import dayjs plugin types for global TypeScript support
+import 'dayjs/plugin/utc';
+import 'dayjs/plugin/timezone';
+import 'dayjs/plugin/calendar';
+import 'dayjs/plugin/relativeTime';
+import 'dayjs/plugin/customParseFormat';
+import 'dayjs/plugin/duration';
+import 'dayjs/plugin/updateLocale';
+import 'dayjs/plugin/localizedFormat';
+
 configure();
 
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();
+
+setupFormatters(
+  bootstrapData.common.d3_format,
+  bootstrapData.common.d3_time_format,
+);
 
 // Setup SupersetClient early so we can fetch language pack
 setupClient({ appRoot: applicationRoot() });
@@ -68,11 +84,6 @@ setupClient({ appRoot: applicationRoot() });
   setupColors(
     bootstrapData.common.extra_categorical_color_schemes,
     bootstrapData.common.extra_sequential_color_schemes,
-  );
-
-  setupFormatters(
-    bootstrapData.common.d3_format,
-    bootstrapData.common.d3_time_format,
   );
 
   setupDashboardComponents();

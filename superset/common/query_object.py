@@ -36,7 +36,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.sql.parse import sanitize_clause
-from superset.superset_typing import Column, Metric, OrderBy
+from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -370,8 +370,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
-    def to_dict(self) -> dict[str, Any]:
-        query_object_dict = {
+    def to_dict(self) -> QueryObjectDict:
+        query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
             "columns": self.columns,
             "extras": self.extras,
@@ -412,7 +412,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         the use-provided inputs to bounds, which may be time-relative (as in
         "5 days ago" or "now").
         """
-        cache_dict = self.to_dict()
+        # Cast to dict[str, Any] for mutation operations
+        cache_dict: dict[str, Any] = dict(self.to_dict())
         cache_dict.update(extra)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
@@ -454,13 +455,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             cache_dict["annotation_layers"] = annotation_layers
 
         # Add an impersonation key to cache if impersonation is enabled on the db
-        # or if the CACHE_QUERY_BY_USER flag is on
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
         try:
             database = self.datasource.database  # type: ignore
+            extra = json.loads(database.extra or "{}")
             if (
-                feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-                and database.impersonate_user
-            ) or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER"):
+                (
+                    feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+                    and database.impersonate_user
+                )
+                or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER")
+                or extra.get("per_user_caching", False)
+            ):
                 if key := database.db_engine_spec.get_impersonation_key(
                     getattr(g, "user", None)
                 ):

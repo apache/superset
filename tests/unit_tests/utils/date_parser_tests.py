@@ -271,6 +271,15 @@ def test_get_since_until() -> None:
     expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
     assert result == expected
 
+    # Test time_shift with date range format (contains ' : ')
+    result = get_since_until(
+        time_range="today : tomorrow",
+        time_shift="yesterday : today",
+    )
+    # When time_shift contains ' : ', it should be parsed as a new time range
+    expected = datetime(2016, 11, 6), datetime(2016, 11, 7)
+    assert result == expected
+
     with pytest.raises(ValueError):  # noqa: PT011
         get_since_until(time_range="tomorrow : yesterday")
 
@@ -447,11 +456,22 @@ def test_datetime_eval() -> None:
     expected = datetime(2018, 9, 3, 0, 0, 0)
     assert result == expected
 
-    result = datetime_eval(
-        "holiday('Eid al-Fitr', datetime('2000-01-01T00:00:00'), 'SA')"
-    )
-    expected = datetime(2000, 1, 8, 0, 0, 0)
-    assert result == expected
+    # Saudi Arabia holidays - try both English and Arabic names as the default
+    # language varies by environment (ar in some envs, en_US in CI)
+    sa_holiday_test_passed = False
+    for holiday_name in ["Eid al-Fitr", "عطلة عيد الفطر"]:
+        try:
+            result = datetime_eval(
+                f"holiday('{holiday_name}', datetime('2000-01-01T00:00:00'), 'SA')"
+            )
+            expected = datetime(2000, 1, 8, 0, 0, 0)
+            assert result == expected
+            sa_holiday_test_passed = True
+            break
+        except ValueError:
+            continue
+
+    assert sa_holiday_test_passed
 
     result = datetime_eval(
         "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"

@@ -123,7 +123,7 @@ class CSVReader(BaseDataReader):
         except Exception as ex:
             # Any other error, fall back to c engine
             logger.warning(
-                f"Error selecting CSV engine: {ex}, falling back to 'c' engine"
+                "Error selecting CSV engine: %s, falling back to 'c' engine", ex
             )
             return "c"
 
@@ -208,8 +208,8 @@ class CSVReader(BaseDataReader):
             invalid_value = df.loc[idx, column]
             line_number = idx + kwargs.get("header", 0) + 2
             error_details.append(
-                f"  • Line {line_number}: '{invalid_value}' cannot be converted to "
-                f"{dtype}"
+                "  • Line %s: '%s' cannot be converted to %s"
+                % (line_number, invalid_value, dtype)
             )
 
         return error_details, total_errors
@@ -327,6 +327,26 @@ class CSVReader(BaseDataReader):
         return df
 
     @staticmethod
+    def _split_types(types: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Split column data types into custom and pandas-native types.
+
+        :param types: Dictionary mapping column names to data types
+        :return: Tuple of (custom_types, pandas_types) dictionaries
+        """
+        pandas_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype in ("str", "object", "string")
+        }
+        custom_types = {
+            col: dtype
+            for col, dtype in types.items()
+            if dtype not in ("str", "object", "string")
+        }
+        return custom_types, pandas_types
+
+    @staticmethod
     def _read_csv(  # noqa: C901
         file: FileStorage,
         kwargs: dict[str, Any],
@@ -357,7 +377,17 @@ class CSVReader(BaseDataReader):
         kwargs["low_memory"] = False
 
         try:
-            types = kwargs.pop("dtype", None)
+            types = None
+            if "dtype" in kwargs and kwargs["dtype"]:
+                custom_types, pandas_types = CSVReader._split_types(kwargs["dtype"])
+                if pandas_types:
+                    kwargs["dtype"] = pandas_types
+                else:
+                    kwargs.pop("dtype", None)
+
+                # Custom types for our manual casting
+                types = custom_types if custom_types else None
+
             if "chunksize" in kwargs:
                 chunks = []
                 total_rows = 0
@@ -384,7 +414,17 @@ class CSVReader(BaseDataReader):
                         break
 
                 if chunks:
-                    result = pd.concat(chunks, ignore_index=False)
+                    try:
+                        result = pd.concat(chunks, ignore_index=False)
+                    except Exception as ex:
+                        logger.warning(
+                            "Error concatenating CSV chunks: %s. "
+                            "This may be due to inconsistent date parsing "
+                            "across chunks.",
+                            str(ex),
+                        )
+                        raise
+
                     # When using chunking, we need to reset and rebuild the index
                     if kwargs.get("index_col") is not None:
                         # The index was already set by pandas during read_csv

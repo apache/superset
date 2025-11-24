@@ -33,6 +33,7 @@ cover
 .env
 .envrc
 .idea
+.roo
 .mypy_cache
 .python-version
 .tox
@@ -121,6 +122,8 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+docker/superset-websocket/config.json
+docker-compose.override.yml
 
 .temp_cache
 
@@ -134,3 +137,4 @@ PROJECT.md
 .aider*
 .claude_rc*
 .env.local
+oxc-custom-build/

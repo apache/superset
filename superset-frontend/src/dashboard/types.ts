@@ -21,20 +21,24 @@ import {
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFilterScope,
   NativeFiltersState,
   NativeFilterTarget,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
-
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
+import {
+  ChartCustomizationItem,
+  FilterOption,
+} from './components/nativeFilters/ChartCustomization/types';
+import { GroupByCustomizationsState } from './reducers/groupByCustomizations';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -124,6 +128,7 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
+  chartStates?: Record<string, any>;
 };
 export type DashboardInfo = {
   id: number;
@@ -144,6 +149,7 @@ export type DashboardInfo = {
     shared_label_colors: string[];
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
+    chart_customization_config?: ChartCustomizationItem[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -152,6 +158,9 @@ export type DashboardInfo = {
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  chartCustomizationData?: { [itemId: string]: FilterOption[] };
+  chartCustomizationLoading?: { [itemId: string]: boolean };
+  pendingChartCustomizations?: Record<string, ChartCustomizationItem>;
   theme?: {
     id: number;
     name: string;
@@ -184,6 +193,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  groupByCustomizations: GroupByCustomizationsState;
   user: UserWithPermissionsAndRoles;
 };
 
@@ -236,6 +246,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
+  chartStates?: Record<string, any>;
 }
 
 export interface DashboardPermalinkValue {
@@ -298,4 +309,5 @@ export enum MenuKeys {
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
   ExportPivotXlsx = 'export_pivot_xlsx',
+  EmbedCode = 'embed_code',
 }

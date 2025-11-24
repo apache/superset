@@ -18,7 +18,8 @@
  */
 
 import { ReactNode } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -31,6 +32,7 @@ export type RunQueryButtonProps = {
   canStopQuery: boolean;
   chartIsStale: boolean;
 };
+
 export const RunQueryButton = ({
   loading,
   onQuery,

@@ -21,7 +21,7 @@ import { getEmptyImage } from 'react-dnd-html5-backend';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { DragSource, DropTarget, ConnectDragSource, ConnectDropTarget, ConnectDragPreview, DragSourceMonitor, DropTargetMonitor } from 'react-dnd';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';

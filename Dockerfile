@@ -18,13 +18,16 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.13-slim-trixie
+ARG PY_VER=3.11.14-slim-trixie
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
+
+# Build arg to pre-populate examples DuckDB file
+ARG LOAD_EXAMPLES_DUCKDB="false"
 
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
@@ -143,8 +146,8 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
-# Build arg to pre-populate examples DuckDB file
-ARG LOAD_EXAMPLES_DUCKDB="false"
+# Re-declare build arg to receive it in this stage
+ARG LOAD_EXAMPLES_DUCKDB
 
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
@@ -168,6 +171,8 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
+
 ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \

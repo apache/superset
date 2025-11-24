@@ -103,6 +103,9 @@ const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFilterScopes = useNativeFilterScopes();
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -152,7 +155,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+      if (
+        filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        filterScope.id.startsWith('chart_customization_')
+      ) {
         return {
           filterId: filterScope.id,
           tabsInScope: [],
@@ -163,6 +169,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const chartLayoutItems = Object.values(dashboardLayout).filter(
         item => item?.type === CHART_TYPE,
       );
+
+      if (!filterScope.scope || !Array.isArray(filterScope.scope.excluded)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
 
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
@@ -181,7 +195,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
+  }, [
+    chartIds,
+    JSON.stringify(nativeFilterScopes),
+    dashboardLayout,
+    dispatch,
+    JSON.stringify(nativeFilters),
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -294,6 +314,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           renderTabBar={renderTabBar}
           animated={false}
           allowOverflow
+          fullHeight
           onFocus={handleFocus}
           items={tabItems}
           tabBarStyle={{ paddingLeft: 0 }}

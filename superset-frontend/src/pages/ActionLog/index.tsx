@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t, css } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

@@ -35,12 +35,12 @@ import {
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
-  styled,
   SuperChart,
   t,
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -62,7 +62,15 @@ import { useFilterOutlined } from '../useFilterOutlined';
 const HEIGHT = 32;
 
 // Overrides superset-ui height with min-height
-const StyledDiv = styled.div`
+const StyledDiv = styled.div<{
+  orientation: FilterBarOrientation;
+  overflow: boolean;
+}>`
+  padding-bottom: ${({ theme, orientation, overflow }) =>
+    orientation === FilterBarOrientation.Horizontal && !overflow
+      ? 0
+      : (theme?.sizeUnit ?? 4)}px;
+
   & > div {
     height: auto !important;
     min-height: ${HEIGHT}px;
@@ -353,7 +361,11 @@ const FilterValue: FC<FilterControlProps> = ({
   }
 
   return (
-    <StyledDiv data-test="form-item-value">
+    <StyledDiv
+      data-test="form-item-value"
+      orientation={orientation}
+      overflow={overflow}
+    >
       {isLoading ? (
         <Loading position="inline-centered" size="s" muted />
       ) : (

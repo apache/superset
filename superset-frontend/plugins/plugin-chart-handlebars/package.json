@@ -33,6 +33,7 @@
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
+    "@apache-superset/core": "*",
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
     "dayjs": "^1.11.13",
@@ -45,6 +46,6 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "jest": "^30.0.5"
+    "jest": "^30.2.0"
   }
 }

@@ -216,6 +216,7 @@ class HeaderDataType(TypedDict):
     chart_id: int | None
     dashboard_id: int | None
     slack_channels: list[str] | None
+    execution_id: str | None
 
 
 class DatasourceDict(TypedDict):
@@ -1216,6 +1217,11 @@ def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
+    if hasattr(column, "column_name"):
+        column_name = getattr(column, "column_name", "")
+        verbose_name = getattr(column, "verbose_name", "")
+        return verbose_name or column_name
+
     if isinstance(column, dict):
         if label := column.get("label"):
             return label
@@ -1612,7 +1618,9 @@ def get_column_name_from_metric(metric: Metric) -> str | None:
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
-            return cast(dict[str, Any], metric["column"])["column_name"]
+            column = metric["column"]
+            if column:
+                return column["column_name"]
     return None
 
 

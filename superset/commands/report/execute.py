@@ -177,19 +177,35 @@ class BaseReportState:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
         """
-        log = ReportExecutionLog(
-            scheduled_dttm=self._scheduled_dttm,
-            start_dttm=self._start_dttm,
-            end_dttm=datetime.utcnow(),
-            value=self._report_schedule.last_value,
-            value_row_json=self._report_schedule.last_value_row_json,
-            state=self._report_schedule.last_state,
-            error_message=error_message,
-            report_schedule=self._report_schedule,
-            uuid=self._execution_id,
-        )
-        db.session.add(log)
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        from sqlalchemy.orm.exc import StaleDataError
+
+        try:
+            log = ReportExecutionLog(
+                scheduled_dttm=self._scheduled_dttm,
+                start_dttm=self._start_dttm,
+                end_dttm=datetime.utcnow(),
+                value=self._report_schedule.last_value,
+                value_row_json=self._report_schedule.last_value_row_json,
+                state=self._report_schedule.last_state,
+                error_message=error_message,
+                report_schedule=self._report_schedule,
+                uuid=self._execution_id,
+            )
+            db.session.add(log)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except StaleDataError as ex:
+            # Report schedule was modified or deleted by another process
+            db.session.rollback()
+            logger.warning(
+                "Report schedule (execution %s) was modified or deleted "
+                "during execution. This can occur when a report is deleted "
+                "while running.",
+                self._execution_id,
+            )
+            raise ReportScheduleUnexpectedError(
+                "Report schedule was modified or deleted by another process "
+                "during execution"
+            ) from ex
 
     def _get_url(
         self,
@@ -245,16 +261,34 @@ class BaseReportState:
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
+
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            native_filter_params = self._report_schedule.get_native_filters_params()
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
-                    return self._get_tabs_urls(anchor_list, user_friendly=user_friendly)
+                    urls = self._get_tabs_urls(
+                        anchor_list,
+                        native_filter_params=native_filter_params,
+                        user_friendly=user_friendly,
+                    )
+                    return urls
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
-            return [self._get_tab_url(dashboard_state)]
+
+            return [
+                self._get_tab_url(
+                    {
+                        "urlParams": [
+                            ["native_filters", native_filter_params]  # type: ignore
+                        ],
+                        **dashboard_state,
+                    },
+                    user_friendly=user_friendly,
+                )
+            ]
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
@@ -281,6 +315,7 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
@@ -288,7 +323,10 @@ class BaseReportState:
         )
 
     def _get_tabs_urls(
-        self, tab_anchors: list[str], user_friendly: bool = False
+        self,
+        tab_anchors: list[str],
+        native_filter_params: Optional[str] = None,
+        user_friendly: bool = False,
     ) -> list[str]:
         """
         Get multple tabs urls
@@ -299,7 +337,9 @@ class BaseReportState:
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": None,
+                    "urlParams": [
+                        ["native_filters", native_filter_params]  # type: ignore
+                    ],
                 },
                 user_friendly=user_friendly,
             )
@@ -338,7 +378,6 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
-
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
@@ -484,6 +523,7 @@ class BaseReportState:
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
             "slack_channels": slack_channels,
+            "execution_id": str(self._execution_id),
         }
         return log_data
 
@@ -500,6 +540,7 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
@@ -718,7 +759,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
     current_states = [ReportState.NOOP, ReportState.ERROR]
     initial = True
 
-    def next(self) -> None:
+    def next(self) -> None:  # noqa: C901
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
             # If it's an alert check if the alert is triggered
@@ -733,9 +774,21 @@ class ReportNotTriggeredErrorState(BaseReportState):
             if isinstance(first_ex, SupersetErrorsException):
                 error_message = ";".join([error.message for error in first_ex.errors])
 
-            self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=error_message
-            )
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR, error_message=error_message
+                )
+            except ReportScheduleUnexpectedError as logging_ex:
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise first_ex from logging_ex
 
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
@@ -751,12 +804,26 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     second_error_message = ";".join(
                         [error.message for error in second_ex.errors]
                     )
+                except ReportScheduleUnexpectedError:
+                    # send_error failed due to logging issue, log and continue
+                    # to raise the original error
+                    logger.warning(
+                        "Failed to send error notification due to database issue",
+                        exc_info=True,
+                    )
                 except Exception as second_ex:  # pylint: disable=broad-except
                     second_error_message = str(second_ex)
                 finally:
-                    self.update_report_schedule_and_log(
-                        ReportState.ERROR, error_message=second_error_message
-                    )
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR, error_message=second_error_message
+                        )
+                    except ReportScheduleUnexpectedError:
+                        # Logging failed again, log it but don't let it hide first_ex
+                        logger.warning(
+                            "Failed to log final error state due to database issue",
+                            exc_info=True,
+                        )
             raise
 
 
@@ -826,9 +893,22 @@ class ReportSuccessState(BaseReportState):
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
         except Exception as ex:  # pylint: disable=broad-except
-            self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=str(ex)
-            )
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.ERROR, error_message=str(ex)
+                )
+            except ReportScheduleUnexpectedError as logging_ex:
+                # Logging failed (likely StaleDataError), but we still want to
+                # raise the original error so the root cause remains visible
+                logger.warning(
+                    "Failed to log error for report schedule (execution %s) "
+                    "due to database issue",
+                    self._execution_id,
+                    exc_info=True,
+                )
+                # Re-raise the original exception, not the logging failure
+                raise ex from logging_ex
+            raise
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods

@@ -20,11 +20,11 @@ import { SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   calculateLowerLogTick,
   dedupSeries,

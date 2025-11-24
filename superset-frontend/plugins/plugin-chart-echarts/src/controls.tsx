@@ -67,7 +67,7 @@ const legendTypeControl: ControlSetItem = {
     label: t('Type'),
     choices: [
       ['scroll', t('Scroll')],
-      ['plain', t('Plain')],
+      ['plain', t('List')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -128,7 +128,7 @@ export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
-    label: t('Show Value'),
+    label: t('Show value'),
     default: false,
     renderTrigger: true,
     description: t('Show series values on the chart'),

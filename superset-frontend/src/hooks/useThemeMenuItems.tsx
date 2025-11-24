@@ -19,7 +19,9 @@
 import { useMemo } from 'react';
 import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { t, ThemeMode, ThemeAlgorithm } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { ThemeMode, ThemeAlgorithm } from '@apache-superset/core/ui';
+import { NAVBAR_MENU_POPUP_OFFSET } from 'src/features/home/commonMenuData';
 
 export interface ThemeSubMenuOption {
   key: ThemeMode;
@@ -104,22 +106,14 @@ export const useThemeMenuItems = ({
       : []),
   ];
 
-  const children: MenuItem[] = [
-    {
-      type: 'group' as const,
-      label: t('Theme'),
-      key: 'theme-group',
-      children: themeOptions,
-    },
-  ];
-
-  // Add clear settings option only when there's a local theme active
+  // Add clear settings option to theme options if there's a local theme active
+  const themeGroupOptions = [...themeOptions];
   if (onClearLocalSettings && hasLocalOverride) {
-    children.push({
+    themeGroupOptions.push({
       type: 'divider' as const,
       key: 'theme-divider',
     });
-    children.push({
+    themeGroupOptions.push({
       key: 'clear-local',
       label: (
         <>
@@ -130,11 +124,21 @@ export const useThemeMenuItems = ({
     });
   }
 
+  const children: MenuItem[] = [
+    {
+      type: 'group' as const,
+      label: t('Theme'),
+      key: 'theme-group',
+      children: themeGroupOptions,
+    },
+  ];
+
   return {
     key: 'theme-sub-menu',
     label: selectedThemeModeIcon,
-    icon: <Icons.CaretDownOutlined iconSize="xs" />,
+    icon: <Icons.DownOutlined iconSize="xs" />,
     className: 'submenu-with-caret',
     children,
+    popupOffset: NAVBAR_MENU_POPUP_OFFSET,
   };
 };

@@ -182,6 +182,95 @@ cypress-run-all() {
   kill $flaskProcessId
 }
 
+playwright-install() {
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  say "::group::Install Playwright browsers"
+  npx playwright install --with-deps chromium
+  # Create output directories for test results and debugging
+  mkdir -p playwright-results
+  mkdir -p test-results
+  say "::endgroup::"
+}
+
+playwright-run() {
+  local APP_ROOT=$1
+  local TEST_PATH=$2
+
+  # Start Flask from the project root (same as Cypress)
+  cd "$GITHUB_WORKSPACE"
+  local flasklog="${HOME}/flask-playwright.log"
+  local port=8081
+  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  if [ -n "$APP_ROOT" ]; then
+    export SUPERSET_APP_ROOT=$APP_ROOT
+    PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
+  fi
+  export PLAYWRIGHT_BASE_URL
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  # Ensure cleanup on exit
+  trap "kill $flaskProcessId 2>/dev/null || true" EXIT
+
+  # Wait for server to be ready with health check
+  local timeout=60
+  say "Waiting for Flask server to start on port $port..."
+  while [ $timeout -gt 0 ]; do
+    if curl -f ${PLAYWRIGHT_BASE_URL}/health >/dev/null 2>&1; then
+      say "Flask server is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+
+  if [ $timeout -eq 0 ]; then
+    echo "::error::Flask server failed to start within 60 seconds"
+    echo "::group::Flask startup log"
+    cat "$flasklog"
+    echo "::endgroup::"
+    return 1
+  fi
+
+  # Change to frontend directory for Playwright execution
+  cd "$GITHUB_WORKSPACE/superset-frontend"
+
+  say "::group::Run Playwright tests"
+  echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
+  if [ -n "$TEST_PATH" ]; then
+    # Check if there are any test files in the specified path
+    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+      echo "No test files found in ${TEST_PATH} - skipping test run"
+      say "::endgroup::"
+      kill $flaskProcessId
+      return 0
+    fi
+    echo "Running tests: ${TEST_PATH}"
+    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
+    export INCLUDE_EXPERIMENTAL=true
+    npx playwright test "${TEST_PATH}" --output=playwright-results
+    local status=$?
+    # Unset to prevent leaking into subsequent commands
+    unset INCLUDE_EXPERIMENTAL
+  else
+    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    npx playwright test --output=playwright-results
+    local status=$?
+  fi
+  say "::endgroup::"
+
+  # After job is done, print out Flask log for debugging
+  echo "::group::Flask log for Playwright run"
+  cat "$flasklog"
+  echo "::endgroup::"
+  # make sure the program exits
+  kill $flaskProcessId
+
+  return $status
+}
+
 eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1

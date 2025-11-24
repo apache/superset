@@ -25,7 +25,7 @@ import { Route, BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
 import createCache from '@emotion/cache';
-import { ThemeProvider, theme } from '@superset-ui/core';
+import { ThemeProvider, theme } from '@apache-superset/core/ui';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { createRoot } from 'react-dom/client';

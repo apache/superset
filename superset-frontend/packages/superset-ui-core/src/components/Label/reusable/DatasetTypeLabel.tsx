@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { Label } from '..';
 
 // Define the prop types for DatasetTypeLabel

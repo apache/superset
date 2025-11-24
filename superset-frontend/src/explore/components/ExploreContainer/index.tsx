@@ -26,7 +26,7 @@ import {
   ReactNode,
 } from 'react';
 
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useDragDropManager } from 'react-dnd';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
 

@@ -68,7 +68,7 @@ class BaseTagNameFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(self.model.tags)
             .filter(Tag.name.ilike(ilike_value))
         )
-        return query.filter(self.model.id.in_(tags_query))
+        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]
 
 
 class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -90,4 +90,4 @@ class BaseTagIdFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(self.model.tags)
             .filter(Tag.id == value)
         )
-        return query.filter(self.model.id.in_(tags_query))
+        return query.filter(self.model.id.in_(tags_query))  # type: ignore[union-attr]

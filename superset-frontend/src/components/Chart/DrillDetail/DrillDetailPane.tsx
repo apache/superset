@@ -28,14 +28,13 @@ import {
 import { useSelector } from 'react-redux';
 import {
   BinaryQueryObjectFilterClause,
-  css,
   ensureIsArray,
-  GenericDataType,
   JsonObject,
   QueryFormData,
   t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { useResizeDetector } from 'react-resize-detector';
 import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';

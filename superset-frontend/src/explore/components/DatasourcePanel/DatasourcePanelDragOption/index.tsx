@@ -18,7 +18,8 @@
  */
 import { RefObject } from 'react';
 import { useDrag } from 'react-dnd';
-import { css, Metric, styled, useTheme } from '@superset-ui/core';
+import { Metric } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {

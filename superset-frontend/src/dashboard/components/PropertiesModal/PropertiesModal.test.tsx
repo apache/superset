@@ -180,6 +180,7 @@ afterAll(() => {
   fetchMock.restore();
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('PropertiesModal', () => {
   jest.setTimeout(60000); // Increased timeout for complex modal rendering
 
@@ -354,9 +355,19 @@ describe('PropertiesModal', () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = false;
-    render(<PropertiesModal {...props} />, {
+    // Pass dashboardInfo to avoid loading state
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
+
+    // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
@@ -379,9 +390,19 @@ describe('PropertiesModal', () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = true;
-    render(<PropertiesModal {...props} />, {
+    // Pass dashboardInfo to avoid loading state
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
     });
+
+    // Wait for the form to be visible
     expect(
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
@@ -595,4 +616,115 @@ describe('PropertiesModal', () => {
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('Superset Admin');
   }, 30000);
+
+  test('should not run validation while data is loading', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    // Don't pass dashboardInfo to trigger fetch behavior
+    const { rerender } = render(<PropertiesModal {...props} show={false} />, {
+      useRedux: true,
+    });
+
+    const getSpy = jest.spyOn(SupersetCore.SupersetClient, 'get');
+    let resolveFetch: any;
+    const fetchPromise = new Promise(resolve => {
+      resolveFetch = resolve;
+    });
+
+    getSpy.mockReturnValue(fetchPromise as any);
+
+    rerender(<PropertiesModal {...props} show />);
+
+    // Allow time for validation hooks to run (they shouldn't during loading)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(
+      screen.queryByTestId('dashboard-edit-properties-form'),
+    ).not.toBeInTheDocument();
+
+    resolveFetch({
+      json: {
+        result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
+      },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    getSpy.mockRestore();
+  });
+
+  test('should run validation when data is ready', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    // Pass dashboardInfo to skip loading state - data is immediately ready
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  test('should trigger validation on field changes when data is ready', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('dashboard-edit-properties-form'),
+      ).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+
+    // Clear to trigger validation error
+    userEvent.clear(titleInput);
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+      },
+      { timeout: 1000 },
+    );
+
+    // Re-enter valid title to clear error
+    userEvent.type(titleInput, 'New Dashboard Title');
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+      },
+      { timeout: 1000 },
+    );
+  });
 });

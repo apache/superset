@@ -479,7 +479,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
+            native_filters = DashboardDAO.get_native_filter_configuration(id_or_slug)
+
             result = self.tab_schema.dump(tabs)
+            result["native_filters"] = native_filters
+
             return self.response(200, result=result)
 
         except (TypeError, ValueError) as err:
@@ -1338,7 +1342,31 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         self.incr_stats("from_cache", self.thumbnail.__name__)
         try:
             image = cache_payload.get_image()
+            # Validate the BytesIO object is properly initialized
+            if not image or not hasattr(image, "read"):
+                logger.warning(
+                    "Thumbnail image object is invalid for dashboard %s",
+                    str(dashboard.id),
+                )
+                return self.response_404()
+            # Additional validation: ensure the BytesIO has content
+            if image.getbuffer().nbytes == 0:
+                logger.warning(
+                    "Thumbnail image is empty for dashboard %s",
+                    str(dashboard.id),
+                )
+                return self.response_404()
+            # Reset position to ensure reading from start
+            image.seek(0)
         except ScreenshotImageNotAvailableException:
+            return self.response_404()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "Error retrieving thumbnail for dashboard %s: %s",
+                str(dashboard.id),
+                str(ex),
+                exc_info=True,
+            )
             return self.response_404()
         return Response(
             FileWrapper(image),

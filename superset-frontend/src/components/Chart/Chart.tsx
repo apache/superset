@@ -23,12 +23,13 @@ import {
   isFeatureEnabled,
   logging,
   QueryFormData,
-  styled,
   t,
   SqlaFormData,
   ClientErrorObject,
   type JsonObject,
+  type AgGridChartState,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -80,6 +81,7 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
+  onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
 export type Actions = {

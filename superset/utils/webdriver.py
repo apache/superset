@@ -45,6 +45,13 @@ from superset.utils.screenshot_utils import take_tiled_screenshot
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
+# Installation message for missing Playwright (Cypress doesn't work with DeckGL)
+PLAYWRIGHT_INSTALL_MESSAGE = (
+    "To complete the migration from Cypress "
+    "and enable WebGL/DeckGL screenshot support, install Playwright with: "
+    "pip install playwright && playwright install chromium"
+)
+
 if TYPE_CHECKING:
     from typing import Any
 
@@ -69,6 +76,67 @@ except ImportError:
     Locator = Any
     Page = Any
     sync_playwright = None
+
+
+def check_playwright_availability() -> bool:
+    """
+    Lightweight check for Playwright availability.
+
+    First checks if browser binary exists, falls back to launch test if needed.
+    """
+    if sync_playwright is None:
+        return False
+
+    try:
+        with sync_playwright() as p:
+            # First try lightweight check - just verify executable exists
+            try:
+                executable_path = p.chromium.executable_path
+                if executable_path:
+                    return True
+            except Exception:
+                # Fall back to full launch test if executable_path fails
+                logger.debug(
+                    "Executable path check failed, falling back to launch test"
+                )
+
+            # Fallback: actually launch browser to ensure it works
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+            return True
+    except Exception as e:
+        logger.warning(
+            "Playwright module is installed but browser launch failed. "
+            "Run 'playwright install chromium' to install browser binaries. "
+            "Error: %s",
+            str(e),
+        )
+        return False
+
+
+PLAYWRIGHT_AVAILABLE = check_playwright_availability()
+
+
+def validate_webdriver_config() -> dict[str, Any]:
+    """
+    Validate webdriver configuration and dependencies.
+
+    Used to check migration status from Cypress to Playwright.
+    Returns a dictionary with the status of available webdrivers
+    and feature flags.
+    """
+    from superset import feature_flag_manager
+
+    return {
+        "selenium_available": True,  # Always available as required dependency
+        "playwright_available": PLAYWRIGHT_AVAILABLE,
+        "playwright_feature_enabled": feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ),
+        "recommended_action": (
+            PLAYWRIGHT_INSTALL_MESSAGE if not PLAYWRIGHT_AVAILABLE else None
+        ),
+    }
 
 
 class DashboardStandaloneMode(Enum):
@@ -148,18 +216,36 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
+    @staticmethod
+    def _get_screenshot(page: Page, element: Locator, element_name: str) -> bytes:
+        if element_name == "standalone":
+            return page.screenshot(full_page=True)
+        else:
+            return element.screenshot()
+
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info(
+                "Playwright not available - falling back to Selenium. "
+                "Note: WebGL/Canvas charts may not render correctly with Selenium. "
+                "%s",
+                PLAYWRIGHT_INSTALL_MESSAGE,
+            )
+            return None
+
         with sync_playwright() as playwright:
             browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
             pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+            viewport_height = self._window[1]
+            viewport_width = self._window[0]
             context = browser.new_context(
                 bypass_csp=True,
                 viewport={
-                    "height": self._window[1],
-                    "width": self._window[0],
+                    "height": viewport_height,
+                    "width": viewport_width,
                 },
                 device_scale_factor=pixel_density,
             )
@@ -259,26 +345,28 @@ class WebDriverPlaywright(WebDriverProxy):
                     height_threshold = app.config.get(
                         "SCREENSHOT_TILED_HEIGHT_THRESHOLD", 5000
                     )
-                    viewport_height = app.config.get(
-                        "SCREENSHOT_TILED_VIEWPORT_HEIGHT", self._window[1]
+                    tile_height = app.config.get(
+                        "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
                     )
 
                     # Use tiled screenshots for large dashboards
                     use_tiled = (
                         chart_count >= chart_threshold
                         or dashboard_height > height_threshold
-                    )
+                    ) and dashboard_height > tile_height
 
                     if use_tiled:
                         logger.info(
-                            (
-                                f"Large dashboard detected: {chart_count} charts, "
-                                f"{dashboard_height}px height. Using tiled screenshots."
-                            )
+                            "Large dashboard detected: %s charts, %spx height. "
+                            "Using tiled screenshots.",
+                            chart_count,
+                            dashboard_height,
                         )
-                        img = take_tiled_screenshot(
-                            page, element_name, viewport_height=viewport_height
+                        # set viewport height to tile height for easier calculations
+                        page.set_viewport_size(
+                            {"height": tile_height, "width": viewport_width}
                         )
+                        img = take_tiled_screenshot(page, element_name, tile_height)
                         if img is None:
                             logger.warning(
                                 (
@@ -286,11 +374,18 @@ class WebDriverPlaywright(WebDriverProxy):
                                     "falling back to standard screenshot"
                                 )
                             )
-                            img = element.screenshot()
+                            img = WebDriverPlaywright._get_screenshot(
+                                page, element, element_name
+                            )
                     else:
-                        img = element.screenshot()
+                        img = WebDriverPlaywright._get_screenshot(
+                            page, element, element_name
+                        )
                 else:
-                    img = element.screenshot()
+                    img = WebDriverPlaywright._get_screenshot(
+                        page, element, element_name
+                    )
+
             except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass
@@ -352,7 +447,9 @@ class WebDriverSelenium(WebDriverProxy):
                     except (ValueError, TypeError):
                         config[key] = None
                         logger.warning(
-                            f"Invalid timeout value for {key}: {value}, setting to None"
+                            "Invalid timeout value for %s: %s, setting to None",
+                            key,
+                            value,
                         )
         return config
 
@@ -410,6 +507,7 @@ class WebDriverSelenium(WebDriverProxy):
                 for name, value in driver_opts.get("preferences", {}).items():
                     options.profile.set_preference(str(name), value)
             kwargs |= {
+                "options": options,
                 "service": service_class(**driver_srv),
             }
 
