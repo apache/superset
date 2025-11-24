@@ -23,6 +23,107 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+
+### MCP Service
+
+The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
+
+#### New Features
+- MCP service infrastructure with FastMCP framework
+- Tools for dashboards, charts, datasets, SQL Lab, and instance metadata
+- Optional dependency: install with `pip install apache-superset[fastmcp]`
+- Runs as separate process from Superset web server
+- JWT-based authentication for production deployments
+
+#### New Configuration Options
+
+**Development** (single-user, local testing):
+```python
+# superset_config.py
+MCP_DEV_USERNAME = "admin"  # User for MCP authentication
+MCP_SERVICE_HOST = "localhost"
+MCP_SERVICE_PORT = 5008
+```
+
+**Production** (JWT-based, multi-user):
+```python
+# superset_config.py
+MCP_AUTH_ENABLED = True
+MCP_JWT_ISSUER = "https://your-auth-provider.com"
+MCP_JWT_AUDIENCE = "superset-mcp"
+MCP_JWT_ALGORITHM = "RS256"  # or "HS256" for shared secrets
+
+# Option 1: Use JWKS endpoint (recommended for RS256)
+MCP_JWKS_URI = "https://auth.example.com/.well-known/jwks.json"
+
+# Option 2: Use static public key (RS256)
+MCP_JWT_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----..."
+
+# Option 3: Use shared secret (HS256)
+MCP_JWT_ALGORITHM = "HS256"
+MCP_JWT_SECRET = "your-shared-secret-key"
+
+# Optional overrides
+MCP_SERVICE_HOST = "0.0.0.0"
+MCP_SERVICE_PORT = 5008
+MCP_SESSION_CONFIG = {
+    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_SAMESITE": "Strict",
+}
+```
+
+#### Running the MCP Service
+
+```bash
+# Development
+superset mcp run --port 5008 --debug
+
+# Production
+superset mcp run --port 5008
+
+# With factory config
+superset mcp run --port 5008 --use-factory-config
+```
+
+#### Deployment Considerations
+
+The MCP service runs as a **separate process** from the Superset web server.
+
+**Important**:
+- Requires same Python environment and configuration as Superset
+- Shares database connections with main Superset app
+- Can be scaled independently from web server
+- Requires `fastmcp` package (optional dependency)
+
+**Installation**:
+```bash
+# Install with MCP support
+pip install apache-superset[fastmcp]
+
+# Or add to requirements.txt
+apache-superset[fastmcp]>=X.Y.Z
+```
+
+**Process Management**:
+Use systemd, supervisord, or Kubernetes to manage the MCP service process.
+See `superset/mcp_service/PRODUCTION.md` for deployment guides.
+
+**Security**:
+- Development: Uses `MCP_DEV_USERNAME` for single-user access
+- Production: **MUST** configure JWT authentication
+- See `superset/mcp_service/SECURITY.md` for details
+
+#### Documentation
+
+- Architecture: `superset/mcp_service/ARCHITECTURE.md`
+- Security: `superset/mcp_service/SECURITY.md`
+- Production: `superset/mcp_service/PRODUCTION.md`
+- Developer Guide: `superset/mcp_service/CLAUDE.md`
+- Quick Start: `superset/mcp_service/README.md`
+
+---
+
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
