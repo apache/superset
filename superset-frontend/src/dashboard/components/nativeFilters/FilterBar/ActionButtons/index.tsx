@@ -23,6 +23,7 @@ import {
   t,
   isDefined,
   ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
@@ -37,7 +38,7 @@ interface ActionButtonsProps {
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
-  chartCustomizationItems?: ChartCustomization[];
+  chartCustomizationItems?: (ChartCustomization | ChartCustomizationDivider)[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
 }

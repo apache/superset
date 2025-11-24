@@ -153,7 +153,6 @@ export const createHandleSave =
         type: formInputs.type,
         description: (formInputs.description || '').trim(),
       };
-      return undefined;
     };
 
     const transformedModified = filterChanges.modified
@@ -357,3 +356,15 @@ export const getItemTypeInfo = (type: ItemType) => ({
       : ChartCustomizationType.Divider,
   itemTypeName: type === 'filter' ? 'filter' : 'customization',
 });
+
+export const isDivider = (id: string): boolean =>
+  isNativeFilterDivider(id) || isChartCustomizationDivider(id);
+
+export const transformDividerId = (
+  oldId: string,
+  targetType: ItemType,
+): string => {
+  const hash = oldId.split('-').pop();
+  const { dividerPrefix } = getItemTypeInfo(targetType);
+  return `${dividerPrefix}${hash}`;
+};

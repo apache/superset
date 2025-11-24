@@ -25,6 +25,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import {
   useFilters,
@@ -52,7 +53,10 @@ export const useNativeFilters = () => {
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
-  const chartCustomizations = useSelector<RootState, ChartCustomization[]>(
+  const chartCustomizations = useSelector<
+    RootState,
+    (ChartCustomization | ChartCustomizationDivider)[]
+  >(
     state =>
       state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );

@@ -18,6 +18,7 @@
  */
 import {
   ChartCustomization,
+  ChartCustomizationDivider,
   ChartProps,
   DataMaskStateWithId,
   DatasourceType,
@@ -146,7 +147,10 @@ export type DashboardInfo = {
     shared_label_colors: string[];
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
-    chart_customization_config?: ChartCustomization[];
+    chart_customization_config?: (
+      | ChartCustomization
+      | ChartCustomizationDivider
+    )[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;

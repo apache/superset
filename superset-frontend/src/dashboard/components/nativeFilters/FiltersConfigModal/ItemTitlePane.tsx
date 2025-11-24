@@ -36,6 +36,11 @@ interface Props {
   dataTestId?: string;
   deleteAltText?: string;
   dragType?: string;
+  onCrossListDrop?: (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => void;
 }
 
 const TabsContainer = styled.div`
@@ -59,6 +64,7 @@ const ItemTitlePane: FC<Props> = ({
   dataTestId,
   deleteAltText,
   dragType,
+  onCrossListDrop,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +84,7 @@ const ItemTitlePane: FC<Props> = ({
         dataTestId={dataTestId}
         deleteAltText={deleteAltText}
         dragType={dragType}
+        onCrossListDrop={onCrossListDrop}
       />
     </TabsContainer>
   );

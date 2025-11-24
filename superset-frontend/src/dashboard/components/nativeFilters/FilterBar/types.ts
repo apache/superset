@@ -24,6 +24,7 @@ import {
   Divider,
   Filter,
   ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 
@@ -32,7 +33,7 @@ interface CommonFiltersBarProps {
   canEdit: boolean;
   dataMaskSelected: DataMaskStateWithId;
   filterValues: (Filter | Divider)[];
-  chartCustomizationValues: ChartCustomization[];
+  chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   isInitialized: boolean;
   onSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,

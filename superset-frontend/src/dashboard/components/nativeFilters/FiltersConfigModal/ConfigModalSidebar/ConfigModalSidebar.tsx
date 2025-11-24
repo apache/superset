@@ -70,6 +70,12 @@ export interface ConfigModalSidebarProps {
   onRemove: (id: string) => void;
   restoreItem: (id: string) => void;
   onCollapseChange: (keys: string[]) => void;
+  onCrossListDrop?: (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+    targetType: 'filter' | 'customization',
+  ) => void;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -91,7 +97,27 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   onRemove,
   restoreItem,
   onCollapseChange,
+  onCrossListDrop,
 }) => {
+  const handleFilterCrossListDrop = (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => {
+    if (onCrossListDrop) {
+      onCrossListDrop(sourceId, targetIndex, sourceType, 'filter');
+    }
+  };
+
+  const handleCustomizationCrossListDrop = (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => {
+    if (onCrossListDrop) {
+      onCrossListDrop(sourceId, targetIndex, sourceType, 'customization');
+    }
+  };
   const filtersHeader: ReactNode = (
     <div>
       {t('Filters')} ({filterIds.length})
@@ -132,6 +158,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             deleteAltText="RemoveFilter"
             dragType={FILTER_TYPE}
             isCurrentSection={isFilterId(currentItemId)}
+            onCrossListDrop={handleFilterCrossListDrop}
           />
         </StyledCollapse.Panel>
 
@@ -153,6 +180,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             deleteAltText="RemoveCustomization"
             dragType={CUSTOMIZATION_TYPE}
             isCurrentSection={isChartCustomizationId(currentItemId)}
+            onCrossListDrop={handleCustomizationCrossListDrop}
           />
         </StyledCollapse.Panel>
       </StyledCollapse>

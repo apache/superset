@@ -34,6 +34,11 @@ export interface ItemSectionContentProps {
   deleteAltText: string;
   dragType: string;
   isCurrentSection: boolean;
+  onCrossListDrop?: (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => void;
 }
 
 const ItemSectionContent: FC<ItemSectionContentProps> = ({
@@ -50,6 +55,7 @@ const ItemSectionContent: FC<ItemSectionContentProps> = ({
   deleteAltText,
   dragType,
   isCurrentSection,
+  onCrossListDrop,
 }) => (
   <ItemTitlePane
     currentItemId={isCurrentSection ? currentItemId : ''}
@@ -64,6 +70,7 @@ const ItemSectionContent: FC<ItemSectionContentProps> = ({
     dataTestId={dataTestId}
     deleteAltText={deleteAltText}
     dragType={dragType}
+    onCrossListDrop={onCrossListDrop}
   />
 );
 

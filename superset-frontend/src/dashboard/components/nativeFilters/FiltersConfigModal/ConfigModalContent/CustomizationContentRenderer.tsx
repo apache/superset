@@ -24,7 +24,9 @@ import {
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import FiltersConfigForm from '../FiltersConfigForm/FiltersConfigForm';
+import DividerConfigForm from '../DividerConfigForm';
 import { NativeFiltersForm, FilterRemoval } from '../types';
+import { CHART_CUSTOMIZATION_DIVIDER_PREFIX } from '../utils';
 
 export interface CustomizationContentRendererProps {
   chartCustomizationIds: string[];
@@ -64,6 +66,7 @@ function CustomizationContentRenderer({
     () =>
       chartCustomizationIds.map(id => {
         if (!renderedIds.includes(id)) return null;
+        const isDivider = id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
         const isActive = isItemActive(id);
         return (
           <div
@@ -74,28 +77,37 @@ function CustomizationContentRenderer({
               display: isActive ? '' : 'none',
             }}
           >
-            <FiltersConfigForm
-              filterId={id}
-              itemType="chartCustomization"
-              form={form}
-              removedFilters={removedItems}
-              restoreFilter={restoreItem}
-              customizationToEdit={
-                chartCustomizationConfigMap[id]?.type ===
-                ChartCustomizationType.ChartCustomization
-                  ? (chartCustomizationConfigMap[id] as ChartCustomization)
-                  : undefined
-              }
-              expanded={expanded}
-              getAvailableFilters={() => []}
-              handleActiveFilterPanelChange={handleActiveFilterPanelChange}
-              activeFilterPanelKeys={activeFilterPanelKey}
-              isActive={isActive}
-              setErroredFilters={handleSetErroredCustomizations}
-              validateDependencies={() => {}}
-              getDependencySuggestion={() => ''}
-              onModifyFilter={handleModifyItem}
-            />
+            {isDivider ? (
+              <DividerConfigForm
+                componentId={id}
+                divider={
+                  chartCustomizationConfigMap[id] as ChartCustomizationDivider
+                }
+              />
+            ) : (
+              <FiltersConfigForm
+                filterId={id}
+                itemType="chartCustomization"
+                form={form}
+                removedFilters={removedItems}
+                restoreFilter={restoreItem}
+                customizationToEdit={
+                  chartCustomizationConfigMap[id]?.type ===
+                  ChartCustomizationType.ChartCustomization
+                    ? (chartCustomizationConfigMap[id] as ChartCustomization)
+                    : undefined
+                }
+                expanded={expanded}
+                getAvailableFilters={() => []}
+                handleActiveFilterPanelChange={handleActiveFilterPanelChange}
+                activeFilterPanelKeys={activeFilterPanelKey}
+                isActive={isActive}
+                setErroredFilters={handleSetErroredCustomizations}
+                validateDependencies={() => {}}
+                getDependencySuggestion={() => ''}
+                onModifyFilter={handleModifyItem}
+              />
+            )}
           </div>
         );
       }),

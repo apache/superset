@@ -39,6 +39,7 @@ import {
   usePrevious,
   NativeFilterTarget,
   ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
@@ -88,7 +89,7 @@ const EXCLUDED_URL_PARAMS: string[] = [
   URL_PARAMS.permalinkKey.name,
 ];
 
-const EMPTY_ARRAY: ChartCustomization[] = [];
+const EMPTY_ARRAY: (ChartCustomization | ChartCustomizationDivider)[] = [];
 const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
 
 const publishDataMask = debounce(
@@ -166,7 +167,10 @@ const FilterBar: FC<FiltersBarProps> = ({
     useImmer<DataMaskStateWithId>(dataMaskApplied);
   const [pendingCustomizationDataMasks, setPendingCustomizationDataMasks] =
     useState<Record<string, DataMask>>(EMPTY_DATA_MASK_RECORD);
-  const chartCustomizationValues = useSelector<RootState, ChartCustomization[]>(
+  const chartCustomizationValues = useSelector<
+    RootState,
+    (ChartCustomization | ChartCustomizationDivider)[]
+  >(
     state =>
       state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );
@@ -357,7 +361,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     ) {
       const pendingItems = Object.values(pendingChartCustomizations).filter(
         Boolean,
-      ) as ChartCustomization[];
+      ) as (ChartCustomization | ChartCustomizationDivider)[];
 
       if (pendingItems.length > 0) {
         dispatch(saveChartCustomization(pendingItems, []));

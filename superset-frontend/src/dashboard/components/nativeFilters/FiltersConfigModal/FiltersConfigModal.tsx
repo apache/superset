@@ -18,7 +18,7 @@
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, debounce } from 'lodash';
-import { t } from '@superset-ui/core';
+import { t, ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
@@ -42,7 +42,7 @@ import {
 } from './FiltersConfigForm/FiltersConfigForm';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
-import { NativeFiltersForm, SaveChangesType } from './types';
+import { NativeFiltersForm, SaveChangesType, FilterChangesType } from './types';
 import {
   useItemStateManager,
   useFilterOperations,
@@ -55,6 +55,7 @@ import {
   getChartCustomizationIds,
   isFilterId,
   isChartCustomizationId,
+  transformDividerId,
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
@@ -331,6 +332,101 @@ function FiltersConfigModal({
     [filterOperations, customizationOperations],
   );
 
+  const handleCrossListMove = useCallback(
+    (
+      sourceId: string,
+      targetIndex: number,
+      sourceType: 'filter' | 'customization',
+      targetType: 'filter' | 'customization',
+    ) => {
+      if (!sourceId || sourceType === targetType) {
+        return;
+      }
+
+      const sourceState =
+        sourceType === 'filter' ? filterState : customizationState;
+      const targetState =
+        targetType === 'filter' ? filterState : customizationState;
+
+      const newId = transformDividerId(sourceId, targetType);
+
+      const sourceIndex = sourceState.orderedIds.indexOf(sourceId);
+      if (sourceIndex === -1) return;
+
+      const newSourceIds = [...sourceState.orderedIds];
+      newSourceIds.splice(sourceIndex, 1);
+      sourceState.setOrderedIds(newSourceIds);
+
+      const newTargetIds = [...targetState.orderedIds];
+      newTargetIds.splice(targetIndex, 0, newId);
+      targetState.setOrderedIds(newTargetIds);
+
+      const formValues = form.getFieldValue('filters') || {};
+      let oldData = formValues[sourceId];
+
+      if (!oldData) {
+        const sourceConfigMap =
+          sourceType === 'filter'
+            ? filterConfigMap
+            : chartCustomizationConfigMap;
+        const configData = sourceConfigMap[sourceId];
+        if (configData && 'title' in configData) {
+          oldData = {
+            title: configData.title,
+            description: configData.description,
+          };
+        }
+      }
+
+      const newFormValues = { ...formValues };
+      const newType =
+        targetType === 'customization'
+          ? ChartCustomizationType.Divider
+          : NativeFilterType.Divider;
+      newFormValues[newId] = { ...oldData, type: newType };
+      delete newFormValues[sourceId];
+      form.setFieldsValue({ filters: newFormValues });
+
+      const isNewItem = sourceState.newIds.includes(sourceId);
+
+      if (isNewItem) {
+        sourceState.setNewIds(
+          sourceState.newIds.filter((id: string) => id !== sourceId),
+        );
+      } else {
+        sourceState.setChanges((prev: FilterChangesType) => ({
+          ...prev,
+          deleted: [...prev.deleted, sourceId],
+        }));
+      }
+
+      sourceState.setChanges((prev: FilterChangesType) => ({
+        ...prev,
+        modified: prev.modified.filter((id: string) => id !== sourceId),
+        reordered: newSourceIds,
+      }));
+
+      targetState.setNewIds([...targetState.newIds, newId]);
+      targetState.setChanges((prev: FilterChangesType) => ({
+        ...prev,
+        modified: [...prev.modified, newId],
+        reordered: newTargetIds,
+      }));
+
+      setActiveItem(newId);
+      setSaveAlertVisible(false);
+    },
+    [
+      filterState,
+      customizationState,
+      form,
+      filterConfigMap,
+      chartCustomizationConfigMap,
+      setActiveItem,
+      setSaveAlertVisible,
+    ],
+  );
+
   const handleCancel = useCallback(() => {
     if (modalSaveLogic.hasUnsavedChanges) {
       setSaveAlertVisible(true);
@@ -469,6 +565,7 @@ function FiltersConfigModal({
                 onRemove={handleRemoveItem}
                 restoreItem={restoreItem}
                 onCollapseChange={setActiveCollapseKeys}
+                onCrossListDrop={handleCrossListMove}
               />
 
               <ConfigModalContent

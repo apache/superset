@@ -23,6 +23,7 @@ import {
   t,
   getClientErrorObject,
   ChartCustomization,
+  ChartCustomizationDivider,
   ColumnOption,
   Filter,
   Filters,
@@ -41,11 +42,14 @@ import { SaveFilterChangesType } from '../components/nativeFilters/FiltersConfig
 const createUpdateChartCustomizationsApi = (id: number) =>
   makeApi<
     {
-      modified: (ChartCustomization & { cascadeParentIds: string[] })[];
+      modified: (
+        | (ChartCustomization & { cascadeParentIds: string[] })
+        | ChartCustomizationDivider
+      )[];
       deleted: string[];
       reordered?: string[];
     },
-    { result: ChartCustomization[] }
+    { result: (ChartCustomization | ChartCustomizationDivider)[] }
   >({
     method: 'PUT',
     endpoint: `/api/v1/dashboard/${id}/chart_customizations`,
@@ -61,7 +65,7 @@ export function setChartCustomization(
 }
 
 export function saveChartCustomization(
-  modifiedCustomizations: ChartCustomization[],
+  modifiedCustomizations: (ChartCustomization | ChartCustomizationDivider)[],
   deletedIds: string[],
   reorderedIds: string[] = [],
   resetDataMask: boolean = false,
@@ -77,10 +81,15 @@ export function saveChartCustomization(
   ) {
     const { id, metadata } = getState().dashboardInfo;
 
-    const modifiedItems = modifiedCustomizations.map(item => ({
-      ...item,
-      cascadeParentIds: item.cascadeParentIds || [],
-    }));
+    const modifiedItems = modifiedCustomizations.map(item => {
+      if ('cascadeParentIds' in item) {
+        return {
+          ...item,
+          cascadeParentIds: item.cascadeParentIds || [],
+        } as ChartCustomization & { cascadeParentIds: string[] };
+      }
+      return item as ChartCustomizationDivider;
+    });
 
     deletedIds.forEach((customizationId: string) => {
       dispatch(removeDataMask(customizationId));
@@ -116,7 +125,7 @@ export function saveChartCustomization(
       if (resetDataMask) {
         const oldConfig = metadata?.chart_customization_config || [];
         const oldCustomizationsById = oldConfig.reduce<
-          Record<string, ChartCustomization>
+          Record<string, ChartCustomization | ChartCustomizationDivider>
         >((acc, customization) => {
           acc[customization.id] = customization;
           return acc;

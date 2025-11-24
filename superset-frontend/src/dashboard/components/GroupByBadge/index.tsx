@@ -19,14 +19,19 @@
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { t, ChartCustomization, DataMaskStateWithId } from '@superset-ui/core';
+import {
+  t,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  DataMaskStateWithId,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { RootState } from '../../types';
 import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
 
-const EMPTY_ARRAY: ChartCustomization[] = [];
+const EMPTY_ARRAY: (ChartCustomization | ChartCustomizationDivider)[] = [];
 
 const getCustomizationDataset = (
   item: ChartCustomization | any,
@@ -186,7 +191,10 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
-  const chartCustomizationItems = useSelector<RootState, ChartCustomization[]>(
+  const chartCustomizationItems = useSelector<
+    RootState,
+    (ChartCustomization | ChartCustomizationDivider)[]
+  >(
     ({ dashboardInfo }) =>
       dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
   );

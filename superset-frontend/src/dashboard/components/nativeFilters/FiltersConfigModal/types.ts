@@ -22,6 +22,7 @@ import {
   NativeFilterType,
   NativeFilterScope,
   Filter,
+  Divider,
   ChartCustomizationDivider,
   ColumnOption,
   ChartCustomization,
@@ -120,13 +121,13 @@ export type FilterChangesType = {
 };
 
 export type SaveFilterChangesType = {
-  modified: Filter[];
+  modified: (Filter | Divider)[];
 } & Omit<FilterChangesType, 'modified'>;
 
 export type SaveChangesType = {
   filterChanges?: SaveFilterChangesType;
   customizationChanges?: {
-    modified: ChartCustomization[];
+    modified: (ChartCustomization | ChartCustomizationDivider)[];
     deleted: string[];
     reordered: string[];
   };

@@ -36,6 +36,8 @@ import {
   NativeFilterTarget,
   NativeFilterType,
   ChartCustomization,
+  isChartCustomizationDivider,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
 import {
@@ -67,6 +69,7 @@ import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
 import FilterControl from './FilterControl';
+import FilterDivider from './FilterDivider';
 
 function chartCustomizationToFilterProp(
   item: ChartCustomization,
@@ -98,7 +101,7 @@ type FilterControlsProps = {
     customizationId: string,
     dataMask: DataMask,
   ) => void;
-  chartCustomizationValues: ChartCustomization[];
+  chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
   hideHeader?: boolean;
@@ -347,22 +350,34 @@ const FilterControls: FC<FilterControlsProps> = ({
                 <ChartCustomizationContent>
                   {chartCustomizationValues
                     .filter(item => !item.removed)
-                    .map(item => (
-                      <FilterControl
-                        key={item.id}
-                        filter={chartCustomizationToFilterProp(
-                          item,
-                          dataMaskSelected,
-                        )}
-                        dataMaskSelected={dataMaskSelected}
-                        onFilterSelectionChange={(filter, dataMask) =>
-                          handleChartCustomizationChange(item, dataMask)
-                        }
-                        orientation={FilterBarOrientation.Vertical}
-                        overflow={false}
-                        isCustomization
-                      />
-                    ))}
+                    .map(item => {
+                      if (isChartCustomizationDivider(item)) {
+                        return (
+                          <FilterDivider
+                            key={item.id}
+                            title={item.title}
+                            description={item.description}
+                            orientation={FilterBarOrientation.Vertical}
+                          />
+                        );
+                      }
+                      return (
+                        <FilterControl
+                          key={item.id}
+                          filter={chartCustomizationToFilterProp(
+                            item,
+                            dataMaskSelected,
+                          )}
+                          dataMaskSelected={dataMaskSelected}
+                          onFilterSelectionChange={(filter, dataMask) =>
+                            handleChartCustomizationChange(item, dataMask)
+                          }
+                          orientation={FilterBarOrientation.Vertical}
+                          overflow={false}
+                          isCustomization
+                        />
+                      );
+                    })}
                 </ChartCustomizationContent>
               </SectionContent>
             )}
@@ -472,28 +487,49 @@ const FilterControls: FC<FilterControlsProps> = ({
 
     const chartCustomizations = chartCustomizationValues
       .filter(item => !item.removed)
-      .map(item => ({
-        id: `chart-customization-${item.id}`,
-        element: (
-          <div
-            className="chart-customization-item-wrapper"
-            css={css`
-              flex-shrink: 0;
-            `}
-          >
-            <FilterControl
-              filter={chartCustomizationToFilterProp(item, dataMaskSelected)}
-              dataMaskSelected={dataMaskSelected}
-              onFilterSelectionChange={(filter, dataMask) =>
-                handleChartCustomizationChange(item, dataMask)
-              }
-              orientation={FilterBarOrientation.Horizontal}
-              overflow={false}
-              isCustomization
-            />
-          </div>
-        ),
-      }));
+      .map(item => {
+        if (isChartCustomizationDivider(item)) {
+          return {
+            id: `chart-customization-${item.id}`,
+            element: (
+              <div
+                className="chart-customization-item-wrapper"
+                css={css`
+                  flex-shrink: 0;
+                `}
+              >
+                <FilterDivider
+                  title={item.title}
+                  description={item.description}
+                  orientation={FilterBarOrientation.Horizontal}
+                />
+              </div>
+            ),
+          };
+        }
+        return {
+          id: `chart-customization-${item.id}`,
+          element: (
+            <div
+              className="chart-customization-item-wrapper"
+              css={css`
+                flex-shrink: 0;
+              `}
+            >
+              <FilterControl
+                filter={chartCustomizationToFilterProp(item, dataMaskSelected)}
+                dataMaskSelected={dataMaskSelected}
+                onFilterSelectionChange={(filter, dataMask) =>
+                  handleChartCustomizationChange(item, dataMask)
+                }
+                orientation={FilterBarOrientation.Horizontal}
+                overflow={false}
+                isCustomization
+              />
+            </div>
+          ),
+        };
+      });
 
     return [
       ...chartCustomizations,

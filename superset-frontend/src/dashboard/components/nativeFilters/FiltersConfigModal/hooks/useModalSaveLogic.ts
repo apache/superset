@@ -316,7 +316,7 @@ export function useModalSaveLogic({
 
         saveChanges.filterChanges = {
           ...actualChanges,
-          modified: transformedModified as Filter[],
+          modified: transformedModified as (Filter | Divider)[],
         };
       }
 
@@ -328,7 +328,7 @@ export function useModalSaveLogic({
               mergedValues.filters?.[id] || chartCustomizationConfigMap[id],
             ),
           )
-          .filter(Boolean) as ChartCustomization[];
+          .filter(Boolean) as (ChartCustomization | ChartCustomizationDivider)[];
 
         saveChanges.customizationChanges = {
           modified: transformedModified,

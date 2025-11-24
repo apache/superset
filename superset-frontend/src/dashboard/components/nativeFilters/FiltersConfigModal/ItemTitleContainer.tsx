@@ -76,6 +76,11 @@ interface Props {
   dataTestId?: string;
   deleteAltText?: string;
   dragType?: string;
+  onCrossListDrop?: (
+    sourceId: string,
+    targetIndex: number,
+    sourceType: 'filter' | 'customization',
+  ) => void;
 }
 
 const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
@@ -93,6 +98,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
       dataTestId = 'item-title-container',
       deleteAltText = 'RemoveItem',
       dragType,
+      onCrossListDrop,
     },
     ref,
   ) => {
@@ -165,6 +171,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
           <DraggableFilter
             key={item}
             onRearrange={onRearrange}
+            onCrossListDrop={onCrossListDrop}
             index={index}
             filterIds={[item]}
             dragType={dragType}
