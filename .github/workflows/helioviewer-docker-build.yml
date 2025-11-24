@@ -1,0 +1,50 @@
+name: Build & Push Helioviewer Superset Docker Image
+
+on:
+  push:
+    branches:
+      - "5.0.0-custom"
+
+jobs:
+  build-and-push:
+    name: Build and Push to GHCR
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: lean
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/helioviewer-project/superset:${{ github.sha }}
+            ghcr.io/helioviewer-project/superset:latest
+
+      - name: Print image info
+        run: |
+          echo "Successfully built and pushed:"
+          echo "  - ghcr.io/helioviewer-project/superset:${{ github.sha }}"
+          echo "  - ghcr.io/helioviewer-project/superset:latest"
