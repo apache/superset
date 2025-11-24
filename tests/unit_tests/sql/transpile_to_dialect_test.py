@@ -327,17 +327,21 @@ def test_empty_sql_raises_exception() -> None:
 
 def test_sqlglot_generation_error_raises_exception() -> None:
     """Test that SQLGlot generation errors are caught and wrapped."""
-    from unittest.mock import patch
+    from unittest.mock import MagicMock, patch
 
     from superset.exceptions import QueryClauseValidationException
 
-    # Mock the generate method to raise a non-ParseError exception
-    with patch("superset.sql.parse.Dialect.get_or_raise") as mock_get_dialect:
-        mock_dialect = mock_get_dialect.return_value
-        mock_dialect.generate.side_effect = RuntimeError("SQLGlot internal error")
+    # Create a mock parsed expression
+    mock_parsed = MagicMock()
 
-        with pytest.raises(
-            QueryClauseValidationException,
-            match="Cannot transpile SQL to postgresql",
-        ):
-            transpile_to_dialect("name = 'test'", "postgresql")
+    # Mock parse_one to succeed, then make generate fail
+    with patch("superset.sql.parse.sqlglot.parse_one", return_value=mock_parsed):
+        with patch("superset.sql.parse.Dialect.get_or_raise") as mock_get_dialect:
+            mock_dialect = mock_get_dialect.return_value
+            mock_dialect.generate.side_effect = RuntimeError("SQLGlot internal error")
+
+            with pytest.raises(
+                QueryClauseValidationException,
+                match="Cannot transpile SQL to postgresql",
+            ):
+                transpile_to_dialect("name = 'test'", "postgresql")
