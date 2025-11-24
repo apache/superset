@@ -17,6 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+# Superset/Helioviewer
+
+This fork includes the following extensions needed for Helioviewer.
+- Chart plugin [Big Calendar](https://www.npmjs.com/package/@helioviewer/superset-plugin-chart-big-calendar)
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)

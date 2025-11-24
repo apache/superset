@@ -85,6 +85,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@helioviewer/superset-plugin-chart-big-calendar": "^1.0.0",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/core": "^5.21.1",
     "@rjsf/utils": "^5.24.3",

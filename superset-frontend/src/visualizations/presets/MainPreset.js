@@ -82,6 +82,7 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import { SupersetPluginChartBigCalendar } from '@helioviewer/superset-plugin-chart-big-calendar';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -103,6 +104,7 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        new SupersetPluginChartBigCalendar().configure({key: 'ext-big-calendar-heatmap'}),
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
