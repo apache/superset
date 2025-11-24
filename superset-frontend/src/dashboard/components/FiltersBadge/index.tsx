@@ -152,9 +152,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
 
-  console.log('showIndicators', showIndicators);
-  console.log('chart?.chartStatus', chart?.chartStatus);
-
   useEffect(() => {
     if (popoverVisible) {
       setTimeout(() => {
