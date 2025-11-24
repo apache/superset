@@ -62,9 +62,10 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
                 # Only add if it doesn't already exist
                 if missing_field not in self.declared_fields:
                     # Use Raw field as a safe fallback for unknown auto-generated fields
+                    # Allow both load and dump to support both input validation and serialization
                     self.declared_fields[missing_field] = fields.Raw(
                         allow_none=True,
-                        dump_only=True,  # Prevent validation issues on serialization
+                        load_default=None,  # Default to None if not provided (optional field)
                     )
 
                     logger.debug(
