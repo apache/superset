@@ -37,6 +37,7 @@ function SearchSelectDropdown({
 }: SearchSelectDropdownProps) {
   return (
     <Select
+      className="search-select"
       css={(theme: SupersetTheme) => css`
         width: ${theme.sizeUnit * 30}px;
       `}
