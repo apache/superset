@@ -17,36 +17,55 @@
  * under the License.
  */
 import styled from '@emotion/styled';
-import { mq } from '../utils';
-interface StyledKeyValueProps {}
+
+interface StyledKeyValueProps {
+  dark?: boolean;
+}
 
 const StyledKeyValue = styled('div')<StyledKeyValueProps>`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 16px;
-  background-color: ${props => (props ? '#f0f0f0' : '#d9e2e7')};
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: ${props => (props.dark ? '#2d2d2d' : '#f5f5f5')};
+  border: 1px solid ${props => (props.dark ? '#404040' : '#e0e0e0')};
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: ${props => (props.dark ? '#353535' : '#ebebeb')};
+  }
+
+  .key {
+    font-weight: 600;
+    color: ${props => (props.dark ? '#e0e0e0' : '#333')};
+    flex-shrink: 0;
+    margin-right: 16px;
+  }
+
+  .value {
+    color: ${props => (props.dark ? '#a0a0a0' : '#666')};
+    text-align: right;
+    word-break: break-word;
   }
 `;
 
 interface KeyValueProps {
-    keyName ?: string;
-    value ?: string;
-    dark ?: boolean;
+  keyName?: string;
+  value?: string;
+  dark?: boolean;
 }
 
-const KeyValue = ({
-  keyName,
-  value,
-}: KeyValueProps) => {
-    return (
-        <StyledKeyValue dark={false}>
-            <div className="key">{keyName}</div>
-            <div className="value">{value}</div>
-        </StyledKeyValue>
-    );
+const KeyValue = ({ keyName, value, dark = false }: KeyValueProps) => {
+  return (
+    <StyledKeyValue dark={dark}>
+      <div className="key">{keyName}</div>
+      <div className="value">{value}</div>
+    </StyledKeyValue>
+  );
 };
 
 export default KeyValue;
