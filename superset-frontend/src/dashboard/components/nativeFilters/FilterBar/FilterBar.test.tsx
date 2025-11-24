@@ -103,25 +103,27 @@ describe('FilterBar', () => {
   };
 
   const mockApi = jest.fn(async data => {
-    const json = JSON.parse(data.json_metadata);
-    const filterId = json.native_filter_configuration[0].id;
+    if (!data?.modified?.length) {
+      return {
+        id: 1234,
+        result: [],
+      };
+    }
+    const filterId = data.modified[0].id;
     return {
       id: 1234,
-      result: {
-        json_metadata: `{
-            "label_colors":{"Girls":"#FF69B4","Boys":"#ADD8E6","girl":"#FF69B4","boy":"#ADD8E6"},
-            "native_filter_configuration":[{
-              "id":"${filterId}",
-              "name":"${FILTER_NAME}",
-              "filterType":"filter_time",
-              "targets":[{"datasetId":11,"column":{"name":"color"}}],
-              "defaultDataMask":{"filterState":{"value":null}},
-              "controlValues":{},
-              "cascadeParentIds":[],
-              "scope":{"rootPath":["ROOT_ID"],"excluded":[]}
-            }],
-          }`,
-      },
+      result: [
+        {
+          id: filterId,
+          name: FILTER_NAME,
+          filterType: 'filter_time',
+          targets: [{ datasetId: 11, column: { name: 'color' } }],
+          defaultDataMask: { filterState: { value: null } },
+          controlValues: {},
+          cascadeParentIds: [],
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+        },
+      ],
     };
   });
 

@@ -96,6 +96,7 @@ describe('Horizontal FilterBar', () => {
     cy.get(nativeFilters.filtersPanel.filterGear).click({
       force: true,
     });
+    cy.get('.ant-dropdown-menu').should('be.visible');
     cy.getBySel('filter-bar__create-filter').should('exist');
     cy.getBySel('filterbar-action-buttons').should('exist');
   });

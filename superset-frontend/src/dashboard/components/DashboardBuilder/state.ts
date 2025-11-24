@@ -21,12 +21,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  ChartCustomization,
+} from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
 import { toggleNativeFiltersBar } from '../../actions/dashboardState';
+
+const EMPTY_ARRAY: ChartCustomization[] = [];
 
 export const useNativeFilters = () => {
   const dispatch = useDispatch();
@@ -46,12 +52,25 @@ export const useNativeFilters = () => {
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
+  const chartCustomizations = useSelector<RootState, ChartCustomization[]>(
+    state =>
+      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
+  );
 
   const nativeFiltersEnabled =
-    showNativeFilters && (canEdit || (!canEdit && filterValues.length !== 0));
+    showNativeFilters &&
+    (canEdit ||
+      (!canEdit &&
+        (filterValues.length !== 0 || chartCustomizations.length !== 0)));
 
   const requiredFirstFilter = useMemo(
-    () => filterValues.filter(filter => filter.requiredFirst),
+    () =>
+      filterValues.filter(
+        filter =>
+          'requiredFirst' in filter &&
+          filter.requiredFirst === true &&
+          filter.filterType !== 'filter_time',
+      ),
     [filterValues],
   );
   const dataMask = useNativeFiltersDataMask();
@@ -82,13 +101,21 @@ export const useNativeFilters = () => {
       (isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
         expandFilters === null) ||
       expandFilters === false ||
-      (filterValues.length === 0 && nativeFiltersEnabled)
+      (filterValues.length === 0 &&
+        chartCustomizations.length === 0 &&
+        nativeFiltersEnabled)
     ) {
       dispatch(toggleNativeFiltersBar(false));
     } else {
       dispatch(toggleNativeFiltersBar(true));
     }
-  }, [dispatch, filterValues.length, expandFilters, nativeFiltersEnabled]);
+  }, [
+    dispatch,
+    filterValues.length,
+    chartCustomizations.length,
+    expandFilters,
+    nativeFiltersEnabled,
+  ]);
 
   useEffect(() => {
     if (showDashboard) {

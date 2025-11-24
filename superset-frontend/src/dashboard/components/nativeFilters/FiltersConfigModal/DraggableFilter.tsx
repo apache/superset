@@ -32,7 +32,8 @@ interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 
-const FILTER_TYPE = 'FILTER';
+export const FILTER_TYPE = 'FILTER';
+export const CUSTOMIZATION_TYPE = 'CUSTOMIZATION';
 
 const Container = styled.div<TitleContainerProps>`
   ${({ isDragging, theme }) => `
@@ -56,7 +57,12 @@ const DragIcon = styled(Icons.Drag, {
 interface FilterTabTitleProps {
   index: number;
   filterIds: string[];
-  onRearrange: (dragItemIndex: number, targetIndex: number) => void;
+  onRearrange: (
+    dragItemIndex: number,
+    targetIndex: number,
+    itemId: string,
+  ) => void;
+  dragType?: string;
 }
 
 interface DragItem {
@@ -69,17 +75,18 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
   index,
   onRearrange,
   filterIds,
+  dragType = FILTER_TYPE,
   children,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag({
-    item: { filterIds, type: FILTER_TYPE, index },
+    item: { filterIds, type: dragType, index },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
   const [, drop] = useDrop({
-    accept: FILTER_TYPE,
+    accept: dragType,
     hover: (item: DragItem, monitor: DropTargetMonitor) => {
       if (!ref.current) {
         return;
@@ -119,7 +126,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
         return;
       }
 
-      onRearrange(dragIndex, hoverIndex);
+      onRearrange(dragIndex, hoverIndex, filterIds[0]);
       // Note: we're mutating the monitor item here.
       // Generally it's better to avoid mutations,
       // but it's good here for the sake of performance

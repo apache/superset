@@ -52,6 +52,10 @@ import {
   onFiltersRefreshSuccess,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
+import {
+  setHoveredChartCustomization,
+  unsetHoveredChartCustomization,
+} from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
@@ -78,7 +82,6 @@ const StyledDiv = styled.div<{
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
-const behaviors = [Behavior.NativeFilter];
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -92,7 +95,11 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: FC<FilterControlProps> = ({
+export interface FilterValueProps extends FilterControlProps {
+  isCustomization?: boolean;
+}
+
+const FilterValue: FC<FilterValueProps> = ({
   dataMaskSelected,
   filter,
   onFilterSelectionChange,
@@ -105,11 +112,19 @@ const FilterValue: FC<FilterControlProps> = ({
   validateStatus,
   clearAllTrigger,
   onClearAllComplete,
+  isCustomization = false,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
+
+  const behaviors = useMemo(
+    () => [
+      isCustomization ? Behavior.ChartCustomization : Behavior.NativeFilter,
+    ],
+    [isCustomization],
+  );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
@@ -122,12 +137,12 @@ const FilterValue: FC<FilterControlProps> = ({
   const [ownState, setOwnState] = useState<JsonObject>({});
   const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [target] = targets;
+  const [target] = targets || [];
   const {
     datasetId,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target;
-  const { name: groupby } = column;
+  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -282,27 +297,39 @@ const FilterValue: FC<FilterControlProps> = ({
   );
 
   const setFocusedFilter = useCallback(() => {
-    // don't highlight charts in scope if filter was focused programmatically
+    if (isCustomization) {
+      return;
+    }
     if (outlinedFilterId !== id) {
       dispatchFocusAction(dispatch, id);
     }
-  }, [dispatch, id, outlinedFilterId]);
+  }, [dispatch, id, outlinedFilterId, isCustomization]);
 
   const unsetFocusedFilter = useCallback(() => {
+    if (isCustomization) {
+      return;
+    }
     dispatchFocusAction(dispatch);
     if (outlinedFilterId === id) {
       dispatch(setDirectPathToChild([]));
     }
-  }, [dispatch, id, outlinedFilterId]);
+  }, [dispatch, id, outlinedFilterId, isCustomization]);
 
-  const setHoveredFilter = useCallback(
-    () => dispatchHoverAction(dispatch, id),
-    [dispatch, id],
-  );
-  const unsetHoveredFilter = useCallback(
-    () => dispatchHoverAction(dispatch),
-    [dispatch],
-  );
+  const setHoveredFilter = useCallback(() => {
+    if (isCustomization) {
+      dispatch(setHoveredChartCustomization(id));
+    } else {
+      dispatchHoverAction(dispatch, id);
+    }
+  }, [dispatch, id, isCustomization]);
+
+  const unsetHoveredFilter = useCallback(() => {
+    if (isCustomization) {
+      dispatch(unsetHoveredChartCustomization());
+    } else {
+      dispatchHoverAction(dispatch);
+    }
+  }, [dispatch, isCustomization]);
 
   const hooks = useMemo(
     () => ({
