@@ -33,6 +33,15 @@ import {
 } from './folderUtils';
 import { FoldersEditorItemType } from '../types';
 
+// Mock window.crypto.randomUUID
+Object.defineProperty(window, 'crypto', {
+  value: {
+    randomUUID: jest.fn(
+      () => 'mocked-uuid-' + Math.random().toString(36).substring(7),
+    ),
+  },
+});
+
 describe('folderUtils', () => {
   const mockMetrics: Metric[] = [
     {
