@@ -4,7 +4,7 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import glossary from '/resources/glossary.json';
+import { Glossary } from '../src/resources/glossary.ts';
 import KeyValue from '../src/components/KeyValue.tsx';
 import { useColorMode } from '@docusaurus/theme-common';
 
@@ -14,8 +14,8 @@ export const GlossaryContent = () => {
   
   return (
     <div>
-      {Object.entries(glossary).map(([key, value]) => (
-        <KeyValue key={key} keyName={key} value={value} dark={isDark} />
+      {Glossary.map(({ title, short, extended }) => (
+        <KeyValue key={title} keyName={title} value={short} dark={isDark} />
       ))}
     </div>
   );
