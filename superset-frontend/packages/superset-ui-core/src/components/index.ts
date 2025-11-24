@@ -28,7 +28,6 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from './Alert';
 export { CertifiedBadge } from './CertifiedBadge';
 export * from './Icons';
 export * from './Timer';
@@ -145,6 +144,8 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
+
+export { Progress, type ProgressProps } from './Progress';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
 

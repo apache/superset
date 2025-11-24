@@ -46,13 +46,11 @@ import {
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
-  styled,
-  css,
   t,
   tn,
-  useTheme,
-  SupersetTheme,
+  extractTextFromHTML,
 } from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Input,
@@ -139,6 +137,31 @@ function cellWidth({
   const tot = posExtent + negExtent;
   const perc2 = Math.round((Math.abs(value) / tot) * 100);
   return perc2;
+}
+
+/**
+ * Sanitize a column identifier for use in HTML id attributes and CSS selectors.
+ * Replaces characters that are invalid in CSS selectors with safe alternatives.
+ *
+ * Note: The returned value should be prefixed with a string (e.g., "header-")
+ * to ensure it forms a valid HTML ID (IDs cannot start with a digit).
+ *
+ * Exported for testing.
+ */
+export function sanitizeHeaderId(columnId: string): string {
+  return (
+    columnId
+      // Semantic replacements first: preserve meaning in IDs for readability
+      // (e.g., '%pct_nice' → 'percentpct_nice' instead of '_pct_nice')
+      .replace(/%/g, 'percent')
+      .replace(/#/g, 'hash')
+      .replace(/△/g, 'delta')
+      // Generic sanitization for remaining special characters
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_') // Collapse consecutive underscores
+      .replace(/^_+|_+$/g, '') // Trim leading/trailing underscores
+  );
 }
 
 /**
@@ -514,7 +537,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            const dataRecordValue = value[col.key];
+            let dataRecordValue = value[col.key];
+            dataRecordValue = extractTextFromHTML(dataRecordValue);
+
             drillToDetailFilters.push({
               col: col.key,
               op: '==',
@@ -535,7 +560,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   {
                     col: cellPoint.key,
                     op: '==',
-                    val: cellPoint.value as string | number | boolean,
+                    val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
                 groupbyFieldName: 'groupby',
@@ -844,6 +869,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
+      // Cache sanitized header ID to avoid recomputing it multiple times
+      const headerId = sanitizeHeaderId(column.originalLabel ?? column.key);
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -969,7 +997,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           const cellProps = {
-            'aria-labelledby': `header-${column.key}`,
+            'aria-labelledby': `header-${headerId}`,
             role: 'cell',
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -1056,7 +1084,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.originalLabel}`}
+            id={`header-${headerId}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{

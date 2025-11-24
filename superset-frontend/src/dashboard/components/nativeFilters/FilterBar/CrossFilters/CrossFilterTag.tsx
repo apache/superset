@@ -17,13 +17,8 @@
  * under the License.
  */
 
-import {
-  styled,
-  css,
-  useTheme,
-  getColumnLabel,
-  useCSSTextTruncation,
-} from '@superset-ui/core';
+import { getColumnLabel, useCSSTextTruncation } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { Tag } from 'src/components/Tag';
 import { Tooltip } from '@superset-ui/core/components';

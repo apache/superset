@@ -69,7 +69,16 @@ function handleFilterChangesComplete(
 ) {
   const modifiedFilters = { ...state.filters };
   filters.forEach(filter => {
-    modifiedFilters[filter.id] = filter;
+    if (filter.chartsInScope != null && filter.tabsInScope != null) {
+      modifiedFilters[filter.id] = filter;
+    } else {
+      const existingFilter = modifiedFilters[filter.id];
+      modifiedFilters[filter.id] = {
+        ...filter,
+        chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
+        tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
+      };
+    }
   });
 
   return {

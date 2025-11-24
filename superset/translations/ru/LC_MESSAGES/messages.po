@@ -15101,6 +15101,9 @@ msgstr "изменение"
 msgid "chart"
 msgstr "диаграмма"
 
+msgid "charts"
+msgstr "диаграмм"
+
 msgid "choose WHERE or HAVING..."
 msgstr "выберите WHERE или HAVING..."
 
@@ -15168,6 +15171,9 @@ msgstr "кумулятивная сумма"
 
 msgid "dashboard"
 msgstr "дашборд"
+
+msgid "dashboards"
+msgstr "дашбордов"
 
 msgid "database"
 msgstr "база данных"

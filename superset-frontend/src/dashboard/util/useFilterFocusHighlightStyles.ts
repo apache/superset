@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { Filter } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
-import { useTheme, Filter } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { selectChartCustomizationItems } from 'src/dashboard/components/nativeFilters/ChartCustomization/selectors';
 import {

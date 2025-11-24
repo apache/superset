@@ -18,7 +18,8 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { t, usePrevious, useTheme, styled } from '@superset-ui/core';
+import { t, usePrevious } from '@superset-ui/core';
+import { useTheme, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
@@ -132,8 +133,8 @@ const Tabs = props => {
   const [selectedTabIndex, setSelectedTabIndex] = useState(initTabIndex);
   const [dropPosition, setDropPosition] = useState(null);
   const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
-  const [draggingTabId, setDraggingTabId] = useState(null);
   const [tabToDelete, setTabToDelete] = useState(null);
+  const [isEditingTabTitle, setIsEditingTabTitle] = useState(false);
   const prevActiveKey = usePrevious(activeKey);
   const prevDashboardId = usePrevious(props.dashboardId);
   const prevDirectPathToChild = usePrevious(directPathToChild);
@@ -213,8 +214,12 @@ const Tabs = props => {
         });
 
         props.onChangeTab({ pathToTabIndex });
+        setSelectedTabIndex(tabIndex);
       }
-      setActiveKey(tabIds[tabIndex]);
+      // Always set activeKey to ensure it's synchronized
+      if (tabIds[tabIndex]) {
+        setActiveKey(tabIds[tabIndex]);
+      }
     },
     [
       props.component,
@@ -326,13 +331,39 @@ const Tabs = props => {
     }
   }, []);
 
-  const handleDragggingTab = useCallback(tabId => {
-    if (tabId) {
-      setDraggingTabId(tabId);
-    } else {
-      setDraggingTabId(null);
-    }
+  const handleTabTitleEditingChange = useCallback(isEditing => {
+    setIsEditingTabTitle(isEditing);
   }, []);
+
+  const handleTabsReorder = useCallback(
+    (oldIndex, newIndex) => {
+      const { component, updateComponents } = props;
+      const oldTabIds = component.children;
+      const newTabIds = [...oldTabIds];
+      const [removed] = newTabIds.splice(oldIndex, 1);
+      newTabIds.splice(newIndex, 0, removed);
+
+      const currentActiveTabId = oldTabIds[selectedTabIndex];
+      const newActiveIndex = newTabIds.indexOf(currentActiveTabId);
+
+      updateComponents({
+        [component.id]: {
+          ...component,
+          children: newTabIds,
+        },
+      });
+
+      // Update selected index to match the active tab's new position
+      if (newActiveIndex !== -1 && newActiveIndex !== selectedTabIndex) {
+        setSelectedTabIndex(newActiveIndex);
+      }
+      // Always update activeKey to ensure it stays synchronized after reorder
+      if (newActiveIndex !== -1) {
+        setActiveKey(currentActiveTabId);
+      }
+    },
+    [props.component, props.updateComponents, selectedTabIndex],
+  );
 
   const {
     depth,
@@ -368,11 +399,6 @@ const Tabs = props => {
     [dragOverTabIndex, dropPosition, editMode],
   );
 
-  const removeDraggedTab = useCallback(
-    tabID => draggingTabId === tabID,
-    [draggingTabId],
-  );
-
   // Extract tab highlighting logic into a hook
   const useTabHighlighting = useCallback(() => {
     const highlightedFilterId =
@@ -389,9 +415,7 @@ const Tabs = props => {
     () =>
       tabIds.map((tabId, tabIndex) => ({
         key: tabId,
-        label: removeDraggedTab(tabId) ? (
-          <></>
-        ) : (
+        label: (
           <>
             {showDropIndicators(tabIndex).left && (
               <DropIndicator className="drop-indicator-left" pos="left" />
@@ -406,18 +430,16 @@ const Tabs = props => {
               columnWidth={columnWidth}
               onDropOnTab={handleDropOnTab}
               onDropPositionChange={handleGetDropPosition}
-              onDragTab={handleDragggingTab}
               onHoverTab={() => handleClickTab(tabIndex)}
               isFocused={activeKey === tabId}
               isHighlighted={
                 activeKey !== tabId && tabsToHighlight?.includes(tabId)
               }
+              onTabTitleEditingChange={handleTabTitleEditingChange}
             />
           </>
         ),
-        closeIcon: removeDraggedTab(tabId) ? (
-          <></>
-        ) : (
+        closeIcon: (
           <CloseIconWithDropIndicator
             role="button"
             tabIndex={tabIndex}
@@ -445,7 +467,6 @@ const Tabs = props => {
       })),
     [
       tabIds,
-      removeDraggedTab,
       showDropIndicators,
       tabsComponent.id,
       depth,
@@ -453,7 +474,6 @@ const Tabs = props => {
       columnWidth,
       handleDropOnTab,
       handleGetDropPosition,
-      handleDragggingTab,
       handleClickTab,
       activeKey,
       tabsToHighlight,
@@ -463,6 +483,7 @@ const Tabs = props => {
       onResizeStop,
       selectedTabIndex,
       isCurrentTabVisible,
+      handleTabTitleEditingChange,
     ],
   );
 
@@ -480,6 +501,9 @@ const Tabs = props => {
         handleClickTab={handleClickTab}
         handleEdit={handleEdit}
         tabBarPaddingLeft={tabBarPaddingLeft}
+        onTabsReorder={handleTabsReorder}
+        isEditingTabTitle={isEditingTabTitle}
+        onTabTitleEditingChange={handleTabTitleEditingChange}
       />
     ),
     [
@@ -493,6 +517,9 @@ const Tabs = props => {
       handleClickTab,
       handleEdit,
       tabBarPaddingLeft,
+      handleTabsReorder,
+      isEditingTabTitle,
+      handleTabTitleEditingChange,
     ],
   );
 

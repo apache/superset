@@ -26,6 +26,7 @@ import {
   userEvent,
   within,
   waitFor,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -421,6 +422,27 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+    });
+
+    test('shows database options when pasting text in the select', async () => {
+      setup();
+
+      const modal = await screen.findByRole('dialog');
+      expect(modal).toBeInTheDocument();
+
+      // Find the select input (not opening the dropdown)
+      const selectInput = screen.getByRole('combobox');
+      expect(selectInput).toBeInTheDocument();
+
+      // Simulate focusing the input
+      userEvent.click(selectInput);
+
+      // Simulate pasting text into the input
+      expect(() =>
+        fireEvent.paste(selectInput, {
+          clipboardData: { getData: () => 'post' },
+        }),
+      ).not.toThrow();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {

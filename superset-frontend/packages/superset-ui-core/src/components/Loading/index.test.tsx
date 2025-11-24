@@ -18,7 +18,7 @@
  */
 
 import { render, screen } from '@superset-ui/core/spec';
-import * as themeModule from '../../theme';
+import * as themeModule from '@apache-superset/core/ui/theme';
 import { Loading } from '.';
 
 // Mock the loading SVG import since it's a file stub in tests

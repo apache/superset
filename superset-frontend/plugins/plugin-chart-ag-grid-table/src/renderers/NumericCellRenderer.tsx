@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 import { useIsDark } from '../utils/useTableTheme';

@@ -22,7 +22,6 @@ import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, noop } from 'lodash';
 import {
   BinaryAdhocFilter,
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
@@ -30,6 +29,7 @@ import {
   SimpleAdhocFilter,
   t,
 } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
