@@ -182,3 +182,53 @@ test('Not displays the toAllRow and toTextColor flags', () => {
   expect(screen.queryByText('To entire row')).not.toBeInTheDocument();
   expect(screen.queryByText('To text color')).not.toBeInTheDocument();
 });
+
+test('displays Use gradient checkbox', () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  expect(screen.getByText('Use gradient')).toBeInTheDocument();
+});
+
+// Helper function to find the "Use gradient" checkbox
+// The checkbox and text are in sibling columns within the same row
+const findUseGradientCheckbox = (): HTMLInputElement => {
+  const useGradientText = screen.getByText('Use gradient');
+  // Find the common parent row that contains both the text and checkbox
+  let rowElement: HTMLElement | null = useGradientText.parentElement;
+  while (rowElement) {
+    const checkbox = rowElement.querySelector('input[type="checkbox"]');
+    if (checkbox && rowElement.textContent?.includes('Use gradient')) {
+      return checkbox as HTMLInputElement;
+    }
+    rowElement = rowElement.parentElement;
+  }
+  throw new Error('Could not find Use gradient checkbox');
+};
+
+test('Use gradient checkbox defaults to checked', () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+});
+
+test('Use gradient checkbox can be toggled', async () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+
+  // Uncheck the checkbox
+  fireEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+
+  // Check the checkbox again
+  fireEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+});

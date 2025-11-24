@@ -532,3 +532,101 @@ test('correct column string config', () => {
   expect(colorFormatters[3].column).toEqual('name');
   expect(colorFormatters[3].getColorFromValue('Carlos')).toEqual('#FF0000FF');
 });
+
+test('getColorFunction with useGradient false returns solid color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    countValues,
+  );
+  // When useGradient is false, should return solid color without opacity
+  expect(colorFunction(50)).toEqual('#FF0000');
+  expect(colorFunction(100)).toEqual('#FF0000');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient true returns gradient color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: true,
+    },
+    countValues,
+  );
+  // When useGradient is true, should return gradient color with opacity
+  expect(colorFunction(50)).toEqual('#FF00000D');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient undefined defaults to gradient (backward compatibility)', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      // useGradient is undefined
+    },
+    countValues,
+  );
+  // When useGradient is undefined, should default to gradient for backward compatibility
+  expect(colorFunction(50)).toEqual('#FF00000D');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(0)).toBeUndefined();
+});
+
+test('getColorFunction with useGradient false and None operator returns solid color', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    countValues,
+  );
+  // When useGradient is false, all matching values should return solid color
+  expect(colorFunction(20)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF0000');
+  expect(colorFunction(75)).toEqual('#FF0000');
+  expect(colorFunction(100)).toEqual('#FF0000');
+  expect(colorFunction(120)).toBeUndefined();
+});
+
+test('getColorFormatters with useGradient flag', () => {
+  const columnConfig = [
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+      useGradient: false,
+    },
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#00FF00',
+      column: 'count',
+      useGradient: true,
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData);
+  expect(colorFormatters.length).toEqual(2);
+
+  // First formatter with useGradient: false should return solid color
+  expect(colorFormatters[0].column).toEqual('count');
+  expect(colorFormatters[0].getColorFromValue(100)).toEqual('#FF0000');
+
+  // Second formatter with useGradient: true should return gradient color
+  expect(colorFormatters[1].column).toEqual('count');
+  expect(colorFormatters[1].getColorFromValue(100)).toEqual('#00FF00FF');
+});
