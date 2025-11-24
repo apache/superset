@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId } from '@superset-ui/core';
+import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
-import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
+import {
+  hasStatefulCharts,
+  hasChartStateConverter,
+  convertChartStateToOwnState,
+} from '../dashboard/util/chartStateConverter';
+import getFormDataWithExtraFilters from '../dashboard/util/charts/getFormDataWithExtraFilters';
+import { getAppliedFilterValues } from '../dashboard/util/activeDashboardFilters';
+import { buildV1ChartDataPayload } from '../explore/exploreUtils';
 
 const bootstrapData = getBootstrapData();
 
@@ -36,6 +43,11 @@ type EmbeddedSupersetApi = {
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
   getChartStates: () => DashboardChartStates;
+  getChartDataPayloads: ({
+    chartId,
+  }: {
+    chartId?: number;
+  }) => Promise<Record<string, JsonObject>>;
 };
 
 const getScrollSize = (): Size => ({
@@ -80,10 +92,103 @@ const getDataMask = () => store?.getState()?.dataMask || {};
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
+/**
+ * Get query context payloads for stateful charts (e.g., AG Grid tables).
+ * These payloads include dashboard filters and chart state (sorting, column order, etc.)
+ * and can be POSTed directly to /api/v1/chart/data for CSV export.
+ *
+ * @param chartId - Optional chart ID to get payload for a specific chart only
+ * @returns Record of chart IDs to their query context payloads
+ */
+const getChartDataPayloads = async ({
+  chartId,
+}: {
+  chartId?: number;
+}): Promise<Record<string, JsonObject>> => {
+  const state = store?.getState();
+  if (!state) return {};
+
+  const charts = state.charts || {};
+  const sliceEntities = state.sliceEntities?.slices || {};
+  const dataMask = state.dataMask || {};
+  const chartStates = state.dashboardState?.chartStates || {};
+  const chartConfiguration =
+    state.dashboardInfo?.metadata?.chart_configuration || {};
+  const nativeFilters = state.nativeFilters?.filters || {};
+  const allSliceIds = state.dashboardState?.sliceIds || [];
+  const colorScheme = state.dashboardState?.colorScheme;
+  const colorNamespace = state.dashboardState?.colorNamespace;
+
+  const payloads: Record<string, JsonObject> = {};
+
+  // Build payloads for each eligible chart
+  const chartEntries = Object.entries(charts).filter(([id]) => {
+    const numericId = Number(id);
+    const slice = sliceEntities[id];
+
+    // Filter: only stateful charts (e.g., AG Grid)
+    if (!slice || !hasChartStateConverter(slice.viz_type)) {
+      return false;
+    }
+
+    // Filter: specific chartId if provided
+    if (chartId !== undefined && numericId !== chartId) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Process charts sequentially to avoid race conditions
+  for (const [id, chart] of chartEntries) {
+    const numericId = Number(id);
+    const slice = sliceEntities[id];
+
+    // Build enriched form_data with dashboard filters applied
+    const formData = getFormDataWithExtraFilters({
+      chart: { id: numericId, form_data: (chart as JsonObject).form_data },
+      chartConfiguration,
+      filters: getAppliedFilterValues(numericId),
+      colorScheme,
+      colorNamespace,
+      sliceId: numericId,
+      nativeFilters,
+      allSliceIds,
+      dataMask,
+      extraControls: {},
+    });
+
+    const chartState = chartStates[id]?.state;
+    const baseOwnState = dataMask[id]?.ownState || {};
+    const convertedState = chartState
+      ? convertChartStateToOwnState(slice.viz_type, chartState)
+      : {};
+
+    const ownState = {
+      ...baseOwnState,
+      ...convertedState,
+    };
+
+    const payload = await buildV1ChartDataPayload({
+      formData,
+      resultFormat: 'json',
+      resultType: 'results',
+      ownState,
+      setDataMask: null,
+      force: false,
+    });
+
+    payloads[id] = payload;
+  }
+
+  return payloads;
+};
+
 export const embeddedApi: EmbeddedSupersetApi = {
   getScrollSize,
   getDashboardPermalink,
   getActiveTabs,
   getDataMask,
   getChartStates,
+  getChartDataPayloads,
 };
