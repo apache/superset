@@ -20,6 +20,7 @@
 import { Metric } from '@superset-ui/core';
 import { transformDatasourceWithFolders } from './transformDatasourceFolders';
 import { DatasourceFolder, DatasourcePanelColumn } from './types';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
 const mockMetrics: Metric[] = [
   { metric_name: 'metric1', uuid: 'metric1-uuid', expression: 'SUM(col1)' },
@@ -48,32 +49,32 @@ test('transforms data into default folders when no folder config is provided', (
   expect(result[0].name).toBe('Metrics');
   expect(result[0].items).toHaveLength(3);
   expect(result[0].items[0].uuid).toBe('metric1-uuid');
-  expect(result[0].items[0].type).toBe('metric');
+  expect(result[0].items[0].type).toBe(FoldersEditorItemType.Metric);
 
   expect(result[1].id).toBe('columns-default');
   expect(result[1].name).toBe('Columns');
   expect(result[1].items).toHaveLength(3);
   expect(result[1].items[0].uuid).toBe('column1-uuid');
-  expect(result[1].items[0].type).toBe('column');
+  expect(result[1].items[0].type).toBe(FoldersEditorItemType.Column);
 });
 
 test('transforms data according to folder configuration', () => {
   const folderConfig: DatasourceFolder[] = [
     {
       uuid: 'folder1',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       name: 'Important Metrics',
       description: 'Key metrics folder',
       children: [
-        { type: 'metric', uuid: 'metric1-uuid', name: 'metric1' },
-        { type: 'metric', uuid: 'metric2-uuid', name: 'metric2' },
+        { type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'metric1' },
+        { type: FoldersEditorItemType.Metric, uuid: 'metric2-uuid', name: 'metric2' },
       ],
     },
     {
       uuid: 'folder2',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       name: 'Key Dimensions',
-      children: [{ type: 'column', uuid: 'column1-uuid', name: 'column1' }],
+      children: [{ type: FoldersEditorItemType.Column, uuid: 'column1-uuid', name: 'column1' }],
     },
   ];
 
@@ -115,16 +116,16 @@ test('handles nested folder structures', () => {
   const folderConfig: DatasourceFolder[] = [
     {
       uuid: 'parent-folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       name: 'Parent Folder',
       children: [
         {
           uuid: 'child-folder',
-          type: 'folder',
+          type: FoldersEditorItemType.Folder,
           name: 'Child Folder',
-          children: [{ type: 'metric', uuid: 'metric1-uuid', name: 'metric1' }],
+          children: [{ type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'metric1' }],
         },
-        { type: 'column', uuid: 'column1-uuid', name: 'column1' },
+        { type: FoldersEditorItemType.Column, uuid: 'column1-uuid', name: 'column1' },
       ],
     },
   ];
@@ -153,7 +154,7 @@ test('handles empty children arrays', () => {
   const folderConfig: DatasourceFolder[] = [
     {
       uuid: 'empty-folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       name: 'Empty Folder',
       children: [],
     },
@@ -176,20 +177,20 @@ test('handles non-existent metric and column UUIDs in folder config', () => {
   const folderConfig: DatasourceFolder[] = [
     {
       uuid: 'folder1',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       name: 'Test Folder',
       children: [
         {
-          type: 'metric',
+          type: FoldersEditorItemType.Metric,
           uuid: 'non-existent-metric',
           name: 'Missing Metric',
         },
         {
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: 'non-existent-column',
           name: 'Missing Column',
         },
-        { type: 'metric', uuid: 'metric1-uuid', name: 'Existing Metric' },
+        { type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'Existing Metric' },
       ],
     },
   ];
