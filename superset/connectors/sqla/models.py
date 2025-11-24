@@ -234,6 +234,51 @@ class BaseDatasource(
         """Set the datasource-specific cache timeout."""
         self._cache_timeout = value
 
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        For SQL datasources, drill-by is supported on columns that are marked
+        as groupable in the metadata. This allows users to navigate from
+        aggregated views to detailed data by grouping on these dimensions.
+
+        :param column_names: List of column names to check
+        :return: True if all columns support drill-by, False otherwise
+        """
+        if not column_names:
+            return False
+
+        # Get all groupable column names for this datasource
+        drillable_columns = {
+            row[0]
+            for row in db.session.query(TableColumn.column_name)
+            .filter(TableColumn.table_id == self.id)
+            .filter(TableColumn.groupby)
+            .all()
+        }
+
+        # Check if all requested columns are drillable
+        return set(column_names).issubset(drillable_columns)
+
+    def get_time_grains(self) -> list[dict[str, Any]]:
+        """
+        Get available time granularities from the database.
+
+        Implements the Explorable protocol by delegating to the database's
+        time grain definitions. Each database engine spec defines its own
+        set of supported time grains.
+
+        :return: List of time grain dictionaries with name, function, and duration
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
+
     @property
     def kind(self) -> DatasourceKind:
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
@@ -886,25 +931,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     @property
     def database(self) -> Database:
         return self.table.database if self.table else self._database  # type: ignore
-
-    def get_time_grains(self) -> list[dict[str, Any]]:
-        """
-        Get available time granularities from the database.
-
-        Implements the Explorable protocol by delegating to the database's
-        time grain definitions. Each database engine spec defines its own
-        set of supported time grains.
-
-        :return: List of time grain dictionaries with name, function, and duration
-        """
-        return [
-            {
-                "name": grain.name,
-                "function": grain.function,
-                "duration": grain.duration,
-            }
-            for grain in (self.database.grains() or [])
-        ]
 
     @property
     def db_engine_spec(self) -> builtins.type[BaseEngineSpec]:

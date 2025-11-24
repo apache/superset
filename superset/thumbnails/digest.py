@@ -61,6 +61,8 @@ def _adjust_string_with_rls(
     """
     Add the RLS filters to the unique string based on current executor.
     """
+    from superset.connectors.sqla.models import BaseDatasource
+
     user = (
         security_manager.find_user(executor)
         or security_manager.get_current_guest_user_if_guest()
@@ -72,7 +74,7 @@ def _adjust_string_with_rls(
             for datasource in datasources:
                 if (
                     datasource
-                    and hasattr(datasource, "is_rls_supported")
+                    and isinstance(datasource, BaseDatasource)
                     and datasource.is_rls_supported
                 ):
                     rls_filters = datasource.get_sqla_row_level_filters()

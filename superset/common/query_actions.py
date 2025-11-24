@@ -38,9 +38,7 @@ if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
 
 
-def _get_datasource(
-    query_context: QueryContext, query_obj: QueryObject
-) -> Explorable:
+def _get_datasource(query_context: QueryContext, query_obj: QueryObject) -> Explorable:
     return query_obj.datasource or query_context.datasource
 
 

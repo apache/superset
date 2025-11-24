@@ -262,14 +262,54 @@ class Explorable(Protocol):
         Example return value:
         ```python
         [
-            {"name": "Second", "function": "DATE_TRUNC('second', {col})", "duration": "PT1S"},
-            {"name": "Minute", "function": "DATE_TRUNC('minute', {col})", "duration": "PT1M"},
-            {"name": "Hour", "function": "DATE_TRUNC('hour', {col})", "duration": "PT1H"},
-            {"name": "Day", "function": "DATE_TRUNC('day', {col})", "duration": "P1D"},
+            {
+                "name": "Second",
+                "function": "DATE_TRUNC('second', {col})",
+                "duration": "PT1S",
+            },
+            {
+                "name": "Minute",
+                "function": "DATE_TRUNC('minute', {col})",
+                "duration": "PT1M",
+            },
+            {
+                "name": "Hour",
+                "function": "DATE_TRUNC('hour', {col})",
+                "duration": "PT1H",
+            },
+            {
+                "name": "Day",
+                "function": "DATE_TRUNC('day', {col})",
+                "duration": "P1D",
+            },
         ]
         ```
 
         :return: List of time grain dictionaries (empty list if not supported)
+        """
+
+    # =========================================================================
+    # Optional Properties
+    # =========================================================================
+
+    # =========================================================================
+    # Required Methods
+    # =========================================================================
+
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        Drill-by allows users to navigate from aggregated views to detailed
+        data by grouping on specific dimensions. This method determines whether
+        the given columns can be used for drill-by in the current datasource.
+
+        For SQL datasources, this typically checks if columns are marked as
+        groupable in the metadata. For semantic views, it checks against the
+        semantic layer's dimension definitions.
+
+        :param column_names: List of column names to check
+        :return: True if all columns support drill-by, False otherwise
         """
 
     # =========================================================================
@@ -282,11 +322,12 @@ class Explorable(Protocol):
         Whether this explorable supports Row Level Security.
 
         Row Level Security (RLS) allows filtering data based on user identity.
-        SQL-based datasources typically support this, while semantic layers
-        may handle security at a different level.
+        SQL-based datasources typically support this via SQL queries, while
+        semantic layers may handle security at the semantic layer level.
 
         :return: True if RLS is supported, False otherwise
         """
+        return False
 
     @property
     def query_language(self) -> str | None:

@@ -632,10 +632,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param form_data: The form_data included in the request.
         :param dashboard: The dashboard the user is drilling from.
-        :returns: Whether the user has drill byaccess.
+        :param datasource: The datasource being queried
+        :returns: Whether the user has drill by access.
         """
 
-        from superset.connectors.sqla.models import TableColumn
         from superset.models.slice import Slice
 
         return bool(
@@ -650,17 +650,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and slc in dashboard.slices
             and slc.datasource == datasource
             and (dimensions := form_data.get("groupby"))
-            and (datasource_id := getattr(datasource, "id", None))
-            and (
-                drillable_columns := {
-                    row[0]
-                    for row in self.session.query(TableColumn.column_name)
-                    .filter(TableColumn.table_id == datasource_id)
-                    .filter(TableColumn.groupby)
-                    .all()
-                }
-            )
-            and set(dimensions).issubset(drillable_columns)
+            and datasource.has_drill_by_columns(dimensions)
         )
 
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
@@ -726,7 +716,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_error_msg(datasource: "BaseDatasource | Explorable") -> str:
+    def get_datasource_access_error_msg(
+        datasource: "BaseDatasource | Explorable",
+    ) -> str:
         """
         Return the error message for the denied Superset datasource.
 
@@ -734,7 +726,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        datasource_id = getattr(datasource, "id", datasource.data.get("id") if hasattr(datasource, "data") else None)
+        datasource_id = getattr(
+            datasource,
+            "id",
+            datasource.data.get("id") if hasattr(datasource, "data") else None,
+        )
         return (
             f"This endpoint requires the datasource {datasource_id}, "
             "database or `all_datasource_access` permission"
@@ -768,8 +764,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": getattr(datasource, "id", datasource.data.get("id") if hasattr(datasource, "data") else None),
-                "datasource_name": getattr(datasource, "name", datasource.data.get("name") if hasattr(datasource, "data") else None),
+                "datasource": getattr(
+                    datasource,
+                    "id",
+                    datasource.data.get("id") if hasattr(datasource, "data") else None,
+                ),
+                "datasource_name": getattr(
+                    datasource,
+                    "name",
+                    datasource.data.get("name")
+                    if hasattr(datasource, "data")
+                    else None,
+                ),
             },
         )
 
@@ -2367,8 +2373,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # If the DB engine spec doesn't implement the logic the schema is read
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
+                from superset.models.sql_lab import Query
+
                 default_schema = database.get_default_schema_for_query(
-                    query, template_params  # type: ignore[arg-type]
+                    cast(Query, query),
+                    template_params,
                 )
                 tables = {
                     table_.qualify(
@@ -2480,7 +2489,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == getattr(datasource, "id", datasource.data.get("id") if hasattr(datasource, "data") else None)
+                                target.get("datasetId")
+                                == getattr(
+                                    datasource,
+                                    "id",
+                                    datasource.data.get("id")
+                                    if hasattr(datasource, "data")
+                                    else None,
+                                )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
@@ -2594,7 +2610,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: A list of filters
         """
         if guest_user := self.get_current_guest_user_if_guest():
-            dataset_id = getattr(dataset, "id", dataset.data.get("id") if hasattr(dataset, "data") else None)
+            dataset_id = getattr(
+                dataset,
+                "id",
+                dataset.data.get("id") if hasattr(dataset, "data") else None,
+            )
             return [
                 rule
                 for rule in guest_user.rls
@@ -2639,7 +2659,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        table_id = getattr(table, "id", table.data.get("id") if hasattr(table, "data") else None)
+        table_id = getattr(
+            table, "id", table.data.get("id") if hasattr(table, "data") else None
+        )
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
             RLSFilterTables.c.table_id == table_id
         )
@@ -2667,7 +2689,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         return query.all()
 
-    def get_rls_sorted(self, table: "BaseDatasource | Explorable") -> list["RowLevelSecurityFilter"]:
+    def get_rls_sorted(
+        self, table: "BaseDatasource | Explorable"
+    ) -> list["RowLevelSecurityFilter"]:
         """
         Retrieves a list RLS filters sorted by ID for
         the current user and the passed table.
@@ -2679,12 +2703,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         filters.sort(key=lambda f: f.id)
         return filters
 
-    def get_guest_rls_filters_str(self, table: "BaseDatasource | Explorable") -> list[str]:
+    def get_guest_rls_filters_str(
+        self, table: "BaseDatasource | Explorable"
+    ) -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
         rls_clauses_with_group_key = []
-        if hasattr(datasource, "is_rls_supported") and datasource.is_rls_supported:
+        if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
                 f"{f.clause}-{f.group_key or ''}"
                 for f in self.get_rls_sorted(datasource)

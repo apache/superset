@@ -68,7 +68,14 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         query_obj = self._query_context.queries[0]
         sql_query = datasource.get_query_str(query_obj.to_dict())
 
-        return sql_query, datasource.database
+        # Chart export is SQL-specific, so we check for BaseDatasource
+        from superset.connectors.sqla.models import BaseDatasource
+
+        database = (
+            datasource.database if isinstance(datasource, BaseDatasource) else None
+        )
+
+        return sql_query, database
 
     def _get_row_limit(self) -> int | None:
         """

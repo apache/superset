@@ -1657,7 +1657,9 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
     return "string"  # If no match is found, return "string" as default
 
 
-def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Explorable | Query) -> str:
+def get_metric_type_from_column(
+    column: Any, datasource: BaseDatasource | Explorable | Query
+) -> str:
     """
     Determine the metric type from a given column in a datasource.
 
@@ -1778,7 +1780,9 @@ def get_time_filter_status(
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
-        (col.column_name if hasattr(col, "column_name") else col.get("column_name")) for col in datasource.columns if (col.is_dttm if hasattr(col, "is_dttm") else col.get("is_dttm"))
+        (col.column_name if hasattr(col, "column_name") else col.get("column_name"))
+        for col in datasource.columns
+        if (col.is_dttm if hasattr(col, "is_dttm") else col.get("is_dttm"))
     }
     applied: list[dict[str, str]] = []
     rejected: list[dict[str, str]] = []
