@@ -1,16 +1,26 @@
 ---
-title: API
+title: Glossary
 hide_title: true
 sidebar_position: 10
 ---
 
-import SwaggerUI from 'swagger-ui-react';
-import openapi from '/resources/openapi.json';
-import 'swagger-ui-react/swagger-ui.css';
-import { Alert } from 'antd';
+import glossary from '/resources/glossary.json';
+import KeyValue from '../src/components/KeyValue.tsx';
+import { useColorMode } from '@docusaurus/theme-common';
+
+export const GlossaryContent = () => {
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === 'dark';
+  
+  return (
+    <div>
+      {Object.entries(glossary).map(([key, value]) => (
+        <KeyValue key={key} keyName={key} value={value} dark={isDark} />
+      ))}
+    </div>
+  );
+};
 
 ## Glossary
 
-<br />
-<br />
-<hr />
+<GlossaryContent />
