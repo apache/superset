@@ -61,7 +61,6 @@ export const Styles = styled.div`
     table.pvtTable tbody tr.pvtRowTotals th,
     table.pvtTable tbody tr.pvtRowTotals td {
       background-color: ${theme.colorBgBase};
-      z-index: 1;
     }
 
     table.pvtTable thead tr:last-of-type th,
