@@ -40,11 +40,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/helioviewer-project/superset:${{ github.sha }}
-            ghcr.io/helioviewer-project/superset:latest
-
-      - name: Print image info
-        run: |
-          echo "Successfully built and pushed:"
-          echo "  - ghcr.io/helioviewer-project/superset:${{ github.sha }}"
-          echo "  - ghcr.io/helioviewer-project/superset:latest"
+            ghcr.io/helioviewer-project/superset:lean_${{ github.sha }}
+            ghcr.io/helioviewer-project/superset:lean
