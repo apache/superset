@@ -229,6 +229,33 @@ def test_connect_make_label_compatible(column_name: str, expected_result: str) -
 
 
 @pytest.mark.parametrize(
+    "extra,column_name,expected_result",
+    [
+        # Default behavior (mutate labels)
+        (None, "time", "time_07cc69"),
+        ({}, "time", "time_07cc69"),
+        # Explicitly enable
+        ({"mutate_label_name": True}, "time", "time_07cc69"),
+        # Disabled (no mutation)
+        ({"mutate_label_name": False}, "time", "time"),
+        ({"mutate_label_name": False}, "count", "count"),
+    ],
+)
+def test_connect_make_label_compatible_with_extra(
+    extra: Optional[dict[str, Any]], column_name: str, expected_result: str
+) -> None:
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
+
+    mock_database = Mock()
+    mock_database.get_extra = Mock(return_value=extra or {})
+
+    label = spec.make_label_compatible(column_name, database=mock_database)
+    assert label == expected_result
+
+
+@pytest.mark.parametrize(
     "schema, expected_result",
     [
         (None, "clickhousedb+connect://localhost:443/__default__"),
