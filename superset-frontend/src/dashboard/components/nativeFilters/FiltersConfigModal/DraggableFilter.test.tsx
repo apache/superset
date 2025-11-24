@@ -19,7 +19,11 @@
 import { render } from 'spec/helpers/testing-library';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DraggableFilter, FILTER_TYPE, CUSTOMIZATION_TYPE } from './DraggableFilter';
+import {
+  DraggableFilter,
+  FILTER_TYPE,
+  CUSTOMIZATION_TYPE,
+} from './DraggableFilter';
 
 const renderWithDnd = (component: React.ReactElement) =>
   render(<DndProvider backend={HTML5Backend}>{component}</DndProvider>);
