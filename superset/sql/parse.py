@@ -1507,7 +1507,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
 
 def transpile_to_dialect(sql: str, target_engine: str) -> str:
     """
-    Transpile SQL to the target database dialect using SQLGlot.
+    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
 
     If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
     """
@@ -1518,7 +1518,7 @@ def transpile_to_dialect(sql: str, target_engine: str) -> str:
         return sql
 
     try:
-        parsed = sqlglot.parse_one(sql, dialect="postgres")
+        parsed = sqlglot.parse_one(sql, dialect=Dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
             copy=True,
