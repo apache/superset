@@ -72,7 +72,10 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
                     name,
                     type(self).__name__,
                 )
-                self.declared_fields[name] = marshmallow.fields.Raw()
+                self.declared_fields[name] = marshmallow.fields.Raw(
+                    allow_none=True,
+                    load_default=None,
+                )
         return original_init_fields(self)
 
     patched_init_fields._fab_patched = True  # type: ignore[attr-defined]
