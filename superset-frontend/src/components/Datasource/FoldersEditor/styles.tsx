@@ -25,6 +25,28 @@ export const FoldersContainer = styled.div`
   position: relative;
 `;
 
+export const DropIndicator = styled.div<{ position: 'before' | 'after' }>`
+  position: absolute;
+  ${({ position }) => (position === 'before' ? 'top: 0;' : 'bottom: 0;')}
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--ant-color-primary);
+  pointer-events: none;
+  z-index: 1000;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 6px;
+    height: 6px;
+    background-color: var(--ant-color-primary);
+    border-radius: 50%;
+  }
+`;
+
 export const FoldersToolbar = styled.div`
   ${({ theme }) => `
     position: sticky;

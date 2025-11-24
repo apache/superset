@@ -18,7 +18,10 @@
  */
 import { Metric } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  DatasourceFolder,
+  DatasourceFolderItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import { UniqueIdentifier } from '@dnd-kit/core';
 import { Column } from './types';
 import { FoldersEditorItemType } from '../types';
@@ -420,6 +423,68 @@ export const areAllVisibleItemsSelected = (
   visibleItemIds.length > 0 &&
   visibleItemIds.every(id => selectedItemIds.has(id));
 
+/**
+ * Enrich folder children with names from metrics/columns arrays
+ * API returns {uuid} only, we need to add {type, name} for display
+ */
+const enrichFolderChildren = (
+  folders: DatasourceFolder[],
+  metrics: Metric[],
+  columns: Column[],
+): DatasourceFolder[] => {
+  const metricMap = new Map(metrics.map(m => [m.uuid, m]));
+  const columnMap = new Map(columns.map(c => [c.uuid, c]));
+
+  const enrichChildren = (
+    children: (DatasourceFolder | DatasourceFolderItem)[] | undefined,
+  ): (DatasourceFolder | DatasourceFolderItem)[] => {
+    if (!children) return [];
+
+    return children.map(child => {
+      // If it's a folder, recursively enrich its children
+      if (child.type === FoldersEditorItemType.Folder && 'children' in child) {
+        return {
+          ...child,
+          children: enrichChildren(child.children),
+        } as DatasourceFolder;
+      }
+
+      // If it's a metric/column that needs enrichment (missing name or type)
+      const needsEnrichment =
+        !('name' in child) || !child.name || !('type' in child);
+
+      if (needsEnrichment) {
+        // Try to find in metrics first
+        const metric = metricMap.get(child.uuid);
+        if (metric) {
+          return {
+            uuid: child.uuid,
+            type: FoldersEditorItemType.Metric,
+            name: metric.metric_name || '',
+          } as DatasourceFolderItem;
+        }
+
+        // Then try columns
+        const column = columnMap.get(child.uuid);
+        if (column) {
+          return {
+            uuid: child.uuid,
+            type: FoldersEditorItemType.Column,
+            name: column.column_name || '',
+          } as DatasourceFolderItem;
+        }
+      }
+
+      return child;
+    });
+  };
+
+  return folders.map(folder => ({
+    ...folder,
+    children: enrichChildren(folder.children),
+  }));
+};
+
 export const ensureDefaultFolders = (
   folders: DatasourceFolder[],
   metrics: Metric[],
@@ -429,24 +494,40 @@ export const ensureDefaultFolders = (
     return resetToDefault(metrics, columns);
   }
 
-  const hasMetricsFolder = folders.some(
+  // First, enrich all folder children with names
+  const enrichedFolders = enrichFolderChildren(folders, metrics, columns);
+
+  const hasMetricsFolder = enrichedFolders.some(
     f => f.uuid === DEFAULT_METRICS_FOLDER_UUID,
   );
-  const hasColumnsFolder = folders.some(
+  const hasColumnsFolder = enrichedFolders.some(
     f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID,
   );
 
-  const result = [...folders];
+  const result = [...enrichedFolders];
+
+  // Helper to check if item is in any folder (including nested)
+  const isItemInFolders = (uuid: string): boolean => {
+    const checkFolder = (folder: DatasourceFolder): boolean => {
+      if (!folder.children) return false;
+
+      return folder.children.some(child => {
+        if (child.uuid === uuid) return true;
+        if (
+          child.type === FoldersEditorItemType.Folder &&
+          'children' in child
+        ) {
+          return checkFolder(child as DatasourceFolder);
+        }
+        return false;
+      });
+    };
+
+    return enrichedFolders.some(checkFolder);
+  };
 
   if (!hasMetricsFolder) {
-    const unassignedMetrics = metrics.filter(m => {
-      const isInFolder = folders.some(
-        f =>
-          f.children &&
-          f.children.some(c => c.type === 'metric' && c.uuid === m.uuid),
-      );
-      return !isInFolder;
-    });
+    const unassignedMetrics = metrics.filter(m => !isItemInFolders(m.uuid));
 
     result.push({
       uuid: DEFAULT_METRICS_FOLDER_UUID,
@@ -461,18 +542,7 @@ export const ensureDefaultFolders = (
   }
 
   if (!hasColumnsFolder) {
-    const unassignedColumns = columns.filter(c => {
-      const isInFolder = folders.some(
-        f =>
-          f.children &&
-          f.children.some(
-            child =>
-              child.type === FoldersEditorItemType.Column &&
-              child.uuid === c.uuid,
-          ),
-      );
-      return !isInFolder;
-    });
+    const unassignedColumns = columns.filter(c => !isItemInFolders(c.uuid));
 
     result.push({
       uuid: DEFAULT_COLUMNS_FOLDER_UUID,
