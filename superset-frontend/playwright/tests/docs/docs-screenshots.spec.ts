@@ -37,6 +37,8 @@ test('sqllab screenshot', async ({ page }) => {
     // await page.locator('#duckdb-examples-1').getByText('examples').click();
     // await page.locator('[data-test="Select schema or type to search schemas"]').getByText('main').click();
     // await page.locator('div').filter({ hasText: /^main$/ }).nth(2).click();
+    await page.getByRole('combobox', { name: 'Select schema or type to' }).fill('main');
+    await page.getByRole('combobox', { name: 'Select schema or type to' }).press('Enter');
     await page.getByRole('combobox', { name: 'Select table or type to' }).fill('covid');
     await page.getByRole('combobox', { name: 'Select table or type to' }).press('Enter');
     await page.locator('.ace_content').click();
