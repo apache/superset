@@ -17,7 +17,15 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
 import TagsList, { TagsListProps } from './TagsList';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({
+  user: { roles: {} },
+});
 
 const testTags = [
   {
@@ -54,12 +62,20 @@ const getElementsByClassName = (className: string) =>
 const findAllTags = () => waitFor(() => getElementsByClassName('.ant-tag'));
 
 test('should render', () => {
-  const { container } = render(<TagsList {...mockedProps} />);
+  const { container } = render(
+    <Provider store={store}>
+      <TagsList {...mockedProps} />
+    </Provider>,
+  );
   expect(container).toBeInTheDocument();
 });
 
 test('should render 5 elements', async () => {
-  render(<TagsList {...mockedProps} />);
+  render(
+    <Provider store={store}>
+      <TagsList {...mockedProps} />
+    </Provider>,
+  );
   const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(5);
   expect(tagsListItems[0]).toHaveTextContent(testTags[0].name);
@@ -70,7 +86,11 @@ test('should render 5 elements', async () => {
 });
 
 test('should render 3 elements when maxTags is set to 3', async () => {
-  render(<TagsList {...mockedProps} maxTags={3} />);
+  render(
+    <Provider store={store}>
+      <TagsList {...mockedProps} maxTags={3} />
+    </Provider>,
+  );
   const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(3);
   expect(tagsListItems[2]).toHaveTextContent('+3...');

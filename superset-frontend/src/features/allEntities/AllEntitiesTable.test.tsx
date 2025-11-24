@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
 import { screen } from '@testing-library/react';
 import * as useQueryParamsModule from 'use-query-params';
+import { Provider } from 'react-redux';
 import AllEntitiesTable from './AllEntitiesTable';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({
+  user: { roles: {} },
+});
 
 describe('AllEntitiesTable', () => {
   const mockSetShowTagModal = jest.fn();
@@ -129,12 +136,14 @@ describe('AllEntitiesTable', () => {
 
   it('renders the correct tags for each object type, excluding the current tag', () => {
     render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjectsWithTags}
-        canEditTag
-      />,
+      <Provider store={store}>
+        <AllEntitiesTable
+          search=""
+          setShowTagModal={mockSetShowTagModal}
+          objects={mockObjectsWithTags}
+          canEditTag
+        />
+      </Provider>,
     );
 
     expect(screen.getByText('Dashboards')).toBeInTheDocument();
@@ -160,12 +169,14 @@ describe('AllEntitiesTable', () => {
     };
 
     render(
-      <AllEntitiesTable
-        search=""
-        setShowTagModal={mockSetShowTagModal}
-        objects={mockObjects}
-        canEditTag
-      />,
+      <Provider store={store}>
+        <AllEntitiesTable
+          search=""
+          setShowTagModal={mockSetShowTagModal}
+          objects={mockObjects}
+          canEditTag
+        />
+      </Provider>,
       { useRouter: true },
     );
 
