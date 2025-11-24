@@ -16,7 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import styled from '@emotion/styled';
+import { mq } from '../utils';
+interface StyledKeyValueProps {}
 
-export const GlossaryTerms = [
+const StyledKeyValue = styled('div')<StyledKeyValueProps>`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  background-color: ${props => (props ? '#f0f0f0' : '#d9e2e7')};
+  }
+`;
 
-];
+interface KeyValueProps {
+    keyName ?: string;
+    value ?: string;
+    dark ?: boolean;
+}
+
+const KeyValue = ({
+  keyName,
+  value,
+}: KeyValueProps) => {
+    return (
+        <StyledKeyValue dark={false}>
+            <div className="key">{keyName}</div>
+            <div className="value">{value}</div>
+        </StyledKeyValue>
+    );
+};
+
+export default KeyValue;
