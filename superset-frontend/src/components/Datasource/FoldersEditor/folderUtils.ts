@@ -29,13 +29,6 @@ import { FoldersEditorItemType } from '../types';
 export const DEFAULT_METRICS_FOLDER_UUID = 'default-metric-folder-uuid';
 export const DEFAULT_COLUMNS_FOLDER_UUID = 'default-column-folder-uuid';
 
-const generateUUID = (): string =>
-  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
@@ -43,7 +36,7 @@ export interface ValidationResult {
 }
 
 export const createFolder = (name: string): DatasourceFolder => ({
-  uuid: generateUUID(),
+  uuid: window.crypto.randomUUID(),
   type: FoldersEditorItemType.Folder,
   name,
   children: [],
