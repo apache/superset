@@ -62,8 +62,9 @@ MCP_CSRF_CONFIG = {
 
 # FastMCP Factory Configuration
 MCP_FACTORY_CONFIG = {
-    "name": "Superset MCP Server",
-    "instructions": None,  # Will use default from app.py
+    "name": None,  # Will derive from APP_NAME in app.py
+    "branding": None,  # Will derive from APP_NAME in app.py
+    "instructions": None,  # Will use default from app.py (parameterized with branding)
     "auth": None,  # No authentication by default
     "lifespan": None,  # No custom lifespan
     "tools": None,  # Auto-discover tools

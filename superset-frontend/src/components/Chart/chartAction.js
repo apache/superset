@@ -407,10 +407,12 @@ export function exploreJSON(
   ownState,
 ) {
   return async (dispatch, getState) => {
+    const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
+    const prevController = state.charts?.[key]?.queryController;
     const queryTimeout =
-      timeout || getState().common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      timeout || state.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
     const requestParams = {
       signal: controller.signal,
@@ -422,6 +424,14 @@ export function exploreJSON(
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     dispatch(chartUpdateStarted(controller, formData, key));
+    /**
+     * Abort in-flight requests after the new controller has been stored in
+     * state. Delaying ensures we do not mutate the Redux state between
+     * dispatches while still cancelling the previous request promptly.
+     */
+    if (prevController) {
+      setTimeout(() => prevController.abort(), 0);
+    }
 
     const chartDataRequest = getChartDataRequest({
       setDataMask,

@@ -23,6 +23,7 @@ from urllib import parse
 import prison
 import pytest
 from freezegun import freeze_time
+from markupsafe import Markup
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
@@ -784,3 +785,47 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         result = rv.json["result"]
         assert len(result["objects_tagged"]) == 2
         assert len(result["objects_skipped"]) == 1
+
+    def test_create_tag_mysql_compatibility(self) -> None:
+        """
+        Test creating a tag via API to ensure MySQL compatibility.
+
+        This test verifies the fix for issue #32484 where tag creation
+        failed with MySQL due to Markup objects being used instead of strings.
+        """
+
+        self.login(ADMIN_USERNAME)
+
+        tag_name = "mysql-fix-verification-20251111"
+        uri = "api/v1/tag/"
+
+        # Create a tag via the API (tags can only be created with objects_to_tag)
+        # So we'll create a simple tag and verify it in the database
+        data = {
+            "name": tag_name,
+            "description": "Test tag for MySQL compatibility verification",
+            "objects_to_tag": [],  # Empty list is acceptable
+        }
+
+        rv = self.client.post(uri, json=data)
+
+        # Should succeed without SQL errors (201 for created or 200 for success)
+        assert rv.status_code in [200, 201], (
+            f"Tag creation should succeed, got {rv.status_code}"
+        )
+
+        # Query the database to verify the tag was created correctly
+        created_tag = db.session.query(Tag).filter_by(name=tag_name).first()
+        assert created_tag is not None, "Tag should exist in database"
+
+        # Critical check: ensure the tag name is a plain string, not Markup
+        assert isinstance(created_tag.name, str), "Tag name should be a plain string"
+        assert not isinstance(created_tag.name, Markup), (
+            "Tag name should NOT be a Markup object"
+        )
+        assert created_tag.name.__class__ is str, "Tag name should be exactly str type"
+        assert created_tag.name == tag_name, "Tag name should match the input"
+
+        # Cleanup
+        db.session.delete(created_tag)
+        db.session.commit()

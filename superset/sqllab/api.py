@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, cast, Optional
 from urllib import parse
 
@@ -23,12 +24,16 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
 from superset.commands.sql_lab.results import SqlExecutionResultsCommand
+from superset.commands.sql_lab.streaming_export_command import (
+    StreamingSqlResultExportCommand,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -292,6 +297,118 @@ class SqlLabRestApi(BaseSupersetApi):
         logger.debug(
             "CSV exported: %s", event_rep, extra={"superset_event": event_info}
         )
+        return response
+
+    @expose("/export_streaming/", methods=("POST",))
+    @protect()
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.export_streaming_csv",
+        log_to_statsd=False,
+    )
+    def export_streaming_csv(self) -> Response:
+        """Export SQL query results using streaming for large datasets.
+        ---
+        post:
+          summary: Export SQL query results to CSV with streaming
+          requestBody:
+            description: Export parameters
+            required: true
+            content:
+              application/x-www-form-urlencoded:
+                schema:
+                  type: object
+                  properties:
+                    client_id:
+                      type: string
+                      description: The SQL query result identifier
+                    filename:
+                      type: string
+                      description: Optional filename for the export
+                    expected_rows:
+                      type: integer
+                      description: Optional expected row count for progress tracking
+          responses:
+            200:
+              description: Streaming CSV export
+              content:
+                text/csv:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Extract parameters from form data
+        client_id = request.form.get("client_id")
+        filename = request.form.get("filename")
+
+        if not client_id:
+            return self.response_400(message="client_id is required")
+
+        expected_rows = None
+        if expected_rows_str := request.form.get("expected_rows"):
+            try:
+                expected_rows = int(expected_rows_str)
+            except (ValueError, TypeError):
+                logger.warning("Invalid expected_rows value: %s", expected_rows_str)
+
+        return self._create_streaming_csv_response(client_id, filename, expected_rows)
+
+    def _create_streaming_csv_response(
+        self,
+        client_id: str,
+        filename: str | None = None,
+        expected_rows: int | None = None,
+    ) -> Response:
+        """Create a streaming CSV response for large SQL Lab result sets."""
+        # Execute streaming command
+        # TODO: Make chunk size configurable via SUPERSET_CONFIG
+        chunk_size = 1024
+        command = StreamingSqlResultExportCommand(client_id, chunk_size)
+        command.validate()
+
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = secure_filename(f"sqllab_{client_id}_{timestamp}.csv")
+
+        # Get the callable that returns the generator
+        csv_generator_callable = command.run()
+
+        # Get encoding from config
+        encoding = app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")
+
+        # Create response with streaming headers
+        response = Response(
+            csv_generator_callable(),  # Call the callable to get generator
+            mimetype=f"text/csv; charset={encoding}",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+            },
+            direct_passthrough=False,  # Flask must iterate generator
+        )
+
+        # Force chunked transfer encoding
+        response.implicit_sequence_conversion = False
+
+        logger.info(
+            "SQL Lab streaming CSV export started: client_id=%s, filename=%s",
+            client_id,
+            filename,
+        )
+
         return response
 
     @expose("/results/")

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -370,22 +372,56 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
-        """Test that a chart command updates properties"""
+    def test_update_sets_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update sets last_saved_at when previously unset"""
         pk = db.session.query(Slice).all()[0].id
         user = security_manager.find_user(username="admin")
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
-        model_id = pk
-        json_obj = {
-            "description": "test for update",
-            "cache_timeout": None,
-            "owners": [user.id],
-        }
-        command = UpdateChartCommand(model_id, json_obj)
-        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+
+        # Explicitly set last_saved_at to None to test None -> datetime transition
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = None
+        db.session.commit()
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
         command.run()
+
         chart = db.session.query(Slice).get(pk)
-        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_at is not None
+        assert chart.last_saved_by == user
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_changes_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update changes last_saved_at when it already has a value"""
+        pk = db.session.query(Slice).all()[0].id
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = datetime.now()
+        db.session.commit()
+        # Refresh to get the database value with MySQL's truncated microseconds
+        db.session.refresh(chart_to_update)
+        last_saved_before = chart_to_update.last_saved_at
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
+        # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
+        time.sleep(1)
+        command.run()
+
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at.replace(microsecond=0) != last_saved_before.replace(
+            microsecond=0
+        )
         assert chart.last_saved_by == user
 
     @patch("superset.utils.core.g")

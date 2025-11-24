@@ -63,6 +63,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.superset_typing import QueryData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     get_column_name,
@@ -238,7 +239,8 @@ class Query(
         return None
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> QueryData:
+        """Returns query data for the frontend"""
         order_by_choices = []
         for col in self.columns:
             column_name = str(col.column_name or "")
@@ -330,7 +332,7 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         return []
 
     @property
