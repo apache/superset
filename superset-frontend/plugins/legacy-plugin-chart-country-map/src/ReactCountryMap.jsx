@@ -28,9 +28,7 @@ const CountryMap = ({ className, ...otherProps }) => (
 );
 
 export default styled(CountryMap)`
-  ${({ theme }) => {
-    console.log('theme in CountryMap', theme);
-    return `
+  ${({ theme }) => `
     .superset-legacy-chart-country-map svg {
       background-color: ${theme.colorBgContainer};
     }
@@ -46,11 +44,11 @@ export default styled(CountryMap)`
 
     .superset-legacy-chart-country-map .hover-popup {
       position: absolute;
-      color: ${theme.colorText};
+      color: ${theme.colorTextSecondary};
       display: none;
       padding: 4px;
       border-radius: 1px;
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgElevated};
       box-shadow: ${theme.boxShadow};
       font-size: 12px;
       border: 1px solid ${theme.colorBorder};
@@ -71,6 +69,5 @@ export default styled(CountryMap)`
       cursor: pointer;
       stroke: ${theme.colorSplit};
     }
-  `;
-  }}
+  `}
 `;
