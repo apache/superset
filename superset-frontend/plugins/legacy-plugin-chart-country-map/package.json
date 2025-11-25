@@ -28,9 +28,7 @@
   "dependencies": {
     "d3": "^3.5.17",
     "d3-array": "^2.0.3",
-    "datamaps": "^0.5.9",
-    "prop-types": "^15.8.1",
-    "topojson-server": "^3.0.1"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
