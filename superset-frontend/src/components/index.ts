@@ -49,3 +49,9 @@ export {
   type PluginContextType,
 } from './DynamicPlugins';
 export * from './FacePile';
+export {
+  GlossaryTooltip,
+  GLOSSARY_TERMS,
+  type GlossaryTooltipProps,
+  type GlossaryTerm,
+} from './GlossaryTooltip';
