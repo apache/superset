@@ -1131,6 +1131,13 @@ DISPLAY_MAX_ROW = 10000
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
+# Dataset datetime format detection settings
+# Auto-detect datetime formats on dataset creation/refresh
+DATASET_AUTO_DETECT_DATETIME_FORMATS = True
+
+# Sample size for datetime format detection
+DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
+
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
