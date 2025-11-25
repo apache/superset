@@ -21,7 +21,7 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { RotationControl } from './controls';
+import { RotationControl, ColorSchemeControl } from './controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -64,14 +64,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<RotationControl name="rotation" key="rotation" renderTrigger />],
         [
-          <RotationControl
-            name="rotation"
-            key="rotation"
-            renderTrigger={true}
+          <ColorSchemeControl
+            name="color_scheme"
+            key="color_scheme"
+            renderTrigger
           />,
         ],
-        ['color_scheme'],
       ],
     },
   ],
