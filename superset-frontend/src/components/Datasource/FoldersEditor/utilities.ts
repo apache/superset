@@ -24,6 +24,10 @@ import {
   DatasourceFolderItem,
 } from 'src/explore/components/DatasourcePanel/types';
 import { FoldersEditorItemType } from '../types';
+import {
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_METRICS_FOLDER_UUID,
+} from './folderUtils';
 
 // Type for a tree item (folder or metric/column item)
 export type TreeItem = DatasourceFolder | DatasourceFolderItem;
@@ -71,8 +75,18 @@ function getMaxDepth(previousItem: FlattenedTreeItem | undefined): number {
 
 /**
  * Get minimum allowed depth for an item
+ * For items (metrics/columns), minimum depth is 1 since they must be inside a folder
+ * For folders, minimum depth can be 0 (root level)
  */
-function getMinDepth(nextItem: FlattenedTreeItem | undefined): number {
+function getMinDepth(
+  nextItem: FlattenedTreeItem | undefined,
+  activeItem: FlattenedTreeItem,
+): number {
+  // Items (metrics/columns) must always be inside a folder (min depth 1)
+  if (activeItem.type !== FoldersEditorItemType.Folder) {
+    return 1;
+  }
+  // Folders can be at root level
   if (nextItem) {
     return nextItem.depth;
   }
@@ -107,7 +121,7 @@ export function getProjection(
   const dragDepth = getDragDepth(dragOffset, indentationWidth);
   const projectedDepth = activeItem.depth + dragDepth;
   const maxDepth = getMaxDepth(previousItem);
-  const minDepth = getMinDepth(nextItem);
+  const minDepth = getMinDepth(nextItem, activeItem);
 
   // Constrain depth to min/max bounds
   let depth = projectedDepth;
@@ -456,9 +470,9 @@ export function canAcceptDrop(
 ): boolean {
   // Default folders have type restrictions
   const isDefaultMetricsFolder =
-    targetFolder.name === 'Metrics' && targetFolder.depth === 0;
+    targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID;
   const isDefaultColumnsFolder =
-    targetFolder.name === 'Columns' && targetFolder.depth === 0;
+    targetFolder.uuid === DEFAULT_COLUMNS_FOLDER_UUID;
 
   if (isDefaultMetricsFolder) {
     // Metrics folder only accepts metrics

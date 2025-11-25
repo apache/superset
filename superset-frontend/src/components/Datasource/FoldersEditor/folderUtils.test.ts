@@ -203,10 +203,10 @@ describe('folderUtils', () => {
   });
 
   describe('isDefaultFolder', () => {
-    test('should identify default folder names', () => {
-      expect(isDefaultFolder('Metrics')).toBe(true);
-      expect(isDefaultFolder('Columns')).toBe(true);
-      expect(isDefaultFolder('Custom Folder')).toBe(false);
+    test('should identify default folders by UUID', () => {
+      expect(isDefaultFolder(DEFAULT_METRICS_FOLDER_UUID)).toBe(true);
+      expect(isDefaultFolder(DEFAULT_COLUMNS_FOLDER_UUID)).toBe(true);
+      expect(isDefaultFolder('custom-folder-uuid')).toBe(false);
     });
   });
 

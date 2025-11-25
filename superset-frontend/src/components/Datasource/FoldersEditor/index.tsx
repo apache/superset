@@ -20,6 +20,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { Button, Input, Modal } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { debounce } from 'lodash';
 import {
   DndContext,
@@ -44,6 +45,8 @@ import {
   ensureDefaultFolders,
   isDefaultFolder,
   filterItemsBySearch,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_METRICS_FOLDER_UUID,
 } from './folderUtils';
 import {
   flattenTree,
@@ -64,6 +67,7 @@ import {
   FoldersContent,
 } from './styles';
 import { FoldersEditorProps } from './types';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 const INDENTATION_WIDTH = 32;
 
@@ -73,6 +77,8 @@ export default function FoldersEditor({
   columns,
   onChange,
 }: FoldersEditorProps) {
+  const { addWarningToast } = useToasts();
+
   // Initialize state
   const [items, setItems] = useState<TreeItemType[]>(() => {
     const ensured = ensureDefaultFolders(initialFolders, metrics, columns);
@@ -88,14 +94,17 @@ export default function FoldersEditor({
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Sensors
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
 
-  // Flatten tree with collapsed items filtered out
+  // Memoize the full flattened tree (used in multiple places)
+  const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
+
+  // Flatten tree with collapsed items filtered out (for display)
   const flattenedItems = useMemo(() => {
-    const flattened = flattenTree(items);
-    const collapsedItems = flattened.reduce<UniqueIdentifier[]>(
+    const collapsedItems = fullFlattenedItems.reduce<UniqueIdentifier[]>(
       (acc, { uuid, type, children }) => {
         if (
           type === FoldersEditorItemType.Folder &&
@@ -110,10 +119,10 @@ export default function FoldersEditor({
     );
 
     return removeChildrenOf(
-      flattened,
+      fullFlattenedItems,
       activeId != null ? [activeId, ...collapsedItems] : collapsedItems,
     );
-  }, [items, collapsedIds, activeId]);
+  }, [fullFlattenedItems, collapsedIds, activeId]);
 
   // Filter for search
   const visibleItemIds = useMemo(() => {
@@ -126,6 +135,16 @@ export default function FoldersEditor({
     const allItems = [...metrics, ...columns];
     return filterItemsBySearch(searchTerm, allItems);
   }, [searchTerm, metrics, columns]);
+
+  // Create lookup maps for metrics and columns by uuid
+  const metricsMap = useMemo(
+    () => new Map(metrics.map(m => [m.uuid, m])),
+    [metrics],
+  );
+  const columnsMap = useMemo(
+    () => new Map(columns.map(c => [c.uuid, c])),
+    [columns],
+  );
 
   // Debounced search
   const debouncedSearch = useCallback(
@@ -141,24 +160,32 @@ export default function FoldersEditor({
 
   // Toolbar actions
   const handleAddFolder = () => {
-    const newFolder = createFolder(t('New Folder'));
+    const newFolder = createFolder('');
     const updatedItems = [newFolder, ...items];
     setItems(updatedItems);
     setEditingFolderId(newFolder.uuid);
     onChange(serializeForAPI(updatedItems));
   };
 
+  // Compute whether all visible items are selected
+  const allVisibleSelected = useMemo(() => {
+    const selectableItems = Array.from(visibleItemIds).filter(id => {
+      const item = fullFlattenedItems.find(i => i.uuid === id);
+      return item && item.type !== FoldersEditorItemType.Folder;
+    });
+    return (
+      selectableItems.length > 0 &&
+      selectableItems.every(id => selectedItemIds.has(id))
+    );
+  }, [fullFlattenedItems, visibleItemIds, selectedItemIds]);
+
   const handleSelectAll = () => {
     // Only select metrics and columns (not folders)
-    const fullFlattened = flattenTree(items);
     const itemsToSelect = new Set(
       Array.from(visibleItemIds).filter(id => {
-        const item = fullFlattened.find(i => i.uuid === id);
+        const item = fullFlattenedItems.find(i => i.uuid === id);
         return item && item.type !== FoldersEditorItemType.Folder;
       }),
-    );
-    const allVisibleSelected = Array.from(itemsToSelect).every(id =>
-      selectedItemIds.has(id),
     );
 
     if (allVisibleSelected) {
@@ -169,22 +196,20 @@ export default function FoldersEditor({
   };
 
   const handleResetToDefault = () => {
-    Modal.confirm({
-      title: t('Reset to default folders?'),
-      content: t(
-        'This will reorganize all metrics and columns into default folders. Any custom folders will be removed.',
-      ),
-      okText: t('Reset'),
-      okType: 'danger',
-      cancelText: t('Cancel'),
-      onOk: () => {
-        const resetFolders = resetToDefault(metrics, columns);
-        setItems(resetFolders);
-        setSelectedItemIds(new Set());
-        setEditingFolderId(null);
-        onChange(serializeForAPI(resetFolders));
-      },
-    });
+    setShowResetConfirm(true);
+  };
+
+  const handleConfirmReset = () => {
+    const resetFolders = resetToDefault(metrics, columns);
+    setItems(resetFolders);
+    setSelectedItemIds(new Set());
+    setEditingFolderId(null);
+    setShowResetConfirm(false);
+    onChange(serializeForAPI(resetFolders));
+  };
+
+  const handleCancelReset = () => {
+    setShowResetConfirm(false);
   };
 
   // Drag handlers
@@ -228,30 +253,30 @@ export default function FoldersEditor({
       return;
     }
 
-    // Use FULL flattened tree (not the filtered one from state)
+    // Use fullFlattenedItems (memoized full tree)
     // The filtered flattenedItems excludes children of active/collapsed items for display
     // But we need all items to properly rebuild the tree
-    const fullFlattened = flattenTree(items);
-
-    const activeIndex = fullFlattened.findIndex(
+    const activeIndex = fullFlattenedItems.findIndex(
       ({ uuid }) => uuid === active.id,
     );
-    const overIndex = fullFlattened.findIndex(({ uuid }) => uuid === overId);
+    const overIndex = fullFlattenedItems.findIndex(
+      ({ uuid }) => uuid === overId,
+    );
 
     if (activeIndex === -1 || overIndex === -1) {
       return;
     }
 
     // Get all items being dragged
-    const draggedItems = fullFlattened.filter(item =>
+    const draggedItems = fullFlattenedItems.filter(item =>
       itemsBeingDragged.includes(item.uuid),
     );
 
     // Recalculate projection using the full flattened tree (not the filtered one)
     // The projected value from state uses flattenedItems which excludes active item's children
-    // We need to recalculate using fullFlattened for accurate positioning
+    // We need to recalculate using fullFlattenedItems for accurate positioning
     let projectedPosition = getProjection(
-      fullFlattened,
+      fullFlattenedItems,
       active.id,
       overId,
       offsetLeft,
@@ -260,7 +285,7 @@ export default function FoldersEditor({
 
     // If dropping on empty state, force it to be a child of that folder
     if (isEmptyDrop) {
-      const targetFolder = fullFlattened[overIndex];
+      const targetFolder = fullFlattenedItems[overIndex];
       projectedPosition = {
         depth: targetFolder.depth + 1,
         maxDepth: targetFolder.depth + 1,
@@ -284,16 +309,16 @@ export default function FoldersEditor({
 
     // Validate drop based on target folder type restrictions
     if (projectedPosition && projectedPosition.parentId) {
-      const targetFolder = fullFlattened.find(
+      const targetFolder = fullFlattenedItems.find(
         ({ uuid }) => uuid === projectedPosition.parentId,
       );
 
       // Check if target is a default folder with type restrictions
       if (targetFolder) {
         const isDefaultMetricsFolder =
-          targetFolder.name === 'Metrics' && targetFolder.depth === 0;
+          targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID;
         const isDefaultColumnsFolder =
-          targetFolder.name === 'Columns' && targetFolder.depth === 0;
+          targetFolder.uuid === DEFAULT_COLUMNS_FOLDER_UUID;
 
         // Validate type restrictions for default folders
         // Check if any dragged item violates the folder type restriction
@@ -302,14 +327,14 @@ export default function FoldersEditor({
             isDefaultMetricsFolder &&
             draggedItem.type === FoldersEditorItemType.Column
           ) {
-            // Can't drop column into Metrics folder
+            addWarningToast(t('This folder only accepts metrics'));
             return;
           }
           if (
             isDefaultColumnsFolder &&
             draggedItem.type === FoldersEditorItemType.Metric
           ) {
-            // Can't drop metric into Columns folder
+            addWarningToast(t('This folder only accepts columns'));
             return;
           }
         }
@@ -317,45 +342,49 @@ export default function FoldersEditor({
     }
 
     // Use projected depth and parent if available
-    let newItems = fullFlattened;
+    let newItems = fullFlattenedItems;
 
     // Update depth and parent based on projection for all dragged items
     if (projectedPosition) {
-      const activeItem = fullFlattened[activeIndex];
+      const activeItem = fullFlattenedItems[activeIndex];
       const depthChange = projectedPosition.depth - activeItem.depth;
 
       // Build a set of all items to update (dragged items + their descendants)
+      // parentId: null means root level, undefined means don't change parentId
       const itemsToUpdate = new Map<
         string,
-        { depth: number; parentId?: string }
+        { depth: number; parentId: string | null | undefined }
       >();
 
       // First, mark all dragged items for update
       draggedItems.forEach(item => {
         if (item.uuid === active.id) {
           // The active item gets the projected position
+          // Use null explicitly for root level (parentId: null means root)
           itemsToUpdate.set(item.uuid, {
             depth: projectedPosition.depth,
-            parentId: projectedPosition.parentId ?? undefined,
+            parentId: projectedPosition.parentId,
           });
         } else {
           // Other dragged items get the same depth change and parent as active item
           itemsToUpdate.set(item.uuid, {
             depth: item.depth + depthChange,
-            parentId: projectedPosition.parentId ?? undefined,
+            parentId: projectedPosition.parentId,
           });
         }
       });
 
       // Collect descendants of any folders being dragged
+      // Descendants keep their existing parentId (only depth changes)
       const collectDescendants = (
         parentId: string,
         parentDepthChange: number,
       ) => {
-        fullFlattened.forEach(item => {
+        fullFlattenedItems.forEach(item => {
           if (item.parentId === parentId && !itemsToUpdate.has(item.uuid)) {
             itemsToUpdate.set(item.uuid, {
               depth: item.depth + parentDepthChange,
+              parentId: undefined, // Keep existing parentId
             });
             if (item.type === FoldersEditorItemType.Folder) {
               collectDescendants(item.uuid, parentDepthChange);
@@ -371,13 +400,16 @@ export default function FoldersEditor({
       });
 
       // Update depths and parentIds
-      newItems = fullFlattened.map(item => {
+      newItems = fullFlattenedItems.map(item => {
         const update = itemsToUpdate.get(item.uuid);
         if (update) {
+          // parentId: null means root level, undefined means keep existing parentId
+          const newParentId =
+            update.parentId === undefined ? item.parentId : update.parentId;
           return {
             ...item,
             depth: update.depth,
-            ...(update.parentId !== undefined && { parentId: update.parentId }),
+            parentId: newParentId,
           };
         }
         return item;
@@ -385,14 +417,14 @@ export default function FoldersEditor({
     }
 
     // Extract all items being moved (dragged items + their descendants)
-    // IMPORTANT: We need to collect descendants from the ORIGINAL fullFlattened array
+    // IMPORTANT: We need to collect descendants from the ORIGINAL fullFlattenedItems array
     // because newItems may have updated parentIds that break the parent-child relationships
     const itemsToMoveIndices: number[] = [];
     const itemsToMoveIds = new Set(itemsBeingDragged);
 
     // Collect all descendants of dragged folders
     const collectDescendantIds = (parentId: string) => {
-      fullFlattened.forEach(item => {
+      fullFlattenedItems.forEach(item => {
         if (item.parentId === parentId && !itemsToMoveIds.has(item.uuid)) {
           itemsToMoveIds.add(item.uuid);
           if (item.type === FoldersEditorItemType.Folder) {
@@ -409,7 +441,7 @@ export default function FoldersEditor({
     });
 
     // Find indices of all items to move
-    fullFlattened.forEach((item, idx) => {
+    fullFlattenedItems.forEach((item, idx) => {
       if (itemsToMoveIds.has(item.uuid)) {
         itemsToMoveIndices.push(idx);
       }
@@ -557,24 +589,92 @@ export default function FoldersEditor({
     return flattenedItems.find(({ uuid }) => uuid === activeId);
   }, [activeId, flattenedItems]);
 
+  // Determine which items are the last child of their parent folder
+  const lastChildIds = useMemo(() => {
+    const lastChildren = new Set<string>();
+
+    // Group items by their parentId
+    const childrenByParent = new Map<string | null, string[]>();
+
+    flattenedItems.forEach(item => {
+      const parentKey = item.parentId;
+      if (!childrenByParent.has(parentKey)) {
+        childrenByParent.set(parentKey, []);
+      }
+      childrenByParent.get(parentKey)!.push(item.uuid);
+    });
+
+    // For each parent, mark the last child
+    childrenByParent.forEach(children => {
+      if (children.length > 0) {
+        lastChildren.add(children[children.length - 1]);
+      }
+    });
+
+    return lastChildren;
+  }, [flattenedItems]);
+
+  // Get the types of items being dragged (for forbidden drop visual feedback)
+  const draggedItemTypes = useMemo(() => {
+    if (draggedItemIds.size === 0) {
+      return new Set<FoldersEditorItemType>();
+    }
+    const types = new Set<FoldersEditorItemType>();
+    draggedItemIds.forEach(id => {
+      const item = fullFlattenedItems.find(i => i.uuid === id);
+      if (item) {
+        types.add(item.type);
+      }
+    });
+    return types;
+  }, [draggedItemIds, fullFlattenedItems]);
+
   return (
     <FoldersContainer>
+      {/* Reset confirmation modal */}
+      <Modal
+        title={t('Reset to default folders?')}
+        show={showResetConfirm}
+        onHide={handleCancelReset}
+        onHandledPrimaryAction={handleConfirmReset}
+        primaryButtonName={t('Reset')}
+        primaryButtonStyle="danger"
+      >
+        {t(
+          'This will reorganize all metrics and columns into default folders. Any custom folders will be removed.',
+        )}
+      </Modal>
       {/* Toolbar */}
       <FoldersToolbar>
         <FoldersSearch>
-          <Input.Search
-            placeholder={t('Search metrics and columns...')}
+          <Input
+            placeholder={t('Search all metrics & columns')}
             onChange={handleSearch}
             allowClear
+            prefix={<Icons.SearchOutlined />}
           />
         </FoldersSearch>
         <FoldersActions>
-          <Button onClick={handleAddFolder}>{t('Add folder')}</Button>
-          <Button onClick={handleSelectAll}>
-            {selectedItemIds.size > 0 ? t('Deselect All') : t('Select All')}
+          <Button
+            buttonStyle="link"
+            onClick={handleAddFolder}
+            icon={<Icons.PlusOutlined />}
+          >
+            {t('Add folder')}
           </Button>
-          <Button onClick={handleResetToDefault} danger>
-            {t('Reset to Default')}
+          <Button
+            buttonStyle="link"
+            onClick={handleSelectAll}
+            icon={<Icons.CheckOutlined />}
+          >
+            {allVisibleSelected ? t('Deselect all') : t('Select all')}
+          </Button>
+          <Button
+            buttonStyle="link"
+            onClick={handleResetToDefault}
+            icon={<Icons.HistoryOutlined />}
+          >
+            {t('Reset all folders to default')}
           </Button>
         </FoldersActions>
       </FoldersToolbar>
@@ -615,8 +715,8 @@ export default function FoldersEditor({
                   isCollapsed={collapsedIds.has(item.uuid)}
                   isSelected={selectedItemIds.has(item.uuid)}
                   isEditing={editingFolderId === item.uuid}
-                  isDefaultFolder={isDefaultFolder(item.name)}
-                  childCount={childCount}
+                  isDefaultFolder={isDefaultFolder(item.uuid)}
+                  isLastChild={lastChildIds.has(item.uuid)}
                   showEmptyState={showEmptyState}
                   onToggleCollapse={() => handleToggleCollapse(item.uuid)}
                   onSelect={
@@ -626,6 +726,9 @@ export default function FoldersEditor({
                   }
                   onStartEdit={() => handleStartEdit(item.uuid)}
                   onFinishEdit={newName => handleFinishEdit(item.uuid, newName)}
+                  metric={metricsMap.get(item.uuid)}
+                  column={columnsMap.get(item.uuid)}
+                  draggedItemTypes={draggedItemTypes}
                 />
               );
             })}

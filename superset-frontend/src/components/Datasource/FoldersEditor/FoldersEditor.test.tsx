@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactElement } from 'react';
 import {
   render,
   screen,
@@ -23,15 +24,31 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { Metric } from '@superset-ui/chart-controls';
+import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import FoldersEditor from '.';
-import { Column } from './types';
 import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
 } from './folderUtils';
 import { FoldersEditorItemType } from '../types';
+
+// Wrap render with useRedux: true since FoldersEditor uses useToasts which requires Redux
+const renderEditor = (ui: ReactElement, options = {}) =>
+  render(ui, { useRedux: true, ...options });
+
+// Mock window.crypto.randomUUID for tests
+let mockUuidCounter = 0;
+Object.defineProperty(window, 'crypto', {
+  value: {
+    ...window.crypto,
+    randomUUID: () => `mock-uuid-${mockUuidCounter++}`,
+  },
+});
+
+beforeEach(() => {
+  mockUuidCounter = 0;
+});
 
 const mockMetrics: Metric[] = [
   {
@@ -48,7 +65,7 @@ const mockMetrics: Metric[] = [
   },
 ];
 
-const mockColumns: Column[] = [
+const mockColumns: ColumnMeta[] = [
   {
     uuid: 'col1',
     column_name: 'id',
@@ -89,14 +106,14 @@ const defaultProps = {
 };
 
 test('renders FoldersEditor with folders', () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
 test('renders search input', () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   expect(
     screen.getByPlaceholderText('Search all metrics & columns'),
@@ -104,7 +121,7 @@ test('renders search input', () => {
 });
 
 test('renders action buttons when in edit mode', () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   expect(screen.getByText('Add folder')).toBeInTheDocument();
   expect(screen.getByText('Select all')).toBeInTheDocument();
@@ -112,7 +129,7 @@ test('renders action buttons when in edit mode', () => {
 });
 
 test('renders action buttons (always enabled regardless of isEditMode)', () => {
-  render(<FoldersEditor {...defaultProps} isEditMode={false} />);
+  renderEditor(<FoldersEditor {...defaultProps} isEditMode={false} />);
 
   // Buttons should be enabled even when isEditMode is false
   // The Folders feature is always editable when the tab is visible
@@ -122,24 +139,23 @@ test('renders action buttons (always enabled regardless of isEditMode)', () => {
 });
 
 test('adds a new folder when Add folder button is clicked', async () => {
-  const onChange = jest.fn();
-  render(<FoldersEditor {...defaultProps} onChange={onChange} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   const addButton = screen.getByText('Add folder');
   fireEvent.click(addButton);
 
+  // New folder appears in the UI with an empty input and placeholder
   await waitFor(() => {
-    expect(onChange).toHaveBeenCalled();
-    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1];
-    const folders = lastCall[0];
-    expect(folders).toHaveLength(3);
-    // New folder is added at the beginning of the array
-    expect(folders[0].name).toBe('New Folder');
+    const input = screen.getByPlaceholderText(
+      'Name your folder and to edit it later, click on the folder name',
+    );
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveValue('');
   });
 });
 
 test('filters items when searching', async () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
@@ -152,7 +168,7 @@ test('filters items when searching', async () => {
 });
 
 test('selects all items when Select all is clicked', async () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   const selectAllButton = screen.getByText('Select all');
   fireEvent.click(selectAllButton);
@@ -170,22 +186,22 @@ test('selects all items when Select all is clicked', async () => {
 });
 
 test('expands and collapses folders', async () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   // Folder should be expanded by default, so Count should be visible
   expect(screen.getByText('Count')).toBeInTheDocument();
 
-  // Click to collapse - click on the first caret icon to toggle folder
-  const caretIcons = screen.getAllByRole('img', { name: 'caret-down' });
-  fireEvent.click(caretIcons[0]);
+  // Click to collapse - click on the DownOutlined icon to toggle folder
+  const downIcons = screen.getAllByRole('img', { name: 'down' });
+  fireEvent.click(downIcons[0]);
 
   await waitFor(() => {
     expect(screen.queryByText('Count')).not.toBeInTheDocument();
   });
 
-  // Click to expand again - the icon should now be caret-right
-  const rightCaretIcons = screen.getAllByRole('img', { name: 'caret-right' });
-  fireEvent.click(rightCaretIcons[0]);
+  // Click to expand again - the icon should now be RightOutlined
+  const rightIcons = screen.getAllByRole('img', { name: 'right' });
+  fireEvent.click(rightIcons[0]);
 
   await waitFor(() => {
     expect(screen.getByText('Count')).toBeInTheDocument();
@@ -194,7 +210,7 @@ test('expands and collapses folders', async () => {
 
 test('edits folder name when clicked in edit mode', async () => {
   const onChange = jest.fn();
-  render(
+  renderEditor(
     <FoldersEditor
       {...defaultProps}
       onChange={onChange}
@@ -203,7 +219,14 @@ test('edits folder name when clicked in edit mode', async () => {
           uuid: 'custom-folder',
           type: FoldersEditorItemType.Folder,
           name: 'Custom Folder',
-          children: [],
+          children: [
+            // Need at least one child for folder to be serialized (empty folders are filtered out)
+            {
+              uuid: 'metric1',
+              type: FoldersEditorItemType.Metric,
+              name: 'Count',
+            },
+          ],
         },
       ]}
     />,
@@ -213,8 +236,8 @@ test('edits folder name when clicked in edit mode', async () => {
   fireEvent.click(folderName);
 
   const input = screen.getByDisplayValue('Custom Folder');
-  userEvent.clear(input);
-  userEvent.type(input, 'Updated Folder');
+  await userEvent.clear(input);
+  await userEvent.type(input, 'Updated Folder');
   fireEvent.blur(input);
 
   await waitFor(() => {
@@ -226,27 +249,27 @@ test('edits folder name when clicked in edit mode', async () => {
 });
 
 test('creates default folders when none exist', () => {
-  render(<FoldersEditor {...defaultProps} folders={[]} />);
+  renderEditor(<FoldersEditor {...defaultProps} folders={[]} />);
 
   expect(screen.getByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
 test('shows confirmation modal when resetting to default', async () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   const resetButton = screen.getByText('Reset all folders to default');
   fireEvent.click(resetButton);
 
   await waitFor(() => {
-    expect(
-      screen.getByText('Reset all folders to default?'),
-    ).toBeInTheDocument();
+    // Modal may render multiple elements with the same text (e.g., in portal)
+    const modalTexts = screen.getAllByText('Reset to default folders?');
+    expect(modalTexts.length).toBeGreaterThan(0);
   });
 });
 
 test('renders sortable drag handles for folders', () => {
-  render(
+  renderEditor(
     <FoldersEditor
       {...defaultProps}
       folders={[
@@ -266,12 +289,15 @@ test('renders sortable drag handles for folders', () => {
     />,
   );
 
-  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
-  expect(dragHandles.length).toBeGreaterThanOrEqual(2);
+  // @dnd-kit adds aria-roledescription="sortable" to sortable elements
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThanOrEqual(2);
 });
 
 test('applies @dnd-kit dragging styles when folder is being dragged', () => {
-  render(
+  renderEditor(
     <FoldersEditor
       {...defaultProps}
       folders={[
@@ -285,33 +311,37 @@ test('applies @dnd-kit dragging styles when folder is being dragged', () => {
     />,
   );
 
-  // The drag handle should have the correct attributes for @dnd-kit
-  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
-  expect(dragHandles.length).toBeGreaterThan(0);
+  // @dnd-kit adds aria-roledescription="sortable" and role="button" to sortable elements
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThan(0);
 
-  // Each handle should have @dnd-kit attributes
-  dragHandles.forEach(handle => {
-    expect(handle).toHaveAttribute('aria-roledescription', 'sortable');
-    expect(handle).toHaveAttribute('role', 'button');
+  // Each sortable element should have @dnd-kit attributes
+  sortableElements.forEach(element => {
+    expect(element).toHaveAttribute('aria-roledescription', 'sortable');
+    expect(element).toHaveAttribute('role', 'button');
   });
 });
 
 test('renders @dnd-kit sortable context', () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   // Just test that the basic DndContext is working
   // by checking for the presence of @dnd-kit specific attributes
-  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
-  expect(dragHandles.length).toBeGreaterThan(0);
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThan(0);
 
   // Test that sortable attributes are present
-  dragHandles.forEach(handle => {
-    expect(handle).toHaveAttribute('aria-roledescription', 'sortable');
+  sortableElements.forEach(element => {
+    expect(element).toHaveAttribute('aria-roledescription', 'sortable');
   });
 });
 
 test('folders are rendered with proper @dnd-kit integration', () => {
-  render(
+  renderEditor(
     <FoldersEditor
       {...defaultProps}
       folders={[
@@ -327,9 +357,13 @@ test('folders are rendered with proper @dnd-kit integration', () => {
 
   // Test that the folder appears and has drag functionality
   expect(screen.getByText('Test Folder')).toBeInTheDocument();
-  const dragHandle = screen.getAllByTitle('Drag to reorder or nest')[0];
-  expect(dragHandle).toHaveAttribute('tabindex', '0');
-  expect(dragHandle).toHaveAttribute('role', 'button');
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThan(0);
+  const sortableElement = sortableElements[0];
+  expect(sortableElement).toHaveAttribute('tabindex', '0');
+  expect(sortableElement).toHaveAttribute('role', 'button');
 });
 
 test('items are sortable with @dnd-kit', () => {
@@ -351,7 +385,7 @@ test('items are sortable with @dnd-kit', () => {
     ],
   };
 
-  render(<FoldersEditor {...testProps} />);
+  renderEditor(<FoldersEditor {...testProps} />);
 
   // Expand folder to show items
   const metricsFolder = screen.getByText('Metrics');
@@ -370,7 +404,7 @@ test('items are sortable with @dnd-kit', () => {
 });
 
 test('component renders with proper drag and drop structure', () => {
-  render(<FoldersEditor {...defaultProps} />);
+  renderEditor(<FoldersEditor {...defaultProps} />);
 
   // Verify basic structure is present
   expect(
@@ -379,13 +413,15 @@ test('component renders with proper drag and drop structure', () => {
   expect(screen.getByText('Add folder')).toBeInTheDocument();
 
   // Verify DndContext and sortable elements are working
-  const dragHandles = screen.getAllByTitle('Drag to reorder or nest');
-  expect(dragHandles.length).toBeGreaterThan(0);
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThan(0);
 
-  // Each drag handle should have sortable attributes
-  dragHandles.forEach(handle => {
-    expect(handle).toHaveAttribute('aria-roledescription', 'sortable');
-    expect(handle).toHaveAttribute('role', 'button');
+  // Each sortable element should have @dnd-kit attributes
+  sortableElements.forEach(element => {
+    expect(element).toHaveAttribute('aria-roledescription', 'sortable');
+    expect(element).toHaveAttribute('role', 'button');
   });
 });
 
@@ -427,7 +463,7 @@ test('drag functionality integrates properly with selection state', () => {
     ],
   };
 
-  render(<FoldersEditor {...testProps} />);
+  renderEditor(<FoldersEditor {...testProps} />);
 
   // Expand folder to show items
   const metricsFolder = screen.getByText('Metrics');

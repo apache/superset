@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Metric } from '@superset-ui/chart-controls';
+import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
   DatasourceFolder,
   DatasourceFolderItem,
 } from 'src/explore/components/DatasourcePanel/types';
 import { UniqueIdentifier } from '@dnd-kit/core';
-import { Column } from './types';
 import { FoldersEditorItemType } from '../types';
 
 export const DEFAULT_METRICS_FOLDER_UUID = 'default-metric-folder-uuid';
@@ -197,12 +196,12 @@ export const moveItems = (
 
 export const resetToDefault = (
   metrics: Metric[],
-  columns: Column[],
+  columns: ColumnMeta[],
 ): DatasourceFolder[] => {
   const metricsFolder: DatasourceFolder = {
     uuid: DEFAULT_METRICS_FOLDER_UUID,
     type: FoldersEditorItemType.Folder,
-    name: 'Metrics',
+    name: t('Metrics'),
     children: metrics.map(m => ({
       type: FoldersEditorItemType.Metric as const,
       uuid: m.uuid,
@@ -213,7 +212,7 @@ export const resetToDefault = (
   const columnsFolder: DatasourceFolder = {
     uuid: DEFAULT_COLUMNS_FOLDER_UUID,
     type: FoldersEditorItemType.Folder,
-    name: 'Columns',
+    name: t('Columns'),
     children: columns.map(c => ({
       type: FoldersEditorItemType.Column as const,
       uuid: c.uuid,
@@ -226,7 +225,7 @@ export const resetToDefault = (
 
 export const filterItemsBySearch = (
   searchTerm: string,
-  items: Array<Metric | Column>,
+  items: Array<Metric | ColumnMeta>,
 ): Set<string> => {
   const lowerSearch = searchTerm.toLowerCase();
   const matchingIds = new Set<string>();
@@ -255,7 +254,7 @@ export const canDropFolder = (
   }
   // Prevent dropping default folders (Metrics/Columns) into other folders
   const draggedFolder = findFolderById(folderId, folders);
-  if (draggedFolder && isDefaultFolder(draggedFolder.name)) {
+  if (draggedFolder && isDefaultFolder(draggedFolder.uuid)) {
     return false;
   }
 
@@ -268,16 +267,16 @@ export const canDropItems = (
   targetFolderId: string,
   folders: DatasourceFolder[],
   metrics: Metric[],
-  columns: Column[],
+  columns: ColumnMeta[],
 ): boolean => {
   const targetFolder = findFolderById(targetFolderId, folders);
   if (!targetFolder) return false;
 
-  if (targetFolder.name === 'Metrics') {
+  if (targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID) {
     return itemIds.every(id => metrics.some(m => m.uuid === id));
   }
 
-  if (targetFolder.name === 'Columns') {
+  if (targetFolder.uuid === DEFAULT_COLUMNS_FOLDER_UUID) {
     return itemIds.every(id => columns.some(c => c.uuid === id));
   }
 
@@ -339,7 +338,7 @@ export const validateFolders = (
         errors.push(t('Folder must have a name'));
       }
 
-      if (folder.name === 'Metrics' && folder.children) {
+      if (folder.uuid === DEFAULT_METRICS_FOLDER_UUID && folder.children) {
         const hasColumns = folder.children.some(
           child => child.type === 'column',
         );
@@ -348,7 +347,7 @@ export const validateFolders = (
         }
       }
 
-      if (folder.name === 'Columns' && folder.children) {
+      if (folder.uuid === DEFAULT_COLUMNS_FOLDER_UUID && folder.children) {
         const hasMetrics = folder.children.some(
           child => child.type === 'metric',
         );
@@ -381,7 +380,7 @@ export const cleanupFolders = (
   const cleanRecursive = (items: DatasourceFolder[]): DatasourceFolder[] =>
     items
       .filter(folder => {
-        if (folder.name === 'Metrics' || folder.name === 'Columns') {
+        if (isDefaultFolder(folder.uuid)) {
           return true;
         }
         return folder.children && folder.children.length > 0;
@@ -401,8 +400,9 @@ export const cleanupFolders = (
   return cleanRecursive(folders);
 };
 
-export const isDefaultFolder = (folderName: string): boolean =>
-  folderName === 'Metrics' || folderName === 'Columns';
+export const isDefaultFolder = (folderId: string): boolean =>
+  folderId === DEFAULT_METRICS_FOLDER_UUID ||
+  folderId === DEFAULT_COLUMNS_FOLDER_UUID;
 
 export const getAllSelectedItems = (
   selectedItemIds: Set<string>,
@@ -423,7 +423,7 @@ export const areAllVisibleItemsSelected = (
 const enrichFolderChildren = (
   folders: DatasourceFolder[],
   metrics: Metric[],
-  columns: Column[],
+  columns: ColumnMeta[],
 ): DatasourceFolder[] => {
   const metricMap = new Map(metrics.map(m => [m.uuid, m]));
   const columnMap = new Map(columns.map(c => [c.uuid, c]));
@@ -481,7 +481,7 @@ const enrichFolderChildren = (
 export const ensureDefaultFolders = (
   folders: DatasourceFolder[],
   metrics: Metric[],
-  columns: Column[],
+  columns: ColumnMeta[],
 ): DatasourceFolder[] => {
   if (folders.length === 0) {
     return resetToDefault(metrics, columns);
