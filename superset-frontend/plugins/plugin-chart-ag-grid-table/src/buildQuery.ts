@@ -453,7 +453,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ];
       }
 
-      // Apply AG Grid filters converted to SQL WHERE/HAVING clauses
+      // Apply AG Grid filters as SQL WHERE/HAVING clauses
       if (ownState.sqlClauses) {
         const { whereClause, havingClause } = classifySQLClauses(
           ownState.sqlClauses as Record<string, string>,
@@ -462,6 +462,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         if (whereClause || havingClause) {
           queryObject.extras = {
             ...queryObject.extras,
+            transpile_to_dialect: true,
             ...(whereClause && {
               where: queryObject.extras?.where
                 ? `${queryObject.extras.where} AND ${whereClause}`
