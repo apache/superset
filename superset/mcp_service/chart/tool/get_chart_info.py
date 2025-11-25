@@ -32,12 +32,14 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
 @mcp_auth_hook
+@parse_request(GetChartInfoRequest)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:

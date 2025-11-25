@@ -293,7 +293,113 @@ def my_function(
 - Still import `List`, `Dict`, `Any`, etc. from typing (for now)
 - All new code must follow this pattern
 
-### 6. Error Handling
+### 6. Flexible Input Parsing (JSON String or Object)
+
+**MCP tools accept both JSON string and native object formats for parameters** using utilities from `superset.mcp_service.utils.schema_utils`. This makes tools flexible for different client types (LLM clients send objects, CLI tools send JSON strings).
+
+**PREFERRED: Use the `@parse_request` decorator** for tool functions to automatically handle request parsing:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_request
+
+@mcp.tool
+@mcp_auth_hook
+@parse_request(ListChartsRequest)  # Automatically parses string requests!
+async def list_charts(request: ListChartsRequest | str, ctx: Context) -> ChartList:
+    """List charts with filtering and search."""
+    # request is guaranteed to be ListChartsRequest here - no manual parsing needed!
+    await ctx.info(f"Listing charts: page={request.page}")
+    ...
+```
+
+**Benefits:**
+- Eliminates 5 lines of boilerplate code per tool
+- Handles both async and sync functions automatically
+- Works with Claude Code bug (GitHub issue #5504)
+- Cleaner, more maintainable code
+
+**Available utilities for other use cases:**
+
+#### parse_json_or_passthrough
+Parse JSON string or return object as-is:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_passthrough
+
+# Accepts both formats
+config = parse_json_or_passthrough(value, param_name="config")
+# value can be: '{"key": "value"}' (JSON string) OR {"key": "value"} (dict)
+```
+
+#### parse_json_or_list
+Parse to list from JSON, list, or comma-separated string:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+# Accepts multiple formats
+items = parse_json_or_list(value, param_name="items")
+# value can be:
+#   '["a", "b"]' (JSON array)
+#   ["a", "b"] (Python list)
+#   "a, b, c" (comma-separated string)
+```
+
+#### parse_json_or_model
+Parse to Pydantic model from JSON or dict:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_model
+
+# Accepts JSON string or dict
+config = parse_json_or_model(value, ConfigModel, param_name="config")
+# value can be: '{"name": "test"}' OR {"name": "test"}
+```
+
+#### parse_json_or_model_list
+Parse to list of Pydantic models:
+
+```python
+from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+# Accepts JSON array or list of dicts
+filters = parse_json_or_model_list(value, FilterModel, param_name="filters")
+# value can be: '[{"col": "name"}]' OR [{"col": "name"}]
+```
+
+**Using with Pydantic validators:**
+
+```python
+from pydantic import BaseModel, field_validator
+from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+class MyToolRequest(BaseModel):
+    filters: List[FilterModel] = Field(default_factory=list)
+    select_columns: List[str] = Field(default_factory=list)
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v):
+        """Accept both JSON string and list of objects."""
+        return parse_json_or_model_list(v, FilterModel, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v):
+        """Accept JSON array, list, or comma-separated string."""
+        return parse_json_or_list(v, "select_columns")
+```
+
+**Core classes already use these utilities:**
+- `ModelListCore` uses them for `filters` and `select_columns`
+- No need to add parsing logic in individual tools that use core classes
+
+**When to use:**
+- Tool parameters that accept complex objects (dicts, lists)
+- Parameters that may come from CLI tools (JSON strings) or LLM clients (objects)
+- Any field where you want maximum flexibility
+
+### 7. Error Handling
 
 **Use consistent error schemas**:
 

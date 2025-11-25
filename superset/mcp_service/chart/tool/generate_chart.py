@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     URLPreview,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
@@ -49,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
+@parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
