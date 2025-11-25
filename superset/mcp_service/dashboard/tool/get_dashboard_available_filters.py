@@ -19,6 +19,7 @@ Get available filters FastMCP tool
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -39,8 +40,8 @@ async def get_dashboard_available_filters(
     request: str | GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
     """Get available dashboard filter fields and operators."""
-    # Type narrowing: @parse_request decorator ensures request is GetDashboardAvailableFiltersRequest
-    assert isinstance(request, GetDashboardAvailableFiltersRequest)
+    # Type narrowing: @parse_request ensures request is GetDashboardAvailableFiltersRequest
+    request = cast(GetDashboardAvailableFiltersRequest, request)
 
     from superset.daos.dashboard import DashboardDAO
 

@@ -23,6 +23,7 @@ and timeout protection.
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -44,8 +45,8 @@ async def execute_sql(request: str | ExecuteSqlRequest, ctx: Context) -> Execute
 
     Returns query results with security validation and timeout protection.
     """
-    # Type narrowing: @parse_request decorator ensures request is ExecuteSqlRequest
-    assert isinstance(request, ExecuteSqlRequest)
+    # Type narrowing: @parse_request ensures request is ExecuteSqlRequest
+    request = cast(ExecuteSqlRequest, request)
 
     await ctx.info(
         "Starting SQL execution: database_id=%s, timeout=%s, limit=%s, schema=%s"

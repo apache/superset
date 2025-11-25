@@ -19,6 +19,7 @@ Get available dataset filters FastMCP tool
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -39,8 +40,8 @@ async def get_dataset_available_filters(
     request: str | GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
     """Get available dataset filter fields and operators."""
-    # Type narrowing: @parse_request decorator ensures request is GetDatasetAvailableFiltersRequest
-    assert isinstance(request, GetDatasetAvailableFiltersRequest)
+    # Type narrowing: @parse_request ensures request is GetDatasetAvailableFiltersRequest
+    request = cast(GetDatasetAvailableFiltersRequest, request)
 
     from superset.daos.dataset import DatasetDAO
 

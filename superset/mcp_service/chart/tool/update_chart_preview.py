@@ -21,7 +21,7 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any, cast, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -65,8 +65,8 @@ def update_chart_preview(
 
     Returns new form_data_key, preview images, and explore URL.
     """
-    # Type narrowing: @parse_request decorator ensures request is UpdateChartPreviewRequest
-    assert isinstance(request, UpdateChartPreviewRequest)
+    # Type narrowing: @parse_request ensures request is UpdateChartPreviewRequest
+    request = cast(UpdateChartPreviewRequest, request)
 
     start_time = time.time()
 

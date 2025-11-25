@@ -24,6 +24,7 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -50,8 +51,8 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
     """
-    # Type narrowing: @parse_request decorator ensures request is GetDashboardInfoRequest
-    assert isinstance(request, GetDashboardInfoRequest)
+    # Type narrowing: @parse_request ensures request is GetDashboardInfoRequest
+    request = cast(GetDashboardInfoRequest, request)
 
     await ctx.info("Retrieving dashboard information: %s" % (request.identifier,))
     await ctx.debug(

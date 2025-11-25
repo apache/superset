@@ -21,6 +21,7 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -78,8 +79,8 @@ def get_instance_info(
 
     Returns counts, activity metrics, and database types.
     """
-    # Type narrowing: @parse_request decorator ensures request is GetSupersetInstanceInfoRequest
-    assert isinstance(request, GetSupersetInstanceInfoRequest)
+    # Type narrowing: @parse_request ensures request is GetSupersetInstanceInfoRequest
+    request = cast(GetSupersetInstanceInfoRequest, request)
 
     try:
         # Import DAOs at runtime to avoid circular imports

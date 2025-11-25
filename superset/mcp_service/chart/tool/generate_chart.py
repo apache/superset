@@ -20,6 +20,7 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -72,8 +73,8 @@ async def generate_chart(  # noqa: C901
     - Preview URL and explore URL
     - Detailed validation errors with suggestions
     """
-    # Type narrowing: @parse_request decorator ensures request is GenerateChartRequest
-    assert isinstance(request, GenerateChartRequest)
+    # Type narrowing: @parse_request ensures request is GenerateChartRequest
+    request = cast(GenerateChartRequest, request)
 
     start_time = time.time()
     await ctx.info(

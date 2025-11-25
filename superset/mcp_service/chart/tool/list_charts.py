@@ -75,8 +75,8 @@ async def list_charts(request: str | ListChartsRequest, ctx: Context) -> ChartLi
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on
     """
-    # Type narrowing: @parse_request decorator ensures request is ListChartsRequest
-    assert isinstance(request, ListChartsRequest)
+    # Type narrowing: @parse_request ensures request is ListChartsRequest
+    request = cast(ListChartsRequest, request)
 
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"

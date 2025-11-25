@@ -20,7 +20,7 @@ MCP tool: get_chart_preview
 """
 
 import logging
-from typing import Any, Dict, List, Protocol
+from typing import Any, cast, Dict, List, Protocol
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -2028,8 +2028,8 @@ async def get_chart_preview(
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
     """
-    # Type narrowing: @parse_request decorator ensures request is GetChartPreviewRequest
-    assert isinstance(request, GetChartPreviewRequest)
+    # Type narrowing: @parse_request ensures request is GetChartPreviewRequest
+    request = cast(GetChartPreviewRequest, request)
 
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "

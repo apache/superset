@@ -24,6 +24,7 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -49,8 +50,8 @@ async def get_dataset_info(
 
     Returns columns, metrics, and schema details.
     """
-    # Type narrowing: @parse_request decorator ensures request is GetDatasetInfoRequest
-    assert isinstance(request, GetDatasetInfoRequest)
+    # Type narrowing: @parse_request ensures request is GetDatasetInfoRequest
+    request = cast(GetDatasetInfoRequest, request)
 
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)

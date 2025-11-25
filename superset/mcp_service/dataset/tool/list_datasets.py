@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -72,8 +73,8 @@ async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> Dat
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
     """
-    # Type narrowing: @parse_request decorator ensures request is ListDatasetsRequest
-    assert isinstance(request, ListDatasetsRequest)
+    # Type narrowing: @parse_request ensures request is ListDatasetsRequest
+    request = cast(ListDatasetsRequest, request)
 
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"

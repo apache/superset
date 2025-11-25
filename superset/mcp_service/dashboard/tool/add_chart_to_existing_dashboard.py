@@ -22,7 +22,7 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, cast, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -143,8 +143,8 @@ def add_chart_to_existing_dashboard(
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
     """
-    # Type narrowing: @parse_request decorator ensures request is AddChartToDashboardRequest
-    assert isinstance(request, AddChartToDashboardRequest)
+    # Type narrowing: @parse_request ensures request is AddChartToDashboardRequest
+    request = cast(AddChartToDashboardRequest, request)
 
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand

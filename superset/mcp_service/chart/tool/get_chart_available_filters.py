@@ -20,6 +20,7 @@ MCP tool: get_chart_available_filters
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -40,8 +41,8 @@ def get_chart_available_filters(
     request: str | GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:
     """Get available chart filter fields and operators."""
-    # Type narrowing: @parse_request decorator ensures request is GetChartAvailableFiltersRequest
-    assert isinstance(request, GetChartAvailableFiltersRequest)
+    # Type narrowing: @parse_request ensures request is GetChartAvailableFiltersRequest
+    request = cast(GetChartAvailableFiltersRequest, request)
 
     from superset.daos.chart import ChartDAO
 

@@ -20,6 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -53,8 +54,8 @@ async def get_chart_info(
 
     Returns chart details including name, type, and URL.
     """
-    # Type narrowing: @parse_request decorator ensures request is GetChartInfoRequest
-    assert isinstance(request, GetChartInfoRequest)
+    # Type narrowing: @parse_request ensures request is GetChartInfoRequest
+    request = cast(GetChartInfoRequest, request)
 
     from superset.daos.chart import ChartDAO
 

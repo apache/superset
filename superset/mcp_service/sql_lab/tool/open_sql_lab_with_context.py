@@ -22,6 +22,7 @@ Tool for generating SQL Lab URLs with pre-populated query and context.
 """
 
 import logging
+from typing import cast
 from urllib.parse import urlencode
 
 from fastmcp import Context
@@ -45,8 +46,8 @@ def open_sql_lab_with_context(
 
     Returns URL for direct navigation.
     """
-    # Type narrowing: @parse_request decorator ensures request is OpenSqlLabRequest
-    assert isinstance(request, OpenSqlLabRequest)
+    # Type narrowing: @parse_request ensures request is OpenSqlLabRequest
+    request = cast(OpenSqlLabRequest, request)
 
     try:
         from superset.daos.database import DatabaseDAO

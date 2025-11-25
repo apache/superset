@@ -21,6 +21,7 @@ MCP tool: update_chart
 
 import logging
 import time
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -68,8 +69,8 @@ async def update_chart(
     - Updated chart info and metadata
     - Preview URL and explore URL for further editing
     """
-    # Type narrowing: @parse_request decorator ensures request is UpdateChartRequest
-    assert isinstance(request, UpdateChartRequest)
+    # Type narrowing: @parse_request ensures request is UpdateChartRequest
+    request = cast(UpdateChartRequest, request)
 
     start_time = time.time()
 

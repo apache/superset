@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -70,8 +71,8 @@ async def list_dashboards(
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
-    # Type narrowing: @parse_request decorator ensures request is ListDashboardsRequest
-    assert isinstance(request, ListDashboardsRequest)
+    # Type narrowing: @parse_request ensures request is ListDashboardsRequest
+    request = cast(ListDashboardsRequest, request)
 
     from superset.daos.dashboard import DashboardDAO
 
