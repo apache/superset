@@ -39,6 +39,9 @@ async def get_dataset_available_filters(
     request: str | GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
     """Get available dataset filter fields and operators."""
+    # Type narrowing: @parse_request decorator ensures request is GetDatasetAvailableFiltersRequest
+    assert isinstance(request, GetDatasetAvailableFiltersRequest)
+
     from superset.daos.dataset import DatasetDAO
 
     tool = ModelGetAvailableFiltersCore(

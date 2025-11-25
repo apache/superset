@@ -2028,6 +2028,9 @@ async def get_chart_preview(
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
     """
+    # Type narrowing: @parse_request decorator ensures request is GetChartPreviewRequest
+    assert isinstance(request, GetChartPreviewRequest)
+
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "
         "height=%s"

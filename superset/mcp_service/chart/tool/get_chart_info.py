@@ -53,6 +53,9 @@ async def get_chart_info(
 
     Returns chart details including name, type, and URL.
     """
+    # Type narrowing: @parse_request decorator ensures request is GetChartInfoRequest
+    assert isinstance(request, GetChartInfoRequest)
+
     from superset.daos.chart import ChartDAO
 
     await ctx.info(

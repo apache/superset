@@ -50,6 +50,9 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
     """
+    # Type narrowing: @parse_request decorator ensures request is GetDashboardInfoRequest
+    assert isinstance(request, GetDashboardInfoRequest)
+
     await ctx.info("Retrieving dashboard information: %s" % (request.identifier,))
     await ctx.debug(
         "Metadata cache settings: use_cache=%s, refresh_metadata=%s, force_refresh=%s"

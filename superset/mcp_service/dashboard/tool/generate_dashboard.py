@@ -131,6 +131,9 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
+    # Type narrowing: @parse_request decorator ensures request is GenerateDashboardRequest
+    assert isinstance(request, GenerateDashboardRequest)
+
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db

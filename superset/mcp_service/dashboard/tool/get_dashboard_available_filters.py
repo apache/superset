@@ -39,6 +39,9 @@ async def get_dashboard_available_filters(
     request: str | GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
     """Get available dashboard filter fields and operators."""
+    # Type narrowing: @parse_request decorator ensures request is GetDashboardAvailableFiltersRequest
+    assert isinstance(request, GetDashboardAvailableFiltersRequest)
+
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelGetAvailableFiltersCore(

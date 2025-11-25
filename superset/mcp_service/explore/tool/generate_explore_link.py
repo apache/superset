@@ -62,6 +62,9 @@ async def generate_explore_link(
 
     Returns explore URL for immediate use.
     """
+    # Type narrowing: @parse_request decorator ensures request is GenerateExploreLinkRequest
+    assert isinstance(request, GenerateExploreLinkRequest)
+
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
         % (request.dataset_id, request.config.chart_type)

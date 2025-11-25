@@ -143,6 +143,9 @@ def add_chart_to_existing_dashboard(
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
     """
+    # Type narrowing: @parse_request decorator ensures request is AddChartToDashboardRequest
+    assert isinstance(request, AddChartToDashboardRequest)
+
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
         from superset.daos.dashboard import DashboardDAO

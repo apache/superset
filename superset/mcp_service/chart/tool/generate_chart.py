@@ -72,6 +72,9 @@ async def generate_chart(  # noqa: C901
     - Preview URL and explore URL
     - Detailed validation errors with suggestions
     """
+    # Type narrowing: @parse_request decorator ensures request is GenerateChartRequest
+    assert isinstance(request, GenerateChartRequest)
+
     start_time = time.time()
     await ctx.info(
         "Starting chart generation: dataset_id=%s, chart_type=%s, "

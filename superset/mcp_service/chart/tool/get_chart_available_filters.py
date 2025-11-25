@@ -40,6 +40,9 @@ def get_chart_available_filters(
     request: str | GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:
     """Get available chart filter fields and operators."""
+    # Type narrowing: @parse_request decorator ensures request is GetChartAvailableFiltersRequest
+    assert isinstance(request, GetChartAvailableFiltersRequest)
+
     from superset.daos.chart import ChartDAO
 
     tool = ModelGetAvailableFiltersCore(

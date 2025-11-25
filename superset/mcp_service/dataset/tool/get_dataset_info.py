@@ -49,6 +49,9 @@ async def get_dataset_info(
 
     Returns columns, metrics, and schema details.
     """
+    # Type narrowing: @parse_request decorator ensures request is GetDatasetInfoRequest
+    assert isinstance(request, GetDatasetInfoRequest)
+
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
     )

@@ -70,6 +70,9 @@ async def list_dashboards(
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
+    # Type narrowing: @parse_request decorator ensures request is ListDashboardsRequest
+    assert isinstance(request, ListDashboardsRequest)
+
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelListCore(

@@ -45,6 +45,9 @@ def open_sql_lab_with_context(
 
     Returns URL for direct navigation.
     """
+    # Type narrowing: @parse_request decorator ensures request is OpenSqlLabRequest
+    assert isinstance(request, OpenSqlLabRequest)
+
     try:
         from superset.daos.database import DatabaseDAO
 

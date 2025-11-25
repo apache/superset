@@ -44,6 +44,9 @@ async def execute_sql(request: str | ExecuteSqlRequest, ctx: Context) -> Execute
 
     Returns query results with security validation and timeout protection.
     """
+    # Type narrowing: @parse_request decorator ensures request is ExecuteSqlRequest
+    assert isinstance(request, ExecuteSqlRequest)
+
     await ctx.info(
         "Starting SQL execution: database_id=%s, timeout=%s, limit=%s, schema=%s"
         % (request.database_id, request.timeout, request.limit, request.schema_name)

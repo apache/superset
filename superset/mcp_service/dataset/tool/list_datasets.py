@@ -72,6 +72,9 @@ async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> Dat
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
     """
+    # Type narrowing: @parse_request decorator ensures request is ListDatasetsRequest
+    assert isinstance(request, ListDatasetsRequest)
+
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
         % (

@@ -68,6 +68,9 @@ async def update_chart(
     - Updated chart info and metadata
     - Preview URL and explore URL for further editing
     """
+    # Type narrowing: @parse_request decorator ensures request is UpdateChartRequest
+    assert isinstance(request, UpdateChartRequest)
+
     start_time = time.time()
 
     try:

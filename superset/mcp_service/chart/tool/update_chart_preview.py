@@ -65,6 +65,9 @@ def update_chart_preview(
 
     Returns new form_data_key, preview images, and explore URL.
     """
+    # Type narrowing: @parse_request decorator ensures request is UpdateChartPreviewRequest
+    assert isinstance(request, UpdateChartPreviewRequest)
+
     start_time = time.time()
 
     try:
