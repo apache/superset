@@ -19,6 +19,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { QueryColumn, validateNonEmpty } from '@superset-ui/core';
+import glossary from '../../docs/src/resources/glossary';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ExtraControlProps,
