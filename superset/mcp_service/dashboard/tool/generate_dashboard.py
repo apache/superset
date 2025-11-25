@@ -33,6 +33,7 @@ from superset.mcp_service.dashboard.schemas import (
     GenerateDashboardRequest,
     GenerateDashboardResponse,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -119,6 +120,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 
 @mcp.tool
 @mcp_auth_hook
+@parse_request(GenerateDashboardRequest)
 def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:

@@ -36,12 +36,14 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
 @mcp_auth_hook
+@parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
