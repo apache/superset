@@ -49,8 +49,8 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^5.28.1",
-    "caniuse-lite": "^1.0.30001754",
+    "antd": "^5.29.1",
+    "caniuse-lite": "^1.0.30001756",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
     "less": "^4.4.2",
@@ -74,7 +74,7 @@
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.46.4",
-    "eslint": "^9.39.0",
+    "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "eslint-plugin-react": "^7.37.5",
@@ -82,7 +82,7 @@
     "prettier": "^3.6.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.47.0",
-    "webpack": "^5.102.1"
+    "webpack": "^5.103.0"
   },
   "browserslist": {
     "production": [
