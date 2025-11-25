@@ -40,12 +40,15 @@ logger = logging.getLogger(__name__)
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
     hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
     cache_key = f"{key_prefix}{hash_str}"
-    # Log cache key generation for debugging
-    logger.debug(
-        "Cache key generated: %s from dict keys: %s",
-        cache_key,
-        list(values_dict.keys()),
-    )
+
+    if logger.isEnabledFor(logging.DEBUG):
+        # Log cache key generation for debugging
+        logger.debug(
+            "Cache key generated: %s from dict keys: %s",
+            cache_key,
+            list(values_dict.keys()),
+        )
+
     return cache_key
 
 
