@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 @tool
+@parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:

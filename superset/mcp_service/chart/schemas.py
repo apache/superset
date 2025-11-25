@@ -734,6 +734,33 @@ class ListChartsRequest(MetadataCacheControl):
             "specified.",
         ),
     ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[ChartFilter]:
+        """
+        Parse filters from JSON string or list.
+
+        Handles Claude Code bug where objects are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+        return parse_json_or_model_list(v, ChartFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> List[str]:
+        """
+        Parse select_columns from JSON string, list, or CSV string.
+
+        Handles Claude Code bug where arrays are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        return parse_json_or_list(v, "select_columns")
+
     search: Annotated[
         str | None,
         Field(

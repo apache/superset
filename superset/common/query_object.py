@@ -35,7 +35,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.extensions import event_logger
-from superset.sql.parse import sanitize_clause
+from superset.sql.parse import sanitize_clause, transpile_to_dialect
 from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
@@ -337,6 +337,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _sanitize_filters(self) -> None:
         from superset.jinja_context import get_template_processor
 
+        needs_transpilation = self.extras.get("transpile_to_dialect", False)
+
         for param in ("where", "having"):
             clause = self.extras.get(param)
             if clause and self.datasource:
@@ -352,7 +354,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                                 msg=ex.message,
                             )
                         ) from ex
+
                     engine = database.db_engine_spec.engine
+
+                    if needs_transpilation:
+                        clause = transpile_to_dialect(clause, engine)
+
                     sanitized_clause = sanitize_clause(clause, engine)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause

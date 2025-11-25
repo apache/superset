@@ -35,11 +35,13 @@ from superset.mcp_service.dashboard.schemas import (
     GetDashboardInfoRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @tool
+@parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
