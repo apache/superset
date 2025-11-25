@@ -23,6 +23,7 @@ from superset.commands.temporary_cache.get import GetTemporaryCacheCommand
 from superset.commands.temporary_cache.parameters import CommandParameters
 from superset.extensions import cache_manager
 from superset.temporary_cache.utils import cache_key
+from superset.utils import json as json_utils
 
 
 class GetFilterStateCommand(GetTemporaryCacheCommand):
@@ -40,3 +41,25 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)
         return entry.get("value")
+
+    def get_with_name(
+        self, cmd_params: CommandParameters
+    ) -> Optional[dict[str, Optional[str]]]:
+        """
+        Get filter state value and extract name from the JSON value.
+        Returns a dict with 'value' and 'name' keys.
+        """
+        value = self.get(cmd_params)
+        if not value:
+            return None
+
+        name: Optional[str] = None
+        try:
+            value_dict = json_utils.loads(value)
+            # Extract the 'id' field from the JSON value as the name
+            name = value_dict.get("id")
+        except (json_utils.JSONDecodeError, AttributeError, TypeError):
+            # If value is not valid JSON or doesn't have 'id', name remains None
+            pass
+
+        return {"value": value, "name": name}

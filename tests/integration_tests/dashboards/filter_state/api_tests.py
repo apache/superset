@@ -270,6 +270,40 @@ def test_get_dashboard_filter_state(test_client, login_as_admin, dashboard_id: i
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
     assert INITIAL_VALUE == data.get("value")
+    # Verify name property is returned (extracted from value's id field if present)
+    assert "name" in data
+
+
+def test_get_dashboard_filter_state_with_name(
+    test_client, login_as_admin, dashboard_id: int, admin_id: int
+):
+    """Test that GET endpoint returns name property extracted from value's id field."""
+    # Create a filter state with an id field in the value
+    filter_value_with_id = json.dumps({"id": "NATIVE_FILTER_ID", "test": "value"})
+    entry: Entry = {"owner": admin_id, "value": filter_value_with_id}
+    cache_manager.filter_state_cache.set(cache_key(dashboard_id, KEY), entry)
+
+    resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
+    assert resp.status_code == 200
+    data = json.loads(resp.data.decode("utf-8"))
+    assert filter_value_with_id == data.get("value")
+    assert data.get("name") == "NATIVE_FILTER_ID"
+
+
+def test_get_dashboard_filter_state_without_id(
+    test_client, login_as_admin, dashboard_id: int, admin_id: int
+):
+    """Test that GET endpoint returns name as None when value doesn't have id field."""
+    # Create a filter state without an id field
+    filter_value_without_id = json.dumps({"test": "value"})
+    entry: Entry = {"owner": admin_id, "value": filter_value_without_id}
+    cache_manager.filter_state_cache.set(cache_key(dashboard_id, KEY), entry)
+
+    resp = test_client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
+    assert resp.status_code == 200
+    data = json.loads(resp.data.decode("utf-8"))
+    assert filter_value_without_id == data.get("value")
+    assert data.get("name") is None
 
 
 def test_get_access_denied(test_client, login_as, dashboard_id):
