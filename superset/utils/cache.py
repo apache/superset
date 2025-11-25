@@ -105,8 +105,6 @@ def set_and_log_cache(
 # to specify a "far future" date.
 ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
 
-logger = logging.getLogger(__name__)
-
 
 def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:
     """
