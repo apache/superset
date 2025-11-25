@@ -1678,7 +1678,7 @@ def get_metric_type_from_column(
     from superset.connectors.sqla.models import SqlMetric
 
     # Explorable datasources may not have metrics attribute
-    if not hasattr(datasource, "metrics"):
+    if datasource is None or not hasattr(datasource, "metrics"):
         return ""
 
     metric: SqlMetric = next(

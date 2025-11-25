@@ -78,6 +78,19 @@ class ExportDatasetsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
+        # Always set cache_timeout from the property to ensure correct value
+        payload["cache_timeout"] = model.cache_timeout
+
+        # SQLAlchemy returns column names as quoted_name objects which PyYAML cannot
+        # serialize. Convert all keys to regular strings to fix YAML serialization.
+        try:
+            from sqlalchemy.sql.elements import quoted_name
+
+            if any(isinstance(key, quoted_name) for key in payload.keys()):
+                payload = {str(key): value for key, value in payload.items()}
+        except ImportError:
+            pass
+
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 

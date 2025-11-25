@@ -65,9 +65,9 @@ class TestDictImportExport(SupersetTestCase):
         cols_uuids=None,
         metric_names=[],  # noqa: B006
     ):
-        database_name = "main"
+        database = get_example_database()
         name = f"{NAME_PREFIX}{name}"
-        params = {DBREF: id, "database_name": database_name}
+        params = {DBREF: id, "database_name": database.database_name}
 
         if cols_uuids is None:
             cols_uuids = [None] * len(cols_names)
@@ -86,7 +86,11 @@ class TestDictImportExport(SupersetTestCase):
         }
 
         table = SqlaTable(
-            id=id, schema=schema, table_name=name, params=json.dumps(params)
+            id=id,
+            schema=schema,
+            table_name=name,
+            params=json.dumps(params),
+            database=database,
         )
         for col_name, uuid in zip(cols_names, cols_uuids, strict=False):
             table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
