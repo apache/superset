@@ -1227,12 +1227,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         if (column.isMetric || column.isPercentMetric) {
           const aggregatedValue = rows.reduce<number>((acc, row) => {
             const rawValue = row.original?.[column.key];
-            const numValue =
-              typeof rawValue === 'number'
-                ? rawValue
-                : typeof rawValue === 'string'
-                  ? Number(rawValue.replace(/,/g, ''))
-                  : NaN;
+            const numValue = Number(String(rawValue ?? '').replace(/,/g, ''));
             return Number.isFinite(numValue) ? acc + numValue : acc;
           }, 0);
 
