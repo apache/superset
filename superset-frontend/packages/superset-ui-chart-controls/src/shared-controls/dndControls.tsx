@@ -18,6 +18,7 @@
  * under the License.
  */
 import { QueryColumn, t, validateNonEmpty } from '@superset-ui/core';
+import glossary from '../../docs/src/resources/glossary';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ExtraControlProps,

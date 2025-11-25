@@ -17,10 +17,6 @@
  * under the License.
  */
 
-export * from './TranslatorSingleton';
-export * from './types';
 export * from './glossary';
 
 export default {};
-
-export { default as __hack_reexport_translation } from './types';
