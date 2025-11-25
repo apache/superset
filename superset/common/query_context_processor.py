@@ -301,6 +301,19 @@ class QueryContextProcessor:
 
         self.ensure_totals_available()
 
+        # Update cache_values to reflect modifications made by ensure_totals_available()
+        # This ensures cache keys are generated from the actual query state
+        # We merge the original query dict with the updated query dict to preserve
+        # any fields that might not be in to_dict() but were in the original request
+        self._query_context.cache_values["queries"] = [
+            {**cached_query, **query.to_dict()}
+            for cached_query, query in zip(
+                self._query_context.cache_values["queries"],
+                self._query_context.queries,
+                strict=True,
+            )
+        ]
+
         query_results = [
             get_query_results(
                 query_obj.result_type or self._query_context.result_type,

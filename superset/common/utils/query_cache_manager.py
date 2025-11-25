@@ -158,6 +158,8 @@ class QueryCacheManager:
 
         if cache_value := _cache[region].get(key):
             logger.debug("Cache key: %s", key)
+            # Log cache hit for debugging
+            logger.debug("CACHE GET - Key: %s, Region: %s", key, region)
             current_app.config["STATS_LOGGER"].incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
