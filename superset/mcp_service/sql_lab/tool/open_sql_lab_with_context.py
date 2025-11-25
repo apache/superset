@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(
-    request: OpenSqlLabRequest, ctx: Context
+    request: str | OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
     """Generate SQL Lab URL with pre-populated query and context.
 

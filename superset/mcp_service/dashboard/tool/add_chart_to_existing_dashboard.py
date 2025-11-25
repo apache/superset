@@ -137,7 +137,7 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
 @tool
 @parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
-    request: AddChartToDashboardRequest, ctx: Context
+    request: str | AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
     Add chart to existing dashboard. Auto-positions in 2-column grid.

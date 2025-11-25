@@ -62,7 +62,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 @tool
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(
-    request: ListDashboardsRequest, ctx: Context
+    request: str | ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
     including title, slug, and charts.

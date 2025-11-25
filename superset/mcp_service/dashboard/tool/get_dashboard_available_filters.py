@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(GetDashboardAvailableFiltersRequest)
 async def get_dashboard_available_filters(
-    request: GetDashboardAvailableFiltersRequest, ctx: Context
+    request: str | GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
     """Get available dashboard filter fields and operators."""
     from superset.daos.dashboard import DashboardDAO

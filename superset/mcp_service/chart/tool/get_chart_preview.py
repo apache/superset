@@ -2022,7 +2022,7 @@ async def _get_chart_preview_internal(  # noqa: C901
 @tool
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(
-    request: GetChartPreviewRequest, ctx: Context
+    request: str | GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
     """Get chart preview by ID or UUID.
 

@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
-    request: GetDashboardInfoRequest, ctx: Context
+    request: str | GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
     """
     Get dashboard metadata by ID, UUID, or slug.

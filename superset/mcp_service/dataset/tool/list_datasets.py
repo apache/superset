@@ -64,7 +64,7 @@ SORTABLE_DATASET_COLUMNS = [
 
 @tool
 @parse_request(ListDatasetsRequest)
-async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
+async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
     Returns dataset metadata including columns and metrics.

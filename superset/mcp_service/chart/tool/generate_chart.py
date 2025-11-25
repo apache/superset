@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
-    request: GenerateChartRequest, ctx: Context
+    request: str | GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
     """Create and save a chart in Superset.
 

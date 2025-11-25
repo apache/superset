@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
-    request: GetDatasetInfoRequest, ctx: Context
+    request: str | GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """Get dataset metadata by ID or UUID.
 

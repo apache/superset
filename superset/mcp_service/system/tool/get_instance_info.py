@@ -72,7 +72,7 @@ _instance_info_core = InstanceInfoCore(
 @tool
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
-    request: GetSupersetInstanceInfoRequest, ctx: Context
+    request: str | GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:
     """Get Superset instance statistics.
 

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(GetChartInfoRequest)
 async def get_chart_info(
-    request: GetChartInfoRequest, ctx: Context
+    request: str | GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 

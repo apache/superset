@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(ExecuteSqlRequest)
-async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
+async def execute_sql(request: str | ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 
     Returns query results with security validation and timeout protection.

@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(UpdateChartRequest)
 async def update_chart(
-    request: UpdateChartRequest, ctx: Context
+    request: str | UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
 

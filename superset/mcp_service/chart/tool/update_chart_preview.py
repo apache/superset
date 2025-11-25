@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 @tool
 @parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(
-    request: UpdateChartPreviewRequest, ctx: Context
+    request: str | UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
     """Update cached chart preview without saving.
 

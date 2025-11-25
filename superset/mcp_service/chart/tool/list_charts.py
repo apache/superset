@@ -67,7 +67,7 @@ SORTABLE_CHART_COLUMNS = [
 
 @tool
 @parse_request(ListChartsRequest)
-async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
+async def list_charts(request: str | ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, and viz_type.
