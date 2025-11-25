@@ -20,7 +20,7 @@ MCP tool: get_chart_preview
 """
 
 import logging
-from typing import Any, cast, Dict, List, Protocol
+from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -2021,18 +2021,13 @@ async def _get_chart_preview_internal(  # noqa: C901
 
 @tool
 @parse_request(GetChartPreviewRequest)
-# NOTE: Accept str | GetChartPreviewRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def get_chart_preview(
-    request: str | GetChartPreviewRequest, ctx: Context
+    request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
     """Get chart preview by ID or UUID.
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
     """
-    # Type narrowing: @parse_request ensures request is GetChartPreviewRequest
-    request = cast(GetChartPreviewRequest, request)
 
     await ctx.info(
         "Starting chart preview generation: identifier=%s, format=%s, width=%s, "

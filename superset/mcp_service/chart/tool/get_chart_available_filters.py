@@ -20,7 +20,6 @@ MCP tool: get_chart_available_filters
 """
 
 import logging
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -37,15 +36,10 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GetChartAvailableFiltersRequest)
-# NOTE: Accept str | GetChartAvailableFiltersRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 def get_chart_available_filters(
-    request: str | GetChartAvailableFiltersRequest, ctx: Context
+    request: GetChartAvailableFiltersRequest, ctx: Context
 ) -> ChartAvailableFiltersResponse:
     """Get available chart filter fields and operators."""
-    # Type narrowing: @parse_request ensures request is GetChartAvailableFiltersRequest
-    request = cast(GetChartAvailableFiltersRequest, request)
 
     from superset.daos.chart import ChartDAO
 

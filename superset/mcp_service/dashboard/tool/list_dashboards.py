@@ -23,7 +23,6 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -62,11 +61,8 @@ SORTABLE_DASHBOARD_COLUMNS = [
 
 @tool
 @parse_request(ListDashboardsRequest)
-# NOTE: Accept str | ListDashboardsRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def list_dashboards(
-    request: str | ListDashboardsRequest, ctx: Context
+    request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
     including title, slug, and charts.
@@ -74,8 +70,6 @@ async def list_dashboards(
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
-    # Type narrowing: @parse_request ensures request is ListDashboardsRequest
-    request = cast(ListDashboardsRequest, request)
 
     from superset.daos.dashboard import DashboardDAO
 

@@ -19,7 +19,6 @@ Get available filters FastMCP tool
 """
 
 import logging
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -36,15 +35,10 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GetDashboardAvailableFiltersRequest)
-# NOTE: Accept str | GetDashboardAvailableFiltersRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def get_dashboard_available_filters(
-    request: str | GetDashboardAvailableFiltersRequest, ctx: Context
+    request: GetDashboardAvailableFiltersRequest, ctx: Context
 ) -> DashboardAvailableFilters:
     """Get available dashboard filter fields and operators."""
-    # Type narrowing: @parse_request ensures request is GetDashboardAvailableFiltersRequest
-    request = cast(GetDashboardAvailableFiltersRequest, request)
 
     from superset.daos.dashboard import DashboardDAO
 

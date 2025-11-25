@@ -23,7 +23,6 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -65,10 +64,7 @@ SORTABLE_DATASET_COLUMNS = [
 
 @tool
 @parse_request(ListDatasetsRequest)
-# NOTE: Accept str | ListDatasetsRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
-async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> DatasetList:
+async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
     Returns dataset metadata including columns and metrics.
@@ -76,8 +72,6 @@ async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> Dat
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
     """
-    # Type narrowing: @parse_request ensures request is ListDatasetsRequest
-    request = cast(ListDatasetsRequest, request)
 
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"

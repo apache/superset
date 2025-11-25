@@ -22,7 +22,7 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
-from typing import Any, cast, Dict
+from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -136,18 +136,13 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
 
 @tool
 @parse_request(AddChartToDashboardRequest)
-# NOTE: Accept str | AddChartToDashboardRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 def add_chart_to_existing_dashboard(
-    request: str | AddChartToDashboardRequest, ctx: Context
+    request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
     """
-    # Type narrowing: @parse_request ensures request is AddChartToDashboardRequest
-    request = cast(AddChartToDashboardRequest, request)
 
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand

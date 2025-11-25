@@ -21,7 +21,7 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from typing import Any, cast, Dict
+from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -47,11 +47,8 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(UpdateChartPreviewRequest)
-# NOTE: Accept str | UpdateChartPreviewRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 def update_chart_preview(
-    request: str | UpdateChartPreviewRequest, ctx: Context
+    request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
     """Update cached chart preview without saving.
 
@@ -68,8 +65,6 @@ def update_chart_preview(
 
     Returns new form_data_key, preview images, and explore URL.
     """
-    # Type narrowing: @parse_request ensures request is UpdateChartPreviewRequest
-    request = cast(UpdateChartPreviewRequest, request)
 
     start_time = time.time()
 

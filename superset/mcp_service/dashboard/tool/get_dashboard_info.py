@@ -24,7 +24,6 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -43,19 +42,14 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GetDashboardInfoRequest)
-# NOTE: Accept str | GetDashboardInfoRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def get_dashboard_info(
-    request: str | GetDashboardInfoRequest, ctx: Context
+    request: GetDashboardInfoRequest, ctx: Context
 ) -> DashboardInfo | DashboardError:
     """
     Get dashboard metadata by ID, UUID, or slug.
 
     Returns title, charts, and layout details.
     """
-    # Type narrowing: @parse_request ensures request is GetDashboardInfoRequest
-    request = cast(GetDashboardInfoRequest, request)
 
     await ctx.info("Retrieving dashboard information: %s" % (request.identifier,))
     await ctx.debug(

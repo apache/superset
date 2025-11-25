@@ -67,10 +67,7 @@ SORTABLE_CHART_COLUMNS = [
 
 @tool
 @parse_request(ListChartsRequest)
-# NOTE: Accept str | ListChartsRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
-async def list_charts(request: str | ListChartsRequest, ctx: Context) -> ChartList:
+async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, and viz_type.
@@ -78,8 +75,6 @@ async def list_charts(request: str | ListChartsRequest, ctx: Context) -> ChartLi
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on
     """
-    # Type narrowing: @parse_request ensures request is ListChartsRequest
-    request = cast(ListChartsRequest, request)
 
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"

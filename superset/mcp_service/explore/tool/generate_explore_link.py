@@ -22,7 +22,7 @@ This tool generates a URL to the Superset explore interface with the specified
 chart configuration.
 """
 
-from typing import Any, cast, Dict
+from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -39,11 +39,8 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 @tool
 @parse_request(GenerateExploreLinkRequest)
-# NOTE: Accept str | GenerateExploreLinkRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def generate_explore_link(
-    request: str | GenerateExploreLinkRequest, ctx: Context
+    request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:
     """Generate explore URL for interactive visualization.
 
@@ -65,8 +62,6 @@ async def generate_explore_link(
 
     Returns explore URL for immediate use.
     """
-    # Type narrowing: @parse_request ensures request is GenerateExploreLinkRequest
-    request = cast(GenerateExploreLinkRequest, request)
 
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"

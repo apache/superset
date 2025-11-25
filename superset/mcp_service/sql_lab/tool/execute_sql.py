@@ -23,7 +23,6 @@ and timeout protection.
 """
 
 import logging
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -40,16 +39,11 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(ExecuteSqlRequest)
-# NOTE: Accept str | ExecuteSqlRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
-async def execute_sql(request: str | ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
+async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 
     Returns query results with security validation and timeout protection.
     """
-    # Type narrowing: @parse_request ensures request is ExecuteSqlRequest
-    request = cast(ExecuteSqlRequest, request)
 
     await ctx.info(
         "Starting SQL execution: database_id=%s, timeout=%s, limit=%s, schema=%s"

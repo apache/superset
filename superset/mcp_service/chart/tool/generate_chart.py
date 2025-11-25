@@ -20,7 +20,6 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -51,11 +50,8 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GenerateChartRequest)
-# NOTE: Accept str | GenerateChartRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def generate_chart(  # noqa: C901
-    request: str | GenerateChartRequest, ctx: Context
+    request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
     """Create and save a chart in Superset.
 
@@ -76,8 +72,6 @@ async def generate_chart(  # noqa: C901
     - Preview URL and explore URL
     - Detailed validation errors with suggestions
     """
-    # Type narrowing: @parse_request ensures request is GenerateChartRequest
-    request = cast(GenerateChartRequest, request)
 
     start_time = time.time()
     await ctx.info(

@@ -22,7 +22,6 @@ Tool for generating SQL Lab URLs with pre-populated query and context.
 """
 
 import logging
-from typing import cast
 from urllib.parse import urlencode
 
 from fastmcp import Context
@@ -39,18 +38,13 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(OpenSqlLabRequest)
-# NOTE: Accept str | OpenSqlLabRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 def open_sql_lab_with_context(
-    request: str | OpenSqlLabRequest, ctx: Context
+    request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
     """Generate SQL Lab URL with pre-populated query and context.
 
     Returns URL for direct navigation.
     """
-    # Type narrowing: @parse_request ensures request is OpenSqlLabRequest
-    request = cast(OpenSqlLabRequest, request)
 
     try:
         from superset.daos.database import DatabaseDAO

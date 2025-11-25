@@ -22,7 +22,7 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-from typing import Any, cast, Dict, List
+from typing import Any, Dict, List
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -119,11 +119,8 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 
 @tool
 @parse_request(GenerateDashboardRequest)
-# NOTE: Accept str | GenerateDashboardRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 def generate_dashboard(
-    request: str | GenerateDashboardRequest, ctx: Context
+    request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
     """Create dashboard from chart IDs.
 
@@ -134,8 +131,6 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
-    # Type narrowing: @parse_request ensures request is GenerateDashboardRequest
-    request = cast(GenerateDashboardRequest, request)
 
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)

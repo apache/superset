@@ -24,7 +24,6 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
-from typing import cast
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -43,18 +42,13 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GetDatasetInfoRequest)
-# NOTE: Accept str | GetDatasetInfoRequest to support LLM clients that send double-escaped
-# JSON strings instead of native Pydantic types. The @parse_request decorator
-# handles conversion, ensuring compatibility with all MCP clients.
 async def get_dataset_info(
-    request: str | GetDatasetInfoRequest, ctx: Context
+    request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
     """
-    # Type narrowing: @parse_request ensures request is GetDatasetInfoRequest
-    request = cast(GetDatasetInfoRequest, request)
 
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
