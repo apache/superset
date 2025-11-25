@@ -131,7 +131,6 @@ def generate_dashboard(
     Returns:
     - Dashboard ID and URL
     """
-
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db

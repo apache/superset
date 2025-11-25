@@ -39,7 +39,6 @@ async def get_dataset_available_filters(
     request: GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
     """Get available dataset filter fields and operators."""
-
     from superset.daos.dataset import DatasetDAO
 
     tool = ModelGetAvailableFiltersCore(

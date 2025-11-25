@@ -78,7 +78,6 @@ def get_instance_info(
 
     Returns counts, activity metrics, and database types.
     """
-
     try:
         # Import DAOs at runtime to avoid circular imports
         from superset.daos.chart import ChartDAO

@@ -72,7 +72,6 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
     """
-
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
         % (

@@ -45,7 +45,6 @@ def open_sql_lab_with_context(
 
     Returns URL for direct navigation.
     """
-
     try:
         from superset.daos.database import DatabaseDAO
 

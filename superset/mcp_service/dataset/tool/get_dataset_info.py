@@ -49,7 +49,6 @@ async def get_dataset_info(
 
     Returns columns, metrics, and schema details.
     """
-
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)
     )

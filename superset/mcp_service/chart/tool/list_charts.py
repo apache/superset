@@ -75,7 +75,6 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     Sortable columns for order_column: id, slice_name, viz_type,
     datasource_name, description, changed_on, created_on
     """
-
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
         % (

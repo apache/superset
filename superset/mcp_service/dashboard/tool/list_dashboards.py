@@ -70,7 +70,6 @@ async def list_dashboards(
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
-
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelListCore(

@@ -50,7 +50,6 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
     """
-
     await ctx.info("Retrieving dashboard information: %s" % (request.identifier,))
     await ctx.debug(
         "Metadata cache settings: use_cache=%s, refresh_metadata=%s, force_refresh=%s"

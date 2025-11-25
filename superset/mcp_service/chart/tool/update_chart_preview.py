@@ -65,7 +65,6 @@ def update_chart_preview(
 
     Returns new form_data_key, preview images, and explore URL.
     """
-
     start_time = time.time()
 
     try:

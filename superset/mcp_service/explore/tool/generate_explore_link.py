@@ -62,7 +62,6 @@ async def generate_explore_link(
 
     Returns explore URL for immediate use.
     """
-
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
         % (request.dataset_id, request.config.chart_type)

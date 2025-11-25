@@ -68,7 +68,6 @@ async def update_chart(
     - Updated chart info and metadata
     - Preview URL and explore URL for further editing
     """
-
     start_time = time.time()
 
     try:

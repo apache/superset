@@ -53,7 +53,6 @@ async def get_chart_info(
 
     Returns chart details including name, type, and URL.
     """
-
     from superset.daos.chart import ChartDAO
 
     await ctx.info(
