@@ -438,7 +438,9 @@ class BaseReportState:
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
-                "CSV data generation took %.2fs - execution_id: %s",
+                "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
                 elapsed_seconds,
                 self._execution_id,
             )
@@ -486,7 +488,9 @@ class BaseReportState:
             dataframe = get_chart_dataframe(url, auth_cookies)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
-                "DataFrame generation took %.2fs - execution_id: %s",
+                "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
                 elapsed_seconds,
                 self._execution_id,
             )
@@ -993,7 +997,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
-                "Report execution completed in %.2fs - execution_id: %s",
+                "Report execution as user %s completed in %.2fs - execution_id: %s",
+                username,
                 elapsed_seconds,
                 self._execution_id,
             )
