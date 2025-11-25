@@ -221,6 +221,7 @@ columns:
   expression: revenue-expenses
   description: null
   python_date_format: null
+  datetime_format: null
   extra:
     certified_by: User
 - column_name: ds
@@ -234,6 +235,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: user_id
   verbose_name: null
@@ -246,6 +248,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: expenses
   verbose_name: null
@@ -258,6 +261,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 - column_name: revenue
   verbose_name: null
@@ -270,6 +274,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
+  datetime_format: null
   extra: null
 version: 1.0.0
 database_uuid: {database.uuid}
