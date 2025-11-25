@@ -677,6 +677,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         value: controlState.value,
                         validationErrors: controlState.validationErrors,
                         default: controlState.default,
+                        onChange: (value: any, errors: any[]) =>
+                          setControlValue(controlName, value, errors),
                       }),
                     } as any);
                   }

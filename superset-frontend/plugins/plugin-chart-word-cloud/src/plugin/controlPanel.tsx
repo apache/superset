@@ -64,7 +64,13 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<RotationControl name="rotation" key="rotation" />],
+        [
+          <RotationControl
+            name="rotation"
+            key="rotation"
+            renderTrigger={true}
+          />,
+        ],
         ['color_scheme'],
       ],
     },
