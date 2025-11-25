@@ -65,6 +65,9 @@ SORTABLE_DATASET_COLUMNS = [
 
 @tool
 @parse_request(ListDatasetsRequest)
+# NOTE: Accept str | ListDatasetsRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def list_datasets(request: str | ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 

@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(GetDatasetAvailableFiltersRequest)
+# NOTE: Accept str | GetDatasetAvailableFiltersRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def get_dataset_available_filters(
     request: str | GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:

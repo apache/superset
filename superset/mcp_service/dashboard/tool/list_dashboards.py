@@ -62,6 +62,9 @@ SORTABLE_DASHBOARD_COLUMNS = [
 
 @tool
 @parse_request(ListDashboardsRequest)
+# NOTE: Accept str | ListDashboardsRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def list_dashboards(
     request: str | ListDashboardsRequest, ctx: Context
 ) -> DashboardList:

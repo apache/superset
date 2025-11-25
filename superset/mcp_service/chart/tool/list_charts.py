@@ -67,6 +67,9 @@ SORTABLE_CHART_COLUMNS = [
 
 @tool
 @parse_request(ListChartsRequest)
+# NOTE: Accept str | ListChartsRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def list_charts(request: str | ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 

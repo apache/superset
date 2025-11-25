@@ -119,6 +119,9 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 
 @tool
 @parse_request(GenerateDashboardRequest)
+# NOTE: Accept str | GenerateDashboardRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 def generate_dashboard(
     request: str | GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:

@@ -40,6 +40,9 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(ExecuteSqlRequest)
+# NOTE: Accept str | ExecuteSqlRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def execute_sql(request: str | ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 

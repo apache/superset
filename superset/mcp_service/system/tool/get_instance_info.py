@@ -72,6 +72,9 @@ _instance_info_core = InstanceInfoCore(
 
 @tool
 @parse_request(GetSupersetInstanceInfoRequest)
+# NOTE: Accept str | GetSupersetInstanceInfoRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 def get_instance_info(
     request: str | GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:

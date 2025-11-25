@@ -39,6 +39,9 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(OpenSqlLabRequest)
+# NOTE: Accept str | OpenSqlLabRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 def open_sql_lab_with_context(
     request: str | OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:

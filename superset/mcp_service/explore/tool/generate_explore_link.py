@@ -39,6 +39,9 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 @tool
 @parse_request(GenerateExploreLinkRequest)
+# NOTE: Accept str | GenerateExploreLinkRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def generate_explore_link(
     request: str | GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:

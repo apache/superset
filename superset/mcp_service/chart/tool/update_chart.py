@@ -50,6 +50,9 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(UpdateChartRequest)
+# NOTE: Accept str | UpdateChartRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def update_chart(
     request: str | UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:

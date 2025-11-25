@@ -136,6 +136,9 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
 
 @tool
 @parse_request(AddChartToDashboardRequest)
+# NOTE: Accept str | AddChartToDashboardRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 def add_chart_to_existing_dashboard(
     request: str | AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:

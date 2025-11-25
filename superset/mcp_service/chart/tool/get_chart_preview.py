@@ -2021,6 +2021,9 @@ async def _get_chart_preview_internal(  # noqa: C901
 
 @tool
 @parse_request(GetChartPreviewRequest)
+# NOTE: Accept str | GetChartPreviewRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 async def get_chart_preview(
     request: str | GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:

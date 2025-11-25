@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 
 @tool
 @parse_request(UpdateChartPreviewRequest)
+# NOTE: Accept str | UpdateChartPreviewRequest to support LLM clients that send double-escaped
+# JSON strings instead of native Pydantic types. The @parse_request decorator
+# handles conversion, ensuring compatibility with all MCP clients.
 def update_chart_preview(
     request: str | UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
