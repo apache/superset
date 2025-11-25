@@ -23,9 +23,8 @@ import logging
 import time
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -48,8 +47,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 @parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context

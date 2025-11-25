@@ -718,6 +718,7 @@ pydantic==2.11.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   fastmcp
     #   mcp
     #   openapi-pydantic
