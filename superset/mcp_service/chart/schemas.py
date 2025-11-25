@@ -760,6 +760,7 @@ class ListChartsRequest(MetadataCacheControl):
         from superset.mcp_service.utils.schema_utils import parse_json_or_list
 
         return parse_json_or_list(v, "select_columns")
+
     search: Annotated[
         str | None,
         Field(
