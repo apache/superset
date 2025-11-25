@@ -23,14 +23,18 @@ import logging
 import os
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import get_mcp_factory_config
+from superset.mcp_service.mcp_config import (
+    get_mcp_factory_config,
+    MCP_FASTMCP_STATELESS_HTTP,
+    MCP_SQLALCHEMY_DEBUG,
+)
 
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
 
-    if debug or os.environ.get("SQLALCHEMY_DEBUG"):
+    if debug or MCP_SQLALCHEMY_DEBUG:
         # Only configure basic logging if no handlers exist (respects logging.ini)
         root_logger = logging.getLogger()
         if not root_logger.handlers:
@@ -108,7 +112,12 @@ def run_server(
         os.environ[env_key] = "1"
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
-            mcp_instance.run(transport="streamable-http", host=host, port=port)
+            mcp_instance.run(
+                transport="streamable-http",
+                host=host,
+                port=port,
+                stateless_http=MCP_FASTMCP_STATELESS_HTTP,
+            )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)
             os.environ.pop(env_key, None)
