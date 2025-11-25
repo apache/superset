@@ -29,12 +29,14 @@ from superset.mcp_service.dataset.schemas import (
     GetDatasetAvailableFiltersRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetAvailableFiltersCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
 @mcp_auth_hook
+@parse_request(GetDatasetAvailableFiltersRequest)
 async def get_dataset_available_filters(
     request: GetDatasetAvailableFiltersRequest, ctx: Context
 ) -> DatasetAvailableFilters:
