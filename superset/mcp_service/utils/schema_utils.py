@@ -390,8 +390,8 @@ def parse_request(
     Decorator to handle Claude Code bug where requests are double-serialized as strings.
 
     Automatically parses string requests to Pydantic models before calling
-    the tool function.
-    This eliminates the need for manual parsing code in every tool function.
+    the tool function. Also modifies the function's type annotations to accept
+    str | RequestModel to pass FastMCP validation.
 
     See: https://github.com/anthropics/claude-code/issues/5504
 
@@ -406,15 +406,17 @@ def parse_request(
         @mcp_auth_hook
         @parse_request(ListChartsRequest)
         async def list_charts(
-            request: ListChartsRequest, ctx: Context
+            request: ListChartsRequest, ctx: Context  # Keep clean type hint
         ) -> ChartList:
-            # Decorator handles string conversion automatically
+            # Decorator handles string conversion and type annotation
             await ctx.info(f"Listing charts: page={request.page}")
             ...
 
     Note:
         - Works with both async and sync functions
         - Request must be the first positional argument
+        - Modifies __annotations__ to accept str | RequestModel for FastMCP
+        - Function implementation can use clean RequestModel type hint
         - If request is already a model instance, it passes through unchanged
         - Handles JSON string parsing with helpful error messages
     """
@@ -429,7 +431,7 @@ def parse_request(
                 parsed_request = parse_json_or_model(request, request_class, "request")
                 return await func(parsed_request, *args, **kwargs)
 
-            return async_wrapper
+            wrapper = async_wrapper
         else:
 
             @wraps(func)
@@ -439,6 +441,15 @@ def parse_request(
                 parsed_request = parse_json_or_model(request, request_class, "request")
                 return func(parsed_request, *args, **kwargs)
 
-            return sync_wrapper
+            wrapper = sync_wrapper
+
+        # Modify the wrapper's annotations to accept str | RequestModel
+        # This allows FastMCP to accept string inputs while keeping the
+        # original function's type hints clean
+        if hasattr(wrapper, "__annotations__"):
+            # Create union type: str | RequestModel
+            wrapper.__annotations__["request"] = str | request_class
+
+        return wrapper
 
     return decorator
