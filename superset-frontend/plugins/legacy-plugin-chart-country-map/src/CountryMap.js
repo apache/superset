@@ -225,7 +225,12 @@ function CountryMap(element, props) {
         .domain(domainPerc)
         .range(rangeColors)
         .clamp(true)
-        .interpolate(d3.interpolateRgb);
+        // Remove interpolation to avoid blending between steps
+        .interpolate(function(a, b) { 
+          return function(t) {
+            return t < 0.5 ? a : b;
+          };
+        });
     }
   }
 
@@ -251,7 +256,7 @@ function CountryMap(element, props) {
   }
 
   /** -------------------------
-   * 4) Gradient fallback (minColor → maxColor) avec HEX
+   * 4) Gradient fallback (minColor → maxColor) with HEX
    * ------------------------- */
   let gradientColorScale;
   if (minValue === maxValue) {
@@ -322,17 +327,7 @@ function CountryMap(element, props) {
     }
   });
   const fallbackCategorical = CategoricalColorNamespace.getScale(colorScheme);
-  const colorFn = d => {
-    const iso = d && d.properties && d.properties.ISO;
-    if (!iso) return 'none';
-    const c = colorMap[iso];
-    if (c && c !== 'none') return c;
-    try {
-      return fallbackCategorical(iso, sliceId);
-    } catch {
-      return '#ccc';
-    }
-  };
+  const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
   const div = d3.select(container);
