@@ -29,13 +29,13 @@ import {
   getFirstCollision,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Metric } from '@superset-ui/chart-controls';
+import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import {
   DatasourceFolder,
   DatasourceFolderItem,
 } from 'src/explore/components/DatasourcePanel/types';
 import { canDropFolder, canDropItems } from './folderUtils';
-import { DragState, Column } from './types';
+import { DragState } from './types';
 
 interface UseDragAndDropProps {
   folders: DatasourceFolder[];
@@ -43,7 +43,7 @@ interface UseDragAndDropProps {
   folderIds: UniqueIdentifier[];
   selectedItemIds: Set<string>;
   metrics: Metric[];
-  columns: Column[];
+  columns: ColumnMeta[];
   onChange: (folders: DatasourceFolder[]) => void;
 }
 

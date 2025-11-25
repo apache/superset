@@ -21,7 +21,6 @@ import { styled, css } from '@apache-superset/core/ui';
 export const FoldersContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 600px;
   position: relative;
 `;
 
@@ -50,11 +49,10 @@ export const DropIndicator = styled.div<{ position: 'before' | 'after' }>`
 export const FoldersToolbar = styled.div`
   ${({ theme }) => `
     position: sticky;
-    top: 0;
+    top: -${theme.margin}px; // offsets tabs component bottom margin
     z-index: 10;
     background: ${theme.colorBgContainer};
-    padding: ${theme.paddingLG}px;
-    border-bottom: 1px solid ${theme.colorBorder};
+    padding-top: ${theme.paddingMD}px;
     display: flex;
     flex-direction: column;
     gap: ${theme.paddingLG}px;
@@ -63,6 +61,10 @@ export const FoldersToolbar = styled.div`
 
 export const FoldersSearch = styled.div`
   width: 100%;
+
+  .ant-input-prefix {
+    color: ${({ theme }) => theme.colorIcon};
+  }
 `;
 
 export const FoldersActions = styled.div`
@@ -74,8 +76,7 @@ export const FoldersActions = styled.div`
 
 export const FoldersContent = styled.div`
   flex: 1;
-  overflow-y: auto;
-  padding: ${({ theme }) => theme.paddingLG}px;
+  min-height: 0;
 `;
 
 export const FolderContainer = styled.div<{ isNested?: boolean }>`

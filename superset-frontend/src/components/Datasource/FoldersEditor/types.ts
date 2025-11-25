@@ -17,23 +17,13 @@
  * under the License.
  */
 import { UniqueIdentifier } from '@dnd-kit/core';
-import { Metric } from '@superset-ui/chart-controls';
+import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
-
-export interface Column {
-  uuid: string;
-  column_name: string;
-  description?: string | null;
-  type?: string;
-  expression?: string | null;
-  is_dttm?: boolean | null;
-  is_certified?: number | null;
-}
 
 export interface FoldersEditorProps {
   folders: DatasourceFolder[];
   metrics: Metric[];
-  columns: Column[];
+  columns: ColumnMeta[];
   onChange: (folders: DatasourceFolder[]) => void;
   isEditMode: boolean;
 }
