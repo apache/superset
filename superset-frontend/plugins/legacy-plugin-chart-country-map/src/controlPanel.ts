@@ -71,6 +71,19 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         [
           {
+            name: 'pickColor',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Color selector'),
+              renderTrigger: true,
+              dontRefreshOnChange: false,
+              default: '#000000',
+              description: t('Pick a custom color and get its HEX code for use into the custom color configuration.'),
+            },
+          },
+        ],
+        [
+          {
             name: 'customColorScale',
             config: {
               type: 'TextAreaControl',
