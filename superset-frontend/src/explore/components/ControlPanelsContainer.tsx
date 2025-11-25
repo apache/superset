@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
+  cloneElement,
   isValidElement,
   ReactNode,
   useCallback,
@@ -575,7 +576,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
+    const { controls, chart, exploreState, form_data, actions } = props;
     const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -657,7 +658,27 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
-                    return controlItem;
+                    // return controlItem;
+
+                    const controlName = (controlItem.props as { name: string })
+                      .name;
+                    const controlState = controlName
+                      ? controls[controlName]
+                      : undefined;
+
+                    return cloneElement(controlItem, {
+                      ...(controlItem.props as Record<string, any>),
+                      actions,
+                      controls,
+                      chart,
+                      exploreState,
+                      form_data,
+                      ...(controlState && {
+                        value: controlState.value,
+                        validationErrors: controlState.validationErrors,
+                        default: controlState.default,
+                      }),
+                    } as any);
                   }
                   if (
                     isCustomControlItem(controlItem) &&
