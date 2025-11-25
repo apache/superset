@@ -31,6 +31,23 @@ def mock_dataset() -> MagicMock:
     dataset = MagicMock(spec=SqlaTable)
     dataset.table_name = "test_table"
     dataset.schema = "test_schema"
+    dataset.is_virtual = False
+
+    # Mock the database engine and dialect for identifier quoting
+    mock_engine = MagicMock()
+    mock_dialect = MagicMock()
+    mock_dialect.identifier_preparer.quote = lambda x: f'"{x}"'
+    mock_engine.dialect = mock_dialect
+
+    # Mock the context manager returned by get_sqla_engine()
+    dataset.database.get_sqla_engine.return_value.__enter__.return_value = mock_engine
+    dataset.database.get_sqla_engine.return_value.__exit__.return_value = None
+
+    # Mock apply_limit_to_sql to return SQL with LIMIT
+    dataset.database.apply_limit_to_sql = (
+        lambda sql, limit, force: f"{sql} LIMIT {limit}"
+    )
+
     return dataset
 
 
@@ -41,6 +58,7 @@ def mock_column() -> MagicMock:
     column.column_name = "date_column"
     column.is_temporal = True
     column.datetime_format = None
+    column.expression = None  # Not an expression column
     return column
 
 
@@ -109,15 +127,18 @@ def test_detect_all_formats(mock_dataset: MagicMock) -> None:
     col1.column_name = "date1"
     col1.is_temporal = True
     col1.datetime_format = None
+    col1.expression = None
 
     col2 = MagicMock(spec=TableColumn)
     col2.column_name = "date2"
     col2.is_temporal = True
     col2.datetime_format = None
+    col2.expression = None
 
     col3 = MagicMock(spec=TableColumn)
     col3.column_name = "text_col"
     col3.is_temporal = False
+    col3.expression = None
 
     mock_dataset.columns = [col1, col2, col3]
 
@@ -144,6 +165,7 @@ def test_detect_all_formats_skip_existing(mock_dataset: MagicMock) -> None:
     col1.column_name = "date1"
     col1.is_temporal = True
     col1.datetime_format = "%Y-%m-%d"
+    col1.expression = None
 
     mock_dataset.columns = [col1]
 
@@ -161,6 +183,7 @@ def test_detect_all_formats_force_redetection(mock_dataset: MagicMock) -> None:
     col1.column_name = "date1"
     col1.is_temporal = True
     col1.datetime_format = "%Y-%m-%d"
+    col1.expression = None
 
     mock_dataset.columns = [col1]
     mock_dataset.table_name = "test_table"
@@ -174,3 +197,29 @@ def test_detect_all_formats_force_redetection(mock_dataset: MagicMock) -> None:
 
     assert results["date1"] == "%m/%d/%Y"
     assert col1.datetime_format == "%m/%d/%Y"
+
+
+def test_detect_column_format_virtual_dataset(
+    mock_dataset: MagicMock, mock_column: MagicMock
+) -> None:
+    """Test that virtual datasets are skipped."""
+    mock_dataset.is_virtual = True
+
+    detector = DatetimeFormatDetector()
+    detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format is None
+    mock_dataset.database.get_df.assert_not_called()
+
+
+def test_detect_column_format_expression_column(
+    mock_dataset: MagicMock, mock_column: MagicMock
+) -> None:
+    """Test that expression columns are skipped."""
+    mock_column.expression = "DATE_ADD(some_date, INTERVAL 1 DAY)"
+
+    detector = DatetimeFormatDetector()
+    detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format is None
+    mock_dataset.database.get_df.assert_not_called()

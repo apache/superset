@@ -70,6 +70,23 @@ class DatetimeFormatDetector:
             )
             return None
 
+        # Skip expression columns - they don't have stored data to sample
+        if column.expression:
+            logger.debug(
+                "Column %s is an expression column, skipping format detection",
+                column.column_name,
+            )
+            return None
+
+        # Skip virtual datasets - they use SQL queries, not physical tables
+        if dataset.is_virtual:
+            logger.debug(
+                "Dataset %s is virtual, skipping format detection for column %s",
+                dataset.table_name,
+                column.column_name,
+            )
+            return None
+
         try:
             # Build SQL query using database's identifier quoting
             # Note: Column and table names come from internal metadata, not user input
@@ -97,9 +114,12 @@ class DatetimeFormatDetector:
                 # S608: false positive - using dialect's identifier preparer
                 sql = (  # noqa: S608
                     f"SELECT {column_name_quoted} FROM {full_table} "  # noqa: S608
-                    f"WHERE {column_name_quoted} IS NOT NULL "  # noqa: S608
-                    f"LIMIT {self.sample_size}"
+                    f"WHERE {column_name_quoted} IS NOT NULL"  # noqa: S608
                 )
+
+            # Apply database-specific LIMIT using apply_limit_to_sql
+            # This handles different SQL dialects (LIMIT, TOP, FETCH FIRST, etc.)
+            sql = database.apply_limit_to_sql(sql, limit=self.sample_size, force=True)
 
             # Execute query and get results
             df = database.get_df(sql, dataset.schema)
