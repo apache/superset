@@ -191,9 +191,12 @@ async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
     async with Client(mcp_server) as client:  # noqa: F841
         filters = '[{"col": "dashboard_title", "opr": "sw", "value": "Sales"}]'
 
-        # Test that string filters cause validation error at schema level
-        with pytest.raises(ValueError, match="validation error"):
-            ListDashboardsRequest(filters=filters)  # noqa: F841
+        # Test that string filters are now properly parsed to objects
+        request = ListDashboardsRequest(filters=filters)
+        assert len(request.filters) == 1
+        assert request.filters[0].col == "dashboard_title"
+        assert request.filters[0].opr == "sw"
+        assert request.filters[0].value == "Sales"
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
