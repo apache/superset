@@ -22,7 +22,7 @@ import { css, styled } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
-import { useDragDropManager } from 'react-dnd';
+import { useDndMonitor } from '@dnd-kit/core';
 import classNames from 'classnames';
 import { debounce } from 'lodash';
 
@@ -117,34 +117,30 @@ const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
-  const dragDropManager = useDragDropManager();
-  const [isDragged, setIsDragged] = useState(
-    dragDropManager.getMonitor().isDragging(),
+  const [isDragged, setIsDragged] = useState(false);
+
+  const debouncedSetIsDragged = debounce(
+    setIsDragged,
+    Constants.FAST_DEBOUNCE,
   );
 
-  useEffect(() => {
-    const monitor = dragDropManager.getMonitor();
-    const debouncedSetIsDragged = debounce(
-      setIsDragged,
-      Constants.FAST_DEBOUNCE,
-    );
-    const unsub = monitor.subscribeToStateChange(() => {
-      const isDragging = monitor.isDragging();
-      if (isDragging) {
-        // set a debounced function to prevent HTML5 drag source
-        // from interfering with the drop zone highlighting
-        debouncedSetIsDragged(true);
-      } else {
-        debouncedSetIsDragged.cancel();
-        setIsDragged(false);
-      }
-    });
+  useDndMonitor({
+    onDragStart() {
+      // set a debounced function to prevent drag source
+      // from interfering with the drop zone highlighting
+      debouncedSetIsDragged(true);
+    },
+    onDragEnd() {
+      debouncedSetIsDragged.cancel();
+      setIsDragged(false);
+    },
+  });
 
+  useEffect(() => {
     return () => {
-      unsub();
       debouncedSetIsDragged.cancel();
     };
-  }, [dragDropManager]);
+  }, []);
 
   return (
     <StyledDiv

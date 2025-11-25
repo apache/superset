@@ -20,8 +20,7 @@ import { Route } from 'react-router-dom';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
@@ -63,11 +62,19 @@ export const EmbeddedContextProviders: React.FC<{
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
 
   return (
     <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
-        <DndProvider backend={HTML5Backend}>
+        <DndContext sensors={sensors}>
           <EmbeddedUiConfigProvider>
             <DynamicPluginProvider>
               <QueryParamProvider
@@ -84,7 +91,7 @@ export const EmbeddedContextProviders: React.FC<{
               </QueryParamProvider>
             </DynamicPluginProvider>
           </EmbeddedUiConfigProvider>
-        </DndProvider>
+        </DndContext>
       </ReduxProvider>
     </SupersetThemeProvider>
   );

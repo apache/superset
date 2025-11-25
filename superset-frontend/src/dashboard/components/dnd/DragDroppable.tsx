@@ -16,15 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, PureComponent, CSSProperties, RefCallback } from 'react';
-import { getEmptyImage } from 'react-dnd-html5-backend';
+import {
+  ReactNode,
+  useState,
+  useEffect,
+  useRef,
+  CSSProperties,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
-import { DragSource, DropTarget, ConnectDragSource, ConnectDropTarget, ConnectDragPreview, DragSourceMonitor, DropTargetMonitor } from 'react-dnd';
+import {
+  useDraggable,
+  useDroppable,
+  DndContext,
+  DragOverlay,
+  Active,
+  Over,
+} from '@dnd-kit/core';
+import {
+  CSS,
+} from '@dnd-kit/utilities';
 import cx from 'classnames';
 import { css, styled } from '@apache-superset/core/ui';
 
-import { componentShape } from '../../util/propShapes';
-import { dragConfig, dropConfig } from './dragDroppableConfig';
 import { DROP_FORBIDDEN } from '../../util/getDropPosition';
 
 type Orientation = 'row' | 'column';
@@ -44,7 +59,7 @@ interface ComponentType {
 }
 
 interface ChildProps {
-  dragSourceRef?: ConnectDragSource;
+  dragSourceRef?: (element: HTMLElement | null) => void;
   dropIndicatorProps?: {
     className: string;
   } | null;
@@ -65,24 +80,14 @@ interface DragDroppableProps {
   style?: CSSProperties | null;
   onDrop?: () => void;
   onHover?: () => void;
-  onDropIndicatorChange?: (params: { dropIndicator: string | null; isDraggingOver: boolean; index: number }) => void;
+  onDropIndicatorChange?: (params: {
+    dropIndicator: string | null;
+    isDraggingOver: boolean;
+    index: number;
+  }) => void;
   onDragTab?: (dragComponentId: string | number | undefined) => void;
   editMode?: boolean;
   useEmptyDragPreview?: boolean;
-
-  // from react-dnd
-  isDragging?: boolean;
-  isDraggingOver?: boolean;
-  isDraggingOverShallow?: boolean;
-  dragComponentType?: string;
-  dragComponentId?: string | number;
-  droppableRef?: RefCallback<HTMLElement>;
-  dragSourceRef?: ConnectDragSource;
-  dragPreviewRef?: ConnectDragPreview;
-}
-
-interface DragDroppableState {
-  dropIndicator: string | null;
 }
 
 const DragDroppableStyles = styled.div`
@@ -98,126 +103,134 @@ const DragDroppableStyles = styled.div`
     }
 
     &.dragdroppable-column .resizable-container span div {
+      width: 100%;
+    }
+
+    .drop-indicator {
+      display: block;
+      background-color: ${theme.colors.primary.base};
+      position: absolute;
       z-index: 10;
     }
 
-    & {
-      .drop-indicator {
-        display: block;
-        background-color: ${theme.colors.primary.base};
-        position: absolute;
-        z-index: 10;
-        opacity: 0.3;
-        width: 100%;
-        height: 100%;
-        &.drop-indicator--forbidden {
-          background-color: ${theme.colors.error.light2};
-        }
-      }
+    &.dragdroppable-row .drop-indicator {
+      left: 0;
+      top: -1px;
+      height: 2px;
+      width: 100%;
+      min-width: ${theme.gridUnit * 4}px;
     }
-  `};
+
+    &.dragdroppable-column .drop-indicator {
+      top: 0;
+      left: -1px;
+      width: 2px;
+      height: 100%;
+      min-height: ${theme.gridUnit * 4}px;
+    }
+
+    .drop-indicator--forbidden {
+      background-color: ${theme.colors.warning.light1};
+    }
+  `}
 `;
 
-export class UnwrappedDragDroppable extends PureComponent<DragDroppableProps, DragDroppableState> {
-  private mounted = false;
-  private ref: HTMLElement | null = null;
-
-  static defaultProps: Partial<DragDroppableProps> = {
-    className: null,
-    style: null,
-    parentComponent: null,
-    disableDragDrop: false,
-    dropToChild: false,
-    children: () => null,
-    onDrop: () => {},
-    onHover: () => {},
-    onDropIndicatorChange: () => {},
-    onDragTab: () => {},
-    orientation: 'row',
-    useEmptyDragPreview: false,
-    isDragging: false,
-    isDraggingOver: false,
-    isDraggingOverShallow: false,
-    droppableRef: () => {},
-    dragSourceRef: undefined,
-    dragPreviewRef: undefined,
-  };
-
-  constructor(props: DragDroppableProps) {
-    super(props);
-    this.state = {
-      dropIndicator: null,
-    };
-    this.setRef = this.setRef.bind(this);
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  componentDidUpdate(prevProps: DragDroppableProps, prevState: DragDroppableState) {
-    const {
-      onDropIndicatorChange,
-      isDraggingOver,
-      component,
-      index,
-      dragComponentId,
-      onDragTab,
-    } = this.props;
-    const { dropIndicator } = this.state;
-    const isTabsType = component.type === TAB_TYPE;
-    const validStateChange =
-      dropIndicator !== prevState.dropIndicator ||
-      isDraggingOver !== prevProps.isDraggingOver ||
-      index !== prevProps.index;
-
-    if (onDropIndicatorChange && isTabsType && validStateChange) {
-      onDropIndicatorChange({ dropIndicator, isDraggingOver: Boolean(isDraggingOver), index });
-    }
-
-    if (dragComponentId !== prevProps.dragComponentId) {
-      setTimeout(() => {
-        if (onDragTab) {
-          onDragTab(dragComponentId);
-        }
-      });
-    }
-  }
-
-  setRef = (ref: HTMLElement | null) => {
-    this.ref = ref;
-    if (this.props.useEmptyDragPreview && this.props.dragPreviewRef) {
-      this.props.dragPreviewRef(getEmptyImage(), {
-        captureDraggingState: true,
-      });
-    } else if (this.props.dragPreviewRef) {
-      this.props.dragPreviewRef(ref);
-    }
-    if (this.props.droppableRef) {
-      this.props.droppableRef(ref);
-    }
-  };
-
-  render() {
+export const DragDroppable = forwardRef<HTMLDivElement, DragDroppableProps>(
+  (props, ref) => {
     const {
       children,
       className,
-      orientation,
-      dragSourceRef,
-      disableDragDrop,
-      isDragging,
-      isDraggingOver,
-      style,
-      editMode,
       component,
-      dragComponentType,
-    } = this.props;
+      parentComponent,
+      depth,
+      disableDragDrop,
+      dropToChild,
+      orientation,
+      index,
+      style,
+      onDrop,
+      onHover,
+      onDropIndicatorChange,
+      onDragTab,
+      editMode,
+      useEmptyDragPreview,
+    } = props;
 
-    const { dropIndicator } = this.state;
+    const [dropIndicator, setDropIndicator] = useState<string | null>(null);
+    const elementRef = useRef<HTMLDivElement>(null);
+
+    // Setup draggable functionality
+    const {
+      attributes: dragAttributes,
+      listeners: dragListeners,
+      setNodeRef: setDragNodeRef,
+      isDragging,
+      transform,
+    } = useDraggable({
+      id: `drag-${component.id}`,
+      disabled: disableDragDrop || !editMode,
+      data: {
+        type: component.type,
+        id: component.id,
+        meta: component.meta,
+        index,
+        parentId: parentComponent?.id,
+        parentType: parentComponent?.type,
+      },
+    });
+
+    // Setup droppable functionality
+    const {
+      setNodeRef: setDropNodeRef,
+      isOver: isDraggingOver,
+      active,
+      over,
+    } = useDroppable({
+      id: `drop-${component.id}`,
+      disabled: disableDragDrop,
+      data: {
+        type: component.type,
+        id: component.id,
+        index,
+      },
+    });
+
+    // Combine refs
+    const setRefs = (element: HTMLDivElement | null) => {
+      elementRef.current = element;
+      setDragNodeRef(element);
+      setDropNodeRef(element);
+      if (ref) {
+        if (typeof ref === 'function') {
+          ref(element);
+        } else {
+          ref.current = element;
+        }
+      }
+    };
+
+    // Handle drop indicator changes
+    useEffect(() => {
+      if (onDropIndicatorChange && component.type === TAB_TYPE) {
+        onDropIndicatorChange({
+          dropIndicator,
+          isDraggingOver,
+          index,
+        });
+      }
+    }, [dropIndicator, isDraggingOver, index, onDropIndicatorChange, component.type]);
+
+    // Handle drag tab
+    useEffect(() => {
+      if (onDragTab && active?.data.current?.id) {
+        onDragTab(active.data.current.id);
+      }
+    }, [active?.data.current?.id, onDragTab]);
+
+    const dragComponentType = active?.data.current?.type;
+    const draggingTabOnTab =
+      component.type === TAB_TYPE && dragComponentType === TAB_TYPE;
+
     const dropIndicatorProps =
       isDraggingOver && dropIndicator && !disableDragDrop
         ? {
@@ -228,12 +241,19 @@ export class UnwrappedDragDroppable extends PureComponent<DragDroppableProps, Dr
           }
         : null;
 
-    const draggingTabOnTab =
-      component.type === TAB_TYPE && dragComponentType === TAB_TYPE;
-
     const childProps: ChildProps = editMode
       ? {
-          dragSourceRef,
+          dragSourceRef: (element) => {
+            if (element && !disableDragDrop) {
+              // Apply drag attributes and listeners to the drag handle
+              Object.entries(dragAttributes).forEach(([key, value]) => {
+                element.setAttribute(key, value as string);
+              });
+              Object.entries(dragListeners || {}).forEach(([event, handler]) => {
+                element.addEventListener(event, handler as EventListener);
+              });
+            }
+          },
           dropIndicatorProps,
           draggingTabOnTab,
           'data-test': 'dragdroppable-content',
@@ -242,10 +262,16 @@ export class UnwrappedDragDroppable extends PureComponent<DragDroppableProps, Dr
           'data-test': 'dragdroppable-content',
         };
 
+    const transformStyle = transform
+      ? {
+          transform: CSS.Transform.toString(transform),
+        }
+      : undefined;
+
     return (
       <DragDroppableStyles
-        style={style || undefined}
-        ref={this.setRef}
+        style={{ ...style, ...transformStyle }}
+        ref={setRefs}
         data-test="dragdroppable-object"
         className={cx(
           'dragdroppable',
@@ -259,12 +285,11 @@ export class UnwrappedDragDroppable extends PureComponent<DragDroppableProps, Dr
         {children(childProps)}
       </DragDroppableStyles>
     );
-  }
-}
-
-export const Draggable = DragSource(...dragConfig)(UnwrappedDragDroppable);
-export const Droppable = DropTarget(...dropConfig)(UnwrappedDragDroppable);
-
-export const DragDroppable = DragSource(...dragConfig)(
-  DropTarget(...dropConfig)(UnwrappedDragDroppable),
+  },
 );
+
+DragDroppable.displayName = 'DragDroppable';
+
+// Export compatibility aliases for gradual migration
+export const Draggable = DragDroppable;
+export const Droppable = DragDroppable;
