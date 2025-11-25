@@ -1275,9 +1275,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             )
 
+        # Build format map from detected datetime formats stored in dataset columns
+        format_map: dict[str, str] = {}
+        if hasattr(self, "columns"):
+            for col in self.columns:
+                if hasattr(col, "datetime_format") and col.datetime_format:
+                    format_map[col.column_name] = col.datetime_format
+
         normalize_dttm_col(
             df=df,
             dttm_cols=tuple(dttm_cols),
+            format_map=format_map if format_map else None,
         )
 
         # Convert metrics to numerical values if enforced
