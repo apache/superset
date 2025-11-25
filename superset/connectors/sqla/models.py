@@ -225,7 +225,14 @@ class BaseDatasource(
         This allows each datasource to override caching, while falling back
         to database-level defaults when appropriate.
         """
-        return self._cache_timeout or self.database.cache_timeout
+        if self._cache_timeout:
+            return self._cache_timeout
+
+        # database should always be set, but that's not true for v0 import
+        if self.database:
+            return self.database.cache_timeout
+
+        return None
 
     @cache_timeout.setter
     def cache_timeout(self, value: int | None) -> None:

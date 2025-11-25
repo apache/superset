@@ -149,7 +149,7 @@ class TestDictImportExport(SupersetTestCase):
         db.session.commit()
         imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
-        assert {DBREF: ID_PREFIX + 2, "database_name": "main"} == json.loads(
+        assert {DBREF: ID_PREFIX + 2, "database_name": "examples"} == json.loads(
             imported.params
         )
         self.yaml_compare(table.export_to_dict(), imported.export_to_dict())
