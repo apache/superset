@@ -436,7 +436,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
-            cache_dict["post_processing"] = self.post_processing
+            # Exclude contribution_totals from post_processing as it's computed at
+            # runtime and varies per request, which would cause cache key mismatches
+            post_processing_for_cache = []
+            for pp in self.post_processing:
+                pp_copy = dict(pp)
+                if pp_copy.get("operation") == "contribution" and "options" in pp_copy:
+                    options = dict(pp_copy["options"])
+                    # Remove contribution_totals as it's dynamically calculated
+                    options.pop("contribution_totals", None)
+                    pp_copy["options"] = options
+                post_processing_for_cache.append(pp_copy)
+            cache_dict["post_processing"] = post_processing_for_cache
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 

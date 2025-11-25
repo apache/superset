@@ -1066,3 +1066,154 @@ def test_cache_values_sync_after_ensure_totals_available():
     # Verify that the main query row_limit is still 1000 (only totals query
     # should be modified)
     assert updated_cache_queries[0]["row_limit"] == 1000
+
+
+def test_cache_key_excludes_contribution_totals():
+    """
+    Test that cache_key() excludes contribution_totals from post_processing.
+
+    contribution_totals is computed at runtime by ensure_totals_available() and
+    varies per request. Including it in the cache key would cause mismatches
+    between workers that compute different totals for the same query.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+
+    # Create query with contribution post-processing that includes contribution_totals
+    query_with_totals = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales", "profit"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {
+                    "columns": ["sales", "profit"],
+                    "rename_columns": ["%sales", "%profit"],
+                    "contribution_totals": {"sales": 1000.0, "profit": 200.0},
+                },
+            }
+        ],
+    )
+
+    # Create identical query without contribution_totals
+    query_without_totals = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales", "profit"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {
+                    "columns": ["sales", "profit"],
+                    "rename_columns": ["%sales", "%profit"],
+                },
+            }
+        ],
+    )
+
+    # Cache keys should be identical since contribution_totals is excluded
+    cache_key_with = query_with_totals.cache_key()
+    cache_key_without = query_without_totals.cache_key()
+
+    assert cache_key_with == cache_key_without, (
+        "Cache keys should match regardless of contribution_totals. "
+        f"With totals: {cache_key_with}, Without totals: {cache_key_without}"
+    )
+
+
+def test_cache_key_preserves_other_post_processing_options():
+    """
+    Test that cache_key() only excludes contribution_totals, not other options.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+
+    # Create query with contribution post-processing
+    query1 = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {
+                    "columns": ["sales"],
+                    "rename_columns": ["%sales"],
+                    "contribution_totals": {"sales": 1000.0},
+                },
+            }
+        ],
+    )
+
+    # Create query with different rename_columns
+    query2 = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {
+                    "columns": ["sales"],
+                    "rename_columns": ["%sales_pct"],  # Different!
+                    "contribution_totals": {"sales": 1000.0},
+                },
+            }
+        ],
+    )
+
+    # Cache keys should differ because rename_columns is different
+    assert query1.cache_key() != query2.cache_key(), (
+        "Cache keys should differ when other post_processing options differ"
+    )
+
+
+def test_cache_key_non_contribution_post_processing_unchanged():
+    """
+    Test that non-contribution post_processing operations are unchanged in cache key.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.extra = "{}"
+    mock_datasource.get_extra_cache_keys.return_value = []
+
+    # Create query with non-contribution post-processing
+    query1 = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {"columns": ["region"], "aggregates": {"sales": "sum"}},
+            }
+        ],
+    )
+
+    query2 = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales"],
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {"columns": ["region"], "aggregates": {"sales": "mean"}},
+            }
+        ],
+    )
+
+    # Cache keys should differ because aggregates option is different
+    assert query1.cache_key() != query2.cache_key(), (
+        "Cache keys should differ for different non-contribution post_processing"
+    )
