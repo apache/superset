@@ -485,11 +485,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             cache_dict, default=json_int_dttm_ser, ignore_nan=True
         )
         # Log QueryObject cache key generation for debugging
-        logger.info(
-            "QueryObject CACHE KEY generated: %s from dict with keys: %s",
-            cache_key,
-            sorted(cache_dict.keys()),
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "QueryObject CACHE KEY generated: %s from dict with keys: %s",
+                cache_key,
+                sorted(cache_dict.keys()),
+            )
         return cache_key
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:

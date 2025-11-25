@@ -76,7 +76,7 @@ def set_and_log_cache(
         stats_logger.incr("set_cache_key")
 
         # Log cache key details for debugging
-        logger.info(
+        logger.debug(
             "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
             cache_key,
             datasource_uid,
