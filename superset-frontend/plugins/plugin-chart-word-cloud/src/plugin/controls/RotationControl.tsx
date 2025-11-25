@@ -56,7 +56,11 @@ export default function RotationControl({
             return;
           }
           // Handle LabeledValue object
-          if (typeof val === 'object' && 'value' in val && val.value !== undefined) {
+          if (
+            typeof val === 'object' &&
+            'value' in val &&
+            val.value !== undefined
+          ) {
             onChange?.(val.value as string);
           } else if (typeof val === 'string' || typeof val === 'number') {
             // Handle raw value
