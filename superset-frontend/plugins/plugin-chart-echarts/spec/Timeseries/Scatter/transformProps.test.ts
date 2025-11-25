@@ -70,6 +70,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     });
 
     const transformedProps = transformProps(
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
@@ -92,6 +93,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         chartProps as EchartsTimeseriesChartProps,
       );
@@ -146,6 +148,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     });
 
     const transformedProps = transformProps(
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
@@ -169,6 +172,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
       });
 
       const transformedProps = transformProps(
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         chartProps as EchartsTimeseriesChartProps,
       );

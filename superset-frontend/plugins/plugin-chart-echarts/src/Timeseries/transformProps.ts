@@ -115,6 +115,12 @@ import {
 function naturalCompare(a: any, b: any): number {
   const sa = a === undefined || a === null ? '' : String(a);
   const sb = b === undefined || b === null ? '' : String(b);
+
+  // Handle empty strings explicitly so they are not treated as 0
+  if (sa === '' && sb === '') return 0;
+  if (sa === '') return -1;
+  if (sb === '') return 1;
+
   const na = Number(sa);
   const nb = Number(sb);
 
