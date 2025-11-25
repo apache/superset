@@ -4,8 +4,9 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import { Glossary } from '../src/resources/glossary.ts';
-import KeyValue from '../src/components/KeyValue.tsx';
+import { Glossary, GlossaryStructure } from '../src/resources/glossary.ts';
+import { Table, ConfigProvider } from 'antd';
+import { theme } from "antd";
 import { useColorMode } from '@docusaurus/theme-common';
 
 export const GlossaryContent = () => {
@@ -13,11 +14,22 @@ export const GlossaryContent = () => {
   const isDark = colorMode === 'dark';
   
   return (
-    <div>
-      {Glossary.map(({ title, short, extended }) => (
-        <KeyValue key={title} keyName={title} value={short} dark={isDark} />
-      ))}
-    </div>
+    <ConfigProvider
+      theme={{
+        algorithm: isDark
+        ? theme.darkAlgorithm
+        : theme.defaultAlgorithm,
+      }}
+    >
+      <Table 
+        dataSource={Glossary} 
+        columns={GlossaryStructure}
+        pagination={false}
+        pagination={false}
+        showHeader={false}
+        bordered={true}
+      />
+    </ConfigProvider>
   );
 };
 

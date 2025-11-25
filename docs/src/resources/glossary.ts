@@ -32,10 +32,23 @@ export interface GlossaryTerm {
   extended?: string;
 }
 
+export const GlossaryStructure = [
+  {
+    title: 'Term',
+    dataIndex: 'title',
+    key: 'title',
+  },
+  {
+    title: 'Short Description',
+    dataIndex: 'short',
+    key: 'short',
+  }
+]
+
 export const Glossary: GlossaryTerm[] = [
   {
     title: 'First Tooltip',
-    short: 'This is an example tooltip describing the meaning and usage of feature 1.',
+    short: 'This is an example tooltip describing the meaning and usage of feature 1. This is an example tooltip describing the meaning and usage of feature 1.',
     extended: 'This is an example tooltip describing the meaning and usage of feature 1. This is an example tooltip describing the meaning and usage of feature 1.'
   },
   {
