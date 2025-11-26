@@ -35,6 +35,7 @@ from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
 
+
 class WebhookNotification(BaseNotification):
     """
     Sends a post request to a webhook url
@@ -67,7 +68,9 @@ class WebhookNotification(BaseNotification):
         if self._content.csv:
             files.append(("files", ("report.csv", self._content.csv, "text/csv")))
         if self._content.pdf:
-            files.append(("files", ("report.pdf", self._content.pdf, "application/pdf")))
+            files.append(
+                ("files", ("report.pdf", self._content.pdf, "application/pdf"))
+            )
         if self._content.screenshots:
             for i, screenshot in enumerate(self._content.screenshots):
                 files.append(
@@ -78,7 +81,9 @@ class WebhookNotification(BaseNotification):
                 )
         return files
 
-    @backoff.on_exception(backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5)
+    @backoff.on_exception(
+        backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5
+    )
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:
         if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_WEBHOOK"):
@@ -102,12 +107,14 @@ class WebhookNotification(BaseNotification):
                         data[key] = json.dumps(value)
                     else:
                         data[key] = value
-                
+
                 response = requests.post(wh_url, data=data, files=files, timeout=60)
             else:
                 response = requests.post(wh_url, json=payload, timeout=60)
-            
-            logger.info("Webhook sent to %s, status code: %s", wh_url, response.status_code)
+
+            logger.info(
+                "Webhook sent to %s, status code: %s", wh_url, response.status_code
+            )
 
             if response.status_code >= 500 or response.status_code == 429:
                 raise NotificationUnprocessableException(
