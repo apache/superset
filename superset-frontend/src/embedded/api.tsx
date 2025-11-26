@@ -18,10 +18,12 @@
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
+import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -36,6 +38,7 @@ type EmbeddedSupersetApi = {
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
   getChartStates: () => DashboardChartStates;
+  setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -77,6 +80,14 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  batch(() => {
+    Object.entries(dataMask).forEach(([filterId, mask]) => {
+      store?.dispatch(updateDataMask(filterId, mask));
+    });
+  });
+};
+
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
@@ -86,4 +97,5 @@ export const embeddedApi: EmbeddedSupersetApi = {
   getActiveTabs,
   getDataMask,
   getChartStates,
+  setDataMask,
 };
