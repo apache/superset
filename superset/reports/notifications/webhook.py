@@ -42,10 +42,10 @@ class WebhookNotification(BaseNotification):
 
     type = ReportRecipientType.WEBHOOK
 
-    def _get_webhook_url(self):
+    def _get_webhook_url(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    def _get_req_payload(self):
+    def _get_req_payload(self) -> dict[str, Any]:
         header_content = {
             "notification_format": self._content.header_data.get("notification_format"),
             "notification_type": self._content.header_data.get("notification_type"),
