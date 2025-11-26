@@ -93,7 +93,7 @@ export type EmbeddedDashboard = {
   ) => void;
   getDataMask: () => Promise<Record<string, any>>;
   getChartStates: () => Promise<Record<string, any>>;
-  getChartDataPayloads: (chartId?: number) => Promise<Record<string, any>>;
+  getChartDataPayloads: (params?: { chartId?: number }) => Promise<Record<string, any>>;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
   setThemeMode: (mode: ThemeMode) => void;
 };
@@ -250,8 +250,8 @@ export async function embedDashboard({
   const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
   const getDataMask = () => ourPort.get<Record<string, any>>('getDataMask');
   const getChartStates = () => ourPort.get<Record<string, any>>('getChartStates');
-  const getChartDataPayloads = (chartId?: number) =>
-    ourPort.get<Record<string, any>>('getChartDataPayloads', { chartId });
+  const getChartDataPayloads = (params?: { chartId?: number }) =>
+    ourPort.get<Record<string, any>>('getChartDataPayloads', params);
   const observeDataMask = (
     callbackFn: ObserveDataMaskCallbackFn,
   ) => {

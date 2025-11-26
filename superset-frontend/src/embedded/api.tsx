@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { DataMaskStateWithId, JsonObject, logging } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
@@ -43,9 +43,7 @@ type EmbeddedSupersetApi = {
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
   getChartStates: () => DashboardChartStates;
-  getChartDataPayloads: ({
-    chartId,
-  }: {
+  getChartDataPayloads: (params?: {
     chartId?: number;
   }) => Promise<Record<string, JsonObject>>;
 };
@@ -93,18 +91,26 @@ const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
 /**
- * Get query context payloads for stateful charts (e.g., AG Grid tables).
+ * Get query context payloads for stateful charts only (e.g., AG Grid tables).
+ * Returns payloads only for charts that have registered state converters.
+ * Non-stateful charts will not be included in the result.
+ *
  * These payloads include dashboard filters and chart state (sorting, column order, etc.)
  * and can be POSTed directly to /api/v1/chart/data for CSV export.
  *
+ * If payload generation fails for a chart, an error object will be returned for that chart
+ * containing `{ error: true, message: string }`, allowing other charts to process successfully.
+ *
  * @param chartId - Optional chart ID to get payload for a specific chart only
- * @returns Record of chart IDs to their query context payloads
+ * @returns Record of chart IDs to their query context payloads (only for stateful charts).
+ *          Failed charts will have an error object instead of a valid payload.
  */
-const getChartDataPayloads = async ({
-  chartId,
-}: {
-  chartId?: number;
-}): Promise<Record<string, JsonObject>> => {
+const getChartDataPayloads = async (
+  params?: {
+    chartId?: number;
+  },
+): Promise<Record<string, JsonObject>> => {
+  const { chartId } = params || {};
   const state = store?.getState();
   if (!state) return {};
 
@@ -119,19 +125,14 @@ const getChartDataPayloads = async ({
   const colorScheme = state.dashboardState?.colorScheme;
   const colorNamespace = state.dashboardState?.colorNamespace;
 
-  const payloads: Record<string, JsonObject> = {};
-
-  // Build payloads for each eligible chart
   const chartEntries = Object.entries(charts).filter(([id]) => {
     const numericId = Number(id);
     const slice = sliceEntities[id];
 
-    // Filter: only stateful charts (e.g., AG Grid)
     if (!slice || !hasChartStateConverter(slice.viz_type)) {
       return false;
     }
 
-    // Filter: specific chartId if provided
     if (chartId !== undefined && numericId !== chartId) {
       return false;
     }
@@ -139,46 +140,74 @@ const getChartDataPayloads = async ({
     return true;
   });
 
-  // Process charts sequentially to avoid race conditions
-  for (const [id, chart] of chartEntries) {
+  const payloadPromises = chartEntries.map(async ([id, chart]) => {
     const numericId = Number(id);
     const slice = sliceEntities[id];
 
-    // Build enriched form_data with dashboard filters applied
-    const formData = getFormDataWithExtraFilters({
-      chart: { id: numericId, form_data: (chart as JsonObject).form_data },
-      chartConfiguration,
-      filters: getAppliedFilterValues(numericId),
-      colorScheme,
-      colorNamespace,
-      sliceId: numericId,
-      nativeFilters,
-      allSliceIds,
-      dataMask,
-      extraControls: {},
-    });
+    try {
+      if (!chart || typeof chart !== 'object' || !('form_data' in chart)) {
+        throw new Error(`Chart ${id} is missing form_data`);
+      }
 
-    const chartState = chartStates[id]?.state;
-    const baseOwnState = dataMask[id]?.ownState || {};
-    const convertedState = chartState
-      ? convertChartStateToOwnState(slice.viz_type, chartState)
-      : {};
+      const formData = getFormDataWithExtraFilters({
+        chart: { id: numericId, form_data: (chart as JsonObject).form_data },
+        chartConfiguration,
+        filters: getAppliedFilterValues(numericId),
+        colorScheme,
+        colorNamespace,
+        sliceId: numericId,
+        nativeFilters,
+        allSliceIds,
+        dataMask,
+        extraControls: {},
+      });
 
-    const ownState = {
-      ...baseOwnState,
-      ...convertedState,
+      const chartState = chartStates[id]?.state;
+      const baseOwnState = dataMask[id]?.ownState || {};
+      const convertedState = chartState
+        ? convertChartStateToOwnState(slice.viz_type, chartState)
+        : {};
+
+      const ownState = {
+        ...baseOwnState,
+        ...convertedState,
+      };
+
+      const payload = await buildV1ChartDataPayload({
+        formData,
+        resultFormat: 'json',
+        resultType: 'results',
+        ownState,
+        setDataMask: null,
+        force: false,
+      });
+
+      return [id, payload] as const;
+    } catch (error) {
+      logging.error(`Failed to build payload for chart ${id}:`, error);
+      return [
+        id,
+        {
+          error: true,
+          message: error instanceof Error ? error.message : String(error),
+        },
+      ] as const;
+    }
+  });
+
+  const results = await Promise.all(payloadPromises);
+  const payloads = Object.fromEntries(results);
+
+  if (chartId !== undefined && Object.keys(payloads).length === 0) {
+    logging.warn(
+      `Chart ${chartId} not found or is not a stateful chart with a registered state converter`,
+    );
+    return {
+      [chartId]: {
+        error: true,
+        message: `Chart ${chartId} not found or is not a stateful chart`,
+      },
     };
-
-    const payload = await buildV1ChartDataPayload({
-      formData,
-      resultFormat: 'json',
-      resultType: 'results',
-      ownState,
-      setDataMask: null,
-      force: false,
-    });
-
-    payloads[id] = payload;
   }
 
   return payloads;
