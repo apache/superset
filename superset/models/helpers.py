@@ -2689,7 +2689,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
         orderby = orderby or []
-        need_groupby = bool(metrics is not None or groupby)
+        need_groupby = bool(metrics or groupby)
         metrics = metrics or []
 
         # For backward compatibility

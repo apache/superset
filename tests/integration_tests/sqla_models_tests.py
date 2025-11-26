@@ -1269,3 +1269,44 @@ def test_column_ordering_without_chart_flag(login_as_admin):
     finally:
         db.session.delete(table)
         db.session.commit()
+
+
+def test_empty_metrics_no_group_by(login_as_admin):
+    """
+    Test that passing metrics=[] does not add GROUP BY to the query.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.utils.database import get_example_database
+
+    database = get_example_database()
+    table = SqlaTable(
+        table_name="test_empty_metrics",
+        database=database,
+    )
+
+    col_a = TableColumn(column_name="col_a", type="VARCHAR(255)", table=table)
+    col_b = TableColumn(column_name="col_b", type="VARCHAR(255)", table=table)
+    table.columns = [col_a, col_b]
+
+    db.session.add(table)
+    db.session.commit()
+
+    try:
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "columns": ["col_a", "col_b"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {},
+        }
+        sqla_query = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+
+        assert "GROUP BY" not in sql.upper()
+    finally:
+        db.session.delete(table)
+        db.session.commit()
