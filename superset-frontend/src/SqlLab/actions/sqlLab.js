@@ -914,8 +914,7 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
 
 export function formatQuery(queryEditor) {
   return function (dispatch, getState) {
-    const qe = getUpToDateQuery(getState(), queryEditor);
-    const { sql, dbId, templateParams } = qe;
+    const { sql, dbId, templateParams } = getUpToDateQuery(getState(), queryEditor);
     const body = { sql };
 
     // Include database_id and template_params if available for Jinja processing
@@ -932,7 +931,6 @@ export function formatQuery(queryEditor) {
 
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format_sql/`,
-      // TODO (betodealmeida): pass engine as a parameter for better formatting
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' },
     }).then(({ json }) => {
