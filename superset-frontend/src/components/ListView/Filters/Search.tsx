@@ -75,6 +75,13 @@ function SearchFilter(
     },
   }));
 
+  // if name is equal to 'name', use 'search-filter-' concatenated with a
+  // random string of 6 chars to avoid auto-fill issues with the browser.
+  let searchName = name;
+  if (name === 'name') {
+    searchName = `search-filter-${Math.random().toString(36).substring(2, 8)}`;
+  }
+
   return (
     <FilterContainer
       data-test="search-filter-container"
@@ -91,12 +98,11 @@ function SearchFilter(
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
-        name={name}
+        name={searchName}
         value={value}
         onChange={handleChange}
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
-        data-1p-ignore
         prefix={
           <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
         }
