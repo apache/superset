@@ -132,16 +132,19 @@ This example adds primary, secondary, and context actions to the editor:
         "sqllab.editor": {
           "primary": [
             {
+              "view": "builtin.editor",
               "command": "query_tools.format"
             }
           ],
           "secondary": [
             {
+              "view": "builtin.editor",
               "command": "query_tools.explain"
             }
           ],
           "context": [
             {
+              "view": "builtin.editor",
               "command": "query_tools.copy_as_cte"
             }
           ]
