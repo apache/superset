@@ -23,6 +23,8 @@ import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
+import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 export const FilterTitle = styled.div`
   ${({ theme }) => `
@@ -157,7 +159,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
       filters.forEach((item, index) => {
         items.push(
           <DraggableFilter
-            key={index}
+            key={item}
             onRearrange={onRearrange}
             index={index}
             filterIds={[item]}
@@ -169,10 +171,36 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
       return items;
     };
 
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!active || !over) return;
+        const from: number = active?.data?.current?.sortable?.index;
+        const to: number = over?.data?.current?.sortable?.index;
+        if (from === undefined || to === undefined) return;
+        onRearrange(from, to);
+    };
+
+    /*
+     * We need sensor in this case because we have other listeners in the same component
+     * and dnd-kit listeners blocks other listeners preventing actions like undo and delete.
+     * Using sensors we can set activation constraint and avoid blocking other actions.
+    */
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+          activationConstraint: {
+            distance: 5
+          },
+        })
+    );
+
     return (
-      <Container data-test="filter-title-container" ref={ref}>
-        {renderFilterGroups()}
-      </Container>
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+            <Container data-test="filter-title-container" ref={ref}>
+                <SortableContext items={filters} strategy={verticalListSortingStrategy}>
+                    {renderFilterGroups()}
+                </SortableContext>
+            </Container>
+        </DndContext>
     );
   },
 );
