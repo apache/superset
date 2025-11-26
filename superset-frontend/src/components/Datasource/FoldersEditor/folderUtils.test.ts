@@ -219,12 +219,45 @@ describe('folderUtils', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    test('should detect unnamed folders', () => {
+    test('should allow empty folders without names', () => {
+      // Empty folders without names are valid (they get filtered out anyway)
       const folders = [createFolder('')];
       const result = validateFolders(folders);
 
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    test('should detect folders with content but no name', () => {
+      const folder = createFolder('');
+      folder.children = [
+        { uuid: 'metric-1', type: FoldersEditorItemType.Metric, name: 'Test' },
+      ];
+      const folders = [folder];
+      const result = validateFolders(folders);
+
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Folder must have a name');
+      expect(result.errors).toContain('Folder with content must have a name');
+    });
+
+    test('should detect duplicate folder names', () => {
+      const folder1 = createFolder('My Folder');
+      const folder2 = createFolder('My Folder');
+      const folders = [folder1, folder2];
+      const result = validateFolders(folders);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('my folder'))).toBe(true);
+    });
+
+    test('should detect duplicate folder names case-insensitively', () => {
+      const folder1 = createFolder('Test Folder');
+      const folder2 = createFolder('test folder');
+      const folders = [folder1, folder2];
+      const result = validateFolders(folders);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.some(e => e.includes('test folder'))).toBe(true);
     });
   });
 

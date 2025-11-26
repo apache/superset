@@ -292,6 +292,11 @@ export default function FoldersEditor({
     if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
       overId = over.id.replace('-empty', '');
       isEmptyDrop = true;
+
+      // Prevent dropping a folder into its own empty state
+      if (itemsBeingDragged.includes(overId as string)) {
+        return;
+      }
     }
 
     // Use fullFlattenedItems (memoized full tree)
@@ -367,7 +372,7 @@ export default function FoldersEditor({
       );
 
       // Check if target is a default folder with type restrictions
-      if (targetFolder) {
+      if (targetFolder && isDefaultFolder(targetFolder.uuid)) {
         const isDefaultMetricsFolder =
           targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID;
         const isDefaultColumnsFolder =
@@ -376,6 +381,11 @@ export default function FoldersEditor({
         // Validate type restrictions for default folders
         // Check if any dragged item violates the folder type restriction
         for (const draggedItem of draggedItems) {
+          // Default folders cannot contain other folders
+          if (draggedItem.type === FoldersEditorItemType.Folder) {
+            addWarningToast(t('Cannot nest folders in default folders'));
+            return;
+          }
           if (
             isDefaultMetricsFolder &&
             draggedItem.type === FoldersEditorItemType.Column
@@ -392,6 +402,17 @@ export default function FoldersEditor({
           }
         }
       }
+    }
+
+    // Prevent default folders from being nested into other folders
+    const hasDraggedDefaultFolder = draggedItems.some(
+      item =>
+        item.type === FoldersEditorItemType.Folder &&
+        isDefaultFolder(item.uuid),
+    );
+    if (hasDraggedDefaultFolder && projectedPosition?.parentId) {
+      addWarningToast(t('Default folders cannot be nested'));
+      return;
     }
 
     // Use projected depth and parent if available
@@ -683,6 +704,14 @@ export default function FoldersEditor({
     return types;
   }, [draggedItemIds, fullFlattenedItems]);
 
+  // Check if any of the dragged items is a default folder
+  const isDraggingDefaultFolder = useMemo(() => {
+    if (draggedItemIds.size === 0) {
+      return false;
+    }
+    return Array.from(draggedItemIds).some(id => isDefaultFolder(id));
+  }, [draggedItemIds]);
+
   return (
     <FoldersContainer>
       {/* Reset confirmation modal */}
@@ -784,6 +813,7 @@ export default function FoldersEditor({
                   metric={metricsMap.get(item.uuid)}
                   column={columnsMap.get(item.uuid)}
                   draggedItemTypes={draggedItemTypes}
+                  isDraggingDefaultFolder={isDraggingDefaultFolder}
                 />
               );
             })}
