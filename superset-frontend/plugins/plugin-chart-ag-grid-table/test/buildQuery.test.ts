@@ -474,5 +474,35 @@ describe('plugin-chart-ag-grid-table', () => {
 
       expect(query.columns).toEqual(['state', 'city']);
     });
+
+    it('should preserve undefined metrics in RAW RECORDS mode with columnOrder', () => {
+      const rawFormData: TableChartFormData = {
+        viz_type: VizType.Table,
+        datasource: '11__table',
+        query_mode: QueryMode.Raw,
+        all_columns: ['order_number', 'product_line', 'country'],
+      };
+
+      const query = buildQuery(
+        {
+          ...rawFormData,
+          result_format: 'csv',
+        },
+        {
+          ownState: {
+            columnOrder: ['country', 'product_line', 'order_number'],
+          },
+        },
+      ).queries[0];
+
+      // Columns should be reordered
+      expect(query.columns).toEqual([
+        'country',
+        'product_line',
+        'order_number',
+      ]);
+      // Metrics must be undefined (not []) to prevent backend from adding GROUP BY
+      expect(query.metrics).toBeUndefined();
+    });
   });
 });
