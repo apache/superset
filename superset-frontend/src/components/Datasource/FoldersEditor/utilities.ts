@@ -46,14 +46,17 @@ export interface FlattenedTreeItem {
 }
 
 const MAX_DEPTH = 3;
-const INDENTATION_WIDTH = 32;
+
+// Horizontal distance (in pixels) required to change nesting level during drag
+// Higher value = less sensitive to accidental horizontal movement
+export const DRAG_INDENTATION_WIDTH = 64;
 
 /**
  * Calculate depth based on horizontal drag offset
  */
 function getDragDepth(
   offset: number,
-  indentationWidth: number = INDENTATION_WIDTH,
+  indentationWidth: number = DRAG_INDENTATION_WIDTH,
 ): number {
   return Math.round(offset / indentationWidth);
 }
@@ -102,7 +105,7 @@ export function getProjection(
   activeId: UniqueIdentifier,
   overId: UniqueIdentifier,
   dragOffset: number,
-  indentationWidth: number = INDENTATION_WIDTH,
+  indentationWidth: number = DRAG_INDENTATION_WIDTH,
 ) {
   const overItemIndex = items.findIndex(({ uuid }) => uuid === overId);
   const activeItemIndex = items.findIndex(({ uuid }) => uuid === activeId);

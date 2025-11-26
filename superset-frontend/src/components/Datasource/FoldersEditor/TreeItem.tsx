@@ -61,6 +61,7 @@ interface TreeItemProps {
   isDefaultFolder?: boolean;
   isLastChild?: boolean;
   showEmptyState?: boolean;
+  isDropTarget?: boolean;
   metric?: Metric;
   column?: ColumnMeta;
   draggedItemTypes?: Set<FoldersEditorItemType>;
@@ -86,11 +87,25 @@ const FOLDER_NAME_PLACEHOLDER = t(
   'Name your folder and to edit it later, click on the folder name',
 );
 
-const TreeFolderContainer = styled(TreeItemContainer)`
-  ${({ theme, depth }) => `
+const TreeFolderContainer = styled(TreeItemContainer)<{
+  isDropTarget?: boolean;
+}>`
+  ${({ theme, depth, isDropTarget }) => `
     margin-top: ${theme.marginLG}px;
     margin-bottom: ${theme.marginLG}px;
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH}px;
+    border-radius: ${theme.borderRadius}px;
+    padding: ${theme.paddingXXS}px ${theme.paddingSM}px;
+    margin-right: ${theme.marginMD}px;
+    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    ${
+      isDropTarget
+        ? `
+      background-color: ${theme.colorPrimaryBg};
+      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
+    `
+        : ''
+    }
   `}
 `;
 
@@ -212,6 +227,7 @@ export function TreeItem({
   isDefaultFolder = false,
   isLastChild = false,
   showEmptyState = false,
+  isDropTarget = false,
   metric,
   column,
   draggedItemTypes,
@@ -384,86 +400,99 @@ export function TreeItem({
     );
   };
 
-  const Container = isFolder ? TreeFolderContainer : TreeItemContainer;
+  const containerProps = {
+    ref: setNodeRef,
+    style,
+    depth,
+    isDragging,
+    isOver,
+  };
+
+  const containerContent = (
+    <>
+      {/* Drag handle on the LEFT side (for folders only) */}
+      {isFolder && (
+        <DragHandle
+          {...attributes}
+          {...listeners}
+          css={theme => css`
+            margin-right: ${theme.marginLG}px;
+          `}
+        >
+          <Icons.Move iconSize="xl" />
+        </DragHandle>
+      )}
+
+      {/* Checkbox for selection (metrics/columns only) */}
+      {onSelect && (
+        <Checkbox
+          checked={isSelected}
+          onChange={(e: CheckboxChangeEvent) => {
+            e.stopPropagation();
+            onSelect(e.target.checked);
+          }}
+          css={theme => css`
+            margin-right: ${theme.marginSM}px;
+          `}
+        />
+      )}
+
+      {/* Icon for DEFAULT folders only (Metrics/Columns) */}
+      {isFolder && isDefaultFolder && (
+        <DefaultFolderIconContainer>
+          <Icons.FolderViewOutlined />
+        </DefaultFolderIconContainer>
+      )}
+
+      {/* Name (editable for non-default folders) or MetricOption/ColumnOption */}
+      {(isEditing || hasEmptyName) && !isDefaultFolder ? (
+        <Input
+          value={editValue}
+          placeholder={FOLDER_NAME_PLACEHOLDER}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setEditValue(e.target.value)
+          }
+          onKeyDown={handleEditKeyDown}
+          onBlur={handleEditBlur}
+          autoFocus
+          onClick={(e: React.MouseEvent<HTMLInputElement>) =>
+            e.stopPropagation()
+          }
+          css={theme => css`
+            padding: 0;
+            padding-right: ${theme.marginMD}px;
+          `}
+          variant="borderless"
+        />
+      ) : (
+        renderItemContent()
+      )}
+
+      {/* Collapse/expand button on the RIGHT side for folders */}
+      {isFolder && onToggleCollapse && (
+        <CollapseButton
+          onClick={e => {
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
+        >
+          {isCollapsed ? <Icons.RightOutlined /> : <Icons.DownOutlined />}
+        </CollapseButton>
+      )}
+    </>
+  );
+
   return (
     <>
-      <Container
-        ref={setNodeRef}
-        style={style}
-        depth={depth}
-        isDragging={isDragging}
-        isOver={isOver}
-      >
-        {/* Drag handle on the LEFT side (for folders only) */}
-        {isFolder && (
-          <DragHandle
-            {...attributes}
-            {...listeners}
-            css={theme => css`
-              margin-right: ${theme.marginLG}px;
-            `}
-          >
-            <Icons.Move iconSize="xl" />
-          </DragHandle>
-        )}
-
-        {/* Checkbox for selection (metrics/columns only) */}
-        {onSelect && (
-          <Checkbox
-            checked={isSelected}
-            onChange={(e: CheckboxChangeEvent) => {
-              e.stopPropagation();
-              onSelect(e.target.checked);
-            }}
-            css={theme => css`
-              margin-right: ${theme.marginSM}px;
-            `}
-          />
-        )}
-
-        {/* Icon for DEFAULT folders only (Metrics/Columns) */}
-        {isFolder && isDefaultFolder && (
-          <DefaultFolderIconContainer>
-            <Icons.FolderViewOutlined />
-          </DefaultFolderIconContainer>
-        )}
-
-        {/* Name (editable for non-default folders) or MetricOption/ColumnOption */}
-        {(isEditing || hasEmptyName) && !isDefaultFolder ? (
-          <Input
-            value={editValue}
-            placeholder={FOLDER_NAME_PLACEHOLDER}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setEditValue(e.target.value)
-            }
-            onKeyDown={handleEditKeyDown}
-            onBlur={handleEditBlur}
-            autoFocus
-            onClick={(e: React.MouseEvent<HTMLInputElement>) =>
-              e.stopPropagation()
-            }
-            css={theme => css`
-              padding: 0;
-              padding-right: ${theme.marginMD}px;
-            `}
-            variant="borderless"
-          />
-        ) : (
-          renderItemContent()
-        )}
-
-        {/* Collapse/expand button on the RIGHT side for folders */}
-        {isFolder && onToggleCollapse && (
-          <CollapseButton
-            onClick={e => {
-              e.stopPropagation();
-              onToggleCollapse();
-            }}
-          >
-            {isCollapsed ? <Icons.RightOutlined /> : <Icons.DownOutlined />}
-          </CollapseButton>
-        )}
-      </Container>
+      {isFolder ? (
+        <TreeFolderContainer {...containerProps} isDropTarget={isDropTarget}>
+          {containerContent}
+        </TreeFolderContainer>
+      ) : (
+        <TreeItemContainer {...containerProps}>
+          {containerContent}
+        </TreeItemContainer>
+      )}
 
       {/* Empty state drop zone for folders with no children */}
       {isFolder && showEmptyState && !isCollapsed && (
