@@ -96,12 +96,12 @@ describe('CountryMap (legacy d3)', () => {
     expect(popup).not.toBeNull();
 
     fireEvent.mouseEnter(region!);
-    expect(popup!).toHaveStyle({ display: 'block' });
+    expect(popup!.style.display).toBe('block');
 
     fireEvent.mouseMove(region!);
-    expect(popup!).toHaveStyle({ top: '80px' }); // mouseY (50) + 30
+    expect(popup!.style.top).toBe('80px'); // mouseY (50) + 30
 
     fireEvent.mouseOut(region!);
-    expect(popup!).toHaveStyle({ display: 'none' });
+    expect(popup!.style.display).toBe('none');
   });
 });
