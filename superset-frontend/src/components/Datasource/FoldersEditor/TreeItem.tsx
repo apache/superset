@@ -65,6 +65,7 @@ interface TreeItemProps {
   metric?: Metric;
   column?: ColumnMeta;
   draggedItemTypes?: Set<FoldersEditorItemType>;
+  isDraggingDefaultFolder?: boolean;
 }
 
 const TreeItemContainer = styled.div<{
@@ -89,8 +90,9 @@ const FOLDER_NAME_PLACEHOLDER = t(
 
 const TreeFolderContainer = styled(TreeItemContainer)<{
   isDropTarget?: boolean;
+  isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isDropTarget }) => `
+  ${({ theme, depth, isDropTarget, isForbiddenDropTarget }) => `
     margin-top: ${theme.marginLG}px;
     margin-bottom: ${theme.marginLG}px;
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH}px;
@@ -99,12 +101,18 @@ const TreeFolderContainer = styled(TreeItemContainer)<{
     margin-right: ${theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     ${
-      isDropTarget
+      isDropTarget && isForbiddenDropTarget
         ? `
+      background-color: ${theme.colorErrorBg};
+      box-shadow: inset 0 0 0 2px ${theme.colorError};
+      cursor: not-allowed;
+    `
+        : isDropTarget
+          ? `
       background-color: ${theme.colorPrimaryBg};
       box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
     `
-        : ''
+          : ''
     }
   `}
 `;
@@ -231,6 +239,7 @@ export function TreeItem({
   metric,
   column,
   draggedItemTypes,
+  isDraggingDefaultFolder = false,
 }: TreeItemProps) {
   const [editValue, setEditValue] = useState(name);
 
@@ -240,10 +249,23 @@ export function TreeItem({
       return false;
     }
 
+    // If dragging a default folder, it cannot be nested into any other folder
+    if (isDraggingDefaultFolder && !isDefaultFolder) {
+      return true;
+    }
+
     const isDefaultMetricsFolder =
       id === DEFAULT_METRICS_FOLDER_UUID && isDefaultFolder;
     const isDefaultColumnsFolder =
       id === DEFAULT_COLUMNS_FOLDER_UUID && isDefaultFolder;
+
+    // Default folders cannot accept any folders
+    if (
+      (isDefaultMetricsFolder || isDefaultColumnsFolder) &&
+      draggedItemTypes.has(FoldersEditorItemType.Folder)
+    ) {
+      return true;
+    }
 
     // Check if any dragged item violates the folder type restriction
     if (isDefaultMetricsFolder) {
@@ -485,7 +507,11 @@ export function TreeItem({
   return (
     <>
       {isFolder ? (
-        <TreeFolderContainer {...containerProps} isDropTarget={isDropTarget}>
+        <TreeFolderContainer
+          {...containerProps}
+          isDropTarget={isDropTarget}
+          isForbiddenDropTarget={isForbiddenDrop}
+        >
           {containerContent}
         </TreeFolderContainer>
       ) : (

@@ -331,11 +331,33 @@ export const validateFolders = (
   folders: DatasourceFolder[],
 ): ValidationResult => {
   const errors: string[] = [];
+  const folderNames: string[] = [];
+
+  const collectFolderNames = (items: DatasourceFolder[]) => {
+    items.forEach(folder => {
+      // Collect non-empty folder names for duplicate check
+      if (folder.name?.trim()) {
+        folderNames.push(folder.name.trim().toLowerCase());
+      }
+
+      // Recursively collect from nested folders
+      if (folder.children && folder.type === 'folder') {
+        const childFolders = folder.children.filter(
+          c => c.type === 'folder',
+        ) as DatasourceFolder[];
+        collectFolderNames(childFolders);
+      }
+    });
+  };
 
   const validateRecursive = (items: DatasourceFolder[]) => {
     items.forEach(folder => {
-      if (!folder.name?.trim()) {
-        errors.push(t('Folder must have a name'));
+      // Check for folders with content but no title
+      const hasContent = folder.children && folder.children.length > 0;
+      const hasNoTitle = !folder.name?.trim();
+
+      if (hasContent && hasNoTitle) {
+        errors.push(t('Folder with content must have a name'));
       }
 
       if (folder.uuid === DEFAULT_METRICS_FOLDER_UUID && folder.children) {
@@ -365,6 +387,21 @@ export const validateFolders = (
     });
   };
 
+  // First pass: collect all folder names
+  collectFolderNames(folders);
+
+  // Check for duplicate folder names
+  const nameCounts = new Map<string, number>();
+  folderNames.forEach(name => {
+    nameCounts.set(name, (nameCounts.get(name) || 0) + 1);
+  });
+  nameCounts.forEach((count, name) => {
+    if (count > 1) {
+      errors.push(t('Duplicate folder name: %s', name));
+    }
+  });
+
+  // Second pass: validate folder contents
   validateRecursive(folders);
 
   return {

@@ -85,6 +85,7 @@ import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_METRICS_FOLDER_UUID,
+  validateFolders,
 } from '../../FoldersEditor/folderUtils';
 import FoldersEditor from '../../FoldersEditor/index';
 
@@ -726,10 +727,11 @@ class DatasourceEditor extends PureComponent {
         f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
         f.children.length > 0,
     );
-    this.setState({ folders: userMadeFolders });
-    this.onDatasourceChange({
-      ...this.state.datasource,
-      folders: userMadeFolders,
+    this.setState({ folders: userMadeFolders }, () => {
+      this.onDatasourceChange({
+        ...this.state.datasource,
+        folders: userMadeFolders,
+      });
     });
   }
 
@@ -1088,6 +1090,12 @@ class DatasourceEditor extends PureComponent {
       );
     } catch {
       errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
+
+    // Validate folders
+    if (this.state.folders?.length > 0) {
+      const folderValidation = validateFolders(this.state.folders);
+      errors = errors.concat(folderValidation.errors);
     }
 
     this.setState({ errors }, callback);
