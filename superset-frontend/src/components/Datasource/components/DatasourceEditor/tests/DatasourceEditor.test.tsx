@@ -164,7 +164,7 @@ test('can delete columns', async () => {
   await userEvent.click(columnsTab);
 
   const columnsPanel = within(
-    await screen.findByTestId('collection-panel-Columns'),
+    await screen.findByRole('tabpanel', { name: /columns/i }),
   );
 
   const getToggles = await columnsPanel.findAllByRole('button', {

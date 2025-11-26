@@ -29,7 +29,7 @@ import {
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
-  fastRender,
+  asyncRender,
 } from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
@@ -69,7 +69,7 @@ const dismissDatasourceWarning = async () => {
 
 test('renders currency section in metrics tab', async () => {
   const testProps = createPropsWithCurrency();
-  fastRender(testProps);
+  await asyncRender(testProps);
 
   await dismissDatasourceWarning();
 
@@ -101,7 +101,7 @@ test('renders currency section in metrics tab', async () => {
 test('changes currency position from prefix to suffix', async () => {
   const testProps = createPropsWithCurrency();
 
-  fastRender(testProps);
+  await asyncRender(testProps);
 
   await dismissDatasourceWarning();
 
@@ -113,8 +113,14 @@ test('changes currency position from prefix to suffix', async () => {
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
+  // Ensure the position selector is mounted before interacting
+  await screen.findByRole('combobox', {
+    name: 'Currency prefix or suffix',
+  });
+
   // Select suffix option using helper
   await selectOption('Suffix', 'Currency prefix or suffix');
+  await cleanupAsyncOperations();
 
   // Verify onChange was called with suffix position
   await waitFor(() => {
@@ -134,7 +140,7 @@ test('changes currency position from prefix to suffix', async () => {
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
 
-  fastRender(testProps);
+  await asyncRender(testProps);
 
   await dismissDatasourceWarning();
 
@@ -145,6 +151,9 @@ test('changes currency symbol from USD to GBP', async () => {
   // Expand the metric with currency
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
+
+  // Ensure the symbol selector is mounted before interacting
+  await screen.findByRole('combobox', { name: 'Currency symbol' });
 
   // Select GBP option using helper (text includes symbol: "£ (GBP)")
   await selectOption('£ (GBP)', 'Currency symbol');
