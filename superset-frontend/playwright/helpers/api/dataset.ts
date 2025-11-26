@@ -20,7 +20,7 @@
 import { Page, APIResponse, expect } from '@playwright/test';
 import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
-const ENDPOINTS = {
+export const ENDPOINTS = {
   DATASET: 'api/v1/dataset/',
 } as const;
 
@@ -112,14 +112,12 @@ export async function duplicateDataset(
   datasetId: number,
   newName: string,
 ): Promise<DatasetResult> {
-  const response = await page.request.post('/api/v1/dataset/duplicate', {
-    data: {
-      base_model_id: datasetId,
-      table_name: newName,
-    },
+  const response = await apiPost(page, `${ENDPOINTS.DATASET}duplicate`, {
+    base_model_id: datasetId,
+    table_name: newName,
   });
 
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   const data = await response.json();
 
   return {
