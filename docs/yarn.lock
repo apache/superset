@@ -8502,10 +8502,10 @@ js-file-download@^0.4.12:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
-js-yaml@=4.1.0, js-yaml@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.1.0.tgz#c1fb65f8f5017901cdd2c951864ba18458a10602"
-  integrity sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==
+js-yaml@=4.1.1, js-yaml@^4.1.0:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.1.1.tgz#854c292467705b699476e1a2decc0c8a3458806b"
+  integrity sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==
   dependencies:
     argparse "^2.0.1"
 
@@ -13036,10 +13036,10 @@ swagger-client@^3.36.0:
     ramda "^0.30.1"
     ramda-adjunct "^5.1.0"
 
-swagger-ui-react@^5.30.2:
-  version "5.30.2"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.30.2.tgz#d02fe73e3f895f67d1ab8bc02aadccfad55b1a2b"
-  integrity sha512-0tS9GOcswKuQrIpCyvDoCDs6xS8B6MRC+iE7P99WfVXDhAIU+U7iFHuS4e7zucSh9qXvcL7KsXs623c+4oBe6w==
+swagger-ui-react@^5.30.3:
+  version "5.30.3"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.30.3.tgz#5c8fd646a82d00e038f1bc0b689b10192e2611ed"
+  integrity sha512-QIy32nPql6yiV2NVwbww1P7f6HEOAuYrnk8VEJkzPC/p6Xc5Xnz9hhmSHzXTuM70fDbVw/qPzCJ0mZMMultpiw==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -13052,7 +13052,7 @@ swagger-ui-react@^5.30.2:
     ieee754 "^1.2.1"
     immutable "^3.x.x"
     js-file-download "^0.4.12"
-    js-yaml "=4.1.0"
+    js-yaml "=4.1.1"
     lodash "^4.17.21"
     prop-types "^15.8.1"
     randexp "^0.5.3"
