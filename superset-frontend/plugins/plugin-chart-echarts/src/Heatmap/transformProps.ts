@@ -45,6 +45,73 @@ type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 
 const DEFAULT_ECHARTS_BOUNDS = [0, 200];
 
+/**
+ * Extract unique values for an axis from the data
+ */
+function extractUniqueValues(
+  data: Record<string, any>[],
+  columnName: string,
+): (string | number)[] {
+  const uniqueSet = new Set<string | number>();
+  data.forEach(row => {
+    const value = row[columnName];
+    if (value !== null && value !== undefined) {
+      uniqueSet.add(value);
+    }
+  });
+  return Array.from(uniqueSet);
+}
+
+/**
+ * Sort axis values based on the sort configuration
+ */
+function sortAxisValues(
+  values: (string | number)[],
+  data: Record<string, any>[],
+  sortOption: string | undefined,
+  metricLabel: string,
+  axisColumn: string,
+): (string | number)[] {
+  if (!sortOption) {
+    // No sorting specified, return values as they appear in the data
+    return values;
+  }
+
+  const isAscending = sortOption.includes('asc');
+  const isValueSort = sortOption.includes('value');
+
+  if (isValueSort) {
+    // Sort by metric value - aggregate metric values for each axis category
+    const valueMap = new Map<string | number, number>();
+    data.forEach(row => {
+      const axisValue = row[axisColumn];
+      const metricValue = row[metricLabel];
+      if (
+        axisValue !== null &&
+        axisValue !== undefined &&
+        typeof metricValue === 'number'
+      ) {
+        const current = valueMap.get(axisValue) || 0;
+        valueMap.set(axisValue, current + metricValue);
+      }
+    });
+
+    return values.sort((a, b) => {
+      const aValue = valueMap.get(a) || 0;
+      const bValue = valueMap.get(b) || 0;
+      return isAscending ? aValue - bValue : bValue - aValue;
+    });
+  }
+
+  // Alphabetical/lexicographic sort
+  return values.sort((a, b) => {
+    const aStr = String(a);
+    const bStr = String(b);
+    const comparison = aStr.localeCompare(bStr);
+    return isAscending ? comparison : -comparison;
+  });
+}
+
 // Calculated totals per x and y categories plus total
 const calculateTotals = memoizeOne(
   (
@@ -101,6 +168,8 @@ export default function transformProps(
     xAxisTimeFormat,
     xAxisLabelRotation,
     currencyFormat,
+    sortXAxis,
+    sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
   const xAxisLabel = getColumnLabel(xAxis);
@@ -143,6 +212,29 @@ export default function transformProps(
       (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
       DEFAULT_ECHARTS_BOUNDS[1];
   }
+
+  // Extract and sort unique axis values
+  // Use colnames to get the actual column names in the data
+  const xAxisColumnName = colnames[0];
+  const yAxisColumnName = colnames[1];
+
+  const xAxisValues = extractUniqueValues(data, xAxisColumnName);
+  const yAxisValues = extractUniqueValues(data, yAxisColumnName);
+
+  const sortedXAxisValues = sortAxisValues(
+    xAxisValues,
+    data,
+    sortXAxis,
+    metricLabel,
+    xAxisColumnName,
+  );
+  const sortedYAxisValues = sortAxisValues(
+    yAxisValues,
+    data,
+    sortYAxis,
+    metricLabel,
+    yAxisColumnName,
+  );
 
   const series: HeatmapSeriesOption[] = [
     {
@@ -249,6 +341,7 @@ export default function transformProps(
     },
     xAxis: {
       type: 'category',
+      data: sortedXAxisValues,
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
@@ -257,6 +350,7 @@ export default function transformProps(
     },
     yAxis: {
       type: 'category',
+      data: sortedYAxisValues,
       axisLabel: {
         formatter: yAxisFormatter,
         interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,
