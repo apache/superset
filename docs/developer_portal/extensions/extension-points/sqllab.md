@@ -157,6 +157,6 @@ This example adds primary, secondary, and context actions to the editor:
 
 ## Next Steps
 
-- **[Contribution Types](./contribution-types)** - Learn about other contribution types (commands, menus)
-- **[Development](./development)** - Set up your development environment
-- **[Quick Start](./quick-start)** - Build a complete extension
+- **[Contribution Types](../contribution-types)** - Learn about other contribution types (commands, menus)
+- **[Development](../development)** - Set up your development environment
+- **[Quick Start](../quick-start)** - Build a complete extension
