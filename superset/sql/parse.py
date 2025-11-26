@@ -266,14 +266,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         try:
             return sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
-            error = ex.errors[0]
-            raise SupersetParseError(
-                script,
-                engine,
-                highlight=error["highlight"],
-                line=error["line"],
-                column=error["col"],
-            ) from ex
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(script, engine, **kwargs) from ex
         except sqlglot.errors.SqlglotError as ex:
             raise SupersetParseError(
                 script,
