@@ -46,13 +46,13 @@ SQL Lab provides 5 extension points where extensions can contribute custom UI co
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-| Extension Point | ID | Description |
-|-----------------|-----|-------------|
-| **Left Sidebar** | `sqllab.leftSidebar` | Navigation and browsing (database explorer, saved queries) |
-| **Editor** | `sqllab.editor` | SQL query editor workspace |
-| **Right Sidebar** | `sqllab.rightSidebar` | Contextual tools (AI assistants, query analysis) |
-| **Panels** | `sqllab.panels` | Results and related views (visualizations, data profiling) |
-| **Status Bar** | `sqllab.statusBar` | Connection status and query metrics |
+| Extension Point   | ID                    | Description                                                |
+| ----------------- | --------------------- | ---------------------------------------------------------- |
+| **Left Sidebar**  | `sqllab.leftSidebar`  | Navigation and browsing (database explorer, saved queries) |
+| **Editor**        | `sqllab.editor`       | SQL query editor workspace                                 |
+| **Right Sidebar** | `sqllab.rightSidebar` | Contextual tools (AI assistants, query analysis)           |
+| **Panels**        | `sqllab.panels`       | Results and related views (visualizations, data profiling) |
+| **Status Bar**    | `sqllab.statusBar`    | Connection status and query metrics                        |
 
 ## Area Customizations
 
@@ -100,6 +100,17 @@ This example adds a "Data Profiler" panel to SQL Lab:
       }
     }
   }
+}
+```
+
+```typescript
+import { core } from '@apache-superset/core';
+import DataProfilerPanel from './DataProfilerPanel';
+
+export function activate(context) {
+  // Register the panel view with the ID declared in extension.json
+  const disposable = core.registerView('data_profiler.main', <DataProfilerPanel />);
+  context.subscriptions.push(disposable);
 }
 ```
 
@@ -152,6 +163,42 @@ This example adds primary, secondary, and context actions to the editor:
       }
     }
   }
+}
+```
+
+```typescript
+import { commands, sqlLab } from '@apache-superset/core';
+
+export function activate(context) {
+  // Register the commands declared in extension.json
+  const formatCommand = commands.registerCommand('query_tools.format', {
+    execute: () => {
+      const tab = sqlLab.getCurrentTab();
+      if (tab?.editor) {
+        // Format the SQL query
+      }
+    },
+  });
+
+  const explainCommand = commands.registerCommand('query_tools.explain', {
+    execute: () => {
+      const tab = sqlLab.getCurrentTab();
+      if (tab?.editor) {
+        // Show query explanation
+      }
+    },
+  });
+
+  const copyAsCteCommand = commands.registerCommand('query_tools.copy_as_cte', {
+    execute: () => {
+      const tab = sqlLab.getCurrentTab();
+      if (tab?.editor) {
+        // Copy selected text as CTE
+      }
+    },
+  });
+
+  context.subscriptions.push(formatCommand, explainCommand, copyAsCteCommand);
 }
 ```
 
