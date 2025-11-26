@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, memo } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { useEffect, useState, memo, useMemo } from 'react';
+import { t, sanitizeHtml } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
 import { isPlainObject } from 'lodash';
 
@@ -45,8 +45,6 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
     const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
-    const htmlSchemaOverrides =
-      common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
     useEffect(() => {
       try {
@@ -59,6 +57,12 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
         setError(error.message || 'Unknown template error');
       }
     }, [templateSource, data]);
+
+    const htmlContent = useMemo(
+      () =>
+        htmlSanitization ? sanitizeHtml(renderedTemplate) : renderedTemplate,
+      [renderedTemplate, htmlSanitization],
+    );
 
     if (error) {
       return <ErrorContainer>{error}</ErrorContainer>;
@@ -73,13 +77,9 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = memo(
             fontSize: '12px',
             lineHeight: '1.4',
           }}
-        >
-          <SafeMarkdown
-            source={renderedTemplate || ''}
-            htmlSanitization={htmlSanitization}
-            htmlSchemaOverrides={htmlSchemaOverrides}
-          />
-        </div>
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
       );
     }
 

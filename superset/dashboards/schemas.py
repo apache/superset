@@ -145,6 +145,7 @@ class DashboardJSONMetadataSchema(Schema):
     # global_chart_configuration keeps data about global cross-filter scoping
     # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
+    chart_customization_config = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
@@ -235,6 +236,7 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
+    custom_tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
@@ -243,6 +245,12 @@ class DashboardGetResponseSchema(Schema):
     # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        # Handle custom_tags → tags renaming when flag is enabled
+        # When DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True, FAB populates custom_tags
+        # Rename it to tags for frontend compatibility
+        if "custom_tags" in serialized:
+            serialized["tags"] = serialized.pop("custom_tags")
+
         if security_manager.is_guest_user():
             del serialized["owners"]
             del serialized["changed_by_name"]

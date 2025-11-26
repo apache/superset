@@ -46,7 +46,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
-    appbuilder,
     db,
     event_logger,
     is_feature_enabled,
@@ -77,9 +76,13 @@ from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.superset_typing import FlaskResponse
+from superset.superset_typing import (
+    BaseDatasourceData,
+    FlaskResponse,
+    QueryData,
+)
+from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -108,6 +111,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     loads_request_json,
+    redirect_to_login,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -527,13 +531,14 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: dict[str, Any] = {
-            "type": datasource_type,
+        dummy_datasource_data: BaseDatasourceData = {
+            "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
+        datasource_data: BaseDatasourceData | QueryData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):
@@ -541,8 +546,6 @@ class Superset(BaseSupersetView):
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
-            if isinstance(datasource, Query):
-                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -765,13 +768,21 @@ class Superset(BaseSupersetView):
         dashboard = Dashboard.get(dashboard_id_or_slug)
 
         if not dashboard:
+            if not get_current_user():
+                return redirect_to_login()
             abort(404)
+
+        # Redirect anonymous users to login for unpublished dashboards,
+        # in the edge case where a dataset has been shared with public
+        if not get_current_user() and not dashboard.published:
+            return redirect_to_login()
 
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException:
-            # Return 404 to avoid revealing dashboard existence
-            return Response(status=404)
+            if not get_current_user():
+                return redirect_to_login()
+            abort(404)
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
@@ -817,7 +828,7 @@ class Superset(BaseSupersetView):
                     # native_filters doesnt need to be encoded here
                     url = f"{url}&native_filters={param_val}"
                 else:
-                    params = parse.urlencode([param_key, param_val])  # type: ignore
+                    params = parse.urlencode([(param_key, param_val)])
                     url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
@@ -882,7 +893,7 @@ class Superset(BaseSupersetView):
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            return redirect(appbuilder.get_url_for_login)
+            return redirect_to_login()
 
         if welcome_dashboard_id := (
             db.session.query(UserAttribute.welcome_dashboard_id)

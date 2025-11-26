@@ -24,8 +24,7 @@ import {
   colorSchemeDark,
   colorSchemeLight,
 } from 'ag-grid-community';
-import { useTheme } from '../../theme';
-import { useThemeMode } from '../../theme/utils/themeUtils';
+import { useTheme, useThemeMode } from '@apache-superset/core/ui';
 
 // Note: With ag-grid v34's new theming API, CSS files are injected automatically
 // Do NOT import 'ag-grid-community/styles/ag-grid.css' or theme CSS files
@@ -161,6 +160,7 @@ export type { CustomCellRendererProps } from 'ag-grid-react';
 export type {
   ColDef,
   Column,
+  ColumnState,
   GridOptions,
   GridState,
   GridReadyEvent,
@@ -186,5 +186,5 @@ export {
 // Re-export AgGridReact for ref types
 export { AgGridReact } from 'ag-grid-react';
 
-// Export the setup function for AG-Grid modules
-export { setupAGGridModules } from './setupAGGridModules';
+// Export the setup function and default modules for AG-Grid
+export { setupAGGridModules, defaultModules } from './setupAGGridModules';

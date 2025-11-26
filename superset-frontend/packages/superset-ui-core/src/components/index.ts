@@ -28,7 +28,6 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from './Alert';
 export { CertifiedBadge } from './CertifiedBadge';
 export * from './Icons';
 export * from './Timer';
@@ -66,6 +65,7 @@ export {
   type CheckboxProps,
   type CheckboxChangeEvent,
 } from './Checkbox';
+export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
 export {
   ColorPicker,
   type ColorPickerProps,
@@ -145,6 +145,8 @@ export {
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
 
+export { Progress, type ProgressProps } from './Progress';
+
 export { Skeleton, type SkeletonProps } from './Skeleton';
 
 export { Switch, type SwitchProps } from './Switch';
@@ -180,6 +182,7 @@ export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
   setupAGGridModules,
+  defaultModules,
 } from './ThemedAgGridReact';
 export {
   CodeEditor,
@@ -187,3 +190,4 @@ export {
   type CodeEditorMode,
   type CodeEditorTheme,
 } from './CodeEditor';
+export { ActionButton, type ActionProps } from './ActionButton';

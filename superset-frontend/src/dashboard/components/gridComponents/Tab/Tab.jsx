@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo } from 'react';
+import { Fragment, useCallback, memo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
-import { setEditMode } from 'src/dashboard/actions/dashboardState';
+import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import {
@@ -35,6 +37,9 @@ import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
+
+// Delay before refreshing charts to ensure they are fully mounted
+const CHART_MOUNT_DELAY = 100;
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -51,6 +56,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   embeddedMode: PropTypes.bool,
+  onTabTitleEditingChange: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -63,6 +69,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  isComponentVisible: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -75,6 +82,7 @@ const defaultProps = {
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
+  onTabTitleEditingChange() {},
 };
 
 const TabTitleContainer = styled.div`
@@ -113,6 +121,43 @@ const renderDraggableContent = dropProps =>
 const Tab = props => {
   const dispatch = useDispatch();
   const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
+  const dashboardLayout = useSelector(state => state.dashboardLayout.present);
+  const lastRefreshTime = useSelector(
+    state => state.dashboardState.lastRefreshTime,
+  );
+  const tabActivationTime = useSelector(
+    state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
+  );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
+
+  useEffect(() => {
+    if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
+      if (
+        lastRefreshTime &&
+        tabActivationTime &&
+        lastRefreshTime > tabActivationTime
+      ) {
+        const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
+        if (chartIds.length > 0) {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id));
+            }, CHART_MOUNT_DELAY);
+          });
+        }
+      }
+    }
+  }, [
+    props.isComponentVisible,
+    props.renderType,
+    props.id,
+    lastRefreshTime,
+    tabActivationTime,
+    dashboardLayout,
+    dashboardInfo.id,
+    dispatch,
+  ]);
+
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }) => {
       props.setDirectPathToChild(pathToTabIndex);
@@ -314,6 +359,7 @@ const Tab = props => {
         isHighlighted,
         dashboardId,
         embeddedMode,
+        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -329,6 +375,7 @@ const Tab = props => {
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}
+            onEditingChange={onTabTitleEditingChange}
           />
           {!editMode && !embeddedMode && (
             <AnchorLink
@@ -354,6 +401,7 @@ const Tab = props => {
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
+      props.onTabTitleEditingChange,
       handleChangeText,
     ],
   );

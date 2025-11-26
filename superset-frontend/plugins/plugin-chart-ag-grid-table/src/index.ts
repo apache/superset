@@ -33,6 +33,12 @@ import { TableChartFormData, TableChartProps } from './types';
 // must export something for the module to be exist in dev mode
 export { default as __hack__ } from './types';
 export * from './types';
+export {
+  convertAgGridStateToOwnState,
+  convertSortModel,
+  convertColumnState,
+  convertFilterModel,
+} from './stateConversion';
 
 const metadata = new ChartMetadata({
   behaviors: [

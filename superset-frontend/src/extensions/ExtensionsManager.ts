@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FeatureFlag,
-  SupersetClient,
-  isFeatureEnabled,
-  logging,
-} from '@superset-ui/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import type { contributions, core } from '@apache-superset/core';
 import { ExtensionContext } from '../core/models';
 
@@ -62,9 +57,6 @@ class ExtensionsManager {
    * @throws Error if initialization fails.
    */
   public async initializeExtensions(): Promise<void> {
-    if (!isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-      return;
-    }
     const response = await SupersetClient.get({
       endpoint: '/api/v1/extensions/',
     });
