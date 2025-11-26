@@ -159,6 +159,16 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         secondaryjoin="TaggedObject.tag_id == Tag.id",
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
+    custom_tags = relationship(
+        "Tag",
+        overlaps="objects,tag,tags,custom_tags",
+        secondary="tagged_object",
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
+        "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        "cast(Tag.type, String) == 'custom')",  # Filtering at JOIN level
+        viewonly=True,
+    )
     theme = relationship("Theme", foreign_keys=[theme_id])
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)

@@ -65,6 +65,7 @@ const useDatasetsList = (
       } catch (error) {
         addDangerToast(t('There was an error fetching dataset'));
         logging.error(t('There was an error fetching dataset'), error);
+        break;
       }
     }
 
@@ -78,7 +79,7 @@ const useDatasetsList = (
       { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
     ];
 
-    if (schema) {
+    if (schema && db?.id !== undefined) {
       getDatasetsList(filters);
     }
   }, [db?.id, schema, encodedSchema, getDatasetsList]);

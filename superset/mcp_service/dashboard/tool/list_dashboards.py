@@ -23,11 +23,14 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
@@ -36,6 +39,7 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -59,24 +63,29 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
-) -> DashboardList:
+) -> dict[str, Any]:
     """List dashboards with filtering and search. Returns dashboard metadata
     including title, slug, and charts.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
-
     from superset.daos.dashboard import DashboardDAO
+
+    def _serialize_dashboard(
+        obj: "Dashboard | None", cols: list[str] | None
+    ) -> DashboardInfo | None:
+        """Serialize dashboard object (field filtering handled by model_serializer)."""
+        return serialize_dashboard_object(obj)
 
     tool = ModelListCore(
         dao_class=DashboardDAO,
         output_schema=DashboardInfo,
-        item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
+        item_serializer=_serialize_dashboard,
         filter_type=DashboardFilter,
         default_columns=DEFAULT_DASHBOARD_COLUMNS,
         search_columns=[
@@ -88,7 +97,8 @@ async def list_dashboards(
         output_list_schema=DashboardList,
         logger=logger,
     )
-    return tool.run_tool(
+
+    result = tool.run_tool(
         filters=request.filters,
         search=request.search,
         select_columns=request.select_columns,
@@ -97,3 +107,18 @@ async def list_dashboards(
         page=max(request.page - 1, 0),
         page_size=request.page_size,
     )
+
+    # Apply field filtering via serialization context if select_columns specified
+    # This triggers DashboardInfo._filter_fields_by_context for each dashboard
+    if request.select_columns:
+        await ctx.debug(
+            "Applying field filtering via serialization context: select_columns=%s"
+            % (request.select_columns,)
+        )
+        # Return dict with context - FastMCP will serialize it
+        return result.model_dump(
+            mode="json", context={"select_columns": request.select_columns}
+        )
+
+    # No filtering - return full result as dict
+    return result.model_dump(mode="json")

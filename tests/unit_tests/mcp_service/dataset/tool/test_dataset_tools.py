@@ -358,6 +358,8 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -382,9 +384,6 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 2
         assert data["datasets"][0]["table_name"] == "Filtered Dataset"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -721,6 +720,8 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -816,6 +817,8 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -1080,17 +1083,19 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
         result = await client.call_tool(
             "list_datasets", {"request": request.model_dump()}
         )
-        datasets = result.data.datasets
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        datasets = data["datasets"]
         assert len(datasets) == 1
         ds = datasets[0]
-        assert hasattr(ds, "columns")
-        assert hasattr(ds, "metrics")
-        assert isinstance(ds.columns, list)
-        assert isinstance(ds.metrics, list)
-        assert len(ds.columns) == 1
-        assert len(ds.metrics) == 1
-        assert ds.columns[0].column_name == "colA"
-        assert ds.metrics[0].metric_name == "avg_value"
+        assert "columns" in ds
+        assert "metrics" in ds
+        assert isinstance(ds["columns"], list)
+        assert isinstance(ds["metrics"], list)
+        assert len(ds["columns"]) == 1
+        assert len(ds["metrics"]) == 1
+        assert ds["columns"][0]["column_name"] == "colA"
+        assert ds["metrics"][0]["metric_name"] == "avg_value"
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
@@ -1160,37 +1165,32 @@ class TestDatasetSortableColumns:
         assert "database_name" not in SORTABLE_DATASET_COLUMNS
         assert "uuid" not in SORTABLE_DATASET_COLUMNS
 
-    @patch("superset.daos.dataset.DatasetDAO")
+    @patch("superset.daos.dataset.DatasetDAO.list")
     @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
     async def test_list_datasets_with_valid_order_column(
-        self, mock_get_user, mock_dataset_dao
+        self, mock_get_user, mock_dataset_list
     ):
         """Test list_datasets with valid order column."""
         from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
         mock_get_user.return_value = MagicMock(id=1)
-        mock_tool = MagicMock()
-        mock_tool.run_tool.return_value = MagicMock(datasets=[], count=0)
+        # Mock the DAO to return empty list and count
+        mock_dataset_list.return_value = ([], 0)
         mock_ctx = MagicMock()
         mock_ctx.info = AsyncMock()
         mock_ctx.debug = AsyncMock()
+        mock_ctx.error = AsyncMock()
 
-        with patch(
-            "superset.mcp_service.dataset.tool.list_datasets.ModelListCore",
-            return_value=mock_tool,
-        ):
-            # Test with valid sortable column
-            request = ListDatasetsRequest(
-                order_column="table_name", order_direction="asc"
-            )
-            await list_datasets.fn(request, mock_ctx)
+        # Test with valid sortable column
+        request = ListDatasetsRequest(order_column="table_name", order_direction="asc")
+        await list_datasets(request, mock_ctx)
 
-            # Verify the tool was called with the correct order column
-            mock_tool.run_tool.assert_called_once()
-            call_args = mock_tool.run_tool.call_args[1]
-            assert call_args["order_column"] == "table_name"
-            assert call_args["order_direction"] == "asc"
+        # Verify the DAO was called with the correct order column
+        mock_dataset_list.assert_called_once()
+        call_args = mock_dataset_list.call_args[1]
+        assert call_args["order_column"] == "table_name"
+        assert call_args["order_direction"] == "asc"
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
@@ -1199,33 +1199,34 @@ class TestDatasetSortableColumns:
             SORTABLE_DATASET_COLUMNS,
         )
 
-        # Check list_datasets docstring (stored in description after @mcp.tool)
-        assert hasattr(list_datasets, "description")
-        assert "Sortable columns for order_column:" in list_datasets.description
+        # Check list_datasets docstring for sortable columns documentation
+        assert list_datasets.__doc__ is not None
+        assert "Sortable columns for order_column:" in list_datasets.__doc__
         for col in SORTABLE_DATASET_COLUMNS:
-            assert col in list_datasets.description
+            assert col in list_datasets.__doc__
 
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
-    async def test_default_ordering(self):
+    async def test_default_ordering(self, mock_get_user, mock_dataset_list):
         """Test default ordering behavior for datasets."""
         from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
-        # Test that when no order_column is specified, None is passed
-        with patch(
-            "superset.mcp_service.dataset.tool.list_datasets.ModelListCore"
-        ) as mock_tool:
-            with patch("superset.mcp_service.auth.get_user_from_request"):
-                mock_tool.return_value.run_tool.return_value = MagicMock(
-                    datasets=[], count=0
-                )
-                mock_ctx = MagicMock()
-                mock_ctx.info = AsyncMock()
-                mock_ctx.debug = AsyncMock()
-                request = ListDatasetsRequest()  # No order specified
-                await list_datasets.fn(request, mock_ctx)
+        mock_get_user.return_value = MagicMock(id=1)
+        # Mock the DAO to return empty list and count
+        mock_dataset_list.return_value = ([], 0)
+        mock_ctx = MagicMock()
+        mock_ctx.info = AsyncMock()
+        mock_ctx.debug = AsyncMock()
+        mock_ctx.error = AsyncMock()
+        request = ListDatasetsRequest()  # No order specified
+        await list_datasets(request, mock_ctx)
 
-                call_args = mock_tool.return_value.run_tool.call_args[1]
-                assert call_args["order_column"] is None  # None when not specified
-                assert (
-                    call_args["order_direction"] == "desc"
-                )  # From ListDatasetsRequest default
+        # When order_column is None, the default "changed_on" is used by ModelListCore
+        call_args = mock_dataset_list.call_args[1]
+        assert (
+            call_args["order_column"] == "changed_on"
+        )  # Default applied by ModelListCore
+        assert (
+            call_args["order_direction"] == "desc"
+        )  # From ListDatasetsRequest default

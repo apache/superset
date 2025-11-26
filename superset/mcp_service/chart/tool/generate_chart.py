@@ -22,9 +22,9 @@ import logging
 import time
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import has_dataset_access, mcp_auth_hook
+from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     URLPreview,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
@@ -47,8 +48,8 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -59,6 +60,46 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=False for temporary preview only
     - LLM clients MUST display returned chart URL to users
     - Embed preview_url as image: ![Chart Preview](preview_url)
+    - Use numeric dataset ID or UUID (NOT schema.table_name format)
+    - MUST include chart_type in config (either 'xy' or 'table')
+
+    IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
+    which chart configuration schema to use. It MUST be included and MUST match the
+    other fields in your configuration:
+
+    - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
+      Required fields: x, y
+
+    - Use chart_type='table' for tabular visualizations
+      Required fields: columns
+
+    Example usage for XY chart:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "order_date"},
+            "y": [{"name": "revenue", "aggregate": "SUM"}],
+            "kind": "line"
+        }
+    }
+    ```
+
+    Example usage for Table chart:
+    ```json
+    {
+        "dataset_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        "config": {
+            "chart_type": "table",
+            "columns": [
+                {"name": "product_name"},
+                {"name": "quantity", "aggregate": "SUM"},
+                {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
+            ]
+        }
+    }
+    ```
 
     VALIDATION:
     - 5-layer pipeline: Schema, business logic, dataset, Superset compatibility, runtime

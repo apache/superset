@@ -26,9 +26,8 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetInfo,
@@ -36,18 +35,38 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(GetDatasetInfoRequest)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
+
+    IMPORTANT FOR LLM CLIENTS:
+    - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
+    - DO NOT use schema.table_name format (e.g., "public.customers")
+    - To find a dataset ID, use the list_datasets tool first
+
+    Example usage:
+    ```json
+    {
+        "identifier": 123
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
     """
     await ctx.info(
         "Retrieving dataset information: identifier=%s" % (request.identifier,)

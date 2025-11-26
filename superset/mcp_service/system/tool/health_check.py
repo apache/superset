@@ -23,17 +23,15 @@ import platform
 
 from fastmcp import Context
 from flask import current_app
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.system.schemas import HealthCheckResponse
 from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 async def health_check(ctx: Context) -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.

@@ -68,7 +68,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -202,6 +210,33 @@ class ListDashboardsRequest(MetadataCacheControl):
             "if not specified.",
         ),
     ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[DashboardFilter]:
+        """
+        Parse filters from JSON string or list.
+
+        Handles Claude Code bug where objects are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+        return parse_json_or_model_list(v, DashboardFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> List[str]:
+        """
+        Parse select_columns from JSON string, list, or CSV string.
+
+        Handles Claude Code bug where arrays are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        return parse_json_or_list(v, "select_columns")
+
     search: Annotated[
         str | None,
         Field(
@@ -252,8 +287,8 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class DashboardInfo(BaseModel):
-    id: int = Field(..., description="Dashboard ID")
-    dashboard_title: str = Field(..., description="Dashboard title")
+    id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
     slug: str | None = Field(None, description="Dashboard slug")
     description: str | None = Field(None, description="Dashboard description")
     css: str | None = Field(None, description="Custom CSS for the dashboard")
@@ -293,6 +328,26 @@ class DashboardInfo(BaseModel):
         default_factory=list, description="Dashboard charts"
     )
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in select_columns}
+
+        # No filtering - return all fields
+        return data
 
 
 class DashboardList(BaseModel):

@@ -408,8 +408,19 @@ class DBEventLogger(AbstractEventLogger):
             db.session.bulk_save_objects(logs)
             db.session.commit()  # pylint: disable=consider-using-transaction
         except SQLAlchemyError as ex:
+            # Log errors but don't raise - logging failures should not break the
+            # application. Common in tests where the session may be in prepared state or
+            # db is locked
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
+            # Rollback to clean up the session state
+            try:
+                db.session.rollback()
+            except Exception:  # pylint: disable=broad-except
+                # If rollback also fails, just continue - don't let issues crash the app
+                logging.error(
+                    "DBEventLogger failed to rollback the session after failure"
+                )
 
 
 class StdOutEventLogger(AbstractEventLogger):

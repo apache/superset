@@ -150,11 +150,22 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() > error_cache_ttl
 
+    def is_computing_stale(self) -> bool:
+        """Check if a COMPUTING status is stale (task likely failed or stuck)."""
+        # Use the same TTL as error cache - if computing takes longer than this,
+        # it's likely stuck and should be retried
+        computing_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        return (
+            datetime.now() - datetime.fromisoformat(self.get_timestamp())
+        ).total_seconds() >= computing_ttl
+
     def should_trigger_task(self, force: bool = False) -> bool:
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
+            or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
+            or (self.status == StatusValues.UPDATED and self._image is None)
         )
 
 
@@ -264,10 +275,7 @@ class BaseScreenshot:
         """
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        if (
-            cache_payload.status in [StatusValues.COMPUTING, StatusValues.UPDATED]
-            and not force
-        ):
+        if not cache_payload.should_trigger_task(force=force):
             logger.info(
                 "Skipping compute - already processed for thumbnail: %s", cache_key
             )
@@ -277,7 +285,6 @@ class BaseScreenshot:
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
         cache_payload.computing()
-        self.cache.set(cache_key, cache_payload.to_dict())
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:
@@ -295,10 +302,12 @@ class BaseScreenshot:
                 cache_payload.error()
                 image = None
 
+        # Cache the result (success or error) to avoid immediate retries
         if image:
-            logger.info("Caching thumbnail: %s", cache_key)
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
+
+        logger.info("Caching thumbnail: %s", cache_key)
         self.cache.set(cache_key, cache_payload.to_dict())
         logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
         return

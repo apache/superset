@@ -22,9 +22,8 @@ MCP tool: get_chart_info
 import logging
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartInfo,
@@ -32,12 +31,13 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(GetChartInfoRequest)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
@@ -46,10 +46,22 @@ async def get_chart_info(
     IMPORTANT FOR LLM CLIENTS:
     - ALWAYS display the chart URL when returned
     - URL field contains chart's screenshot URL for preview
+    - Use numeric ID or UUID string (NOT chart name)
+    - To find a chart ID, use the list_charts tool first
 
-    Supports:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-...")
+    Example usage:
+    ```json
+    {
+        "identifier": 123
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
 
     Returns chart details including name, type, and URL.
     """

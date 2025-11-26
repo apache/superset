@@ -1503,3 +1503,31 @@ def sanitize_clause(clause: str, engine: str) -> str:
         )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
+
+
+def transpile_to_dialect(sql: str, target_engine: str) -> str:
+    """
+    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
+
+    If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
+    """
+    target_dialect = SQLGLOT_DIALECTS.get(target_engine)
+
+    # If no dialect mapping exists, return as-is
+    if target_dialect is None:
+        return sql
+
+    try:
+        parsed = sqlglot.parse_one(sql, dialect=Dialect)
+        return Dialect.get_or_raise(target_dialect).generate(
+            parsed,
+            copy=True,
+            comments=False,
+            pretty=False,
+        )
+    except ParseError as ex:
+        raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex
+    except Exception as ex:
+        raise QueryClauseValidationException(
+            f"Cannot transpile SQL to {target_engine}: {sql}"
+        ) from ex
