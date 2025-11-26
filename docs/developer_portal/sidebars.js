@@ -37,6 +37,14 @@ module.exports = {
         'extensions/quick-start',
         'extensions/architecture',
         'extensions/contribution-types',
+        {
+          type: 'category',
+          label: 'Extension Points',
+          collapsed: true,
+          items: [
+            'extensions/extension-points/sqllab',
+          ],
+        },
         'extensions/development',
         'extensions/deployment',
         'extensions/mcp',
