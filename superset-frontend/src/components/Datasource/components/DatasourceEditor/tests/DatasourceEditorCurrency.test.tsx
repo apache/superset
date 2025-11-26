@@ -17,12 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  screen,
-  waitFor,
-  selectOption,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { screen, waitFor, userEvent } from 'spec/helpers/testing-library';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
   props,
@@ -113,13 +108,14 @@ test('changes currency position from prefix to suffix', async () => {
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
-  // Ensure the position selector is mounted before interacting
-  await screen.findByRole('combobox', {
+  // Select suffix option - use direct interaction instead of selectOption helper
+  // which relies on .rc-virtual-list that may not render for small option lists
+  const positionSelect = screen.getByRole('combobox', {
     name: 'Currency prefix or suffix',
   });
-
-  // Select suffix option using helper
-  await selectOption('Suffix', 'Currency prefix or suffix');
+  await userEvent.click(positionSelect);
+  const suffixOption = await screen.findByText('Suffix');
+  await userEvent.click(suffixOption);
   await cleanupAsyncOperations();
 
   // Verify onChange was called with suffix position
@@ -152,11 +148,11 @@ test('changes currency symbol from USD to GBP', async () => {
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
-  // Ensure the symbol selector is mounted before interacting
-  await screen.findByRole('combobox', { name: 'Currency symbol' });
-
-  // Select GBP option using helper (text includes symbol: "£ (GBP)")
-  await selectOption('£ (GBP)', 'Currency symbol');
+  // Select GBP option - use direct interaction instead of selectOption helper
+  const symbolSelect = screen.getByRole('combobox', { name: 'Currency symbol' });
+  await userEvent.click(symbolSelect);
+  const gbpOption = await screen.findByText('£ (GBP)');
+  await userEvent.click(gbpOption);
 
   // Verify onChange was called with GBP
   await waitFor(() => {
