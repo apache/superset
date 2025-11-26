@@ -17,26 +17,23 @@
  * under the License.
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { Toast } from '../../../components/core/Toast';
-import { createTestDataset } from '../../../helpers/api/dataset.factories';
 import {
   apiDeleteDataset,
   apiGetDataset,
   getDatasetByName,
+  duplicateDataset,
 } from '../../../helpers/api/dataset';
-import { apiDeleteDatabase } from '../../../helpers/api/database';
 
 test.describe('Dataset List', () => {
   let datasetListPage: DatasetListPage;
   let explorePage: ExplorePage;
-  let testResources: { datasetIds: number[]; dbId?: number } = {
-    datasetIds: [],
-  };
+  let testResources: { datasetIds: number[] } = { datasetIds: [] };
 
   test.beforeEach(async ({ page }) => {
     datasetListPage = new DatasetListPage(page);
@@ -50,47 +47,24 @@ test.describe('Dataset List', () => {
 
   test.afterEach(async ({ page }) => {
     // Cleanup any resources created during the test
-    await cleanupTestAssets(page, testResources);
-  });
-
-  function cleanupTestAssets(
-    page: Page,
-    resources: { datasetIds: number[]; dbId?: number },
-  ) {
     const promises = [];
-
-    // Delete all datasets
-    for (const datasetId of resources.datasetIds) {
+    for (const datasetId of testResources.datasetIds) {
       promises.push(
         apiDeleteDataset(page, datasetId, {
           failOnStatusCode: false,
         }).catch(() => {}),
       );
     }
-
-    // Delete database if exists
-    if (resources.dbId) {
-      promises.push(
-        apiDeleteDatabase(page, resources.dbId, {
-          failOnStatusCode: false,
-        }).catch(() => {}),
-      );
-    }
-
-    return Promise.all(promises);
-  }
+    await Promise.all(promises);
+  });
 
   test('should navigate to Explore when dataset name is clicked', async ({
     page,
   }) => {
-    // Create test dataset (hermetic - no dependency on sample data)
-    const datasetName = `test_nav_${Date.now()}`;
-    const result = await createTestDataset(page, datasetName);
-    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
-
-    // Refresh page to see new dataset
-    await datasetListPage.goto();
-    await datasetListPage.waitForTableLoad();
+    // Use existing example dataset (hermetic - loaded in CI via --load-examples)
+    const datasetName = 'members_channels_2';
+    const dataset = await getDatasetByName(page, datasetName);
+    expect(dataset).not.toBeNull();
 
     // Verify dataset is visible in list (uses page object + Playwright auto-wait)
     await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
@@ -111,10 +85,18 @@ test.describe('Dataset List', () => {
   });
 
   test('should delete a dataset with confirmation', async ({ page }) => {
-    // Create test dataset (hermetic - creates own test data)
+    // Get example dataset to duplicate
+    const originalDataset = await getDatasetByName(page, 'members_channels_2');
+    expect(originalDataset).not.toBeNull();
+
+    // Create throwaway copy for deletion (hermetic - uses duplicate API)
     const datasetName = `test_delete_${Date.now()}`;
-    const result = await createTestDataset(page, datasetName);
-    testResources = { datasetIds: [result.datasetId], dbId: result.dbId };
+    const duplicateDatasetResult = await duplicateDataset(
+      page,
+      originalDataset!.id,
+      datasetName,
+    );
+    testResources = { datasetIds: [duplicateDatasetResult.id] };
 
     // Refresh page to see new dataset
     await datasetListPage.goto();
@@ -211,11 +193,9 @@ test.describe('Dataset List', () => {
     const duplicateDataFull = await duplicateResponseData.json();
 
     // Verify key properties were copied correctly (original data already fetched)
-    expect(duplicateDataFull.result.sql).toBe(original!.data.sql);
-    expect(duplicateDataFull.result.database.id).toBe(
-      original!.data.database.id,
-    );
-    expect(duplicateDataFull.result.schema).toBe(original!.data.schema);
+    expect(duplicateDataFull.result.sql).toBe(original!.sql);
+    expect(duplicateDataFull.result.database.id).toBe(original!.database.id);
+    expect(duplicateDataFull.result.schema).toBe(original!.schema);
     // Name should be different (the duplicate name)
     expect(duplicateDataFull.result.table_name).toBe(duplicateName);
   });
