@@ -1,6 +1,6 @@
 ---
-title: Frontend Contribution Types
-sidebar_position: 5
+title: Contribution Types
+sidebar_position: 4
 ---
 
 <!--
@@ -22,11 +22,15 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Frontend Contribution Types
+# Contribution Types
 
-To facilitate the development of extensions, we will define a set of well-defined contribution types that extensions can implement. These contribution types will serve as the building blocks for extensions, allowing them to interact with the host application and provide new functionality. The initial set of contribution types will include:
+To facilitate the development of extensions, we define a set of well-defined contribution types that extensions can implement. These contribution types serve as the building blocks for extensions, allowing them to interact with the host application and provide new functionality.
 
-## Views
+## Frontend
+
+Frontend contribution types allow extensions to extend Superset's user interface with new views, commands, and menu items.
+
+### Views
 
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Each view is registered with a unique ID and can be activated or deactivated as needed. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
@@ -41,7 +45,7 @@ Extensions can add new views or panels to the host application, such as custom S
 },
 ```
 
-## Commands
+### Commands
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command can specify properties like a unique command identifier, an icon, a title, and a description. These commands can be invoked by users through menus, keyboard shortcuts, or other UI elements, enabling extensions to add rich, interactive functionality to Superset.
 
@@ -56,7 +60,7 @@ Extensions can define custom commands that can be executed within the host appli
 ]
 ```
 
-## Menus
+### Menus
 
 Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item can specify properties such as the target view, the command to execute, its placement (primary, secondary, or context), and conditions for when it should be displayed. Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor), allowing extensions to seamlessly integrate their functionality into specific menus and workflows within Superset.
 
@@ -88,3 +92,31 @@ Extensions can contribute new menu items or context menus to the host applicatio
   },
 }
 ```
+
+## Backend
+
+Backend contribution types allow extensions to extend Superset's server-side capabilities with new API endpoints, MCP tools, and MCP prompts.
+
+### REST API Endpoints
+
+Extensions can register custom REST API endpoints under the `/api/v1/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
+
+``` json
+"backend": {
+  "entryPoints": ["my_extension.entrypoint"],
+  "files": ["backend/src/my_extension/**/*.py"]
+}
+```
+
+The entry point module registers the API with Superset:
+
+``` python
+from superset_core.api.rest_api import add_extension_api
+from .api import MyExtensionAPI
+
+add_extension_api(MyExtensionAPI)
+```
+
+### MCP Tools and Prompts
+
+Extensions can contribute Model Context Protocol (MCP) tools and prompts that AI agents can discover and use. See [MCP Integration](./mcp) for detailed documentation.
