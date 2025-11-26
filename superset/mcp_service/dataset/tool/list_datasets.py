@@ -23,9 +23,13 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp import tool
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
@@ -102,11 +106,17 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     try:
         from superset.daos.dataset import DatasetDAO
 
+        def _serialize_dataset(
+            obj: "SqlaTable | None", cols: list[str] | None
+        ) -> DatasetInfo | None:
+            """Serialize dataset (filtering via model_serializer)."""
+            return serialize_dataset_object(obj)
+
         # Create tool with standard serialization
         tool = ModelListCore(
             dao_class=DatasetDAO,
             output_schema=DatasetInfo,
-            item_serializer=lambda obj, cols: serialize_dataset_object(obj),
+            item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
             search_columns=["schema", "sql", "table_name", "uuid"],
@@ -134,7 +144,20 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             )
         )
 
-        return result
+        # Apply field filtering via serialization context if select_columns specified
+        # This triggers DatasetInfo._filter_fields_by_context for each dataset
+        if request.select_columns:
+            await ctx.debug(
+                "Applying field filtering via serialization context: select_columns=%s"
+                % (request.select_columns,)
+            )
+            # Return dict with context - FastMCP will serialize it
+            return result.model_dump(
+                mode="json", context={"select_columns": request.select_columns}
+            )
+
+        # No filtering - return full result as dict
+        return result.model_dump(mode="json")
 
     except Exception as e:
         await ctx.error(

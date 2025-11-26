@@ -358,6 +358,8 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -382,9 +384,6 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 2
         assert data["datasets"][0]["table_name"] == "Filtered Dataset"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -721,6 +720,8 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -816,6 +817,8 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         "params": dataset.params,
         "template_params": dataset.template_params,
         "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
     }
     mock_list.return_value = ([dataset], 1)
     filters = [
@@ -1080,17 +1083,19 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
         result = await client.call_tool(
             "list_datasets", {"request": request.model_dump()}
         )
-        datasets = result.data.datasets
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        datasets = data["datasets"]
         assert len(datasets) == 1
         ds = datasets[0]
-        assert hasattr(ds, "columns")
-        assert hasattr(ds, "metrics")
-        assert isinstance(ds.columns, list)
-        assert isinstance(ds.metrics, list)
-        assert len(ds.columns) == 1
-        assert len(ds.metrics) == 1
-        assert ds.columns[0].column_name == "colA"
-        assert ds.metrics[0].metric_name == "avg_value"
+        assert "columns" in ds
+        assert "metrics" in ds
+        assert isinstance(ds["columns"], list)
+        assert isinstance(ds["metrics"], list)
+        assert len(ds["columns"]) == 1
+        assert len(ds["metrics"]) == 1
+        assert ds["columns"][0]["column_name"] == "colA"
+        assert ds["metrics"][0]["metric_name"] == "avg_value"
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
