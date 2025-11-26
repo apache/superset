@@ -40,25 +40,26 @@ import {
 } from 'src/dashboard/util/constants';
 import * as componentTypes from 'src/dashboard/util/componentTypes';
 
-export type ComponentType = typeof componentTypes[keyof typeof componentTypes];
+export type ComponentType =
+  (typeof componentTypes)[keyof typeof componentTypes];
 
-export type HeaderStyleValue = 
-  | typeof SMALL_HEADER 
-  | typeof MEDIUM_HEADER 
+export type HeaderStyleValue =
+  | typeof SMALL_HEADER
+  | typeof MEDIUM_HEADER
   | typeof LARGE_HEADER;
 
-export type BackgroundStyleValue = 
-  | typeof BACKGROUND_TRANSPARENT 
+export type BackgroundStyleValue =
+  | typeof BACKGROUND_TRANSPARENT
   | typeof BACKGROUND_WHITE;
 
 export interface ComponentMeta {
   width?: number;
   height?: number;
-  text: string; 
+  text: string;
   headerSize?: HeaderStyleValue;
   background?: BackgroundStyleValue;
   chartId?: number;
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 export interface ComponentShape {
@@ -162,7 +163,7 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
   handleChangeSize: (nextValue: string) => void;
   handleChangeBackground: (nextValue: string) => void;
   handleChangeText: (nextValue: string) => void;
-  
+
   constructor(props: HeaderProps) {
     super(props);
     this.state = {
@@ -171,10 +172,13 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
-    
-    this.handleChangeSize = (nextValue: string) => this.handleUpdateMeta('headerSize', nextValue);
-    this.handleChangeBackground = (nextValue: string) => this.handleUpdateMeta('background', nextValue);
-    this.handleChangeText = (nextValue: string) => this.handleUpdateMeta('text', nextValue);
+
+    this.handleChangeSize = (nextValue: string) =>
+      this.handleUpdateMeta('headerSize', nextValue);
+    this.handleChangeBackground = (nextValue: string) =>
+      this.handleUpdateMeta('background', nextValue);
+    this.handleChangeText = (nextValue: string) =>
+      this.handleUpdateMeta('text', nextValue);
   }
 
   handleChangeFocus(nextFocus: boolean): void {
@@ -183,16 +187,16 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
 
   handleUpdateMeta(metaKey: keyof ComponentMeta, nextValue: string): void {
     const { updateComponents, component } = this.props;
-    if (nextValue && component.meta[metaKey] !== nextValue) { 
-      updateComponents({ 
+    if (nextValue && component.meta[metaKey] !== nextValue) {
+      updateComponents({
         [component.id]: {
           ...component,
           meta: {
             ...component.meta,
-            [metaKey]: nextValue, 
+            [metaKey]: nextValue,
           },
         },
-      } as Record<string, ComponentShape>); 
+      } as Record<string, ComponentShape>);
     }
   }
 
@@ -235,7 +239,11 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dragSourceRef }: { dragSourceRef: React.Ref<HTMLDivElement> | undefined }) => (
+        {({
+          dragSourceRef,
+        }: {
+          dragSourceRef: React.Ref<HTMLDivElement> | undefined;
+        }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -249,12 +257,12 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
                 <PopoverDropdown
                   id={`${component.id}-header-style`}
                   options={headerStyleOptions}
-                  value={component.meta.headerSize as string} 
+                  value={component.meta.headerSize as string}
                   onChange={this.handleChangeSize}
                 />,
                 <BackgroundStyleDropdown
                   id={`${component.id}-background`}
-                  value={component.meta.background as string} 
+                  value={component.meta.background as string}
                   onChange={this.handleChangeBackground}
                 />,
               ]}
@@ -264,8 +272,8 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
                 className={cx(
                   'dashboard-component',
                   'dashboard-component-header',
-                  headerStyle?.className, 
-                  rowStyle?.className, 
+                  headerStyle?.className,
+                  rowStyle?.className,
                 )}
               >
                 {editMode && (
@@ -282,7 +290,10 @@ class Header extends PureComponent<HeaderProps, HeaderState> {
                   showTooltip={false}
                 />
                 {!editMode && !embeddedMode && (
-                  <AnchorLink id={component.id} dashboardId={Number(dashboardId)} />
+                  <AnchorLink
+                    id={component.id}
+                    dashboardId={Number(dashboardId)}
+                  />
                 )}
               </HeaderStyles>
             </WithPopoverMenu>

@@ -37,9 +37,9 @@ describe('Header', () => {
     id: string;
     dashboardId: string;
     parentId: string;
-    component: any; 
+    component: any;
     depth: number;
-    parentComponent: any; 
+    parentComponent: any;
     index: number;
     editMode: boolean;
     embeddedMode: boolean;
@@ -50,7 +50,7 @@ describe('Header', () => {
   }
 
   const baseComponent = newComponentFactory(HEADER_TYPE);
-  const props: HeaderTestProps = { 
+  const props: HeaderTestProps = {
     id: 'id',
     dashboardId: '1',
     parentId: 'parentId',
@@ -69,8 +69,8 @@ describe('Header', () => {
     embeddedMode: false,
     filters: {},
     handleComponentDrop: () => {},
-    deleteComponent: sinon.spy(), 
-    updateComponents: sinon.spy(), 
+    deleteComponent: sinon.spy(),
+    updateComponents: sinon.spy(),
   };
 
   function setup(overrideProps: Partial<HeaderTestProps> = {}) {
