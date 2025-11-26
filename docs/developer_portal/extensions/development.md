@@ -28,7 +28,7 @@ This guide covers everything you need to know about developing extensions for Su
 
 ## Project Structure
 
-The `apache-superset-extensions-cli` package provides a command-line interface (CLI) that streamlines the extension development workflow. It offers the following commands:
+The [apache-superset-extensions-cli](https://github.com/apache/superset/tree/master/superset-extensions-cli) package provides a command-line interface (CLI) that streamlines the extension development workflow. It offers the following commands:
 
 ```
 superset-extensions init: Generates the initial folder structure and scaffolds a new extension project.
@@ -85,7 +85,7 @@ The `README.md` file provides documentation and instructions for using the exten
 
 The `extension.json` file contains all metadata necessary for the host application to understand and manage the extension:
 
-``` json
+```json
 {
   "name": "dataset_references",
   "version": "1.0.0",
@@ -107,7 +107,7 @@ The `extension.json` file contains all metadata necessary for the host applicati
   "backend": {
     "entryPoints": ["dataset_references.entrypoint"],
     "files": ["backend/src/dataset_references/**/*.py"]
-  },
+  }
 }
 ```
 
@@ -123,7 +123,7 @@ Extensions interact with Superset through well-defined, versioned APIs provided 
 
 The frontend extension APIs (via `@apache-superset/core`) are organized into logical namespaces such as `authentication`, `commands`, `extensions`, `sqlLab`, and others. Each namespace groups related functionality, making it easy for extension authors to discover and use the APIs relevant to their needs. For example, the `sqlLab` namespace provides events and methods specific to SQL Lab, allowing extensions to react to user actions and interact with the SQL Lab environment:
 
-``` typescript
+```typescript
 export const getCurrentTab: () => Tab | undefined;
 
 export const getDatabases: () => Database[];
@@ -145,7 +145,7 @@ export const onDidQueryStop: Event<Editor>;
 
 The following code demonstrates more examples of the existing frontend APIs:
 
-``` typescript
+```typescript
 import { core, commands, sqlLab, authentication, Button } from '@apache-superset/core';
 import MyPanel from './MyPanel';
 
@@ -182,7 +182,7 @@ Backend APIs (via `apache-superset-core`) follow a similar pattern, providing ac
 
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
-``` python
+```python
 from superset_core.api.models import Database, get_session
 from superset_core.api.daos import DatabaseDAO
 from superset_core.api.rest_api import add_extension_api
@@ -209,12 +209,6 @@ databases_query = session.query(Database).filter(
     Database.database_name.ilike("%abc%")
 )
 return DatabaseDAO.query(databases_query)
-
-# Bypass security model for highly custom use cases
-session = get_session()
-all_databases_containing_abc = session.query(Database).filter(
-    Database.database_name.ilike("%abc%")
-).all()
 ```
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.
@@ -223,7 +217,7 @@ In the future, we plan to expand the backend APIs to support configuring securit
 
 Development mode accelerates extension development by letting developers see changes in Superset quickly, without the need for repeated packaging and uploading. To enable development mode, set the `LOCAL_EXTENSIONS` configuration in your `superset_config.py`:
 
-``` python
+```python
 LOCAL_EXTENSIONS = [
     "/path/to/your/extension1",
     "/path/to/your/extension2",
