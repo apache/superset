@@ -33,6 +33,9 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^17.0.2"
+    "react": "^17.0.2",
+    "@testing-library/jest-dom": "*",
+    "@types/jest": "*",
+    "@testing-library/react": "^12.1.5"
   }
 }
