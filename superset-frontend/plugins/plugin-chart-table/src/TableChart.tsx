@@ -25,6 +25,7 @@ import {
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
   useEffect,
+  useRef,
 } from 'react';
 
 import {
@@ -1320,6 +1321,41 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   };
 
+  // collect client-side filtered rows for export & push snapshot to ownState (guarded)
+  const [clientViewRows, setClientViewRows] = useState<DataRecord[]>([]);
+
+  const exportColumns = useMemo(
+    () =>
+      visibleColumnsMeta.map(col => ({
+        key: col.key,
+        label: col.config?.customColumnName || col.originalLabel || col.key,
+      })),
+    [visibleColumnsMeta],
+  );
+
+  const clientViewSigRef = useRef<string>('');
+  useEffect(() => {
+    if (serverPagination) return; // only for client-side mode
+
+    const len = clientViewRows.length;
+    const first = len ? clientViewRows[0]?.[exportColumns[0]?.key ?? ''] : '';
+    const last = len ? clientViewRows[len - 1]?.[exportColumns[0]?.key ?? ''] : '';
+    const colSig = exportColumns.map(c => c.key).join(',');
+    const sig = `${len}|${String(first)}|${String(last)}|${colSig}`;
+
+    if (sig !== clientViewSigRef.current) {
+      clientViewSigRef.current = sig;
+      updateTableOwnState(setDataMask, {
+        ...(serverPaginationData || {}),
+        clientView: {
+          rows: clientViewRows,
+          columns: exportColumns,
+          count: len,
+        },
+      });
+    }
+  }, [clientViewRows, exportColumns, serverPagination, setDataMask, serverPaginationData]);
+
   return (
     <Styles>
       <DataTable<D>
@@ -1356,6 +1392,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         manualSearch={serverPagination}
         onSearchChange={debouncedSearch}
         searchOptions={searchOptions}
+        onFilteredRowsChange={setClientViewRows}
       />
     </Styles>
   );
