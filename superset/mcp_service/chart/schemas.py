@@ -589,7 +589,9 @@ class FilterConfig(BaseModel):
 
 # Actual chart types
 class TableChartConfig(BaseModel):
-    chart_type: Literal["table"] = Field("table", description="Chart type")
+    chart_type: Literal["table"] = Field(
+        ..., description="Chart type (REQUIRED: must be 'table')"
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -632,7 +634,15 @@ class TableChartConfig(BaseModel):
 
 
 class XYChartConfig(BaseModel):
-    chart_type: Literal["xy"] = Field("xy", description="Chart type")
+    chart_type: Literal["xy"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'xy' for XY charts "
+            "(line, bar, area, scatter). "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
+    )
     x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
