@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, APIResponse } from '@playwright/test';
+import { Page, APIResponse, expect } from '@playwright/test';
 import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 const ENDPOINTS = {
@@ -33,6 +33,23 @@ export interface DatasetCreatePayload {
   catalog: string | null;
   schema: string;
   table_name: string;
+}
+
+/**
+ * TypeScript interface for dataset API response
+ * Represents the shape of dataset data returned from the API
+ */
+export interface DatasetResult {
+  id: number;
+  table_name: string;
+  sql?: string;
+  schema?: string;
+  database: {
+    id: number;
+    database_name: string;
+  };
+  owners?: Array<{ id: number }>;
+  dataset_type?: 'physical' | 'virtual';
 }
 
 /**
@@ -52,12 +69,12 @@ export async function apiPostDataset(
  * Get a dataset by its table name
  * @param page - Playwright page instance (provides authentication context)
  * @param tableName - The table_name to search for
- * @returns Object with id and data if found, null if not found
+ * @returns Dataset object if found, null if not found
  */
 export async function getDatasetByName(
   page: Page,
   tableName: string,
-): Promise<{ id: number; data: any } | null> {
+): Promise<DatasetResult | null> {
   // Use Superset's filter API to search by table_name
   const filter = {
     filters: [
@@ -77,10 +94,43 @@ export async function getDatasetByName(
 
   const body = await response.json();
   if (body.result && body.result.length > 0) {
-    return { id: body.result[0].id, data: body.result[0] };
+    return body.result[0] as DatasetResult;
   }
 
   return null;
+}
+
+/**
+ * Duplicates a dataset via API and returns the new dataset info
+ * @param page - Playwright page instance (provides authentication context)
+ * @param datasetId - ID of dataset to duplicate
+ * @param newName - Name for the duplicated dataset
+ * @returns Promise resolving to new dataset info
+ */
+export async function duplicateDataset(
+  page: Page,
+  datasetId: number,
+  newName: string,
+): Promise<DatasetResult> {
+  const response = await page.request.post('/api/v1/dataset/duplicate', {
+    data: {
+      base_model_id: datasetId,
+      table_name: newName,
+    },
+  });
+
+  expect(response.status()).toBe(200);
+  const data = await response.json();
+
+  return {
+    id: data.id,
+    table_name: data.result.table_name,
+    sql: data.result.sql,
+    schema: data.result.schema,
+    database: data.result.database,
+    owners: data.result.owners,
+    dataset_type: data.result.dataset_type,
+  };
 }
 
 /**
