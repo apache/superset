@@ -311,6 +311,107 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, addSuccessToast, latestQueryFormData]);
 
+  // Minimal client-side CSV builder used for "Current View" when pagination is disabled
+  const downloadClientCSV = (rows, columns, filename) => {
+    if (!rows?.length || !columns?.length) return;
+    const esc = v => {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      return wrapped;
+    };
+    const header = columns.map(c => esc(c.label ?? c.key ?? '')).join(',');
+    const body = rows
+      .map(r => columns.map(c => esc(r[c.key])).join(','))
+      .join('\n');
+    const csv = `${header}\n${body}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename || 'current_view'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  };
+
+  // Robust client-side JSON for "Current View"
+  const downloadClientJSON = (rows, columns, filename) => {
+    if (!rows?.length || !columns?.length) return;
+
+    const norm = v => {
+      if (v instanceof Date) return v.toISOString();
+      if (v && typeof v === 'object' && 'input' in v && 'formatter' in v) {
+        const dv = v.input ?? v.value ?? v.toString?.() ?? '';
+        return dv instanceof Date ? dv.toISOString() : dv;
+      }
+      return v;
+    };
+
+    const data = rows.map(r => {
+      const out = {};
+      columns.forEach(c => {
+        out[c.key] = norm(r[c.key]);
+      });
+      return out;
+    });
+
+    const meta = {
+      columns: columns.map(c => ({
+        key: c.key,
+        label: c.label ?? c.key,
+      })),
+      count: rows.length,
+    };
+
+    const payload = { meta, data };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename || 'current_view'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  };
+
+  // NEW: Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
+  const downloadClientXLSX = async (rows, columns, filename) => {
+    if (!rows?.length || !columns?.length) return;
+    try {
+      const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx')).default;
+
+      // Build a flat array of objects keyed by backend column key
+      const data = rows.map(r => {
+        const o = {};
+        columns.forEach(c => {
+          const v = r[c.key];
+          o[c.label ?? c.key] =
+            v && typeof v === 'object' && 'input' in v && 'formatter' in v
+              ? (v.input instanceof Date ? v.input.toISOString() : (v.input ?? v.value ?? ''))
+              : (v instanceof Date ? v.toISOString() : v);
+        });
+        return o;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(data, { skipHeader: false });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Current View');
+
+      // Autosize columns (roughly) by header length
+      const colWidths = (Object.keys(data[0] || {})).map(h => ({ wch: Math.max(10, String(h).length + 2) }));
+      ws['!cols'] = colWidths;
+
+      XLSX.writeFile(wb, `${(filename || 'current_view')}.xlsx`);
+    } catch (e) {
+      // If xlsx isn’t available for some reason, fall back to CSV
+      downloadClientCSV(rows, columns, filename || 'current_view');
+      addDangerToast?.(t('Falling back to CSV; Excel export library not available.'));
+    }
+  };
+
   const menu = useMemo(() => {
     const menuItems = [];
 
@@ -372,8 +473,6 @@ export const useExploreAdditionalActionsMenu = (
 
     // Download submenu
     const downloadChildren = [];
-    // Current View Download Submenu for Table Type
-    const currentViewChildren = [...downloadChildren];
 
     if (VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type)) {
       downloadChildren.push(
@@ -449,7 +548,7 @@ export const useExploreAdditionalActionsMenu = (
       });
     }
 
-    currentViewChildren.push(
+    const currentViewChildren = [
       {
         key: MENU_KEYS.EXPORT_CURRENT_TO_CSV,
         label: t('Export to .CSV'),
@@ -458,12 +557,21 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           // Use 'results' to export the *current view* (as opposed to 'full').
           // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
-          exportChart({
-            formData: latestQueryFormData,
-            ownState,
-            resultType: 'results',
-            resultFormat: 'csv',
-          });
+          if (
+            !latestQueryFormData?.server_pagination &&
+            ownState?.clientView?.rows?.length &&
+            ownState?.clientView?.columns?.length
+          ) {
+            const { rows, columns } = ownState.clientView;
+            downloadClientCSV(rows, columns, slice?.slice_name || 'current_view');
+          } else {
+            exportChart({
+              formData: latestQueryFormData,
+              ownState,
+              resultType: 'results',
+              resultFormat: 'csv',
+            });
+          }
           setIsDropdownVisible(false);
           dispatch(
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
@@ -479,7 +587,16 @@ export const useExploreAdditionalActionsMenu = (
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
-          exportJson();
+          if (
+            !latestQueryFormData?.server_pagination &&
+            ownState?.clientView?.rows?.length &&
+            ownState?.clientView?.columns?.length
+          ) {
+            const { rows, columns } = ownState.clientView;
+            downloadClientJSON(rows, columns, slice?.slice_name || 'current_view');
+          } else {
+            exportJson();
+          }
           setIsDropdownVisible(false);
           dispatch(
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
@@ -514,8 +631,19 @@ export const useExploreAdditionalActionsMenu = (
         label: t('Export to Excel'),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
-        onClick: () => {
-          exportExcel();
+        onClick: async () => {
+          if (
+            !latestQueryFormData?.server_pagination &&
+            ownState?.clientView?.rows?.length &&
+            ownState?.clientView?.columns?.length
+          ) {
+            // Client-side filtered view → XLSX
+            const { rows, columns } = ownState.clientView;
+            await downloadClientXLSX(rows, columns, slice?.slice_name || 'current_view');
+          } else {
+            // Server path (respects backend filters/pagination)
+            await exportExcel();
+          }
           setIsDropdownVisible(false);
           dispatch(
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
@@ -525,7 +653,7 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
-    );
+    ];
 
     const allDataChildren = [
       {
@@ -674,7 +802,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.RUN_IN_SQL_LAB,
         label: t('Run in SQL Lab'),
         onClick: e => {
-          onOpenInEditor(latestQueryFormData, e.domEvent.metaKey);
+          onOpenInEditor(latestQueryFormData, e.domEvent?.metaKey);
           setIsDropdownVisible(false);
         },
       });
