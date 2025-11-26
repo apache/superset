@@ -41,7 +41,6 @@ const dateFilterComparator = (filterDate: Date, cellValue: Date) => {
     return -1;
   }
 
-
   const filterUTC = Date.UTC(
     filterDate.getFullYear(),
     filterDate.getMonth(),
