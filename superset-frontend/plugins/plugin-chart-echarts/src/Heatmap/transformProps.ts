@@ -27,6 +27,7 @@ import {
   rgbToHex,
   addAlpha,
   tooltipHtml,
+  DataRecordValue,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
@@ -45,13 +46,18 @@ type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 const DEFAULT_ECHARTS_BOUNDS = [0, 200];
 
 /**
- * Extract unique values for an axis from the data
+ * Extract unique values for an axis from the data.
+ * Filters out null and undefined values.
+ *
+ * @param data - The dataset to extract values from
+ * @param columnName - The column to extract unique values from
+ * @returns Array of unique values from the specified column
  */
 function extractUniqueValues(
-  data: Record<string, any>[],
+  data: Record<string, DataRecordValue>[],
   columnName: string,
-): (string | number)[] {
-  const uniqueSet = new Set<string | number>();
+): DataRecordValue[] {
+  const uniqueSet = new Set<DataRecordValue>();
   data.forEach(row => {
     const value = row[columnName];
     if (value !== null && value !== undefined) {
@@ -62,15 +68,23 @@ function extractUniqueValues(
 }
 
 /**
- * Sort axis values based on the sort configuration
+ * Sort axis values based on the sort configuration.
+ * Supports alphabetical (with numeric awareness) and metric value-based sorting.
+ *
+ * @param values - The unique values to sort
+ * @param data - The full dataset
+ * @param sortOption - Sort option string (e.g., 'alpha_asc', 'value_desc')
+ * @param metricLabel - Label of the metric for value-based sorting
+ * @param axisColumn - Column name for the axis being sorted
+ * @returns Sorted array of values
  */
 function sortAxisValues(
-  values: (string | number)[],
-  data: Record<string, any>[],
+  values: DataRecordValue[],
+  data: Record<string, DataRecordValue>[],
   sortOption: string | undefined,
   metricLabel: string,
   axisColumn: string,
-): (string | number)[] {
+): DataRecordValue[] {
   if (!sortOption) {
     // No sorting specified, return values as they appear in the data
     return values;
@@ -81,7 +95,7 @@ function sortAxisValues(
 
   if (isValueSort) {
     // Sort by metric value - aggregate metric values for each axis category
-    const valueMap = new Map<string | number, number>();
+    const valueMap = new Map<DataRecordValue, number>();
     data.forEach(row => {
       const axisValue = row[axisColumn];
       const metricValue = row[metricLabel];
@@ -107,15 +121,15 @@ function sortAxisValues(
     // Check if both values are numeric for proper numeric sorting
     const aNum = typeof a === 'number' ? a : Number(a);
     const bNum = typeof b === 'number' ? b : Number(b);
-    const aIsNumeric = !Number.isNaN(aNum);
-    const bIsNumeric = !Number.isNaN(bNum);
+    const aIsNumeric = Number.isFinite(aNum);
+    const bIsNumeric = Number.isFinite(bNum);
 
     if (aIsNumeric && bIsNumeric) {
       // Both are numeric, sort numerically
       return isAscending ? aNum - bNum : bNum - aNum;
     }
 
-    // At least one is non-numeric, sort lexicographically
+    // At least one is non-numeric, use locale-aware string comparison
     const aStr = String(a);
     const bStr = String(b);
     const comparison = aStr.localeCompare(bStr, undefined, { numeric: true });
@@ -248,10 +262,10 @@ export default function transformProps(
   );
 
   // Create lookup maps for axis indices
-  const xAxisIndexMap = new Map(
+  const xAxisIndexMap = new Map<DataRecordValue, number>(
     sortedXAxisValues.map((value, index) => [value, index]),
   );
-  const yAxisIndexMap = new Map(
+  const yAxisIndexMap = new Map<DataRecordValue, number>(
     sortedYAxisValues.map((value, index) => [value, index]),
   );
 
@@ -265,8 +279,8 @@ export default function transformProps(
         const metricValue = row[metricLabel];
 
         // Convert to axis indices for ECharts when explicit axis data is provided
-        const xIndex = xAxisIndexMap.get(xValue as string | number) ?? 0;
-        const yIndex = yAxisIndexMap.get(yValue as string | number) ?? 0;
+        const xIndex = xAxisIndexMap.get(xValue) ?? 0;
+        const yIndex = yAxisIndexMap.get(yValue) ?? 0;
 
         return [xIndex, yIndex, metricValue] as [number, number, any];
       }),
