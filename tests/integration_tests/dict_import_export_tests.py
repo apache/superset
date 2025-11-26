@@ -65,9 +65,9 @@ class TestDictImportExport(SupersetTestCase):
         cols_uuids=None,
         metric_names=[],  # noqa: B006
     ):
-        database = get_example_database()
+        database_name = "main"
         name = f"{NAME_PREFIX}{name}"
-        params = {DBREF: id, "database_name": database.database_name}
+        params = {DBREF: id, "database_name": database_name}
 
         if cols_uuids is None:
             cols_uuids = [None] * len(cols_names)
@@ -86,11 +86,7 @@ class TestDictImportExport(SupersetTestCase):
         }
 
         table = SqlaTable(
-            id=id,
-            schema=schema,
-            table_name=name,
-            params=json.dumps(params),
-            database=database,
+            id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
         for col_name, uuid in zip(cols_names, cols_uuids, strict=False):
             table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
@@ -149,7 +145,7 @@ class TestDictImportExport(SupersetTestCase):
         db.session.commit()
         imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
-        assert {DBREF: ID_PREFIX + 2, "database_name": "examples"} == json.loads(
+        assert {DBREF: ID_PREFIX + 2, "database_name": "main"} == json.loads(
             imported.params
         )
         self.yaml_compare(table.export_to_dict(), imported.export_to_dict())

@@ -121,26 +121,17 @@ class TestImportExport(SupersetTestCase):
             published=False,
         )
 
-    def create_table(
-        self,
-        name,
-        schema=None,
-        id=0,
-        cols_names=None,
-        metric_names=None,
-    ):
-        database = get_example_database()
+    def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):  # noqa: B006
         params = {"remote_id": id, "database_name": "examples"}
         table = SqlaTable(
             id=id,
             schema=schema,
             table_name=name,
             params=json.dumps(params),
-            database=database,
         )
-        for col_name in cols_names or []:
+        for col_name in cols_names:
             table.columns.append(TableColumn(column_name=col_name))
-        for metric_name in metric_names or []:
+        for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table
 
