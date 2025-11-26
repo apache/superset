@@ -56,6 +56,7 @@ import {
   getChildCount,
   serializeForAPI,
   TreeItem as TreeItemType,
+  DRAG_INDENTATION_WIDTH,
 } from './utilities';
 import { pointerSensorOptions, measuringConfig } from './sensors';
 import { TreeItem } from './TreeItem';
@@ -68,8 +69,6 @@ import {
 } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-
-const INDENTATION_WIDTH = 32;
 
 export default function FoldersEditor({
   folders: initialFolders,
@@ -86,7 +85,11 @@ export default function FoldersEditor({
   });
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
+  const [projectedParentId, setProjectedParentId] = useState<string | null>(
+    null,
+  );
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
     new Set(),
   );
@@ -227,10 +230,52 @@ export default function FoldersEditor({
 
   const handleDragMove = ({ delta }: DragMoveEvent) => {
     setOffsetLeft(delta.x);
+
+    // Calculate projected parent for visual feedback
+    if (activeId && overId) {
+      // Handle empty folder drop zones
+      let targetOverId = overId;
+      if (typeof overId === 'string' && overId.endsWith('-empty')) {
+        // For empty drops, the parent is the folder itself
+        const folderId = overId.replace('-empty', '');
+        setProjectedParentId(folderId);
+        return;
+      }
+
+      const projection = getProjection(
+        flattenedItems,
+        activeId,
+        targetOverId,
+        delta.x,
+        DRAG_INDENTATION_WIDTH,
+      );
+      setProjectedParentId(projection?.parentId ?? null);
+    }
   };
 
   const handleDragOver = ({ over }: DragOverEvent) => {
-    // This handler is kept for potential future use (e.g., visual feedback during drag)
+    setOverId(over?.id ?? null);
+
+    // Recalculate projection when over target changes
+    if (activeId && over) {
+      let targetOverId = over.id;
+      if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
+        const folderId = over.id.replace('-empty', '');
+        setProjectedParentId(folderId);
+        return;
+      }
+
+      const projection = getProjection(
+        flattenedItems,
+        activeId,
+        targetOverId,
+        offsetLeft,
+        DRAG_INDENTATION_WIDTH,
+      );
+      setProjectedParentId(projection?.parentId ?? null);
+    } else {
+      setProjectedParentId(null);
+    }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -247,10 +292,6 @@ export default function FoldersEditor({
     if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
       overId = over.id.replace('-empty', '');
       isEmptyDrop = true;
-    }
-
-    if (active.id === overId) {
-      return;
     }
 
     // Use fullFlattenedItems (memoized full tree)
@@ -280,7 +321,7 @@ export default function FoldersEditor({
       active.id,
       overId,
       offsetLeft,
-      INDENTATION_WIDTH,
+      DRAG_INDENTATION_WIDTH,
     );
 
     // If dropping on empty state, force it to be a child of that folder
@@ -292,6 +333,18 @@ export default function FoldersEditor({
         minDepth: targetFolder.depth + 1,
         parentId: overId as string,
       };
+    }
+
+    // Check if this is a no-op: same position AND same parent (no actual change)
+    const activeItem = fullFlattenedItems[activeIndex];
+    if (active.id === overId) {
+      // Horizontal drag only - check if parent actually changed
+      const newParentId = projectedPosition?.parentId ?? null;
+      const currentParentId = activeItem.parentId;
+      if (newParentId === currentParentId) {
+        // No change in position or parent - nothing to do
+        return;
+      }
     }
 
     // Only allow folders at root level - items must be inside folders
@@ -346,7 +399,6 @@ export default function FoldersEditor({
 
     // Update depth and parent based on projection for all dragged items
     if (projectedPosition) {
-      const activeItem = fullFlattenedItems[activeIndex];
       const depthChange = projectedPosition.depth - activeItem.depth;
 
       // Build a set of all items to update (dragged items + their descendants)
@@ -535,7 +587,9 @@ export default function FoldersEditor({
 
   const resetDragState = () => {
     setActiveId(null);
+    setOverId(null);
     setOffsetLeft(0);
+    setProjectedParentId(null);
     setDraggedItemIds(new Set());
   };
 
@@ -718,6 +772,7 @@ export default function FoldersEditor({
                   isDefaultFolder={isDefaultFolder(item.uuid)}
                   isLastChild={lastChildIds.has(item.uuid)}
                   showEmptyState={showEmptyState}
+                  isDropTarget={isFolder && item.uuid === projectedParentId}
                   onToggleCollapse={() => handleToggleCollapse(item.uuid)}
                   onSelect={
                     isFolder
