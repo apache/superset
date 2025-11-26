@@ -28,6 +28,7 @@ import {
   apiGetDataset,
   getDatasetByName,
   duplicateDataset,
+  ENDPOINTS,
 } from '../../../helpers/api/dataset';
 
 test.describe('Dataset List', () => {
@@ -147,8 +148,8 @@ test.describe('Dataset List', () => {
     // Set up response intercept to capture duplicate dataset ID
     const duplicateResponsePromise = page.waitForResponse(
       response =>
-        response.url().includes('/dataset/duplicate') &&
-        response.status() === 200,
+        response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
+        response.status() === 201,
     );
 
     // Click duplicate action button
@@ -175,10 +176,8 @@ test.describe('Dataset List', () => {
     // Modal should close
     await duplicateModal.waitForHidden();
 
-    // Verify success toast appears
-    const toast = new Toast(page);
-    const successToast = toast.getSuccess();
-    await expect(successToast).toBeVisible();
+    // Note: Duplicate action does not show a success toast (only errors)
+    // Verification is done via API and UI list check below
 
     // Refresh to see the duplicated dataset
     await datasetListPage.goto();

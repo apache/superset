@@ -48,11 +48,9 @@ export class Table {
    * @param rowText - Exact text to find in the row's first cell
    */
   getRow(rowText: string): Locator {
-    return this.element
-      .locator(Table.SELECTORS.TABLE_ROW)
-      .filter({
-        has: this.page.getByRole('cell', { name: rowText, exact: true }),
-      });
+    return this.element.locator(Table.SELECTORS.TABLE_ROW).filter({
+      has: this.page.getByRole('cell', { name: rowText, exact: true }),
+    });
   }
 
   /**
