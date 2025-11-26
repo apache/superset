@@ -467,7 +467,9 @@ class ImportExportMixin(UUIDMixin):
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
         dict_rep = {
-            c.name: getattr(self, c.name)
+            # Convert c.name to str to handle SQLAlchemy's quoted_name type
+            # which is not YAML-serializable
+            str(c.name): getattr(self, c.name)
             for c in cls.__table__.columns  # type: ignore
             if (
                 c.name in export_fields

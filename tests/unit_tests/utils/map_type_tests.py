@@ -16,6 +16,8 @@
 #
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.connectors.sqla.models import SqlMetric
 from superset.utils.core import (
     get_metric_type_from_column,
@@ -60,7 +62,8 @@ def test_column_is_none():
 def test_datasource_is_none():
     datasource = None
     column = "my_column"
-    assert get_metric_type_from_column(column, datasource) == ""
+    with pytest.raises(AttributeError):
+        get_metric_type_from_column(column, datasource)
 
 
 def test_none_input():

@@ -111,6 +111,21 @@ class Explorable(Protocol):
         """
 
     @property
+    def metrics(self) -> list[Any]:
+        """
+        List of metric metadata objects.
+
+        Each object should provide at minimum:
+        - metric_name: str - the metric's name
+        - expression: str - the metric's calculation expression
+
+        Used for validation, autocomplete, and query building.
+
+        :return: List of metric metadata objects
+        """
+
+    # TODO: rename to dimensions
+    @property
     def columns(self) -> list[Any]:
         """
         List of column metadata objects.
@@ -125,6 +140,7 @@ class Explorable(Protocol):
         :return: List of column metadata objects
         """
 
+    # TODO: remove and use columns instead
     @property
     def column_names(self) -> list[str]:
         """
@@ -136,6 +152,7 @@ class Explorable(Protocol):
         :return: List of column name strings
         """
 
+    # TODO: use TypedDict for return type
     @property
     def data(self) -> dict[str, Any]:
         """
@@ -289,11 +306,7 @@ class Explorable(Protocol):
         """
 
     # =========================================================================
-    # Optional Properties
-    # =========================================================================
-
-    # =========================================================================
-    # Required Methods
+    # Drilling
     # =========================================================================
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:

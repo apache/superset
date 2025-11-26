@@ -73,7 +73,7 @@ def _get_query(
     _: bool,
 ) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
-    result = {"language": getattr(datasource, "query_language", None)}
+    result = {"language": datasource.query_language}
     try:
         result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:

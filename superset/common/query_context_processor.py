@@ -483,6 +483,6 @@ class QueryContextProcessor:
             query.validate()
 
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(datasource=self._qc_datasource)
+            security_manager.raise_for_access(query=self._qc_datasource)
         else:
             security_manager.raise_for_access(query_context=self._query_context)

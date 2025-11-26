@@ -225,7 +225,7 @@ class BaseDatasource(
         This allows each datasource to override caching, while falling back
         to database-level defaults when appropriate.
         """
-        if self._cache_timeout:
+        if self._cache_timeout is not None:
             return self._cache_timeout
 
         # database should always be set, but that's not true for v0 import
