@@ -27,6 +27,7 @@ import {
   Button,
   Input,
 } from '@superset-ui/core/components';
+import { getChartMetadataRegistry } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
@@ -189,6 +190,12 @@ export const useExploreAdditionalActionsMenu = (
   });
 
   const showDashboardSearch = dashboards?.length > SEARCH_THRESHOLD;
+  const vizType = latestQueryFormData?.viz_type;
+  const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined
+
+  // Detect if the chart plugin exposes the export-current-view behavior
+  const hasExportCurrentView = !!meta?.behaviors?.includes('EXPORT_CURRENT_VIEW');
+  const showCurrentView = vizType === 'table' && hasExportCurrentView;
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -708,12 +715,14 @@ export const useExploreAdditionalActionsMenu = (
           label: t('Export All Data'),
           children: allDataChildren,
         },
-        {
-          key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
-          type: 'submenu',
-          label: t('Export Current View'),
-          children: currentViewChildren,
-        },
+        ...(showCurrentView
+          ? [{
+              key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
+              type: 'submenu',
+              label: t('Export Current View'),
+              children: currentViewChildren,
+            }]
+          : []),
       ],
     });
 
