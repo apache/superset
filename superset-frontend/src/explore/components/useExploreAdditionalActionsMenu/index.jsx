@@ -75,6 +75,7 @@ const MENU_KEYS = {
   DATA_EXPORT_OPTIONS: 'data_export_options',
   EXPORT_ALL_DATA_GROUP: 'export_all_data_group',
   EXPORT_CURRENT_VIEW_GROUP: 'export_current_view_group',
+  EXPORT_CURRENT_TO_CSV: 'export_current_to_csv',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -450,6 +451,29 @@ export const useExploreAdditionalActionsMenu = (
 
     currentViewChildren.push(
       {
+        key: MENU_KEYS.EXPORT_CURRENT_TO_CSV,
+        label: t('Export to .CSV'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
+          // Use 'results' to export the *current view* (as opposed to 'full').
+          // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
+          exportChart({
+            formData: latestQueryFormData,
+            ownState,
+            resultType: 'results',
+            resultFormat: 'csv',
+          });
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      },
+      {
         key: MENU_KEYS.EXPORT_TO_JSON,
         label: t('Export to .JSON'),
         icon: <Icons.FileOutlined />,
@@ -679,6 +703,7 @@ export const useExploreAdditionalActionsMenu = (
     showDashboardSearch,
     slice,
     theme.sizeUnit,
+    ownState,
   ]);
 
   // Return streaming modal state and handlers for parent to render
