@@ -88,6 +88,9 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchInputId?: string;
   onSearchColChange: (searchCol: string) => void;
   searchOptions: SearchOption[];
+
+  /** Emits filtered rows (client-side search) to parent; used for client export */
+  onFilteredRowsChange?: (rows: D[]) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -130,6 +133,7 @@ export default typedMemo(function DataTable<D extends object>({
   searchInputId,
   onSearchColChange,
   searchOptions,
+  onFilteredRowsChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -201,6 +205,7 @@ export default typedMemo(function DataTable<D extends object>({
   );
 
   const {
+    rows,  // filtered/sorted rows before pagination
     getTableProps,
     getTableBodyProps,
     prepareRow,
@@ -423,6 +428,45 @@ export default typedMemo(function DataTable<D extends object>({
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
+
+  // Emit filtered rows to parent in client-side mode (debounced via RAF)
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const rafRef = useRef<number | null>(null);
+  const lastSigRef = useRef<string>('');
+
+  useEffect(() => {
+    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+      return;
+    }
+
+    const filtered = rows.map(r => r.original as D);
+    const len = filtered.length;
+    const first = len ? Object.values(filtered[0] as any)[0] : '';
+    const last = len ? Object.values(filtered[len - 1] as any)[0] : '';
+    const sig = `${len}|${String(first)}|${String(last)}`;
+
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+
+      rafRef.current = requestAnimationFrame(() => {
+        if (isMountedRef.current) onFilteredRowsChange(filtered);
+      });
+    }
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [rows, serverPagination, onFilteredRowsChange]);
 
   return (
     <div
