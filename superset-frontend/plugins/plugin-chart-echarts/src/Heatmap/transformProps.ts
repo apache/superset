@@ -38,7 +38,6 @@ import { HeatmapChartProps, HeatmapTransformedProps } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
-import { NULL_STRING } from '../constants';
 import { getPercentFormatter } from '../utils/formatters';
 
 type EChartsOption = ComposeOption<HeatmapSeriesOption>;
@@ -105,9 +104,21 @@ function sortAxisValues(
 
   // Alphabetical/lexicographic sort
   return values.sort((a, b) => {
+    // Check if both values are numeric for proper numeric sorting
+    const aNum = typeof a === 'number' ? a : Number(a);
+    const bNum = typeof b === 'number' ? b : Number(b);
+    const aIsNumeric = !Number.isNaN(aNum);
+    const bIsNumeric = !Number.isNaN(bNum);
+
+    if (aIsNumeric && bIsNumeric) {
+      // Both are numeric, sort numerically
+      return isAscending ? aNum - bNum : bNum - aNum;
+    }
+
+    // At least one is non-numeric, sort lexicographically
     const aStr = String(a);
     const bStr = String(b);
-    const comparison = aStr.localeCompare(bStr);
+    const comparison = aStr.localeCompare(bStr, undefined, { numeric: true });
     return isAscending ? comparison : -comparison;
   });
 }
@@ -236,22 +247,29 @@ export default function transformProps(
     yAxisColumnName,
   );
 
+  // Create lookup maps for axis indices
+  const xAxisIndexMap = new Map(
+    sortedXAxisValues.map((value, index) => [value, index]),
+  );
+  const yAxisIndexMap = new Map(
+    sortedYAxisValues.map((value, index) => [value, index]),
+  );
+
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
       type: 'heatmap',
-      data: data.map(row =>
-        colnames.map(col => {
-          const value = row[col];
-          if (value === null || value === undefined) {
-            return NULL_STRING;
-          }
-          if (typeof value === 'boolean' || typeof value === 'bigint') {
-            return String(value);
-          }
-          return value;
-        }),
-      ),
+      data: data.map(row => {
+        const xValue = row[xAxisColumnName];
+        const yValue = row[yAxisColumnName];
+        const metricValue = row[metricLabel];
+
+        // Convert to axis indices for ECharts when explicit axis data is provided
+        const xIndex = xAxisIndexMap.get(xValue as string | number) ?? 0;
+        const yIndex = yAxisIndexMap.get(yValue as string | number) ?? 0;
+
+        return [xIndex, yIndex, metricValue] as [number, number, any];
+      }),
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) => {

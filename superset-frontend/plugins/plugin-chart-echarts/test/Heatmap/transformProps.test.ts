@@ -106,8 +106,8 @@ describe('Heatmap transformProps', () => {
     const result = transformProps(chartProps as HeatmapChartProps);
 
     const yAxisData = (result.echartOptions.yAxis as any).data;
-    // Hours are numbers, so alphabetical is actually numeric in this case
-    expect(yAxisData).toEqual([10, 11, 14, 15, 16, 9]);
+    // Hours are numbers, so they should be sorted numerically
+    expect(yAxisData).toEqual([9, 10, 11, 14, 15, 16]);
   });
 
   test('should sort y-axis alphabetically descending', () => {
@@ -115,7 +115,8 @@ describe('Heatmap transformProps', () => {
     const result = transformProps(chartProps as HeatmapChartProps);
 
     const yAxisData = (result.echartOptions.yAxis as any).data;
-    expect(yAxisData).toEqual([9, 16, 15, 14, 11, 10]);
+    // Numeric descending order
+    expect(yAxisData).toEqual([16, 15, 14, 11, 10, 9]);
   });
 
   test('should sort x-axis by metric value ascending', () => {
@@ -258,5 +259,90 @@ describe('Heatmap transformProps', () => {
       data: expect.any(Array),
       axisLabel: expect.any(Object),
     });
+  });
+
+  test('should sort numeric values numerically not alphabetically', () => {
+    const numericData = [
+      { hour: 1, day: 'Mon', count: 10 },
+      { hour: 10, day: 'Mon', count: 15 },
+      { hour: 2, day: 'Tue', count: 8 },
+      { hour: 20, day: 'Wed', count: 12 },
+      { hour: 3, day: 'Thu', count: 18 },
+    ];
+
+    const chartProps = createChartProps(
+      { sortXAxis: 'alpha_asc', xAxis: 'hour', groupby: ['day'] },
+      numericData,
+    );
+
+    // Override colnames to match the new data structure
+    (chartProps as any).queriesData[0].colnames = ['hour', 'day', 'count'];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    // Should be numeric order: 1, 2, 3, 10, 20
+    // NOT alphabetical order: 1, 10, 2, 20, 3
+    expect(xAxisData).toEqual([1, 2, 3, 10, 20]);
+  });
+
+  test('should convert series data to axis indices', () => {
+    const chartProps = createChartProps({
+      sortXAxis: 'alpha_asc',
+      sortYAxis: 'alpha_asc',
+    });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, value]
+    expect(Array.isArray(seriesData)).toBe(true);
+    expect(seriesData.length).toBeGreaterThan(0);
+
+    // Check that data points use indices (numbers starting from 0)
+    seriesData.forEach((point: any) => {
+      expect(Array.isArray(point)).toBe(true);
+      expect(point.length).toBe(3);
+      // Indices should be numbers
+      expect(typeof point[0]).toBe('number');
+      expect(typeof point[1]).toBe('number');
+      // Indices should be >= 0
+      expect(point[0]).toBeGreaterThanOrEqual(0);
+      expect(point[1]).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  test('should handle mixed numeric and string values in axes', () => {
+    const mixedData = [
+      { category: 'A', value: 1, count: 10 },
+      { category: 'B', value: 10, count: 15 },
+      { category: 'C', value: 2, count: 8 },
+    ];
+
+    const chartProps = createChartProps(
+      {
+        sortXAxis: 'alpha_asc',
+        sortYAxis: 'alpha_asc',
+        xAxis: 'category',
+        groupby: ['value'],
+      },
+      mixedData,
+    );
+
+    (chartProps as any).queriesData[0].colnames = [
+      'category',
+      'value',
+      'count',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const xAxisData = (result.echartOptions.xAxis as any).data;
+    const yAxisData = (result.echartOptions.yAxis as any).data;
+
+    // X-axis: strings sorted alphabetically
+    expect(xAxisData).toEqual(['A', 'B', 'C']);
+    // Y-axis: numbers sorted numerically (1, 2, 10 NOT 1, 10, 2)
+    expect(yAxisData).toEqual([1, 2, 10]);
   });
 });
