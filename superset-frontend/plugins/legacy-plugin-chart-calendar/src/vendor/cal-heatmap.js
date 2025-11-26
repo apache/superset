@@ -2717,18 +2717,17 @@ CalHeatMap.prototype = {
    * @return array  An array of months
    */
   getMonthDomain: function (d, range) {
-    'use strict';
-
-    var start = new Date(d.getFullYear(), d.getMonth());
-    var stop = null;
+    var start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+    var stopInclusive;
     if (range instanceof Date) {
-      stop = new Date(range.getFullYear(), range.getMonth());
+      stopInclusive = new Date(Date.UTC(range.getUTCFullYear(), range.getUTCMonth(), 1));
     } else {
-      stop = new Date(start);
-      stop = stop.setMonth(stop.getMonth() + range);
+      stopInclusive = new Date(start);
+      stopInclusive.setUTCMonth(stopInclusive.getUTCMonth() + (range - 1));
     }
-
-    return d3.time.months(Math.min(start, stop), Math.max(start, stop));
+    var stopExclusive = new Date(stopInclusive);
+    stopExclusive.setUTCMonth(stopExclusive.getUTCMonth() + 1);
+    return d3.time.months(start, stopExclusive);
   },
 
   /**

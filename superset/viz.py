@@ -799,6 +799,10 @@ class CalHeatmapViz(BaseViz):
         if domain == "year":
             range_ = end.year - start.year + 1
         elif domain == "month":
+            # extra day to exclude first day of the month
+            end = end - rdelta.relativedelta(days=1)
+            diff_delta = rdelta.relativedelta(end, start)
+            diff_secs = (end - start).total_seconds()
             range_ = diff_delta.years * 12 + diff_delta.months + 1
         elif domain == "week":
             range_ = diff_delta.years * 53 + diff_delta.weeks + 1
