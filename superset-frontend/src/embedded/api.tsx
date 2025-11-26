@@ -105,11 +105,9 @@ const getChartStates = () =>
  * @returns Record of chart IDs to their query context payloads (only for stateful charts).
  *          Failed charts will have an error object instead of a valid payload.
  */
-const getChartDataPayloads = async (
-  params?: {
-    chartId?: number;
-  },
-): Promise<Record<string, JsonObject>> => {
+const getChartDataPayloads = async (params?: {
+  chartId?: number;
+}): Promise<Record<string, JsonObject>> => {
   const { chartId } = params || {};
   const state = store?.getState();
   if (!state) return {};
