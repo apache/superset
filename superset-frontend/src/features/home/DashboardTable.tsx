@@ -242,6 +242,7 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
             setDashboardToDelete(null);
           }}
