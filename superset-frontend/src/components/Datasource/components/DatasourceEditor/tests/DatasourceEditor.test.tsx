@@ -32,6 +32,7 @@ import {
   fastRender,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
+  dismissDatasourceWarning,
 } from './DatasourceEditor.test.utils';
 
 jest.mock('@superset-ui/core', () => ({
@@ -48,14 +49,9 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanupAsyncOperations();
   fetchMock.restore();
+  // Reset module mock since jest.fn() doesn't support mockRestore()
+  jest.mocked(isFeatureEnabled).mockReset();
 });
-
-const dismissDatasourceWarning = async () => {
-  const warningCloseButton = screen.queryByRole('button', { name: /close/i });
-  if (warningCloseButton) {
-    await userEvent.click(warningCloseButton);
-  }
-};
 
 test('renders Tabs', async () => {
   await asyncRender({
@@ -252,8 +248,6 @@ test('Source Tab: edit mode', async () => {
 
   expect(physicalRadioBtn).toBeEnabled();
   expect(virtualRadioBtn).toBeEnabled();
-
-  (isFeatureEnabled as jest.Mock).mockRestore();
 });
 
 test('Source Tab: readOnly mode', async () => {
@@ -276,8 +270,6 @@ test('Source Tab: readOnly mode', async () => {
 
   expect(physicalRadioBtn).toBeDisabled();
   expect(virtualRadioBtn).toBeDisabled();
-
-  (isFeatureEnabled as jest.Mock).mockRestore();
 });
 
 test('calls onChange with empty SQL when switching to physical dataset', async () => {
@@ -309,8 +301,6 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
   expect(props.onChange).toHaveBeenCalled();
   const updatedDatasource = props.onChange.mock.calls[0];
   expect(updatedDatasource[0].sql).toBe('');
-
-  (isFeatureEnabled as jest.Mock).mockRestore();
 });
 
 test('properly renders the metric information', async () => {

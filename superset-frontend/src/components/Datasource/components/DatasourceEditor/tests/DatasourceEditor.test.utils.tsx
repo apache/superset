@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import type { DatasetObject } from 'src/features/datasets/types';
 import DatasourceEditor from '..';
@@ -26,12 +31,34 @@ export interface DatasourceEditorProps {
   datasource: DatasetObject;
   addSuccessToast: () => void;
   addDangerToast: () => void;
-  onChange: jest.Mock;
+  onChange: jest.MockedFunction<
+    (datasource: DatasetObject, errors?: unknown) => void
+  >;
   columnLabels?: Record<string, string>;
   columnLabelTooltips?: Record<string, string>;
 }
 
-// Common setup for tests
+/**
+ * Factory function that creates fresh props for each test.
+ * Deep clones the datasource fixture to prevent test pollution from mutations.
+ */
+export const createProps = (): DatasourceEditorProps => ({
+  datasource: JSON.parse(JSON.stringify(mockDatasource['7__table'])),
+  addSuccessToast: () => {},
+  addDangerToast: () => {},
+  onChange: jest.fn(),
+  columnLabels: {
+    state: 'State',
+  },
+  columnLabelTooltips: {
+    state: 'This is a tooltip for state',
+  },
+});
+
+/**
+ * @deprecated Use createProps() factory instead to prevent test pollution.
+ * Kept for backward compatibility during migration.
+ */
 export const props: DatasourceEditorProps = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
@@ -99,14 +126,36 @@ export const setupDatasourceEditorMocks = () => {
 
 /**
  * Cleanup async operations to prevent test pollution.
- * Waits for pending animation frames and microtasks to complete.
+ * Flushes microtasks and animation frames.
  * Call this in afterEach to prevent "document global is not defined" errors.
+ *
+ * Note: Uses real timers (not fake timers), so jest.runOnlyPendingTimers() is not used.
  */
 export const cleanupAsyncOperations = async () => {
+  // Flush promise microtasks first
+  await Promise.resolve();
+
   // Wait for pending animation frames (guard for non-DOM environments)
+  // Loop twice to catch chained rAFs (max 2 to stay idempotent)
   if (typeof requestAnimationFrame !== 'undefined') {
     await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => requestAnimationFrame(resolve));
   }
-  // Flush remaining microtasks
+
+  // Flush microtasks again after rAFs
+  await Promise.resolve();
+
+  // Final flush via setTimeout(0)
   await new Promise(resolve => setTimeout(resolve, 0));
+};
+
+/**
+ * Dismiss the datasource warning modal if present.
+ * Centralized helper to avoid duplication across test files.
+ */
+export const dismissDatasourceWarning = async () => {
+  const closeButton = screen.queryByRole('button', { name: /close/i });
+  if (closeButton) {
+    await userEvent.click(closeButton);
+  }
 };

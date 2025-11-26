@@ -17,33 +17,42 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { screen, waitFor, userEvent } from 'spec/helpers/testing-library';
+import {
+  screen,
+  waitFor,
+  userEvent,
+  selectOption,
+} from 'spec/helpers/testing-library';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
-  props,
+  createProps,
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
   asyncRender,
+  dismissDatasourceWarning,
 } from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
 
 // Factory function for currency props - returns fresh copy to prevent test pollution
 // Using single metric to minimize DOM size for faster test execution while still validating currency functionality
-const createPropsWithCurrency = () => ({
-  ...props,
-  datasource: {
-    ...props.datasource,
-    metrics: [
-      {
-        ...props.datasource.metrics[0],
-        currency: { symbol: 'USD', symbolPosition: 'prefix' },
-      },
-    ],
-  },
-  onChange: jest.fn(),
-});
+const createPropsWithCurrency = () => {
+  const baseProps = createProps();
+  return {
+    ...baseProps,
+    datasource: {
+      ...baseProps.datasource,
+      metrics: [
+        {
+          ...baseProps.datasource.metrics[0],
+          currency: { symbol: 'USD', symbolPosition: 'prefix' },
+        },
+      ],
+    },
+    onChange: jest.fn(),
+  };
+};
 
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
@@ -54,13 +63,6 @@ afterEach(async () => {
   await cleanupAsyncOperations();
   fetchMock.restore();
 });
-
-const dismissDatasourceWarning = async () => {
-  const closeButton = screen.queryByRole('button', { name: /close/i });
-  if (closeButton) {
-    await userEvent.click(closeButton);
-  }
-};
 
 test('renders currency section in metrics tab', async () => {
   const testProps = createPropsWithCurrency();
@@ -108,14 +110,8 @@ test('changes currency position from prefix to suffix', async () => {
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
-  // Select suffix option - use direct interaction instead of selectOption helper
-  // which relies on .rc-virtual-list that may not render for small option lists
-  const positionSelect = screen.getByRole('combobox', {
-    name: 'Currency prefix or suffix',
-  });
-  await userEvent.click(positionSelect);
-  const suffixOption = await screen.findByText('Suffix');
-  await userEvent.click(suffixOption);
+  // Select suffix option via shared helper (rc-virtual-list aware)
+  await selectOption('Suffix', 'Currency prefix or suffix');
   await cleanupAsyncOperations();
 
   // Verify onChange was called with suffix position
@@ -128,7 +124,6 @@ test('changes currency position from prefix to suffix', async () => {
       (m: MetricType) => m.currency && m.currency.symbolPosition === 'suffix',
     );
 
-    expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
 });
@@ -148,11 +143,9 @@ test('changes currency symbol from USD to GBP', async () => {
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
   await userEvent.click(expandToggles[0]);
 
-  // Select GBP option - use direct interaction instead of selectOption helper
-  const symbolSelect = screen.getByRole('combobox', { name: 'Currency symbol' });
-  await userEvent.click(symbolSelect);
-  const gbpOption = await screen.findByText('£ (GBP)');
-  await userEvent.click(gbpOption);
+  // Select GBP option via shared helper (rc-virtual-list aware)
+  await selectOption('£ (GBP)', 'Currency symbol');
+  await cleanupAsyncOperations();
 
   // Verify onChange was called with GBP
   await waitFor(() => {
@@ -164,7 +157,6 @@ test('changes currency symbol from USD to GBP', async () => {
       (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
     );
 
-    expect(updatedMetric).toBeDefined();
     expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
 });
