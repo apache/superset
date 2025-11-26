@@ -23,12 +23,11 @@ import logging
 from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ChartInfo,
@@ -38,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,8 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 

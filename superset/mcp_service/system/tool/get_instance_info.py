@@ -23,9 +23,8 @@ InstanceInfoCore for flexible, extensible metrics calculation.
 import logging
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
@@ -38,6 +37,7 @@ from superset.mcp_service.system.system_utils import (
     calculate_popular_content,
     calculate_recent_activity,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +69,8 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
 ) -> InstanceInfo:

@@ -775,6 +775,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     is_dttm = Column(Boolean, default=False)
     expression = Column(utils.MediumText())
     python_date_format = Column(String(255))
+    datetime_format = Column(String(100))
     extra = Column(Text)
 
     table: Mapped[SqlaTable] = relationship(
@@ -795,6 +796,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         "expression",
         "description",
         "python_date_format",
+        "datetime_format",
         "extra",
     ]
 
@@ -860,6 +862,17 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         if self.is_dttm is not None:
             return self.is_dttm
         return self.type_generic == utils.GenericDataType.TEMPORAL
+
+    @property
+    def effective_datetime_format(self) -> str | None:
+        """
+        Get the datetime format for this column with fallback logic.
+
+        Returns the stored datetime_format if available. This format is detected
+        during dataset creation/sync and used for consistent datetime parsing.
+        Falls back to None if no format is stored, triggering runtime detection.
+        """
+        return self.datetime_format
 
     @property
     def database(self) -> Database:

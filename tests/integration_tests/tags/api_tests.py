@@ -148,6 +148,46 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         db.session.delete(tag)
         db.session.commit()
 
+    def test_get_tag_user_fields(self):
+        """
+        Query API: Test get tag only returns first_name and last_name for
+        created_by and changed_by fields
+        """
+        self.login(ADMIN_USERNAME)
+        # Create tag via API to ensure created_by is set
+        uri = "api/v1/tag/"
+        rv = self.client.post(
+            uri,
+            json={"name": "test_user_fields_tag", "objects_to_tag": []},
+        )
+        assert rv.status_code == 201
+
+        # Get the created tag
+        tag = db.session.query(Tag).filter(Tag.name == "test_user_fields_tag").first()
+        assert tag is not None
+
+        # Fetch the tag via GET API
+        uri = f"api/v1/tag/{tag.id}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        # Verify created_by only contains first_name and last_name
+        assert result["created_by"] is not None
+        assert set(result["created_by"].keys()) == {"first_name", "last_name"}
+        assert result["created_by"]["first_name"] is not None
+        assert result["created_by"]["last_name"] is not None
+
+        # Verify changed_by only contains first_name and last_name (or is None)
+        if result["changed_by"] is not None:
+            assert set(result["changed_by"].keys()) == {"first_name", "last_name"}
+
+        # Cleanup
+        db.session.delete(tag)
+        db.session.commit()
+
     def test_get_tag_not_found(self):
         """
         Query API: Test get query not found

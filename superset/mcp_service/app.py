@@ -256,13 +256,12 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-# Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app(stateless_http=True)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
-# Tools use @mcp.tool decorators and register automatically on import.
-# Import prompts and resources to register them with the mcp instance
+# Tools use the @tool decorator from `superset-core` and register automatically
+# on import. Import prompts and resources to register them with the mcp instance
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.

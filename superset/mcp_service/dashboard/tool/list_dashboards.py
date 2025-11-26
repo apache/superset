@@ -25,9 +25,8 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 import logging
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
@@ -36,6 +35,7 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,8 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
@@ -70,7 +70,6 @@ async def list_dashboards(
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
     """
-
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelListCore(

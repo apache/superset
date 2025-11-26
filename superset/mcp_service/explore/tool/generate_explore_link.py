@@ -25,9 +25,8 @@ chart configuration.
 from typing import Any, Dict
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
@@ -35,10 +34,11 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(
     request: GenerateExploreLinkRequest, ctx: Context
 ) -> Dict[str, Any]:
