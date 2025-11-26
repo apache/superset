@@ -61,7 +61,6 @@ const memoizedControls = memoizeOne(
                   const { name } = control.props as { name: string };
                   if (name) {
                     const ComponentType = control.type as React.ComponentType;
-                    console.log('ComponentType', ComponentType);
                     controlsMap[name] = {
                       type:
                         ComponentType.displayName ||

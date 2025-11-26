@@ -658,13 +658,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
-                    // return controlItem;
 
                     const controlName = (controlItem.props as { name: string })
                       .name;
-                    const controlState = controlName
-                      ? controls[controlName]
-                      : undefined;
+                    if (!controlName) {
+                      return controlItem;
+                    }
+                    const controlState = controls[controlName];
 
                     return cloneElement(controlItem, {
                       ...(controlItem.props as Record<string, any>),

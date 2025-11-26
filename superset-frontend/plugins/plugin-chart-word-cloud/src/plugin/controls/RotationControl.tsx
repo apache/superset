@@ -72,3 +72,5 @@ export default function RotationControl({
     </div>
   );
 }
+
+RotationControl.displayName = 'RotationControl';
