@@ -247,18 +247,16 @@ export const canDropFolder = (
 ): boolean => {
   if (folderId === targetId) return false;
 
-  // Prevent dropping a folder into its own descendants (circular reference)
   const descendants = getFolderDescendants(folderId, folders);
   if (descendants.includes(targetId)) {
     return false;
   }
-  // Prevent dropping default folders (Metrics/Columns) into other folders
+
   const draggedFolder = findFolderById(folderId, folders);
   if (draggedFolder && isDefaultFolder(draggedFolder.uuid)) {
     return false;
   }
 
-  // Allow nesting in any other case
   return true;
 };
 
@@ -335,12 +333,10 @@ export const validateFolders = (
 
   const collectFolderNames = (items: DatasourceFolder[]) => {
     items.forEach(folder => {
-      // Collect non-empty folder names for duplicate check
       if (folder.name?.trim()) {
         folderNames.push(folder.name.trim().toLowerCase());
       }
 
-      // Recursively collect from nested folders
       if (folder.children && folder.type === 'folder') {
         const childFolders = folder.children.filter(
           c => c.type === 'folder',
@@ -352,7 +348,6 @@ export const validateFolders = (
 
   const validateRecursive = (items: DatasourceFolder[]) => {
     items.forEach(folder => {
-      // Check for folders with content but no title
       const hasContent = folder.children && folder.children.length > 0;
       const hasNoTitle = !folder.name?.trim();
 
@@ -387,10 +382,8 @@ export const validateFolders = (
     });
   };
 
-  // First pass: collect all folder names
   collectFolderNames(folders);
 
-  // Check for duplicate folder names
   const nameCounts = new Map<string, number>();
   folderNames.forEach(name => {
     nameCounts.set(name, (nameCounts.get(name) || 0) + 1);
@@ -401,7 +394,6 @@ export const validateFolders = (
     }
   });
 
-  // Second pass: validate folder contents
   validateRecursive(folders);
 
   return {
@@ -524,7 +516,6 @@ export const ensureDefaultFolders = (
     return resetToDefault(metrics, columns);
   }
 
-  // First, enrich all folder children with names
   const enrichedFolders = enrichFolderChildren(folders, metrics, columns);
 
   const hasMetricsFolder = enrichedFolders.some(
@@ -536,7 +527,6 @@ export const ensureDefaultFolders = (
 
   const result = [...enrichedFolders];
 
-  // Helper to check if item is in any folder (including nested)
   const isItemInFolders = (uuid: string): boolean => {
     const checkFolder = (folder: DatasourceFolder): boolean => {
       if (!folder.children) return false;
