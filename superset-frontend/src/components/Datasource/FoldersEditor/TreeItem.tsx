@@ -66,16 +66,19 @@ interface TreeItemProps {
   isForbiddenDrop?: boolean;
   metric?: Metric;
   column?: ColumnMeta;
+  // When true, renders as a drag overlay item (no sortable hooks, shows checkbox)
+  isOverlay?: boolean;
 }
 
 const TreeItemContainer = styled.div<{
   depth: number;
   isDragging: boolean;
   isOver: boolean;
+  isOverlay?: boolean;
 }>`
-  ${({ theme, depth, isDragging }) => `
-    margin: ${theme.marginXXS}px ${theme.marginMD}px;
-    margin-left: ${(depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
+  ${({ theme, depth, isDragging, isOverlay }) => `
+    margin: ${theme.marginXXS}px ${isOverlay ? 0 : theme.marginMD}px;
+    margin-left: ${isOverlay ? 0 : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -92,13 +95,13 @@ const TreeFolderContainer = styled(TreeItemContainer)<{
   isDropTarget?: boolean;
   isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isDropTarget, isForbiddenDropTarget }) => `
-    margin-top: ${theme.marginLG}px;
-    margin-bottom: ${theme.marginLG}px;
-    margin-left: ${depth * FOLDER_INDENTATION_WIDTH}px;
+  ${({ theme, depth, isDropTarget, isForbiddenDropTarget, isOverlay }) => `
+    margin-top: ${isOverlay ? 0 : theme.marginLG}px;
+    margin-bottom: ${isOverlay ? 0 : theme.marginLG}px;
+    margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
     padding: ${theme.paddingXXS}px ${theme.paddingSM}px;
-    margin-right: ${theme.marginMD}px;
+    margin-right: ${isOverlay ? 0 : theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     ${
       isDropTarget && isForbiddenDropTarget
@@ -239,6 +242,7 @@ function TreeItemComponent({
   isForbiddenDrop = false,
   metric,
   column,
+  isOverlay = false,
 }: TreeItemProps) {
   const [editValue, setEditValue] = useState(name);
 
@@ -256,6 +260,7 @@ function TreeItemComponent({
       type,
       isFolder,
     },
+    disabled: isOverlay,
   });
 
   // Separate droppable for empty state
@@ -266,12 +271,15 @@ function TreeItemComponent({
       isFolder,
       parentId: id,
     },
+    disabled: isOverlay,
   });
 
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style: CSSProperties = isOverlay
+    ? {}
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
 
   const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -391,6 +399,7 @@ function TreeItemComponent({
     depth,
     isDragging,
     isOver,
+    isOverlay,
   };
 
   const containerContent = (
@@ -409,12 +418,16 @@ function TreeItemComponent({
       )}
 
       {/* Checkbox for selection (metrics/columns only) */}
-      {onSelect && (
+      {/* In overlay mode, show checkbox for non-folder items with actual selection state */}
+      {(onSelect || (isOverlay && !isFolder)) && (
         <Checkbox
           checked={isSelected}
+          disabled={isOverlay}
           onChange={(e: CheckboxChangeEvent) => {
-            e.stopPropagation();
-            onSelect(id, e.target.checked);
+            if (!isOverlay) {
+              e.stopPropagation();
+              onSelect?.(id, e.target.checked);
+            }
           }}
           css={theme => css`
             margin-right: ${theme.marginSM}px;
