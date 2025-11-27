@@ -308,8 +308,12 @@ describe('folderUtils', () => {
       const result = deleteFolder(DEFAULT_METRICS_FOLDER_UUID, folders);
 
       expect(result).toHaveLength(1);
-      expect(result.find(f => f.uuid === DEFAULT_METRICS_FOLDER_UUID)).toBeUndefined();
-      expect(result.find(f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID)).toBeDefined();
+      expect(
+        result.find(f => f.uuid === DEFAULT_METRICS_FOLDER_UUID),
+      ).toBeUndefined();
+      expect(
+        result.find(f => f.uuid === DEFAULT_COLUMNS_FOLDER_UUID),
+      ).toBeDefined();
     });
 
     test('should delete nested folders', () => {
@@ -330,7 +334,11 @@ describe('folderUtils', () => {
       const result = deleteFolder('child', folders);
 
       expect(result).toHaveLength(1);
-      expect((result[0].children as DatasourceFolder[]).find(c => c.uuid === 'child')).toBeUndefined();
+      expect(
+        (result[0].children as DatasourceFolder[]).find(
+          c => c.uuid === 'child',
+        ),
+      ).toBeUndefined();
     });
 
     test('should return unchanged array if folder not found', () => {
@@ -362,7 +370,9 @@ describe('folderUtils', () => {
       expect(result).toHaveLength(1);
       expect(result[0].uuid).toBe('folder1');
       expect(result[0].children).toHaveLength(1);
-      expect((result[0].children as DatasourceFolder[])[0].uuid).toBe('folder2');
+      expect((result[0].children as DatasourceFolder[])[0].uuid).toBe(
+        'folder2',
+      );
     });
 
     test('should return unchanged if folder to move not found', () => {
@@ -425,8 +435,16 @@ describe('folderUtils', () => {
           type: FoldersEditorItemType.Folder,
           name: 'Folder 1',
           children: [
-            { uuid: 'metric-1', type: FoldersEditorItemType.Metric, name: 'Metric 1' },
-            { uuid: 'metric-2', type: FoldersEditorItemType.Metric, name: 'Metric 2' },
+            {
+              uuid: 'metric-1',
+              type: FoldersEditorItemType.Metric,
+              name: 'Metric 1',
+            },
+            {
+              uuid: 'metric-2',
+              type: FoldersEditorItemType.Metric,
+              name: 'Metric 2',
+            },
           ],
         },
         {
@@ -451,8 +469,16 @@ describe('folderUtils', () => {
           type: FoldersEditorItemType.Folder,
           name: 'Folder 1',
           children: [
-            { uuid: 'metric-1', type: FoldersEditorItemType.Metric, name: 'Metric 1' },
-            { uuid: 'metric-2', type: FoldersEditorItemType.Metric, name: 'Metric 2' },
+            {
+              uuid: 'metric-1',
+              type: FoldersEditorItemType.Metric,
+              name: 'Metric 1',
+            },
+            {
+              uuid: 'metric-2',
+              type: FoldersEditorItemType.Metric,
+              name: 'Metric 2',
+            },
           ],
         },
         {
@@ -511,8 +537,12 @@ describe('folderUtils', () => {
       const customFolder = createFolder('Custom');
       folders.push(customFolder);
 
-      expect(canDropFolder(DEFAULT_METRICS_FOLDER_UUID, customFolder.uuid, folders)).toBe(false);
-      expect(canDropFolder(DEFAULT_COLUMNS_FOLDER_UUID, customFolder.uuid, folders)).toBe(false);
+      expect(
+        canDropFolder(DEFAULT_METRICS_FOLDER_UUID, customFolder.uuid, folders),
+      ).toBe(false);
+      expect(
+        canDropFolder(DEFAULT_COLUMNS_FOLDER_UUID, customFolder.uuid, folders),
+      ).toBe(false);
     });
 
     test('should allow valid folder drops', () => {
@@ -635,7 +665,11 @@ describe('folderUtils', () => {
           type: FoldersEditorItemType.Folder,
           name: 'Non-Empty Folder',
           children: [
-            { uuid: 'metric-1', type: FoldersEditorItemType.Metric, name: 'Metric 1' },
+            {
+              uuid: 'metric-1',
+              type: FoldersEditorItemType.Metric,
+              name: 'Metric 1',
+            },
           ],
         },
       ];
@@ -696,21 +730,27 @@ describe('folderUtils', () => {
       const selectedItemIds = new Set(['item1', 'item2', 'item3']);
       const visibleItemIds = ['item1', 'item2'];
 
-      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(true);
+      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(
+        true,
+      );
     });
 
     test('should return false when some visible items are not selected', () => {
       const selectedItemIds = new Set(['item1']);
       const visibleItemIds = ['item1', 'item2'];
 
-      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(false);
+      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(
+        false,
+      );
     });
 
     test('should return false when visible items is empty', () => {
       const selectedItemIds = new Set(['item1']);
       const visibleItemIds: string[] = [];
 
-      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(false);
+      expect(areAllVisibleItemsSelected(selectedItemIds, visibleItemIds)).toBe(
+        false,
+      );
     });
   });
 });
