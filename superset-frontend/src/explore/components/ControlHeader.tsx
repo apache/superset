@@ -21,7 +21,7 @@ import { t } from '@superset-ui/core';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-
+import { GlossaryTooltip, type GlossaryTerm } from '@superset-ui/core/components';
 type ValidationError = string;
 
 export type ControlHeaderProps = {
@@ -32,6 +32,7 @@ export type ControlHeaderProps = {
   renderTrigger?: boolean;
   rightNode?: ReactNode;
   leftNode?: ReactNode;
+  glossaryTerm?: GlossaryTerm;
   onClick?: () => void;
   hovered?: boolean;
   tooltipOnClick?: () => void;
@@ -53,6 +54,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   name,
   label,
   description,
+  glossaryTerm,
   validationErrors = [],
   renderTrigger = false,
   rightNode,
@@ -87,16 +89,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       >
         {description && (
           <span>
-            <Tooltip
-              id="description-tooltip"
-              title={description}
-              placement="top"
-            >
+            <GlossaryTooltip term={glossaryTerm} title={description}>
               <Icons.InfoCircleOutlined
                 css={iconStyles}
-                onClick={tooltipOnClick}
               />
-            </Tooltip>{' '}
+            </GlossaryTooltip>{' '}
           </span>
         )}
         {renderTrigger && (

@@ -26,6 +26,7 @@ import {
   Metric,
   isDataset,
 } from '../types';
+import { GLOSSARY_TERMS } from '@superset-ui/core/components';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 import {
   QUERY_TIME_COLUMN_OPTION,
@@ -190,6 +191,7 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
+  glossaryTerm: GLOSSARY_TERMS.Dimension,
   description: t(
     'Select a metric to display. ' +
       'You can use an aggregation function on a column ' +
