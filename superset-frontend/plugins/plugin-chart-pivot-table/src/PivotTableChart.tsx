@@ -21,15 +21,18 @@ import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
+  Currency,
   CurrencyFormatter,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
   getSelectedText,
+  hasMixedCurrencies,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
+  normalizeCurrency,
   NumberFormatter,
   t,
 } from '@superset-ui/core';
@@ -101,6 +104,79 @@ const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
   stroke-width: 16px;
 `;
 
+/**
+ * Interface for aggregator objects that support currency tracking.
+ */
+interface CurrencyTrackingAggregator {
+  getCurrencies?: () => string[];
+}
+
+/**
+ * Base formatter type - can be NumberFormatter or CurrencyFormatter
+ */
+type BaseFormatter = NumberFormatter | CurrencyFormatter;
+
+/**
+ * Creates a currency-aware formatter that wraps a base formatter.
+ * When AUTO mode is enabled and aggregator has currency tracking,
+ * it will show currency symbol for single-currency cells and
+ * neutral format for mixed-currency cells.
+ *
+ * @param baseFormatter - The base number formatter to use
+ * @param currencyConfig - Currency configuration (may have symbol='AUTO')
+ * @param d3Format - The d3 format string for number formatting
+ * @returns A formatter function that accepts (value, aggregator?)
+ */
+const createCurrencyAwareFormatter = (
+  baseFormatter: BaseFormatter,
+  currencyConfig: Currency | undefined,
+  d3Format: string,
+): ((value: number, aggregator?: CurrencyTrackingAggregator) => string) => {
+  const isAutoMode = currencyConfig?.symbol === 'AUTO';
+
+  return (value: number, aggregator?: CurrencyTrackingAggregator): string => {
+    // If not AUTO mode, use base formatter directly
+    if (!isAutoMode) {
+      return baseFormatter(value);
+    }
+
+    // AUTO mode: check aggregator for currency tracking
+    if (!aggregator || typeof aggregator.getCurrencies !== 'function') {
+      // No currency tracking available, use neutral format
+      return baseFormatter(value);
+    }
+
+    const currencies = aggregator.getCurrencies();
+
+    if (!currencies || currencies.length === 0) {
+      // No currencies tracked, use neutral format
+      return baseFormatter(value);
+    }
+
+    // Check if single or mixed currencies
+    if (hasMixedCurrencies(currencies)) {
+      // Mixed currencies: use neutral format (no symbol)
+      return getNumberFormatter(d3Format)(value);
+    }
+
+    // Single currency: create formatter with detected currency
+    const detectedCurrency = normalizeCurrency(currencies[0]);
+    if (detectedCurrency && currencyConfig) {
+      const cellFormatter = new CurrencyFormatter({
+        currency: {
+          symbol: detectedCurrency,
+          symbolPosition: currencyConfig.symbolPosition,
+        },
+        d3Format,
+      });
+      return cellFormatter(value);
+    }
+
+    // Fallback to neutral format
+    return getNumberFormatter(d3Format)(value);
+  };
+};
+
 const aggregatorsFactory = (formatter: NumberFormatter) => ({
   Count: aggregatorTemplates.count(formatter),
   'Count Unique Values': aggregatorTemplates.countUnique(formatter),
@@ -171,6 +247,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -186,15 +263,24 @@ export default function PivotTableChart(props: PivotTableProps) {
   } = props;
 
   const theme = useTheme();
-  const defaultFormatter = useMemo(
+
+  // Base formatter without currency-awareness (for non-AUTO mode or as fallback)
+  const baseFormatter = useMemo(
     () =>
-      currencyFormat?.symbol
+      currencyFormat?.symbol && currencyFormat.symbol !== 'AUTO'
         ? new CurrencyFormatter({
             currency: currencyFormat,
             d3Format: valueFormat,
           })
         : getNumberFormatter(valueFormat),
     [valueFormat, currencyFormat],
+  );
+
+  // Currency-aware formatter for AUTO mode support
+  const defaultFormatter = useMemo(
+    () =>
+      createCurrencyAwareFormatter(baseFormatter, currencyFormat, valueFormat),
+    [baseFormatter, currencyFormat, valueFormat],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -216,15 +302,26 @@ export default function PivotTableChart(props: PivotTableProps) {
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              customFormatsArray.map(([metric, d3Format, currency]) => [
-                metric,
-                currency
-                  ? new CurrencyFormatter({
-                      currency,
-                      d3Format,
-                    })
-                  : getNumberFormatter(d3Format),
-              ]),
+              customFormatsArray.map(([metric, d3Format, currency]) => {
+                // Create base formatter
+                const metricBaseFormatter =
+                  currency && (currency as Currency).symbol !== 'AUTO'
+                    ? new CurrencyFormatter({
+                        currency: currency as Currency,
+                        d3Format: d3Format as string,
+                      })
+                    : getNumberFormatter(d3Format as string);
+
+                // Wrap with currency-aware formatter for AUTO mode support
+                return [
+                  metric,
+                  createCurrencyAwareFormatter(
+                    metricBaseFormatter,
+                    currency as Currency | undefined,
+                    d3Format as string,
+                  ),
+                ];
+              }),
             ),
           }
         : undefined,
@@ -249,12 +346,14 @@ export default function PivotTableChart(props: PivotTableProps) {
               ...record,
               [METRIC_KEY]: name,
               value: record[name],
+              // Mark currency column for per-cell currency detection in aggregators
+              __currencyColumn: currencyCodeColumn,
             }))
             .filter(record => record.value !== null),
         ],
         [],
       ),
-    [data, metricNames],
+    [data, metricNames, currencyCodeColumn],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),

@@ -156,3 +156,55 @@ test('CurrencyFormatter:format', () => {
   });
   expect(currencyFormatterWithCurrencyD3(VALUE)).toEqual('56,100,057.0 PLN');
 });
+
+test('CurrencyFormatter formats with AUTO mode and row context', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+  });
+
+  const row = { amount: 1000, currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+
+  expect(result).toContain('€');
+  expect(result).toContain('1,000.00');
+});
+
+test('CurrencyFormatter with AUTO mode returns neutral format without context', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+  });
+
+  const result = formatter.format(1000);
+  expect(result).toBe('1,000.00'); // No currency symbol
+});
+
+test('CurrencyFormatter with AUTO mode normalizes currency codes', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+  });
+
+  // Test with lowercase code
+  const row1 = { amount: 500, currency: 'usd' };
+  expect(formatter.format(500, row1, 'currency')).toContain('$');
+
+  // Test with symbol
+  const row2 = { amount: 750, currency: '€' };
+  expect(formatter.format(750, row2, 'currency')).toContain('€');
+});
+
+test('CurrencyFormatter with static mode ignores row context', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'USD', symbolPosition: 'prefix' },
+  });
+
+  // Even with EUR in row, should show $ because static mode
+  const row = { amount: 1000, currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+
+  expect(result).toContain('$');
+  expect(result).not.toContain('€');
+});

@@ -52,6 +52,9 @@ def load_examples_run(
     logger.info("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
+    logger.info("Loading [Currency test data]")
+    examples.load_currency_test(only_metadata, force)
+
     if load_test_data:
         logger.info("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)

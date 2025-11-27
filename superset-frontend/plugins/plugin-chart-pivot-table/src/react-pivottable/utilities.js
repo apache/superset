@@ -190,6 +190,11 @@ const fmtNonString = formatter => x =>
   typeof x === 'string' ? x : formatter(x);
 
 const baseAggregatorTemplates = {
+  /**
+   * Count aggregator - counts number of records.
+   * Note: Count doesn't track currencies as it's not a monetary value.
+   * @param {Function} formatter - Number formatter function
+   */
   count(formatter = usFmtInt) {
     return () =>
       function () {
@@ -206,18 +211,36 @@ const baseAggregatorTemplates = {
       };
   },
 
+  /**
+   * Uniques aggregator - tracks unique values.
+   * Tracks currencies for per-cell currency detection.
+   * @param {Function} fn - Function to apply to unique values
+   * @param {Function} formatter - Number formatter function
+   */
   uniques(fn, formatter = usFmtInt) {
     return function ([attr]) {
       return function () {
         return {
           uniq: [],
+          currencies: [],
           push(record) {
             if (!Array.from(this.uniq).includes(record[attr])) {
               this.uniq.push(record[attr]);
             }
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
+            }
           },
           value() {
             return fn(this.uniq);
+          },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -226,20 +249,37 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Sum aggregator - sums numeric values.
+   * Tracks currencies for per-cell currency detection.
+   * @param {Function} formatter - Number formatter function
+   */
   sum(formatter = usFmt) {
     return function ([attr]) {
       return function () {
         return {
           sum: 0,
+          currencies: [],
           push(record) {
             if (Number.isNaN(Number(record[attr]))) {
               this.sum = record[attr];
             } else {
               this.sum += parseFloat(record[attr]);
             }
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
+            }
           },
           value() {
             return this.sum;
+          },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -248,11 +288,18 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Extremes aggregator - finds min/max/first/last values.
+   * Tracks currencies for per-cell currency detection.
+   * @param {string} mode - 'min', 'max', 'first', or 'last'
+   * @param {Function} formatter - Number formatter function
+   */
   extremes(mode, formatter = usFmt) {
     return function ([attr]) {
       return function (data) {
         return {
           val: null,
+          currencies: [],
           sorter: getSort(
             typeof data !== 'undefined' ? data.sorters : null,
             attr,
@@ -285,9 +332,20 @@ const baseAggregatorTemplates = {
             ) {
               this.val = x;
             }
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
+            }
           },
           value() {
             return this.val;
+          },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
           },
           format(x) {
             if (typeof x === 'number') {
@@ -301,12 +359,19 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Quantile aggregator - calculates quantile values (median, etc.).
+   * Tracks currencies for per-cell currency detection.
+   * @param {number} q - Quantile value (0-1)
+   * @param {Function} formatter - Number formatter function
+   */
   quantile(q, formatter = usFmt) {
     return function ([attr]) {
       return function () {
         return {
           vals: [],
           strMap: {},
+          currencies: [],
           push(record) {
             const val = record[attr];
             const x = Number(val);
@@ -315,6 +380,10 @@ const baseAggregatorTemplates = {
               this.strMap[val] = (this.strMap[val] || 0) + 1;
             } else {
               this.vals.push(x);
+            }
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
             }
           },
           value() {
@@ -339,6 +408,13 @@ const baseAggregatorTemplates = {
             const i = (this.vals.length - 1) * q;
             return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
           },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
+          },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
@@ -346,6 +422,13 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Running statistics aggregator - calculates mean/variance/stdev.
+   * Tracks currencies for per-cell currency detection.
+   * @param {string} mode - 'mean', 'var', or 'stdev'
+   * @param {number} ddof - Delta degrees of freedom
+   * @param {Function} formatter - Number formatter function
+   */
   runningStat(mode = 'mean', ddof = 1, formatter = usFmt) {
     return function ([attr]) {
       return function () {
@@ -354,11 +437,16 @@ const baseAggregatorTemplates = {
           m: 0.0,
           s: 0.0,
           strValue: null,
+          currencies: [],
           push(record) {
             const x = Number(record[attr]);
             if (Number.isNaN(x)) {
               this.strValue =
                 typeof record[attr] === 'string' ? record[attr] : this.strValue;
+              // Still track currency even for non-numeric values
+              if (record.__currencyColumn && record[record.__currencyColumn]) {
+                this.currencies.push(record[record.__currencyColumn]);
+              }
               return;
             }
             this.n += 1.0;
@@ -368,6 +456,10 @@ const baseAggregatorTemplates = {
             const mNew = this.m + (x - this.m) / this.n;
             this.s += (x - this.m) * (x - mNew);
             this.m = mNew;
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
+            }
           },
           value() {
             if (this.strValue) {
@@ -392,6 +484,13 @@ const baseAggregatorTemplates = {
                 throw new Error('unknown mode for runningStat');
             }
           },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
+          },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
@@ -399,12 +498,18 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Sum over sum aggregator - calculates ratio of two sums.
+   * Tracks currencies for per-cell currency detection.
+   * @param {Function} formatter - Number formatter function
+   */
   sumOverSum(formatter = usFmt) {
     return function ([num, denom]) {
       return function () {
         return {
           sumNum: 0,
           sumDenom: 0,
+          currencies: [],
           push(record) {
             if (!Number.isNaN(Number(record[num]))) {
               this.sumNum += parseFloat(record[num]);
@@ -412,9 +517,20 @@ const baseAggregatorTemplates = {
             if (!Number.isNaN(Number(record[denom]))) {
               this.sumDenom += parseFloat(record[denom]);
             }
+            // Track currency if present in record
+            if (record.__currencyColumn && record[record.__currencyColumn]) {
+              this.currencies.push(record[record.__currencyColumn]);
+            }
           },
           value() {
             return this.sumNum / this.sumDenom;
+          },
+          /**
+           * Get tracked currencies for this aggregation cell.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.currencies;
           },
           format: formatter,
           numInputs:
@@ -424,6 +540,13 @@ const baseAggregatorTemplates = {
     };
   },
 
+  /**
+   * Fraction of aggregator - wraps another aggregator to show as fraction.
+   * Delegates currency tracking to inner aggregator.
+   * @param {Function} wrapped - The aggregator to wrap
+   * @param {string} type - 'total', 'row', or 'col'
+   * @param {Function} formatter - Number formatter function
+   */
   fractionOf(wrapped, type = 'total', formatter = usFmtPct) {
     return (...x) =>
       function (data, rowKey, colKey) {
@@ -446,6 +569,13 @@ const baseAggregatorTemplates = {
             }
 
             return this.inner.value() / acc;
+          },
+          /**
+           * Delegate currency tracking to inner aggregator.
+           * @returns {Array} Array of currency codes/symbols seen in this cell
+           */
+          getCurrencies() {
+            return this.inner.getCurrencies ? this.inner.getCurrencies() : [];
           },
           numInputs: wrapped(...Array.from(x || []))().numInputs,
         };

@@ -19,6 +19,7 @@ from .big_data import load_big_data
 from .birth_names import load_birth_names
 from .country_map import load_country_map_data
 from .css_templates import load_css_templates
+from .currency_test import load_currency_test
 from .deck import load_deck_dash
 from .energy import load_energy
 from .flights import load_flights
@@ -39,6 +40,7 @@ __all__ = [
     "load_birth_names",
     "load_country_map_data",
     "load_css_templates",
+    "load_currency_test",
     "load_deck_dash",
     "load_energy",
     "load_flights",

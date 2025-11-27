@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
@@ -36,6 +37,8 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+
+logger = logging.getLogger(__name__)
 
 
 def _get_datasource(
@@ -98,6 +101,73 @@ def _get_query(
     return result
 
 
+def _detect_currency(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    datasource: BaseDatasource,
+) -> str | None:
+    """
+    Detect currency from filtered data for AUTO mode currency formatting.
+
+    Executes a lightweight query to get distinct currency values using the same
+    filters as the main query. Returns the currency code if all filtered data
+    contains a single currency, or None if multiple currencies are present.
+
+    :param query_context: The query context
+    :param query_obj: The original query object with filters
+    :param datasource: The datasource being queried
+    :return: ISO 4217 currency code (e.g., "USD") or None
+    """
+    # Check if datasource has a currency code column configured
+    currency_column = getattr(datasource, "currency_code_column", None)
+    if not currency_column:
+        return None
+
+    try:
+        # Create a modified query object that only selects the currency column
+        # with the same filters applied
+        currency_query_obj = copy.copy(query_obj)
+        currency_query_obj.columns = [currency_column]
+        currency_query_obj.metrics = []
+        currency_query_obj.orderby = []
+        currency_query_obj.row_limit = 1000  # Reasonable limit for distinct values
+        currency_query_obj.row_offset = 0
+        currency_query_obj.is_timeseries = False
+        currency_query_obj.post_processing = []
+        currency_query_obj.series_columns = []
+        currency_query_obj.series_limit = 0
+        currency_query_obj.series_limit_metric = None
+
+        # Execute the query to get currency values
+        result = datasource.query(currency_query_obj.to_dict())
+
+        if result.status != QueryStatus.SUCCESS or result.df.empty:
+            return None
+
+        # Get unique non-null currency values
+        if currency_column not in result.df.columns:
+            return None
+
+        unique_currencies = (
+            result.df[currency_column].dropna().astype(str).str.upper().unique()
+        )
+
+        # Return single currency if only one exists, None otherwise
+        if len(unique_currencies) == 1:
+            return str(unique_currencies[0])
+
+        return None
+
+    except Exception:  # pylint: disable=broad-except
+        # Currency detection should never block the main query
+        logger.warning(
+            "Failed to detect currency for datasource %s",
+            getattr(datasource, "id", "unknown"),
+            exc_info=True,
+        )
+        return None
+
+
 def _get_full(
     query_context: QueryContext,
     query_obj: QueryObject,
@@ -135,6 +205,12 @@ def _get_full(
         for col in rejected_filter_columns
     ] + rejected_time_columns
 
+    # Detect currency for AUTO mode formatting
+    if status != QueryStatus.FAILED:
+        payload["detected_currency"] = _detect_currency(
+            query_context, query_obj, datasource
+        )
+
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
         return {
             "data": payload.get("data"),
@@ -142,6 +218,7 @@ def _get_full(
             "coltypes": payload.get("coltypes"),
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),
+            "detected_currency": payload.get("detected_currency"),
         }
     return payload
 

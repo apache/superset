@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Currency,
@@ -24,7 +24,7 @@ import {
   getCurrencySymbol,
   t,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
@@ -71,19 +71,53 @@ export const CurrencyControl = ({
   currencySelectAdditionalStyles,
   ...props
 }: CurrencyControlProps) => {
+  const theme = useTheme();
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
-  const currenciesOptions = useMemo(
-    () =>
-      ensureIsArray(currencies).map(currencyCode => ({
-        value: currencyCode,
-        label: `${getCurrencySymbol({
-          symbol: currencyCode,
-        })} (${currencyCode})`,
-      })),
-    [currencies],
+  const currenciesOptions = useMemo(() => {
+    const options = ensureIsArray(currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
+
+    // Prepend "Auto-detect from dataset" option and append "Custom..." option
+    return [
+      {
+        value: 'AUTO',
+        label: t('Auto-detect from dataset'),
+        className: 'currency-auto-detect-option',
+      },
+      ...options,
+      {
+        value: '',
+        label: t('Custom...'),
+      },
+    ];
+  }, [currencies]);
+
+  // Custom sort comparator to keep AUTO option first and Custom last
+  const currencySortComparator = useCallback(
+    (
+      a: { value?: string | number },
+      b: { value?: string | number },
+    ): number => {
+      // AUTO should always be first
+      if (a.value === 'AUTO') return -1;
+      if (b.value === 'AUTO') return 1;
+      // Custom (empty string) should always be last
+      if (a.value === '') return 1;
+      if (b.value === '') return -1;
+      // Default alphabetical sort for others
+      const labelA = String(a.value ?? '');
+      const labelB = String(b.value ?? '');
+      return labelA.localeCompare(labelB);
+    },
+    [],
   );
+
   return (
     <>
       <ControlHeader {...props} />
@@ -121,6 +155,19 @@ export const CurrencyControl = ({
           value={currency?.symbol}
           allowClear
           allowNewOptions
+          sortComparator={currencySortComparator}
+          popupRender={menu => (
+            <div
+              css={css`
+                .currency-auto-detect-option {
+                  border-bottom: 1px solid ${theme.colorBorderSecondary};
+                  margin-bottom: ${theme.sizeUnit}px;
+                }
+              `}
+            >
+              {menu}
+            </div>
+          )}
           {...currencySelectOverrideProps}
         />
       </CurrencyControlContainer>

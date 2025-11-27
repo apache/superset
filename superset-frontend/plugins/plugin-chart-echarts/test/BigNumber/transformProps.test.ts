@@ -370,3 +370,61 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(10);
   });
 });
+
+describe('BigNumberWithTrendline - AUTO Mode Currency', () => {
+  it('should detect single currency in AUTO mode', () => {
+    const props = generateProps(
+      [
+        { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+        { __timestamp: 1607558500000, value: 2000, currency_code: 'USD' },
+      ],
+      {
+        yAxisFormat: ',.2f',
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      },
+    );
+    props.datasource.currencyCodeColumn = 'currency_code';
+
+    const transformed = transformProps(props);
+    // The headerFormatter should include $ for USD
+    expect(transformed.headerFormatter(1000)).toContain('$');
+  });
+
+  it('should use neutral formatting for mixed currencies in AUTO mode', () => {
+    const props = generateProps(
+      [
+        { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+        { __timestamp: 1607558500000, value: 2000, currency_code: 'EUR' },
+      ],
+      {
+        yAxisFormat: ',.2f',
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      },
+    );
+    props.datasource.currencyCodeColumn = 'currency_code';
+
+    const transformed = transformProps(props);
+    // With mixed currencies, should not show currency symbol
+    const formatted = transformed.headerFormatter(1000);
+    expect(formatted).not.toContain('$');
+    expect(formatted).not.toContain('€');
+  });
+
+  it('should preserve static currency format', () => {
+    const props = generateProps(
+      [
+        { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
+        { __timestamp: 1607558500000, value: 2000, currency_code: 'EUR' },
+      ],
+      {
+        yAxisFormat: ',.2f',
+        currencyFormat: { symbol: 'GBP', symbolPosition: 'prefix' },
+      },
+    );
+    props.datasource.currencyCodeColumn = 'currency_code';
+
+    const transformed = transformProps(props);
+    // Static mode should always show £
+    expect(transformed.headerFormatter(1000)).toContain('£');
+  });
+});

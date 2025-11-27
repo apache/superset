@@ -19,10 +19,12 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
+  analyzeCurrencyInData,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  Currency,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
@@ -138,6 +140,7 @@ export default function transformProps(
     verboseMap = {},
     currencyFormats = {},
     columnFormats = {},
+    currencyCodeColumn,
   } = datasource;
   const { label_map: labelMap } =
     queriesData[0] as TimeseriesChartDataResponseResult;
@@ -279,20 +282,55 @@ export default function transformProps(
     xAxisType,
   });
   const series: SeriesOption[] = [];
+
+  // Resolve currency for AUTO mode (primary axis)
+  let resolvedCurrency: Currency | undefined | null = currencyFormat;
+  if (currencyFormat?.symbol === 'AUTO' && data1 && currencyCodeColumn) {
+    const detectedCurrency = analyzeCurrencyInData(data1, currencyCodeColumn);
+    if (detectedCurrency) {
+      resolvedCurrency = {
+        symbol: detectedCurrency,
+        symbolPosition: currencyFormat.symbolPosition,
+      };
+    } else {
+      // Mixed currencies: explicitly use null to prevent fallback to metric-level settings
+      resolvedCurrency = null;
+    }
+  }
+
+  // Resolve currency for AUTO mode (secondary axis)
+  let resolvedCurrencySecondary: Currency | undefined | null =
+    currencyFormatSecondary;
+  if (
+    currencyFormatSecondary?.symbol === 'AUTO' &&
+    data2 &&
+    currencyCodeColumn
+  ) {
+    const detectedCurrency = analyzeCurrencyInData(data2, currencyCodeColumn);
+    if (detectedCurrency) {
+      resolvedCurrencySecondary = {
+        symbol: detectedCurrency,
+        symbolPosition: currencyFormatSecondary.symbolPosition,
+      };
+    } else {
+      resolvedCurrencySecondary = null;
+    }
+  }
+
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormat?.symbol
+    : resolvedCurrency?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormat,
-          currency: currencyFormat,
+          currency: resolvedCurrency,
         })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormatSecondary?.symbol
+    : resolvedCurrencySecondary?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormatSecondary,
-          currency: currencyFormatSecondary,
+          currency: resolvedCurrencySecondary,
         })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
@@ -300,14 +338,18 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    currencyFormat,
+    resolvedCurrency,
+    data1,
+    currencyCodeColumn,
   );
   const customFormattersSecondary = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormatSecondary,
-    currencyFormatSecondary,
+    resolvedCurrencySecondary,
+    data2,
+    currencyCodeColumn,
   );
 
   const primarySeries = new Set<string>();

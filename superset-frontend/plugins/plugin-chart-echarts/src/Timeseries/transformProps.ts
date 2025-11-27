@@ -21,8 +21,10 @@ import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
+  analyzeCurrencyInData,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  Currency,
   CurrencyFormatter,
   ensureIsArray,
   tooltipHtml,
@@ -134,6 +136,7 @@ export default function transformProps(
     verboseMap = {},
     columnFormats = {},
     currencyFormats = {},
+    currencyCodeColumn,
   } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map = {} } =
@@ -275,15 +278,36 @@ export default function transformProps(
   const percentFormatter = forcePercentFormatter
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
-  const defaultFormatter = currencyFormat?.symbol
-    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
+
+  // Resolve currency for AUTO mode
+  let resolvedCurrency: Currency | undefined | null = currencyFormat;
+  if (currencyFormat?.symbol === 'AUTO' && data && currencyCodeColumn) {
+    const detectedCurrency = analyzeCurrencyInData(data, currencyCodeColumn);
+    if (detectedCurrency) {
+      resolvedCurrency = {
+        symbol: detectedCurrency,
+        symbolPosition: currencyFormat.symbolPosition,
+      };
+    } else {
+      // Mixed currencies: explicitly use null to prevent fallback to metric-level settings
+      resolvedCurrency = null;
+    }
+  }
+
+  const defaultFormatter = resolvedCurrency?.symbol
+    ? new CurrencyFormatter({
+        d3Format: yAxisFormat,
+        currency: resolvedCurrency,
+      })
     : getNumberFormatter(yAxisFormat);
   const customFormatters = buildCustomFormatters(
     metrics,
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    currencyFormat,
+    resolvedCurrency,
+    data,
+    currencyCodeColumn,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);

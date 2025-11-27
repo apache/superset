@@ -81,7 +81,11 @@ export default function transformProps(
     hooks,
     inContextMenu,
     theme,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     colorPicker,
@@ -111,6 +115,7 @@ export default function transformProps(
     coltypes = [],
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
+    detected_currency: detectedCurrency,
   } = queriesData[0];
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
@@ -240,6 +245,10 @@ export default function transformProps(
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const headerFormatter =

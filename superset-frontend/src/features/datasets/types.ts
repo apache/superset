@@ -30,6 +30,7 @@ export type ColumnObject = {
   groupby: boolean;
   is_active: boolean;
   is_dttm: boolean;
+  is_currency_code?: boolean;
   python_date_format?: string;
   uuid?: string;
   extra?: string;
@@ -65,6 +66,7 @@ export type DatasetObject = {
   catalog?: string;
   description: string | null;
   main_dttm_col: string;
+  currency_code_column?: string;
   offset?: number;
   default_endpoint?: string;
   cache_timeout?: number;

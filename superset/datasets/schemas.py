@@ -83,6 +83,7 @@ class DatasetColumnsPutSchema(Schema):
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
     is_dttm = fields.Boolean(allow_none=True, dump_default=False)
+    is_currency_code = fields.Boolean(allow_none=True, dump_default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
@@ -163,6 +164,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)

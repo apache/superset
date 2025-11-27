@@ -167,7 +167,7 @@ const currencyFormat: ControlFormItemSpec<'CurrencyControl'> = {
   controlType: 'CurrencyControl',
   label: t('Currency format'),
   description: t(
-    'Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.',
+    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect from dataset' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
   ),
   debounceDelay: 200,
 };

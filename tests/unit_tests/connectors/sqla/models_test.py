@@ -842,3 +842,42 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     # Should have each part quoted separately:
     # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
     assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_table_column_is_currency_code_property() -> None:
+    """
+    Test is_currency_code property on TableColumn.
+    """
+    column = TableColumn(
+        column_name="currency",
+        type="VARCHAR(3)",
+        is_currency_code=True,
+    )
+    assert column.is_currency_code is True
+
+
+def test_sqla_table_currency_code_column_property() -> None:
+    """
+    Test currency_code_column property on SqlaTable.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency",
+    )
+    assert table.currency_code_column == "currency"
+
+
+def test_table_column_data_includes_currency_code_flag() -> None:
+    """
+    Test that .data property includes is_currency_code flag.
+    """
+    column = TableColumn(
+        column_name="currency",
+        type="VARCHAR(3)",
+        is_currency_code=True,
+    )
+    data = column.data
+    assert "is_currency_code" in data
+    assert data["is_currency_code"] is True

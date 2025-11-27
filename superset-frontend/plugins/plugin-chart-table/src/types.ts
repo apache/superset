@@ -72,6 +72,7 @@ export interface DataColumnMeta {
   isNumeric?: boolean;
   config?: TableColumnConfig;
   isChildColumn?: boolean;
+  currencyCodeColumn?: string;
 }
 
 export interface TableChartData {

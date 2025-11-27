@@ -723,3 +723,133 @@ describe('legend sorting', () => {
     ]);
   });
 });
+
+describe('EchartsTimeseries AUTO Mode Currency', () => {
+  it('should detect single currency and resolve AUTO mode', () => {
+    const chartProps = new ChartProps<SqlaFormData>({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      },
+      datasource: {
+        currencyCodeColumn: 'currency_code',
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              'San Francisco': 1000,
+              __timestamp: 599616000000,
+              currency_code: 'USD',
+            },
+            {
+              'San Francisco': 2000,
+              __timestamp: 599916000000,
+              currency_code: 'USD',
+            },
+          ],
+        },
+      ],
+    });
+
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    // Y-axis formatter should contain $ for USD
+    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
+      ?.formatter;
+    if (yAxisFormatter) {
+      expect(yAxisFormatter(1000)).toContain('$');
+    }
+  });
+
+  it('should use neutral formatting for mixed currencies in AUTO mode', () => {
+    const chartProps = new ChartProps<SqlaFormData>({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      },
+      datasource: {
+        currencyCodeColumn: 'currency_code',
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              'San Francisco': 1000,
+              __timestamp: 599616000000,
+              currency_code: 'USD',
+            },
+            {
+              'San Francisco': 2000,
+              __timestamp: 599916000000,
+              currency_code: 'EUR',
+            },
+          ],
+        },
+      ],
+    });
+
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    // With mixed currencies, Y-axis should use neutral formatting
+    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
+      ?.formatter;
+    if (yAxisFormatter) {
+      const formatted = yAxisFormatter(1000);
+      expect(formatted).not.toContain('$');
+      expect(formatted).not.toContain('€');
+    }
+  });
+
+  it('should preserve static currency format regardless of data', () => {
+    const chartProps = new ChartProps<SqlaFormData>({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        currencyFormat: { symbol: 'GBP', symbolPosition: 'prefix' },
+      },
+      datasource: {
+        currencyCodeColumn: 'currency_code',
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              'San Francisco': 1000,
+              __timestamp: 599616000000,
+              currency_code: 'USD',
+            },
+            {
+              'San Francisco': 2000,
+              __timestamp: 599916000000,
+              currency_code: 'EUR',
+            },
+          ],
+        },
+      ],
+    });
+
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    // Static mode should always show £
+    const yAxisFormatter = (transformed.echartOptions.yAxis as any)?.axisLabel
+      ?.formatter;
+    if (yAxisFormatter) {
+      expect(yAxisFormatter(1000)).toContain('£');
+    }
+  });
+});

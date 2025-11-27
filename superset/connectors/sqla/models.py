@@ -773,6 +773,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     description = Column(utils.MediumText())
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     is_dttm = Column(Boolean, default=False)
+    is_currency_code = Column(Boolean, default=False)
     expression = Column(utils.MediumText())
     python_date_format = Column(String(255))
     extra = Column(Text)
@@ -787,6 +788,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         "column_name",
         "verbose_name",
         "is_dttm",
+        "is_currency_code",
         "is_active",
         "type",
         "advanced_data_type",
@@ -977,6 +979,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "id",
             "uuid",
             "is_certified",
+            "is_currency_code",
             "is_dttm",
             "python_date_format",
             "type",
@@ -1135,6 +1138,7 @@ class SqlaTable(
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
+    currency_code_column = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
@@ -1362,6 +1366,7 @@ class SqlaTable(
             data_["granularity_sqla"] = self.granularity_sqla
             data_["time_grain_sqla"] = self.time_grain_sqla
             data_["main_dttm_col"] = self.main_dttm_col
+            data_["currency_code_column"] = self.currency_code_column
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
