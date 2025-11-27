@@ -323,7 +323,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       };
 
       orderedColumns = reorderByColumnOrder(columns) as typeof columns;
-      orderedMetrics = metrics ? reorderByColumnOrder(metrics) as typeof metrics : metrics;
+      orderedMetrics = metrics
+        ? (reorderByColumnOrder(metrics) as typeof metrics)
+        : metrics;
     }
 
     let queryObject = {
@@ -474,7 +476,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
                 ? `${queryObject.extras.having} AND ${havingClause}`
                 : havingClause,
             }),
-        } as QueryObjectExtras;
+          } as QueryObjectExtras;
         }
       }
     }
