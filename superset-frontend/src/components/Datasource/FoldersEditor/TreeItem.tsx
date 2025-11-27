@@ -120,7 +120,6 @@ function TreeItemComponent({
     disabled: isOverlay,
   });
 
-  // Separate droppable for empty state
   const { setNodeRef: setDroppableRef, isOver: isOverEmpty } = useDroppable({
     id: `${id}-empty`,
     data: {
@@ -157,7 +156,6 @@ function TreeItemComponent({
     }
   };
 
-  // Get the display name for metrics/columns
   const itemDisplayName = useMemo(() => {
     if (type === FoldersEditorItemType.Metric && metric) {
       return metric.verbose_name || metric.metric_name || name;
@@ -168,7 +166,6 @@ function TreeItemComponent({
     return name;
   }, [type, metric, column, name]);
 
-  // Get the type for ColumnTypeLabel
   const columnType = useMemo(() => {
     if (type === FoldersEditorItemType.Metric) {
       return 'expression';
@@ -183,9 +180,7 @@ function TreeItemComponent({
 
   const hasEmptyName = !name || name.trim() === '';
 
-  // Render content for metrics/columns
   const renderItemContent = () => {
-    // For folders, render editable name
     if (isFolder) {
       const isDefaultColumnsFolder =
         id === DEFAULT_COLUMNS_FOLDER_UUID && isDefaultFolder;
@@ -231,8 +226,6 @@ function TreeItemComponent({
       return folderNameContent;
     }
 
-    // For metrics/columns, render type icon + name in styled container with drag handle inside
-    // The whole container is draggable, handle is just visual indicator
     return (
       <OptionControlContainer
         {...attributes}
@@ -261,7 +254,6 @@ function TreeItemComponent({
 
   const containerContent = (
     <>
-      {/* Drag handle on the LEFT side (for folders only) */}
       {isFolder && (
         <DragHandle
           {...attributes}
@@ -274,8 +266,6 @@ function TreeItemComponent({
         </DragHandle>
       )}
 
-      {/* Checkbox for selection (metrics/columns only) */}
-      {/* In overlay mode, show checkbox for non-folder items with actual selection state */}
       {(onSelect || (isOverlay && !isFolder)) && (
         <Checkbox
           checked={isSelected}
@@ -292,14 +282,12 @@ function TreeItemComponent({
         />
       )}
 
-      {/* Icon for DEFAULT folders only (Metrics/Columns) */}
       {isFolder && isDefaultFolder && (
         <DefaultFolderIconContainer>
           <Icons.FolderViewOutlined />
         </DefaultFolderIconContainer>
       )}
 
-      {/* Name (editable for non-default folders) or MetricOption/ColumnOption */}
       {(isEditing || hasEmptyName) && !isDefaultFolder ? (
         <Input
           value={editValue}
@@ -323,7 +311,6 @@ function TreeItemComponent({
         renderItemContent()
       )}
 
-      {/* Collapse/expand button on the RIGHT side for folders */}
       {isFolder && onToggleCollapse && (
         <CollapseButton
           onClick={e => {
@@ -353,7 +340,6 @@ function TreeItemComponent({
         </TreeItemContainer>
       )}
 
-      {/* Empty state drop zone for folders with no children */}
       {isFolder && showEmptyState && !isCollapsed && (
         <EmptyFolderDropZone
           ref={setDroppableRef}

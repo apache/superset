@@ -67,7 +67,6 @@ export default function FoldersEditor({
 }: FoldersEditorProps) {
   const { addWarningToast } = useToasts();
 
-  // Initialize state
   const [items, setItems] = useState<TreeItemType[]>(() => {
     const ensured = ensureDefaultFolders(initialFolders, metrics, columns);
     return ensured;
@@ -81,13 +80,10 @@ export default function FoldersEditor({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Sensors
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
 
-  // Memoize the full flattened tree (used in multiple places)
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
-  // Compute collapsed folder IDs for display filtering
   const collapsedFolderIds = useMemo(
     () =>
       fullFlattenedItems.reduce<UniqueIdentifier[]>(
@@ -106,7 +102,6 @@ export default function FoldersEditor({
     [fullFlattenedItems, collapsedIds],
   );
 
-  // Helper function to compute flattenedItems given activeId
   const computeFlattenedItems = useCallback(
     (activeId: UniqueIdentifier | null) =>
       removeChildrenOf(
@@ -118,7 +113,6 @@ export default function FoldersEditor({
     [fullFlattenedItems, collapsedFolderIds],
   );
 
-  // Filter for search
   const visibleItemIds = useMemo(() => {
     if (!searchTerm) {
       const allIds = new Set<string>();
@@ -130,7 +124,6 @@ export default function FoldersEditor({
     return filterItemsBySearch(searchTerm, allItems);
   }, [searchTerm, metrics, columns]);
 
-  // Create lookup maps for metrics and columns by uuid
   const metricsMap = useMemo(
     () => new Map(metrics.map(m => [m.uuid, m])),
     [metrics],
@@ -140,7 +133,6 @@ export default function FoldersEditor({
     [columns],
   );
 
-  // Drag handlers hook
   const {
     dragOverlayWidth,
     projectedParentId,
@@ -162,7 +154,6 @@ export default function FoldersEditor({
     addWarningToast,
   });
 
-  // Debounced search
   const debouncedSearch = useCallback(
     debounce((term: string) => {
       setSearchTerm(term);
@@ -174,7 +165,6 @@ export default function FoldersEditor({
     debouncedSearch(e.target.value);
   };
 
-  // Toolbar actions
   const handleAddFolder = () => {
     const newFolder = createFolder('');
     const updatedItems = [newFolder, ...items];
@@ -183,7 +173,6 @@ export default function FoldersEditor({
     onChange(serializeForAPI(updatedItems));
   };
 
-  // Compute whether all visible items are selected
   const allVisibleSelected = useMemo(() => {
     const selectableItems = Array.from(visibleItemIds).filter(id => {
       const item = fullFlattenedItems.find(i => i.uuid === id);
@@ -196,7 +185,6 @@ export default function FoldersEditor({
   }, [fullFlattenedItems, visibleItemIds, selectedItemIds]);
 
   const handleSelectAll = () => {
-    // Only select metrics and columns (not folders)
     const itemsToSelect = new Set(
       Array.from(visibleItemIds).filter(id => {
         const item = fullFlattenedItems.find(i => i.uuid === id);
@@ -228,7 +216,6 @@ export default function FoldersEditor({
     setShowResetConfirm(false);
   };
 
-  // Tree item handlers - memoized to prevent unnecessary re-renders
   const handleToggleCollapse = useCallback((folderId: string) => {
     setCollapsedIds(prev => {
       const newSet = new Set(prev);
@@ -278,11 +265,8 @@ export default function FoldersEditor({
     [onChange],
   );
 
-  // Determine which items are the last child of their parent folder
   const lastChildIds = useMemo(() => {
     const lastChildren = new Set<string>();
-
-    // Group items by their parentId
     const childrenByParent = new Map<string | null, string[]>();
 
     flattenedItems.forEach(item => {
@@ -293,7 +277,6 @@ export default function FoldersEditor({
       childrenByParent.get(parentKey)!.push(item.uuid);
     });
 
-    // For each parent, mark the last child
     childrenByParent.forEach(children => {
       if (children.length > 0) {
         lastChildren.add(children[children.length - 1]);
@@ -303,13 +286,11 @@ export default function FoldersEditor({
     return lastChildren;
   }, [flattenedItems]);
 
-  // Memoize sortable item IDs for SortableContext
   const sortableItemIds = useMemo(
     () => flattenedItems.map(({ uuid }) => uuid),
     [flattenedItems],
   );
 
-  // Pre-calculate child counts for all folders to avoid calling getChildCount in render loop
   const folderChildCounts = useMemo(() => {
     const counts = new Map<string, number>();
     flattenedItems.forEach(item => {
@@ -334,7 +315,6 @@ export default function FoldersEditor({
         onResetToDefault={handleResetToDefault}
         allVisibleSelected={allVisibleSelected}
       />
-      {/* Content */}
       <FoldersContent>
         <DndContext
           sensors={sensors}

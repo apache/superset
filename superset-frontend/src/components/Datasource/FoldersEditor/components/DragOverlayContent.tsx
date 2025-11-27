@@ -46,10 +46,7 @@ function DragOverlayContentInner({
 
   return (
     <DragOverlayStack width={dragOverlayWidth ?? undefined}>
-      {/* Render back-to-front: last items first (behind), active item last (front) */}
-      {/* This ensures proper DOM order for z-index stacking */}
       {[...dragOverlayItems].reverse().map((item, index) => {
-        // index 0 = last item (back), index n-1 = first item (front)
         const stackIndex = dragOverlayItems.length - 1 - index;
         return (
           <DragOverlayItem
