@@ -357,6 +357,10 @@ class DashboardPostSchema(BaseDashboardSchema):
         allow_none=True,
         validate=[Length(1, 255)],
     )
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+    )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     roles = fields.List(fields.Integer(metadata={"description": roles_description}))
     position_json = fields.String(
@@ -513,6 +517,7 @@ class ImportV1DashboardSchema(Schema):
     description = fields.String(allow_none=True)
     css = fields.String(allow_none=True)
     slug = fields.String(allow_none=True)
+    description = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()
     metadata = fields.Dict()
