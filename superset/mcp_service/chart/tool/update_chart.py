@@ -58,6 +58,35 @@ async def update_chart(
     - Chart must already be saved (from generate_chart with save_chart=True)
     - LLM clients MUST display updated chart URL to users
     - Embed preview_url as image: ![Updated Chart](preview_url)
+    - Use numeric ID or UUID string to identify the chart (NOT chart name)
+    - MUST include chart_type in config (either 'xy' or 'table')
+
+    Example usage:
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "kind": "line"
+        }
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        "config": {
+            "chart_type": "table",
+            "columns": [
+                {"name": "product_name"},
+                {"name": "revenue", "aggregate": "SUM"}
+            ]
+        }
+    }
+    ```
 
     Use when:
     - Modifying existing saved chart

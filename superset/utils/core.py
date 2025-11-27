@@ -1927,10 +1927,24 @@ def _process_datetime_column(
 def normalize_dttm_col(
     df: pd.DataFrame,
     dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
+    format_map: dict[str, str] | None = None,
 ) -> None:
+    """
+    Normalize datetime columns in a DataFrame.
+
+    :param df: DataFrame to process
+    :param dttm_cols: Tuple of DateColumn objects to process
+    :param format_map: Optional mapping of column names to datetime formats.
+                       When provided, these pre-detected formats are used instead
+                       of runtime detection, improving performance and consistency.
+    """
     for _col in dttm_cols:
         if _col.col_label not in df.columns:
             continue
+
+        # Use format from format_map if available and not already set
+        if format_map and _col.col_label in format_map and not _col.timestamp_format:
+            _col.timestamp_format = format_map[_col.col_label]
 
         _process_datetime_column(df, _col)
 

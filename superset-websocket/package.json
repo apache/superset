@@ -17,7 +17,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "cookie": "^1.0.2",
+    "cookie": "^1.1.0",
     "hot-shots": "^11.2.0",
     "ioredis": "^5.8.1",
     "jsonwebtoken": "^9.0.2",
@@ -48,7 +48,7 @@
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.2"
+    "typescript-eslint": "^8.48.0"
   },
   "engines": {
     "node": "^20.19.4",
