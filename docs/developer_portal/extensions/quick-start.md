@@ -226,7 +226,7 @@ The `@apache-superset/core` package must be listed in both `peerDependencies` (t
 
 **`frontend/webpack.config.js`**
 
-The webpack configuration requires specific settings for Module Federation:
+The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and `externals` to map `@apache-superset/core` to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting:
 
 ```javascript
 const path = require("path");
