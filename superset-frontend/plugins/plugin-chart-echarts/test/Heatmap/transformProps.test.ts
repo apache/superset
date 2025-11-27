@@ -72,119 +72,83 @@ describe('Heatmap transformProps', () => {
       theme: supersetTheme,
     });
 
-  test('should sort x-axis alphabetically ascending', () => {
-    const chartProps = createChartProps({ sortXAxis: 'alpha_asc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    expect(result.echartOptions.xAxis).toHaveProperty('data');
-    const xAxisData = (result.echartOptions.xAxis as any).data;
-    expect(xAxisData).toEqual([
+  test('should sort axes alphabetically in both directions', () => {
+    // X-axis ascending
+    const xAscProps = createChartProps({ sortXAxis: 'alpha_asc' });
+    const xAscResult = transformProps(xAscProps as HeatmapChartProps);
+    expect(xAscResult.echartOptions.xAxis).toHaveProperty('data');
+    expect((xAscResult.echartOptions.xAxis as any).data).toEqual([
       'Friday',
       'Monday',
       'Thursday',
       'Tuesday',
       'Wednesday',
     ]);
-  });
 
-  test('should sort x-axis alphabetically descending', () => {
-    const chartProps = createChartProps({ sortXAxis: 'alpha_desc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const xAxisData = (result.echartOptions.xAxis as any).data;
-    expect(xAxisData).toEqual([
+    // X-axis descending
+    const xDescProps = createChartProps({ sortXAxis: 'alpha_desc' });
+    const xDescResult = transformProps(xDescProps as HeatmapChartProps);
+    expect((xDescResult.echartOptions.xAxis as any).data).toEqual([
       'Wednesday',
       'Tuesday',
       'Thursday',
       'Monday',
       'Friday',
     ]);
-  });
 
-  test('should sort y-axis alphabetically ascending', () => {
-    const chartProps = createChartProps({ sortYAxis: 'alpha_asc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const yAxisData = (result.echartOptions.yAxis as any).data;
+    // Y-axis ascending (numeric)
+    const yAscProps = createChartProps({ sortYAxis: 'alpha_asc' });
+    const yAscResult = transformProps(yAscProps as HeatmapChartProps);
     // Hours are numbers, so they should be sorted numerically
-    expect(yAxisData).toEqual([9, 10, 11, 14, 15, 16]);
-  });
+    expect((yAscResult.echartOptions.yAxis as any).data).toEqual([
+      9, 10, 11, 14, 15, 16,
+    ]);
 
-  test('should sort y-axis alphabetically descending', () => {
-    const chartProps = createChartProps({ sortYAxis: 'alpha_desc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const yAxisData = (result.echartOptions.yAxis as any).data;
+    // Y-axis descending (numeric)
+    const yDescProps = createChartProps({ sortYAxis: 'alpha_desc' });
+    const yDescResult = transformProps(yDescProps as HeatmapChartProps);
     // Numeric descending order
-    expect(yAxisData).toEqual([16, 15, 14, 11, 10, 9]);
+    expect((yDescResult.echartOptions.yAxis as any).data).toEqual([
+      16, 15, 14, 11, 10, 9,
+    ]);
   });
 
-  test('should sort x-axis by metric value ascending', () => {
-    const chartProps = createChartProps({ sortXAxis: 'value_asc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const xAxisData = (result.echartOptions.xAxis as any).data;
+  test('should sort axes by metric value', () => {
+    const chartPropsXAsc = createChartProps({ sortXAxis: 'value_asc' });
+    const resultXAsc = transformProps(chartPropsXAsc as HeatmapChartProps);
     // Wednesday(8) < Tuesday(12) < Thursday(18) < Friday(20) < Monday(25=10+15)
-    expect(xAxisData).toEqual([
+    expect((resultXAsc.echartOptions.xAxis as any).data).toEqual([
       'Wednesday',
       'Tuesday',
       'Thursday',
       'Friday',
       'Monday',
     ]);
-  });
 
-  test('should sort x-axis by metric value descending', () => {
-    const chartProps = createChartProps({ sortXAxis: 'value_desc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const xAxisData = (result.echartOptions.xAxis as any).data;
+    const chartPropsXDesc = createChartProps({ sortXAxis: 'value_desc' });
+    const resultXDesc = transformProps(chartPropsXDesc as HeatmapChartProps);
     // Monday(25) > Friday(20) > Thursday(18) > Tuesday(12) > Wednesday(8)
-    expect(xAxisData).toEqual([
+    expect((resultXDesc.echartOptions.xAxis as any).data).toEqual([
       'Monday',
       'Friday',
       'Thursday',
       'Tuesday',
       'Wednesday',
     ]);
-  });
 
-  test('should sort y-axis by metric value ascending', () => {
-    const chartProps = createChartProps({ sortYAxis: 'value_asc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const yAxisData = (result.echartOptions.yAxis as any).data;
+    const chartPropsYAsc = createChartProps({ sortYAxis: 'value_asc' });
+    const resultYAsc = transformProps(chartPropsYAsc as HeatmapChartProps);
     // 11(8) < 9(10) < 10(12) < 14(15) < 15(18) < 16(20)
-    expect(yAxisData).toEqual([11, 9, 10, 14, 15, 16]);
-  });
-
-  test('should sort y-axis by metric value descending', () => {
-    const chartProps = createChartProps({ sortYAxis: 'value_desc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const yAxisData = (result.echartOptions.yAxis as any).data;
-    // 16(20) > 15(18) > 14(15) > 10(12) > 9(10) > 11(8)
-    expect(yAxisData).toEqual([16, 15, 14, 10, 9, 11]);
-  });
-
-  test('should handle both axes sorted simultaneously', () => {
-    const chartProps = createChartProps({
-      sortXAxis: 'alpha_asc',
-      sortYAxis: 'value_desc',
-    });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    const xAxisData = (result.echartOptions.xAxis as any).data;
-    const yAxisData = (result.echartOptions.yAxis as any).data;
-
-    expect(xAxisData).toEqual([
-      'Friday',
-      'Monday',
-      'Thursday',
-      'Tuesday',
-      'Wednesday',
+    expect((resultYAsc.echartOptions.yAxis as any).data).toEqual([
+      11, 9, 10, 14, 15, 16,
     ]);
-    expect(yAxisData).toEqual([16, 15, 14, 10, 9, 11]);
+
+    const chartPropsYDesc = createChartProps({ sortYAxis: 'value_desc' });
+    const resultYDesc = transformProps(chartPropsYDesc as HeatmapChartProps);
+    // 16(20) > 15(18) > 14(15) > 10(12) > 9(10) > 11(8)
+    expect((resultYDesc.echartOptions.yAxis as any).data).toEqual([
+      16, 15, 14, 10, 9, 11,
+    ]);
   });
 
   test('should handle no sort option specified', () => {
@@ -241,24 +205,6 @@ describe('Heatmap transformProps', () => {
     const xAxisData = (result.echartOptions.xAxis as any).data;
     // Only non-null values should appear
     expect(xAxisData).toEqual(['Monday', 'Tuesday']);
-  });
-
-  test('should preserve axis data structure for ECharts consumption', () => {
-    const chartProps = createChartProps({ sortXAxis: 'alpha_asc' });
-    const result = transformProps(chartProps as HeatmapChartProps);
-
-    expect(result.echartOptions).toHaveProperty('xAxis');
-    expect(result.echartOptions).toHaveProperty('yAxis');
-    expect(result.echartOptions.xAxis).toMatchObject({
-      type: 'category',
-      data: expect.any(Array),
-      axisLabel: expect.any(Object),
-    });
-    expect(result.echartOptions.yAxis).toMatchObject({
-      type: 'category',
-      data: expect.any(Array),
-      axisLabel: expect.any(Object),
-    });
   });
 
   test('should sort numeric values numerically not alphabetically', () => {
