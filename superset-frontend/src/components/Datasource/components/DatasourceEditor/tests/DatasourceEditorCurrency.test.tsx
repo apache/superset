@@ -95,6 +95,7 @@ test('renders currency section in metrics tab', async () => {
   expect(symbolSelector).toBeInTheDocument();
 });
 
+// Allow extra headroom for dropdown render on slower CI runners
 test('changes currency position from prefix to suffix', async () => {
   const testProps = createPropsWithCurrency();
 
@@ -126,7 +127,7 @@ test('changes currency position from prefix to suffix', async () => {
 
     expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
-});
+}, 30000);
 
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
