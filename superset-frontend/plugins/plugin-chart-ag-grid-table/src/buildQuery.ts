@@ -322,10 +322,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       };
 
       orderedColumns = reorderByColumnOrder(columns) as typeof columns;
-      // Preserve undefined metrics in RAW RECORDS mode
-      if (metrics) {
-        orderedMetrics = reorderByColumnOrder(metrics) as typeof metrics;
-      }
+      orderedMetrics = reorderByColumnOrder(metrics || []) as typeof metrics;
     }
 
     let queryObject = {
