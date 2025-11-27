@@ -404,28 +404,81 @@ def dev(ctx: click.Context) -> None:
 
 
 @app.command()
-@click.option("--id", "id_opt", default=None, help="Extension ID (alphanumeric and underscores only)")
+@click.option(
+    "--id",
+    "id_opt",
+    default=None,
+    help="Extension ID (alphanumeric and underscores only)",
+)
 @click.option("--name", "name_opt", default=None, help="Extension display name")
-@click.option("--version", "version_opt", default=None, help="Initial version (default: 0.1.0)")
-@click.option("--license", "license_opt", default=None, help="License (default: Apache-2.0)")
-@click.option("--frontend/--no-frontend", "frontend_opt", default=None, help="Include frontend")
-@click.option("--backend/--no-backend", "backend_opt", default=None, help="Include backend")
-def init(id_opt: str | None, name_opt: str | None, version_opt: str | None, license_opt: str | None, frontend_opt: bool | None, backend_opt: bool | None) -> None:
+@click.option(
+    "--version", "version_opt", default=None, help="Initial version (default: 0.1.0)"
+)
+@click.option(
+    "--license", "license_opt", default=None, help="License (default: Apache-2.0)"
+)
+@click.option(
+    "--frontend/--no-frontend", "frontend_opt", default=None, help="Include frontend"
+)
+@click.option(
+    "--backend/--no-backend", "backend_opt", default=None, help="Include backend"
+)
+def init(
+    id_opt: str | None,
+    name_opt: str | None,
+    version_opt: str | None,
+    license_opt: str | None,
+    frontend_opt: bool | None,
+    backend_opt: bool | None,
+) -> None:
     # Check if running in non-interactive mode (required options provided)
-    non_interactive = id_opt is not None and name_opt is not None and frontend_opt is not None and backend_opt is not None
+    non_interactive = (
+        id_opt is not None
+        and name_opt is not None
+        and frontend_opt is not None
+        and backend_opt is not None
+    )
 
-    id_ = id_opt or click.prompt("Extension ID (unique identifier, alphanumeric only)", type=str)
+    id_ = id_opt or click.prompt(
+        "Extension ID (unique identifier, alphanumeric only)", type=str
+    )
     if not re.match(r"^[a-zA-Z0-9_]+$", id_):
         click.secho(
             "❌ ID must be alphanumeric (letters, digits, underscore).", fg="red"
         )
         sys.exit(1)
 
-    name = name_opt or click.prompt("Extension name (human-readable display name)", type=str)
-    version = version_opt if version_opt is not None else ("0.1.0" if non_interactive else click.prompt("Initial version", default="0.1.0"))
-    license = license_opt if license_opt is not None else ("Apache-2.0" if non_interactive else click.prompt("License", default="Apache-2.0"))
-    include_frontend = frontend_opt if frontend_opt is not None else click.confirm("Include frontend?", default=True)
-    include_backend = backend_opt if backend_opt is not None else click.confirm("Include backend?", default=True)
+    name = name_opt or click.prompt(
+        "Extension name (human-readable display name)", type=str
+    )
+    version = (
+        version_opt
+        if version_opt is not None
+        else (
+            "0.1.0"
+            if non_interactive
+            else click.prompt("Initial version", default="0.1.0")
+        )
+    )
+    license_ = (
+        license_opt
+        if license_opt is not None
+        else (
+            "Apache-2.0"
+            if non_interactive
+            else click.prompt("License", default="Apache-2.0")
+        )
+    )
+    include_frontend = (
+        frontend_opt
+        if frontend_opt is not None
+        else click.confirm("Include frontend?", default=True)
+    )
+    include_backend = (
+        backend_opt
+        if backend_opt is not None
+        else click.confirm("Include backend?", default=True)
+    )
 
     target_dir = Path.cwd() / id_
     if target_dir.exists():
@@ -440,7 +493,7 @@ def init(id_opt: str | None, name_opt: str | None, version_opt: str | None, lice
         "name": name,
         "include_frontend": include_frontend,
         "include_backend": include_backend,
-        "license": license,
+        "license": license_,
         "version": version,
     }
 
