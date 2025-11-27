@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { CSSProperties, useState } from 'react';
+import { CSSProperties, useState, memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -54,18 +54,18 @@ interface TreeItemProps {
   isFolder?: boolean;
   isSelected?: boolean;
   isEditing?: boolean;
-  onToggleCollapse?: () => void;
-  onSelect?: (selected: boolean) => void;
-  onStartEdit?: () => void;
-  onFinishEdit?: (newName: string) => void;
+  // Handlers now receive the item id, allowing parent to pass stable references
+  onToggleCollapse?: (id: string) => void;
+  onSelect?: (id: string, selected: boolean) => void;
+  onStartEdit?: (id: string) => void;
+  onFinishEdit?: (id: string, newName: string) => void;
   isDefaultFolder?: boolean;
   isLastChild?: boolean;
   showEmptyState?: boolean;
   isDropTarget?: boolean;
+  isForbiddenDrop?: boolean;
   metric?: Metric;
   column?: ColumnMeta;
-  draggedItemTypes?: Set<FoldersEditorItemType>;
-  isDraggingDefaultFolder?: boolean;
 }
 
 const TreeItemContainer = styled.div<{
@@ -219,7 +219,7 @@ const EmptyFolderDropZone = styled.div<{
   `}
 `;
 
-export function TreeItem({
+function TreeItemComponent({
   id,
   type,
   name,
@@ -236,47 +236,11 @@ export function TreeItem({
   isLastChild = false,
   showEmptyState = false,
   isDropTarget = false,
+  isForbiddenDrop = false,
   metric,
   column,
-  draggedItemTypes,
-  isDraggingDefaultFolder = false,
 }: TreeItemProps) {
   const [editValue, setEditValue] = useState(name);
-
-  // Calculate if this folder can accept the currently dragged items
-  const isForbiddenDrop = (() => {
-    if (!isFolder || !draggedItemTypes || draggedItemTypes.size === 0) {
-      return false;
-    }
-
-    // If dragging a default folder, it cannot be nested into any other folder
-    if (isDraggingDefaultFolder && !isDefaultFolder) {
-      return true;
-    }
-
-    const isDefaultMetricsFolder =
-      id === DEFAULT_METRICS_FOLDER_UUID && isDefaultFolder;
-    const isDefaultColumnsFolder =
-      id === DEFAULT_COLUMNS_FOLDER_UUID && isDefaultFolder;
-
-    // Default folders cannot accept any folders
-    if (
-      (isDefaultMetricsFolder || isDefaultColumnsFolder) &&
-      draggedItemTypes.has(FoldersEditorItemType.Folder)
-    ) {
-      return true;
-    }
-
-    // Check if any dragged item violates the folder type restriction
-    if (isDefaultMetricsFolder) {
-      return draggedItemTypes.has(FoldersEditorItemType.Column);
-    }
-    if (isDefaultColumnsFolder) {
-      return draggedItemTypes.has(FoldersEditorItemType.Metric);
-    }
-
-    return false;
-  })();
 
   const {
     attributes,
@@ -312,24 +276,24 @@ export function TreeItem({
   const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      onFinishEdit?.(editValue);
+      onFinishEdit?.(id, editValue);
     } else if (e.key === 'Escape') {
       setEditValue(name);
-      onFinishEdit?.(name);
+      onFinishEdit?.(id, name);
     }
   };
 
   const handleEditBlur = () => {
     if (editValue.trim()) {
-      onFinishEdit?.(editValue);
+      onFinishEdit?.(id, editValue);
     } else {
       setEditValue(name);
-      onFinishEdit?.(name);
+      onFinishEdit?.(id, name);
     }
   };
 
   // Get the display name for metrics/columns
-  const getItemDisplayName = () => {
+  const itemDisplayName = useMemo(() => {
     if (type === FoldersEditorItemType.Metric && metric) {
       return metric.verbose_name || metric.metric_name || name;
     }
@@ -337,10 +301,10 @@ export function TreeItem({
       return column.verbose_name || column.column_name || name;
     }
     return name;
-  };
+  }, [type, metric, column, name]);
 
   // Get the type for ColumnTypeLabel
-  const getColumnType = () => {
+  const columnType = useMemo(() => {
     if (type === FoldersEditorItemType.Metric) {
       return 'expression';
     }
@@ -350,7 +314,7 @@ export function TreeItem({
       return hasExpression ? 'expression' : column.type_generic;
     }
     return undefined;
-  };
+  }, [type, column]);
 
   const hasEmptyName = !name || name.trim() === '';
 
@@ -367,7 +331,7 @@ export function TreeItem({
           onClick={e => {
             if (!isDefaultFolder && onStartEdit) {
               e.stopPropagation();
-              onStartEdit();
+              onStartEdit(id);
             }
           }}
         >
@@ -404,7 +368,6 @@ export function TreeItem({
 
     // For metrics/columns, render type icon + name in styled container with drag handle inside
     // The whole container is draggable, handle is just visual indicator
-    const columnType = getColumnType();
     return (
       <OptionControlContainer
         {...attributes}
@@ -413,7 +376,7 @@ export function TreeItem({
       >
         <Label>
           {columnType !== undefined && <ColumnTypeLabel type={columnType} />}
-          {getItemDisplayName()}
+          {itemDisplayName}
         </Label>
         <DragHandleContainer>
           <Icons.Drag iconSize="xl" />
@@ -451,7 +414,7 @@ export function TreeItem({
           checked={isSelected}
           onChange={(e: CheckboxChangeEvent) => {
             e.stopPropagation();
-            onSelect(e.target.checked);
+            onSelect(id, e.target.checked);
           }}
           css={theme => css`
             margin-right: ${theme.marginSM}px;
@@ -495,7 +458,7 @@ export function TreeItem({
         <CollapseButton
           onClick={e => {
             e.stopPropagation();
-            onToggleCollapse();
+            onToggleCollapse(id);
           }}
         >
           {isCollapsed ? <Icons.RightOutlined /> : <Icons.DownOutlined />}
@@ -550,3 +513,5 @@ export function TreeItem({
     </>
   );
 }
+
+export const TreeItem = memo(TreeItemComponent);

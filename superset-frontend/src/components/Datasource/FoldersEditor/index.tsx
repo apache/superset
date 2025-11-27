@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { t } from '@superset-ui/core';
 import { Button, Input, Modal } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -86,7 +86,7 @@ export default function FoldersEditor({
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
-  const [offsetLeft, setOffsetLeft] = useState(0);
+  const offsetLeftRef = useRef(0);
   const [projectedParentId, setProjectedParentId] = useState<string | null>(
     null,
   );
@@ -229,7 +229,7 @@ export default function FoldersEditor({
   };
 
   const handleDragMove = ({ delta }: DragMoveEvent) => {
-    setOffsetLeft(delta.x);
+    offsetLeftRef.current = delta.x;
 
     // Calculate projected parent for visual feedback
     if (activeId && overId) {
@@ -238,7 +238,7 @@ export default function FoldersEditor({
       if (typeof overId === 'string' && overId.endsWith('-empty')) {
         // For empty drops, the parent is the folder itself
         const folderId = overId.replace('-empty', '');
-        setProjectedParentId(folderId);
+        setProjectedParentId(prev => (prev === folderId ? prev : folderId));
         return;
       }
 
@@ -249,7 +249,8 @@ export default function FoldersEditor({
         delta.x,
         DRAG_INDENTATION_WIDTH,
       );
-      setProjectedParentId(projection?.parentId ?? null);
+      const newParentId = projection?.parentId ?? null;
+      setProjectedParentId(prev => (prev === newParentId ? prev : newParentId));
     }
   };
 
@@ -261,7 +262,7 @@ export default function FoldersEditor({
       let targetOverId = over.id;
       if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
         const folderId = over.id.replace('-empty', '');
-        setProjectedParentId(folderId);
+        setProjectedParentId(prev => (prev === folderId ? prev : folderId));
         return;
       }
 
@@ -269,17 +270,20 @@ export default function FoldersEditor({
         flattenedItems,
         activeId,
         targetOverId,
-        offsetLeft,
+        offsetLeftRef.current,
         DRAG_INDENTATION_WIDTH,
       );
-      setProjectedParentId(projection?.parentId ?? null);
+      const newParentId = projection?.parentId ?? null;
+      setProjectedParentId(prev => (prev === newParentId ? prev : newParentId));
     } else {
-      setProjectedParentId(null);
+      setProjectedParentId(prev => (prev === null ? prev : null));
     }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const itemsBeingDragged = Array.from(draggedItemIds);
+    // Save offsetLeft before resetting state - needed for projection calculation
+    const finalOffsetLeft = offsetLeftRef.current;
     resetDragState();
 
     if (!over) {
@@ -325,7 +329,7 @@ export default function FoldersEditor({
       fullFlattenedItems,
       active.id,
       overId,
-      offsetLeft,
+      finalOffsetLeft,
       DRAG_INDENTATION_WIDTH,
     );
 
@@ -609,13 +613,13 @@ export default function FoldersEditor({
   const resetDragState = () => {
     setActiveId(null);
     setOverId(null);
-    setOffsetLeft(0);
+    offsetLeftRef.current = 0;
     setProjectedParentId(null);
     setDraggedItemIds(new Set());
   };
 
-  // Tree item handlers
-  const handleToggleCollapse = (folderId: string) => {
+  // Tree item handlers - memoized to prevent unnecessary re-renders
+  const handleToggleCollapse = useCallback((folderId: string) => {
     setCollapsedIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(folderId)) {
@@ -625,9 +629,9 @@ export default function FoldersEditor({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleSelect = (itemId: string, selected: boolean) => {
+  const handleSelect = useCallback((itemId: string, selected: boolean) => {
     setSelectedItemIds(prev => {
       const newSet = new Set(prev);
       if (selected) {
@@ -637,26 +641,32 @@ export default function FoldersEditor({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleStartEdit = (folderId: string) => {
+  const handleStartEdit = useCallback((folderId: string) => {
     setEditingFolderId(folderId);
-  };
+  }, []);
 
-  const handleFinishEdit = (folderId: string, newName: string) => {
-    if (newName.trim() && newName !== folderId) {
-      const updatedItems = flattenedItems.map(item => {
-        if (item.uuid === folderId) {
-          return { ...item, name: newName };
-        }
-        return item;
-      });
-      const newTree = buildTree(updatedItems);
-      setItems(newTree);
-      onChange(serializeForAPI(newTree));
-    }
-    setEditingFolderId(null);
-  };
+  const handleFinishEdit = useCallback(
+    (folderId: string, newName: string) => {
+      if (newName.trim() && newName !== folderId) {
+        setItems(prevItems => {
+          const flatItems = flattenTree(prevItems);
+          const updatedItems = flatItems.map(item => {
+            if (item.uuid === folderId) {
+              return { ...item, name: newName };
+            }
+            return item;
+          });
+          const newTree = buildTree(updatedItems);
+          onChange(serializeForAPI(newTree));
+          return newTree;
+        });
+      }
+      setEditingFolderId(null);
+    },
+    [onChange],
+  );
 
   // Get active item for drag overlay
   const activeItem = useMemo(() => {
@@ -689,28 +699,92 @@ export default function FoldersEditor({
     return lastChildren;
   }, [flattenedItems]);
 
-  // Get the types of items being dragged (for forbidden drop visual feedback)
-  const draggedItemTypes = useMemo(() => {
+  // Pre-calculate which folders are forbidden drop targets for the current drag
+  const forbiddenDropFolderIds = useMemo(() => {
+    const forbidden = new Set<string>();
     if (draggedItemIds.size === 0) {
-      return new Set<FoldersEditorItemType>();
+      return forbidden;
     }
-    const types = new Set<FoldersEditorItemType>();
+
+    // Get the types of items being dragged
+    const draggedTypes = new Set<FoldersEditorItemType>();
+    let hasDraggedDefaultFolder = false;
     draggedItemIds.forEach(id => {
       const item = fullFlattenedItems.find(i => i.uuid === id);
       if (item) {
-        types.add(item.type);
+        draggedTypes.add(item.type);
+        if (
+          item.type === FoldersEditorItemType.Folder &&
+          isDefaultFolder(item.uuid)
+        ) {
+          hasDraggedDefaultFolder = true;
+        }
       }
     });
-    return types;
+
+    // Check each folder to see if it's a forbidden drop target
+    fullFlattenedItems.forEach(item => {
+      if (item.type !== FoldersEditorItemType.Folder) {
+        return;
+      }
+
+      const itemIsDefaultFolder = isDefaultFolder(item.uuid);
+
+      // If dragging a default folder, it cannot be nested into any other folder
+      if (hasDraggedDefaultFolder && !itemIsDefaultFolder) {
+        forbidden.add(item.uuid);
+        return;
+      }
+
+      const isDefaultMetricsFolder =
+        item.uuid === DEFAULT_METRICS_FOLDER_UUID && itemIsDefaultFolder;
+      const isDefaultColumnsFolder =
+        item.uuid === DEFAULT_COLUMNS_FOLDER_UUID && itemIsDefaultFolder;
+
+      // Default folders cannot accept any folders
+      if (
+        (isDefaultMetricsFolder || isDefaultColumnsFolder) &&
+        draggedTypes.has(FoldersEditorItemType.Folder)
+      ) {
+        forbidden.add(item.uuid);
+        return;
+      }
+
+      // Check if any dragged item violates the folder type restriction
+      if (
+        isDefaultMetricsFolder &&
+        draggedTypes.has(FoldersEditorItemType.Column)
+      ) {
+        forbidden.add(item.uuid);
+        return;
+      }
+      if (
+        isDefaultColumnsFolder &&
+        draggedTypes.has(FoldersEditorItemType.Metric)
+      ) {
+        forbidden.add(item.uuid);
+      }
+    });
+
+    return forbidden;
   }, [draggedItemIds, fullFlattenedItems]);
 
-  // Check if any of the dragged items is a default folder
-  const isDraggingDefaultFolder = useMemo(() => {
-    if (draggedItemIds.size === 0) {
-      return false;
-    }
-    return Array.from(draggedItemIds).some(id => isDefaultFolder(id));
-  }, [draggedItemIds]);
+  // Memoize sortable item IDs for SortableContext
+  const sortableItemIds = useMemo(
+    () => flattenedItems.map(({ uuid }) => uuid),
+    [flattenedItems],
+  );
+
+  // Pre-calculate child counts for all folders to avoid calling getChildCount in render loop
+  const folderChildCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    flattenedItems.forEach(item => {
+      if (item.type === FoldersEditorItemType.Folder) {
+        counts.set(item.uuid, getChildCount(items, item.uuid));
+      }
+    });
+    return counts;
+  }, [flattenedItems, items]);
 
   return (
     <FoldersContainer>
@@ -774,12 +848,14 @@ export default function FoldersEditor({
           onDragCancel={handleDragCancel}
         >
           <SortableContext
-            items={flattenedItems.map(({ uuid }) => uuid)}
+            items={sortableItemIds}
             strategy={verticalListSortingStrategy}
           >
             {flattenedItems.map(item => {
               const isFolder = item.type === FoldersEditorItemType.Folder;
-              const childCount = isFolder ? getChildCount(items, item.uuid) : 0;
+              const childCount = isFolder
+                ? (folderChildCounts.get(item.uuid) ?? 0)
+                : 0;
               const showEmptyState = isFolder && childCount === 0;
 
               // Hide items that don't match search (unless they're folders)
@@ -802,18 +878,15 @@ export default function FoldersEditor({
                   isLastChild={lastChildIds.has(item.uuid)}
                   showEmptyState={showEmptyState}
                   isDropTarget={isFolder && item.uuid === projectedParentId}
-                  onToggleCollapse={() => handleToggleCollapse(item.uuid)}
-                  onSelect={
-                    isFolder
-                      ? undefined
-                      : selected => handleSelect(item.uuid, selected)
+                  isForbiddenDrop={
+                    isFolder && forbiddenDropFolderIds.has(item.uuid)
                   }
-                  onStartEdit={() => handleStartEdit(item.uuid)}
-                  onFinishEdit={newName => handleFinishEdit(item.uuid, newName)}
+                  onToggleCollapse={isFolder ? handleToggleCollapse : undefined}
+                  onSelect={isFolder ? undefined : handleSelect}
+                  onStartEdit={isFolder ? handleStartEdit : undefined}
+                  onFinishEdit={isFolder ? handleFinishEdit : undefined}
                   metric={metricsMap.get(item.uuid)}
                   column={columnsMap.get(item.uuid)}
-                  draggedItemTypes={draggedItemTypes}
-                  isDraggingDefaultFolder={isDraggingDefaultFolder}
                 />
               );
             })}
@@ -822,19 +895,17 @@ export default function FoldersEditor({
           {/* Drag overlay */}
           <DragOverlay>
             {activeItem && (
-              <div style={{ position: 'relative' }}>
-                <TreeItem
-                  id={activeItem.uuid}
-                  type={activeItem.type}
-                  name={
-                    draggedItemIds.size > 1
-                      ? `${activeItem.name} +${draggedItemIds.size - 1} more`
-                      : activeItem.name
-                  }
-                  depth={0}
-                  isFolder={activeItem.type === FoldersEditorItemType.Folder}
-                />
-              </div>
+              <TreeItem
+                id={activeItem.uuid}
+                type={activeItem.type}
+                name={
+                  draggedItemIds.size > 1
+                    ? `${activeItem.name} +${draggedItemIds.size - 1} more`
+                    : activeItem.name
+                }
+                depth={0}
+                isFolder={activeItem.type === FoldersEditorItemType.Folder}
+              />
             )}
           </DragOverlay>
         </DndContext>
