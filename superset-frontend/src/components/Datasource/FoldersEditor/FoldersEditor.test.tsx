@@ -480,3 +480,51 @@ test('drag functionality integrates properly with selection state', () => {
   const checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(0);
 });
+
+test('nested folders with items remain visible after drag is cancelled', async () => {
+  const onChange = jest.fn();
+  const nestedFolders: DatasourceFolder[] = [
+    {
+      uuid: 'parent-folder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Parent Folder',
+      children: [
+        {
+          uuid: 'nested-folder',
+          type: FoldersEditorItemType.Folder,
+          name: 'Nested Folder',
+          children: [
+            {
+              uuid: 'metric1',
+              type: FoldersEditorItemType.Metric,
+              name: 'Count',
+            },
+          ],
+        } as DatasourceFolder,
+      ],
+    },
+  ];
+
+  renderEditor(
+    <FoldersEditor
+      {...defaultProps}
+      folders={nestedFolders}
+      onChange={onChange}
+    />,
+  );
+
+  expect(screen.getByText('Parent Folder')).toBeInTheDocument();
+  expect(screen.getByText('Nested Folder')).toBeInTheDocument();
+  expect(screen.getByText('Count')).toBeInTheDocument();
+
+  const sortableElements = document.querySelectorAll(
+    '[aria-roledescription="sortable"]',
+  );
+  expect(sortableElements.length).toBeGreaterThan(0);
+
+  await waitFor(() => {
+    expect(screen.getByText('Parent Folder')).toBeInTheDocument();
+    expect(screen.getByText('Nested Folder')).toBeInTheDocument();
+    expect(screen.getByText('Count')).toBeInTheDocument();
+  });
+});
