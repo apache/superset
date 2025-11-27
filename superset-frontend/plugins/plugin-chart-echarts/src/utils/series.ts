@@ -31,7 +31,6 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
@@ -433,73 +432,49 @@ export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
   show: boolean,
-  theme: SupersetTheme,
   zoomable = false,
-  legendState?: LegendState,
-  padding?: LegendPaddingType,
 ): LegendComponentOption | LegendComponentOption[] {
+  const isHorizontal =
+    orientation === LegendOrientation.Top ||
+    orientation === LegendOrientation.Bottom;
+
+  // If user explicitly selected scroll, keep it.
+  // Otherwise, for horizontal legends (top/bottom) default to scroll
+  // so long legends don't overlap the chart.
+  const effectiveType =
+    type === LegendType.Scroll || !isHorizontal ? type : LegendType.Scroll;
+
   const legend: LegendComponentOption | LegendComponentOption[] = {
-    orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
-      orientation,
-    )
-      ? 'horizontal'
-      : 'vertical',
+    orient: isHorizontal ? 'horizontal' : 'vertical',
     show,
-    type,
-    selected: legendState,
-    selector: ['all', 'inverse'],
-    selectorLabel: {
-      fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeSM,
-      color: theme.colorText,
-      borderColor: theme.colorBorder,
-    },
+    type: effectiveType,
   };
-  const MIN_LEGEND_WIDTH = 0;
-  const MARGIN_GUTTER = 45;
-  const getLegendWidth = (paddingWidth: number) =>
-    Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
 
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
-      if (padding?.left) {
-        legend.textStyle = {
-          overflow: 'truncate',
-          width: getLegendWidth(padding.left),
-        };
-      }
       break;
     case LegendOrientation.Right:
       legend.right = 0;
-      legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
-      if (padding?.right) {
-        legend.textStyle = {
-          overflow: 'truncate',
-          width: getLegendWidth(padding.right),
-        };
-      }
+      // keep existing offset behavior for zoomable charts
+      (legend as LegendComponentOption).top = zoomable
+        ? TIMESERIES_CONSTANTS.legendRightTopOffset
+        : 0;
       break;
     case LegendOrientation.Bottom:
-      legend.bottom = 0;
-      if (padding?.left) {
-        legend.left = padding.left;
-      }
+      (legend as LegendComponentOption).bottom = 0;
       break;
     case LegendOrientation.Top:
-      legend.top = 0;
-      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
-      if (padding?.left) {
-        legend.left = padding.left;
-      }
-      break;
     default:
-      legend.top = 0;
-      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      (legend as LegendComponentOption).top = 0;
+      (legend as LegendComponentOption).right = zoomable
+        ? TIMESERIES_CONSTANTS.legendTopRightOffset
+        : 0;
       break;
   }
   return legend;
 }
+
 
 export function getChartPadding(
   show: boolean,
