@@ -32,7 +32,7 @@ const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
-  value: number | string | boolean,
+  value: number | string | boolean | null,
   cutoffPoint: number | string | boolean,
   extremeValue: number | string | boolean,
   minOpacity = MIN_OPACITY_BOUNDED,
@@ -75,15 +75,15 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
   }: ConditionalFormattingConfig,
-  columnValues: number[] | string[] | boolean[],
+  columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
   let comparatorFunction: (
-    value: number | string | boolean,
-    allValues: number[] | string[] | boolean[],
+    value: number | string | boolean | null,
+    allValues: number[] | string[] | (boolean | null)[],
   ) =>
     | false
     | {
@@ -110,7 +110,7 @@ export const getColorFunction = (
     case Comparator.None:
       minOpacity = MIN_OPACITY_UNBOUNDED;
       comparatorFunction = (
-        value: number | string | boolean,
+        value: number | string | boolean | null,
         allValues: number[],
       ) => {
         if (typeof value !== 'number') {
@@ -237,25 +237,25 @@ export const getColorFunction = (
 
       break;
     case Comparator.IsTrue:
-      comparatorFunction = (value: boolean) =>
+      comparatorFunction = (value: boolean | null) =>
         isBoolean(value) && value
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.IsFalse:
-      comparatorFunction = (value: boolean) =>
+      comparatorFunction = (value: boolean | null) =>
         isBoolean(value) && !value
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.IsNull:
-      comparatorFunction = (value: boolean) =>
-        isBoolean(value) && value === null
+      comparatorFunction = (value: boolean | null) =>
+        value === null
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.IsNotNull:
-      comparatorFunction = (value: boolean) =>
+      comparatorFunction = (value: boolean | null) =>
         isBoolean(value) && value !== null
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
@@ -265,7 +265,7 @@ export const getColorFunction = (
       break;
   }
 
-  return (value: number | string | boolean) => {
+  return (value: number | string | boolean | null) => {
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
