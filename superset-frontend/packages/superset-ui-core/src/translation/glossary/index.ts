@@ -17,6 +17,6 @@
  * under the License.
  */
 
-export * from './glossary';
+export { Glossary, GlossaryTopic, type GlossaryTerm } from './glossary';
 
 export default {};
