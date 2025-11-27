@@ -31,6 +31,7 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
@@ -432,7 +433,10 @@ export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
   show: boolean,
+  theme?: SupersetTheme,
   zoomable = false,
+  legendState?: LegendState,
+  padding?: LegendPaddingType,
 ): LegendComponentOption | LegendComponentOption[] {
   const isHorizontal =
     orientation === LegendOrientation.Top ||
@@ -474,6 +478,7 @@ export function getLegendProps(
   }
   return legend;
 }
+
 
 
 export function getChartPadding(
