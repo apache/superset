@@ -440,7 +440,8 @@ def test_get_temporal_column_for_filter_with_x_axis_fallback(processor):
 
 
 def test_get_temporal_column_for_filter_with_datasource_columns(processor):
-    """Test _get_temporal_column_for_filter returns None when no clear temporal column."""
+    """Test _get_temporal_column_for_filter
+    returns None when no clear temporal column."""
     query_object = MagicMock()
     query_object.granularity = None
     query_object.filter = []
@@ -462,7 +463,7 @@ def test_get_temporal_column_for_filter_with_datasource_columns(processor):
     assert result is None
 
 
-def test_get_temporal_column_for_filter_with_granularity(processor):
+def test_get_temporal_column_for_filter_prefers_granularity(processor):
     """Test _get_temporal_column_for_filter uses granularity when available."""
     query_object = MagicMock()
     query_object.granularity = "timestamp_col"
