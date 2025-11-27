@@ -1701,7 +1701,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         1. Use the column from existing TEMPORAL_RANGE filter
         2. Use explicitly set granularity
         3. Use x_axis_label if it exists
-        4. Find any datetime column in the datasource
 
         :param query_object: The query object
         :param x_axis_label: The x-axis label from the query
@@ -1724,15 +1723,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Strategy 3: Use x_axis_label if it exists
         if x_axis_label:
             return x_axis_label
-
-        # Strategy 4: Find any datetime column in the datasource
-        if hasattr(self, "columns"):
-            for col in self.columns:
-                if hasattr(col, "is_dttm") and col.is_dttm:
-                    if hasattr(col, "column_name"):
-                        return col.column_name
-                    elif hasattr(col, "name"):
-                        return col.name
 
         return None
 
