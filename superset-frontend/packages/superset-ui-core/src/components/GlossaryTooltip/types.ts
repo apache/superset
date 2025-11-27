@@ -16,37 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Tooltip } from 'antd';
-import type { GlossaryTooltipProps } from './types';
-import { getGlossaryUrl } from './constants';
+import type { ReactNode } from 'react';
+import type { TooltipProps } from '../Tooltip';
+import type { GlossaryTerm } from './constants';
 
-export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({
-  term,
-  title,
-  children, 
-  ...props
-}) => {
-  const content = (
-    <div>
-      <div style={{ marginBottom: '8px' }}>{title}</div>
-      {term && (
-        <a
-          href={getGlossaryUrl(term)}
-          target="_blank"
-        >
-          Learn more →
-        </a>
-      )}
-    </div>
-  );
+export interface GlossaryTooltipProps extends Omit<TooltipProps, 'title'> {
+  term?: GlossaryTerm;
+  title: ReactNode;
+}
 
-  return (
-    <Tooltip title={content} {...props}>
-      {children}
-    </Tooltip>
-  );
-};
-
-export { GLOSSARY_TERMS, type GlossaryTerm } from './constants';
-export type { GlossaryTooltipProps } from './types';

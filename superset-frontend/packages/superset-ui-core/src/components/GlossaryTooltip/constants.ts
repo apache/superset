@@ -17,10 +17,10 @@
  * under the License.
  */
 
-export const GLOSSARY_BASE_URL = 'localhost:8088'; // TODO: change to the actual URL
+export const GLOSSARY_BASE_URL = 'http://localhost:3000'; // TODO: change to the actual URL
 
 export const GLOSSARY_TERMS = {
-  FIRST: 'First Tooltip',
+  Dimension: 'First Tooltip',
 } as const;
 
 export type GlossaryTerm = typeof GLOSSARY_TERMS[keyof typeof GLOSSARY_TERMS];
@@ -28,3 +28,4 @@ export type GlossaryTerm = typeof GLOSSARY_TERMS[keyof typeof GLOSSARY_TERMS];
 export const getGlossaryUrl = (term: GlossaryTerm): string => {
   return `${GLOSSARY_BASE_URL}/docs/glossary#${term}`;
 };
+
