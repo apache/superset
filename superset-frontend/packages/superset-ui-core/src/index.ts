@@ -36,3 +36,4 @@ export * from './ui-overrides';
 export * from './hooks';
 export * from './currency-format';
 export * from './time-comparison';
+export * from './glossary';

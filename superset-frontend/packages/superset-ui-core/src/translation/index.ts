@@ -19,7 +19,6 @@
 
 export * from './TranslatorSingleton';
 export * from './types';
-export * from './glossary';
 
 export default {};
 
