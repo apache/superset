@@ -24,53 +24,29 @@ under the License.
 
 # Overview
 
-Apache Superset's extension system allows developers to enhance and customize Superset's functionality through a modular, plugin-based architecture. Extensions can add new visualization types, custom UI components, data processing capabilities, and integration points.
+Apache Superset's extension system enables organizations to build custom features without modifying the core codebase. Inspired by the [VS Code extension model](https://code.visualstudio.com/api), this architecture addresses a long-standing challenge: teams previously had to fork Superset or make invasive modifications to add capabilities like query optimizers, custom panels, or specialized integrations—resulting in maintenance overhead and codebase fragmentation.
+
+The extension system introduces a modular, plugin-based architecture where both built-in features and external extensions use the same well-defined APIs. This "lean core" approach ensures that any capability available to Superset's internal features is equally accessible to community-developed extensions, fostering a vibrant ecosystem while reducing the maintenance burden on core contributors.
 
 ## What are Superset Extensions?
 
-Superset extensions are self-contained packages that extend the core platform's capabilities. They follow a standardized architecture that ensures compatibility, security, and maintainability while providing powerful customization options.
-
-## Extension Architecture
-
-- **[Architecture](./architecture)** - Architectural principles and high-level system overview
-- **[Extension Project Structure](./extension-project-structure)** - Standard project layout and organization
-- **[Extension Metadata](./extension-metadata)** - Configuration and manifest structure
-
-## Development Guide
-
-- **[Frontend Contribution Types](./frontend-contribution-types)** - Types of UI contributions available
-- **[Interacting with Host](./interacting-with-host)** - Communication patterns with Superset core
-- **[Development Mode](./development-mode)** - Tools and workflows for extension development
-
-For information about runtime loading and dependency management, see the [Dynamic Module Loading](./architecture#dynamic-module-loading) section in the Architecture page.
-
-## Deployment & Management
-
-- **[Deploying Extension](./deploying-extension)** - Packaging and distribution strategies
-- **[Security Implications](./security-implications)** - Security considerations and best practices
-
-## Hands-on Examples
-
-- **[Quick Start](./quick-start)** - Complete Hello World extension walkthrough
+Superset extensions are self-contained `.supx` packages that extend the platform's capabilities through standardized contribution points. Each extension can include both frontend (React/TypeScript) and backend (Python) components, bundled together and loaded dynamically at runtime using Webpack Module Federation.
 
 ## Extension Capabilities
 
 Extensions can provide:
 
-- **Custom Visualizations**: New chart types and data visualization components
-- **UI Enhancements**: Custom dashboards, panels, and interactive elements  
-- **Data Connectors**: Integration with external data sources and APIs
-- **Workflow Automation**: Custom actions and batch processing capabilities
-- **Authentication Providers**: SSO and custom authentication mechanisms
-- **Theme Customization**: Custom styling and branding options
+- **Custom UI Components**: New panels, views, and interactive elements
+- **Commands and Menus**: Custom actions accessible via menus and keyboard shortcuts
+- **REST API Endpoints**: Backend services under the `/api/v1/extensions/` namespace
+- **MCP Tools and Prompts**: AI agent capabilities for enhanced user assistance
 
-## Getting Started
+## Next Steps
 
-1. **Learn the Architecture**: Start with [Architecture](./architecture) to understand the design philosophy
-2. **Set up Development**: Follow the [Development Mode](./development-mode) guide to configure your environment
-3. **Build Your First Extension**: Complete the [Quick Start](./quick-start) tutorial
-4. **Deploy and Share**: Use the [Deploying Extension](./deploying-extension) guide to package your extension
-
-## Extension Ecosystem
-
-The extension system is designed to foster a vibrant ecosystem of community-contributed functionality. By following the established patterns and guidelines, developers can create extensions that seamlessly integrate with Superset while maintaining the platform's reliability and performance standards.
+- **[Quick Start](./quick-start)** - Build your first extension with a complete walkthrough
+- **[Architecture](./architecture)** - Design principles and system overview
+- **[Contribution Types](./contribution-types)** - Available extension points
+- **[Development](./development)** - Project structure, APIs, and development workflow
+- **[Deployment](./deployment)** - Packaging and deploying extensions
+- **[MCP Integration](./mcp)** - Adding AI agent capabilities using extensions
+- **[Security](./security)** - Security considerations and best practices

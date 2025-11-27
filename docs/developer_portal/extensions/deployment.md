@@ -1,6 +1,6 @@
 ---
-title: Deploying an Extension
-sidebar_position: 8
+title: Deployment
+sidebar_position: 6
 ---
 
 <!--
@@ -22,7 +22,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Deploying an Extension
+# Deployment
 
 Once an extension has been developed, the deployment process involves packaging and uploading it to the host application.
 
@@ -33,13 +33,17 @@ Packaging is handled by the `superset-extensions bundle` command, which:
 3. Generates a `manifest.json` with build-time metadata, including the contents of `extension.json` and references to built assets.
 4. Packages everything into a `.supx` file (a zip archive with a specific structure required by Superset).
 
-Uploading is accomplished through Superset's REST API at `/api/v1/extensions/import/`. The endpoint accepts the `.supx` file as form data and processes it by:
+To deploy an extension, place the `.supx` file in the extensions directory configured via `EXTENSIONS_PATH` in your `superset_config.py`:
 
-1. Extracting and validating the extension metadata and manifest.
-2. Storing extension assets in the metadata database for dynamic loading.
-3. Registering the extension in the metadata database, including its name, version, author, and capabilities.
-4. Automatically activating the extension, making it immediately available for use and management via the Superset UI or API.
+``` python
+EXTENSIONS_PATH = "/path/to/extensions"
+```
 
-This API-driven approach enables automated deployment workflows and simplifies extension management for administrators. Extensions can be uploaded through the Swagger UI, programmatically via scripts, or through the management interface:
+During application startup, Superset automatically discovers and loads all `.supx` files from this directory:
 
-https://github.com/user-attachments/assets/98b16cdd-8ec5-4812-9d5e-9915badd8f0d
+1. Scans the configured directory for `.supx` files.
+2. Validates each file is a properly formatted zip archive.
+3. Extracts and validates the extension manifest and metadata.
+4. Loads the extension, making it available for use.
+
+This file-based approach simplifies deployment in containerized environments and enables version control of extensions alongside infrastructure configuration.
