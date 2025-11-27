@@ -28,6 +28,7 @@ import {
   QueryFormOrderBy,
   QueryMode,
   QueryObject,
+  QueryObjectExtras,
   removeDuplicates,
   PostProcessingRule,
   BuildQuery,
@@ -473,7 +474,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
                 ? `${queryObject.extras.having} AND ${havingClause}`
                 : havingClause,
             }),
-          };
+        } as QueryObjectExtras;
         }
       }
     }
