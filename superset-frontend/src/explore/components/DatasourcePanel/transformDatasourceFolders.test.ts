@@ -66,15 +66,29 @@ test('transforms data according to folder configuration', () => {
       name: 'Important Metrics',
       description: 'Key metrics folder',
       children: [
-        { type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'metric1' },
-        { type: FoldersEditorItemType.Metric, uuid: 'metric2-uuid', name: 'metric2' },
+        {
+          type: FoldersEditorItemType.Metric,
+          uuid: 'metric1-uuid',
+          name: 'metric1',
+        },
+        {
+          type: FoldersEditorItemType.Metric,
+          uuid: 'metric2-uuid',
+          name: 'metric2',
+        },
       ],
     },
     {
       uuid: 'folder2',
       type: FoldersEditorItemType.Folder,
       name: 'Key Dimensions',
-      children: [{ type: FoldersEditorItemType.Column, uuid: 'column1-uuid', name: 'column1' }],
+      children: [
+        {
+          type: FoldersEditorItemType.Column,
+          uuid: 'column1-uuid',
+          name: 'column1',
+        },
+      ],
     },
   ];
 
@@ -123,9 +137,19 @@ test('handles nested folder structures', () => {
           uuid: 'child-folder',
           type: FoldersEditorItemType.Folder,
           name: 'Child Folder',
-          children: [{ type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'metric1' }],
+          children: [
+            {
+              type: FoldersEditorItemType.Metric,
+              uuid: 'metric1-uuid',
+              name: 'metric1',
+            },
+          ],
         },
-        { type: FoldersEditorItemType.Column, uuid: 'column1-uuid', name: 'column1' },
+        {
+          type: FoldersEditorItemType.Column,
+          uuid: 'column1-uuid',
+          name: 'column1',
+        },
       ],
     },
   ];
@@ -190,7 +214,11 @@ test('handles non-existent metric and column UUIDs in folder config', () => {
           uuid: 'non-existent-column',
           name: 'Missing Column',
         },
-        { type: FoldersEditorItemType.Metric, uuid: 'metric1-uuid', name: 'Existing Metric' },
+        {
+          type: FoldersEditorItemType.Metric,
+          uuid: 'metric1-uuid',
+          name: 'Existing Metric',
+        },
       ],
     },
   ];
