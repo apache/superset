@@ -21,7 +21,7 @@ import { CSSProperties, useState, memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { styled, css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/ui';
 import { Metric, t } from '@superset-ui/core';
 import {
   Checkbox,
@@ -41,9 +41,20 @@ import {
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_METRICS_FOLDER_UUID,
 } from './folderUtils';
+import {
+  TreeItemContainer,
+  TreeFolderContainer,
+  DragHandle,
+  CollapseButton,
+  DefaultFolderIconContainer,
+  FolderName,
+  DragHandleContainer,
+  EmptyFolderDropZone,
+} from './TreeItem.styles';
 
-const FOLDER_INDENTATION_WIDTH = 24;
-const ITEM_INDENTATION_WIDTH = 4;
+const FOLDER_NAME_PLACEHOLDER = t(
+  'Name your folder and to edit it later, click on the folder name',
+);
 
 interface TreeItemProps {
   id: string;
@@ -54,7 +65,6 @@ interface TreeItemProps {
   isFolder?: boolean;
   isSelected?: boolean;
   isEditing?: boolean;
-  // Handlers now receive the item id, allowing parent to pass stable references
   onToggleCollapse?: (id: string) => void;
   onSelect?: (id: string, selected: boolean) => void;
   onStartEdit?: (id: string) => void;
@@ -66,161 +76,8 @@ interface TreeItemProps {
   isForbiddenDrop?: boolean;
   metric?: Metric;
   column?: ColumnMeta;
-  // When true, renders as a drag overlay item (no sortable hooks, shows checkbox)
   isOverlay?: boolean;
 }
-
-const TreeItemContainer = styled.div<{
-  depth: number;
-  isDragging: boolean;
-  isOver: boolean;
-  isOverlay?: boolean;
-}>`
-  ${({ theme, depth, isDragging, isOverlay }) => `
-    margin: ${theme.marginXXS}px ${isOverlay ? 0 : theme.marginMD}px;
-    margin-left: ${isOverlay ? 0 : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    opacity: ${isDragging ? 0.4 : 1};
-    user-select: none;
-  `}
-`;
-
-const FOLDER_NAME_PLACEHOLDER = t(
-  'Name your folder and to edit it later, click on the folder name',
-);
-
-const TreeFolderContainer = styled(TreeItemContainer)<{
-  isDropTarget?: boolean;
-  isForbiddenDropTarget?: boolean;
-}>`
-  ${({ theme, depth, isDropTarget, isForbiddenDropTarget, isOverlay }) => `
-    margin-top: ${isOverlay ? 0 : theme.marginLG}px;
-    margin-bottom: ${isOverlay ? 0 : theme.marginLG}px;
-    margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
-    border-radius: ${theme.borderRadius}px;
-    padding: ${theme.paddingXXS}px ${theme.paddingSM}px;
-    margin-right: ${isOverlay ? 0 : theme.marginMD}px;
-    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    ${
-      isDropTarget && isForbiddenDropTarget
-        ? `
-      background-color: ${theme.colorErrorBg};
-      box-shadow: inset 0 0 0 2px ${theme.colorError};
-      cursor: not-allowed;
-    `
-        : isDropTarget
-          ? `
-      background-color: ${theme.colorPrimaryBg};
-      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
-    `
-          : ''
-    }
-  `}
-`;
-
-const DragHandle = styled.span`
-  ${({ theme }) => `
-    color: ${theme.colorTextTertiary};
-    display: inline-flex;
-    align-items: center;
-    cursor: grab;
-
-    &:hover {
-      color: ${theme.colorText};
-    }
-
-    &:active {
-      cursor: grabbing;
-    }
-  `}
-`;
-
-const CollapseButton = styled.span`
-  ${({ theme }) => `
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 12px;
-    height: 12px;
-    cursor: pointer;
-    color: ${theme.colorTextSecondary};
-    margin-left: auto;
-
-    &:hover {
-      color: ${theme.colorText};
-    }
-  `}
-`;
-
-const DefaultFolderIconContainer = styled.span`
-  ${({ theme }) => `
-    display: inline-flex;
-    align-items: center;
-    color: ${theme.colorTextSecondary};
-    margin-right: ${theme.marginXS}px;
-  `}
-`;
-
-const FolderName = styled.span`
-  ${({ theme }) => `
-    margin-right: ${theme.marginMD}px;
-    font-weight: ${theme.fontWeightStrong};
-  `}
-`;
-
-// Styled drag handle container on the right side
-const DragHandleContainer = styled.div`
-  ${({ theme }) => `
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 ${theme.sizeUnit}px;
-    margin-left: auto;
-    cursor: grab;
-    color: ${theme.colorTextTertiary};
-
-    &:hover {
-      color: ${theme.colorText};
-    }
-
-    &:active {
-      cursor: grabbing;
-    }
-  `}
-`;
-
-const EmptyFolderDropZone = styled.div<{
-  depth: number;
-  isOver: boolean;
-  isForbidden: boolean;
-}>`
-  ${({ theme, depth, isOver, isForbidden }) => css`
-    margin-left: ${(depth + 1) * ITEM_INDENTATION_WIDTH + theme.marginMD}px;
-    padding: ${theme.paddingLG}px;
-    border: 2px dashed
-      ${isOver
-        ? isForbidden
-          ? theme.colorError
-          : theme.colorPrimary
-        : 'transparent'};
-    border-radius: ${theme.borderRadius}px;
-    background: ${isOver
-      ? isForbidden
-        ? theme.colorErrorBg
-        : theme.colorPrimaryBg
-      : 'transparent'};
-    text-align: center;
-    transition: all 0.2s ease-in-out;
-    cursor: ${isOver && isForbidden ? 'not-allowed' : 'default'};
-    opacity: ${isOver && isForbidden ? 0.7 : 1};
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  `}
-`;
 
 function TreeItemComponent({
   id,
