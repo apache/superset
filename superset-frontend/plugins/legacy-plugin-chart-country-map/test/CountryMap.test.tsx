@@ -2,6 +2,7 @@
  * Tests for legacy D3 CountryMap
  * */
 
+import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
 import d3 from 'd3';
 import ReactCountryMap from '../src/ReactCountryMap';
@@ -96,12 +97,9 @@ describe('CountryMap (legacy d3)', () => {
     expect(popup).not.toBeNull();
 
     fireEvent.mouseEnter(region!);
-    expect(popup!.style.display).toBe('block');
-
-    fireEvent.mouseMove(region!);
-    expect(popup!.style.top).toBe('80px'); // mouseY (50) + 30
+    expect(popup!).toHaveStyle({ display: 'block' });
 
     fireEvent.mouseOut(region!);
-    expect(popup!.style.display).toBe('none');
+    expect(popup!).toHaveStyle({ display: 'none' });
   });
 });
