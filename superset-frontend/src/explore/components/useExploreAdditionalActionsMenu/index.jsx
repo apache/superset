@@ -195,7 +195,8 @@ export const useExploreAdditionalActionsMenu = (
 
   // Detect if the chart plugin exposes the export-current-view behavior
   const hasExportCurrentView = !!meta?.behaviors?.includes('EXPORT_CURRENT_VIEW');
-  const showCurrentView = vizType === 'table' && hasExportCurrentView;
+  // const showCurrentView = vizType === 'table' && hasExportCurrentView;
+  // console.log("I have an update22!!");
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -715,7 +716,7 @@ export const useExploreAdditionalActionsMenu = (
           label: t('Export All Data'),
           children: allDataChildren,
         },
-        ...(showCurrentView
+        ...(hasExportCurrentView
           ? [{
               key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
               type: 'submenu',
