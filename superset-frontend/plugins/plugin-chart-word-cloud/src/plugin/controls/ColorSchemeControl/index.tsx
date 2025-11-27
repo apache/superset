@@ -227,17 +227,17 @@ const ColorSchemeControl = ({
         [ColorSchemeGroup.Custom]: {
           title: ColorSchemeGroup.Custom,
           label: t('Custom color palettes'),
-          options: [] as OptionData,
+          options: [] as OptionData[],
         },
         [ColorSchemeGroup.Featured]: {
           title: ColorSchemeGroup.Featured,
           label: t('Featured color palettes'),
-          options: [] as OptionData,
+          options: [] as OptionData[],
         },
         [ColorSchemeGroup.Other]: {
           title: ColorSchemeGroup.Other,
           label: t('Other color palettes'),
-          options: [] as OptionData,
+          options: [] as OptionData[],
         },
       },
     );

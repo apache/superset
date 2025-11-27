@@ -658,16 +658,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
+                    const element = controlItem as React.ReactElement<
+                      Record<string, unknown>
+                    >;
 
-                    const controlName = (controlItem.props as { name: string })
+                    const controlName = (element.props as { name: string })
                       .name;
                     if (!controlName) {
-                      return controlItem;
+                      return element;
                     }
                     const controlState = controls[controlName];
 
-                    return cloneElement(controlItem, {
-                      ...(controlItem.props as Record<string, any>),
+                    return cloneElement(element, {
+                      ...(element.props as Record<string, unknown>),
                       actions,
                       controls,
                       chart,
@@ -677,10 +680,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                         value: controlState.value,
                         validationErrors: controlState.validationErrors,
                         default: controlState.default,
-                        onChange: (value: any, errors: any[]) =>
+                        onChange: (value: unknown, errors: unknown[]) =>
                           setControlValue(controlName, value, errors),
                       }),
-                    } as any);
+                    });
                   }
                   if (
                     isCustomControlItem(controlItem) &&

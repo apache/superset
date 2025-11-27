@@ -30,7 +30,7 @@ type ColorSchemeControlWrapperProps = ControlComponentProps<string> & {
   clearable?: boolean;
 };
 
-function ColorSchemeControlWrapper({
+export default function ColorSchemeControlWrapper({
   name = 'color_scheme',
   value,
   onChange,
@@ -60,5 +60,3 @@ function ColorSchemeControlWrapper({
 }
 
 ColorSchemeControlWrapper.displayName = 'ColorSchemeControlWrapper';
-
-export default ColorSchemeControlWrapper;
