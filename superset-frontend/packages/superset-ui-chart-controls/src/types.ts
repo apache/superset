@@ -490,7 +490,9 @@ export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
-  getColorFromValue: (value: number | string | boolean | null) => string | undefined;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
 
 export default {};
