@@ -18,7 +18,6 @@
  */
 
 import type { UniqueIdentifier } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import {
   DatasourceFolder,
   DatasourceFolderItem,
@@ -99,6 +98,8 @@ function getMinDepth(
 /**
  * Project the target depth and parent based on drag position
  * This is the core algorithm that determines where an item will be dropped
+ *
+ * Optimized to avoid arrayMove - instead calculates adjacent items directly
  */
 export function getProjection(
   items: FlattenedTreeItem[],
@@ -106,19 +107,52 @@ export function getProjection(
   overId: UniqueIdentifier,
   dragOffset: number,
   indentationWidth: number = DRAG_INDENTATION_WIDTH,
+  // Optional pre-built index map for repeated calls with same items array
+  indexMap?: Map<string, number>,
 ) {
-  const overItemIndex = items.findIndex(({ uuid }) => uuid === overId);
-  const activeItemIndex = items.findIndex(({ uuid }) => uuid === activeId);
+  // Use provided map or fall back to findIndex
+  const overItemIndex = indexMap
+    ? (indexMap.get(overId as string) ?? -1)
+    : items.findIndex(({ uuid }) => uuid === overId);
+  const activeItemIndex = indexMap
+    ? (indexMap.get(activeId as string) ?? -1)
+    : items.findIndex(({ uuid }) => uuid === activeId);
   const activeItem = items[activeItemIndex];
 
-  if (!activeItem) {
+  if (!activeItem || overItemIndex === -1) {
     return null;
   }
 
-  // Simulate the array move to calculate relative positions
-  const newItems = arrayMove(items, activeItemIndex, overItemIndex);
-  const previousItem = newItems[overItemIndex - 1];
-  const nextItem = newItems[overItemIndex + 1];
+  // Calculate what would be adjacent after the move WITHOUT creating a new array
+  // If active moves to over's position:
+  // - Items between active and over shift by 1
+  // - We need to know what's at overIndex-1 and overIndex+1 after the shift
+  let previousItem: FlattenedTreeItem | undefined;
+  let nextItem: FlattenedTreeItem | undefined;
+
+  if (activeItemIndex < overItemIndex) {
+    // Dragging down: items between active+1 and over shift up by 1
+    // After move: previousItem = items[overIndex], nextItem = items[overIndex + 1]
+    previousItem = items[overItemIndex];
+    nextItem = items[overItemIndex + 1];
+  } else if (activeItemIndex > overItemIndex) {
+    // Dragging up: items between over and active-1 shift down by 1
+    // After move: previousItem = items[overIndex - 1], nextItem = items[overIndex]
+    previousItem = items[overItemIndex - 1];
+    nextItem = items[overItemIndex];
+  } else {
+    // Same position - just horizontal movement
+    previousItem = items[overItemIndex - 1];
+    nextItem = items[overItemIndex + 1];
+  }
+
+  // Skip the active item if it would be adjacent (it's being moved)
+  if (previousItem?.uuid === activeId) {
+    previousItem = items[items.indexOf(previousItem) - 1];
+  }
+  if (nextItem?.uuid === activeId) {
+    nextItem = items[items.indexOf(nextItem) + 1];
+  }
 
   // Calculate projected depth based on horizontal drag offset
   const dragDepth = getDragDepth(dragOffset, indentationWidth);
@@ -134,47 +168,49 @@ export function getProjection(
     depth = minDepth;
   }
 
+  // Calculate parent ID inline to avoid closure overhead
+  let parentId: string | null = null;
+  if (depth > 0 && previousItem) {
+    if (depth === previousItem.depth) {
+      // Same level as previous item - share the same parent
+      parentId = previousItem.parentId;
+    } else if (depth > previousItem.depth) {
+      // Deeper than previous item - previous item becomes parent
+      parentId = previousItem.uuid;
+    } else {
+      // Shallower than previous item - find ancestor at same depth
+      // Search backwards from overIndex for an item at the target depth
+      const searchEnd =
+        activeItemIndex < overItemIndex ? overItemIndex : overItemIndex - 1;
+      for (let i = searchEnd; i >= 0; i -= 1) {
+        if (items[i].uuid !== activeId && items[i].depth === depth) {
+          parentId = items[i].parentId;
+          break;
+        }
+      }
+    }
+  }
+
   return {
     depth,
     maxDepth,
     minDepth,
-    parentId: getParentId(),
+    parentId,
   };
-
-  function getParentId(): string | null {
-    if (depth === 0 || !previousItem) {
-      return null;
-    }
-
-    // Same level as previous item - share the same parent
-    if (depth === previousItem.depth) {
-      return previousItem.parentId;
-    }
-
-    // Deeper than previous item - previous item becomes parent
-    if (depth > previousItem.depth) {
-      return previousItem.uuid;
-    }
-
-    // Shallower than previous item - find ancestor at same depth
-    const newParent = newItems
-      .slice(0, overItemIndex)
-      .reverse()
-      .find(item => item.depth === depth)?.parentId;
-
-    return newParent ?? null;
-  }
 }
 
 /**
  * Flatten a tree structure into an array with depth metadata
+ * Optimized to use push instead of spread to avoid creating intermediate arrays
  */
 function flatten(
   items: TreeItem[],
   parentId: string | null = null,
   depth: number = 0,
+  result: FlattenedTreeItem[] = [],
 ): FlattenedTreeItem[] {
-  return items.reduce<FlattenedTreeItem[]>((acc, item, index) => {
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
     const flatItem: FlattenedTreeItem = {
       uuid: item.uuid,
       type: item.type,
@@ -187,17 +223,19 @@ function flatten(
       collapsed: 'children' in item && (item as any).collapsed,
     };
 
-    return [
-      ...acc,
-      flatItem,
-      // Recursively flatten children if this is a folder
-      ...(item.type === FoldersEditorItemType.Folder &&
+    result.push(flatItem);
+
+    // Recursively flatten children if this is a folder
+    if (
+      item.type === FoldersEditorItemType.Folder &&
       'children' in item &&
       item.children
-        ? flatten(item.children, item.uuid, depth + 1)
-        : []),
-    ];
-  }, []);
+    ) {
+      flatten(item.children, item.uuid, depth + 1, result);
+    }
+  }
+
+  return result;
 }
 
 /**

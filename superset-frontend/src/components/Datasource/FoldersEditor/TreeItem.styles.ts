@@ -37,6 +37,7 @@ export const TreeItemContainer = styled.div<{
     cursor: pointer;
     opacity: ${isDragging ? 0.4 : 1};
     user-select: none;
+    ${isDragging || isOverlay ? 'will-change: transform;' : ''}
   `}
 `;
 

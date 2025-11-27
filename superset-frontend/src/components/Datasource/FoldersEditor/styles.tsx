@@ -65,6 +65,7 @@ const STACK_OFFSET_Y = 14; // vertical offset per stacked item (px)
 export const DragOverlayStack = styled.div<{ width?: number }>`
   position: relative;
   width: ${({ width }) => (width ? `${width}px` : '100%')};
+  will-change: transform;
 `;
 
 export const DragOverlayItem = styled.div<{
