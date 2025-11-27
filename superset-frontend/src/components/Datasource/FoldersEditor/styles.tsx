@@ -267,6 +267,39 @@ export const StackedDragItem = styled.div<{ stackIndex: number }>`
   `}
 `;
 
+// Stacked drag overlay container - items stack from bottom to top visually
+// but we render them top to bottom in DOM with absolute positioning
+const STACK_OFFSET_X = 4; // horizontal offset per stacked item (px)
+const STACK_OFFSET_Y = 14; // vertical offset per stacked item (px)
+
+export const DragOverlayStack = styled.div<{ width?: number }>`
+  position: relative;
+  width: ${({ width }) => (width ? `${width}px` : '100%')};
+`;
+
+export const DragOverlayItem = styled.div<{
+  stackIndex: number;
+  totalItems: number;
+}>`
+  ${({ stackIndex, totalItems }) => {
+    // stackIndex 0 = topmost (front), higher index = further back (visually behind)
+    // Front item: no offset, 100% opacity, highest z-index
+    // Back items: offset down-right, lower opacity, lower z-index
+    const opacities = [1, 0.8, 0.6];
+    const opacity = opacities[stackIndex] ?? 0.6;
+
+    return css`
+      position: ${stackIndex === 0 ? 'relative' : 'absolute'};
+      top: ${stackIndex * STACK_OFFSET_Y}px;
+      left: ${stackIndex * STACK_OFFSET_X}px;
+      right: ${stackIndex === 0 ? 0 : -stackIndex * STACK_OFFSET_X}px;
+      z-index: ${totalItems - stackIndex};
+      opacity: ${opacity};
+      pointer-events: none;
+    `;
+  }}
+`;
+
 export const EmptyFolderSubText = styled.div`
   ${({ theme }) => css`
     margin-top: 8px;

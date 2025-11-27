@@ -66,6 +66,8 @@ import {
   FoldersSearch,
   FoldersActions,
   FoldersContent,
+  DragOverlayStack,
+  DragOverlayItem,
 } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -86,6 +88,7 @@ export default function FoldersEditor({
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
+  const [dragOverlayWidth, setDragOverlayWidth] = useState<number | null>(null);
   const offsetLeftRef = useRef(0);
   const [projectedParentId, setProjectedParentId] = useState<string | null>(
     null,
@@ -218,6 +221,12 @@ export default function FoldersEditor({
   // Drag handlers
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id);
+
+    // Capture width of the dragged element for the overlay
+    const element = active.rect.current.initial;
+    if (element) {
+      setDragOverlayWidth(element.width);
+    }
 
     // If dragging a selected item, drag all selected items
     // Otherwise, just drag the single item
@@ -616,6 +625,7 @@ export default function FoldersEditor({
     offsetLeftRef.current = 0;
     setProjectedParentId(null);
     setDraggedItemIds(new Set());
+    setDragOverlayWidth(null);
   };
 
   // Tree item handlers - memoized to prevent unnecessary re-renders
@@ -668,11 +678,18 @@ export default function FoldersEditor({
     [onChange],
   );
 
-  // Get active item for drag overlay
-  const activeItem = useMemo(() => {
-    if (!activeId) return null;
-    return flattenedItems.find(({ uuid }) => uuid === activeId);
-  }, [activeId, flattenedItems]);
+  // Get items for drag overlay (max 3 items for stacked display)
+  const dragOverlayItems = useMemo(() => {
+    if (!activeId || draggedItemIds.size === 0) return [];
+
+    // Get all dragged items in their original order
+    const items = fullFlattenedItems.filter(item =>
+      draggedItemIds.has(item.uuid),
+    );
+
+    // Return max 3 items for stacked display
+    return items.slice(0, 3);
+  }, [activeId, draggedItemIds, fullFlattenedItems]);
 
   // Determine which items are the last child of their parent folder
   const lastChildIds = useMemo(() => {
@@ -892,20 +909,36 @@ export default function FoldersEditor({
             })}
           </SortableContext>
 
-          {/* Drag overlay */}
+          {/* Drag overlay - stacked items when dragging multiple */}
           <DragOverlay>
-            {activeItem && (
-              <TreeItem
-                id={activeItem.uuid}
-                type={activeItem.type}
-                name={
-                  draggedItemIds.size > 1
-                    ? `${activeItem.name} +${draggedItemIds.size - 1} more`
-                    : activeItem.name
-                }
-                depth={0}
-                isFolder={activeItem.type === FoldersEditorItemType.Folder}
-              />
+            {dragOverlayItems.length > 0 && (
+              <DragOverlayStack width={dragOverlayWidth ?? undefined}>
+                {/* Render back-to-front: last items first (behind), active item last (front) */}
+                {/* This ensures proper DOM order for z-index stacking */}
+                {[...dragOverlayItems].reverse().map((item, index) => {
+                  // index 0 = last item (back), index n-1 = first item (front)
+                  const stackIndex = dragOverlayItems.length - 1 - index;
+                  return (
+                    <DragOverlayItem
+                      key={item.uuid}
+                      stackIndex={stackIndex}
+                      totalItems={dragOverlayItems.length}
+                    >
+                      <TreeItem
+                        id={item.uuid}
+                        type={item.type}
+                        name={item.name}
+                        depth={0}
+                        isFolder={item.type === FoldersEditorItemType.Folder}
+                        isOverlay
+                        isSelected={selectedItemIds.has(item.uuid)}
+                        metric={metricsMap.get(item.uuid)}
+                        column={columnsMap.get(item.uuid)}
+                      />
+                    </DragOverlayItem>
+                  );
+                })}
+              </DragOverlayStack>
             )}
           </DragOverlay>
         </DndContext>
