@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
 import {
   UniqueIdentifier,
@@ -71,20 +71,58 @@ export function useDragHandlers({
   );
   const [draggedItemIds, setDraggedItemIds] = useState<Set<string>>(new Set());
 
+  // RAF-based batching for projectedParentId updates
+  const pendingParentIdRef = useRef<string | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  const scheduleProjectedParentUpdate = useCallback(
+    (newParentId: string | null) => {
+      pendingParentIdRef.current = newParentId;
+
+      // Only schedule if not already scheduled
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          setProjectedParentId(prev =>
+            prev === pendingParentIdRef.current
+              ? prev
+              : pendingParentIdRef.current,
+          );
+        });
+      }
+    },
+    [],
+  );
+
   // Compute flattened items for display (excludes dragged item's children)
   const flattenedItems = useMemo(
     () => computeFlattenedItems(activeId),
     [computeFlattenedItems, activeId],
   );
 
-  const resetDragState = () => {
+  // Build index map for O(1) lookups during drag operations
+  const flattenedItemsIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    flattenedItems.forEach((item, index) => {
+      map.set(item.uuid, index);
+    });
+    return map;
+  }, [flattenedItems]);
+
+  const resetDragState = useCallback(() => {
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
     setProjectedParentId(null);
     setDraggedItemIds(new Set());
     setDragOverlayWidth(null);
-  };
+    // Cancel any pending RAF
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    pendingParentIdRef.current = null;
+  }, []);
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id);
@@ -104,55 +142,69 @@ export function useDragHandlers({
     }
   };
 
-  const handleDragMove = ({ delta }: DragMoveEvent) => {
-    offsetLeftRef.current = delta.x;
+  const handleDragMove = useCallback(
+    ({ delta }: DragMoveEvent) => {
+      offsetLeftRef.current = delta.x;
 
-    // Calculate projected parent for visual feedback
-    if (activeId && overId) {
-      // Handle empty folder drop zones
-      if (typeof overId === 'string' && overId.endsWith('-empty')) {
-        // For empty drops, the parent is the folder itself
-        const folderId = overId.replace('-empty', '');
-        setProjectedParentId(prev => (prev === folderId ? prev : folderId));
-        return;
+      // Calculate projected parent for visual feedback
+      if (activeId && overId) {
+        // Handle empty folder drop zones
+        if (typeof overId === 'string' && overId.endsWith('-empty')) {
+          // For empty drops, the parent is the folder itself
+          const folderId = overId.replace('-empty', '');
+          scheduleProjectedParentUpdate(folderId);
+          return;
+        }
+
+        const projection = getProjection(
+          flattenedItems,
+          activeId,
+          overId,
+          delta.x,
+          DRAG_INDENTATION_WIDTH,
+          flattenedItemsIndexMap,
+        );
+        const newParentId = projection?.parentId ?? null;
+        scheduleProjectedParentUpdate(newParentId);
       }
+    },
+    [
+      activeId,
+      overId,
+      flattenedItems,
+      flattenedItemsIndexMap,
+      scheduleProjectedParentUpdate,
+    ],
+  );
 
-      const projection = getProjection(
-        flattenedItems,
-        activeId,
-        overId,
-        delta.x,
-        DRAG_INDENTATION_WIDTH,
-      );
-      const newParentId = projection?.parentId ?? null;
-      setProjectedParentId(prev => (prev === newParentId ? prev : newParentId));
-    }
-  };
+  const handleDragOver = useCallback(
+    ({ over }: DragOverEvent) => {
+      setOverId(over?.id ?? null);
 
-  const handleDragOver = ({ over }: DragOverEvent) => {
-    setOverId(over?.id ?? null);
+      // Recalculate projection when over target changes
+      if (activeId && over) {
+        if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
+          const folderId = over.id.replace('-empty', '');
+          scheduleProjectedParentUpdate(folderId);
+          return;
+        }
 
-    // Recalculate projection when over target changes
-    if (activeId && over) {
-      if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
-        const folderId = over.id.replace('-empty', '');
-        setProjectedParentId(prev => (prev === folderId ? prev : folderId));
-        return;
+        const projection = getProjection(
+          flattenedItems,
+          activeId,
+          over.id,
+          offsetLeftRef.current,
+          DRAG_INDENTATION_WIDTH,
+          flattenedItemsIndexMap,
+        );
+        const newParentId = projection?.parentId ?? null;
+        scheduleProjectedParentUpdate(newParentId);
+      } else {
+        scheduleProjectedParentUpdate(null);
       }
-
-      const projection = getProjection(
-        flattenedItems,
-        activeId,
-        over.id,
-        offsetLeftRef.current,
-        DRAG_INDENTATION_WIDTH,
-      );
-      const newParentId = projection?.parentId ?? null;
-      setProjectedParentId(prev => (prev === newParentId ? prev : newParentId));
-    } else {
-      setProjectedParentId(prev => (prev === null ? prev : null));
-    }
-  };
+    },
+    [activeId, flattenedItems, flattenedItemsIndexMap, scheduleProjectedParentUpdate],
+  );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const itemsBeingDragged = Array.from(draggedItemIds);
