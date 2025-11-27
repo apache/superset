@@ -28,8 +28,9 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
-import Tab from './Tab';
+import Tab, { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import Markdown from '../Markdown';
+import { LayoutItem } from 'src/dashboard/types';
 
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
@@ -52,9 +53,9 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Droppable: jest.fn(props => {
     const childProps = props.editMode
       ? {
-          dragSourceRef: props.dragSourceRef,
-          dropIndicatorProps: props.dropIndicatorProps,
-        }
+        dragSourceRef: props.dragSourceRef,
+        dropIndicatorProps: props.dropIndicatorProps,
+      }
       : {};
     const handleClick = () => {
       if (props.onDrop) {
@@ -103,7 +104,7 @@ const createProps = () => ({
   parentId: 'TABS-L-d9eyOE-b',
   depth: 2,
   index: 1,
-  renderType: 'RENDER_TAB_CONTENT',
+  renderType: RENDER_TAB_CONTENT as typeof RENDER_TAB | typeof RENDER_TAB_CONTENT,
   availableColumnCount: 12,
   columnWidth: 120,
   isFocused: false,
@@ -113,14 +114,14 @@ const createProps = () => ({
     meta: { text: '🚀 Aspiring Developers' },
     parents: ['ROOT_ID', 'GRID_ID', 'TABS-L-d9eyOE-b'],
     type: 'TAB',
-  },
+  } as LayoutItem,
   parentComponent: {
     children: ['TAB-AsMaxdYL_t', 'TAB-YT6eNksV-', 'TAB-l_9I0aNYZ'],
     id: 'TABS-L-d9eyOE-b',
     meta: {},
     parents: ['ROOT_ID', 'GRID_ID'],
     type: 'TABS',
-  },
+  } as LayoutItem,
   editMode: false,
   embeddedMode: false,
   undoLength: 0,
@@ -143,7 +144,7 @@ beforeEach(() => {
 
 test('Render tab (no content)', () => {
   const props = createProps();
-  props.renderType = 'RENDER_TAB';
+  props.renderType = RENDER_TAB;
   const { getByTestId } = render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
