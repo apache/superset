@@ -260,7 +260,7 @@ function TreeItemComponent({
           {...attributes}
           {...listeners}
           css={theme => css`
-            margin-right: ${theme.marginLG}px;
+            margin-right: ${theme.marginSM}px;
           `}
         >
           <Icons.Move iconSize="xl" />
@@ -283,9 +283,13 @@ function TreeItemComponent({
         />
       )}
 
-      {isFolder && isDefaultFolder && (
+      {isFolder && (
         <DefaultFolderIconContainer>
-          <Icons.FolderViewOutlined />
+          {isDefaultFolder ? (
+            <Icons.FolderViewOutlined />
+          ) : (
+            <Icons.FolderOutlined />
+          )}
         </DefaultFolderIconContainer>
       )}
 

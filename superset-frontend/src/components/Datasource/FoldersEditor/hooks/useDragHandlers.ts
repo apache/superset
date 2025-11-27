@@ -205,7 +205,7 @@ export function useDragHandlers({
     const finalOffsetLeft = offsetLeftRef.current;
     resetDragState();
 
-    if (!over) {
+    if (!over || itemsBeingDragged.length === 0) {
       return;
     }
 
@@ -458,6 +458,12 @@ export function useDragHandlers({
       ...subtree,
       ...remaining.slice(insertionIndex),
     ];
+
+    // Safety check: verify all items are preserved after sorting
+    if (sortedItems.length !== fullFlattenedItems.length) {
+      // If items were lost, don't apply the change
+      return;
+    }
 
     const newTree = buildTree(sortedItems);
     setItems(newTree);
