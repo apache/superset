@@ -582,6 +582,16 @@ export default function transformProps(
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
   }
 
+  // Ensure hideOverlap is false for temporal axes to show last temporal tick, true otherwise
+  // Do this after potential swap so that axis.type matches the final axis object
+  const setHideOverlap = (axis: any) => {
+    if (axis && axis.axisLabel) {
+      axis.axisLabel.hideOverlap = axis.type === AxisType.Time ? false : true;
+    }
+  };
+  setHideOverlap(xAxis);
+  setHideOverlap(yAxis);
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
