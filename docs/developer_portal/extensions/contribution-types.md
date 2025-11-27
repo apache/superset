@@ -35,14 +35,18 @@ Frontend contribution types allow extensions to extend Superset's user interface
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Each view is registered with a unique ID and can be activated or deactivated as needed. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
 ``` json
-"views": {
-  "sqllab.panels": [
-    {
-      "id": "dataset_references.main",
-      "name": "Table references"
+"frontend": {
+  "contributions": {
+    "views": {
+      "sqllab.panels": [
+        {
+          "id": "my_extension.main",
+          "name": "My Panel Name"
+        }
+      ]
     }
-  ]
-},
+  }
+}
 ```
 
 ### Commands
@@ -50,14 +54,18 @@ Extensions can add new views or panels to the host application, such as custom S
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command can specify properties like a unique command identifier, an icon, a title, and a description. These commands can be invoked by users through menus, keyboard shortcuts, or other UI elements, enabling extensions to add rich, interactive functionality to Superset.
 
 ``` json
-"commands": [
-  {
-    "command": "extension1.copy_query",
-    "icon": "CopyOutlined",
-    "title": "Copy Query",
-    "description": "Copy the current query to clipboard"
-  },
-]
+"frontend": {
+  "contributions": {
+    "commands": [
+      {
+        "command": "my_extension.copy_query",
+        "icon": "CopyOutlined",
+        "title": "Copy Query",
+        "description": "Copy the current query to clipboard"
+      }
+    ]
+  }
+}
 ```
 
 ### Menus
@@ -65,31 +73,31 @@ Extensions can define custom commands that can be executed within the host appli
 Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item can specify properties such as the target view, the command to execute, its placement (primary, secondary, or context), and conditions for when it should be displayed. Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor), allowing extensions to seamlessly integrate their functionality into specific menus and workflows within Superset.
 
 ``` json
-"menus": {
-  "sqllab.editor": {
-    "primary": [
-      {
-        "view": "builtin.editor",
-        "command": "extension1.copy_query"
+"frontend": {
+  "contributions": {
+    "menus": {
+      "sqllab.editor": {
+        "primary": [
+          {
+            "view": "builtin.editor",
+            "command": "my_extension.copy_query"
+          }
+        ],
+        "secondary": [
+          {
+            "view": "builtin.editor",
+            "command": "my_extension.prettify"
+          }
+        ],
+        "context": [
+          {
+            "view": "builtin.editor",
+            "command": "my_extension.clear"
+          }
+        ]
       }
-    ],
-    "secondary": [
-      {
-        "view": "builtin.editor",
-        "command": "extension1.prettify"
-      }
-    ],
-    "context": [
-      {
-        "view": "builtin.editor",
-        "command": "extension1.clear"
-      },
-      {
-        "view": "builtin.editor",
-     "command": "extension1.refresh"
-      }
-    ]
-  },
+    }
+  }
 }
 ```
 
