@@ -50,6 +50,7 @@ import {
   FolderName,
   DragHandleContainer,
   EmptyFolderDropZone,
+  ItemSeparator,
 } from './TreeItem.styles';
 
 const FOLDER_NAME_PLACEHOLDER = t(
@@ -70,8 +71,8 @@ interface TreeItemProps {
   onStartEdit?: (id: string) => void;
   onFinishEdit?: (id: string, newName: string) => void;
   isDefaultFolder?: boolean;
-  isLastChild?: boolean;
   showEmptyState?: boolean;
+  separatorType?: 'visible' | 'transparent';
   isDropTarget?: boolean;
   isForbiddenDrop?: boolean;
   metric?: Metric;
@@ -93,8 +94,8 @@ function TreeItemComponent({
   onStartEdit,
   onFinishEdit,
   isDefaultFolder = false,
-  isLastChild = false,
   showEmptyState = false,
+  separatorType,
   isDropTarget = false,
   isForbiddenDrop = false,
   metric,
@@ -338,6 +339,10 @@ function TreeItemComponent({
         <TreeItemContainer {...containerProps}>
           {containerContent}
         </TreeItemContainer>
+      )}
+
+      {separatorType && !isDragging && (
+        <ItemSeparator variant={separatorType} />
       )}
 
       {isFolder && showEmptyState && !isCollapsed && (

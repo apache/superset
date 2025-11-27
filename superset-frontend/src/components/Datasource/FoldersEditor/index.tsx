@@ -286,6 +286,50 @@ export default function FoldersEditor({
     return lastChildren;
   }, [flattenedItems]);
 
+  const itemSeparatorInfo = useMemo(() => {
+    const separators = new Map<string, 'visible' | 'transparent'>();
+
+    flattenedItems.forEach((item, index) => {
+      if (item.type === FoldersEditorItemType.Folder) {
+        return;
+      }
+
+      if (!lastChildIds.has(item.uuid)) {
+        return;
+      }
+
+      const nextItem = flattenedItems[index + 1];
+      if (!nextItem) {
+        return;
+      }
+
+      // Case 1: Next item is a top-level folder (depth 0)
+      // This means current item is the last descendant of the previous top-level folder
+      // -> Full-width colored separator
+      if (
+        nextItem.type === FoldersEditorItemType.Folder &&
+        nextItem.depth === 0
+      ) {
+        separators.set(item.uuid, 'visible');
+        return;
+      }
+
+      // Case 2: Last item of a nested folder followed by a sibling item (not a folder)
+      // -> Transparent separator for spacing
+      if (
+        item.depth > 1 &&
+        nextItem.depth < item.depth &&
+        nextItem.type !== FoldersEditorItemType.Folder
+      ) {
+        separators.set(item.uuid, 'transparent');
+      }
+
+      // Case 3: Nested folder followed by another nested folder -> no separator
+    });
+
+    return separators;
+  }, [flattenedItems, lastChildIds]);
+
   const sortableItemIds = useMemo(
     () => flattenedItems.map(({ uuid }) => uuid),
     [flattenedItems],
@@ -353,8 +397,8 @@ export default function FoldersEditor({
                   isSelected={selectedItemIds.has(item.uuid)}
                   isEditing={editingFolderId === item.uuid}
                   isDefaultFolder={isDefaultFolder(item.uuid)}
-                  isLastChild={lastChildIds.has(item.uuid)}
                   showEmptyState={showEmptyState}
+                  separatorType={itemSeparatorInfo.get(item.uuid)}
                   isDropTarget={isFolder && item.uuid === projectedParentId}
                   isForbiddenDrop={
                     isFolder && forbiddenDropFolderIds.has(item.uuid)
