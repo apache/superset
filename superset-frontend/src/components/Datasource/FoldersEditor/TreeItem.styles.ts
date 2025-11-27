@@ -41,16 +41,27 @@ export const TreeItemContainer = styled.div<{
   `}
 `;
 
+export const ItemSeparator = styled.div<{
+  variant: 'visible' | 'transparent';
+}>`
+  ${({ theme, variant }) => `
+    height: 1px;
+    background-color: ${variant === 'visible' ? theme.colorBorderSecondary : 'transparent'};
+    margin: ${variant === 'visible' ? theme.marginLG : theme.marginSM}px ${theme.marginMD}px;
+    margin-left: ${theme.marginSM}px;
+  `}
+`;
+
 export const TreeFolderContainer = styled(TreeItemContainer)<{
   isDropTarget?: boolean;
   isForbiddenDropTarget?: boolean;
 }>`
   ${({ theme, depth, isDropTarget, isForbiddenDropTarget, isOverlay }) => `
     margin-top: ${isOverlay ? 0 : theme.marginLG}px;
-    margin-bottom: ${isOverlay ? 0 : theme.marginSM}px;
+    margin-bottom: ${isOverlay ? 0 : theme.margin}px;
     margin-left: ${isOverlay ? 0 : depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
-    padding: ${theme.paddingXXS}px ${theme.paddingSM}px;
+    padding: 0 ${theme.paddingSM}px;
     margin-right: ${isOverlay ? 0 : theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     ${
