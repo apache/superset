@@ -64,6 +64,13 @@ export class GlossaryTerm {
   }
 
   /**
+   * Returns a formatted display version of the title with underscores replaced by spaces.
+   */
+  getDisplayTitle(): string {
+    return this.title.replace(/_/g, ' ');
+  }
+
+  /**
    * Returns the short description, optionally transformed by a provided translation function.
    */
   getShort(t?: (value: string) => string): string {
