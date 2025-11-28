@@ -41,6 +41,7 @@ import {
 import { fDuration, extendedDayjs } from '@superset-ui/core/utils/dates';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
+import { makeUrl } from 'src/utils/pathUtils';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, StyledTooltip } from './styles';
@@ -68,7 +69,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/sqllab?queryId=${id}`;
+  const url = makeUrl(`/sqllab?queryId=${id}`);
   window.open(url);
 };
 
