@@ -314,6 +314,21 @@ const config: ControlPanelConfig = {
             config: percentMetricsControl,
           },
         ],
+        [
+          {
+            name: 'chart_columns',
+            config: {
+              type: 'ChartColumnsControl',
+              label: t('Chart columns'),
+              description: t(
+                'Add columns that display charts for each row. Charts summarize numerical metrics in each row. Best used when the metric columns make sense to be visualized in a chart.',
+              ),
+              default: [],
+              visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
         ['adhoc_filters'],
         [
           {
