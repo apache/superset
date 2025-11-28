@@ -18,6 +18,13 @@
  */
 
 import {
+  TreeItem,
+  FlattenedTreeItem,
+  DRAG_INDENTATION_WIDTH,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_METRICS_FOLDER_UUID,
+} from './constants';
+import {
   flattenTree,
   buildTree,
   findItemDeep,
@@ -25,18 +32,10 @@ import {
   getChildCount,
   serializeForAPI,
   getDescendantIds,
-  canAcceptDrop,
-  canNestFolder,
   getProjection,
-  TreeItem,
-  FlattenedTreeItem,
-  DRAG_INDENTATION_WIDTH,
-} from './utilities';
+} from './treeUtils';
+import { canAcceptDrop, canNestFolder } from './folderValidation';
 import { FoldersEditorItemType } from '../types';
-import {
-  DEFAULT_COLUMNS_FOLDER_UUID,
-  DEFAULT_METRICS_FOLDER_UUID,
-} from './folderUtils';
 
 const createMetricItem = (uuid: string, name: string): TreeItem => ({
   uuid,
@@ -643,6 +642,264 @@ test('getProjection returns null for invalid drag', () => {
   const projection = getProjection(items, 'nonexistent', 'folder1', 0);
 
   expect(projection).toBeNull();
+});
+
+test('buildTree preserves order when moving nested folder with children to root', () => {
+  // This tests the scenario where a nested folder with children is dragged
+  // horizontally to become a root-level folder
+  // Initial structure: FolderA > NestedFolder > Metric1
+  // After drag: NestedFolder (root) > Metric1, FolderA (root)
+  const flatItems: FlattenedTreeItem[] = [
+    {
+      uuid: 'folderA',
+      type: FoldersEditorItemType.Folder,
+      name: 'Folder A',
+      parentId: null,
+      depth: 0,
+      index: 0,
+      children: [],
+    },
+    {
+      uuid: 'nestedFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Nested Folder',
+      parentId: null, // Was 'folderA', now moved to root
+      depth: 0, // Was 1, now 0
+      index: 1,
+      children: [],
+    },
+    {
+      uuid: 'metric1',
+      type: FoldersEditorItemType.Metric,
+      name: 'Metric 1',
+      parentId: 'nestedFolder', // Still points to nestedFolder
+      depth: 1, // Was 2, now 1
+      index: 0,
+    },
+  ];
+
+  const tree = buildTree(flatItems);
+
+  // Both folders should be at root level
+  expect(tree).toHaveLength(2);
+  expect(tree[0].uuid).toBe('folderA');
+  expect(tree[1].uuid).toBe('nestedFolder');
+
+  // nestedFolder should still have metric1 as its child
+  const nestedFolder = tree[1] as { children?: TreeItem[] };
+  expect(nestedFolder.children).toBeDefined();
+  expect(nestedFolder.children).toHaveLength(1);
+  expect(nestedFolder.children![0].uuid).toBe('metric1');
+});
+
+test('buildTree handles reordered array correctly after drag', () => {
+  // Simulates the exact scenario of dragging NestedFolder out of ParentFolder
+  // This is the array AFTER handleDragEnd reorders it (before buildTree sorts by depth)
+  //
+  // Original: ParentFolder > NestedFolder > Metric1
+  // After horizontal drag left: NestedFolder becomes sibling of ParentFolder
+  //
+  // The reordered array from handleDragEnd puts subtree at new position:
+  // [ParentFolder, NestedFolder, Metric1] where NestedFolder is now at depth 0
+  const flatItems: FlattenedTreeItem[] = [
+    {
+      uuid: 'parentFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Parent Folder',
+      parentId: null,
+      depth: 0,
+      index: 0,
+      children: [],
+    },
+    {
+      uuid: 'nestedFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Nested Folder',
+      parentId: null, // Changed from 'parentFolder' to null (moved to root)
+      depth: 0, // Changed from 1 to 0 (moved to root)
+      index: 1,
+      children: [],
+    },
+    {
+      uuid: 'metric1',
+      type: FoldersEditorItemType.Metric,
+      name: 'Metric 1',
+      parentId: 'nestedFolder', // Still nestedFolder (unchanged)
+      depth: 1, // Changed from 2 to 1 (parent moved up)
+      index: 0,
+    },
+  ];
+
+  const tree = buildTree(flatItems);
+
+  // Verify structure
+  expect(tree).toHaveLength(2);
+
+  // Find nestedFolder in tree
+  const nestedFolder = tree.find(
+    item => item.uuid === 'nestedFolder',
+  ) as TreeItem & { children: TreeItem[] };
+  expect(nestedFolder).toBeDefined();
+  expect(nestedFolder.children).toHaveLength(1);
+  expect(nestedFolder.children[0].uuid).toBe('metric1');
+
+  // ParentFolder should be empty now
+  const parentFolder = tree.find(
+    item => item.uuid === 'parentFolder',
+  ) as TreeItem & { children: TreeItem[] };
+  expect(parentFolder).toBeDefined();
+  expect(parentFolder.children).toHaveLength(0);
+});
+
+test('getProjection calculates correct depth when dragging folder horizontally with children excluded', () => {
+  // When dragging a folder horizontally, its children should be excluded from the
+  // items array to avoid incorrect minDepth calculation.
+  // This tests that with children excluded, dragging left allows moving to root.
+  const itemsWithoutChildren: FlattenedTreeItem[] = [
+    {
+      uuid: 'parentFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Parent Folder',
+      parentId: null,
+      depth: 0,
+      index: 0,
+      children: [],
+    },
+    {
+      uuid: 'nestedFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Nested Folder',
+      parentId: 'parentFolder',
+      depth: 1,
+      index: 1,
+      children: [],
+    },
+    // Note: metric1 (child of nestedFolder) is excluded, simulating the drag state
+  ];
+
+  // Drag nestedFolder horizontally left (negative offset)
+  const projection = getProjection(
+    itemsWithoutChildren,
+    'nestedFolder',
+    'nestedFolder',
+    -DRAG_INDENTATION_WIDTH, // Drag left by one indentation
+  );
+
+  expect(projection).not.toBeNull();
+  // With children excluded and dragging left, folder should move to depth 0
+  expect(projection!.depth).toBe(0);
+  expect(projection!.parentId).toBeNull();
+});
+
+test('getProjection incorrectly clamps depth when children are included', () => {
+  // This test documents why children must be excluded during projection:
+  // If children are included, minDepth is calculated from the child's depth,
+  // which prevents the folder from moving to a shallower depth.
+  const itemsWithChildren: FlattenedTreeItem[] = [
+    {
+      uuid: 'parentFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Parent Folder',
+      parentId: null,
+      depth: 0,
+      index: 0,
+      children: [],
+    },
+    {
+      uuid: 'nestedFolder',
+      type: FoldersEditorItemType.Folder,
+      name: 'Nested Folder',
+      parentId: 'parentFolder',
+      depth: 1,
+      index: 1,
+      children: [],
+    },
+    {
+      uuid: 'metric1',
+      type: FoldersEditorItemType.Metric,
+      name: 'Metric 1',
+      parentId: 'nestedFolder',
+      depth: 2,
+      index: 2,
+    },
+  ];
+
+  // Drag nestedFolder horizontally left (negative offset)
+  const projection = getProjection(
+    itemsWithChildren,
+    'nestedFolder',
+    'nestedFolder',
+    -DRAG_INDENTATION_WIDTH, // Drag left by one indentation
+  );
+
+  expect(projection).not.toBeNull();
+  // With children included, minDepth is metric1.depth = 2
+  // So depth gets clamped to 2, which is incorrect behavior!
+  // This is why handleDragEnd should use flattenedItems (children excluded)
+  expect(projection!.depth).toBe(2);
+  expect(projection!.parentId).toBe('parentFolder');
+});
+
+test('flattenTree and buildTree roundtrip preserves nested folder structure', () => {
+  // Test that flatten -> modify parentId/depth -> buildTree preserves children
+  const originalTree: TreeItem[] = [
+    createFolderItem('parentFolder', 'Parent Folder', [
+      createFolderItem('nestedFolder', 'Nested Folder', [
+        createMetricItem('metric1', 'Metric 1'),
+      ]),
+    ]),
+  ];
+
+  // Flatten the tree
+  const flattened = flattenTree(originalTree);
+
+  // Verify flattened structure
+  expect(flattened).toHaveLength(3);
+  expect(flattened[0]).toMatchObject({
+    uuid: 'parentFolder',
+    depth: 0,
+    parentId: null,
+  });
+  expect(flattened[1]).toMatchObject({
+    uuid: 'nestedFolder',
+    depth: 1,
+    parentId: 'parentFolder',
+  });
+  expect(flattened[2]).toMatchObject({
+    uuid: 'metric1',
+    depth: 2,
+    parentId: 'nestedFolder',
+  });
+
+  // Simulate moving nestedFolder to root level (horizontal drag left)
+  const modifiedFlattened = flattened.map(item => {
+    if (item.uuid === 'nestedFolder') {
+      return { ...item, depth: 0, parentId: null };
+    }
+    if (item.uuid === 'metric1') {
+      return { ...item, depth: 1 }; // Depth decreases by 1, parentId stays same
+    }
+    return item;
+  });
+
+  // Rebuild tree
+  const rebuiltTree = buildTree(modifiedFlattened);
+
+  // Verify rebuilt structure
+  expect(rebuiltTree).toHaveLength(2);
+
+  const parentFolder = rebuiltTree.find(
+    i => i.uuid === 'parentFolder',
+  ) as TreeItem & { children: TreeItem[] };
+  const nestedFolder = rebuiltTree.find(
+    i => i.uuid === 'nestedFolder',
+  ) as TreeItem & { children: TreeItem[] };
+
+  expect(parentFolder).toBeDefined();
+  expect(nestedFolder).toBeDefined();
+  expect(parentFolder.children).toHaveLength(0); // nestedFolder moved out
+  expect(nestedFolder.children).toHaveLength(1); // metric1 still in nestedFolder
+  expect(nestedFolder.children[0].uuid).toBe('metric1');
 });
 
 test('getProjection nests item under folder when dragging down with offset', () => {

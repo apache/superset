@@ -30,7 +30,7 @@ import FoldersEditor from '.';
 import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
-} from './folderUtils';
+} from './constants';
 import { FoldersEditorItemType } from '../types';
 
 // Wrap render with useRedux: true since FoldersEditor uses useToasts which requires Redux

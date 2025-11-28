@@ -32,21 +32,20 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { FoldersEditorItemType } from '../types';
-import {
-  createFolder,
-  resetToDefault,
-  ensureDefaultFolders,
-  isDefaultFolder,
-  filterItemsBySearch,
-} from './folderUtils';
+import { TreeItem as TreeItemType, isDefaultFolder } from './constants';
 import {
   flattenTree,
   buildTree,
   removeChildrenOf,
   getChildCount,
   serializeForAPI,
-  TreeItem as TreeItemType,
-} from './utilities';
+} from './treeUtils';
+import {
+  createFolder,
+  resetToDefault,
+  ensureDefaultFolders,
+  filterItemsBySearch,
+} from './folderOperations';
 import { pointerSensorOptions, measuringConfig } from './sensors';
 import { TreeItem } from './TreeItem';
 import { FoldersContainer, FoldersContent } from './styles';
