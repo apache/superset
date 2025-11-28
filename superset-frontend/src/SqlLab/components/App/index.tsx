@@ -37,6 +37,7 @@ import {
 } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import RightSidebar from '../RightSidebar';
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -47,6 +48,18 @@ const SqlLabStyles = styled.div`
       bottom: 0;
       left: 0;
       padding: 0 ${theme.sizeUnit * 2}px;
+
+      .SqlLab-main {
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+        width: 100%;
+
+        > *:first-child {
+          flex: 1;
+          min-width: 0;
+        }
+      }
 
       pre:not(.code) {
         padding: 0 !important;
@@ -216,7 +229,10 @@ class App extends PureComponent<AppProps, AppState> {
           queries={queries}
           queriesLastUpdate={queriesLastUpdate}
         />
-        <TabbedSqlEditors />
+        <div className="SqlLab-main">
+          <TabbedSqlEditors />
+          <RightSidebar />
+        </div>
       </SqlLabStyles>
     );
   }
