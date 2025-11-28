@@ -89,7 +89,7 @@ import { matrixifyControls } from './matrixifyControls';
 import { glossary } from '@superset-ui/core';
 
 const SERIES_DESCRIPTION = glossary.Query.Series.encode();
-const ROW_LIMIT_DESCRIPTION = glossary.Query.RowLimit.encode();
+const ROW_LIMIT_DESCRIPTION = glossary.Query.Row_Limit.encode();
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
