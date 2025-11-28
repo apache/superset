@@ -8,7 +8,7 @@ test('chart type screenshot', async ({ page }) => {
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText('Choose chart type')).toBeVisible();
     await page.getByRole('tab', { name: 'All charts' }).click();
-    await page.evaluate(() => document.body.style.zoom = '0.8');
+    await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
     await page.waitForTimeout(1000); // wait for charts to load
     await (page.locator('.viz-gallery')).screenshot({ path: docsPath + 'gallery.jpg', type: 'jpeg' });
 });
@@ -17,7 +17,7 @@ test('dashboard content screenshot', async ({ page }) => {
     await page.goto('/dashboard/list/');
     await page.waitForLoadState('domcontentloaded');
     await page.getByRole('link', { name: 'Slack Dashboard' }).click();
-    await page.evaluate(() => document.body.style.zoom = '0.8');
+    await page.addStyleTag({ content: 'body { zoom: 0.8 }' });
     await page.waitForTimeout(5000); // wait for chart to load
     await (page.locator('[data-test="dashboard-content-wrapper"]')).screenshot({ path: docsPath + 'slack_dash.jpg', type: 'jpeg' });
 });
@@ -35,10 +35,6 @@ test('chart editor screenshot', async ({ page }) => {
 test('sqllab screenshot', async ({ page }) => {
     await page.goto('/sqllab');
     await page.waitForLoadState('domcontentloaded');
-    // await page.getByText('duckdbexamples').click();
-    // await page.locator('#duckdb-examples-1').getByText('examples').click();
-    // await page.locator('[data-test="Select schema or type to search schemas"]').getByText('main').click();
-    // await page.locator('div').filter({ hasText: /^main$/ }).nth(2).click();
     await page.getByRole('combobox', { name: 'Select schema or type to' }).fill('main');
     await page.getByRole('combobox', { name: 'Select schema or type to' }).press('Enter');
     await page.waitForTimeout(1000);
