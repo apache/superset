@@ -119,22 +119,20 @@ const getChartStateWithFallback = (chartState, formData, vizType) => {
   if (!hasChartStateConverter(vizType)) {
     return null;
   }
-  
+
   return (
-    chartState?.state ||
-    formData.table_state ||
-    formData.pivot_table_state
+    chartState?.state || formData.table_state || formData.pivot_table_state
   );
 };
 
 // Helper function to create own state with chart state conversion
 const createOwnStateWithChartState = (baseOwnState, chartState, vizType) => {
   const state = getChartStateWithFallback(chartState, {}, vizType);
-  
+
   if (!state) {
     return baseOwnState;
   }
-  
+
   const convertedState = convertChartStateToOwnState(vizType, state);
   return {
     ...baseOwnState,
@@ -412,7 +410,11 @@ const Chart = props => {
 
   const ownState = useMemo(() => {
     const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
-    return createOwnStateWithChartState(baseOwnState, chartState, slice.viz_type);
+    return createOwnStateWithChartState(
+      baseOwnState,
+      chartState,
+      slice.viz_type,
+    );
   }, [
     dataMask[props.id]?.ownState,
     props.id,
@@ -507,8 +509,12 @@ const Chart = props => {
         filename = `${safeChartName}${timestamp}.csv`;
       }
       const baseOwnState = dataMask[props.id]?.ownState || {};
-      const state = getChartStateWithFallback(chartState, formData, slice.viz_type);
-      
+      const state = getChartStateWithFallback(
+        chartState,
+        formData,
+        slice.viz_type,
+      );
+
       const ownState = state
         ? {
             ...baseOwnState,
@@ -689,8 +695,14 @@ const Chart = props => {
           labelsColorMap={labelsColorMap}
           ownState={createOwnStateWithChartState(
             dataMask[props.id]?.ownState || EMPTY_OBJECT,
-            { state: getChartStateWithFallback(chartState, formData, slice.viz_type) },
-            slice.viz_type
+            {
+              state: getChartStateWithFallback(
+                chartState,
+                formData,
+                slice.viz_type,
+              ),
+            },
+            slice.viz_type,
           )}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
