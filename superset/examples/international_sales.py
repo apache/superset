@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Currency test dataset for testing dynamic currency formatting features."""
+"""International sales dataset demonstrating multi-currency transactions."""
 
 import logging
 
@@ -32,8 +32,8 @@ from .helpers import get_table_connector_registry
 logger = logging.getLogger(__name__)
 
 
-def get_currency_test_data() -> pd.DataFrame:
-    """Generate the currency test dataset with multiple currencies."""
+def get_international_sales_data() -> pd.DataFrame:
+    """Generate the international sales dataset with multiple currencies."""
     # fmt: off
     data = [
         # North America - USA (USD)
@@ -125,6 +125,16 @@ def get_currency_test_data() -> pd.DataFrame:
          65, 549.99, 35749.35, 22750.00, 12999.35, "EUR", "€"),
         (38, "2024-03-15", "Asia", "Japan", "Electronics", "Tablet Pro",
          45, 64999.00, 2924955.00, 1575000.00, 1349955.00, "JPY", "¥"),
+        # Euro word/symbol normalization tests
+        (39, "2024-01-15", "Europe", "Spain", "Software", "Cloud Service",
+         100, 99.99, 9999.00, 5000.00, 4999.00, "euro", "€"),
+        (40, "2024-02-15", "Europe", "Italy", "Software", "Cloud Service",
+         120, 99.99, 11998.80, 6000.00, 5998.80, "EURO", "€"),
+        (41, "2024-03-15", "Europe", "Portugal", "Software", "Cloud Service",
+         80, 99.99, 7999.20, 4000.00, 3999.20, "€", "€"),
+        # Invalid currency code fallback test
+        (42, "2024-01-15", "Other", "Unknown", "Electronics", "Mystery Device",
+         25, 200.00, 5000.00, 3000.00, 2000.00, "XYZ", "?"),
     ]
     # fmt: on
 
@@ -148,8 +158,8 @@ def get_currency_test_data() -> pd.DataFrame:
 
 
 def load_data(tbl_name: str, database: Database) -> None:
-    """Load the currency test data into the database."""
-    pdf = get_currency_test_data()
+    """Load the international sales data into the database."""
+    pdf = get_international_sales_data()
     pdf["transaction_date"] = pd.to_datetime(pdf["transaction_date"])
 
     with database.get_sqla_engine() as engine:
@@ -179,20 +189,23 @@ def load_data(tbl_name: str, database: Database) -> None:
             method="multi",
             index=False,
         )
-    logger.debug("Done loading currency test data!")
+    logger.debug("Done loading international sales data!")
 
 
-def load_currency_test(only_metadata: bool = False, force: bool = False) -> None:
-    """Load currency test dataset for testing dynamic currency formatting.
+def load_international_sales(only_metadata: bool = False, force: bool = False) -> None:
+    """Load international sales dataset for demonstrating dynamic currency formatting.
 
     This dataset contains multi-currency transaction data with:
     - Multiple currencies (USD, EUR, GBP, JPY, CAD, AUD)
     - Case variations for normalization testing (usd, eur, Gbp, Cad)
-    - NULL currency values for fallback testing
+    - Word variations for normalization testing (euro, EURO)
+    - Symbol variations for normalization testing (€)
+    - NULL and empty string currency values for fallback testing
+    - Invalid currency code (XYZ) for fallback testing
     - Multiple monetary columns (revenue, cost, profit, unit_price)
     """
     database = get_example_database()
-    tbl_name = "currency_test_full"
+    tbl_name = "international_sales"
 
     with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
@@ -212,10 +225,14 @@ def load_currency_test(only_metadata: bool = False, force: bool = False) -> None
 
 
 def _set_table_metadata(datasource: SqlaTable, database: Database) -> None:
-    """Set metadata for the currency test dataset."""
+    """Set metadata for the international sales dataset."""
     datasource.main_dttm_col = "transaction_date"
     datasource.database = database
     datasource.filter_select_enabled = True
+    datasource.description = (
+        "International sales transactions across multiple currencies "
+        "for demonstrating dynamic currency formatting features."
+    )
     # Set the currency code column for dynamic currency detection
     datasource.currency_code_column = "currency_code"
     datasource.fetch_metadata()
