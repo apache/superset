@@ -60,7 +60,7 @@ describe('Header', () => {
       meta: {
         ...(baseComponent.meta || {}),
         text: 'New Title',
-      }
+      },
     },
     depth: 1,
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
@@ -77,15 +77,15 @@ describe('Header', () => {
     return render(
       <Provider store={mockStoreWithTabs}>
         <DndProvider backend={HTML5Backend}>
-          <Header {...props as HeaderTestProps} {...overrideProps} />
+          <Header {...(props as HeaderTestProps)} {...overrideProps} />
         </DndProvider>
       </Provider>,
     );
   }
 
   beforeEach(() => {
-      if (props.deleteComponent) props.deleteComponent.resetHistory();
-      if (props.updateComponents) props.updateComponents.resetHistory();
+    if (props.deleteComponent) props.deleteComponent.resetHistory();
+    if (props.updateComponents) props.updateComponents.resetHistory();
   });
 
   test('should render a Draggable', () => {
@@ -129,10 +129,11 @@ describe('Header', () => {
 
     const headerId = props.id;
     expect(updateComponents.callCount).toBe(1);
-    const componentUpdates = updateComponents.getCall(0).args[0] as Record<string, any>;
-    expect(componentUpdates[headerId].meta.text).toBe(
-      'New title',
-    );
+    const componentUpdates = updateComponents.getCall(0).args[0] as Record<
+      string,
+      any
+    >;
+    expect(componentUpdates[headerId].meta.text).toBe('New title');
   });
 
   test('should render a DeleteComponentButton when focused in editMode', () => {
