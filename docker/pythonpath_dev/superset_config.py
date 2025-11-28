@@ -170,3 +170,17 @@ class CustomAppInitializer(SupersetAppInitializer):
             raise
 
 APP_INITIALIZER = CustomAppInitializer
+
+# Enable template processing for Handlebars charts
+ENABLE_TEMPLATE_PROCESSING = True
+
+# Enable HTML sanitization
+HTML_SANITIZATION = True
+
+# Define allowed HTML tags and attributes for sanitization
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "tags": ["div", "span", "style"],
+    "attributes": {
+        "*": ["class", "style"]
+    }
+}
