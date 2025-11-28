@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,7 +17,6 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@apache-superset/core/ui';
 
@@ -32,30 +31,63 @@ import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundSty
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import headerStyleOptions from 'src/dashboard/util/headerStyleOptions';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import {
   SMALL_HEADER,
   BACKGROUND_TRANSPARENT,
+  MEDIUM_HEADER,
+  LARGE_HEADER,
+  BACKGROUND_WHITE,
 } from 'src/dashboard/util/constants';
+import * as componentTypes from 'src/dashboard/util/componentTypes';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  dashboardId: PropTypes.string.isRequired,
-  parentId: PropTypes.string.isRequired,
-  component: componentShape.isRequired,
-  depth: PropTypes.number.isRequired,
-  parentComponent: componentShape.isRequired,
-  index: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  embeddedMode: PropTypes.bool.isRequired,
+export type ComponentType =
+  (typeof componentTypes)[keyof typeof componentTypes];
 
-  // redux
-  handleComponentDrop: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
-};
+export type HeaderStyleValue =
+  | typeof SMALL_HEADER
+  | typeof MEDIUM_HEADER
+  | typeof LARGE_HEADER;
 
-const defaultProps = {};
+export type BackgroundStyleValue =
+  | typeof BACKGROUND_TRANSPARENT
+  | typeof BACKGROUND_WHITE;
+
+export interface ComponentMeta {
+  width?: number;
+  height?: number;
+  text: string;
+  headerSize?: HeaderStyleValue;
+  background?: BackgroundStyleValue;
+  chartId?: number;
+  [key: string]: any;
+}
+
+export interface ComponentShape {
+  id: string;
+  type: ComponentType;
+  parents?: string[];
+  children?: string[];
+  meta: ComponentMeta;
+}
+
+interface HeaderProps {
+  id: string;
+  dashboardId: string;
+  parentId: string;
+  component: ComponentShape;
+  depth: number;
+  parentComponent: ComponentShape;
+  index: number;
+  editMode: boolean;
+  embeddedMode: boolean;
+  handleComponentDrop: (dropResult: any) => void;
+  deleteComponent: (id: string, parentId: string) => void;
+  updateComponents: (changes: Record<string, ComponentShape>) => void;
+}
+
+interface HeaderState {
+  isFocused: boolean;
+}
 
 const HeaderStyles = styled.div`
   ${({ theme }) => css`
@@ -127,8 +159,12 @@ const HeaderStyles = styled.div`
   `}
 `;
 
-class Header extends PureComponent {
-  constructor(props) {
+class Header extends PureComponent<HeaderProps, HeaderState> {
+  handleChangeSize: (nextValue: string) => void;
+  handleChangeBackground: (nextValue: string) => void;
+  handleChangeText: (nextValue: string) => void;
+
+  constructor(props: HeaderProps) {
     super(props);
     this.state = {
       isFocused: false,
@@ -136,19 +172,20 @@ class Header extends PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
-    this.handleChangeSize = this.handleUpdateMeta.bind(this, 'headerSize');
-    this.handleChangeBackground = this.handleUpdateMeta.bind(
-      this,
-      'background',
-    );
-    this.handleChangeText = this.handleUpdateMeta.bind(this, 'text');
+
+    this.handleChangeSize = (nextValue: string) =>
+      this.handleUpdateMeta('headerSize', nextValue);
+    this.handleChangeBackground = (nextValue: string) =>
+      this.handleUpdateMeta('background', nextValue);
+    this.handleChangeText = (nextValue: string) =>
+      this.handleUpdateMeta('text', nextValue);
   }
 
-  handleChangeFocus(nextFocus) {
+  handleChangeFocus(nextFocus: boolean): void {
     this.setState(() => ({ isFocused: nextFocus }));
   }
 
-  handleUpdateMeta(metaKey, nextValue) {
+  handleUpdateMeta(metaKey: keyof ComponentMeta, nextValue: string): void {
     const { updateComponents, component } = this.props;
     if (nextValue && component.meta[metaKey] !== nextValue) {
       updateComponents({
@@ -159,11 +196,11 @@ class Header extends PureComponent {
             [metaKey]: nextValue,
           },
         },
-      });
+      } as Record<string, ComponentShape>);
     }
   }
 
-  handleDeleteComponent() {
+  handleDeleteComponent(): void {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
   }
@@ -202,7 +239,11 @@ class Header extends PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dragSourceRef }) => (
+        {({
+          dragSourceRef,
+        }: {
+          dragSourceRef: React.Ref<HTMLDivElement> | undefined;
+        }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -216,12 +257,12 @@ class Header extends PureComponent {
                 <PopoverDropdown
                   id={`${component.id}-header-style`}
                   options={headerStyleOptions}
-                  value={component.meta.headerSize}
+                  value={component.meta.headerSize as string}
                   onChange={this.handleChangeSize}
                 />,
                 <BackgroundStyleDropdown
                   id={`${component.id}-background`}
-                  value={component.meta.background}
+                  value={component.meta.background as string}
                   onChange={this.handleChangeBackground}
                 />,
               ]}
@@ -231,8 +272,8 @@ class Header extends PureComponent {
                 className={cx(
                   'dashboard-component',
                   'dashboard-component-header',
-                  headerStyle.className,
-                  rowStyle.className,
+                  headerStyle?.className,
+                  rowStyle?.className,
                 )}
               >
                 {editMode && (
@@ -249,7 +290,10 @@ class Header extends PureComponent {
                   showTooltip={false}
                 />
                 {!editMode && !embeddedMode && (
-                  <AnchorLink id={component.id} dashboardId={dashboardId} />
+                  <AnchorLink
+                    id={component.id}
+                    dashboardId={Number(dashboardId)}
+                  />
                 )}
               </HeaderStyles>
             </WithPopoverMenu>
@@ -259,8 +303,5 @@ class Header extends PureComponent {
     );
   }
 }
-
-Header.propTypes = propTypes;
-Header.defaultProps = defaultProps;
 
 export default Header;
