@@ -26,6 +26,27 @@ from superset.themes.utils import (
 from superset.utils import json
 
 
+def _sanitize_and_validate_theme_config(theme_config: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize and validate theme configuration.
+
+    Applies token sanitization and font URL validation.
+    Returns the sanitized configuration.
+    """
+    sanitized_config = sanitize_theme_tokens(theme_config)
+
+    # Validate and sanitize fontUrls if present
+    if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+        font_urls = sanitized_config["token"].get("fontUrls")
+        if font_urls is not None:
+            sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
+
+    # Validate theme structure
+    if not is_valid_theme(sanitized_config):
+        raise ValidationError("Invalid theme configuration structure")
+
+    return sanitized_config
+
+
 class ImportV1ThemeSchema(Schema):
     theme_name = fields.String(required=True)
     json_data = fields.Raw(required=True)
@@ -46,18 +67,8 @@ class ImportV1ThemeSchema(Schema):
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate and sanitize fontUrls if present
-        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
-            font_urls = sanitized_config["token"].get("fontUrls")
-            if font_urls is not None:
-                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content for import
         if sanitized_config != theme_config:
@@ -86,18 +97,8 @@ class ThemePostSchema(Schema):
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate and sanitize fontUrls if present
-        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
-            font_urls = sanitized_config["token"].get("fontUrls")
-            if font_urls is not None:
-                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content
         # Note: This modifies the input data to ensure sanitized content is stored
@@ -123,18 +124,8 @@ class ThemePutSchema(Schema):
         except (TypeError, json.JSONDecodeError) as ex:
             raise ValidationError("Invalid JSON configuration") from ex
 
-        # Sanitize theme tokens (including SVG content)
-        sanitized_config = sanitize_theme_tokens(theme_config)
-
-        # Validate and sanitize fontUrls if present
-        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
-            font_urls = sanitized_config["token"].get("fontUrls")
-            if font_urls is not None:
-                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
-
-        # Validate theme structure
-        if not is_valid_theme(sanitized_config):
-            raise ValidationError("Invalid theme configuration structure")
+        # Sanitize and validate the theme configuration
+        sanitized_config = _sanitize_and_validate_theme_config(theme_config)
 
         # Update the field with sanitized content
         # Note: This modifies the input data to ensure sanitized content is stored

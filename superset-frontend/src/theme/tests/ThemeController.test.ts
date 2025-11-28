@@ -460,8 +460,8 @@ test('ThemeController resets to default theme', () => {
   expect(mockSetConfig).toHaveBeenCalledWith(
     expect.objectContaining({
       token: expect.objectContaining({
-        colorBgBase: '#141118',
-        colorTextBase: '#fdc7c7',
+        colorBgBase: '#ededed',
+        colorTextBase: '#120f0f',
       }),
     }),
   );

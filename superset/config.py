@@ -766,6 +766,10 @@ THEME_DEFAULT: Theme = {
         "colorSuccess": "#5ac189",
         "colorInfo": "#66bcfe",
         # Fonts
+        "fontUrls": [
+            "https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600&display=swap",
+            "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap",
+        ],
         "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
@@ -797,28 +801,16 @@ THEME_DARK: Optional[Theme] = {
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
-# Custom font configuration
-# Load external fonts at runtime without rebuilding the application
-# Example:
-# CUSTOM_FONT_URLS = [
-#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
-# ]
-CUSTOM_FONT_URLS: list[str] = []
-
-# Per-Theme Font URL Configuration
-# These settings control font loading via the theme's fontUrls token
-# Maximum number of font URLs allowed per theme
-# Limits prevent performance degradation from excessive font requests
+# Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 
-# Domains allowed for loading fonts via theme fontUrls token
-# Only HTTPS URLs from these domains will be accepted
+# Domains allowed for loading fonts via theme fontUrls token.
+# Only HTTPS URLs from these domains will be accepted.
 THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
-    "fonts.googleapis.com",  # Google Fonts API
-    "fonts.gstatic.com",  # Google Fonts CDN
-    "use.typekit.net",  # Adobe Fonts
-    "use.typekit.com",  # Adobe Fonts alternate
+    "fonts.googleapis.com",  # Google Fonts API (serves CSS)
+    "fonts.gstatic.com",  # Google Fonts CDN (serves font files)
+    "use.typekit.net",  # Adobe Fonts (serves both CSS and fonts)
+    "use.typekit.com",  # Adobe Fonts alternate (serves both CSS and fonts)
 ]
 
 # ---------------------------------------------------
@@ -1331,8 +1323,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
-    Callable[[Database, models.User, str, str], str]
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
+    None | (Callable[[Database, models.User, str, str], str])
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -1935,6 +1927,11 @@ TALISMAN_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
@@ -1970,6 +1967,11 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
