@@ -428,6 +428,7 @@ const Header = () => {
           ? refreshFrequency
           : dashboardInfo.metadata?.refresh_frequency,
       },
+      tags: dashboardInfo.tags,
     };
 
     // make sure positions data less than DB storage limitation:
@@ -504,14 +505,18 @@ const Header = () => {
 
   const handleOnPropertiesChange = useCallback(
     updates => {
-      boundActionCreators.dashboardInfoChanged({
+      const updatedDashboardInfos = {
         slug: updates.slug,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
-      });
+      };
+      if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+        updatedDashboardInfos.tags = updates.tags;
+      }
+      boundActionCreators.dashboardInfoChanged(updatedDashboardInfos);
       boundActionCreators.setUnsavedChanges(true);
       boundActionCreators.dashboardTitleChanged(updates.title);
     },

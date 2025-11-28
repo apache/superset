@@ -313,6 +313,9 @@ export function saveDashboardRequest(data, id, saveType) {
       roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
+      tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
+        ? undefined
+        : data.tags,
       slug: slug || null,
       metadata: {
         ...data.metadata,
@@ -446,6 +449,7 @@ export function saveDashboardRequest(data, id, saveType) {
               slug: cleanedData.slug,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
+              tags: cleanedData.tags,
               json_metadata: safeStringify({
                 ...(cleanedData?.metadata || {}),
                 default_filters: safeStringify(serializedFilters),
