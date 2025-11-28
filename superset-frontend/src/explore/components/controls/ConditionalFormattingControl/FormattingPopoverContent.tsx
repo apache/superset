@@ -91,6 +91,13 @@ const stringOperatorOptions = [
   { value: Comparator.NotContaining, label: t('not containing') },
 ];
 
+const booleanOperatorOptions = [
+  { value: Comparator.IsNull, label: t('is null') },
+  { value: Comparator.IsTrue, label: t('is true') },
+  { value: Comparator.IsFalse, label: t('is false') },
+  { value: Comparator.IsNotNull, label: t('is not null') },
+];
+
 const targetValueValidator =
   (
     compare: (targetValue: number, compareValue: number) => boolean,
@@ -160,7 +167,9 @@ const renderOperator = ({
   const options =
     columnType === GenericDataType.String
       ? stringOperatorOptions
-      : operatorOptions;
+      : columnType === GenericDataType.Boolean
+        ? booleanOperatorOptions
+        : operatorOptions;
 
   return (
     <FormItem
@@ -182,8 +191,25 @@ const renderOperatorFields = (
   columnType?: GenericDataType,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
+  const columnTypeBoolean = columnType === GenericDataType.Boolean;
   const operatorColSpan = columnTypeString ? 8 : 6;
   const valueColSpan = columnTypeString ? 16 : 18;
+
+  if (columnTypeBoolean) {
+    return (
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={valueColSpan}>
+          <FormItem
+            name="targetValue"
+            label={t('Target value')}
+            initialValue={''}
+            hidden
+           />
+        </Col>
+      </Row>
+    );
+  }
 
   return isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -307,7 +333,9 @@ export const FormattingPopoverContent = ({
       const defaultOperator =
         newColumnType === GenericDataType.String
           ? stringOperatorOptions[0].value
-          : operatorOptions[0].value;
+          : newColumnType === GenericDataType.Boolean
+            ? booleanOperatorOptions[0].value
+            : operatorOptions[0].value;
 
       form.setFieldsValue({
         operator: defaultOperator,
