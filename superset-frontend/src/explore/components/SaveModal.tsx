@@ -358,7 +358,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         }
         updatedPositionJson[tabId].children.push(rowKey);
       } else {
-        console.error(`Tab ${tabId} not found in positionJson`);
+        throw new Error(`Tab ${tabId} not found in positionJson`);
       }
 
       const response = await SupersetClient.put({
@@ -371,7 +371,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       return response;
     } catch (error) {
-      console.error('Error adding chart to dashboard tab:', error);
+      throw new Error('Error adding chart to dashboard tab:', error);
       throw error;
     }
   };
@@ -441,8 +441,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       const { result } = response.json;
       const tabTree = result.tab_tree || [];
 
-      const convertToTreeData = (nodes: any[]): any[] => {
-        return nodes.map(node => ({
+      const convertToTreeData = (nodes: any[]): any[] =>
+        nodes.map(node => ({
           value: node.value,
           title: node.title,
           key: node.value,
@@ -451,7 +451,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
               ? convertToTreeData(node.children)
               : undefined,
         }));
-      };
 
       const treeData = convertToTreeData(tabTree);
       this.setState({ tabsData: treeData });
