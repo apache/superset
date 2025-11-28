@@ -205,7 +205,7 @@ const renderOperatorFields = (
             label={t('Target value')}
             initialValue={''}
             hidden
-           />
+          />
         </Col>
       </Row>
     );
