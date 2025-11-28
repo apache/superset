@@ -43,9 +43,11 @@ import {
 } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { Dashboard } from 'src/types/Dashboard';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -127,6 +129,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         // continue regardless of error
       }
       dashboardId = lastDashboard && parseInt(lastDashboard, 10);
+    }
+    if (dashboardId) {
+      try {
+        const result = (await this.loadDashboard(dashboardId)) as Dashboard;
+        if (canUserEditDashboard(result, this.props.user)) {
+          this.setState({
+            dashboard: { label: result.dashboard_title, value: result.id },
+          });
+        }
+      } catch (error) {
+        logging.warn(error);
+        this.props.addDangerToast(
+          t('An error occurred while loading dashboard information.'),
+        );
+      }
     }
   }
 
