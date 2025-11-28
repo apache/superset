@@ -891,14 +891,14 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  it('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
       orient: 'horizontal',
-      type: 'plain',
+      type: 'scroll',
       ...expectedThemeProps,
     });
   });
