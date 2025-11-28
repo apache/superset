@@ -1,5 +1,6 @@
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
+import thumbnail from './Thumbnail.png';
 
 export default class FlaskChartPlugin extends ChartPlugin {
   constructor() {
@@ -8,7 +9,7 @@ export default class FlaskChartPlugin extends ChartPlugin {
       metadata: new ChartMetadata({
         name: 'Flask Chart',
         description: 'Renders a Flask-based chart in a sandboxed iframe',
-        thumbnail: '',
+        thumbnail: thumbnail,
       }),
       controlPanel,
     });
