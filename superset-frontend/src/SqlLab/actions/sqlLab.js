@@ -914,7 +914,10 @@ export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
 
 export function formatQuery(queryEditor) {
   return function (dispatch, getState) {
-    const { sql, dbId, templateParams } = getUpToDateQuery(getState(), queryEditor);
+    const { sql, dbId, templateParams } = getUpToDateQuery(
+      getState(),
+      queryEditor,
+    );
     const body = { sql };
 
     // Include database_id and template_params if available for Jinja processing
