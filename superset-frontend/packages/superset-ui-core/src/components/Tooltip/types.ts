@@ -17,11 +17,9 @@
  * under the License.
  */
 import { Tooltip } from 'antd';
-import type { GlossaryTerm } from '../../glossary/glossary';
 
 export type TooltipProps = React.ComponentProps<typeof Tooltip> & {
   overlayStyle?: React.CSSProperties;
-  glossaryTerm?: GlossaryTerm;
 };
 
 export type TooltipPlacement =

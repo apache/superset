@@ -21,25 +21,43 @@ import { Tooltip as AntdTooltip } from 'antd';
 import type { TooltipRef } from 'antd/es/tooltip';
 
 import type { TooltipProps, TooltipPlacement } from './types';
-import { getGlossaryUrl } from '../../glossary/glossary';
+import { resolveGlossaryString } from '../../glossary/glossaryUtils';
 
 export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
   ({
   overlayStyle,
-  glossaryTerm,
+  title,
   children,
   ...props
 }, ref) => {
-  const wrappedChildren = glossaryTerm ? (
-    <a href={getGlossaryUrl(glossaryTerm)} target="_blank" rel="noopener noreferrer">
+  // Check if the title matches a glossary term and get the URL if it does
+
+  if(typeof title !== 'string') {
+    return <>{children}</>;
+  }
+
+  const [glossaryUrl, description] = resolveGlossaryString(title as string);
+  const wrappedChildren = glossaryUrl ? (
+    <a href={glossaryUrl} target="_blank" rel="noopener noreferrer">
       {children}
     </a>
   ) : (
     children
   );
 
+  const wrappedDescription = glossaryUrl ? (
+    <>
+      {description}
+      <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }} />
+      <em>Click to Learn More</em>
+    </>
+  ) : (
+    description
+  );
+
   return (
       <AntdTooltip
+      title={wrappedDescription}
       ref={ref}
         styles={{
           body: { overflow: 'hidden', textOverflow: 'ellipsis' },

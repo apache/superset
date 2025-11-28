@@ -22,6 +22,10 @@ import { glossaryDefinition } from './glossary';
 
 export const GLOSSARY_BASE_URL = 'http://localhost:3000/docs'; // TODO: Change to use the url for the environment.
 
+// Pattern matches: [GLOSSARY]|topic|title|description
+// Captures: topic, title, and description (which may contain pipes)
+const GLOSSARY_ENCODING_PATTERN = /^\[GLOSSARY\]\|([^|]+)\|([^|]+)\|(.*)$/;
+
 /**
  * The exported glossary object is a runtime structure where each entry is a GlossaryTerm instance, but the key
  * structure mirrors `glossaryDefinition` so IDEs can autocomplete, yet callers can use methods like `getShort()`.
@@ -53,12 +57,22 @@ const glossaryMap = new GlossaryMap(glossary);
 
 export const getAllGlossaryTopics = (): GlossaryTopic[] => glossaryMap.getAllTopics();
 
+const buildGlossaryUrl = (topic: string, title: string): string =>
+  `${GLOSSARY_BASE_URL}/glossary#${encodeURIComponent(topic + '__' + title)}`;
+
+export const resolveGlossaryString = (glossaryString: string): [string | undefined, string] => {
+  const match = glossaryString.match(GLOSSARY_ENCODING_PATTERN);
+  if (!match) {
+    return [undefined, glossaryString];
+  }
+  const topic = match[1];
+  const title = match[2];
+  const description = match[3];
+  const glossaryUrl = buildGlossaryUrl(topic, title);
+  return [glossaryUrl, description];
+};
+
 export const getGlossaryTopic = (topicName: string): GlossaryTopic | undefined =>
   glossaryMap.getTopic(topicName);
-
-export const getGlossaryUrl = (term: GlossaryTerm): string =>
-  `${GLOSSARY_BASE_URL}/glossary#${encodeURIComponent(
-    term.getTopic() + '__' + term.getTitle(),
-  )}`;
 
 export default glossary;
