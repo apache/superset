@@ -43,6 +43,7 @@ import { glossary } from '@superset-ui/core';
 // Glossary terms used for tooltips
 const DIMENSION_DESCRIPTION = glossary.Query.Dimension.encode();
 const METRIC_DESCRIPTION = glossary.Query.Metric.encode();
+const SORT_DESCRIPTION = glossary.Query.Sort.encode();
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -221,11 +222,7 @@ export const dndSortByControl: SharedControlConfig<
   type: 'DndMetricSelect',
   label: t('Sort query by'),
   default: null,
-  description: t(
-    'Orders the query result that generates the source data for this chart. ' +
-      'If a series or row limit is reached, this determines what data are truncated. ' +
-      'If undefined, defaults to the first metric (where appropriate).',
-  ),
+  description: t(SORT_DESCRIPTION),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: defineSavedMetrics(datasource),
