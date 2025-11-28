@@ -22,7 +22,7 @@ import Component from './CountryMap';
 
 const ReactComponent = reactify(Component);
 
-const CountryMap = ({ className, ...otherProps }) => (
+const CountryMap = ({ className = '', ...otherProps }) => (
   <div className={className}>
     <ReactComponent {...otherProps} />
   </div>
