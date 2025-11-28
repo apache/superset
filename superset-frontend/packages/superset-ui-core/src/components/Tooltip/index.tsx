@@ -19,14 +19,33 @@
 import { Tooltip as AntdTooltip } from 'antd';
 
 import type { TooltipProps, TooltipPlacement } from './types';
+import { getGlossaryUrl } from '../../glossary/glossary';
 
-export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
-  <AntdTooltip
-    styles={{
-      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-      root: overlayStyle ?? {},
-    }}
-    {...props}
-  />
-);
+export const Tooltip = ({
+  overlayStyle,
+  glossaryTerm,
+  children,
+  ...props
+}: TooltipProps) => {
+  const wrappedChildren = glossaryTerm ? (
+    <a href={getGlossaryUrl(glossaryTerm)} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ) : (
+    children
+  );
+
+  return (
+    <AntdTooltip
+      styles={{
+        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+        root: overlayStyle ?? {},
+      }}
+      {...props}
+    >
+      {wrappedChildren}
+    </AntdTooltip>
+  );
+};
+
 export type { TooltipProps, TooltipPlacement };

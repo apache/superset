@@ -130,12 +130,6 @@ export { Tooltip as RawAntdTooltip } from 'antd';
 export { IconTooltip, type IconTooltipProps } from './IconTooltip';
 export { InfoTooltip, type InfoTooltipProps } from './InfoTooltip';
 export {
-  GlossaryTooltip,
-  GLOSSARY_TERMS,
-  type GlossaryTooltipProps,
-  type GlossaryTerm,
-} from './GlossaryTooltip';
-export {
   Label,
   DatasetTypeLabel,
   PublishedLabel,
