@@ -30,6 +30,21 @@ export const glossaryDefinition: GlossaryDefinition = {
         'Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.',
       ),
     },
+    Series: {
+      short: t(
+        'Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
+      ),
+    },
+    RowLimit: {
+      short: t(
+        'Limits the number of rows that get displayed. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
+      ),
+    },
+    Sort: {
+      short: t(
+        'Orders the query result that generates the source data for this chart. If a series or row limit is reached, this determines what data are truncated. If undefined, defaults to the first metric (where appropriate).',
+      ),
+    }
   },
 };
 

@@ -86,6 +86,10 @@ import {
   dndTooltipMetricsControl,
 } from './dndControls';
 import { matrixifyControls } from './matrixifyControls';
+import { glossary } from '@superset-ui/core';
+
+const SERIES_DESCRIPTION = glossary.Query.Series.encode();
+const ROW_LIMIT_DESCRIPTION = glossary.Query.RowLimit.encode();
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -236,7 +240,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t(
-    'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
+    ROW_LIMIT_DESCRIPTION,
   ),
 };
 
@@ -262,12 +266,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   clearable: true,
-  description: t(
-    'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
-      'where subqueries are not supported) is applied to limit the number of series that get ' +
-      'fetched and rendered. This feature is useful when grouping by high cardinality ' +
-      'column(s) though does increase the query complexity and cost.',
-  ),
+  description: t(SERIES_DESCRIPTION),
 };
 
 const series_limit: SharedControlConfig<'SelectControl'> = {
@@ -277,12 +276,7 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
-  description: t(
-    'Limits the number of series that get displayed. A joined subquery (or an extra phase ' +
-      'where subqueries are not supported) is applied to limit the number of series that get ' +
-      'fetched and rendered. This feature is useful when grouping by high cardinality ' +
-      'column(s) though does increase the query complexity and cost.',
-  ),
+  description: t(SERIES_DESCRIPTION),
 };
 
 const group_others_when_limit_reached: SharedControlConfig<'CheckboxControl'> =
