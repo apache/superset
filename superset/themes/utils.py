@@ -126,9 +126,7 @@ def sanitize_theme_tokens(theme_config: Dict[str, Any]) -> Dict[str, Any]:
     return sanitized_config
 
 
-def _validate_single_font_url(
-    index: int, url: Any, allowed_domains: list[str]
-) -> str:
+def _validate_single_font_url(index: int, url: Any, allowed_domains: list[str]) -> str:
     """
     Validate a single font URL
     """

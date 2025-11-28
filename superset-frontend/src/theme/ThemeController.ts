@@ -813,7 +813,10 @@ export class ThemeController {
     if (newUrls.length === 0) return;
 
     // Use CSS @import for font loading
-    const css = newUrls.map(url => `@import url("${url}");`).join('\n');
+    // JSON.stringify provides safe escaping to prevent CSS injection attacks
+    const css = newUrls
+      .map(url => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
 
     const style = document.createElement('style');
     style.setAttribute('data-superset-fonts', 'true');
