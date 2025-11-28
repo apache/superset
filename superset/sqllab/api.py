@@ -248,17 +248,17 @@ class SqlLabRestApi(BaseSupersetApi):
                             if isinstance(template_params, str)
                             else template_params
                         )
+                        if template_params:
+                            template_processor = get_template_processor(
+                                database=database
+                            )
+                            sql = template_processor.process_template(
+                                sql, **template_params
+                            )
                     except json.JSONDecodeError:
                         logger.warning(
                             "Invalid template parameter %s. Skipping processing",
                             str(template_params),
-                        )
-                        template_params = {}
-
-                    if template_params:
-                        template_processor = get_template_processor(database=database)
-                        sql = template_processor.process_template(
-                            sql, **template_params
                         )
 
             result = SQLScript(sql, model.get("engine")).format()
