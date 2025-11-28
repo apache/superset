@@ -4,7 +4,7 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import glossary from '../../superset-frontend/packages/superset-ui-core/src/glossary/glossary';
+import { getAllGlossaryTopics } from '../../superset-frontend/packages/superset-ui-core/src/glossary';
 import { Table, ConfigProvider, theme } from 'antd';
 import { useColorMode } from '@docusaurus/theme-common';
 
@@ -32,7 +32,7 @@ export const GlossaryContent = () => {
           algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         }}
       >
-        {glossary.getAllTopics().map(topic => {
+        {getAllGlossaryTopics().map(topic => {
           const topicName = topic.getName();
           const topicFragment = encodeURIComponent(topicName);
           const terms = topic.getAllTerms();
