@@ -18,10 +18,23 @@
  */
 import { t } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 import cx from 'classnames';
-import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
+
+import { ProTable, type ProColumns } from '@ant-design/pro-components';
+import {
+  mapColumns,
+  mapRows,
+} from '@superset-ui/core/components/TableCollection/utils';
+
 import {
   Button,
   Checkbox,
@@ -285,8 +298,6 @@ export function ListView<T extends object = any>({
   addDangerToast,
 }: ListViewProps<T>) {
   const {
-    getTableProps,
-    getTableBodyProps,
     headerGroups,
     rows,
     prepareRow,
@@ -314,6 +325,22 @@ export function ListView<T extends object = any>({
   });
   const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
+  const mappedColumns = useMemo<ProColumns<T>[]>(() => {
+    const convertedColumns = mapColumns<T>(
+      columns as any,
+      headerGroups as any,
+      columnsForWrapText,
+    );
+    return convertedColumns as ProColumns<T>[];
+  }, [columns, headerGroups, columnsForWrapText]);
+  const mappedRows = useMemo(
+    () => mapRows(rows as any, prepareRow as any),
+    [rows, prepareRow],
+  );
+  const selectedRowKeys = useMemo(
+    () => selectedFlatRows?.map(row => row.id) || [],
+    [selectedFlatRows],
+  );
   if (filterable) {
     const columnAccessors = columns.reduce(
       (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
@@ -338,6 +365,72 @@ export function ListView<T extends object = any>({
 
   const cardViewEnabled = Boolean(renderCard);
   const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
+  const handleToggleRowSelected = useCallback(
+    (rowId: string, value: boolean) => {
+      const row = rows.find((r: any) => r.id === rowId);
+      if (row) {
+        prepareRow(row);
+        (row as any).toggleRowSelected(value);
+      }
+    },
+    [prepareRow, rows],
+  );
+  const rowSelection = useMemo(
+    () =>
+      bulkSelectEnabled
+        ? {
+            selectedRowKeys,
+            onSelect: (record: any, selected: boolean) =>
+              handleToggleRowSelected(record?.rowId, selected),
+            onSelectAll: (selected: boolean) => {
+              toggleAllRowsSelected(selected);
+            },
+          }
+        : undefined,
+    [
+      bulkSelectEnabled,
+      selectedRowKeys,
+      handleToggleRowSelected,
+      toggleAllRowsSelected,
+    ],
+  );
+  const paginationConfig = useMemo(() => {
+    if (count === 0) return false;
+    return {
+      current: pageIndex + 1,
+      pageSize,
+      total: count,
+      showSizeChanger: false,
+      showQuickJumper: false,
+      onChange: (page: number, size: number) => {
+        const validPage = Math.max(0, (page || 1) - 1);
+        const validSize = size || pageSize;
+        if (validPage !== pageIndex) {
+          gotoPage(validPage);
+        }
+        if (validSize !== pageSize) {
+          // pageSize is fixed for now; hook does not expose setter.
+        }
+      },
+    };
+  }, [count, gotoPage, pageIndex, pageSize]);
+  const handleTableChange = useCallback(
+    (_pagination: any, _filters: any, sorter: any) => {
+      const normalizedSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      if (normalizedSorter && normalizedSorter.field) {
+        const fieldId = Array.isArray(normalizedSorter.field)
+          ? normalizedSorter.field.join('.')
+          : normalizedSorter.field;
+        setSortBy([
+          {
+            id: fieldId,
+            desc: normalizedSorter.order === 'descend',
+          },
+        ]);
+      }
+    },
+    [setSortBy],
+  );
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -462,33 +555,25 @@ export function ListView<T extends object = any>({
                   <Loading />
                 </FullPageLoadingWrapper>
               ) : (
-                <TableCollection
-                  getTableProps={getTableProps}
-                  getTableBodyProps={getTableBodyProps}
-                  prepareRow={prepareRow}
-                  headerGroups={headerGroups}
-                  setSortBy={setSortBy}
-                  rows={rows}
-                  columns={columns}
+                <ProTable
+                  data-test="listview-table"
+                  columns={mappedColumns}
+                  dataSource={mappedRows}
                   loading={loading && rows.length > 0}
-                  highlightRowId={highlightRowId}
-                  columnsForWrapText={columnsForWrapText}
-                  bulkSelectEnabled={bulkSelectEnabled}
-                  selectedFlatRows={selectedFlatRows}
-                  toggleRowSelected={(rowId, value) => {
-                    const row = rows.find((r: any) => r.id === rowId);
-                    if (row) {
-                      prepareRow(row);
-                      (row as any).toggleRowSelected(value);
-                    }
-                  }}
-                  toggleAllRowsSelected={toggleAllRowsSelected}
-                  pageIndex={pageIndex}
-                  pageSize={pageSize}
-                  totalCount={count}
-                  onPageChange={newPageIndex => {
-                    gotoPage(newPageIndex);
-                  }}
+                  search={false}
+                  options={false}
+                  rowKey="rowId"
+                  rowSelection={rowSelection}
+                  pagination={paginationConfig}
+                  locale={{ emptyText: null }}
+                  onChange={handleTableChange}
+                  tableAlertRender={false}
+                  toolBarRender={false}
+                  scroll={{ x: 'max-content' }}
+                  sortDirections={['ascend', 'descend']}
+                  rowClassName={record =>
+                    record?.id === highlightRowId ? 'table-row-highlighted' : ''
+                  }
                 />
               )}
             </>
