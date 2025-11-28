@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, memo, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import { Fragment, useCallback, memo, useEffect, FC } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
@@ -32,45 +31,47 @@ import {
   DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { LayoutItem, RootState } from 'src/dashboard/types';
 
-export const RENDER_TAB = 'RENDER_TAB';
-export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
+export const RENDER_TAB = 'RENDER_TAB' as const;
+export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT' as const;
 
 // Delay before refreshing charts to ensure they are fully mounted
 const CHART_MOUNT_DELAY = 100;
 
-const propTypes = {
-  dashboardId: PropTypes.number.isRequired,
-  id: PropTypes.string.isRequired,
-  parentId: PropTypes.string.isRequired,
-  component: componentShape.isRequired,
-  parentComponent: componentShape.isRequired,
-  index: PropTypes.number.isRequired,
-  depth: PropTypes.number.isRequired,
-  renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
-  onDropOnTab: PropTypes.func,
-  onDropPositionChange: PropTypes.func,
-  onDragTab: PropTypes.func,
-  onHoverTab: PropTypes.func,
-  editMode: PropTypes.bool.isRequired,
-  embeddedMode: PropTypes.bool,
-  onTabTitleEditingChange: PropTypes.func,
+interface TabProps {
+  dashboardId: number;
+  id: string;
+  parentId: string;
+  component: LayoutItem;
+  parentComponent: LayoutItem;
+  index: number;
+  depth: number;
+  renderType: typeof RENDER_TAB | typeof RENDER_TAB_CONTENT;
+  onDropOnTab: (...args: unknown[]) => unknown;
+  onDropPositionChange?: Function;
+  onDragTab?: Function;
+  onHoverTab?: () => void;
+  editMode: boolean;
+  embeddedMode?: boolean;
+  onTabTitleEditingChange?: (IsEditing: boolean) => void;
+  isFocused?: boolean;
+  isHighlighted?: boolean;
 
   // grid related
-  availableColumnCount: PropTypes.number,
-  columnWidth: PropTypes.number,
-  onResizeStart: PropTypes.func,
-  onResize: PropTypes.func,
-  onResizeStop: PropTypes.func,
+  availableColumnCount?: number;
+  columnWidth?: number;
+  onResizeStart?: (...args: unknown[]) => void;
+  onResize?: (...args: unknown[]) => void;
+  onResizeStop?: (...args: unknown[]) => void;
 
   // redux
-  handleComponentDrop: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
-  setDirectPathToChild: PropTypes.func.isRequired,
-  isComponentVisible: PropTypes.bool,
-};
+  handleComponentDrop: (...args: unknown[]) => unknown;
+  updateComponents: Function;
+  setDirectPathToChild: (pathToTabIndex: string[]) => void;
+  isComponentVisible?: boolean;
+}
 
 const defaultProps = {
   availableColumnCount: 0,
@@ -85,7 +86,7 @@ const defaultProps = {
   onTabTitleEditingChange() {},
 };
 
-const TabTitleContainer = styled.div`
+const TabTitleContainer = styled.div<{ isHighlighted: boolean }>`
   ${({ isHighlighted, theme: { sizeUnit, colorPrimaryBg } }) => `
     display: inline-flex;
     position: relative;
@@ -115,20 +116,26 @@ const TitleDropIndicator = styled.div`
   }
 `;
 
-const renderDraggableContent = dropProps =>
-  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
+const renderDraggableContent = (dropProps: {
+  dropIndicatorProps?: React.HTMLAttributes<HTMLDivElement>;
+}) => dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
-const Tab = props => {
+const Tab: FC<TabProps> = props => {
   const dispatch = useDispatch();
-  const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
-  const dashboardLayout = useSelector(state => state.dashboardLayout.present);
+  const canEdit = useSelector(
+    (state: RootState) => state.dashboardInfo.dash_edit_perm,
+  );
+  const dashboardLayout = useSelector(
+    (state: RootState) => state.dashboardLayout.present,
+  );
   const lastRefreshTime = useSelector(
-    state => state.dashboardState.lastRefreshTime,
+    (state: RootState) => state.dashboardState.lastRefreshTime,
   );
   const tabActivationTime = useSelector(
-    state => state.dashboardState.tabActivationTimes?.[props.id] || 0,
+    (state: RootState) =>
+      state.dashboardState.tabActivationTimes?.[props.id] || 0,
   );
-  const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 
   useEffect(() => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
@@ -159,14 +166,14 @@ const Tab = props => {
   ]);
 
   const handleChangeTab = useCallback(
-    ({ pathToTabIndex }) => {
+    ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
       props.setDirectPathToChild(pathToTabIndex);
     },
     [props.setDirectPathToChild],
   );
 
   const handleChangeText = useCallback(
-    nextTabText => {
+    (nextTabText: string) => {
       const { updateComponents, component } = props;
       if (nextTabText && nextTabText !== component.meta.text) {
         updateComponents({
@@ -211,7 +218,10 @@ const Tab = props => {
     [props.handleComponentDrop],
   );
 
-  const shouldDropToChild = useCallback(item => item.type !== TAB_TYPE, []);
+  const shouldDropToChild = useCallback(
+    (item: { type: string }) => item.type !== TAB_TYPE,
+    [],
+  );
 
   const renderTabContent = useCallback(() => {
     const {
@@ -363,7 +373,7 @@ const Tab = props => {
       } = props;
       return (
         <TabTitleContainer
-          isHighlighted={isHighlighted}
+          isHighlighted={!!isHighlighted}
           className="dragdroppable-tab"
           ref={dragSourceRef}
         >
@@ -440,6 +450,7 @@ const Tab = props => {
     props.index,
     props.depth,
     props.editMode,
+    props.onDropOnTab,
     handleDrop,
     handleHoverTab,
     shouldDropToChild,
@@ -449,7 +460,6 @@ const Tab = props => {
   return props.renderType === RENDER_TAB ? renderTab() : renderTabContent();
 };
 
-Tab.propTypes = propTypes;
 Tab.defaultProps = defaultProps;
 
 export default memo(Tab);

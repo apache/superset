@@ -129,6 +129,8 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
+  lastRefreshTime: number | null;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
@@ -207,15 +209,15 @@ type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 export type LayoutItemMeta = {
-  chartId: number;
+  chartId?: number;
   defaultText?: string;
-  height: number;
+  height?: number;
   placeholder?: string;
   sliceName?: string;
   sliceNameOverride?: string;
   text?: string;
-  uuid: string;
-  width: number;
+  uuid?: string;
+  width?: number;
 };
 
 /** State of dashboardLayout item in redux */
