@@ -48,7 +48,7 @@
     "@storybook/docs-tools": "^8.6.11",
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
-    "@superset-ui/core": "file:../superset-frontend/packages/superset-ui-core",
+    "@superset-ui/core": "^0.20.4",
     "antd": "^5.28.1",
     "caniuse-lite": "^1.0.30001754",
     "docusaurus-plugin-less": "^2.0.2",

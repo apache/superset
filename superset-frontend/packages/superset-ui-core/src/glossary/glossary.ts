@@ -92,7 +92,7 @@ export class Glossary {
   }
 }
 
-const Glossary_: GlossaryTerm[] = [
+const glossary_terms: GlossaryTerm[] = [
   {
     topic: t('Query'),
     title: t('Dimension'),
@@ -109,6 +109,6 @@ const Glossary_: GlossaryTerm[] = [
   },
 ];
 
-const glossaryInstance = new Glossary(Glossary_);
+const glossary = new Glossary(glossary_terms);
 
-export default glossaryInstance;
+export default glossary;

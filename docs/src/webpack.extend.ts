@@ -41,10 +41,6 @@ export default function webpackExtendPlugin(): Plugin<void> {
             ...config.resolve.alias,
             // Allow importing from superset-frontend
             src: path.resolve(__dirname, '../../superset-frontend/src'),
-            // '@superset-ui/core': path.resolve(
-            //   __dirname,
-            //   '../../superset-frontend/packages/superset-ui-core',
-            // ),
             // Add aliases for our components to make imports easier
             '@docs/components': path.resolve(__dirname, '../src/components'),
             '@superset/components': path.resolve(

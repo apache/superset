@@ -4,7 +4,7 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import { Glossary, GlossaryStructure } from '@superset-ui/core';
+import { glossary, GlossaryStructure } from '../../superset-frontend/packages/superset-ui-core/src/glossary';
 import { Table, ConfigProvider } from 'antd';
 import { theme } from "antd";
 import { useColorMode } from '@docusaurus/theme-common';
@@ -14,22 +14,27 @@ export const GlossaryContent = () => {
   const isDark = colorMode === 'dark';
   
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: isDark
-        ? theme.darkAlgorithm
-        : theme.defaultAlgorithm,
-      }}
-    >
-      <Table 
-        dataSource={Glossary} 
-        columns={GlossaryStructure}
-        pagination={false}
-        pagination={false}
-        showHeader={false}
-        bordered={true}
-      />
-    </ConfigProvider>
+    <div>
+      {Glossary.map(({ title, short, extended }) => (
+        <KeyValue key={title} keyName={title} value={short} dark={isDark} />
+                  <ConfigProvider
+            theme={{
+              algorithm: isDark
+              ? theme.darkAlgorithm
+              : theme.defaultAlgorithm,
+            }}
+          >
+            <Table 
+              dataSource={Glossary} 
+              columns={GlossaryStructure}
+              pagination={false}
+              pagination={false}
+              showHeader={false}
+              bordered={true}
+            />
+          </ConfigProvider>
+      ))}
+    </div>
   );
 };
 
