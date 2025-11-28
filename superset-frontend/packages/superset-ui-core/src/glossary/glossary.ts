@@ -21,7 +21,7 @@ function t(message: string): string {
   return message;
 }
 
-export const GLOSSARY_BASE_URL = 'http://localhost:3000'; // TODO: change to the actual URL
+export const GLOSSARY_BASE_URL = 'http://localhost:3000/docs'; // TODO: change to the actual URL
 
 export interface GlossaryTerm {
   /**

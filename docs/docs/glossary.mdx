@@ -49,6 +49,9 @@ export const GlossaryContent = () => {
                 pagination={false}
                 showHeader
                 bordered
+                onRow={(record) => ({
+                  id: record.key,
+                })}
               />
             </div>
           );
