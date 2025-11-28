@@ -31,8 +31,8 @@ describe('@superset-ui/legacy-plugin-chart-calendar', () => {
 
 /**
  * This test tests that a reasonble starting date is selected given range
- * and starting date. Since time offset is calculated, 2024-12-31 is also
- * acceptable.
+ * and starting date. Since time offset is updated to be not considered,
+ * it would only be 1-1-2025
  */
 describe('getMonthDomain filter month-day', () => {
 it('returns correct month domain for 2025-01-01 to 2025-02-31', () => {
@@ -40,6 +40,6 @@ it('returns correct month domain for 2025-01-01 to 2025-02-31', () => {
   const d = new Date(Date.UTC(2025, 0, 1));
   const range = 2;
   const result = getMonthDomain(d, range);
-  expect(result[0].toISOString()).toContain('2025-01-01' || '2024-12-31');
+  expect(result[0].toISOString()).toContain('2025-01-01');
   });
 });
