@@ -188,11 +188,12 @@ test('getChartDataPayloads generates payloads for charts with state converters',
   expect(result).toEqual({
     '123': mockPayload,
   });
-  expect(
-    chartStateConverter.convertChartStateToOwnState,
-  ).toHaveBeenCalledWith('ag-grid-table', {
-    sortModel: [{ colId: 'col1', sort: 'asc' }],
-  });
+  expect(chartStateConverter.convertChartStateToOwnState).toHaveBeenCalledWith(
+    'ag-grid-table',
+    {
+      sortModel: [{ colId: 'col1', sort: 'asc' }],
+    },
+  );
 });
 
 test('getChartDataPayloads filters by specific chartId when provided', async () => {
