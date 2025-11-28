@@ -348,6 +348,30 @@ export class TableRenderer extends Component {
     return spans;
   }
 
+  getCellColor(keys, aggValue, cellColorFormatters) {
+    let backgroundColor;
+    if (cellColorFormatters) {
+      Object.values(cellColorFormatters).forEach(cellColorFormatter => {
+        if (Array.isArray(cellColorFormatter)) {
+          keys.forEach(key => {
+            if (backgroundColor) {
+              return;
+            }
+            cellColorFormatter
+              .filter(formatter => formatter.column === key)
+              .forEach(formatter => {
+                const formatterResult = formatter.getColorFromValue(aggValue);
+                if (formatterResult) {
+                  backgroundColor = formatterResult;
+                }
+              });
+          });
+        }
+      });
+    }
+    return { backgroundColor };
+  }
+
   renderColHeaderRow(attrName, attrIdx, pivotSettings) {
     // Render a single row in the column header at the top of the pivot table.
 
@@ -370,6 +394,7 @@ export class TableRenderer extends Component {
       highlightHeaderCellsOnHover,
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
+      cellColorFormatters,
       dateFormatters,
     } = this.props.tableOptions;
 
@@ -444,10 +469,18 @@ export class TableRenderer extends Component {
           typeof dateFormatters[attrName] === 'function'
             ? dateFormatters[attrName](colKey[attrIdx])
             : colKey[attrIdx];
+        const { backgroundColor } = this.getCellColor(
+          [attrName],
+          headerCellFormattedValue,
+          cellColorFormatters,
+        );
+        const style = { backgroundColor };
+
         attrValueCells.push(
           <th
             className={colLabelClass}
             key={`colKey-${flatColKey}`}
+            style={style}
             colSpan={colSpan}
             rowSpan={rowSpan}
             role="columnheader button"
@@ -654,10 +687,18 @@ export class TableRenderer extends Component {
           dateFormatters && dateFormatters[rowAttrs[i]]
             ? dateFormatters[rowAttrs[i]](r)
             : r;
+        const { backgroundColor } = this.getCellColor(
+          [rowAttrs[i]],
+          headerCellFormattedValue,
+          cellColorFormatters,
+        );
+        const style = { backgroundColor };
+
         return (
           <th
             key={`rowKeyLabel-${i}`}
             className={valueCellClassName}
+            style={style}
             rowSpan={rowSpan}
             colSpan={colSpan}
             role="columnheader button"
@@ -714,26 +755,11 @@ export class TableRenderer extends Component {
       const aggValue = agg.value();
 
       const keys = [...rowKey, ...colKey];
-      let backgroundColor;
-      if (cellColorFormatters) {
-        Object.values(cellColorFormatters).forEach(cellColorFormatter => {
-          if (Array.isArray(cellColorFormatter)) {
-            keys.forEach(key => {
-              if (backgroundColor) {
-                return;
-              }
-              cellColorFormatter
-                .filter(formatter => formatter.column === key)
-                .forEach(formatter => {
-                  const formatterResult = formatter.getColorFromValue(aggValue);
-                  if (formatterResult) {
-                    backgroundColor = formatterResult;
-                  }
-                });
-            });
-          }
-        });
-      }
+      const { backgroundColor } = this.getCellColor(
+        keys,
+        aggValue,
+        cellColorFormatters,
+      );
 
       const style = agg.isSubtotal
         ? { fontWeight: 'bold' }
