@@ -80,13 +80,13 @@ const createTab = (
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
-  if (queryEditor) {
+  if (queryEditor && queryEditor.dbId !== undefined) {
     const { name, sql, dbId, catalog, schema } = queryEditor;
     return createTab(
       id,
       name,
       sql,
-      dbId!,
+      dbId,
       catalog ?? undefined,
       schema ?? undefined,
       undefined,
