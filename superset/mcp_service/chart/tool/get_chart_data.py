@@ -23,12 +23,11 @@ import logging
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -41,8 +40,7 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:

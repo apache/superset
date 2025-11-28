@@ -25,20 +25,20 @@ and timeout protection.
 import logging
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.sql_lab.execute_sql_core import ExecuteSqlCore
 from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database.
 

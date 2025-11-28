@@ -74,6 +74,9 @@ export type QueryObjectExtras = Partial<{
   instant_time_comparison_range?: string;
 
   time_compare?: string;
+
+  /** If true, WHERE/HAVING clauses need transpilation to target dialect */
+  transpile_to_dialect?: boolean;
 }>;
 
 export type ResidualQueryObjectData = {

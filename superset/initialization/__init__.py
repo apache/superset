@@ -518,13 +518,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
-    def init_core_api_dependencies(self) -> None:
-        """Initialize core API dependency injection for direct import patterns."""
+    def init_core_dependencies(self) -> None:
+        """Initialize core dependency injection for direct import patterns."""
         from superset.core.api.core_api_injection import (
             initialize_core_api_dependencies,
         )
+        from superset.core.mcp.core_mcp_injection import (
+            initialize_core_mcp_dependencies,
+        )
 
         initialize_core_api_dependencies()
+        initialize_core_mcp_dependencies()
+
+    def init_all_dependencies_and_extensions(self) -> None:
+        """
+        Initialize all core dependencies and extensions.
+
+        Core dependencies are always initialized.
+        Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
+        is enabled.
+        """
+        # Always initialize core dependencies
+        self.init_core_dependencies()
+
+        # Conditionally initialize extensions based on feature flag
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_extensions()
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
@@ -578,9 +597,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
-        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            self.init_core_api_dependencies()
-            self.init_extensions()
+        self.init_all_dependencies_and_extensions()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:
