@@ -248,6 +248,10 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
     Switchboard.defineMethod(
+      'getChartDataPayloads',
+      embeddedApi.getChartDataPayloads,
+    );
+    Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {
         const { themeConfig } = payload;

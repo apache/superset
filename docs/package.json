@@ -50,7 +50,7 @@
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
     "antd": "^5.29.1",
-    "caniuse-lite": "^1.0.30001756",
+    "caniuse-lite": "^1.0.30001757",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
     "less": "^4.4.2",
@@ -63,7 +63,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.11",
-    "swagger-ui-react": "^5.30.2",
+    "swagger-ui-react": "^5.30.3",
     "tinycolor2": "^1.4.2",
     "ts-loader": "^9.5.4"
   },
@@ -81,7 +81,7 @@
     "globals": "^16.5.0",
     "prettier": "^3.6.2",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.47.0",
+    "typescript-eslint": "^8.48.0",
     "webpack": "^5.103.0"
   },
   "browserslist": {

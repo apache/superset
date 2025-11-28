@@ -388,10 +388,9 @@ Here's what happens when your extension loads:
 
 Now that you have a working extension, explore:
 
-- **[Development Mode](./development-mode)** - Faster iteration with local development and watch mode
-- **[Extension Project Structure](./extension-project-structure)** - Best practices for organizing larger extensions
-- **[Frontend Contribution Types](./frontend-contribution-types)** - Other UI contribution points beyond panels
-- **[Interacting with Host](./interacting-with-host)** - Advanced APIs for interacting with Superset
-- **[Security Implications](./security-implications)** - Security best practices for extensions
+- **[Development](./development)** - Project structure, APIs, and development workflow
+- **[Contribution Types](./contribution-types)** - Other contribution points beyond panels
+- **[Deployment](./deployment)** - Packaging and deploying your extension
+- **[Security](./security)** - Security best practices for extensions
 
 For a complete real-world example, examine the query insights extension in the Superset codebase.

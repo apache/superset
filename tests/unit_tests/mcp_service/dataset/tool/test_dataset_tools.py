@@ -17,7 +17,7 @@
 
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import fastmcp
 import pytest
@@ -1166,31 +1166,32 @@ class TestDatasetSortableColumns:
         assert "uuid" not in SORTABLE_DATASET_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
-    @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
     async def test_list_datasets_with_valid_order_column(
-        self, mock_get_user, mock_dataset_list
+        self, mock_dataset_list, mcp_server
     ):
         """Test list_datasets with valid order column."""
-        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
-
-        mock_get_user.return_value = MagicMock(id=1)
-        # Mock the DAO to return empty list and count
         mock_dataset_list.return_value = ([], 0)
-        mock_ctx = MagicMock()
-        mock_ctx.info = AsyncMock()
-        mock_ctx.debug = AsyncMock()
-        mock_ctx.error = AsyncMock()
 
-        # Test with valid sortable column
-        request = ListDatasetsRequest(order_column="table_name", order_direction="asc")
-        await list_datasets(request, mock_ctx)
+        async with Client(mcp_server) as client:
+            # Test with valid sortable column
+            request = ListDatasetsRequest(
+                order_column="table_name", order_direction="asc"
+            )
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
 
-        # Verify the DAO was called with the correct order column
-        mock_dataset_list.assert_called_once()
-        call_args = mock_dataset_list.call_args[1]
-        assert call_args["order_column"] == "table_name"
-        assert call_args["order_direction"] == "asc"
+            # Verify the DAO was called with the correct order column
+            mock_dataset_list.assert_called_once()
+            call_args = mock_dataset_list.call_args[1]
+            assert call_args["order_column"] == "table_name"
+            assert call_args["order_direction"] == "asc"
+
+            # Verify response structure
+            data = json.loads(result.content[0].text)
+            assert data["count"] == 0
+            assert data["datasets"] == []
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
@@ -1206,27 +1207,25 @@ class TestDatasetSortableColumns:
             assert col in list_datasets.__doc__
 
     @patch("superset.daos.dataset.DatasetDAO.list")
-    @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
-    async def test_default_ordering(self, mock_get_user, mock_dataset_list):
+    async def test_default_ordering(self, mock_dataset_list, mcp_server):
         """Test default ordering behavior for datasets."""
-        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
-
-        mock_get_user.return_value = MagicMock(id=1)
-        # Mock the DAO to return empty list and count
         mock_dataset_list.return_value = ([], 0)
-        mock_ctx = MagicMock()
-        mock_ctx.info = AsyncMock()
-        mock_ctx.debug = AsyncMock()
-        mock_ctx.error = AsyncMock()
-        request = ListDatasetsRequest()  # No order specified
-        await list_datasets(request, mock_ctx)
 
-        # When order_column is None, the default "changed_on" is used by ModelListCore
-        call_args = mock_dataset_list.call_args[1]
-        assert (
-            call_args["order_column"] == "changed_on"
-        )  # Default applied by ModelListCore
-        assert (
-            call_args["order_direction"] == "desc"
-        )  # From ListDatasetsRequest default
+        async with Client(mcp_server) as client:
+            request = ListDatasetsRequest()  # No order specified
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+
+            # When order_column is None, default "changed_on" is used
+            call_args = mock_dataset_list.call_args[1]
+            # Default applied by ModelListCore
+            assert call_args["order_column"] == "changed_on"
+            # From ListDatasetsRequest default
+            assert call_args["order_direction"] == "desc"
+
+            # Verify response structure
+            data = json.loads(result.content[0].text)
+            assert data["count"] == 0
+            assert data["datasets"] == []

@@ -1,6 +1,6 @@
 ---
-title: Security Implications and Responsibilities
-sidebar_position: 12
+title: Security
+sidebar_position: 8
 ---
 
 <!--
@@ -22,7 +22,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Security Implications and Responsibilities
+# Security
 
 By default, extensions are disabled and must be explicitly enabled by setting the `ENABLE_EXTENSIONS` feature flag. Built-in extensions are included as part of the Superset codebase and are held to the same security standards and review processes as the rest of the application.
 
@@ -30,4 +30,6 @@ For external extensions, administrators are responsible for evaluating and verif
 
 We plan to introduce an optional sandboxed execution model for extensions in the future (as part of an additional SIP). Until then, administrators should exercise caution and follow best practices when selecting and deploying third-party extensions. A directory of known Superset extensions may be maintained in a means similar to [this page](https://github.com/apache/superset/wiki/Superset-Third%E2%80%90Party-Plugins-Directory) on the wiki. We also discussed the possibility of introducing a shared registry for vetted extensions but decided to leave it out of the initial scope of the project. We might introduce a registry at a later stage depending on the evolution of extensions created by the community.
 
-Any performance or security vulnerabilities introduced by external extensions should be reported directly to the extension author, not as Superset vulnerabilities. Any security concerns regarding built-in extensions (included in Superset's monorepo) should be reported to the Superset Security mailing list for triage and resolution by maintainers.
+**Any performance or security vulnerabilities introduced by external extensions should be reported directly to the extension author, not as Superset vulnerabilities.**
+
+Any security concerns regarding built-in extensions (included in Superset's monorepo) should be reported to the Superset Security mailing list for triage and resolution by maintainers.

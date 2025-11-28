@@ -1,7 +1,7 @@
 ---
 title: MCP Integration
 hide_title: true
-sidebar_position: 8
+sidebar_position: 7
 version: 1
 ---
 
@@ -455,6 +455,5 @@ async def metrics_guide(ctx: Context) -> str:
 
 ## Next Steps
 
-- **[Extension Project Structure](./extension-project-structure)** - Organize larger extensions
-- **[Development Mode](./development-mode)** - Faster iteration during development
-- **[Security Implications](./security-implications)** - Security best practices for extensions
+- **[Development](./development)** - Project structure, APIs, and dev workflow
+- **[Security](./security)** - Security best practices for extensions
