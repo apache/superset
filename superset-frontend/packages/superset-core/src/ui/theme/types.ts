@@ -129,6 +129,10 @@ export interface SupersetSpecificTokens {
   brandSpinnerUrl?: string;
   brandSpinnerSvg?: string;
 
+  // Font loading
+  /** Array of font URLs to load for this theme (Google Fonts, Adobe Fonts, etc.) */
+  fontUrls?: string[];
+
   // ECharts-related
   /** Global ECharts configuration overrides applied to all chart types */
   echartsOptionsOverrides?: any;

@@ -806,6 +806,21 @@ ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via 
 # ]
 CUSTOM_FONT_URLS: list[str] = []
 
+# Per-Theme Font URL Configuration
+# These settings control font loading via the theme's fontUrls token
+# Maximum number of font URLs allowed per theme
+# Limits prevent performance degradation from excessive font requests
+THEME_FONTS_MAX_URLS: int = 15
+
+# Domains allowed for loading fonts via theme fontUrls token
+# Only HTTPS URLs from these domains will be accepted
+THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
+    "fonts.googleapis.com",  # Google Fonts API
+    "fonts.gstatic.com",  # Google Fonts CDN
+    "use.typekit.net",  # Adobe Fonts
+    "use.typekit.com",  # Adobe Fonts alternate
+]
+
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
@@ -1316,8 +1331,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
-    None | (Callable[[Database, models.User, str, str], str])
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
+    Callable[[Database, models.User, str, str], str]
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries

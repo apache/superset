@@ -18,7 +18,11 @@ from typing import Any
 
 from marshmallow import fields, Schema, validates, ValidationError
 
-from superset.themes.utils import is_valid_theme, sanitize_theme_tokens
+from superset.themes.utils import (
+    is_valid_theme,
+    sanitize_theme_tokens,
+    validate_font_urls,
+)
 from superset.utils import json
 
 
@@ -44,6 +48,12 @@ class ImportV1ThemeSchema(Schema):
 
         # Sanitize theme tokens (including SVG content)
         sanitized_config = sanitize_theme_tokens(theme_config)
+
+        # Validate and sanitize fontUrls if present
+        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+            font_urls = sanitized_config["token"].get("fontUrls")
+            if font_urls is not None:
+                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
 
         # Validate theme structure
         if not is_valid_theme(sanitized_config):
@@ -79,6 +89,12 @@ class ThemePostSchema(Schema):
         # Sanitize theme tokens (including SVG content)
         sanitized_config = sanitize_theme_tokens(theme_config)
 
+        # Validate and sanitize fontUrls if present
+        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+            font_urls = sanitized_config["token"].get("fontUrls")
+            if font_urls is not None:
+                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
+
         # Validate theme structure
         if not is_valid_theme(sanitized_config):
             raise ValidationError("Invalid theme configuration structure")
@@ -109,6 +125,12 @@ class ThemePutSchema(Schema):
 
         # Sanitize theme tokens (including SVG content)
         sanitized_config = sanitize_theme_tokens(theme_config)
+
+        # Validate and sanitize fontUrls if present
+        if "token" in sanitized_config and isinstance(sanitized_config["token"], dict):
+            font_urls = sanitized_config["token"].get("fontUrls")
+            if font_urls is not None:
+                sanitized_config["token"]["fontUrls"] = validate_font_urls(font_urls)
 
         # Validate theme structure
         if not is_valid_theme(sanitized_config):
