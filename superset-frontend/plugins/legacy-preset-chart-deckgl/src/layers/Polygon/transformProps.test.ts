@@ -55,7 +55,7 @@ describe('Polygon transformProps', () => {
         ],
       },
     ],
-    datasource: { type: DatasourceType.Table, id: 1 },
+    datasource: { type: DatasourceType.Table, id: 1, name: 'test', columns: [], metrics: [] },
     height: 400,
     width: 600,
     hooks: {},
