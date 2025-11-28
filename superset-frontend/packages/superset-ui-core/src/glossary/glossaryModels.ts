@@ -19,6 +19,9 @@
 
 import { Glossary } from "./glossaryUtils";
 
+// Encoding format prefix for glossary strings
+export const GLOSSARY_ENCODING_PREFIX = '[GLOSSARY]|';
+
 export class GlossaryTerm {
   /**
    * The topic under which the term is categorized.
@@ -78,6 +81,14 @@ export class GlossaryTerm {
       return undefined;
     }
     return t(this.extended);
+  }
+
+  /**
+   * Encodes the glossary term into a string format that can be resolved later.
+   * Format: [GLOSSARY]|topic|title|description
+   */
+  encode(): string {
+    return `${GLOSSARY_ENCODING_PREFIX}${this.topic}|${this.title}|${this.short}`;
   }
 }
 

@@ -18,7 +18,6 @@
  * under the License.
  */
 import { QueryColumn, t, validateNonEmpty } from '@superset-ui/core';
-import glossary from '../../../superset-ui-core/src/glossary/glossary';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ExtraControlProps,
@@ -38,6 +37,12 @@ import {
   datePickerInAdhocFilterMixin,
   xAxisMixin,
 } from '..';
+
+import { glossary } from '@superset-ui/core';
+
+// Glossary terms used for tooltips
+const DIMENSION_DESCRIPTION = glossary.Query.Dimension.encode();
+const METRIC_DESCRIPTION = glossary.Query.Metric.encode();
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -78,11 +83,7 @@ export const dndGroupByControl: SharedControlConfig<
   clearable: true,
   default: [],
   includeTime: false,
-  description: t(
-    'Dimensions contain qualitative values such as names, dates, or geographical data. ' +
-      'Use dimensions to categorize, segment, and reveal the details in your data. ' +
-      'Dimensions affect the level of detail in the view.',
-  ),
+  description: t(DIMENSION_DESCRIPTION),
   optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
   valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -180,18 +181,13 @@ export const dndAdhocMetricsControl: SharedControlConfig<
     datasource,
     datasourceType: datasource?.type,
   }),
-  description: t(
-    'Select one or many metrics to display. ' +
-      'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.',
-  ),
+  description: t(METRIC_DESCRIPTION),
 };
 
 export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
-  glossaryTerm: glossary.getTopic('Query')?.getTerm('Metric'),
   description: t(
     'Select a metric to display. ' +
       'You can use an aggregation function on a column ' +
