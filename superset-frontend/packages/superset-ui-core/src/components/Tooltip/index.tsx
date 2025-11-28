@@ -21,17 +21,35 @@ import { Tooltip as AntdTooltip } from 'antd';
 import type { TooltipRef } from 'antd/es/tooltip';
 
 import type { TooltipProps, TooltipPlacement } from './types';
+import { getGlossaryUrl } from '../../glossary/glossary';
 
 export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
-  ({ overlayStyle, ...props }, ref) => (
-    <AntdTooltip
+  ({
+  overlayStyle,
+  glossaryTerm,
+  children,
+  ...props
+}, ref) => {
+  const wrappedChildren = glossaryTerm ? (
+    <a href={getGlossaryUrl(glossaryTerm)} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ) : (
+    children
+  );
+
+  return (
+      <AntdTooltip
       ref={ref}
-      styles={{
-        body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-        root: overlayStyle ?? {},
-      }}
-      {...props}
-    />
-  ),
-);
+        styles={{
+          body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+          root: overlayStyle ?? {},
+        }}
+        {...props}
+      >
+      {wrappedChildren}
+    </AntdTooltip>
+  );
+};
+
 export type { TooltipProps, TooltipPlacement };

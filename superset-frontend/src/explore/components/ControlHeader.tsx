@@ -20,8 +20,8 @@ import { FC, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
+import type { GlossaryTerm } from '@superset-ui/core/glossary/glossary';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { GlossaryTooltip, type GlossaryTerm } from '@superset-ui/core/components';
 type ValidationError = string;
 
 export type ControlHeaderProps = {
@@ -97,11 +97,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       >
         {description && (
           <span>
-            <GlossaryTooltip term={glossaryTerm} title={description}>
+            <Tooltip glossaryTerm={glossaryTerm} title={description}>
               <Icons.InfoCircleOutlined
                 css={iconStyles}
               />
-            </GlossaryTooltip>{' '}
+            </Tooltip>{' '}
           </span>
         )}
         {renderTrigger && (
