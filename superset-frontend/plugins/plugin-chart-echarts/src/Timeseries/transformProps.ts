@@ -139,8 +139,11 @@ export default function transformProps(
     currencyCodeColumn,
   } = datasource;
   const [queryData] = queriesData;
-  const { data = [], label_map = {} } =
-    queryData as TimeseriesChartDataResponseResult;
+  const {
+    data = [],
+    label_map = {},
+    detected_currency: backendDetectedCurrency,
+  } = queryData as TimeseriesChartDataResponseResult;
 
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
@@ -279,10 +282,14 @@ export default function transformProps(
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
 
-  // Resolve currency for AUTO mode
+  // Resolve currency for AUTO mode (backend detection takes precedence)
   let resolvedCurrency: Currency | undefined | null = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO' && data && currencyCodeColumn) {
-    const detectedCurrency = analyzeCurrencyInData(data, currencyCodeColumn);
+  if (currencyFormat?.symbol === 'AUTO') {
+    const detectedCurrency =
+      backendDetectedCurrency ??
+      (data && currencyCodeColumn
+        ? analyzeCurrencyInData(data, currencyCodeColumn)
+        : null);
     if (detectedCurrency) {
       resolvedCurrency = {
         symbol: detectedCurrency,

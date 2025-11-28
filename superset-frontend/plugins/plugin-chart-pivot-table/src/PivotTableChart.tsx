@@ -125,12 +125,14 @@ type BaseFormatter = NumberFormatter | CurrencyFormatter;
  * @param baseFormatter - The base number formatter to use
  * @param currencyConfig - Currency configuration (may have symbol='AUTO')
  * @param d3Format - The d3 format string for number formatting
+ * @param fallbackCurrency - Fallback currency from detected_currency API response
  * @returns A formatter function that accepts (value, aggregator?)
  */
 const createCurrencyAwareFormatter = (
   baseFormatter: BaseFormatter,
   currencyConfig: Currency | undefined,
   d3Format: string,
+  fallbackCurrency?: string,
 ): ((value: number, aggregator?: CurrencyTrackingAggregator) => string) => {
   const isAutoMode = currencyConfig?.symbol === 'AUTO';
 
@@ -141,38 +143,44 @@ const createCurrencyAwareFormatter = (
     }
 
     // AUTO mode: check aggregator for currency tracking
-    if (!aggregator || typeof aggregator.getCurrencies !== 'function') {
-      // No currency tracking available, use neutral format
-      return baseFormatter(value);
+    if (aggregator && typeof aggregator.getCurrencies === 'function') {
+      const currencies = aggregator.getCurrencies();
+
+      if (currencies && currencies.length > 0) {
+        if (hasMixedCurrencies(currencies)) {
+          return getNumberFormatter(d3Format)(value);
+        }
+
+        const detectedCurrency = normalizeCurrency(currencies[0]);
+        if (detectedCurrency && currencyConfig) {
+          const cellFormatter = new CurrencyFormatter({
+            currency: {
+              symbol: detectedCurrency,
+              symbolPosition: currencyConfig.symbolPosition,
+            },
+            d3Format,
+          });
+          return cellFormatter(value);
+        }
+      }
     }
 
-    const currencies = aggregator.getCurrencies();
-
-    if (!currencies || currencies.length === 0) {
-      // No currencies tracked, use neutral format
-      return baseFormatter(value);
+    // Fallback: use detected_currency from API response if available
+    if (fallbackCurrency && currencyConfig) {
+      const normalizedFallback = normalizeCurrency(fallbackCurrency);
+      if (normalizedFallback) {
+        const fallbackFormatter = new CurrencyFormatter({
+          currency: {
+            symbol: normalizedFallback,
+            symbolPosition: currencyConfig.symbolPosition,
+          },
+          d3Format,
+        });
+        return fallbackFormatter(value);
+      }
     }
 
-    // Check if single or mixed currencies
-    if (hasMixedCurrencies(currencies)) {
-      // Mixed currencies: use neutral format (no symbol)
-      return getNumberFormatter(d3Format)(value);
-    }
-
-    // Single currency: create formatter with detected currency
-    const detectedCurrency = normalizeCurrency(currencies[0]);
-    if (detectedCurrency && currencyConfig) {
-      const cellFormatter = new CurrencyFormatter({
-        currency: {
-          symbol: detectedCurrency,
-          symbolPosition: currencyConfig.symbolPosition,
-        },
-        d3Format,
-      });
-      return cellFormatter(value);
-    }
-
-    // Fallback to neutral format
+    // Final fallback to neutral format
     return getNumberFormatter(d3Format)(value);
   };
 };
@@ -248,6 +256,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     valueFormat,
     currencyFormat,
     currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -279,8 +288,13 @@ export default function PivotTableChart(props: PivotTableProps) {
   // Currency-aware formatter for AUTO mode support
   const defaultFormatter = useMemo(
     () =>
-      createCurrencyAwareFormatter(baseFormatter, currencyFormat, valueFormat),
-    [baseFormatter, currencyFormat, valueFormat],
+      createCurrencyAwareFormatter(
+        baseFormatter,
+        currencyFormat,
+        valueFormat,
+        detectedCurrency,
+      ),
+    [baseFormatter, currencyFormat, valueFormat, detectedCurrency],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -319,13 +333,14 @@ export default function PivotTableChart(props: PivotTableProps) {
                     metricBaseFormatter,
                     currency as Currency | undefined,
                     d3Format as string,
+                    detectedCurrency,
                   ),
                 ];
               }),
             ),
           }
         : undefined,
-    [customFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters, detectedCurrency],
   );
 
   const metricNames = useMemo(

@@ -28,7 +28,7 @@ from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "9787190b3d89"
-down_revision = "x2s8ocx6rto6"
+down_revision = "a9c01ec10479"
 
 
 def upgrade():

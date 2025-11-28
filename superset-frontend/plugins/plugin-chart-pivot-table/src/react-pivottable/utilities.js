@@ -186,8 +186,8 @@ const usFmtPct = numberFormat({
   suffix: '%',
 });
 
-const fmtNonString = formatter => x =>
-  typeof x === 'string' ? x : formatter(x);
+const fmtNonString = formatter => (x, aggregator) =>
+  typeof x === 'string' ? x : formatter(x, aggregator);
 
 const baseAggregatorTemplates = {
   /**

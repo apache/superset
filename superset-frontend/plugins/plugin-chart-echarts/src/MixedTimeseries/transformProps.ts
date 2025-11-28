@@ -142,10 +142,14 @@ export default function transformProps(
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { label_map: labelMap } =
-    queriesData[0] as TimeseriesChartDataResponseResult;
-  const { label_map: labelMapB } =
-    queriesData[1] as TimeseriesChartDataResponseResult;
+  const {
+    label_map: labelMap,
+    detected_currency: backendDetectedCurrency,
+  } = queriesData[0] as TimeseriesChartDataResponseResult;
+  const {
+    label_map: labelMapB,
+    detected_currency: backendDetectedCurrencyB,
+  } = queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -283,10 +287,14 @@ export default function transformProps(
   });
   const series: SeriesOption[] = [];
 
-  // Resolve currency for AUTO mode (primary axis)
+  // Resolve currency for AUTO mode (primary axis, backend detection takes precedence)
   let resolvedCurrency: Currency | undefined | null = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO' && data1 && currencyCodeColumn) {
-    const detectedCurrency = analyzeCurrencyInData(data1, currencyCodeColumn);
+  if (currencyFormat?.symbol === 'AUTO') {
+    const detectedCurrency =
+      backendDetectedCurrency ??
+      (data1 && currencyCodeColumn
+        ? analyzeCurrencyInData(data1, currencyCodeColumn)
+        : null);
     if (detectedCurrency) {
       resolvedCurrency = {
         symbol: detectedCurrency,
@@ -298,15 +306,15 @@ export default function transformProps(
     }
   }
 
-  // Resolve currency for AUTO mode (secondary axis)
+  // Resolve currency for AUTO mode (secondary axis, backend detection takes precedence)
   let resolvedCurrencySecondary: Currency | undefined | null =
     currencyFormatSecondary;
-  if (
-    currencyFormatSecondary?.symbol === 'AUTO' &&
-    data2 &&
-    currencyCodeColumn
-  ) {
-    const detectedCurrency = analyzeCurrencyInData(data2, currencyCodeColumn);
+  if (currencyFormatSecondary?.symbol === 'AUTO') {
+    const detectedCurrency =
+      backendDetectedCurrencyB ??
+      (data2 && currencyCodeColumn
+        ? analyzeCurrencyInData(data2, currencyCodeColumn)
+        : null);
     if (detectedCurrency) {
       resolvedCurrencySecondary = {
         symbol: detectedCurrency,

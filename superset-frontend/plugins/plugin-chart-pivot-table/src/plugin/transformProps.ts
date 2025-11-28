@@ -88,7 +88,12 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     emitCrossFilters,
     theme,
   } = chartProps;
-  const { data, colnames, coltypes } = queriesData[0];
+  const {
+    data,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0];
   const {
     groupbyRows,
     groupbyColumns,
@@ -179,6 +184,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     valueFormat,
     currencyFormat,
     currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
