@@ -289,10 +289,13 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
-        this.props.history.push(dashboard.url);
+        let url = dashboard.url;
+        if (this.state.selectedTab?.value) {
+          url += `#${this.state.selectedTab.value}`;
+        }
+        this.props.history.push(url);
         return;
       }
-
       const searchParams = this.handleRedirect(window.location.search, value);
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
