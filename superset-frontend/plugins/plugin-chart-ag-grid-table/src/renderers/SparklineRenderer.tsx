@@ -37,13 +37,14 @@ export const SparklineRenderer = (
   },
 ) => {
   const { value, col } = params;
+  // Chart configuration is now processed in transformProps with proper defaults
   const chartConfig: ChartConfig = col?.config?.chartConfig || {};
   const {
-    width = 300,
-    height = 50,
+    width = 60,        // Default from transformProps
+    height = 20,       // Default from transformProps
     color,
-    strokeWidth = 1,
-    showValues = true,
+    strokeWidth = 1.5, // Default from transformProps
+    showValues = true, // Default from transformProps
   } = chartConfig;
 
   if (!Array.isArray(value)) {

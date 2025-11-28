@@ -72,13 +72,13 @@ export const BarChartRenderer = (
     return <CellContainer>N/A</CellContainer>;
   }
 
-  // 1. Get Configuration and Set Defaults
+  // Chart configuration is now processed in transformProps with proper defaults
   const chartConfig: ChartConfig = col?.config?.chartConfig || {};
   const {
-    width = 300,
-    height = 50,
+    width = 60,        // Default from transformProps
+    height = 20,       // Default from transformProps
     color,
-    showValues = false,
+    showValues = true, // Default from transformProps
   } = chartConfig;
 
   const dataKey = col?.metricName || col?.key || 'value';

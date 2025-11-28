@@ -60,7 +60,20 @@ export type TableColumnConfig = {
   visible?: boolean;
   customColumnName?: string;
   displayTypeIcon?: boolean;
+  // Chart renderer configuration
+  chartType?: 'sparkline' | 'minibar' | 'horizontal-bar' | 'default';
+  chartConfig?: {
+    width?: number;
+    height?: number;
+    color?: string;
+    strokeWidth?: number;
+    showValues?: boolean;
+    showPoints?: boolean;
+  };
 };
+
+// Type alias for chart configuration
+export type ChartConfig = NonNullable<TableColumnConfig['chartConfig']>;
 
 export interface DataColumnMeta {
   // `key` is what is called `label` in the input props
@@ -266,13 +279,5 @@ export type Dataset = {
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };
-
-export interface ChartConfig {
-  width?: number;
-  height?: number;
-  color?: string;
-  strokeWidth?: number;
-  showValues?: boolean;
-}
 
 export default {};
