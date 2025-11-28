@@ -29,15 +29,30 @@ import {
   createContext,
   FC,
 } from 'react';
+import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
+import { RootState } from 'src/dashboard/types';
+import { DataMaskStateWithId } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
-import { getFilterBarTestId } from './utils';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
+import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { ChartCustomizationItem } from '../ChartCustomization/types';
 import CrossFiltersVertical from './CrossFilters/Vertical';
+import crossFiltersSelector from './CrossFilters/selectors';
+
+enum SectionType {
+  Filters = 'filters',
+  ChartCustomization = 'chartCustomization',
+  CrossFilters = 'crossFilters',
+}
 
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
@@ -159,35 +174,84 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
     [height],
   );
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(selectChartCustomizationItems);
 
-  const filterControls = useMemo(
-    () =>
-      filterValues.length === 0 ? (
-        <FilterBarEmptyStateContainer>
-          <EmptyState
-            size="small"
-            title={t('No global filters are currently added')}
-            image="filter.svg"
-            description={
-              canEdit &&
-              t(
-                'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
-              )
-            }
-          />
-        </FilterBarEmptyStateContainer>
-      ) : (
-        <FilterControlsWrapper>
-          <FilterControls
-            dataMaskSelected={dataMaskSelected}
-            onFilterSelectionChange={onSelectionChange}
-            clearAllTriggers={clearAllTriggers}
-            onClearAllComplete={onClearAllComplete}
-          />
-        </FilterControlsWrapper>
-      ),
-    [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
   );
+  const chartIds = useChartIds();
+  const chartLayoutItems = useChartLayoutItems();
+  const verboseMaps = useChartsVerboseMaps();
+  const selectedCrossFilters = crossFiltersSelector({
+    dataMask,
+    chartIds,
+    chartLayoutItems,
+    verboseMaps,
+  });
+
+  // Determine available section types
+  const availableSectionTypes = useMemo(() => {
+    const types: SectionType[] = [];
+
+    if (filterValues.length > 0) {
+      types.push(SectionType.Filters);
+    }
+
+    if (chartCustomizationItems.length > 0) {
+      types.push(SectionType.ChartCustomization);
+    }
+
+    if (selectedCrossFilters.length > 0) {
+      types.push(SectionType.CrossFilters);
+    }
+
+    return types;
+  }, [
+    filterValues.length,
+    chartCustomizationItems.length,
+    selectedCrossFilters.length,
+  ]);
+
+  const hasOnlyOneSectionType = availableSectionTypes.length === 1;
+
+  const filterControls = useMemo(() => {
+    const hasFiltersOrCustomizations =
+      filterValues.length > 0 || chartCustomizationItems.length > 0;
+
+    return hasFiltersOrCustomizations ? (
+      <FilterControlsWrapper>
+        <FilterControls
+          dataMaskSelected={dataMaskSelected}
+          onFilterSelectionChange={onSelectionChange}
+          hideHeader={hasOnlyOneSectionType}
+        />
+      </FilterControlsWrapper>
+    ) : (
+      <FilterBarEmptyStateContainer>
+        <EmptyState
+          size="small"
+          title={t('No global filters are currently added')}
+          image="filter.svg"
+          description={
+            canEdit &&
+            t(
+              'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
+            )
+          }
+        />
+      </FilterBarEmptyStateContainer>
+    );
+  }, [
+    canEdit,
+    dataMaskSelected,
+    filterValues.length,
+    onSelectionChange,
+    chartCustomizationItems.length,
+    hasOnlyOneSectionType,
+  ]);
 
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
@@ -228,7 +292,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                <CrossFiltersVertical />
+                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>
             </div>

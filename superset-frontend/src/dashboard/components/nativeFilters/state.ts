@@ -18,23 +18,28 @@
  */
 import { useSelector } from 'react-redux';
 import { useCallback, useMemo } from 'react';
-import {
-  Filter,
-  FilterConfiguration,
-  Divider,
-  isFilterDivider,
-} from '@superset-ui/core';
+import { createSelector } from '@reduxjs/toolkit';
+import { Filter, Divider, isFilterDivider } from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
 const defaultFilterConfiguration: Filter[] = [];
 
-export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
-      state.dashboardInfo?.metadata?.native_filter_configuration ||
-      defaultFilterConfiguration,
-  );
+const selectFilterConfiguration = createSelector(
+  (state: RootState) =>
+    state.dashboardInfo?.metadata?.native_filter_configuration,
+  (nativeFilterConfig): (Filter | Divider)[] => {
+    if (!nativeFilterConfig) {
+      return defaultFilterConfiguration;
+    }
+    return nativeFilterConfig.filter(
+      (filter: any) => filter.type !== 'CHART_CUSTOMIZATION',
+    );
+  },
+);
+
+export function useFilterConfiguration(): (Filter | Divider)[] {
+  return useSelector(selectFilterConfiguration);
 }
 
 /**

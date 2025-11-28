@@ -36,11 +36,11 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
-- Use Playwright with Chrome: this is the recommended approach as of version >=4.1.x. A working example of a Dockerfile that installs these tools is provided under “Building your own production Docker image” on the [Docker Builds](/docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
+- Use Playwright with Chrome: this is the recommended approach as of version 4.1.x or greater. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
 - Use Firefox: you'll need to install geckodriver and Firefox.
 - Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
-In Superset versions <=4.0x, users installed Firefox or Chrome and that was documented here.
+In Superset versions &lt;=4.0x, users installed Firefox or Chrome and that was documented here.
 
 Only the worker container needs the browser.
 
@@ -64,6 +64,22 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 8. Restart the service (or run `superset init`) to pull in the new configuration.
 
 Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
+
+#### Large Slack Workspaces (10k+ channels)
+
+For workspaces with many channels, fetching the complete channel list can take several minutes and may encounter Slack API rate limits. Add the following to your `superset_config.py`:
+
+```python
+from datetime import timedelta
+
+# Increase cache timeout to reduce API calls
+# Default: 1 day (86400 seconds)
+SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
+
+# Increase retry count for rate limit errors
+# Default: 2
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
+```
 
 ### Kubernetes-specific
 
@@ -277,6 +293,14 @@ The worker may be unable to reach the report. It will use the value of `WEBDRIVE
 Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset_app:8088/superset/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
 
 In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
+
+### Duplicate report deliveries
+
+In some deployment configurations a scheduled report can be delivered more than once around its planned time. This typically happens when more than one process is responsible for running the alerts & reports schedule (for example, multiple schedulers or Celery beat instances). To avoid duplicate emails or notifications:
+
+- Ensure that only a **single scheduler/beat process** is configured to trigger alerts and reports for a given environment.
+- If you run **multiple Celery workers**, verify that there is still only one component responsible for scheduling the report tasks (workers should execute tasks, not schedule them independently).
+- Review your deployment/orchestration setup (for example systemd, Docker, or Kubernetes) to make sure the alerts & reports scheduler is **not started from multiple places by accident**.
 
 ## Scheduling Queries as Reports
 

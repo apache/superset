@@ -505,6 +505,7 @@ export const tooltipTemplate = {
   config: {
     type: TooltipTemplateControl,
     label: t('Customize tooltips template'),
+    renderTrigger: true,
     debounceDelay: 30,
     default: '',
     description: '',
@@ -615,7 +616,7 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
 };
 
 export const breakpointsDefaultColor: CustomControlItem = {
-  name: 'deafult_breakpoint_color',
+  name: 'default_breakpoint_color',
   config: {
     label: t('Default color'),
     type: 'ColorPickerControl',

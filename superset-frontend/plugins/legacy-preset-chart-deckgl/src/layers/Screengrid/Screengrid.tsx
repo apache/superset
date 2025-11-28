@@ -22,10 +22,10 @@ import { Color } from '@deck.gl/core';
 import {
   JsonObject,
   QueryFormData,
-  styled,
   CategoricalColorNamespace,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import {
   COLOR_SCHEME_TYPES,
   ColorSchemeType,
@@ -123,7 +123,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
 
   const colorSchemeType = fd.color_scheme_type as ColorSchemeType & 'default';
   const colorRange = getColorRange({
-    defaultBreakpointsColor: fd.deafult_breakpoint_color,
+    defaultBreakpointsColor: fd.default_breakpoint_color,
     colorBreakpoints: fd.color_breakpoints,
     fixedColor: fd.color_picker,
     colorSchemeType,

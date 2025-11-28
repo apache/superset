@@ -38,6 +38,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
+from superset_core.api.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -65,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    Model, AuditMixinNullable, ImportExportMixin
+    CoreChart, AuditMixinNullable, ImportExportMixin
 ):
     """A slice is essentially a report or a view on data"""
 
@@ -213,7 +214,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def description_markeddown(self) -> str:
-        return utils.markdown(self.description)
+        return utils.markdown(self.description or "")
 
     @property
     def data(self) -> dict[str, Any]:
@@ -367,7 +368,9 @@ class Slice(  # pylint: disable=too-many-public-methods
         return qry.one_or_none()
 
 
-def id_or_uuid_filter(id_or_uuid: str) -> BinaryExpression:
+def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
+    if isinstance(id_or_uuid, int):
+        return Slice.id == id_or_uuid
     if id_or_uuid.isdigit():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid

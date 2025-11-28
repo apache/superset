@@ -246,6 +246,7 @@ export interface ExtraJson {
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
   allow_multi_catalog?: boolean;
+  per_user_caching?: boolean; // in Security
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {

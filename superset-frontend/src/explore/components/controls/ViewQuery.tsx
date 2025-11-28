@@ -26,7 +26,8 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import {
   Icons,
   Switch,
@@ -106,7 +107,8 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         const response = await SupersetClient.get({
           endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
-        backend = response.json.result.database;
+        const { backend: datasetBackend } = response.json.result.database;
+        backend = datasetBackend;
       }
 
       // Format the SQL query

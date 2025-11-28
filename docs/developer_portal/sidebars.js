@@ -22,37 +22,41 @@ module.exports = {
     'index',
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Contributing',
+      collapsed: true,
       items: [
-        'getting-started/index',
+        'contributing/overview',
       ],
     },
     {
       type: 'category',
-      label: 'Architecture',
+      label: 'Extensions',
+      collapsed: true,
       items: [
-        'architecture/overview',
+        'extensions/overview',
+        'extensions/quick-start',
+        'extensions/architecture',
+        'extensions/contribution-types',
+        {
+          type: 'category',
+          label: 'Extension Points',
+          collapsed: true,
+          items: [
+            'extensions/extension-points/sqllab',
+          ],
+        },
+        'extensions/development',
+        'extensions/deployment',
+        'extensions/mcp',
+        'extensions/security',
       ],
     },
     {
       type: 'category',
-      label: 'API Reference',
+      label: 'Testing',
+      collapsed: true,
       items: [
-        'api/frontend',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'CLI',
-      items: [
-        'cli/overview',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Examples',
-      items: [
-        'examples/index',
+        'testing/overview',
       ],
     },
   ],

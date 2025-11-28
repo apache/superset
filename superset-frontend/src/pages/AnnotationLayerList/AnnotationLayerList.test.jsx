@@ -38,7 +38,7 @@ const layersEndpoint = 'glob:*/api/v1/annotation_layer/?*';
 const layerEndpoint = 'glob:*/api/v1/annotation_layer/*';
 const layersRelatedEndpoint = 'glob:*/api/v1/annotation_layer/related/*';
 
-const mocklayers = [...new Array(3)].map((_, i) => ({
+const mocklayers = new Array(3).fill().map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   created_by: {
     first_name: `user`,
@@ -86,29 +86,30 @@ const renderAnnotationLayersList = (props = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AnnotationLayersList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderAnnotationLayersList();
     expect(await screen.findByText('Annotation layers')).toBeInTheDocument();
   });
 
-  it('renders a SubMenu', async () => {
+  test('renders a SubMenu', async () => {
     renderAnnotationLayersList();
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderAnnotationLayersList();
     expect(
       await screen.findByTestId('annotation-layers-list-view'),
     ).toBeInTheDocument();
   });
 
-  it('renders a modal', async () => {
+  test('renders a modal', async () => {
     renderAnnotationLayersList();
     const addButton = await screen.findByRole('button', {
       name: /annotation layer$/i,
@@ -117,7 +118,7 @@ describe('AnnotationLayersList', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('fetches layers', async () => {
+  test('fetches layers', async () => {
     renderAnnotationLayersList();
     await waitFor(() => {
       const calls = fetchMock.calls(/annotation_layer\/\?q/);
@@ -128,13 +129,13 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  it('renders Filters', async () => {
+  test('renders Filters', async () => {
     renderAnnotationLayersList();
     await screen.findByTestId('annotation-layers-list-view');
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
-  it('searches', async () => {
+  test('searches', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load
@@ -155,7 +156,7 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  it('deletes', async () => {
+  test('deletes', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load
@@ -183,7 +184,7 @@ describe('AnnotationLayersList', () => {
     });
   });
 
-  it('shows bulk actions when bulk select is clicked', async () => {
+  test('shows bulk actions when bulk select is clicked', async () => {
     renderAnnotationLayersList();
 
     // Wait for list to load

@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown, MarkdownEditor } from '@superset-ui/core/components';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
@@ -96,6 +97,10 @@ const MarkdownStyles = styled.div`
         font-weight: ${theme.fontWeightNormal};
       }
 
+      strong {
+        font-weight: 600;
+      }
+
       h6 {
         font-size: ${theme.fontSizeSM}px;
       }
@@ -132,6 +137,7 @@ class Markdown extends PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
+    this.shouldFocusMarkdown = this.shouldFocusMarkdown.bind(this);
   }
 
   componentDidMount() {
@@ -268,6 +274,13 @@ class Markdown extends PureComponent {
     }
   }
 
+  shouldFocusMarkdown(event, container, menuRef) {
+    if (container?.contains(event.target)) return true;
+    if (menuRef?.contains(event.target)) return true;
+
+    return false;
+  }
+
   renderEditMode() {
     return (
       <MarkdownEditor
@@ -343,6 +356,7 @@ class Markdown extends PureComponent {
         {({ dragSourceRef }) => (
           <WithPopoverMenu
             onChangeFocus={this.handleChangeFocus}
+            shouldFocus={this.shouldFocusMarkdown}
             menuItems={[
               <MarkdownModeDropdown
                 id={`${component.id}-mode`}

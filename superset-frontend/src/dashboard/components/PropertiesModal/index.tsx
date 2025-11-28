@@ -21,7 +21,6 @@ import { omit } from 'lodash';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,
-  Modal,
   Collapse,
   CollapseLabelInModal,
   JsonEditor,
@@ -112,7 +111,7 @@ const PropertiesModal = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
@@ -151,11 +150,7 @@ const PropertiesModal = ({
       }
     }
 
-    Modal.error({
-      title: t('Error'),
-      content: errorText,
-      okButtonProps: { danger: true, className: 'btn-danger' },
-    });
+    addDangerToast(errorText);
   };
 
   const handleDashboardData = useCallback(
@@ -207,7 +202,6 @@ const PropertiesModal = ({
   );
 
   const fetchDashboardDetails = useCallback(() => {
-    setIsLoading(true);
     // We fetch the dashboard details because not all code
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
@@ -268,11 +262,7 @@ const PropertiesModal = ({
 
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
-      Modal.error({
-        title: t('Error'),
-        content: t('A valid color scheme is required'),
-        okButtonProps: { danger: true, className: 'btn-danger' },
-      });
+      addDangerToast(t('A valid color scheme is required'));
       onHide();
       throw new Error('A valid color scheme is required');
     }
@@ -382,10 +372,6 @@ const PropertiesModal = ({
     if (onlyApply) {
       setIsApplying(true);
       try {
-        console.log('Apply CSS debug:', {
-          css_being_sent: customCss,
-          onSubmitProps_css: onSubmitProps.css,
-        });
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('Dashboard properties updated'));
@@ -422,10 +408,15 @@ const PropertiesModal = ({
 
   useEffect(() => {
     if (show) {
+      // Reset loading state when modal opens
+      setIsLoading(true);
+
       if (!currentDashboardInfo) {
         fetchDashboardDetails();
       } else {
         handleDashboardData(currentDashboardInfo);
+        // Data is immediately available, so we can stop loading
+        setIsLoading(false);
       }
 
       // Fetch themes (excluding system themes)
@@ -595,20 +586,28 @@ const PropertiesModal = ({
     sections: modalSections,
   });
 
-  // Validate basic section when title changes
-  useEffect(() => {
-    validateSection('basic');
-  }, [dashboardTitle, validateSection]);
+  const isDataReady = !isLoading && dashboardInfo;
 
-  // Validate advanced section when JSON changes
+  // Validate basic section when title changes or data loads
   useEffect(() => {
-    validateSection('advanced');
-  }, [jsonMetadata, validateSection]);
+    if (isDataReady) {
+      validateSection('basic');
+    }
+  }, [dashboardTitle, validateSection, isDataReady]);
 
-  // Validate refresh section when refresh frequency changes
+  // Validate advanced section when JSON changes or data loads
   useEffect(() => {
-    validateSection('refresh');
-  }, [refreshFrequency, validateSection]);
+    if (isDataReady) {
+      validateSection('advanced');
+    }
+  }, [jsonMetadata, validateSection, isDataReady]);
+
+  // Validate refresh section when frequency changes or data loads
+  useEffect(() => {
+    if (isDataReady) {
+      validateSection('refresh');
+    }
+  }, [refreshFrequency, validateSection, isDataReady]);
 
   return (
     <StandardModal
@@ -621,10 +620,9 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={
-        isLoading || dashboardInfo?.isManagedExternally || hasErrors
-      }
+      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
       saveLoading={isApplying}
+      contentLoading={isLoading}
       errorTooltip={
         dashboardInfo?.isManagedExternally
           ? t(
@@ -640,7 +638,9 @@ const PropertiesModal = ({
         onFinish={onFinish}
         onFieldsChange={() => {
           // Re-validate sections when form fields change
-          setTimeout(() => validateSection('basic'), 100);
+          if (isDataReady) {
+            validateSection('basic');
+          }
         }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
@@ -665,7 +665,6 @@ const PropertiesModal = ({
               children: (
                 <BasicInfoSection
                   form={form}
-                  isLoading={isLoading}
                   validationStatus={validationStatus}
                 />
               ),

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import {
   Badge,
@@ -33,6 +34,14 @@ const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
     border: 1px solid ${({ theme }) => theme.colorBorder};
   }
+`;
+
+const StyledParagraph = styled.p`
+  margin-top: 0;
+`;
+
+const Code = styled.code`
+  color: ${({ theme }) => theme.colorPrimary};
 `;
 
 export type TemplateParamsEditorProps = {
@@ -64,13 +73,11 @@ const TemplateParamsEditor = ({
 
   const modalBody = (
     <div>
-      <p>
-        {t('Assign a set of parameters as')}
-        <code>JSON</code>
-        {t('below (example:')}
-        <code>{'{"my_table": "foo"}'}</code>
-        {t('), and they become available in your SQL (example:')}
-        <code>SELECT * FROM {'{{ my_table }}'} </code>) {t('by using')}&nbsp;
+      <StyledParagraph>
+        {t('Assign a set of parameters as')} <Code>JSON</Code>{' '}
+        {t('below (example:')} <Code>{'{"my_table": "foo"}'}</Code>
+        {t('), and they become available in your SQL (example:')}{' '}
+        <Code>SELECT * FROM {'{{ my_table }}'} </Code>) {t('by using')}&nbsp;
         <a
           href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
@@ -79,7 +86,7 @@ const TemplateParamsEditor = ({
           {t('Jinja templating')}
         </a>{' '}
         {t('syntax.')}
-      </p>
+      </StyledParagraph>
       <StyledConfigEditor
         mode={language}
         minLines={25}

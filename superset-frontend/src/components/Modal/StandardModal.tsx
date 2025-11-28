@@ -17,8 +17,9 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Modal } from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { Modal, Loading, Flex } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 interface StandardModalProps {
@@ -39,6 +40,7 @@ interface StandardModalProps {
   destroyOnClose?: boolean;
   maskClosable?: boolean;
   wrapProps?: object;
+  contentLoading?: boolean;
 }
 
 // Standard modal widths
@@ -113,12 +115,13 @@ export function StandardModal({
   destroyOnClose = true,
   maskClosable = false,
   wrapProps,
+  contentLoading = false,
 }: StandardModalProps) {
   const primaryButtonName = saveText || (isEditMode ? t('Save') : t('Add'));
 
   return (
     <StyledModal
-      disablePrimaryButton={saveDisabled || saveLoading}
+      disablePrimaryButton={saveDisabled || saveLoading || contentLoading}
       primaryButtonLoading={saveLoading}
       primaryTooltipMessage={errorTooltip}
       onHandledPrimaryAction={onSave}
@@ -139,7 +142,13 @@ export function StandardModal({
         )
       }
     >
-      {children}
+      {contentLoading ? (
+        <Flex justify="center" align="center" style={{ minHeight: 200 }}>
+          <Loading />
+        </Flex>
+      ) : (
+        children
+      )}
     </StyledModal>
   );
 }
