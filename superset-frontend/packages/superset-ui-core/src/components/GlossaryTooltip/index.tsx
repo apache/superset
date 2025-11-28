@@ -19,7 +19,7 @@
 import React from 'react';
 import { Tooltip } from '../Tooltip';
 import type { GlossaryTooltipProps } from './types';
-import { getGlossaryUrl } from './constants';
+import { getGlossaryUrl } from '../../../../superset-ui-core/src/glossary/glossary';
 
 export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({
   term,
@@ -40,6 +40,5 @@ export const GlossaryTooltip: React.FC<GlossaryTooltipProps> = ({
   );
 };
 
-export { GLOSSARY_TERMS, type GlossaryTerm } from './constants';
 export type { GlossaryTooltipProps } from './types';
 

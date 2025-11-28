@@ -19,7 +19,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { QueryColumn, validateNonEmpty } from '@superset-ui/core';
-import glossary from '../../docs/src/resources/glossary';
+import glossary from '../../../superset-ui-core/src/glossary/glossary';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ExtraControlProps,
@@ -28,7 +28,6 @@ import {
   Metric,
   isDataset,
 } from '../types';
-import { GLOSSARY_TERMS } from '@superset-ui/core/components';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 import {
   QUERY_TIME_COLUMN_OPTION,
@@ -193,7 +192,7 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
-  glossaryTerm: GLOSSARY_TERMS.Dimension,
+  glossaryTerm: glossary.getTopic('Query')?.getTerm('Metric'),
   description: t(
     'Select a metric to display. ' +
       'You can use an aggregation function on a column ' +

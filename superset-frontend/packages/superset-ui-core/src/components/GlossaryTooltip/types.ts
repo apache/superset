@@ -18,7 +18,7 @@
  */
 import type { ReactNode } from 'react';
 import type { TooltipProps } from '../Tooltip';
-import type { GlossaryTerm } from './constants';
+import type { GlossaryTerm } from './../../../../superset-ui-core/src/glossary/glossary';
 
 export interface GlossaryTooltipProps extends Omit<TooltipProps, 'title'> {
   term?: GlossaryTerm;
