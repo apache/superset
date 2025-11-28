@@ -21,7 +21,7 @@ import { memo } from 'react';
 import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { FoldersEditorItemType } from '../../types';
-import { FlattenedTreeItem } from '../utilities';
+import { FlattenedTreeItem } from '../constants';
 import { TreeItem } from '../TreeItem';
 import { DragOverlayStack, DragOverlayItem } from '../styles';
 

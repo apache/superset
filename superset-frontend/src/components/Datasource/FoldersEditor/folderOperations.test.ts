@@ -20,6 +20,11 @@
 import { Metric } from '@superset-ui/chart-controls';
 import { ColumnObject } from 'src/features/datasets/types';
 import {
+  DEFAULT_METRICS_FOLDER_UUID,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  isDefaultFolder,
+} from './constants';
+import {
   createFolder,
   deleteFolder,
   resetToDefault,
@@ -28,19 +33,18 @@ import {
   nestFolder,
   reorderFolders,
   moveItems,
+  cleanupFolders,
+  getAllSelectedItems,
+  areAllVisibleItemsSelected,
+  ensureDefaultFolders,
+} from './folderOperations';
+import {
   canDropItems,
   canDropFolder,
   getFolderDescendants,
   findFolderById,
   validateFolders,
-  cleanupFolders,
-  isDefaultFolder,
-  getAllSelectedItems,
-  areAllVisibleItemsSelected,
-  ensureDefaultFolders,
-  DEFAULT_METRICS_FOLDER_UUID,
-  DEFAULT_COLUMNS_FOLDER_UUID,
-} from './folderUtils';
+} from './folderValidation';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { FoldersEditorItemType } from '../types';
 

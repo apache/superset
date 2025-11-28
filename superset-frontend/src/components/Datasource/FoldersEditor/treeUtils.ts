@@ -17,6 +17,11 @@
  * under the License.
  */
 
+/**
+ * Tree manipulation utilities for dnd-kit drag and drop operations.
+ * Handles flattening, building, and projecting tree structures.
+ */
+
 import type { UniqueIdentifier } from '@dnd-kit/core';
 import {
   DatasourceFolder,
@@ -24,27 +29,11 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { FoldersEditorItemType } from '../types';
 import {
-  DEFAULT_COLUMNS_FOLDER_UUID,
-  DEFAULT_METRICS_FOLDER_UUID,
-} from './folderUtils';
-
-export type TreeItem = DatasourceFolder | DatasourceFolderItem;
-
-export interface FlattenedTreeItem {
-  uuid: string;
-  type: FoldersEditorItemType;
-  name: string;
-  description?: string;
-  children?: TreeItem[];
-  parentId: string | null;
-  depth: number;
-  index: number;
-  collapsed?: boolean;
-}
-
-const MAX_DEPTH = 3;
-
-export const DRAG_INDENTATION_WIDTH = 64;
+  TreeItem,
+  FlattenedTreeItem,
+  DRAG_INDENTATION_WIDTH,
+  MAX_DEPTH,
+} from './constants';
 
 function getDragDepth(
   offset: number,
@@ -320,6 +309,40 @@ export function getChildCount(items: TreeItem[], id: UniqueIdentifier): number {
   return 0;
 }
 
+export function getDescendantIds(
+  items: TreeItem[],
+  folderId: string,
+): string[] {
+  const folder = findItemDeep(items, folderId);
+
+  if (
+    !folder ||
+    folder.type !== FoldersEditorItemType.Folder ||
+    !('children' in folder) ||
+    !folder.children
+  ) {
+    return [];
+  }
+
+  const descendants: string[] = [];
+
+  function collectIds(children: TreeItem[]) {
+    for (const child of children) {
+      descendants.push(child.uuid);
+      if (
+        child.type === FoldersEditorItemType.Folder &&
+        'children' in child &&
+        child.children
+      ) {
+        collectIds(child.children);
+      }
+    }
+  }
+
+  collectIds(folder.children);
+  return descendants;
+}
+
 /**
  * Serialize tree for API. Empty folders are excluded.
  */
@@ -384,75 +407,4 @@ export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
       } as DatasourceFolder;
     })
     .filter((folder): folder is DatasourceFolder => folder !== null);
-}
-
-export function getDescendantIds(
-  items: TreeItem[],
-  folderId: string,
-): string[] {
-  const folder = findItemDeep(items, folderId);
-
-  if (
-    !folder ||
-    folder.type !== FoldersEditorItemType.Folder ||
-    !('children' in folder) ||
-    !folder.children
-  ) {
-    return [];
-  }
-
-  const descendants: string[] = [];
-
-  function collectIds(children: TreeItem[]) {
-    for (const child of children) {
-      descendants.push(child.uuid);
-      if (
-        child.type === FoldersEditorItemType.Folder &&
-        'children' in child &&
-        child.children
-      ) {
-        collectIds(child.children);
-      }
-    }
-  }
-
-  collectIds(folder.children);
-  return descendants;
-}
-
-export function canAcceptDrop(
-  targetFolder: FlattenedTreeItem,
-  draggedItems: FlattenedTreeItem[],
-): boolean {
-  const isDefaultMetricsFolder =
-    targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID;
-  const isDefaultColumnsFolder =
-    targetFolder.uuid === DEFAULT_COLUMNS_FOLDER_UUID;
-
-  if (isDefaultMetricsFolder) {
-    return draggedItems.every(
-      item => item.type === FoldersEditorItemType.Metric,
-    );
-  }
-
-  if (isDefaultColumnsFolder) {
-    return draggedItems.every(
-      item => item.type === FoldersEditorItemType.Column,
-    );
-  }
-
-  return true;
-}
-
-export function canNestFolder(
-  items: TreeItem[],
-  movingFolderId: string,
-  targetFolderId: string,
-): boolean {
-  if (movingFolderId === targetFolderId) {
-    return false;
-  }
-
-  const descendants = getDescendantIds(items, movingFolderId);
-  return !descendants.includes(targetFolderId);
 }

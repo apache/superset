@@ -85,9 +85,9 @@ import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_METRICS_FOLDER_UUID,
-  validateFolders,
-} from '../../FoldersEditor/folderUtils';
-import FoldersEditor from '../../FoldersEditor/index';
+} from '../../FoldersEditor/constants';
+import { validateFolders } from '../../FoldersEditor/folderValidation';
+import FoldersEditor from '../../FoldersEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
 

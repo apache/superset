@@ -16,23 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * Folder CRUD operations and data mutations.
+ * Handles creating, deleting, renaming, moving folders and items.
+ */
+
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
   DatasourceFolder,
   DatasourceFolderItem,
 } from 'src/explore/components/DatasourcePanel/types';
-import { UniqueIdentifier } from '@dnd-kit/core';
 import { FoldersEditorItemType } from '../types';
-
-export const DEFAULT_METRICS_FOLDER_UUID = 'default-metric-folder-uuid';
-export const DEFAULT_COLUMNS_FOLDER_UUID = 'default-column-folder-uuid';
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
+import {
+  DEFAULT_METRICS_FOLDER_UUID,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  isDefaultFolder,
+} from './constants';
 
 export const createFolder = (name: string): DatasourceFolder => ({
   uuid: window.crypto.randomUUID(),
@@ -240,169 +241,6 @@ export const filterItemsBySearch = (
   return matchingIds;
 };
 
-export const canDropFolder = (
-  folderId: UniqueIdentifier,
-  targetId: UniqueIdentifier,
-  folders: DatasourceFolder[],
-): boolean => {
-  if (folderId === targetId) return false;
-
-  const descendants = getFolderDescendants(folderId, folders);
-  if (descendants.includes(targetId)) {
-    return false;
-  }
-
-  const draggedFolder = findFolderById(folderId, folders);
-  if (draggedFolder && isDefaultFolder(draggedFolder.uuid)) {
-    return false;
-  }
-
-  return true;
-};
-
-export const canDropItems = (
-  itemIds: string[],
-  targetFolderId: string,
-  folders: DatasourceFolder[],
-  metrics: Metric[],
-  columns: ColumnMeta[],
-): boolean => {
-  const targetFolder = findFolderById(targetFolderId, folders);
-  if (!targetFolder) return false;
-
-  if (targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID) {
-    return itemIds.every(id => metrics.some(m => m.uuid === id));
-  }
-
-  if (targetFolder.uuid === DEFAULT_COLUMNS_FOLDER_UUID) {
-    return itemIds.every(id => columns.some(c => c.uuid === id));
-  }
-
-  return true;
-};
-
-export const getFolderDescendants = (
-  folderId: UniqueIdentifier,
-  folders: DatasourceFolder[],
-): UniqueIdentifier[] => {
-  const descendants: UniqueIdentifier[] = [];
-
-  const collectDescendants = (folder: DatasourceFolder) => {
-    if (folder.children) {
-      folder.children.forEach(child => {
-        if (child.type === 'folder') {
-          descendants.push(child.uuid);
-          collectDescendants(child as DatasourceFolder);
-        }
-      });
-    }
-  };
-
-  const folder = findFolderById(folderId, folders);
-  if (folder) {
-    collectDescendants(folder);
-  }
-
-  return descendants;
-};
-
-export const findFolderById = (
-  folderId: UniqueIdentifier,
-  folders: DatasourceFolder[],
-): DatasourceFolder | null => {
-  for (const folder of folders) {
-    if (folder.uuid === folderId) {
-      return folder;
-    }
-    if (folder.children) {
-      const found = findFolderById(
-        folderId,
-        folder.children.filter(c => c.type === 'folder') as DatasourceFolder[],
-      );
-      if (found) return found;
-    }
-  }
-  return null;
-};
-
-export const validateFolders = (
-  folders: DatasourceFolder[],
-): ValidationResult => {
-  const errors: string[] = [];
-  const folderNames: string[] = [];
-
-  const collectFolderNames = (items: DatasourceFolder[]) => {
-    items.forEach(folder => {
-      if (folder.name?.trim()) {
-        folderNames.push(folder.name.trim().toLowerCase());
-      }
-
-      if (folder.children && folder.type === 'folder') {
-        const childFolders = folder.children.filter(
-          c => c.type === 'folder',
-        ) as DatasourceFolder[];
-        collectFolderNames(childFolders);
-      }
-    });
-  };
-
-  const validateRecursive = (items: DatasourceFolder[]) => {
-    items.forEach(folder => {
-      const hasContent = folder.children && folder.children.length > 0;
-      const hasNoTitle = !folder.name?.trim();
-
-      if (hasContent && hasNoTitle) {
-        errors.push(t('Folder with content must have a name'));
-      }
-
-      if (folder.uuid === DEFAULT_METRICS_FOLDER_UUID && folder.children) {
-        const hasColumns = folder.children.some(
-          child => child.type === 'column',
-        );
-        if (hasColumns) {
-          errors.push(t('Metrics folder can only contain metric items'));
-        }
-      }
-
-      if (folder.uuid === DEFAULT_COLUMNS_FOLDER_UUID && folder.children) {
-        const hasMetrics = folder.children.some(
-          child => child.type === 'metric',
-        );
-        if (hasMetrics) {
-          errors.push(t('Columns folder can only contain column items'));
-        }
-      }
-
-      if (folder.children && folder.type === 'folder') {
-        const childFolders = folder.children.filter(
-          c => c.type === 'folder',
-        ) as DatasourceFolder[];
-        validateRecursive(childFolders);
-      }
-    });
-  };
-
-  collectFolderNames(folders);
-
-  const nameCounts = new Map<string, number>();
-  folderNames.forEach(name => {
-    nameCounts.set(name, (nameCounts.get(name) || 0) + 1);
-  });
-  nameCounts.forEach((count, name) => {
-    if (count > 1) {
-      errors.push(t('Duplicate folder name: %s', name));
-    }
-  });
-
-  validateRecursive(folders);
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings: [],
-  };
-};
-
 export const cleanupFolders = (
   folders: DatasourceFolder[],
 ): DatasourceFolder[] => {
@@ -428,10 +266,6 @@ export const cleanupFolders = (
 
   return cleanRecursive(folders);
 };
-
-export const isDefaultFolder = (folderId: string): boolean =>
-  folderId === DEFAULT_METRICS_FOLDER_UUID ||
-  folderId === DEFAULT_COLUMNS_FOLDER_UUID;
 
 export const getAllSelectedItems = (
   selectedItemIds: Set<string>,
