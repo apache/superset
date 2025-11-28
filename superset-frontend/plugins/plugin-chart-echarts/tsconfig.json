@@ -10,7 +10,7 @@
     }
   },
   "include": ["src/**/*", "types/**/*"],
-  "exclude": ["lib", "test", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": ["lib", "test", "**/*.test.ts", "**/*.test.tsx"],
   "references": [
     { "path": "../../packages/superset-ui-core" },
     { "path": "../../packages/superset-ui-chart-controls" }

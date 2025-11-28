@@ -227,8 +227,10 @@ test('observes extra control height changes when ResizeObserver is available', a
       observeSpy(target);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    unobserve(_target: Element): void {}
+    unobserve(_target: Element): void {
+      // eslint-disable-next-line no-void
+      void _target;
+    }
 
     disconnect = () => {
       disconnectSpy();
