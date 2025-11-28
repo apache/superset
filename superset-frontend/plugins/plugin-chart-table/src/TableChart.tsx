@@ -907,10 +907,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               formatter: ColorFormatters[number],
               valueToFormat: any,
             ) => {
-              const hasValue =
-                valueToFormat !== undefined && valueToFormat !== null;
-              if (!hasValue) return;
-
               const formatterResult =
                 formatter.getColorFromValue(valueToFormat);
               if (!formatterResult) return;
