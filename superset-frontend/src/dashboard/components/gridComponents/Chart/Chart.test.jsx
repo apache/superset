@@ -306,10 +306,14 @@ test('should re-render when cacheBusterProp changes', () => {
 test('should handle chart state conversion when converter exists', () => {
   const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
   const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
-  
-  jest.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
-  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue(mockConvertedState);
-  
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
   const { getByTestId } = setup(
     {},
     {
@@ -322,18 +326,24 @@ test('should handle chart state conversion when converter exists', () => {
       },
     },
   );
-  
+
   expect(getByTestId('chart-container')).toBeInTheDocument();
-  expect(chartStateConverter.hasChartStateConverter).toHaveBeenCalledWith(VizType.Table);
+  expect(chartStateConverter.hasChartStateConverter).toHaveBeenCalledWith(
+    VizType.Table,
+  );
 });
 
 test('should fallback to formData state when runtime state not available', () => {
   const mockFormDataState = { sortColumn: 'column2', sortOrder: 'desc' };
   const mockConvertedState = { sort: [{ columnId: 'column2', order: 'desc' }] };
-  
-  jest.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
-  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue(mockConvertedState);
-  
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
   const { getByTestId } = setup(
     {},
     {
@@ -350,14 +360,16 @@ test('should fallback to formData state when runtime state not available', () =>
       },
     },
   );
-  
+
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
 test('should handle chart state when no converter exists', () => {
-  jest.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(false);
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(false);
   jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
-  
+
   const { getByTestId } = setup(
     {},
     {
@@ -370,19 +382,25 @@ test('should handle chart state when no converter exists', () => {
       },
     },
   );
-  
+
   expect(getByTestId('chart-container')).toBeInTheDocument();
-  expect(chartStateConverter.convertChartStateToOwnState).not.toHaveBeenCalled();
+  expect(
+    chartStateConverter.convertChartStateToOwnState,
+  ).not.toHaveBeenCalled();
 });
 
 test('should merge base ownState with converted chart state', () => {
   const baseOwnState = { existingProp: 'value' };
   const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
   const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
-  
-  jest.spyOn(chartStateConverter, 'hasChartStateConverter').mockReturnValue(true);
-  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState').mockReturnValue(mockConvertedState);
-  
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
   const { getByTestId } = setup(
     {},
     {
@@ -400,6 +418,6 @@ test('should merge base ownState with converted chart state', () => {
       },
     },
   );
-  
+
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
