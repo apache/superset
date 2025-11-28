@@ -21,12 +21,17 @@ This module provides compatibility between Flask-AppBuilder 5.0.0 and
 marshmallow 4.x, specifically handling missing auto-generated fields
 during schema initialization.
 """
+
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from marshmallow import fields
 
+if TYPE_CHECKING:
+    import marshmallow
+
 logger = logging.getLogger(__name__)
+
 
 def patch_marshmallow_for_flask_appbuilder() -> None:
     """
@@ -43,7 +48,7 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
     # Store the original method
     original_init_fields = marshmallow.Schema._init_fields
 
-    def patched_init_fields(self) -> Any:
+    def patched_init_fields(self: "marshmallow.Schema") -> Any:
         """Patched version that handles missing declared fields."""
         max_retries = 10  # Prevent infinite loops in case of unexpected errors
         retries = 0
