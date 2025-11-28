@@ -116,3 +116,7 @@ export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
   }
   return '';
 };
+
+export const parseArrayValue = (value: any[]): number[] => {
+  return value.filter((item): item is number => typeof item === 'number');
+}

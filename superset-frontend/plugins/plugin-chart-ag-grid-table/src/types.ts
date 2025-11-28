@@ -267,4 +267,12 @@ export type Dataset = {
   verbose_map?: Record<string, string>;
 };
 
+export interface ChartConfig {
+  width?: number;
+  height?: number;
+  color?: string;
+  strokeWidth?: number;
+  showValues?: boolean;
+}
+
 export default {};

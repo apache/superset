@@ -58,6 +58,9 @@ interface SparklineCellProps {
   width?: number;
   yAxisBounds?: [number | undefined, number | undefined];
   sparkType?: SparkType;
+  color?: string;
+  strokeWidth?: number;
+  showPoints?: boolean;
 }
 
 const MARGIN = {
@@ -79,19 +82,30 @@ const SparklineCell = ({
   showYAxis = false,
   entries = [],
   sparkType = 'line',
+  color,
+  strokeWidth = 1,
+  showPoints = false,
 }: SparklineCellProps): ReactElement => {
   const theme = useTheme();
+
+  console.log('SparklineCell - Rendering Sparkline with config:', {
+    color,
+    strokeWidth,
+    showPoints,
+  });
+
+  const finalSeriesColor = color || theme.colorText;
 
   const xyTheme = useMemo(
     () =>
       buildChartTheme({
         backgroundColor: `${theme.colorBgContainer}`,
-        colors: [`${theme.colorText}`],
+        colors: [`${finalSeriesColor}`],
         gridColor: `${theme.colorSplit}`,
         gridColorDark: `${theme.colorBorder}`,
         tickLength: 6,
       }),
-    [theme],
+    [theme, finalSeriesColor],
   );
 
   const validData = useMemo(
@@ -189,8 +203,9 @@ const SparklineCell = ({
           dataKey={dataKey}
           xAccessor={xAccessor}
           yAccessor={yAccessor}
+          {...(sparkType === 'line' || sparkType === 'area' ? { strokeWidth: strokeWidth } : {})}
         />
-        <Tooltip
+        {showPoints && <Tooltip
           glyphStyle={{ strokeWidth: 1 }}
           showDatumGlyph
           showVerticalCrosshair
@@ -244,6 +259,7 @@ const SparklineCell = ({
             );
           }}
         />
+      }
       </XYChart>
       <style>
         {`
