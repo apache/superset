@@ -41,8 +41,9 @@ export const GlossaryContent = () => {
               <h3>{topicName}</h3>
               <Table
                 dataSource={terms.map(term => ({
-                  ...term,
-                  key: encodeURIComponent(`${topicName}__${term.title}`),
+                  title: term.getDisplayTitle(),
+                  short: term.getShort(),
+                  key: encodeURIComponent(`${topicName}__${term.getTitle()}`),
                 }))}
                 columns={GlossaryStructure}
                 rowKey="key"

@@ -17,6 +17,30 @@
  * under the License.
  */
 
+/**
+ * Glossary definition containing terms organized by topic.
+ * 
+ * ## How to add new glossary entries:
+ * 
+ * 1. Add a new topic (if needed) or use an existing one
+ * 2. Add a term under the topic with a key (term name) and value object containing:
+ *    - short: A brief description (displayed in tooltips)
+ *    - extended (optional): An extended description (displayed in documentation)
+ * 
+ * ## Example:
+ * export const glossaryDefinition: GlossaryDefinition = {
+ *   Query: {
+ *     Row_Limit: {
+ *       short: t('Limits the number of rows...'),
+ *       extended: t('Additional details...'), // optional
+ *     },
+ *   },
+ * };
+ * 
+ * ## Formatting Notes:
+ * - Term names with underscores (e.g., `Row_Limit`) will be displayed with spaces 
+ *   (e.g., "Row Limit") when rendered in the UI and documentation
+ */
 
 export const glossaryDefinition: GlossaryDefinition = {
   Query: {
@@ -35,7 +59,7 @@ export const glossaryDefinition: GlossaryDefinition = {
         'Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
       ),
     },
-    RowLimit: {
+    Row_Limit: {
       short: t(
         'Limits the number of rows that get displayed. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
       ),
