@@ -40,7 +40,7 @@ import { FoldersEditorItemType } from '../types';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_METRICS_FOLDER_UUID,
-} from './folderUtils';
+} from './constants';
 import {
   TreeItemContainer,
   TreeFolderContainer,

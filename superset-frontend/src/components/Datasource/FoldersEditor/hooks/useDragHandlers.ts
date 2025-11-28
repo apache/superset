@@ -31,15 +31,11 @@ import {
   isDefaultFolder,
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_METRICS_FOLDER_UUID,
-} from '../folderUtils';
-import {
-  buildTree,
-  getProjection,
-  serializeForAPI,
   TreeItem as TreeItemType,
   FlattenedTreeItem,
   DRAG_INDENTATION_WIDTH,
-} from '../utilities';
+} from '../constants';
+import { buildTree, getProjection, serializeForAPI } from '../treeUtils';
 
 interface UseDragHandlersProps {
   items: TreeItemType[];
@@ -236,7 +232,7 @@ export function useDragHandlers({
     );
 
     let projectedPosition = getProjection(
-      fullFlattenedItems,
+      flattenedItems,
       active.id,
       targetOverId,
       finalOffsetLeft,
