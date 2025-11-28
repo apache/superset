@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ReactNode } from 'react';
+import { AxisType } from '@superset-ui/core';
 import {
   render,
   waitFor,
   cleanup,
 } from '../../../../spec/helpers/testing-library';
-import { AxisType } from '@superset-ui/core';
-import type { EChartsCoreOption } from 'echarts/core';
-import type { ReactNode } from 'react';
 import {
   LegendOrientation,
   LegendType,
@@ -43,9 +43,8 @@ const mockEchart = jest.fn();
 jest.mock('../components/Echart', () => {
   const { forwardRef } = jest.requireActual<typeof import('react')>('react');
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
-    (props, ref) => {
+    (props, _ref) => {
       mockEchart(props);
-      void ref;
       return null;
     },
   );
@@ -216,6 +215,7 @@ test('observes extra control height changes when ResizeObserver is available', a
 
   class MockResizeObserver implements ResizeObserver {
     private static latestInstance: MockResizeObserver | null = null;
+
     private readonly callback: ResizeObserverCallback;
 
     constructor(callback: ResizeObserverCallback) {
@@ -227,9 +227,8 @@ test('observes extra control height changes when ResizeObserver is available', a
       observeSpy(target);
     };
 
-    unobserve(_target: Element): void {
-      void _target;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    unobserve(_target: Element): void {}
 
     disconnect = () => {
       disconnectSpy();

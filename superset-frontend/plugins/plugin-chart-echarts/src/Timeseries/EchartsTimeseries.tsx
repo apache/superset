@@ -70,7 +70,7 @@ export default function EchartsTimeseries({
     const element = extraControlRef.current;
     if (!element) {
       setExtraControlHeight(0);
-      return;
+      return undefined;
     }
 
     const updateHeight = () => {

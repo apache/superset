@@ -47,7 +47,7 @@ import {
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
-  legacyValidateInteger,
+  validateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
@@ -387,6 +387,7 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+              validators: [validateInteger],
             },
           },
         ],
@@ -405,7 +406,7 @@ const config: ControlPanelConfig = {
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                legacyValidateInteger,
+                validateInteger,
                 (v, state) =>
                   validateMaxValue(
                     v,
