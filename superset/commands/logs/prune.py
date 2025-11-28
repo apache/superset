@@ -39,13 +39,19 @@ class LogPruneCommand(BaseCommand):
     Attributes:
         retention_period_days (int): The number of days for which records should be retained.
                                      Records older than this period will be deleted.
+        max_rows_per_run (int | None): The maximum number of rows to delete in a single run.
+                                       If provided and greater than zero, only up to this
+                                           many rows are targeted in this execution.
     """  # noqa: E501
 
-    def __init__(self, retention_period_days: int):
+    def __init__(self, retention_period_days: int, max_rows_per_run: int | None = None):
         """
         :param retention_period_days: Number of days to keep in the logs table
-        """
+        :param max_rows_per_run: The maximum number of rows to delete in a single run.
+            If provided and greater than zero, only up to this many rows are targeted in this execution.
+        """  # noqa: E501
         self.retention_period_days = retention_period_days
+        self.max_rows_per_run = max_rows_per_run
 
     def run(self) -> None:
         """
@@ -55,17 +61,15 @@ class LogPruneCommand(BaseCommand):
         total_deleted = 0
         start_time = time.time()
 
-        # Select all IDs that need to be deleted
-        ids_to_delete = (
-            db.session.execute(
-                sa.select(Log.id).where(
-                    Log.dttm
-                    < datetime.now() - timedelta(days=self.retention_period_days)
-                )
-            )
-            .scalars()
-            .all()
+        # Select IDs to delete, optionally limited by max_rows_per_run
+        select_stmt = sa.select(Log.id).where(
+            Log.dttm < datetime.now() - timedelta(days=self.retention_period_days)
         )
+
+        if self.max_rows_per_run is not None and self.max_rows_per_run > 0:
+            select_stmt = select_stmt.limit(self.max_rows_per_run)
+
+        ids_to_delete = db.session.execute(select_stmt).scalars().all()
 
         total_rows = len(ids_to_delete)
 

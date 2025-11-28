@@ -177,7 +177,10 @@ def prune_query(
 
 @celery_app.task(name="prune_logs", bind=True)
 def prune_logs(
-    self: Task, retention_period_days: int | None = None, **kwargs: Any
+    self: Task,
+    retention_period_days: int | None = None,
+    max_rows_per_run: int | None = None,
+    **kwargs: Any,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
@@ -193,6 +196,6 @@ def prune_logs(
         )
 
     try:
-        LogPruneCommand(retention_period_days).run()
+        LogPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning logs: %s", ex)
