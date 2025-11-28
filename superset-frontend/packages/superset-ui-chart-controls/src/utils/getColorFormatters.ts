@@ -33,17 +33,12 @@ const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
   value: number | string | boolean | null,
-  cutoffPoint: number | string | boolean,
-  extremeValue: number | string | boolean,
+  cutoffPoint: number | string,
+  extremeValue: number | string,
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
 ) => {
-  if (
-    extremeValue === cutoffPoint ||
-    typeof value !== 'number' ||
-    typeof cutoffPoint === 'boolean' ||
-    typeof extremeValue === 'boolean'
-  ) {
+  if (extremeValue === cutoffPoint || typeof value !== 'number') {
     return maxOpacity;
   }
   const numCutoffPoint =
@@ -84,12 +79,7 @@ export const getColorFunction = (
   let comparatorFunction: (
     value: number | string | boolean | null,
     allValues: number[] | string[] | (boolean | null)[],
-  ) =>
-    | false
-    | {
-        cutoffValue: number | string | boolean;
-        extremeValue: number | string | boolean;
-      };
+  ) => false | { cutoffValue: number | string; extremeValue: number | string };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
   }
@@ -109,10 +99,7 @@ export const getColorFunction = (
   switch (operator) {
     case Comparator.None:
       minOpacity = MIN_OPACITY_UNBOUNDED;
-      comparatorFunction = (
-        value: number | string | boolean | null,
-        allValues: number[],
-      ) => {
+      comparatorFunction = (value: number | string, allValues: number[]) => {
         if (typeof value !== 'number') {
           return { cutoffValue: value!, extremeValue: value! };
         }

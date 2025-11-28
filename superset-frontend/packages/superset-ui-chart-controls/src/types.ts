@@ -477,7 +477,7 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number | string | boolean;
+  targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;

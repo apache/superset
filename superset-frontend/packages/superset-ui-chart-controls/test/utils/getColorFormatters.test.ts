@@ -450,7 +450,7 @@ test('getColorFunction IsTrue', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.IsTrue,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
@@ -465,7 +465,7 @@ test('getColorFunction IsFalse', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.IsFalse,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
@@ -480,7 +480,7 @@ test('getColorFunction IsNull', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.IsNull,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
@@ -495,7 +495,7 @@ test('getColorFunction IsNotNull', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.IsNotNull,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
@@ -600,25 +600,25 @@ test('correct column boolean config', () => {
   const columnConfigBoolean = [
     {
       operator: Comparator.IsTrue,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
     {
       operator: Comparator.IsFalse,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
     {
       operator: Comparator.IsNull,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
     {
       operator: Comparator.IsNotNull,
-      targetValue: true,
+      targetValue: '',
       colorScheme: '#FF0000',
       column: 'isMember',
     },
