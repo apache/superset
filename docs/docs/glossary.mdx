@@ -4,10 +4,22 @@ hide_title: true
 sidebar_position: 10
 ---
 
-import { glossary, GlossaryStructure } from '../../superset-frontend/packages/superset-ui-core/src/glossary';
-import { Table, ConfigProvider } from 'antd';
-import { theme } from "antd";
+import glossary from '../../superset-frontend/packages/superset-ui-core/src/glossary/glossary';
+import { Table, ConfigProvider, theme } from 'antd';
 import { useColorMode } from '@docusaurus/theme-common';
+
+export const GlossaryStructure = [
+  {
+    title: 'Term',
+    dataIndex: 'title',
+    key: 'title',
+  },
+  {
+    title: 'Short Description',
+    dataIndex: 'short',
+    key: 'short',
+  }
+]
 
 export const GlossaryContent = () => {
   const { colorMode } = useColorMode();
@@ -15,25 +27,33 @@ export const GlossaryContent = () => {
   
   return (
     <div>
-      {Glossary.map(({ title, short, extended }) => (
-        <KeyValue key={title} keyName={title} value={short} dark={isDark} />
-                  <ConfigProvider
-            theme={{
-              algorithm: isDark
-              ? theme.darkAlgorithm
-              : theme.defaultAlgorithm,
-            }}
-          >
-            <Table 
-              dataSource={Glossary} 
-              columns={GlossaryStructure}
-              pagination={false}
-              pagination={false}
-              showHeader={false}
-              bordered={true}
-            />
-          </ConfigProvider>
-      ))}
+      <ConfigProvider
+        theme={{
+          algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        }}
+      >
+        {glossary.getAllTopics().map(topic => {
+          const topicName = topic.getName();
+          const topicFragment = encodeURIComponent(topicName);
+          const terms = topic.getAllTerms();
+          return (
+            <div key={topicName} id={topicFragment}>
+              <h3>{topicName}</h3>
+              <Table
+                dataSource={terms.map(term => ({
+                  ...term,
+                  key: encodeURIComponent(`${topicName}__${term.title}`),
+                }))}
+                columns={GlossaryStructure}
+                rowKey="key"
+                pagination={false}
+                showHeader
+                bordered
+              />
+            </div>
+          );
+        })}
+      </ConfigProvider>
     </div>
   );
 };

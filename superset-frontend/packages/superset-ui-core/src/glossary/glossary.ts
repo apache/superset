@@ -21,6 +21,8 @@ function t(message: string): string {
   return message;
 }
 
+export const GLOSSARY_BASE_URL = 'http://localhost:3000'; // TODO: change to the actual URL
+
 export interface GlossaryTerm {
   /**
    * The topic under which the term is categorized.
@@ -94,20 +96,23 @@ export class Glossary {
 
 const glossary_terms: GlossaryTerm[] = [
   {
-    topic: t('Query'),
-    title: t('Dimension'),
+    topic: 'Query',
+    title: 'Dimension',
     short: t(
       'Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.',
     ),
   },
   {
-    topic: t('Query'),
-    title: t('Metric'),
+    topic: 'Query',
+    title: 'Metric',
     short: t(
       'Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.',
     ),
   },
 ];
+
+export const getGlossaryUrl = (term: GlossaryTerm): string =>
+  `${GLOSSARY_BASE_URL}/glossary#${encodeURIComponent(term.topic + "__" +term.title)}`;
 
 const glossary = new Glossary(glossary_terms);
 
