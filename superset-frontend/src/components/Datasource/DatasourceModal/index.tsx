@@ -362,7 +362,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : ''
+                : errors.length > 0
+                  ? errors.join('\n')
+                  : ''
             }
           >
             {t('Save')}
