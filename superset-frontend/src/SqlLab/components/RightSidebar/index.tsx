@@ -51,8 +51,9 @@ const RightSidebar = () => {
     getDefaultWidth(),
   );
   const contributions =
-    ExtensionsManager.getInstance().getViewContributions(RIGHT_SIDEBAR_VIEW_ID) ||
-    [];
+    ExtensionsManager.getInstance().getViewContributions(
+      RIGHT_SIDEBAR_VIEW_ID,
+    ) || [];
   const { getView } = useExtensionsContext();
 
   if (contributions.length === 0) {
