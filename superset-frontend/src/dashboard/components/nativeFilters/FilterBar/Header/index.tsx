@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { memo, FC } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
@@ -68,7 +69,7 @@ type HeaderProps = {
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
   <Wrapper>
     <TitleArea>
-      <span>{t('Filters')}</span>
+      <span>{t('Actions')}</span>
       <FilterBarSettings />
       <HeaderButton
         {...getFilterBarTestId('collapse-button')}

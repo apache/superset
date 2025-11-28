@@ -38,20 +38,24 @@ export const getOpacity = (
   minOpacity = MIN_OPACITY_BOUNDED,
   maxOpacity = MAX_OPACITY,
 ) => {
-  if (
-    extremeValue === cutoffPoint ||
-    typeof cutoffPoint !== 'number' ||
-    typeof extremeValue !== 'number' ||
-    typeof value !== 'number'
-  ) {
+  if (extremeValue === cutoffPoint || typeof value !== 'number') {
     return maxOpacity;
   }
+  const numCutoffPoint =
+    typeof cutoffPoint === 'string' ? parseFloat(cutoffPoint) : cutoffPoint;
+  const numExtremeValue =
+    typeof extremeValue === 'string' ? parseFloat(extremeValue) : extremeValue;
+
+  if (isNaN(numCutoffPoint) || isNaN(numExtremeValue)) {
+    return maxOpacity;
+  }
+
   return Math.min(
     maxOpacity,
     round(
       Math.abs(
-        ((maxOpacity - minOpacity) / (extremeValue - cutoffPoint)) *
-          (value - cutoffPoint),
+        ((maxOpacity - minOpacity) / (numExtremeValue - numCutoffPoint)) *
+          (value - numCutoffPoint),
       ) + minOpacity,
       2,
     ),
@@ -241,10 +245,21 @@ export const getColorFormatters = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
+    theme?: Record<string, any>,
     alpha?: boolean,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        let resolvedColorScheme = config.colorScheme;
+        if (
+          theme &&
+          typeof config.colorScheme === 'string' &&
+          config.colorScheme.startsWith('color') &&
+          theme[config.colorScheme]
+        ) {
+          resolvedColorScheme = theme[config.colorScheme] as string;
+        }
+
         if (
           config?.column !== undefined &&
           (config?.operator === Comparator.None ||
@@ -256,8 +271,10 @@ export const getColorFormatters = memoizeOne(
         ) {
           acc.push({
             column: config?.column,
+            toAllRow: config?.toAllRow,
+            toTextColor: config?.toTextColor,
             getColorFromValue: getColorFunction(
-              config,
+              { ...config, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
               alpha,
             ),

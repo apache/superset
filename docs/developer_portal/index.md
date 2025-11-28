@@ -1,126 +1,136 @@
 ---
-title: Developer Portal
+title: Overview
 sidebar_position: 1
-hide_title: true
 ---
 
 <!--
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 -->
 
-# Superset Developer Portal
+# Apache Superset Developer Portal
 
-Welcome to the Apache Superset Developer Portal! This is your comprehensive guide to extending and customizing Superset through our new extension architecture.
+Welcome to the Apache Superset Developer Portal - your comprehensive resource for contributing to and extending Apache Superset.
 
-## What are Superset Extensions?
+## 🚀 Quick Start
 
-Superset Extensions provide a powerful way to enhance and customize Apache Superset without modifying the core codebase. Following the successful model pioneered by VS Code, our extension architecture enables developers to:
+### New Contributors
+- [Contributing Overview](/developer_portal/contributing/overview)
+- [Development Setup](/developer_portal/contributing/development-setup)
+- [Your First PR](/developer_portal/contributing/submitting-pr)
 
-- **Add custom features** to SQL Lab and other Superset modules
-- **Create reusable components** that can be shared across organizations
-- **Integrate external tools** and services seamlessly
-- **Customize workflows** to match your team's specific needs
+### Extension Development
+- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
+- [Extension Architecture](/developer_portal/extensions/architecture)
+- [Quick Start](/developer_portal/extensions/quick-start)
 
-## Why Extensions?
+## 📚 Documentation Sections
 
-As Superset has grown, we've recognized the need for a more modular architecture that allows:
+### Extensions
+Learn how to build powerful extensions that enhance Superset's capabilities. This section covers the extension architecture, development patterns, and deployment strategies. You'll find comprehensive guides on creating frontend contributions, managing extension lifecycles, and understanding security implications.
 
-- **Innovation without fragmentation** - Build features without forking the codebase
-- **Community-driven development** - Share and reuse extensions across organizations
-- **Stable APIs** - Develop against versioned, well-documented interfaces
-- **Rapid iteration** - Deploy custom features without waiting for core releases
+### Testing
+Comprehensive testing strategies for Superset development. This section covers frontend testing with Jest and React Testing Library, backend testing with pytest, end-to-end testing with Playwright, and CI/CD pipeline best practices.
 
-## Key Features
+### Contributing to Superset
+Everything you need to contribute to the Apache Superset project. This section includes community guidelines, development environment setup, pull request processes, code review workflows, issue reporting guidelines, and Apache release procedures. You'll also find style guidelines for both frontend and backend development.
 
-### 🎯 Well-Defined Extension Points
+## 🛠️ Development Resources
 
-Extensions can contribute to specific areas of Superset:
-- SQL Lab panels (left, right, bottom, editor)
-- Custom commands and menu items
-- Status bar components
-- API endpoints and backend functionality
+### Prerequisites
+- **Python**: 3.9, 3.10, or 3.11
+- **Node.js**: 18.x or 20.x
+- **npm**: 9.x or 10.x
+- **Git**: Basic understanding
+- **React/TypeScript**: For frontend development
+- **Flask/SQLAlchemy**: For backend development
 
-### 🔧 Modern Development Experience
+### Key Technologies
+- **Frontend**: React, TypeScript, Ant Design, Redux
+- **Backend**: Flask, SQLAlchemy, Celery, Redis
+- **Build Tools**: Webpack, Babel, npm/yarn
+- **Testing**: Jest, Pytest, Playwright
+- **CI/CD**: GitHub Actions, pre-commit
 
-- **CLI tools** for scaffolding, building, and packaging
-- **Hot reloading** during development
-- **TypeScript support** with full type safety
-- **Module Federation** for dynamic loading
+## 🤝 Community
 
-### 📦 Simple Distribution
+### Get Help
+- **[Slack](https://apache-superset.slack.com)** - Join #development, #troubleshooting, or #beginners
+- **[GitHub Discussions](https://github.com/apache/superset/discussions)** - Ask questions and share ideas
+- **[Mailing Lists](https://lists.apache.org/list.html?dev@superset.apache.org)** - Development discussions
 
-- Package extensions as `.supx` files
-- Upload via REST API or UI
-- Automatic activation and lifecycle management
-- Version compatibility checking
+### Contribute
+- **[Good First Issues](https://github.com/apache/superset/labels/good%20first%20issue)** - Start here!
+- **[Help Wanted](https://github.com/apache/superset/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)** - Issues needing help
+- **[Roadmap](https://github.com/orgs/apache/projects/180)** - See what's planned
 
-## Getting Started
+## 📖 Additional Resources
 
-Ready to build your first extension? Check out our [Getting Started Guide](./getting-started) to:
+### External Documentation
+- **[User Documentation](https://superset.apache.org/docs/intro)** - Using Superset
+- **[API Documentation](https://superset.apache.org/docs/api)** - REST API reference
+- **[Configuration Guide](https://superset.apache.org/docs/configuration/configuring-superset)** - Setup and configuration
 
-1. Set up your development environment
-2. Create your first extension
-3. Test it locally
-4. Package and deploy it
+### Important Files
+- **[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)** - Contribution guidelines
+- **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - LLM development guide
+- **[UPDATING.md](https://github.com/apache/superset/blob/master/UPDATING.md)** - Breaking changes log
 
-## Architecture Overview
+## 🎯 Where to Start?
 
-Our extension architecture is built on several key principles:
+<table>
+<tr>
+<td width="50%">
 
-- **Lean Core**: Keep Superset's core minimal and delegate features to extensions
-- **Explicit APIs**: Clear, versioned interfaces for extension interactions
-- **Lazy Loading**: Extensions load only when needed for optimal performance
-- **Security First**: Extensions run with appropriate permissions and sandboxing
+**I want to contribute code**
+1. [Set up development environment](/developer_portal/contributing/development-setup)
+2. [Find a good first issue](https://github.com/apache/superset/labels/good%20first%20issue)
+3. [Submit your first PR](/developer_portal/contributing/submitting-pr)
 
-Learn more in our [Architecture Documentation](./architecture/overview).
+</td>
+<td width="50%">
 
-## Current Status
+**I want to build an extension**
+1. [Start with Quick Start](/developer_portal/extensions/quick-start)
+2. [Learn extension structure](/developer_portal/extensions/extension-project-structure)
+3. [Explore architecture](/developer_portal/extensions/architecture)
 
-The extension architecture is currently in active development. The initial focus is on SQL Lab extensions, with plans to expand to:
+</td>
+</tr>
+<tr>
+<td>
 
-- Dashboard extensions
-- Chart plugins (enhanced from current system)
-- Database connectors
-- Security providers
+**I found a bug**
+1. [Search existing issues](https://github.com/apache/superset/issues)
+2. [Report the bug](/developer_portal/contributing/issue-reporting)
+3. [Submit a fix](/developer_portal/contributing/submitting-pr)
 
-## Example: Dataset References Extension
+</td>
+<td>
 
-See the extension system in action with our Dataset References example, which adds a SQL Lab panel showing:
+**I need help**
+1. [Check the FAQ](https://superset.apache.org/docs/frequently-asked-questions)
+2. [Ask in Slack](https://apache-superset.slack.com)
+3. [Start a discussion](https://github.com/apache/superset/discussions)
 
-- Tables referenced in queries
-- Table owners for permission requests  
-- Last available partitions
-- Estimated row counts
-
-## Join the Community
-
-- **Contribute**: Help shape the future of Superset extensions
-- **Share**: Publish your extensions for others to use
-- **Learn**: Explore extensions built by the community
-
-## Quick Links
-
-- [Getting Started Guide](./getting-started)
-- [Extension Architecture](./architecture/overview)
-- [API Reference](./api/frontend)
-- [CLI Documentation](./cli/overview)
-- [Examples](./examples)
+</td>
+</tr>
+</table>
 
 ---
 
-*The Superset extension architecture is inspired by the successful model of VS Code Extensions, bringing similar flexibility and power to the data exploration domain.*
+Welcome to the Apache Superset community! We're excited to have you contribute. 🎉

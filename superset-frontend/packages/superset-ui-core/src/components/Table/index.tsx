@@ -21,7 +21,8 @@ import { useState, useEffect, useRef, Key, FC } from 'react';
 import { Table as AntTable } from 'antd';
 import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
 import { PaginationProps } from 'antd/es/pagination';
-import { t, useTheme, logging, styled } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
+import { useTheme, styled } from '@apache-superset/core/ui';
 import { Loading } from '@superset-ui/core/components';
 import { RowSelectionType } from 'antd/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
@@ -167,6 +168,33 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
     .ant-table-body {
       overflow: auto;
       height: ${height ? `${height}px` : undefined};
+
+      /* Chrome/Safari/Edge webkit scrollbar styling */
+      &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: ${theme.colorFillQuaternary};
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: ${theme.colorFillSecondary};
+        border-radius: ${theme.borderRadiusSM}px;
+
+        &:hover {
+          background: ${theme.colorFillTertiary};
+        }
+      }
+
+      &::-webkit-scrollbar-corner {
+        background: ${theme.colorFillQuaternary};
+      }
+
+      /* Firefox scrollbar styling */
+      scrollbar-width: thin;
+      scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
     }
 
     .ant-spin-nested-loading .ant-spin .ant-spin-dot {

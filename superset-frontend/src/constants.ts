@@ -103,6 +103,10 @@ export const URL_PARAMS = {
     name: 'focused_chart',
     type: 'number',
   },
+  editMode: {
+    name: 'edit',
+    type: 'boolean',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -117,6 +121,7 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFiltersKey.name,
   URL_PARAMS.permalinkKey.name,
   URL_PARAMS.preselectFilters.name,
+  URL_PARAMS.editMode.name,
 ];
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
@@ -189,3 +194,10 @@ export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+/**
+ * Default threshold for CSV streaming export.
+ * Exports with row counts >= this value will use streaming with progress tracking.
+ * Exports with row counts < this value will use traditional download.
+ */
+export const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;

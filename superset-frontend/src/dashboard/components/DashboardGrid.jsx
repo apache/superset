@@ -20,7 +20,8 @@ import { PureComponent, Fragment } from 'react';
 import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { addAlpha, css, styled, t } from '@superset-ui/core';
+import { addAlpha, t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { EmptyState } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -53,6 +54,9 @@ const DashboardEmptyStateContainer = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const GridContent = styled.div`

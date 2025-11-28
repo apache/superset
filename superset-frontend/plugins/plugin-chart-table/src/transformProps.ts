@@ -469,6 +469,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
+    theme,
   } = chartProps;
 
   const formData = merge(
@@ -682,7 +683,7 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData) ??
+    getColorFormatters(conditionalFormatting, passedData, theme) ??
     defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(

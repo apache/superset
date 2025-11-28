@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -370,22 +372,56 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
-        """Test that a chart command updates properties"""
+    def test_update_sets_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update sets last_saved_at when previously unset"""
         pk = db.session.query(Slice).all()[0].id
         user = security_manager.find_user(username="admin")
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
-        model_id = pk
-        json_obj = {
-            "description": "test for update",
-            "cache_timeout": None,
-            "owners": [user.id],
-        }
-        command = UpdateChartCommand(model_id, json_obj)
-        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+
+        # Explicitly set last_saved_at to None to test None -> datetime transition
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = None
+        db.session.commit()
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
         command.run()
+
         chart = db.session.query(Slice).get(pk)
-        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_at is not None
+        assert chart.last_saved_by == user
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_changes_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update changes last_saved_at when it already has a value"""
+        pk = db.session.query(Slice).all()[0].id
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = datetime.now()
+        db.session.commit()
+        # Refresh to get the database value with MySQL's truncated microseconds
+        db.session.refresh(chart_to_update)
+        last_saved_before = chart_to_update.last_saved_at
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
+        # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
+        time.sleep(1)
+        command.run()
+
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at.replace(microsecond=0) != last_saved_before.replace(
+            microsecond=0
+        )
         assert chart.last_saved_by == user
 
     @patch("superset.utils.core.g")
@@ -416,6 +452,157 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_existing_relationship(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that chart owners can update charts linked to inaccessible
+        dashboards (existing relationships)"""
+        from superset.models.dashboard import Dashboard
+
+        # Create a chart owned by alpha
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        chart = db.session.query(Slice).first()
+        chart.owners = [alpha]
+
+        # Create a dashboard owned by admin (not accessible to alpha)
+        admin_dashboard = Dashboard(
+            dashboard_title="Admin Dashboard",
+            slug="admin-dashboard",
+            owners=[admin],
+            published=False,
+        )
+        db.session.add(admin_dashboard)
+
+        # Link chart to admin's dashboard (alpha owns chart, admin owns dashboard)
+        chart.dashboards.append(admin_dashboard)
+        db.session.commit()
+
+        # Alpha should still be able to update their chart
+        # even though it's linked to admin's dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        json_obj = {
+            "description": "Updated description",
+            "dashboards": [
+                d.id for d in chart.dashboards
+            ],  # Keep existing relationships
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+        command.run()
+
+        # Should succeed - alpha can update their chart
+        updated_chart = db.session.query(Slice).get(chart.id)
+        assert updated_chart.description == "Updated description"
+
+        # Clean up
+        db.session.delete(admin_dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_new_unauthorized_relationship(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that users cannot add charts to dashboards they don't have access to"""
+        from superset.commands.chart.exceptions import ChartInvalidError
+        from superset.models.dashboard import Dashboard
+
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        # Create chart owned by alpha
+        chart = db.session.query(Slice).first()
+        chart.owners = [alpha]
+
+        # Create private dashboard owned by admin (not accessible to alpha)
+        admin_dashboard = Dashboard(
+            dashboard_title="Admin Private Dashboard",
+            slug="admin-private-dashboard",
+            owners=[admin],
+            published=False,  # Private dashboard
+        )
+        db.session.add(admin_dashboard)
+        db.session.commit()
+
+        # Alpha tries to add their chart to admin's private dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        json_obj = {
+            "description": "Trying to add to unauthorized dashboard",
+            "dashboards": [admin_dashboard.id],  # NEW unauthorized relationship
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+
+        # Should fail - alpha cannot access admin's private dashboard
+        with self.assertRaises(ChartInvalidError):  # noqa: PT027
+            command.run()
+
+        # Clean up
+        db.session.delete(admin_dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_dashboard_security_admin_bypass(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that admins can add charts to any dashboard"""
+        from superset.models.dashboard import Dashboard
+
+        admin = security_manager.find_user(username="admin")
+        alpha = security_manager.find_user(username="alpha")
+
+        # Set user context for dashboard creation
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = alpha
+
+        # Create chart owned by admin
+        chart = db.session.query(Slice).first()
+        chart.owners = [admin]
+
+        # Create private dashboard owned by alpha
+        alpha_dashboard = Dashboard(
+            dashboard_title="Alpha Private Dashboard",
+            slug="alpha-private-dashboard",
+            owners=[alpha],
+            published=False,
+        )
+        db.session.add(alpha_dashboard)
+        db.session.commit()
+
+        # Admin should be able to add chart to any dashboard
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        json_obj = {
+            "description": "Admin adding to any dashboard",
+            "dashboards": [alpha_dashboard.id],
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+        command.run()
+
+        # Should succeed - admin has access to all dashboards
+        updated_chart = db.session.query(Slice).get(chart.id)
+        assert alpha_dashboard in updated_chart.dashboards
+
+        # Clean up
+        db.session.delete(alpha_dashboard)
+        db.session.commit()
 
 
 class TestChartWarmUpCacheCommand(SupersetTestCase):

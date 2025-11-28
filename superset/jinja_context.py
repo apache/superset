@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.sql.parse import Table
+from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
@@ -1007,11 +1008,11 @@ def dataset_macro(
 
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "is_timeseries": False,
         "filter": [],
         "metrics": metrics if include_metrics else None,
-        "columns": columns,
+        "columns": cast(list[Column], columns),
         "from_dttm": from_dttm,
         "to_dttm": to_dttm,
     }
@@ -1086,7 +1087,12 @@ def metric_macro(
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)
 
-    dataset = DatasetDAO.find_by_id(dataset_id)
+    # Embedded user access is validated at the dashboard level, so we bypass
+    # the regular DAO filter for them
+    dataset = DatasetDAO.find_by_id(
+        dataset_id,
+        skip_base_filter=security_manager.is_guest_user(),
+    )
     if not dataset:
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
 

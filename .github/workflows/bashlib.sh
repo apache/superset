@@ -195,6 +195,7 @@ playwright-install() {
 
 playwright-run() {
   local APP_ROOT=$1
+  local TEST_PATH=$2
 
   # Start Flask from the project root (same as Cypress)
   cd "$GITHUB_WORKSPACE"
@@ -238,8 +239,26 @@ playwright-run() {
 
   say "::group::Run Playwright tests"
   echo "Running Playwright with baseURL: ${PLAYWRIGHT_BASE_URL}"
-  npx playwright test auth/login --reporter=github --output=playwright-results
-  local status=$?
+  if [ -n "$TEST_PATH" ]; then
+    # Check if there are any test files in the specified path
+    if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
+      echo "No test files found in ${TEST_PATH} - skipping test run"
+      say "::endgroup::"
+      kill $flaskProcessId
+      return 0
+    fi
+    echo "Running tests: ${TEST_PATH}"
+    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
+    export INCLUDE_EXPERIMENTAL=true
+    npx playwright test "${TEST_PATH}" --output=playwright-results
+    local status=$?
+    # Unset to prevent leaking into subsequent commands
+    unset INCLUDE_EXPERIMENTAL
+  else
+    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    npx playwright test --output=playwright-results
+    local status=$?
+  fi
   say "::endgroup::"
 
   # After job is done, print out Flask log for debugging

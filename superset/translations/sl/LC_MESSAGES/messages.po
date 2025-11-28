@@ -787,10 +787,10 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AVG"
 
-msgid "AXIS TITLE MARGIN"
+msgid "Axis title margin"
 msgstr "OBROBA OZNAKE OSI"
 
-msgid "AXIS TITLE POSITION"
+msgid "Axis title position"
 msgstr "POLOŽAJ OZNAKE OSI"
 
 msgid "About"
@@ -13457,7 +13457,7 @@ msgstr "Dodajte opis vaše poizvedbe"
 msgid "Write a handlebars template to render the data"
 msgstr "Napišite Handlebars-predlogo za prikaz podatkov"
 
-msgid "X AXIS TITLE MARGIN"
+msgid "X axis title margin"
 msgstr "OBROBA NASLOVA X-OSI"
 
 msgid "X Axis"
@@ -13506,7 +13506,7 @@ msgstr ""
 msgid "Y 2 bounds"
 msgstr "Meje Y-osi 2"
 
-msgid "Y AXIS TITLE MARGIN"
+msgid "Y axis title margin"
 msgstr "OBROBA NASLOVA Y-OSI"
 
 msgid "Y Axis"

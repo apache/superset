@@ -19,13 +19,13 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core';
+import * as themeUtils from '@apache-superset/core/ui/theme/utils/themeUtils';
 import { ThemedAgGridReact } from './index';
-import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
-jest.mock('../../theme/utils/themeUtils', () => ({
-  ...jest.requireActual('../../theme/utils/themeUtils'),
+jest.mock('@apache-superset/core/ui/theme/utils/themeUtils', () => ({
+  ...jest.requireActual('@apache-superset/core/ui/theme/utils/themeUtils'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 
@@ -217,4 +217,30 @@ test('handles missing theme gracefully', () => {
 
   // Should still render without crashing
   expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
+});
+
+test('merges theme overrides with default theme parameters', () => {
+  const themeOverrides = {
+    fontSize: 16,
+    headerBackgroundColor: '#custom-color',
+  };
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      themeOverrides={themeOverrides}
+    />,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // Custom overrides should be applied
+  expect(theme.fontSize).toBe(16);
+  expect(theme.headerBackgroundColor).toBe('#custom-color');
+
+  // Default theme parameters should still be present
+  expect(theme.foregroundColor).toBeDefined();
+  expect(theme.borderColor).toBeDefined();
 });

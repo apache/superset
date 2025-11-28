@@ -20,7 +20,7 @@
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe
 
 # Notify PMC members of changes to required GitHub Actions
 
@@ -33,6 +33,7 @@
 
 # Notify PMC members of changes to extension-related files
 
+/docs/developer_portal/extensions/ @michael-s-molina @villebro @rusackas
 /superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
 /superset-extensions-cli/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
 /superset/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje

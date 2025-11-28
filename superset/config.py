@@ -752,7 +752,7 @@ THEME_DEFAULT: Theme = {
         # Brand
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
-        "brandLogoMargin": "18px",
+        "brandLogoMargin": "18px 0",
         "brandLogoHref": "/",
         "brandLogoHeight": "24px",
         # Spinner
@@ -972,7 +972,7 @@ CORS_OPTIONS: dict[Any, Any] = {
 # Disabling this option is not recommended for security reasons. If you wish to allow
 # valid safe elements that are not included in the default sanitization schema, use the
 # HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
-HTML_SANITIZATION = False
+HTML_SANITIZATION = True
 
 # Use this configuration to extend the HTML sanitization schema.
 # By default we use the GitHub schema defined in
@@ -1008,6 +1008,12 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # method.
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8-sig"}
+
+# CSV Streaming: row threshold for using streaming CSV exports
+# When row count >= this threshold, use streaming response instead of loading
+# all data into memory. Streaming provides real-time progress and handles
+# large datasets efficiently.
+CSV_STREAMING_ROW_THRESHOLD = 100000
 
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
@@ -1125,6 +1131,13 @@ DISPLAY_MAX_ROW = 10000
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
+# Dataset datetime format detection settings
+# Auto-detect datetime formats on dataset creation/refresh
+DATASET_AUTO_DETECT_DATETIME_FORMATS = True
+
+# Sample size for datetime format detection
+DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
+
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
@@ -1150,6 +1163,11 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [43200, "12 hours"],
     [86400, "24 hours"],
 ]
+
+# Performance optimization: Return only custom tags in dashboard list API
+# When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
+# Reduces response payload and query time for dashboards with many owners
+DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
 # celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
@@ -1353,6 +1371,15 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
+
+# Values that should be treated as nulls for scheduled reports CSV processing.
+# If not set or None, defaults to standard pandas NA handling behavior.
+# Set to a custom list to control which values should be treated as null.
+# Examples:
+# REPORTS_CSV_NA_NAMES = None  # Use default pandas NA handling (backwards compatible)
+# REPORTS_CSV_NA_NAMES = []    # Disable all automatic NA conversion
+# REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these specific values as NA
+REPORTS_CSV_NA_NAMES: list[str] | None = None
 
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
@@ -1734,6 +1761,11 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
+
+# Maximum number of retries when Slack API returns rate limit errors
+# Default: 2
+# For workspaces with 10k+ channels, consider increasing to 10
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox

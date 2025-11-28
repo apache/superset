@@ -25,7 +25,7 @@ import {
   TableBodyPropGetter,
   TablePropGetter,
 } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
 import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
@@ -94,6 +94,11 @@ const StyledTable = styled(Table)<{
       }
     }
 
+    .ant-table-row.table-row-highlighted > td.ant-table-cell,
+    .ant-table-row.table-row-highlighted > td.ant-table-cell.ant-table-cell-row-hover {
+      background-color: ${theme.colorPrimaryBg};
+    }
+
     .ant-table-cell {
       max-width: 320px;
       font-feature-settings: 'tnum' 1;
@@ -103,6 +108,15 @@ const StyledTable = styled(Table)<{
       vertical-align: middle;
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
+    }
+
+    .ant-table-tbody > tr > td {
+      height: ${theme.sizeUnit * 12}px;
+    }
+
+    .ant-table-tbody > tr > td.ant-table-cell:has(.ant-avatar-group) {
+      padding-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
     }
 
     .ant-table-placeholder .ant-table-cell {
@@ -146,6 +160,7 @@ function TableCollection<T extends object>({
   columns,
   rows,
   loading,
+  highlightRowId,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -215,9 +230,14 @@ function TableCollection<T extends object>({
   const handleTableChange = useCallback(
     (_pagination: any, _filters: any, sorter: SorterResult) => {
       if (sorter && sorter.field) {
+        // Convert array field back to dot notation for nested fields
+        const fieldId = Array.isArray(sorter.field)
+          ? sorter.field.join('.')
+          : sorter.field;
+
         setSortBy?.([
           {
-            id: sorter.field,
+            id: fieldId,
             desc: sorter.order === 'descend',
           },
         ] as SortingRule<T>[]);
@@ -258,6 +278,12 @@ function TableCollection<T extends object>({
     onPageChange,
   ]);
 
+  const getRowClassName = useCallback(
+    (record: Record<string, unknown>) =>
+      record?.id === highlightRowId ? 'table-row-highlighted' : '',
+    [highlightRowId],
+  );
+
   return (
     <StyledTable
       loading={loading}
@@ -275,6 +301,7 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
+      rowClassName={getRowClassName}
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
