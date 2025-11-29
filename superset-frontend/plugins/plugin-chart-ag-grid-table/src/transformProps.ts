@@ -646,7 +646,7 @@ const processChartConfiguration = memoizeOne(function processChartConfiguration(
       // Validate and set defaults for chart configuration
       chartColumnConfig[column.key] = {
         ...config,
-        chartType: config.chartType,
+        chartType: config.chartType ?? 'sparkline',
         chartConfig: {
           // Set chart defaults
           width: config.chartConfig?.width ?? 300,
