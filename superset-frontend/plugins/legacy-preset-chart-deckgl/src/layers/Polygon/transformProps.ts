@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, getMetricLabel } from '@superset-ui/core';
 import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
@@ -26,6 +26,11 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckPolygonFormData } from './buildQuery';
+
+function parseElevationValue(value: string): number | undefined {
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
 
 interface PolygonFeature {
   polygon?: number[][];
@@ -53,7 +58,28 @@ function processPolygonData(
   }
 
   const metricLabel = getMetricLabelFromFormData(metric);
-  const elevationLabel = getMetricLabelFromFormData(point_radius_fixed);
+
+  let elevationLabel: string | undefined;
+  let fixedElevationValue: number | undefined;
+
+  if (point_radius_fixed) {
+    if ('type' in point_radius_fixed) {
+      if (
+        point_radius_fixed.type === 'metric' &&
+        point_radius_fixed.value != null
+      ) {
+        elevationLabel = getMetricLabel(point_radius_fixed.value);
+      } else if (
+        point_radius_fixed.type === 'fix' &&
+        point_radius_fixed.value
+      ) {
+        fixedElevationValue = parseElevationValue(point_radius_fixed.value);
+      }
+    } else if (point_radius_fixed.value) {
+      fixedElevationValue = parseElevationValue(point_radius_fixed.value);
+    }
+  }
+
   const excludeKeys = new Set([line_column, ...(js_columns || [])]);
 
   return records
@@ -109,7 +135,9 @@ function processPolygonData(
 
         feature.polygon = polygonCoords;
 
-        if (elevationLabel && record[elevationLabel] != null) {
+        if (fixedElevationValue !== undefined) {
+          feature.elevation = fixedElevationValue;
+        } else if (elevationLabel && record[elevationLabel] != null) {
           const elevationValue = parseMetricValue(record[elevationLabel]);
           if (elevationValue !== undefined) {
             feature.elevation = elevationValue;

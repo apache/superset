@@ -24,9 +24,8 @@ import time
 from typing import Any, Dict
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -40,13 +39,14 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     URLPreview,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_mcp_service_url
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:

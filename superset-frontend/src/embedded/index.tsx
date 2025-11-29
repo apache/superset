@@ -22,7 +22,7 @@ import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
-import { type SupersetThemeConfig } from '@apache-superset/core/ui';
+import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -248,6 +248,10 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
     Switchboard.defineMethod(
+      'getChartDataPayloads',
+      embeddedApi.getChartDataPayloads,
+    );
+    Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {
         const { themeConfig } = payload;
@@ -260,6 +264,39 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
         } catch (error) {
           logging.error('Failed to apply theme config:', error);
           throw new Error(`Failed to apply theme config: ${error.message}`);
+        }
+      },
+    );
+
+    Switchboard.defineMethod(
+      'setThemeMode',
+      (payload: { mode: 'default' | 'dark' | 'system' }) => {
+        const { mode } = payload;
+        log('Received setThemeMode request:', mode);
+
+        try {
+          const themeController = getThemeController();
+
+          const themeModeMap: Record<string, ThemeMode> = {
+            default: ThemeMode.DEFAULT,
+            dark: ThemeMode.DARK,
+            system: ThemeMode.SYSTEM,
+          };
+
+          const themeMode = themeModeMap[mode];
+          if (!themeMode) {
+            throw new Error(`Invalid theme mode: ${mode}`);
+          }
+
+          themeController.setThemeMode(themeMode);
+          return { success: true, message: `Theme mode set to ${mode}` };
+        } catch (error) {
+          logging.debug('Theme mode not changed:', error.message);
+          return {
+            success: false,
+            message: `Theme locked to current mode`,
+            silent: true,
+          };
         }
       },
     );

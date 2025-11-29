@@ -23,9 +23,8 @@ import logging
 import time
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -38,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
+from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
@@ -47,8 +47,8 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -58,6 +58,35 @@ async def update_chart(
     - Chart must already be saved (from generate_chart with save_chart=True)
     - LLM clients MUST display updated chart URL to users
     - Embed preview_url as image: ![Updated Chart](preview_url)
+    - Use numeric ID or UUID string to identify the chart (NOT chart name)
+    - MUST include chart_type in config (either 'xy' or 'table')
+
+    Example usage:
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "kind": "line"
+        }
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        "config": {
+            "chart_type": "table",
+            "columns": [
+                {"name": "product_name"},
+                {"name": "revenue", "aggregate": "SUM"}
+            ]
+        }
+    }
+    ```
 
     Use when:
     - Modifying existing saved chart
