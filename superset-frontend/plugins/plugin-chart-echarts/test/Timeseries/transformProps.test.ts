@@ -27,6 +27,7 @@ import {
   SqlaFormData,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
+import { test } from '@jest/globals';
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -722,4 +723,63 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
+
+test('x-axis label behavior - should set hideOverlap to false for time-based x-axis', () => {
+  // Create test data with proper temporal axis setup
+  const temporalFormData = {
+    ...formData,
+    granularity_sqla: '__timestamp',
+  };
+  const temporalQueriesData = [
+    {
+      data: [
+        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
+        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+      ],
+      colnames: ['__timestamp', 'San Francisco', 'New York'],
+      coltypes: [2, 0, 0], // 2 = temporal, 0 = numeric
+    },
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: temporalFormData,
+    queriesData: temporalQueriesData,
+  });
+  const result = transformProps(chartProps as any);
+  const axis = Array.isArray(result.echartOptions.xAxis)
+    ? result.echartOptions.xAxis[0]
+    : result.echartOptions.xAxis;
+  expect(axis).toBeDefined();
+  // For temporal axis, hideOverlap should be false
+  expect(axis.axisLabel.hideOverlap).toBe(false);
+});
+
+test('x-axis label behavior - should set hideOverlap to true for categorical x-axis', () => {
+  const categoricalFormData = {
+    ...formData,
+    xAxisForceCategorical: true,
+  };
+  const categoricalQueriesData = [
+    {
+      data: [
+        { category_col: 'A', 'San Francisco': 1, 'New York': 2 },
+        { category_col: 'B', 'San Francisco': 3, 'New York': 4 },
+      ],
+      colnames: ['category_col', 'San Francisco', 'New York'],
+      coltypes: [1, 0, 0], // 1 = string/categorical, 0 = numeric
+    },
+  ];
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: categoricalFormData,
+    queriesData: categoricalQueriesData,
+  });
+  const result = transformProps(chartProps as any);
+  const axis = Array.isArray(result.echartOptions.xAxis)
+    ? result.echartOptions.xAxis[0]
+    : result.echartOptions.xAxis;
+  expect(axis).toBeDefined();
+  // For categorical axis, hideOverlap should be true
+  expect(axis.axisLabel.hideOverlap).toBe(true);
 });
