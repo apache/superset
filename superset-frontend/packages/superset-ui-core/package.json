@@ -27,8 +27,6 @@
     "@apache-superset/core": "*",
     "@ant-design/icons": "^5.2.6",
     "@babel/runtime": "^7.28.4",
-    "@fontsource/fira-code": "^5.2.7",
-    "@fontsource/inter": "^5.2.6",
     "@types/json-bigint": "^1.0.4",
     "ace-builds": "^1.43.4",
     "ag-grid-community": "34.2.0",
