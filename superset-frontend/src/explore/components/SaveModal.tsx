@@ -225,7 +225,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       let dashboard: DashboardGetResponse | null = null;
       let selectedTabId: string | undefined;
-      if (this.state.action === 'saveas' && this.state.dashboard) {
+      if (this.state.dashboard) {
         let validId = this.state.dashboard.value;
         if (this.isNewDashboard()) {
           const response = await this.props.actions.createDashboard(
@@ -246,7 +246,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
           formData.dashboards = sliceDashboards;
-          selectedTabId = this.state.selectedTab?.value as string;
+          if (this.state.action === 'saveas') {
+            selectedTabId = this.state.selectedTab?.value as string;
+          }
         }
       }
 
