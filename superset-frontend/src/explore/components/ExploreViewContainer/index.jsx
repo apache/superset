@@ -602,7 +602,8 @@ function ExploreViewContainer(props) {
 
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
-    const strip = s => (s && typeof s === 'object' ? omit(s, ['clientView']) : s);
+    const strip = s =>
+      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();

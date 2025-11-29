@@ -1377,7 +1377,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
     const len = clientViewRows.length;
     const first = len ? clientViewRows[0]?.[exportColumns[0]?.key ?? ''] : '';
-    const last = len ? clientViewRows[len - 1]?.[exportColumns[0]?.key ?? ''] : '';
+    const last = len
+      ? clientViewRows[len - 1]?.[exportColumns[0]?.key ?? '']
+      : '';
     const colSig = exportColumns.map(c => c.key).join(',');
     const sig = `${len}|${String(first)}|${String(last)}|${colSig}`;
 
@@ -1392,7 +1394,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
       });
     }
-  }, [clientViewRows, exportColumns, serverPagination, setDataMask, serverPaginationData]);
+  }, [
+    clientViewRows,
+    exportColumns,
+    serverPagination,
+    setDataMask,
+    serverPaginationData,
+  ]);
 
   return (
     <Styles>

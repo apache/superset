@@ -206,7 +206,7 @@ export default typedMemo(function DataTable<D extends object>({
   );
 
   const {
-    rows,  // filtered/sorted rows before pagination
+    rows, // filtered/sorted rows before pagination
     getTableProps,
     getTableBodyProps,
     prepareRow,

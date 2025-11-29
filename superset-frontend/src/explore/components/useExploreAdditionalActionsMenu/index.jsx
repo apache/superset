@@ -191,10 +191,12 @@ export const useExploreAdditionalActionsMenu = (
 
   const showDashboardSearch = dashboards?.length > SEARCH_THRESHOLD;
   const vizType = latestQueryFormData?.viz_type;
-  const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined
+  const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
-  const hasExportCurrentView = !!meta?.behaviors?.includes('EXPORT_CURRENT_VIEW');
+  const hasExportCurrentView = !!meta?.behaviors?.includes(
+    'EXPORT_CURRENT_VIEW',
+  );
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -387,7 +389,8 @@ export const useExploreAdditionalActionsMenu = (
   const downloadClientXLSX = async (rows, columns, filename) => {
     if (!rows?.length || !columns?.length) return;
     try {
-      const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx')).default;
+      const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx'))
+        .default;
 
       // Build a flat array of objects keyed by backend column key
       const data = rows.map(r => {
@@ -396,8 +399,12 @@ export const useExploreAdditionalActionsMenu = (
           const v = r[c.key];
           o[c.label ?? c.key] =
             v && typeof v === 'object' && 'input' in v && 'formatter' in v
-              ? (v.input instanceof Date ? v.input.toISOString() : (v.input ?? v.value ?? ''))
-              : (v instanceof Date ? v.toISOString() : v);
+              ? v.input instanceof Date
+                ? v.input.toISOString()
+                : (v.input ?? v.value ?? '')
+              : v instanceof Date
+                ? v.toISOString()
+                : v;
         });
         return o;
       });
@@ -407,14 +414,18 @@ export const useExploreAdditionalActionsMenu = (
       XLSX.utils.book_append_sheet(wb, ws, 'Current View');
 
       // Autosize columns (roughly) by header length
-      const colWidths = (Object.keys(data[0] || {})).map(h => ({ wch: Math.max(10, String(h).length + 2) }));
+      const colWidths = Object.keys(data[0] || {}).map(h => ({
+        wch: Math.max(10, String(h).length + 2),
+      }));
       ws['!cols'] = colWidths;
 
-      XLSX.writeFile(wb, `${(filename || 'current_view')}.xlsx`);
+      XLSX.writeFile(wb, `${filename || 'current_view'}.xlsx`);
     } catch (e) {
       // If xlsx isn’t available for some reason, fall back to CSV
       downloadClientCSV(rows, columns, filename || 'current_view');
-      addDangerToast?.(t('Falling back to CSV; Excel export library not available.'));
+      addDangerToast?.(
+        t('Falling back to CSV; Excel export library not available.'),
+      );
     }
   };
 
@@ -569,7 +580,11 @@ export const useExploreAdditionalActionsMenu = (
             ownState?.clientView?.columns?.length
           ) {
             const { rows, columns } = ownState.clientView;
-            downloadClientCSV(rows, columns, slice?.slice_name || 'current_view');
+            downloadClientCSV(
+              rows,
+              columns,
+              slice?.slice_name || 'current_view',
+            );
           } else {
             exportChart({
               formData: latestQueryFormData,
@@ -599,7 +614,11 @@ export const useExploreAdditionalActionsMenu = (
             ownState?.clientView?.columns?.length
           ) {
             const { rows, columns } = ownState.clientView;
-            downloadClientJSON(rows, columns, slice?.slice_name || 'current_view');
+            downloadClientJSON(
+              rows,
+              columns,
+              slice?.slice_name || 'current_view',
+            );
           } else {
             exportJson();
           }
@@ -645,7 +664,11 @@ export const useExploreAdditionalActionsMenu = (
           ) {
             // Client-side filtered view → XLSX
             const { rows, columns } = ownState.clientView;
-            await downloadClientXLSX(rows, columns, slice?.slice_name || 'current_view');
+            await downloadClientXLSX(
+              rows,
+              columns,
+              slice?.slice_name || 'current_view',
+            );
           } else {
             // Server path (respects backend filters/pagination)
             await exportExcel();
@@ -670,9 +693,12 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           exportCSV();
           setIsDropdownVisible(false);
-          dispatch(logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
-            chartId: slice?.slice_id, chartName: slice?.slice_name,
-          }));
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
         },
       },
       {
@@ -683,9 +709,12 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           exportJson();
           setIsDropdownVisible(false);
-          dispatch(logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
-            chartId: slice?.slice_id, chartName: slice?.slice_name,
-          }));
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
         },
       },
       {
@@ -696,9 +725,12 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           exportExcel();
           setIsDropdownVisible(false);
-          dispatch(logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
-            chartId: slice?.slice_id, chartName: slice?.slice_name,
-          }));
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
         },
       },
     ];
@@ -715,12 +747,14 @@ export const useExploreAdditionalActionsMenu = (
           children: allDataChildren,
         },
         ...(hasExportCurrentView
-          ? [{
-              key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
-              type: 'submenu',
-              label: t('Export Current View'),
-              children: currentViewChildren,
-            }]
+          ? [
+              {
+                key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
+                type: 'submenu',
+                label: t('Export Current View'),
+                children: currentViewChildren,
+              },
+            ]
           : []),
       ],
     });
