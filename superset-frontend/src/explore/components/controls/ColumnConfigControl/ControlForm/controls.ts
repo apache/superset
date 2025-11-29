@@ -21,6 +21,7 @@ import { Input, InputNumber, Select } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import CurrencyControl from '../../CurrencyControl';
 import CheckboxControl from '../../CheckboxControl';
+import ColorPickerControl from '../../ColorPickerControl';
 
 export const ControlFormItemComponents = {
   Slider,
@@ -32,4 +33,5 @@ export const ControlFormItemComponents = {
   Checkbox: CheckboxControl,
   RadioButtonControl: sharedControlComponents.RadioButtonControl,
   CurrencyControl,
+  ColorPickerControl,
 };

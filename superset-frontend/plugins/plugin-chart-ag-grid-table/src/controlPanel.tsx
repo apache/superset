@@ -593,6 +593,17 @@ const config: ControlPanelConfig = {
                   colnames = updatedColnames;
                   coltypes = updatedColtypes;
                 }
+
+                const chartColumns = explore?.controls?.chart_columns?.value || [];
+                if (Array.isArray(chartColumns)) {
+                  chartColumns.forEach((col: {key: string, label: string, type: string}) => {
+                    if (!colnames.includes(col.label)) {
+                      colnames.push(col.label);
+                      coltypes.push(GenericDataType.Chart);
+                    }
+                  });
+                }
+
                 return {
                   columnsPropsObject: {
                     colnames,
