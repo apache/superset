@@ -71,6 +71,21 @@ export class SqlLabPage {
         return this.page.locator(SqlLabPage.SELECTORS.ADD_TAB_ICON);
     }
 
+    /** Ensure at least one real query tab exists (handles empty state tab) */
+    async ensureQueryTabExists(): Promise<void> {
+        const tabs = this.getTabs();
+        let tabCount = await tabs.count();
+        if (tabCount === 0) {
+            await this.addTabViaButton();
+            return;
+        }
+
+        const firstTabText = await tabs.first().innerText();
+        if (firstTabText.includes('Add a new tab')) {
+            await this.addTabViaButton();
+        }
+    }
+
     /** Click add tab icon (uses last visible) */
     async addTabViaButton(): Promise<void> {
         // Match Cypress pattern: [data-test="add-tab-icon"]:visible:last

@@ -39,6 +39,7 @@ test.describe('SqlLab query tabs', () => {
 
     test('allows you to create and close a tab', async ({ page }) => {
         const tabsLocator = sqlLab.getTabs();
+        await sqlLab.ensureQueryTabExists();
         const initialTabCount = await tabsLocator.count();
 
         // Determine highest Untitled Query number
@@ -77,6 +78,7 @@ test.describe('SqlLab query tabs', () => {
 
     test('opens a new tab by a button and a shortcut', async ({ page }) => {
         const tabsLocator = sqlLab.getTabs();
+        await sqlLab.ensureQueryTabExists();
         const initialTabCount = await tabsLocator.count();
         const titles = await tabsLocator.allTextContents();
         const untitledNumbers = titles
