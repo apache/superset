@@ -16,9 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * Licensed to the Apache Software Foundation (ASF)...
- */
 import sinon from 'sinon';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
