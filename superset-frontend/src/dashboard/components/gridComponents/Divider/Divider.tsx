@@ -27,7 +27,7 @@ import type { ConnectDragSource } from 'react-dnd';
 
 export interface DashboardComponent {
   id: string;
-  type: string;             // or more specific union
+  type: string; // or more specific union
   parents?: string[];
   children?: string[];
   meta?: {
@@ -39,7 +39,6 @@ export interface DashboardComponent {
   };
 }
 
-
 export interface DividerProps {
   id: string;
   parentId: string;
@@ -48,7 +47,7 @@ export interface DividerProps {
   parentComponent: DashboardComponent;
   index: number;
   editMode: boolean;
-  handleComponentDrop: (dropResult: unknown) => void; 
+  handleComponentDrop: (dropResult: unknown) => void;
   deleteComponent: (id: string, parentId: string) => void;
 }
 
@@ -76,7 +75,6 @@ const DividerLine = styled.div`
     }
   `}
 `;
-
 
 class Divider extends PureComponent<DividerProps> {
   constructor(props: DividerProps) {
