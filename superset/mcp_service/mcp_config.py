@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 # There is no default value - the service will fail if not set
 SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 
+# API Key Authentication Configuration
+# When enabled, users can authenticate using API keys created in the Superset UI
+# API keys use the format: Authorization: Bearer pst_<key>
+# Keys are validated against bcrypt hashes stored in ab_api_key table
+MCP_API_KEY_AUTH_ENABLED = True
+
 # WebDriver Configuration for screenshots
 WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
