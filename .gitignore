@@ -138,3 +138,4 @@ PROJECT.md
 .claude_rc*
 .env.local
 oxc-custom-build/
+*.code-workspace
