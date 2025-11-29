@@ -36,6 +36,7 @@ export type EchartsTreeFormData = QueryFormData & {
   nodeLabelPosition: 'top' | 'bottom' | 'left' | 'right';
   childLabelPosition: 'top' | 'bottom' | 'left' | 'right';
   emphasis: 'none' | 'ancestor' | 'descendant';
+  initialTreeDepth: number;
 };
 
 export interface TreeChartDataResponseResult extends ChartDataResponseResult {

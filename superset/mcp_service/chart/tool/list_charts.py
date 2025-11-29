@@ -20,15 +20,14 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import Any, cast, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
+from superset_core.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ChartInfo,
@@ -38,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,8 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@mcp.tool
-@mcp_auth_hook
+@tool
+@parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.
 
@@ -94,8 +94,10 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
 
     from superset.daos.chart import ChartDAO
 
-    def _serialize_chart(obj: "Slice | None", cols: Any) -> ChartInfo | None:
-        """Serialize chart object with proper type casting."""
+    def _serialize_chart(
+        obj: "Slice | None", cols: list[str] | None
+    ) -> ChartInfo | None:
+        """Serialize chart object (field filtering handled by model_serializer)."""
         return serialize_chart_object(cast(ChartLike | None, obj))
 
     tool = ModelListCore(
@@ -129,7 +131,21 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             "Charts listed successfully: count=%s, total_pages=%s"
             % (count, total_pages)
         )
-        return result
+
+        # Apply field filtering via serialization context if select_columns specified
+        # This triggers ChartInfo._filter_fields_by_context for each chart
+        if request.select_columns:
+            await ctx.debug(
+                "Applying field filtering via serialization context: select_columns=%s"
+                % (request.select_columns,)
+            )
+            # Return dict with context - FastMCP will serialize it
+            return result.model_dump(
+                mode="json", context={"select_columns": request.select_columns}
+            )
+
+        # No filtering - return full result as dict
+        return result.model_dump(mode="json")
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise

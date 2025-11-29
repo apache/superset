@@ -331,7 +331,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            <Icons.InsertRowAboveOutlined />
+            <Icons.InsertRowAboveOutlined iconSize="xxl" />
             {tableName}
           </StyledHeader>
         </>

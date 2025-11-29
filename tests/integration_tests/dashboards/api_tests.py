@@ -59,6 +59,7 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
     get_filter_params,
+    with_tagging_system_feature,  # noqa: F401
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -3411,4 +3412,108 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
             # Cleanup
             db.session.delete(dashboard)
+            db.session.commit()
+
+
+class TestDashboardCustomTagsFiltering(SupersetTestCase):
+    """Test dashboard list API tags field behavior.
+
+    Note: DASHBOARD_LIST_CUSTOM_TAGS_ONLY config is checked at app startup in
+    DashboardRestApi.__init__(), so these tests verify the current runtime behavior.
+    """
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.login(username="admin")
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_dashboard_custom_tags_relationship_filters_correctly(self):
+        """Verify custom_tags filtering at model and API level.
+
+        With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
+        1. dashboard.tags returns ALL tags (custom + owner + type)
+        2. dashboard.custom_tags returns ONLY custom tags
+        3. API response returns ONLY custom tags in the "tags" property
+        """
+        dashboard = Dashboard(
+            dashboard_title="test-custom-only",
+            slug="test-slug-custom",
+            owners=[self.get_user("admin")],
+        )
+        db.session.add(dashboard)
+        db.session.flush()
+
+        custom_tag = Tag(name="critical", type=TagType.custom)
+        db.session.add(custom_tag)
+        db.session.flush()
+
+        tagged_obj = TaggedObject(
+            tag_id=custom_tag.id,
+            object_id=dashboard.id,
+            object_type="dashboard",
+        )
+        db.session.add(tagged_obj)
+        db.session.commit()
+
+        try:
+            # 1. MODEL: dashboard.tags returns ALL tags
+            all_tags = dashboard.tags
+            all_tag_names = [t.name for t in all_tags]
+            assert "critical" in all_tag_names, "Should include custom tag"
+            assert any(t.name.startswith("owner:") for t in all_tags), (
+                "Should include owner tags"
+            )
+            assert any(t.name.startswith("type:") for t in all_tags), (
+                "Should include type tags"
+            )
+
+            # 2. MODEL: dashboard.custom_tags returns ONLY custom tags
+            custom_only = dashboard.custom_tags
+            custom_tag_names = [t.name for t in custom_only]
+            assert "critical" in custom_tag_names, "Should include custom tag"
+            assert not any(t.name.startswith("owner:") for t in custom_only), (
+                f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
+            )
+            assert not any(t.name.startswith("type:") for t in custom_only), (
+                f"custom_tags should NOT include type tags, got: {custom_tag_names}"
+            )
+            assert len(custom_only) < len(all_tags), "Should filter out implicit tags"
+
+            # Verify all tags in custom_tags have type=custom
+            for tag in custom_only:
+                assert tag.type == TagType.custom, (
+                    f"Tag {tag.name} has type {tag.type}, expected TagType.custom"
+                )
+
+            # 3. API: With config=True, API returns ONLY custom tags
+            rv = self.client.get("api/v1/dashboard/")
+            data = json.loads(rv.data.decode("utf-8"))
+
+            assert rv.status_code == 200
+            test_dash = next(
+                (d for d in data["result"] if d["id"] == dashboard.id), None
+            )
+            assert test_dash is not None
+            # API returns "tags" (get_list override renames custom_tags→tags)
+            assert "tags" in test_dash, (
+                f"Response should have tags, got: {test_dash.keys()}"
+            )
+
+            # API should return ONLY custom tags
+            api_tag_names = [t["name"] for t in test_dash["tags"]]
+            assert "critical" in api_tag_names, "API should include custom tag"
+            assert not any(t["name"].startswith("owner:") for t in test_dash["tags"]), (
+                f"API should NOT include owner tags, got: {api_tag_names}"
+            )
+            assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
+                f"API should NOT include type tags, got: {api_tag_names}"
+            )
+            assert len(test_dash["tags"]) == 1, (
+                f"API should return only 1 custom tag, "
+                f"got {len(test_dash['tags'])}: {api_tag_names}"
+            )
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+            db.session.delete(custom_tag)
             db.session.commit()

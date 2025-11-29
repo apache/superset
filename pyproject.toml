@@ -133,8 +133,7 @@ denodo = ["denodo-sqlalchemy~=1.0.6"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-# DuckDB 1.x has type system incompatibilities with duckdb-engine.
-duckdb = ["duckdb>=0.10.2,<0.11", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.4.2,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
@@ -213,6 +212,7 @@ development = [
     "pyinstrument>=4.0.2,<5",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
+    "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
     "python-ldap>=3.4.4",
