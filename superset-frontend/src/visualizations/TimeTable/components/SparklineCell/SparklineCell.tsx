@@ -84,7 +84,7 @@ const SparklineCell = ({
   sparkType = 'line',
   color,
   strokeWidth = 1,
-  showPoints = false,
+  showPoints = true,
 }: SparklineCellProps): ReactElement => {
   const theme = useTheme();
 

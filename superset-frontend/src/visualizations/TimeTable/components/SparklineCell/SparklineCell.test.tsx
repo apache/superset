@@ -144,7 +144,6 @@ test('should return empty div when all data is null', () => {
   expect(container.querySelector('svg')).toBeNull();
 });
 
-
 test('should not render glyph points when showPoints is false', () => {
   render(<SparklineCell {...defaultProps} showPoints={false} />);
 
@@ -161,9 +160,9 @@ test('should apply custom color and strokeWidth to the series', () => {
       {...defaultProps}
       color="#FF0000"
       strokeWidth={4}
+      showPoints={true}
     />,
   );
-
 
   const line = document.querySelector('[stroke="#FF0000"]');
   expect(line).toBeInTheDocument();
