@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, useState, useMemo, memo } from 'react';
-import PropTypes from 'prop-types';
+import { Fragment, useCallback, useState, useMemo, memo, RefObject } from 'react';
+import { JsonObject, t } from '@superset-ui/core';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -35,37 +34,38 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
+import { ResizeCallback, ResizeStartCallback } from 're-resizable';
+import { FC } from 'react';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  parentId: PropTypes.string.isRequired,
-  component: componentShape.isRequired,
-  parentComponent: componentShape.isRequired,
-  index: PropTypes.number.isRequired,
-  depth: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
+type ColumnProps = {
+  id: string;
+  parentId: string;
+  component: JsonObject;
+  parentComponent: JsonObject;
+  index: number;
+  depth: number;
+  editMode: boolean;
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  minColumnWidth: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
+  availableColumnCount: number;
+  columnWidth: number;
+  minColumnWidth: number;
+  onResizeStart: ResizeStartCallback;
+  onResizeStop: ResizeCallback;
+  onResize: ResizeCallback;
 
   // dnd
-  deleteComponent: PropTypes.func.isRequired,
-  handleComponentDrop: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
-};
+  deleteComponent: (id: string, parentId: string) => void;
+  handleComponentDrop: (dropResult: unknown) => void;
+  updateComponents: (updates: Record<string, JsonObject>) => void;
+  isComponentVisible: boolean;
+  onChangeTab: (tabId: string) => void;
+}
 
-const defaultProps = {};
-
-const ColumnStyles = styled.div`
-  ${({ theme, editMode }) => css`
+const ColumnStyles = styled.div<{ editMode: boolean }>`
+${({ theme, editMode }) => css`
     &.grid-column {
       width: 100%;
       position: relative;
@@ -110,7 +110,7 @@ const ColumnStyles = styled.div`
   `}
 `;
 
-const emptyColumnContentStyles = theme => css`
+const emptyColumnContentStyles = (theme: SupersetTheme) => css`
   min-height: ${theme.sizeUnit * 25}px;
   width: 100%;
   height: 100%;
@@ -120,7 +120,7 @@ const emptyColumnContentStyles = theme => css`
   color: ${theme.colorTextLabel};
 `;
 
-const Column = props => {
+const Column: FC<ColumnProps> = props => {
   const {
     component: columnComponent,
     parentComponent,
@@ -148,12 +148,12 @@ const Column = props => {
     deleteComponent(id, parentId);
   }, [deleteComponent, id, parentId]);
 
-  const handleChangeFocus = useCallback(nextFocus => {
+  const handleChangeFocus = useCallback((nextFocus: boolean) => {
     setIsFocused(Boolean(nextFocus));
   }, []);
 
   const handleChangeBackground = useCallback(
-    nextValue => {
+    (nextValue: string) => {
       const metaKey = 'background';
       if (nextValue && columnComponent.meta[metaKey] !== nextValue) {
         updateComponents({
@@ -181,7 +181,7 @@ const Column = props => {
   );
 
   const renderChild = useCallback(
-    ({ dragSourceRef }) => (
+    ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement> }) => (
       <ResizableContainer
         id={columnComponent.id}
         adjustableWidth
@@ -192,6 +192,7 @@ const Column = props => {
         maxWidthMultiple={
           availableColumnCount + (columnComponent.meta.width || 0)
         }
+        heightMultiple={columnComponent.meta.height}
         onResizeStart={onResizeStart}
         onResize={onResize}
         onResizeStop={onResizeStop}
@@ -218,13 +219,13 @@ const Column = props => {
                 onDelete={handleDeleteComponent}
               />
               <IconButton
-                onClick={handleChangeFocus}
+                onClick={() => handleChangeFocus(true)}
                 icon={<Icons.SettingOutlined iconSize="m" />}
               />
             </HoverMenu>
           )}
           <ColumnStyles
-            className={cx('grid-column', backgroundStyle.className)}
+            className={cx('grid-column', backgroundStyle?.className)}
             editMode={editMode}
           >
             {editMode && (
@@ -248,7 +249,7 @@ const Column = props => {
                 )}
                 editMode
               >
-                {({ dropIndicatorProps }) =>
+                {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
                   dropIndicatorProps && <div {...dropIndicatorProps} />
                 }
               </Droppable>
@@ -256,18 +257,13 @@ const Column = props => {
             {columnItems.length === 0 ? (
               <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
             ) : (
-              columnItems.map((componentId, itemIndex) => (
+              columnItems.map((componentId: string, itemIndex: number) => (
                 <Fragment key={componentId}>
                   <DashboardComponent
                     id={componentId}
                     parentId={columnComponent.id}
                     depth={depth + 1}
                     index={itemIndex}
-                    availableColumnCount={columnComponent.meta.width}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
                     isComponentVisible={isComponentVisible}
                     onChangeTab={onChangeTab}
                   />
@@ -286,7 +282,7 @@ const Column = props => {
                       )}
                       editMode
                     >
-                      {({ dropIndicatorProps }) =>
+                      {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
                         dropIndicatorProps && <div {...dropIndicatorProps} />
                       }
                     </Droppable>
@@ -300,7 +296,7 @@ const Column = props => {
     ),
     [
       availableColumnCount,
-      backgroundStyle.className,
+      backgroundStyle?.className,
       columnComponent,
       columnItems,
       columnWidth,
@@ -334,8 +330,5 @@ const Column = props => {
     </Draggable>
   );
 };
-
-Column.propTypes = propTypes;
-Column.defaultProps = defaultProps;
 
 export default memo(Column);
