@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   createWrapper,
@@ -104,7 +104,7 @@ test('returns keywords including fetched function_names data', async () => {
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
   fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
 
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: 'testqueryid',
@@ -240,7 +240,7 @@ test('returns column keywords among selected tables', async () => {
     );
   });
 
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: expectQueryEditorId,
@@ -315,7 +315,7 @@ test('returns long keywords with docText', async () => {
       ),
     );
   });
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useKeywords({
         queryEditorId: 'testqueryid',

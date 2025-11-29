@@ -53,32 +53,32 @@ export function GridTable<RecordType extends object>({
     [externalFilter],
   );
   const rowIndexLength = `${data.length}}`.length;
-  const onKeyDown: AgGridReactProps<Record<string, any>>['onCellKeyDown'] =
-    useCallback(({ event, column, data, value, api }) => {
-      if (
-        !document.getSelection?.()?.toString?.() &&
-        event &&
-        event.key === 'c' &&
-        (event.ctrlKey || event.metaKey)
-      ) {
-        const columns =
-          column.getColId() === PIVOT_COL_ID
-            ? api
-                .getAllDisplayedColumns()
-                .filter((column: Column) => column.getColId() !== PIVOT_COL_ID)
-            : [column];
-        const record =
-          column.getColId() === PIVOT_COL_ID
-            ? [
-                columns.map((column: Column) => column.getColId()).join('\t'),
-                columns
-                  .map((column: Column) => data?.[column.getColId()])
-                  .join('\t'),
-              ].join('\n')
-            : String(value);
-        copyTextToClipboard(() => Promise.resolve(record));
-      }
-    }, []);
+  const onKeyDown = useCallback((params: any) => {
+    const { event, column, data, value, api } = params;
+    if (
+      !document.getSelection?.()?.toString?.() &&
+      event &&
+      event.key === 'c' &&
+      (event.ctrlKey || event.metaKey)
+    ) {
+      const columns =
+        column.getColId() === PIVOT_COL_ID
+          ? api
+              .getAllDisplayedColumns()
+              .filter((column: Column) => column.getColId() !== PIVOT_COL_ID)
+          : [column];
+      const record =
+        column.getColId() === PIVOT_COL_ID
+          ? [
+              columns.map((column: Column) => column.getColId()).join('\t'),
+              columns
+                .map((column: Column) => data?.[column.getColId()])
+                .join('\t'),
+            ].join('\n')
+          : String(value);
+      copyTextToClipboard(() => Promise.resolve(record));
+    }
+  }, []);
   const columnDefs = useMemo(
     () =>
       [
@@ -179,7 +179,7 @@ export function GridTable<RecordType extends object>({
         isExternalFilterPresent={isExternalFilterPresent}
         doesExternalFilterPass={externalFilter}
         components={gridComponents}
-        gridOptions={gridOptions}
+        gridOptions={gridOptions as any}
         onCellKeyDown={onKeyDown}
       />
     </div>

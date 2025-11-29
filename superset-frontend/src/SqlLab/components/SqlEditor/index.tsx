@@ -580,7 +580,7 @@ const SqlEditor: FC<Props> = ({
   };
 
   const setQueryEditorAndSaveSql = useCallback(
-    sql => {
+    (sql: any) => {
       dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
     },
     [dispatch, queryEditor],

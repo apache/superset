@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { FormProps, FormInstance, FormItemProps } from 'antd/es/form';
+export type { FormProps, FormInstance, FormItemProps } from 'antd';
 
 export interface LabeledErrorBoundInputProps {
   label?: string;

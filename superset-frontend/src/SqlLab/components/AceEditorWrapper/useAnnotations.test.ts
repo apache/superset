@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { COMMON_ERR_MESSAGES } from '@superset-ui/core';
 import {
   createWrapper,
@@ -119,7 +119,7 @@ test('skips fetching validation if validator is undefined', () => {
 });
 
 test('returns validation if validator is configured', async () => {
-  const { result, waitFor } = initialize(true);
+  const { result } = initialize(true);
   await waitFor(() =>
     expect(fetchMock.calls(queryValidationApiRoute)).toHaveLength(1),
   );
@@ -142,7 +142,7 @@ test('returns server error description', async () => {
     },
     { overwriteRoutes: true },
   );
-  const { result, waitFor } = initialize(true);
+  const { result } = initialize(true);
   await waitFor(
     () =>
       expect(result.current.data).toEqual([
@@ -166,7 +166,7 @@ test('returns session expire description when CSRF token expired', async () => {
     },
     { overwriteRoutes: true },
   );
-  const { result, waitFor } = initialize(true);
+  const { result } = initialize(true);
   await waitFor(
     () =>
       expect(result.current.data).toEqual([

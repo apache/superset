@@ -65,7 +65,7 @@ export const Component = (props: DropdownContainerProps) => {
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
   const containerRef = useRef<DropdownRef>(null);
   const onOverflowingStateChange = useCallback(
-    value => {
+    (value: OverflowingState) => {
       if (!isEqual(overflowingState, value)) {
         setItems(generateItems(value));
         setOverflowingState(value);

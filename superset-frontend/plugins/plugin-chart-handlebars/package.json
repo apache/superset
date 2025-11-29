@@ -27,6 +27,7 @@
     "access": "public"
   },
   "dependencies": {
+    "currencyformatter.js": "^1.0.5",
     "handlebars-group-by": "^1.0.1",
     "just-handlebars-helpers": "^1.0.19"
   },
@@ -35,12 +36,12 @@
     "@apache-superset/core": "*",
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
+    "dayjs": "^1.11.13",
     "handlebars": "^4.7.8",
     "lodash": "^4.17.11",
-    "dayjs": "^1.11.13",
-    "react": "^17.0.2",
+    "react": "^18.2.0",
     "react-ace": "^10.1.0",
-    "react-dom": "^17.0.2"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

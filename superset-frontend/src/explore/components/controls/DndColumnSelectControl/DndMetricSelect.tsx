@@ -134,7 +134,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const handleChange = useCallback(
-    opts => {
+    (opts: any) => {
       // if clear out options
       if (opts === null) {
         onChange(null);
@@ -254,7 +254,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const getSavedMetricOptionsForMetric = useCallback(
-    index =>
+    (index: any) =>
       getOptionsForSavedMetrics(
         props.savedMetrics,
         props.value,

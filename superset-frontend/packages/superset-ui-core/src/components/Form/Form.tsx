@@ -16,17 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Form as AntdForm } from 'antd';
-import { FormProps } from './types';
-
-function CustomForm(props: FormProps) {
-  return <AntdForm {...props} />;
-}
-
-export const Form = Object.assign(CustomForm, {
-  useForm: AntdForm.useForm,
-  Item: AntdForm.Item,
-  List: AntdForm.List,
-  ErrorList: AntdForm.ErrorList,
-  Provider: AntdForm.Provider,
-});
+export { Form } from 'antd';

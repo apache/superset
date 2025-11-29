@@ -16,13 +16,69 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DropTargetMonitor } from 'react-dnd';
 import getDropPosition, {
   clearDropCache,
   DROP_FORBIDDEN,
 } from '../../util/getDropPosition';
 
-export default function handleDrop(props, monitor, Component) {
-  // this may happen due to throttling
+interface DragItem {
+  id: string;
+  type: string;
+  meta?: Record<string, any>;
+  parentId: string;
+  parentType: string;
+  index: number;
+}
+
+interface ComponentType {
+  id: string;
+  type: string;
+  children: string[];
+}
+
+interface DragDroppableProps {
+  parentComponent?: ComponentType;
+  component: ComponentType;
+  index: number;
+  onDrop: (dropResult: DropResult) => void;
+  dropToChild?: boolean | ((item: DragItem) => boolean);
+}
+
+interface DragDroppableComponent {
+  mounted: boolean;
+  setState: (updater: () => { dropIndicator: string | null }) => void;
+  props: DragDroppableProps;
+}
+
+interface DropDestination {
+  id: string;
+  type: string;
+  index: number;
+}
+
+interface DropSource {
+  id: string;
+  type: string;
+  index: number;
+}
+
+interface DropResult {
+  source: DropSource;
+  dragging: {
+    id: string;
+    type: string;
+    meta?: Record<string, any>;
+  };
+  destination: DropDestination;
+  position: string;
+}
+
+export default function handleDrop(
+  props: DragDroppableProps,
+  monitor: DropTargetMonitor,
+  Component: DragDroppableComponent,
+): DropResult | undefined {
   if (!Component.mounted) return undefined;
 
   Component.setState(() => ({ dropIndicator: null }));
@@ -40,9 +96,9 @@ export default function handleDrop(props, monitor, Component) {
     dropToChild,
   } = Component.props;
 
-  const draggingItem = monitor.getItem();
+  const draggingItem = monitor.getItem() as DragItem;
 
-  const dropResult = {
+  const dropResult: DropResult = {
     source: {
       id: draggingItem.parentId,
       type: draggingItem.parentType,
@@ -54,12 +110,16 @@ export default function handleDrop(props, monitor, Component) {
       meta: draggingItem.meta,
     },
     position: dropPosition,
+    destination: {
+      id: '',
+      type: '',
+      index: 0,
+    },
   };
 
   const shouldAppendToChildren =
     typeof dropToChild === 'function' ? dropToChild(draggingItem) : dropToChild;
 
-  // simplest case, append as child
   if (shouldAppendToChildren) {
     dropResult.destination = {
       id: component.id,
@@ -73,8 +133,6 @@ export default function handleDrop(props, monitor, Component) {
       index: componentIndex,
     };
   } else {
-    // if the item is in the same list with a smaller index, you must account for the
-    // "missing" index upon movement within the list
     const sameParent =
       parentComponent && draggingItem.parentId === parentComponent.id;
     const sameParentLowerIndex =

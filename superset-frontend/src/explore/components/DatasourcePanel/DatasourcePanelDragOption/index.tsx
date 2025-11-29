@@ -71,6 +71,7 @@ export default function DatasourcePanelDragOption(
   const { labelRef, showTooltip, type, value } = props;
   const theme = useTheme();
   const [{ isDragging }, drag] = useDrag({
+    type: props.type,
     item: {
       value: props.value,
       type: props.type,

@@ -18,7 +18,7 @@
  */
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { noOp } from 'src/utils/common';

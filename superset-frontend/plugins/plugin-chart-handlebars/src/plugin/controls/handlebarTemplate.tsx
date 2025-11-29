@@ -70,7 +70,7 @@ ${helperDescriptions
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {props.label as any}
           <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={<SafeMarkdown source={helpersTooltipContent} />}

@@ -46,11 +46,6 @@ import 'dayjs/plugin/localizedFormat';
 
 configure();
 
-// Set hot reloader config
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
-
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();
 

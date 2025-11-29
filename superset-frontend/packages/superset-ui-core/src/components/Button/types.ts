@@ -24,7 +24,6 @@ import type {
   ButtonVariantType,
   ButtonColorType,
 } from 'antd/es/button';
-import { IconType } from '@superset-ui/core/components/Icons/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 
 export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
@@ -49,5 +48,4 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
   buttonStyle?: ButtonStyle;
   cta?: boolean;
   showMarginRight?: boolean;
-  icon?: IconType;
 };

@@ -37,10 +37,8 @@ import {
   type ColDef,
   type ColumnState,
   ModuleRegistry,
-  GridReadyEvent,
   GridState,
-  CellClickedEvent,
-  IMenuActionParams,
+  GridReadyEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
   AgGridChartState,
@@ -74,7 +72,7 @@ export interface AgGridTableProps {
   gridHeight?: number;
   updateInterval?: number;
   data?: any[];
-  onGridReady?: (params: GridReadyEvent) => void;
+  onGridReady?: (params: any) => void;
   colDefsFromProps: any[];
   includeSearch: boolean;
   allowRearrangeColumns: boolean;
@@ -93,7 +91,7 @@ export interface AgGridTableProps {
   percentMetrics: string[];
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
-  handleCrossFilter: (event: CellClickedEvent | IMenuActionParams) => void;
+  handleCrossFilter: (event: any) => void;
   isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
   renderTimeComparisonDropdown: () => JSX.Element | null;
   cleanedTotals: DataRecord;
@@ -279,7 +277,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: any) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
         handleColSort(colId, sortDir);
@@ -423,8 +421,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           rowData={rowData}
           headerHeight={36}
           rowHeight={30}
-          columnDefs={colDefsFromProps}
-          defaultColDef={defaultColDef}
+          columnDefs={colDefsFromProps as any}
+          defaultColDef={defaultColDef as any}
           onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           rowSelection="multiple"
           animateRows

@@ -19,7 +19,6 @@
 import 'src/public-path';
 
 import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { makeApi, t, logging } from '@superset-ui/core';
 import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
@@ -34,6 +33,7 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { createRoot } from 'react-dom/client';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
@@ -172,7 +172,8 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      const root = createRoot(appMountPoint);
+      root.render(<EmbeddedApp />);
     },
     err => {
       // something is most likely wrong with the guest token

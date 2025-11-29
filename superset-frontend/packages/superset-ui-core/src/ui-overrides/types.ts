@@ -21,6 +21,7 @@ import {
   MouseEventHandler,
   ReactElement,
   ComponentType,
+  PropsWithChildren,
 } from 'react';
 import type { Editor } from 'brace';
 import type { QueryData } from '../chart/types/QueryResponse';
@@ -249,7 +250,7 @@ export type Extensions = Partial<{
   'navbar.right-menu.item.icon': ComponentType<RightMenuItemIconProps>;
   'navbar.right': ComponentType;
   'report-modal.dropdown.item.icon': ComponentType;
-  'root.context.provider': ComponentType;
+  'root.context.provider': ComponentType<PropsWithChildren>;
   'welcome.message': ComponentType;
   'welcome.banner': ComponentType;
   'welcome.main.replacement': ComponentType;
