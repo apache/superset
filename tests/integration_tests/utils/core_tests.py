@@ -19,7 +19,7 @@ import pytest
 from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
 
 
-def test_simple_filter_to_adhoc_generates_deterministic_values():
+def test_simple_filter_to_adhoc_generates_deterministic_values(app_context):
     input_1 = {
         "op": "IS NOT NULL",
         "col": "LATITUDE",
@@ -51,7 +51,7 @@ def test_simple_filter_to_adhoc_generates_deterministic_values():
     }
 
 
-def test_form_data_to_adhoc_generates_deterministic_values():
+def test_form_data_to_adhoc_generates_deterministic_values(app_context):
     form_data = {"where": "1 = 1", "having": "count(*) > 1"}
 
     # The result is the same when given the same input
@@ -77,7 +77,7 @@ def test_form_data_to_adhoc_generates_deterministic_values():
     }
 
 
-def test_form_data_to_adhoc_incorrect_clause_type():
+def test_form_data_to_adhoc_incorrect_clause_type(app_context):
     form_data = {"where": "1 = 1", "having": "count(*) > 1"}
 
     with pytest.raises(ValueError):  # noqa: PT011
