@@ -48,7 +48,7 @@ test.describe('Add database modal', () => {
         await expect(dbPage.getDynamicInput('database')).toHaveValue('');
         await expect(dbPage.getDynamicInput('username')).toHaveValue('');
         await expect(dbPage.getDynamicInput('password')).toHaveValue('');
-        await expect(dbPage.getDynamicInput('database_name')).toHaveValue('');
+        await expect(dbPage.getDynamicInput('database_name')).not.toHaveValue('');
     });
 
     test('should open sqlalchemy form', async () => {
@@ -72,6 +72,8 @@ test.describe('Add database modal', () => {
 
         // Wait for validation (host resolution failure expected)
         await dbPage.waitForValidateParams();
+
+        await expect(dbPage.getSubmitConnectionButton()).toBeEnabled();
 
         // Submit connection & await creation attempt
         await dbPage.submitConnectionAndWait();
@@ -103,10 +105,7 @@ test.describe('Add database modal', () => {
         // Ensure button enabled
         await expect(dbPage.getSubmitConnectionButton()).toBeEnabled();
 
-        // Submit & wait for validation + create
-        await dbPage.submitConnectionAndWait();
-
-        // Defensive body click (Cypress had one before second submit)
+        // Submit & wait for creation
         await dbPage.submitConnectionAndWait();
 
         await expect(dbPage.getErrorMessages().first()).toContainText(

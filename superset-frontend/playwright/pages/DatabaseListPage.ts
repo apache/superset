@@ -42,7 +42,8 @@ export class DatabaseListPage {
         INPUT_DB: 'input[name="database"]',
         INPUT_USERNAME: 'input[name="username"]',
         INPUT_PASSWORD: 'input[name="password"]',
-        INPUT_DB_NAME: 'input[name="database_name"]',
+        INPUT_DB_NAME:
+            'input[name="database_name"]:not([data-test="filters-search"])',
         DATABASE_NAME_INPUT: '[data-test="database-name-input"]',
         SQLALCHEMY_URI_INPUT: '[data-test="sqlalchemy-uri-input"]',
         ERROR_ITEM: '.ant-form-item-explain-error',
@@ -55,6 +56,9 @@ export class DatabaseListPage {
     /** Navigate to the database list view */
     async goto(): Promise<void> {
         await this.page.goto(URL.DATABASE_LIST);
+        await this.page
+            .locator(DatabaseListPage.SELECTORS.CREATE_BUTTON)
+            .waitFor({ state: 'visible' });
     }
 
     /** Open the create database modal */
@@ -104,17 +108,17 @@ export class DatabaseListPage {
     getDynamicInput(name: 'host' | 'port' | 'database' | 'username' | 'password' | 'database_name'): Locator {
         switch (name) {
             case 'host':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_HOST);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_HOST);
             case 'port':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_PORT);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_PORT);
             case 'database':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_DB);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_DB);
             case 'username':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_USERNAME);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_USERNAME);
             case 'password':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_PASSWORD);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_PASSWORD);
             case 'database_name':
-                return this.page.locator(DatabaseListPage.SELECTORS.INPUT_DB_NAME);
+                return this.getDatabaseModal().locator(DatabaseListPage.SELECTORS.INPUT_DB_NAME);
         }
     }
 
@@ -146,17 +150,8 @@ export class DatabaseListPage {
 
     /** Submit connection (waits for validate + create requests) */
     async submitConnectionAndWait(): Promise<Response> {
-        // Wait for validate request triggered by click
-        const validatePromise = this.waitForValidateParams();
-        await this.getSubmitConnectionButton().click();
-        await validatePromise;
-        // After validation, creation request fires
         const createPromise = this.waitForCreateDb();
-        // Some flows click again; emulate defensive double submit if still enabled
-        if (await this.getSubmitConnectionButton().isEnabled()) {
-            // No need to await here; ensure idempotency
-            await this.getSubmitConnectionButton().click();
-        }
+        await this.getSubmitConnectionButton().click();
         const createResponse = await createPromise;
         return createResponse;
     }

@@ -17,12 +17,70 @@
  * under the License.
  */
 
-import { Page, APIResponse } from '@playwright/test';
+import { Page, APIResponse, BrowserContext } from '@playwright/test';
 
 export interface ApiRequestOptions {
   headers?: Record<string, string>;
   params?: Record<string, string>;
   failOnStatusCode?: boolean;
+}
+
+const API_USERNAME = process.env.PLAYWRIGHT_ADMIN_USERNAME || 'admin';
+const API_PASSWORD = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'general';
+const API_AUTH_PROVIDER = process.env.PLAYWRIGHT_AUTH_PROVIDER || 'db';
+
+const authTokenCache = new WeakMap<BrowserContext, string>();
+
+async function getAccessToken(page: Page): Promise<string | null> {
+  const context = page.context();
+  const cachedToken = authTokenCache.get(context);
+  if (cachedToken) {
+    return cachedToken;
+  }
+
+  try {
+    const response = await page.request.post('api/v1/security/login', {
+      data: {
+        provider: API_AUTH_PROVIDER,
+        username: API_USERNAME,
+        password: API_PASSWORD,
+      },
+      failOnStatusCode: false,
+    });
+
+    if (!response.ok()) {
+      console.warn('[API Auth] Failed to fetch access token:', response.status());
+      return null;
+    }
+
+    const body = await response.json();
+    if (body?.access_token) {
+      authTokenCache.set(context, body.access_token);
+      return body.access_token;
+    }
+
+    console.warn('[API Auth] Response missing access_token');
+  } catch (error) {
+    console.warn('[API Auth] Error fetching access token:', error);
+  }
+
+  return null;
+}
+
+async function buildAuthHeaders(
+  page: Page,
+  options?: ApiRequestOptions,
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    ...options?.headers,
+  };
+
+  const accessToken = await getAccessToken(page);
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return headers;
 }
 
 /**
@@ -69,10 +127,11 @@ async function buildHeaders(
   options?: ApiRequestOptions,
 ): Promise<Record<string, string>> {
   const csrfToken = await getCsrfToken(page);
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...options?.headers,
-  };
+  const headers = await buildAuthHeaders(page, options);
+
+  if (!headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // Include CSRF token and Referer for Flask-WTF CSRFProtect
   if (csrfToken) {
@@ -92,8 +151,9 @@ export async function apiGet(
   url: string,
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
+  const headers = await buildAuthHeaders(page, options);
   return page.request.get(url, {
-    headers: options?.headers,
+    headers,
     params: options?.params,
     failOnStatusCode: options?.failOnStatusCode ?? true,
   });
