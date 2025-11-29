@@ -65,7 +65,9 @@ export const BarChartRenderer = (
     col: InputColumn;
   },
 ) => {
-  const { value, col } = params;
+  const { data, col } = params;
+  const value = parseArrayValue(data);
+  
   const theme = useTheme();
 
   if (!Array.isArray(value)) {
@@ -75,11 +77,14 @@ export const BarChartRenderer = (
   // Chart configuration is now processed in transformProps with proper defaults
   const chartConfig: ChartConfig = col?.config?.chartConfig || {};
   const {
-    width = 60,        // Default from transformProps
-    height = 20,       // Default from transformProps
+    width = 300,        // Default from transformProps
+    height = 60,       // Default from transformProps
     color,
     showValues = true, // Default from transformProps
   } = chartConfig;
+
+  console.log(width)
+  console.log(height)
 
   const dataKey = col?.metricName || col?.key || 'value';
   const ariaLabel = `Bar chart for ${col?.label || dataKey}`;

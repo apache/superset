@@ -89,9 +89,8 @@ const SparklineCell = ({
   const theme = useTheme();
 
   console.log('SparklineCell - Rendering Sparkline with config:', {
-    color,
-    strokeWidth,
-    showPoints,
+    width,
+    height
   });
 
   const finalSeriesColor = color || theme.colorText;

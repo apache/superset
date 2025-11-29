@@ -43,6 +43,7 @@ export type SharedColumnConfigProp =
   | 'customColumnName'
   | 'displayTypeIcon'
   | 'chartType'
+  // | 'chartConfig';
   | 'currencyFormat'
   | 'width'
   | 'height'
@@ -193,7 +194,7 @@ const chartType: ControlFormItemSpec<'Select'> = {
   description: t('Customize the chart type used to visualize row data.'),
   options: [
     { value: 'sparkline', label: t('Sparkline') },
-    { value: 'mini-bar', label: t('Mini Bar') },
+    { value: 'minibar', label: t('Mini Bar') },
   ],
   defaultValue: 'sparkline',
   debounceDelay: 200,
@@ -339,6 +340,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       tab: t('Chart Settings'),
       children: [
         ['chartType'],
+        // ['chartConfig'],
         ['width', 'height'],
         ['color'],
         ['strokeWidth'],

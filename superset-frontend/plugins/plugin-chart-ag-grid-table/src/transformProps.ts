@@ -649,8 +649,8 @@ const processChartConfiguration = memoizeOne(function processChartConfiguration(
         chartType: config.chartType,
         chartConfig: {
           // Set chart defaults
-          width: config.chartConfig?.width ?? 60,
-          height: config.chartConfig?.height ?? 20,
+          width: config.chartConfig?.width ?? 300,
+          height: config.chartConfig?.height ?? 60,
           color: config.chartConfig?.color,
           strokeWidth: config.chartConfig?.strokeWidth ?? 1.5,
           showValues: config.chartConfig?.showValues ?? true,
