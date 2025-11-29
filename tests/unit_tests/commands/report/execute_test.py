@@ -515,20 +515,24 @@ def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     """
     mocker.patch(
         "superset.commands.report.execute.get_channels_with_search",
-        return_value=[
-            {
-                "id": "abc124f",
-                "name": "channel-1",
-                "is_member": True,
-                "is_private": False,
-            },
-            {
-                "id": "blah_!channel_2",
-                "name": "Channel_2",
-                "is_member": True,
-                "is_private": False,
-            },
-        ],
+        return_value={
+            "result": [
+                {
+                    "id": "abc124f",
+                    "name": "channel-1",
+                    "is_member": True,
+                    "is_private": False,
+                },
+                {
+                    "id": "blah_!channel_2",
+                    "name": "Channel_2",
+                    "is_member": True,
+                    "is_private": False,
+                },
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        },
     )
     mock_report_schedule = ReportSchedule(
         recipients=[
@@ -558,14 +562,18 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     """
     mocker.patch(
         "superset.commands.report.execute.get_channels_with_search",
-        return_value=[
-            {
-                "id": "blah_!channel_2",
-                "name": "Channel 2",
-                "is_member": True,
-                "is_private": False,
-            },
-        ],
+        return_value={
+            "result": [
+                {
+                    "id": "blah_!channel_2",
+                    "name": "Channel 2",
+                    "is_member": True,
+                    "is_private": False,
+                },
+            ],
+            "next_cursor": None,
+            "has_more": False,
+        },
     )
     mock_report_schedule = ReportSchedule(
         name="Test Report",

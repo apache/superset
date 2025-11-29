@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,28 +21,19 @@ import {
   FunctionComponent,
   useState,
   ChangeEvent,
-  useEffect,
   useMemo,
+  useRef,
+  useEffect,
+  useCallback,
 } from 'react';
-import rison from 'rison';
-
-import {
-  FeatureFlag,
-  JsonResponse,
-  SupersetClient,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { debounce } from 'lodash';
+import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Select } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
-import {
-  NotificationMethodOption,
-  NotificationSetting,
-  SlackChannel,
-} from '../types';
+import { Input, Select, AsyncSelect } from '@superset-ui/core/components';
+import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
+import { styled, useTheme } from '@apache-superset/core/ui';
+import { useSlackChannels } from '../hooks/useSlackChannels';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
@@ -76,6 +68,17 @@ const StyledNotificationMethod = styled.div`
         margin-left: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit}px;
       }
+
+      .refresh-button {
+        margin-left: ${theme.sizeUnit * 2}px;
+        cursor: pointer;
+        color: ${theme.colorTextSecondary};
+
+        &:hover {
+          color: ${theme.colorPrimary};
+        }
+      }
+
       .anticon {
         margin-left: ${theme.sizeUnit}px;
       }
@@ -123,9 +126,10 @@ interface NotificationMethodProps {
   onInputChange?: (
     event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
-  email_subject: string;
+  emailSubject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
+  addDangerToast?: (msg: string) => void;
 }
 
 export const mapSlackValues = ({
@@ -149,57 +153,19 @@ export const mapSlackValues = ({
     .filter(val => !!val) as { label: string; value: string }[];
 };
 
-export const mapChannelsToOptions = (result: SlackChannel[]) => {
-  const publicChannels: SlackChannel[] = [];
-  const privateChannels: SlackChannel[] = [];
-
-  result.forEach(channel => {
-    if (channel.is_private) {
-      privateChannels.push(channel);
-    } else {
-      publicChannels.push(channel);
-    }
-  });
-
-  return [
-    {
-      label: 'Public Channels',
-      options: publicChannels.map((channel: SlackChannel) => ({
-        label: `${channel.name} ${
-          channel.is_member ? '' : t('(Bot not in channel)')
-        }`,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'public',
-    },
-    {
-      label: t('Private Channels (Bot in channel)'),
-      options: privateChannels.map((channel: SlackChannel) => ({
-        label: channel.name,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'private',
-    },
-  ];
-};
-
-type SlackOptionsType = {
-  label: string;
-  options: { label: string; value: string }[];
-}[];
-
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
   onUpdate,
   onRemove,
   onInputChange,
-  email_subject,
+  emailSubject,
   defaultSubject,
   setErrorSubject,
+  addDangerToast,
 }) => {
+  const theme = useTheme();
+
   const { method, recipients, cc, bcc, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
@@ -212,25 +178,21 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [bccVisible, setBccVisible] = useState<boolean>(!!bcc);
   const [ccValue, setCcValue] = useState<string>(cc || '');
   const [bccValue, setBccValue] = useState<string>(bcc || '');
-  const theme = useTheme();
-  const [methodOptionsLoading, setMethodOptionsLoading] =
-    useState<boolean>(true);
-  const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
-    {
-      label: '',
-      options: [],
-    },
-  ]);
-
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
-    useState<boolean>(true);
+  const hasShownErrorToast = useRef(false);
+  const [searchGeneration, setSearchGeneration] = useState(0);
+  const lastSearchValueRef = useRef('');
+
+  const {
+    fetchChannels: fetchSlackChannelsFromHook,
+    refreshChannels,
+    isRefreshing,
+  } = useSlackChannels(addDangerToast);
 
   const onMethodChange = (selected: {
     label: string;
     value: NotificationMethodOption;
   }) => {
-    // Since we're swapping the method, reset the recipients
     setRecipientValue('');
     setCcValue('');
     setBccValue('');
@@ -248,84 +210,131 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const fetchSlackChannels = async ({
-    searchString = '',
-    types = [],
-    exactMatch = false,
-    force = false,
-  }: {
-    searchString?: string | undefined;
-    types?: string[];
-    exactMatch?: boolean | undefined;
-    force?: boolean | undefined;
-  } = {}): Promise<JsonResponse> => {
-    const queryString = rison.encode({
-      searchString,
-      types,
-      exactMatch,
-      force,
-    });
-    const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
-    return SupersetClient.get({ endpoint });
-  };
+  const fetchSlackChannels = useCallback(
+    async (
+      search: string,
+      page: number,
+      pageSize: number,
+    ): Promise<{
+      data: { label: string; value: string }[];
+      totalCount: number;
+    }> => {
+      try {
+        const result = await fetchSlackChannelsFromHook({ search, page, pageSize });
 
-  const updateSlackOptions = async ({
-    force,
-  }: {
-    force?: boolean | undefined;
-  } = {}) => {
-    setIsSlackChannelsLoading(true);
-    fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
-      .then(({ json }) => {
-        const { result } = json;
-        const options: SlackOptionsType = mapChannelsToOptions(result);
+        hasShownErrorToast.current = false;
 
-        setSlackOptions(options);
+        return result;
+      } catch (error) {
+        logging.error('Failed to fetch Slack channels:', error);
 
-        if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-          // for edit mode, map existing ids to names for display if slack v2
-          // or names to ids if slack v1
-          const [publicOptions, privateOptions] = options;
-          if (
-            method &&
-            [
-              NotificationMethodOption.SlackV2,
-              NotificationMethodOption.Slack,
-            ].includes(method)
-          ) {
-            setSlackRecipients(
-              mapSlackValues({
-                method,
-                recipientValue,
-                slackOptions: [
-                  ...publicOptions.options,
-                  ...privateOptions.options,
-                ],
-              }),
-            );
-          }
+        // Show user-friendly error message
+        if (addDangerToast && !hasShownErrorToast.current) {
+          addDangerToast(
+            t(
+              'Unable to load Slack channels. Please check your Slack API token configuration. ' +
+                'Switching to manual channel input.',
+            ),
+          );
+          hasShownErrorToast.current = true;
         }
-      })
-      .catch(e => {
-        // Fallback to slack v1 if slack v2 is not compatible
-        setUseSlackV1(true);
-      })
-      .finally(() => {
-        setMethodOptionsLoading(false);
-        setIsSlackChannelsLoading(false);
-      });
-  };
 
+        // Fallback to Slack v1 without clearing recipients to prevent data loss
+        setUseSlackV1(true);
+
+        // Auto-switch to Slack V1 in the notification method dropdown
+        if (
+          onUpdate &&
+          setting &&
+          setting.method === NotificationMethodOption.SlackV2
+        ) {
+          onUpdate(index, {
+            ...setting,
+            method: NotificationMethodOption.Slack, // Switch from SlackV2 to Slack V1
+          });
+        }
+
+        return {
+          data: [],
+          totalCount: 0,
+        };
+      }
+    },
+    // Note: searchGeneration is intentionally included even though not used in function body
+    // Purpose: Trigger function reference change when search changes (after debounce)
+    // Effect: Forces AsyncSelect to clear internal state and show fresh results
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      fetchSlackChannelsFromHook,
+      addDangerToast,
+      onUpdate,
+      setting,
+      index,
+      searchGeneration,
+    ],
+  );
+
+  const handleRefreshSlackChannels = refreshChannels;
+
+  // Reset error toast flag when method changes
   useEffect(() => {
-    const slackEnabled = options?.some(
-      option =>
-        option === NotificationMethodOption.Slack ||
-        option === NotificationMethodOption.SlackV2,
-    );
-    if (slackEnabled && !slackOptions[0]?.options.length) {
-      updateSlackOptions();
-    }
-  }, []);
+    hasShownErrorToast.current = false;
+  }, [method]);
+
+  // Initialize slackRecipients when editing an existing alert with SlackV2
+  useEffect(() => {
+    const initializeSlackRecipients = async () => {
+      if (
+        method === NotificationMethodOption.SlackV2 &&
+        recipients &&
+        slackRecipients.length === 0
+      ) {
+        try {
+          // Fetch first page of channels to map IDs to names
+          const channelData = await fetchSlackChannels('', 0, 100);
+          const recipientIds = recipients.split(',').map(id => id.trim());
+
+          // Map recipient IDs to {label, value} format
+          const mappedRecipients = recipientIds
+            .map(id => {
+              const channel = channelData.data.find(
+                ch => ch.value.toLowerCase() === id.toLowerCase(),
+              );
+              return channel || { label: id, value: id };
+            })
+            .filter(r => r.value); // Filter out empty values
+
+          setSlackRecipients(mappedRecipients);
+        } catch (error) {
+          const recipientIds = recipients.split(',').map(id => id.trim());
+          const fallbackRecipients = recipientIds.map(id => ({
+            label: id,
+            value: id,
+          }));
+          setSlackRecipients(fallbackRecipients);
+        }
+      }
+    };
+
+    initializeSlackRecipients();
+  }, [method, recipients]);
+
+  const debouncedSearchUpdate = useMemo(
+    () =>
+      debounce((search: string) => {
+        const trimmedSearch = search.trim();
+        if (lastSearchValueRef.current !== trimmedSearch) {
+          lastSearchValueRef.current = trimmedSearch;
+          setSearchGeneration(prev => prev + 1);
+        }
+      }, 500),
+    [],
+  );
+
+  useEffect(
+    () => () => debouncedSearchUpdate.cancel(),
+    [debouncedSearchUpdate],
+  );
 
   const methodOptions = useMemo(
     () =>
@@ -382,6 +391,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
       onUpdate(index, updatedSetting);
     }
+  };
+
+  const handleSlackSearch = (search: string) => {
+    debouncedSearchUpdate(search);
   };
 
   const onSubjectChange = (
@@ -458,10 +471,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               options={methodOptions}
               showSearch
               value={methodOptions.find(option => option.value === method)}
-              loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              // eslint-disable-next-line jsx-a11y/control-has-associated-label
               <span
                 role="button"
                 tabIndex={0}
@@ -487,7 +498,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     <Input
                       type="text"
                       name="email_subject"
-                      value={email_subject}
+                      value={emailSubject}
                       placeholder={defaultSubject}
                       onChange={onSubjectChange}
                     />
@@ -540,24 +551,33 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ) : (
                   // for SlackV2
                   <div className="input-container">
-                    <Select
+                    <AsyncSelect
                       ariaLabel={t('Select channels')}
                       mode="multiple"
                       name="recipients"
                       value={slackRecipients}
-                      options={slackOptions}
+                      options={fetchSlackChannels}
                       onChange={onSlackRecipientsChange}
+                      onSearch={handleSlackSearch}
                       allowClear
                       data-test="recipients"
-                      loading={isSlackChannelsLoading}
-                      allowSelectAll={false}
-                      labelInValue
+                      fetchOnlyOnSearch={false}
+                      pageSize={999}
+                      placeholder={t('Select Slack channels')}
+                      tokenSeparators={[]}
+                      filterOption={() => true}
                     />
-                    <RefreshLabel
-                      onClick={() => updateSlackOptions({ force: true })}
-                      tooltipContent={t('Force refresh Slack channels list')}
-                      disabled={isSlackChannelsLoading}
-                    />
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="refresh-button"
+                      onClick={handleRefreshSlackChannels}
+                      data-test="refresh-slack-channels"
+                      title={t('Refresh channels')}
+                      style={{ opacity: isRefreshing ? 0.5 : 1 }}
+                    >
+                      <Icons.SyncOutlined iconSize="l" spin={isRefreshing} />
+                    </span>
                   </div>
                 )}
               </div>
