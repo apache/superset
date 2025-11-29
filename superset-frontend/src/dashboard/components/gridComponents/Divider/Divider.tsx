@@ -24,27 +24,14 @@ import { Draggable } from '../../dnd/DragDroppable';
 import HoverMenu from '../../menu/HoverMenu';
 import DeleteComponentButton from '../../DeleteComponentButton';
 import type { ConnectDragSource } from 'react-dnd';
-
-export interface DashboardComponent {
-  id: string;
-  type: string; // or more specific union
-  parents?: string[];
-  children?: string[];
-  meta?: {
-    width?: number;
-    height?: number;
-    headerSize?: string;
-    background?: string;
-    chartId?: number;
-  };
-}
+import type { LayoutItem } from 'src/dashboard/types';
 
 export interface DividerProps {
   id: string;
   parentId: string;
-  component: DashboardComponent;
+  component: LayoutItem;
   depth: number;
-  parentComponent: DashboardComponent;
+  parentComponent: LayoutItem;
   index: number;
   editMode: boolean;
   handleComponentDrop: (dropResult: unknown) => void;
