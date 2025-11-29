@@ -21,11 +21,8 @@ import { ReactNode } from 'react';
 import { PopoverProps } from '@superset-ui/core/components/Popover';
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 
-export type ChartType = 'sparkline' | 'minibar';
-
 export type ChartColumnConfig = {
   key: string;
-  type: ChartType;
   label: string;
 };
 

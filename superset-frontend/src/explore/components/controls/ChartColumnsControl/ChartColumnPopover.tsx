@@ -20,8 +20,8 @@
 import { useState } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Popover, Input, Select } from '@superset-ui/core/components';
-import { ChartColumnPopoverProps, ChartColumnConfig, ChartType } from './types';
+import { Popover, Input } from '@superset-ui/core/components';
+import { ChartColumnPopoverProps, ChartColumnConfig } from './types';
 
 const PopoverContent = styled.div`
   width: 300px;
@@ -74,22 +74,17 @@ export const ChartColumnPopover = ({
   ...popoverProps
 }: ChartColumnPopoverProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [chartType, setChartType] = useState<ChartType>(
-    config?.type || 'sparkline',
-  );
   const [label, setLabel] = useState(config?.label || '');
 
   const handleSave = () => {
     const newConfig: ChartColumnConfig = {
       key: config?.key || `chart_${Date.now()}`,
-      type: chartType,
       label: label || t('Chart Column'),
     };
     onChange(newConfig);
     setIsOpen(false);
     // Reset for next add
     if (!config) {
-      setChartType('sparkline');
       setLabel('');
     }
   };
@@ -98,28 +93,14 @@ export const ChartColumnPopover = ({
     setIsOpen(false);
     // Reset to original values if editing
     if (config) {
-      setChartType(config.type);
       setLabel(config.label);
     } else {
-      setChartType('sparkline');
       setLabel('');
     }
   };
 
   const content = (
     <PopoverContent>
-      <FormItem>
-        <Label>{t('Chart Type')}</Label>
-        <Select
-          value={chartType}
-          onChange={(value: ChartType) => setChartType(value)}
-          options={[
-            { label: t('Sparkline'), value: 'sparkline' },
-            { label: t('Mini Bar'), value: 'minibar' },
-          ]}
-          css={{ width: '100%' }}
-        />
-      </FormItem>
       <FormItem>
         <Label>{t('Column Label')}</Label>
         <Input

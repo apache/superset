@@ -19,7 +19,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
@@ -31,17 +30,6 @@ import {
 } from '../OptionControls';
 import { ChartColumnPopover } from './ChartColumnPopover';
 import { ChartColumnsControlProps, ChartColumnConfig } from './types';
-
-const ChartTypeLabel = styled.span`
-  ${({ theme }) => css`
-    margin-left: ${theme.sizeUnit}px;
-    padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit}px;
-    background-color: ${theme.colorPrimaryBgHover};
-    border-radius: ${theme.borderRadius}px;
-    font-size: ${theme.fontSizeXS}px;
-    color: ${theme.colorTextSecondary};
-  `}
-`;
 
 const CHART_COLUMN_DND_TYPE = 'ChartColumn';
 
@@ -108,16 +96,7 @@ const ChartColumnsControl = ({
               destroyTooltipOnHide
             >
               <OptionControlLabel
-                label={
-                  <>
-                    {chartColumn.label}
-                    <ChartTypeLabel>
-                      {chartColumn.type === 'sparkline'
-                        ? t('Sparkline')
-                        : t('Mini Bar')}
-                    </ChartTypeLabel>
-                  </>
-                }
+                label={chartColumn.label}
                 onRemove={() => onDelete(index)}
                 onMoveLabel={moveLabel}
                 onDropLabel={onDropLabel}
