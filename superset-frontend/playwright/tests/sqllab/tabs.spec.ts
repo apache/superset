@@ -97,7 +97,7 @@ test.describe('SqlLab query tabs', () => {
             `Untitled Query ${initialUntitledMax + 1}`,
         );
         await expect(sqlLab.getEditorContent()).toContainText('SELECT ...');
-        await expect(page.locator('#js-sql-toolbar .limitDropdown')).toContainText(
+        await expect(page.locator('#js-sql-toolbar .limitDropdown').first()).toContainText(
             '10',
         );
 
@@ -112,7 +112,7 @@ test.describe('SqlLab query tabs', () => {
             `Untitled Query ${initialUntitledMax + 1}`,
         );
         await expect(sqlLab.getEditorContent()).toContainText('SELECT ...');
-        await expect(page.locator('#js-sql-toolbar .limitDropdown')).toContainText(
+        await expect(page.locator('#js-sql-toolbar .limitDropdown').first()).toContainText(
             '10',
         );
     });

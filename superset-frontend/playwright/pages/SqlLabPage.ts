@@ -73,10 +73,14 @@ export class SqlLabPage {
 
     /** Click add tab icon (uses last visible) */
     async addTabViaButton(): Promise<void> {
-        const icons = this.getAddTabIcons();
-        const count = await icons.count();
-        if (count === 0) throw new Error('Add tab icon not found');
-        await icons.nth(count - 1).click();
+        // Match Cypress pattern: [data-test="add-tab-icon"]:visible:last
+        // Get current count before clicking
+        const currentCount = await this.getTabs().count();
+        const icon = this.page.locator(`${SqlLabPage.SELECTORS.ADD_TAB_ICON}:visible`).last();
+        await icon.waitFor({ state: 'visible', timeout: 10000 });
+        await icon.click({ force: true });
+        // Wait for new tab to appear
+        await this.getTabs().nth(currentCount).waitFor({ state: 'attached', timeout: 5000 });
     }
 
     /** Add tab via keyboard shortcut (Ctrl+T) */
@@ -105,11 +109,10 @@ export class SqlLabPage {
 
     /** Click remove icon for last tab (alternative close) */
     async clickLastRemoveIcon(): Promise<void> {
-        const icon = this.page
-            .locator(`${SqlLabPage.SELECTORS.TABLIST} ${SqlLabPage.SELECTORS.REMOVE_ICON}:last-child`);
-        if (await icon.isVisible()) {
-            await icon.click({ force: true });
-        }
+        const icons = this.page.locator(`${SqlLabPage.SELECTORS.TABLIST} ${SqlLabPage.SELECTORS.REMOVE_ICON}`);
+        const icon = icons.last();
+        await icon.waitFor({ state: 'visible', timeout: 5000 });
+        await icon.click({ force: true });
     }
 
     /** Set editor content (replace existing) */
@@ -129,10 +132,14 @@ export class SqlLabPage {
 
     /** Configure row limit (open dropdown and select first item) */
     async configureRowLimit(): Promise<void> {
-        const dropdownTrigger = this.page.locator(SqlLabPage.SELECTORS.LIMIT_DROPDOWN).parent();
-        await dropdownTrigger.click({ force: true });
-        const menu = this.page.locator(SqlLabPage.SELECTORS.DROPDOWN_MENU_LAST);
-        await menu.locator('.ant-dropdown-menu-item').first().click({ force: true });
+        // The limitDropdown is inside a Button - click the button to open dropdown
+        // Match Cypress: queryLimitSelector.parent().click()
+        const dropdownButton = this.page.locator(`${SqlLabPage.SELECTORS.LIMIT_DROPDOWN}`).locator('..');
+        await dropdownButton.click({ force: true });
+        // Wait for menu to appear and click first item
+        const menuItem = this.page.locator('.ant-dropdown-menu .ant-dropdown-menu-item').first();
+        await menuItem.waitFor({ state: 'visible', timeout: 5000 });
+        await menuItem.click();
     }
 
     /** Run current query (click first run button) */

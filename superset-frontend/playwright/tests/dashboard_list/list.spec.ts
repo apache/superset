@@ -47,40 +47,40 @@ test.describe('Dashboards list', () => {
 
         test('should load rows in list mode', async () => {
             await expect(dashboardListPage.getListViewTable()).toBeVisible();
-            await expect(dashboardListPage.getSortHeaders().nth(1)).toContainText(
+            await expect(dashboardListPage.getSortHeaders().nth(0)).toContainText(
                 'Name',
             );
-            await expect(dashboardListPage.getSortHeaders().nth(2)).toContainText(
+            await expect(dashboardListPage.getSortHeaders().nth(1)).toContainText(
                 'Status',
             );
-            await expect(dashboardListPage.getSortHeaders().nth(3)).toContainText(
+            await expect(dashboardListPage.getSortHeaders().nth(2)).toContainText(
                 'Owners',
             );
-            await expect(dashboardListPage.getSortHeaders().nth(4)).toContainText(
+            await expect(dashboardListPage.getSortHeaders().nth(3)).toContainText(
                 'Last modified',
             );
-            await expect(dashboardListPage.getSortHeaders().nth(5)).toContainText(
+            await expect(dashboardListPage.getSortHeaders().nth(4)).toContainText(
                 'Actions',
             );
         });
 
         test('should sort correctly in list mode', async () => {
             // Sort ascending
-            await dashboardListPage.clickSortHeader(1);
+            await dashboardListPage.clickSortHeader(0);
             await dashboardListPage.waitForLoadingComplete();
             await expect(dashboardListPage.getTableRow(0)).toContainText(
                 'Supported Charts Dashboard',
             );
 
             // Sort descending
-            await dashboardListPage.clickSortHeader(1);
+            await dashboardListPage.clickSortHeader(0);
             await dashboardListPage.waitForLoadingComplete();
             await expect(dashboardListPage.getTableRow(0)).toContainText(
                 "World Bank's Data",
             );
 
             // Reset sort
-            await dashboardListPage.clickSortHeader(1);
+            await dashboardListPage.clickSortHeader(0);
         });
 
         test('should bulk select in list mode', async () => {
@@ -169,20 +169,11 @@ test.describe('Dashboards list', () => {
     test.describe('common actions', () => {
         let dashboardListPage: DashboardListPage;
 
-        test.beforeEach(async ({ page, request, baseURL }) => {
-            // Create sample dashboards using the API
-            // Note: cy.createSampleDashboards() is a Cypress custom command
-            // In Playwright, we use the request fixture for API calls
-            const apiBaseUrl = baseURL || 'http://localhost:8088';
-
-            for (const id of [0, 1, 2, 3]) {
-                await request.post(`${apiBaseUrl}/api/v1/dashboard/`, {
-                    data: {
-                        dashboard_title: `${id + 1} - Sample dashboard`,
-                    },
-                });
-            }
-
+        test.beforeEach(async ({ page }) => {
+            // Note: Relies on test environment having sample dashboards already created
+            // Original Cypress test used cy.createSampleDashboards([0, 1, 2, 3])
+            // For Playwright, sample dashboards should be created via backend fixtures
+            // or global test setup rather than per-test API calls
             dashboardListPage = new DashboardListPage(page);
             await dashboardListPage.goto();
         });
