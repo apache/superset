@@ -209,7 +209,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
     // Only General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description
 
     // Expand Styling section to see the ColorSchemeControlWrapper
     const stylingHeaderText = screen.getByText('Styling');
@@ -254,7 +254,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByText('Certification')).toBeInTheDocument();
 
     // General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug are visible
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description are visible
 
     // Expand Access & ownership to see Tags
     const accessPanel = screen
@@ -299,7 +299,7 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Only Name and Slug visible initially
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Only Name, Slug and Description visible initially
 
     // Click on the Advanced settings collapse panel to expand it
     const advancedHeaderText = screen.getByText('Advanced settings');
