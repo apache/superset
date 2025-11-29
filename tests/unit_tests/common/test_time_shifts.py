@@ -39,32 +39,26 @@ processor = QueryContextProcessor(
 )
 
 # Bind ExploreMixin methods to datasource for testing
-processor._qc_datasource.add_offset_join_column = (
-    ExploreMixin.add_offset_join_column.__get__(processor._qc_datasource)
+# Type annotation needed because _qc_datasource is typed as Explorable in protocol
+_datasource: BaseDatasource = processor._qc_datasource  # type: ignore
+_datasource.add_offset_join_column = ExploreMixin.add_offset_join_column.__get__(
+    _datasource
 )
-processor._qc_datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(
-    processor._qc_datasource
+_datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(_datasource)
+_datasource.is_valid_date_range = ExploreMixin.is_valid_date_range.__get__(_datasource)
+_datasource._determine_join_keys = ExploreMixin._determine_join_keys.__get__(
+    _datasource
 )
-processor._qc_datasource.is_valid_date_range = ExploreMixin.is_valid_date_range.__get__(
-    processor._qc_datasource
-)
-processor._qc_datasource._determine_join_keys = (
-    ExploreMixin._determine_join_keys.__get__(processor._qc_datasource)
-)
-processor._qc_datasource._perform_join = ExploreMixin._perform_join.__get__(
-    processor._qc_datasource
-)
-processor._qc_datasource._apply_cleanup_logic = (
-    ExploreMixin._apply_cleanup_logic.__get__(processor._qc_datasource)
+_datasource._perform_join = ExploreMixin._perform_join.__get__(_datasource)
+_datasource._apply_cleanup_logic = ExploreMixin._apply_cleanup_logic.__get__(
+    _datasource
 )
 # Static methods don't need binding - assign directly
-processor._qc_datasource.generate_join_column = ExploreMixin.generate_join_column
-processor._qc_datasource.is_valid_date_range_static = (
-    ExploreMixin.is_valid_date_range_static
-)
+_datasource.generate_join_column = ExploreMixin.generate_join_column
+_datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
 
 # Convenience reference for backward compatibility in tests
-query_context_processor = processor._qc_datasource
+query_context_processor = _datasource
 
 
 @fixture
