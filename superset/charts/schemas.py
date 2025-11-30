@@ -1415,6 +1415,19 @@ class ChartDataQueryContextSchema(Schema):
 
     form_data = fields.Raw(allow_none=True, required=False)
 
+    # added by arshiya for non sql lab quesries
+    client_id = fields.String(
+        allow_none=True,
+        required=False,
+        metadata={"description": "Client ID for tracking the query execution"},
+    )
+    
+    client_id = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Optional client-generated id for this chart query (used to stop/cancel queries)"},
+    )
+
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:

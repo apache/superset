@@ -32,6 +32,9 @@ from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
+
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
@@ -676,6 +679,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
+        query: 'Query' | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -721,6 +725,25 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     database=self,
                     object_ref=__name__,
                 ):
+                    # If a Query model was provided, try to obtain an engine-specific
+                    # cancel id and store it on the Query (so queries can be cancelled)
+                    try:
+                        from superset.constants import QUERY_CANCEL_KEY
+
+                        if query is not None:
+                            cancel_query_id = self.db_engine_spec.get_cancel_query_id(
+                                cursor, query
+                            )
+                            if cancel_query_id is not None:
+                                query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                                # persist cancel key so other processes can cancel
+                                from superset.extensions import db as _db
+
+                                _db.session.commit()
+                    except Exception:
+                        # Best-effort: do not fail the query if engine cannot provide cancel
+                        logger.debug("Could not obtain or persist cancel id for query", exc_info=True)
+
                     self.db_engine_spec.execute(cursor, sql_, self)
 
                 # Fetch results from last statement if requested
@@ -767,9 +790,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        query: 'Query' | None = None,
     ) -> pd.DataFrame:
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
-            sql, catalog, schema, fetch_last_result=True
+            sql, catalog, schema, fetch_last_result=True, query=query
         )
 
         df = None
