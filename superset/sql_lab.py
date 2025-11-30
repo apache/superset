@@ -680,17 +680,7 @@ def cancel_query(query: Query) -> bool:
     :return: True if query cancelled successfully, False otherwise
     """
 
-    # Log incoming cancel request state for debugging
-    try:
-        print(
-            f"[sql_lab.cancel_query] called for Query id={getattr(query, 'id', None)} "
-            f"client_id={getattr(query, 'client_id', None)} extra={getattr(query, 'extra', None)}"
-        )
-    except Exception:
-        logger.debug("Could not print cancel_query incoming state", exc_info=True)
-
     if query.database.db_engine_spec.has_implicit_cancel():
-        logger.debug("Engine has implicit cancel; returning True for query id=%s", getattr(query, 'id', None))
         return True
 
     # Some databases may need to make preparations for query cancellation
@@ -698,15 +688,6 @@ def cancel_query(query: Query) -> bool:
         query.database.db_engine_spec.prepare_cancel_query(query)
     except Exception:
         logger.debug("prepare_cancel_query failed", exc_info=True)
-
-    # Log after prepare to see if early-cancel flag was set
-    try:
-        print(
-            f"[sql_lab.cancel_query] after prepare: id={getattr(query, 'id', None)} "
-            f"client_id={getattr(query, 'client_id', None)} extra={getattr(query, 'extra', None)}"
-        )
-    except Exception:
-        logger.debug("Could not print cancel_query post-prepare state", exc_info=True)
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.
@@ -719,11 +700,6 @@ def cancel_query(query: Query) -> bool:
 
     cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
     if cancel_query_id is None:
-        logger.debug(
-            "No cancel_query_id found in query.extra for id=%s client_id=%s",
-            getattr(query, 'id', None),
-            getattr(query, 'client_id', None),
-        )
         return False
 
     with query.database.get_sqla_engine(
@@ -737,17 +713,6 @@ def cancel_query(query: Query) -> bool:
                     result = query.database.db_engine_spec.cancel_query(
                         cursor, query, cancel_query_id
                     )
-                    print(
-                        f"[sql_lab.cancel_query] db_engine_spec.cancel_query returned {result} "
-                        f"for id={getattr(query, 'id', None)} client_id={getattr(query, 'client_id', None)} cancel_id={cancel_query_id}"
-                    )
-                    logger.debug(
-                        "cancel_query result for id=%s client_id=%s: %s",
-                        getattr(query, 'id', None),
-                        getattr(query, 'client_id', None),
-                        result,
-                    )
                     return result
                 except Exception:
-                    logger.debug("db_engine_spec.cancel_query raised", exc_info=True)
                     return False

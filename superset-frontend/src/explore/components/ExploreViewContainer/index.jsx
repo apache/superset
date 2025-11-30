@@ -28,7 +28,6 @@ import {
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
-  // supersetClient added by arshiya
   SupersetClient,
 } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';

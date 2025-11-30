@@ -713,16 +713,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
-            try:
-                print(
-                    f"[Database._execute] executing statements count={len(script.statements)} "
-                    f"db_id={getattr(self, 'id', None)} "
-                    f"engine_has_execute_with_cursor={hasattr(self.db_engine_spec, 'execute_with_cursor')} "
-                    f"query_present={query is not None}"
-                )
-            except Exception:
-                logger.debug("Could not print _execute debug info", exc_info=True)
-
             for i, statement in enumerate(script.statements):
                 sql_ = self.mutate_sql_based_on_config(
                     statement.format(),

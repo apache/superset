@@ -75,7 +75,6 @@ export default function chartReducer(
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryController: action.queryController,
-        // added by Arshiya line below
         latestQueryId: action.latestQueryId,
       };
     },

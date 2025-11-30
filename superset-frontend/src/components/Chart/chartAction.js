@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-// imported nanoid by arshiya
 import { nanoid } from 'nanoid';
 import {
   FeatureFlag,
@@ -47,7 +46,6 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-// added latest questy id here by arshiya
 export function chartUpdateStarted(queryController, latestQueryFormData, key, latestQueryId) {
   return {
     type: CHART_UPDATE_STARTED,
@@ -157,7 +155,6 @@ const legacyChartDataRequest = async (
   );
 };
 
-// added clientId in the two const below by arshiya
 const v1ChartDataRequest = async (
   formData,
   resultFormat,
@@ -208,7 +205,6 @@ const v1ChartDataRequest = async (
   return SupersetClient.post(querySettings);
 };
 
-// added clientId here by arshiya
 export async function getChartDataRequest({
   formData,
   setDataMask = () => {},
@@ -243,7 +239,6 @@ export async function getChartDataRequest({
       parseMethod,
     );
   }
-  // added clientId here by arshiya
   return v1ChartDataRequest(
     formData,
     resultFormat,
@@ -438,9 +433,7 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    // added nanoid here by arshiya
     
-    // Generate client_id upfront (like SqlLab does) so we can use it to stop the query by arshiya
     const clientId = nanoid(11);
     console.log('Generated client_id for chart query:', clientId);
     
@@ -454,7 +447,6 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
-    // added clientID by arshiya
     const chartDataRequest = getChartDataRequest({
       setDataMask,
       formData,
@@ -469,7 +461,6 @@ export function exploreJSON(
 
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
-    // changed things here by arshiya
       .then(({ response, json }) =>
         handleChartDataResponse(response, json, useLegacyApi),
       )

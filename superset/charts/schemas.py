@@ -1415,7 +1415,6 @@ class ChartDataQueryContextSchema(Schema):
 
     form_data = fields.Raw(allow_none=True, required=False)
 
-    # added by arshiya for non sql lab quesries
     client_id = fields.String(
         allow_none=True,
         required=False,

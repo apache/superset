@@ -207,7 +207,6 @@ export const getQuerySettings = formData => {
   ];
 };
 
-// added clientid here by arshiya
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
@@ -225,7 +224,6 @@ export const buildV1ChartDataPayload = async ({
           ...baseQueryObject,
         },
       ]));
-      // Build the query context using the appropriate buildQuery function by arshiya
   const queryContext = buildQuery(
     {
       ...formData,
@@ -241,7 +239,6 @@ export const buildV1ChartDataPayload = async ({
     },
   );
   
-  // Add client_id to the payload if provided (like SqlLab does) by arshiya
   if (clientId) {
     console.log('Adding client_id to chart data payload:', clientId);
     return {
