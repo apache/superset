@@ -20,8 +20,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 import backoff
-from flask import current_app
 import requests
+from flask import current_app
 
 from superset import feature_flag_manager
 from superset.reports.models import ReportRecipientType
@@ -44,7 +44,15 @@ class WebhookNotification(BaseNotification):
     type = ReportRecipientType.WEBHOOK
 
     def _get_webhook_url(self) -> str:
-        return json.loads(self._recipient.recipient_config_json)["target"]
+        """
+        Get the webhook URL from the recipient configuration
+        :returns: The webhook URL
+        :raises NotificationParamException: If the webhook URL is not provided in the recipient configuration
+        """  # noqa: E501
+        try:
+            return json.loads(self._recipient.recipient_config_json)["target"]
+        except (json.JSONDecodeError, KeyError) as ex:
+            raise NotificationParamException("Webhook URL is required") from ex
 
     def _get_req_payload(self) -> dict[str, Any]:
         header_content = {
@@ -88,7 +96,8 @@ class WebhookNotification(BaseNotification):
     def send(self) -> None:
         if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_WEBHOOK"):
             raise NotificationUnprocessableException(
-                "Attempted to send a Webhook notification but Webhook feature flag is not enabled."
+                "Attempted to send a Webhook notification but Webhook feature flag \
+                is not enabled."
             )
         wh_url = self._get_webhook_url()
         if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
@@ -118,11 +127,13 @@ class WebhookNotification(BaseNotification):
 
             if response.status_code >= 500 or response.status_code == 429:
                 raise NotificationUnprocessableException(
-                    f"Webhook failed with status code {response.status_code}: {response.text}"
+                    f"Webhook failed with status code {response.status_code}: \
+                     {response.text}"
                 )
             if response.status_code >= 400:
                 raise NotificationParamException(
-                    f"Webhook failed with status code {response.status_code}: {response.text}"
+                    f"Webhook failed with status code {response.status_code}: \
+                    {response.text}"
                 )
 
         except requests.exceptions.RequestException as ex:
