@@ -43,11 +43,13 @@ import {
 } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { Layout } from 'src/dashboard/types';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import { TabNode, TreeDataNode } from '../types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -395,7 +397,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     }
   };
 
-  findNextRowPosition = (layout: any): number => {
+  findNextRowPosition = (layout: Layout): number => {
     const rowIndices: number[] = [];
 
     Object.keys(layout).forEach(key => {
@@ -460,7 +462,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       const { result } = response.json;
       const tabTree = result.tab_tree || [];
 
-      const convertToTreeData = (nodes: any[]): any[] =>
+      const convertToTreeData = (nodes: TabNode[]): TreeDataNode[] =>
         nodes.map(node => ({
           value: node.value,
           title: node.title,
@@ -483,7 +485,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   onTabChange = (value: string) => {
     if (value) {
-      const findTabInTree = (data: any[]): any => {
+      const findTabInTree = (data: TabNode[]): TabNode | null => {
         for (const item of data) {
           if (item.value === value) {
             return item;
