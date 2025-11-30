@@ -170,7 +170,7 @@ function UsersList({ user }: UsersListProps) {
     }
 
     if (newOwnerId) {
-      const newOwner = users.find((u) => u.id = newOwnerId);
+      const newOwner = users.find((u) => {return u.id == newOwnerId});
       try {
         await reassignUserAssets(user.id, newOwnerId);
         refreshData();
