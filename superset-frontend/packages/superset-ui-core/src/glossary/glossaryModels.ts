@@ -95,7 +95,7 @@ export class GlossaryTerm {
    * Format: [GLOSSARY]|topic|title|description
    */
   encode(): string {
-    return `${GLOSSARY_ENCODING_PREFIX}${this.topic}|${this.title}|${this.short}`;
+    return `${GLOSSARY_ENCODING_PREFIX}${this.topic}|${this.title}`;
   }
 }
 
