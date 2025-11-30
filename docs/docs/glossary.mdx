@@ -58,7 +58,7 @@ export const GlossaryContent = () => {
           const terms = topic.getAllTerms();
           return (
             <div key={topicName} id={topicFragment}>
-              <h3>{topicName}</h3>
+              <h3>{topic.getDisplayName()}</h3>
               <Table
                 dataSource={terms
                   .map((term) => {
