@@ -16,6 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Column from './Column';
-
-export default Column;
+export { default } from './Column';
