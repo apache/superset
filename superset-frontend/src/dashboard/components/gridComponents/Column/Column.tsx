@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, useState, useMemo, memo, RefObject } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useState,
+  useMemo,
+  memo,
+  RefObject,
+} from 'react';
 import { JsonObject, t } from '@superset-ui/core';
 import cx from 'classnames';
 import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
@@ -62,10 +69,10 @@ type ColumnProps = {
   updateComponents: (updates: Record<string, JsonObject>) => void;
   isComponentVisible: boolean;
   onChangeTab: (tabId: string) => void;
-}
+};
 
 const ColumnStyles = styled.div<{ editMode: boolean }>`
-${({ theme, editMode }) => css`
+  ${({ theme, editMode }) => css`
     &.grid-column {
       width: 100%;
       position: relative;
@@ -264,7 +271,7 @@ const Column: FC<ColumnProps> = props => {
                     parentId={columnComponent.id}
                     depth={depth + 1}
                     index={itemIndex}
-		                availableColumnCount={columnComponent.meta.width}
+                    availableColumnCount={columnComponent.meta.width}
                     columnWidth={columnWidth}
                     onResizeStart={onResizeStart}
                     onResize={onResize}
@@ -287,7 +294,11 @@ const Column: FC<ColumnProps> = props => {
                       )}
                       editMode
                     >
-                      {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
                         dropIndicatorProps && <div {...dropIndicatorProps} />
                       }
                     </Droppable>

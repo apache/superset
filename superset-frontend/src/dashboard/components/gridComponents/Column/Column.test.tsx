@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { fireEvent, render, RenderResult, screen } from 'spec/helpers/testing-library'; 
+import {
+  fireEvent,
+  render,
+  RenderResult,
+  screen,
+} from 'spec/helpers/testing-library';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -25,32 +30,43 @@ import { initialState } from 'src/SqlLab/fixtures';
 import Column from './Column';
 
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
-  Draggable: ({ children }: { children: (args: object) => React.ReactNode }) => (
-    <div data-test="mock-draggable">{children({})}</div>
-  ),
-  Droppable: ({ children, depth }: { children: (args: object) => React.ReactNode; depth: number }) => (
+  Draggable: ({
+    children,
+  }: {
+    children: (args: object) => React.ReactNode;
+  }) => <div data-test="mock-draggable">{children({})}</div>,
+  Droppable: ({
+    children,
+    depth,
+  }: {
+    children: (args: object) => React.ReactNode;
+    depth: number;
+  }) => (
     <div data-test="mock-droppable" data-depth={depth}>
       {children({})}
     </div>
   ),
 }));
-jest.mock(
-  'src/dashboard/containers/DashboardComponent', () => {
-  return ({ availableColumnCount, depth }: { availableColumnCount: number; depth: number }) => (
+jest.mock('src/dashboard/containers/DashboardComponent', () => {
+  return ({
+    availableColumnCount,
+    depth,
+  }: {
+    availableColumnCount: number;
+    depth: number;
+  }) => (
     <div data-test="mock-dashboard-component" data-depth={depth}>
       {availableColumnCount}
     </div>
   );
 });
-jest.mock(
-  'src/dashboard/components/menu/WithPopoverMenu', () => {
+jest.mock('src/dashboard/components/menu/WithPopoverMenu', () => {
   return ({ children }: { children: React.ReactNode }) => (
     <div data-test="mock-with-popover-menu">{children}</div>
   );
 });
 
-jest.mock(
-  'src/dashboard/components/DeleteComponentButton', () => {
+jest.mock('src/dashboard/components/DeleteComponentButton', () => {
   return ({ onDelete }: { onDelete: () => void }) => (
     <button
       type="button"
@@ -184,17 +200,17 @@ test('should render a DeleteComponentButton in editMode', () => {
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
   let { rerender } = setup({ component: columnWithoutChildren });
   expect(
-    screen.queryByTestId('background-style-dropdown')
+    screen.queryByTestId('background-style-dropdown'),
   ).not.toBeInTheDocument();
-  rerender(<Column {...props} component={columnWithoutChildren} editMode={true} />);
+  rerender(
+    <Column {...props} component={columnWithoutChildren} editMode={true} />,
+  );
 
   const buttons = screen.getAllByRole('button');
-  const settingsButton = buttons[1]; 
+  const settingsButton = buttons[1];
   fireEvent.click(settingsButton);
 
-  expect(
-    screen.queryByTestId('background-style-dropdown')
-  ).toBeInTheDocument();
+  expect(screen.queryByTestId('background-style-dropdown')).toBeInTheDocument();
 });
 
 test('should call deleteComponent when deleted', () => {
