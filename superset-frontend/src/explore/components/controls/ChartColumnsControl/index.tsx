@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -42,27 +42,45 @@ const ChartColumnsControl = ({
     value ?? [],
   );
 
-  useEffect(() => {
-    if (onChange) {
-      onChange(chartColumns);
-    }
-  }, [chartColumns, onChange]);
+  const onDelete = useCallback(
+    (index: number) => {
+      setChartColumns(prevColumns => {
+        const newColumns = prevColumns.filter((_, i) => i !== index);
+        if (onChange) {
+          onChange(newColumns);
+        }
+        return newColumns;
+      });
+    },
+    [onChange],
+  );
 
-  const onDelete = useCallback((index: number) => {
-    setChartColumns(prevColumns => prevColumns.filter((_, i) => i !== index));
-  }, []);
+  const onAdd = useCallback(
+    (config: ChartColumnConfig) => {
+      setChartColumns(prevColumns => {
+        const newColumns = [...prevColumns, config];
+        if (onChange) {
+          onChange(newColumns);
+        }
+        return newColumns;
+      });
+    },
+    [onChange],
+  );
 
-  const onAdd = useCallback((config: ChartColumnConfig) => {
-    setChartColumns(prevColumns => [...prevColumns, config]);
-  }, []);
-
-  const onEdit = useCallback((newConfig: ChartColumnConfig, index: number) => {
-    setChartColumns(prevColumns => {
-      const newColumns = [...prevColumns];
-      newColumns.splice(index, 1, newConfig);
-      return newColumns;
-    });
-  }, []);
+  const onEdit = useCallback(
+    (newConfig: ChartColumnConfig, index: number) => {
+      setChartColumns(prevColumns => {
+        const newColumns = [...prevColumns];
+        newColumns.splice(index, 1, newConfig);
+        if (onChange) {
+          onChange(newColumns);
+        }
+        return newColumns;
+      });
+    },
+    [onChange],
+  );
 
   const moveLabel = useCallback((dragIndex: number, hoverIndex: number) => {
     setChartColumns(prevColumns => {

@@ -165,7 +165,7 @@ const SparklineCell = ({
         yScale={{
           ...yScaleConfig,
         }}
-        xScale={{ type: 'band', paddingInner: 0.5,  paddingOuter: 0.1}}
+        xScale={{ type: 'band', paddingInner: 0.5, paddingOuter: 0.1 }}
         theme={xyTheme}
       >
         {showYAxis && (

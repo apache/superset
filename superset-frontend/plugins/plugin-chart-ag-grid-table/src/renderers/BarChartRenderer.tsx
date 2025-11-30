@@ -85,7 +85,7 @@ export const BarChartRenderer = (
   const ariaLabel = `Bar chart for ${col?.label || dataKey}`;
   const numberFormat = '.2f';
 
-  const validData = useMemo(() => parseArrayValue(value), [value]);
+  const validData = useMemo(() => value, [value]);
 
   const chartData = useMemo(
     () => transformBarChartData(validData),
@@ -123,7 +123,8 @@ export const BarChartRenderer = (
   }, [showValues, numberFormat, min, max]);
 
   const innerWidth = width - margin.left - margin.right;
-  const finalSeriesColor = (typeof color === 'object') ? rgbToHex(color) : color || theme.colorText;
+  const finalSeriesColor =
+    typeof color === 'object' ? rgbToHex(color) : color || theme.colorText;
 
   const xyTheme = useMemo(
     () =>

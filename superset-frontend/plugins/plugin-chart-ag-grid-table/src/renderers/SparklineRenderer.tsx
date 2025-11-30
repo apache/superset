@@ -41,8 +41,8 @@ export const SparklineRenderer = (
   // Chart configuration is now processed in transformProps with proper defaults
   const chartConfig = col?.config || {};
   const {
-    width = 100,        // Default from transformProps
-    height = 60,       // Default from transformProps
+    width = 100, // Default from transformProps
+    height = 60, // Default from transformProps
     color,
     strokeWidth = 1.5, // Default from transformProps
     showValues = true, // Default from transformProps
@@ -53,18 +53,18 @@ export const SparklineRenderer = (
     return <CellContainer>N/A</CellContainer>;
   }
 
-  const dataArray = parseArrayValue(value);
   const dataKey = col?.metricName || col?.key || 'value';
   const ariaLabel = `Sparkline chart for ${col?.label || dataKey}`;
-  const chartColor = (typeof color === 'object') ? rgbToHex(color) : color || '#FFFFFF';
+  const chartColor =
+    typeof color === 'object' ? rgbToHex(color) : color || '#FFFFFF';
 
   return (
     <CellContainer>
       <SparklineCell
         ariaLabel={ariaLabel}
         dataKey={dataKey}
-        data={dataArray}
-        entries={dataArray.map((_) => ({ time: ''}))}
+        data={value}
+        entries={value.map(_ => ({ time: '' }))}
         width={width}
         height={height}
         numberFormat={'.2f'}

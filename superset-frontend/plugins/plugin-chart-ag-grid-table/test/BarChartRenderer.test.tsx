@@ -35,12 +35,10 @@ const createMockParams = {
     label: 'Test Column',
     metricName: 'test_metric',
     config: {
-      chartConfig: {
-        width: 400,
-        height: 10,
-        color: '#28d8c9ff',
-        showValues: false,
-      },
+      width: 400,
+      height: 10,
+      color: '#28d8c9ff',
+      showValues: false,
       horizontalAlign: 'left',
     },
   },
@@ -58,7 +56,7 @@ test('should render BarChartRenderer', () => {
   expect(chart).toBeInTheDocument();
 });
 
-test('renders bar chart with correct dimenstions, color, and strokeWidth', () => {
+test('renders bar chart with correct dimensions, color, and strokeWidth', () => {
   renderWithTheme(<BarChartRenderer {...(createMockParams as any)} />);
   const svg = document.querySelector('svg');
   expect(svg).toHaveAttribute('width', '400');
@@ -69,7 +67,7 @@ test('renders bar chart with correct dimenstions, color, and strokeWidth', () =>
 
 test('should render with y-axis when showValues is true', () => {
   const paramsWithValues = { ...createMockParams };
-  paramsWithValues.col.config.chartConfig.showValues = true;
+  paramsWithValues.col.config.showValues = true;
   renderWithTheme(<BarChartRenderer {...(paramsWithValues as any)} />);
   const svg = document.querySelector('svg');
   const textElements = svg?.querySelectorAll('text');
