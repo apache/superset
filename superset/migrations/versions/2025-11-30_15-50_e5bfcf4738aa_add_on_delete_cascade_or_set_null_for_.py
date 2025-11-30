@@ -34,7 +34,6 @@ from superset.migrations.shared.constraints import ForeignKey, redefine_exact
 cascade_fks = [
     ForeignKey(table="favstar", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
     ForeignKey(table="query", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
-    ForeignKey(table="saved_query", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
     ForeignKey(table="tab_state", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
     ForeignKey(table="user_attribute", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
     ForeignKey(table="user_favorite_tag", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
@@ -68,6 +67,7 @@ set_null_fks = [
     ForeignKey(table="row_level_security_filters", referent_table="ab_user", local_cols=["created_by_fk"], remote_cols=["id"]),
     ForeignKey(table="saved_query", referent_table="ab_user", local_cols=["changed_by_fk"], remote_cols=["id"]),
     ForeignKey(table="saved_query", referent_table="ab_user", local_cols=["created_by_fk"], remote_cols=["id"]),
+    ForeignKey(table="saved_query", referent_table="ab_user", local_cols=["user_id"], remote_cols=["id"]),
     ForeignKey(table="slices", referent_table="ab_user", local_cols=["changed_by_fk"], remote_cols=["id"]),
     ForeignKey(table="slices", referent_table="ab_user", local_cols=["created_by_fk"], remote_cols=["id"]),
     ForeignKey(table="slices", referent_table="ab_user", local_cols=["last_saved_by_fk"], remote_cols=["id"]),
