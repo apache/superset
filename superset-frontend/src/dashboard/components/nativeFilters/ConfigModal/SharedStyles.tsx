@@ -41,7 +41,6 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 
   .ant-modal-body {
     padding: 0px;
-    overflow: auto;
   }
 
   ${({ expanded }) =>

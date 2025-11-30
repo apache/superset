@@ -31,8 +31,10 @@ import {
 import {
   Divider,
   Filter,
-  FilterConfiguration,
   NativeFiltersState,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  Filters,
 } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -44,11 +46,13 @@ export function getInitialState({
   filterConfig,
   state: prevState,
 }: {
-  filterConfig?: FilterConfiguration;
+  filterConfig?: Array<
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >;
   state?: ExtendedNativeFiltersState;
 }): ExtendedNativeFiltersState {
   const state: Partial<ExtendedNativeFiltersState> = {};
-  const filters: Record<string, Filter | Divider> = {};
+  const filters = {} as Filters;
   if (filterConfig) {
     filterConfig.forEach(filter => {
       const { id } = filter;
@@ -63,27 +67,46 @@ export function getInitialState({
   return state as ExtendedNativeFiltersState;
 }
 
+/**
+ * CRITICAL: This reducer uses REPLACE semantics, not MERGE semantics.
+ *
+ * The action payload MUST include ALL filters that should exist in state.
+ * Any filters not in the payload will be REMOVED from state.
+ *
+ * This is intentional to handle filter deletions correctly:
+ * - When a filter is deleted, the API returns the complete list WITHOUT the deleted filter
+ * - This REPLACE logic rebuilds state from scratch using only filters in the response
+ * - Deleted filters are naturally excluded (not in API response → not in new state)
+ *
+ * IMPORTANT: Callers MUST pass the complete filter list from the API response.
+ * DO NOT pass only modified filters - this will cause data loss by removing all other filters!
+ */
 function handleFilterChangesComplete(
   state: ExtendedNativeFiltersState,
-  filters: Filter[],
+  filters: Array<
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >,
 ) {
-  const modifiedFilters = { ...state.filters };
+  const newFilters = {} as Filters;
   filters.forEach(filter => {
-    if (filter.chartsInScope != null && filter.tabsInScope != null) {
-      modifiedFilters[filter.id] = filter;
-    } else {
-      const existingFilter = modifiedFilters[filter.id];
-      modifiedFilters[filter.id] = {
-        ...filter,
-        chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
-        tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
-      };
-    }
+    const existingFilter = state.filters[filter.id];
+
+    newFilters[filter.id] = {
+      ...filter,
+      chartsInScope:
+        'chartsInScope' in filter && filter.chartsInScope !== undefined
+          ? filter.chartsInScope
+          : existingFilter?.chartsInScope,
+      tabsInScope:
+        'tabsInScope' in filter && filter.tabsInScope !== undefined
+          ? filter.tabsInScope
+          : existingFilter?.tabsInScope,
+    } as typeof filter;
   });
 
   return {
     ...state,
-    filters: modifiedFilters,
+    filters: newFilters,
   } as ExtendedNativeFiltersState;
 }
 
@@ -99,8 +122,22 @@ export default function nativeFilterReducer(
         filters: action.data.nativeFilters.filters,
       };
 
-    case SET_IN_SCOPE_STATUS_OF_FILTERS:
-      return getInitialState({ filterConfig: action.filterConfig, state });
+    case SET_IN_SCOPE_STATUS_OF_FILTERS: {
+      const updatedFilters = { ...state.filters };
+      action.filterConfig.forEach(filter => {
+        if (updatedFilters[filter.id]) {
+          updatedFilters[filter.id] = {
+            ...updatedFilters[filter.id],
+            chartsInScope: filter.chartsInScope,
+            tabsInScope: filter.tabsInScope,
+          };
+        }
+      });
+      return {
+        ...state,
+        filters: updatedFilters,
+      };
+    }
 
     case SET_NATIVE_FILTERS_CONFIG_COMPLETE:
       return handleFilterChangesComplete(state, action.filterChanges);
@@ -152,6 +189,7 @@ export default function nativeFilterReducer(
           },
         },
       };
+
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

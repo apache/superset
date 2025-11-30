@@ -21,6 +21,7 @@ import {
   FilterConfiguration,
   Filters,
   makeApi,
+  ChartCustomizationType,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { cloneDeep } from 'lodash';
@@ -77,19 +78,24 @@ export const setFilterConfiguration =
       filterChanges,
     });
 
-    const updateFilters = makeApi<
-      SaveFilterChangesType,
-      { result: SaveFilterChangesType }
-    >({
+    const updateFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}/filters`,
     });
     try {
       const response = await updateFilters(filterChanges);
+
+      const currentFilters = getState().nativeFilters?.filters || {};
+      const existingCustomizations = Object.values(currentFilters).filter(
+        (item: any) =>
+          item.type === ChartCustomizationType.ChartCustomization ||
+          item.type === ChartCustomizationType.Divider,
+      );
+
       dispatch(nativeFiltersConfigChanged(response.result));
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: response.result,
+        filterChanges: [...response.result, ...existingCustomizations],
       });
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
@@ -97,6 +103,7 @@ export const setFilterConfiguration =
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      throw err;
     }
   };
 

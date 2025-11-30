@@ -28,6 +28,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import {
   RangeFilterPlugin,
@@ -392,15 +393,23 @@ test('filters are draggable', async () => {
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };
   defaultRender(state, { ...props, createNewOnOpen: false });
-  const draggables = document.querySelectorAll('div[draggable=true]');
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggables = within(filterContainer).getAllByRole('tab');
   expect(draggables.length).toBe(3);
 });
 
@@ -426,10 +435,17 @@ test('deletes a filter', async () => {
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };
@@ -440,19 +456,21 @@ test('deletes a filter', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(removeButtons[2]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[2].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
-        modified: expect.arrayContaining([]),
-        reordered: expect.arrayContaining([]),
+        filterChanges: expect.objectContaining({
+          deleted: expect.arrayContaining(['NATIVE_FILTER-3']),
+          modified: expect.arrayContaining([]),
+          reordered: expect.arrayContaining([]),
+        }),
       }),
     ),
   );
@@ -464,10 +482,17 @@ test('deletes a filter including dependencies', async () => {
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };
@@ -477,36 +502,46 @@ test('deletes a filter including dependencies', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(removeButtons[1]);
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const filterTabs = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
+  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: ['NATIVE_FILTER-2'],
-        modified: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'NATIVE_FILTER-1',
-          }),
-        ]),
-        reordered: [],
+        filterChanges: expect.objectContaining({
+          deleted: ['NATIVE_FILTER-2'],
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'NATIVE_FILTER-1',
+            }),
+          ]),
+          reordered: [],
+        }),
       }),
     ),
   );
 });
 
-test('switches the order between two filters', async () => {
+test('reorders filters via drag and drop', async () => {
   const nativeFilterState = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
 
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };
@@ -519,14 +554,12 @@ test('switches the order between two filters', async () => {
     onSave,
   });
 
-  const draggableFilters = screen.getAllByRole('tab');
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggableFilters = within(filterContainer).getAllByRole('tab');
 
   fireEvent.dragStart(draggableFilters[0]);
-
-  fireEvent.dragOver(draggableFilters[1]);
-
-  fireEvent.drop(draggableFilters[1]);
-
+  fireEvent.dragOver(draggableFilters[2]);
+  fireEvent.drop(draggableFilters[2]);
   fireEvent.dragEnd(draggableFilters[0]);
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -534,12 +567,15 @@ test('switches the order between two filters', async () => {
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        deleted: [],
-        modified: [],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-1',
-        ]),
+        filterChanges: expect.objectContaining({
+          deleted: [],
+          modified: [],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
       }),
     ),
   );
@@ -552,10 +588,17 @@ test('rearranges three filters and deletes one of them', async () => {
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
 
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...defaultState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };
@@ -568,11 +611,10 @@ test('rearranges three filters and deletes one of them', async () => {
     onSave,
   });
 
-  const draggableFilters = screen.getAllByRole('tab');
-  const deleteButtons = screen.getAllByRole('button', {
-    name: 'delete',
-  });
-  await userEvent.click(deleteButtons[1]);
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const draggableFilters = within(filterContainer).getAllByRole('tab');
+  const deleteIcon = draggableFilters[1].querySelector('[data-icon="delete"]');
+  fireEvent.click(deleteIcon!);
 
   fireEvent.dragStart(draggableFilters[0]);
   fireEvent.dragOver(draggableFilters[2]);
@@ -584,13 +626,15 @@ test('rearranges three filters and deletes one of them', async () => {
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        modified: [],
-        deleted: ['NATIVE_FILTER-2'],
-        reordered: expect.arrayContaining([
-          'NATIVE_FILTER-2',
-          'NATIVE_FILTER-3',
-          'NATIVE_FILTER-1',
-        ]),
+        filterChanges: expect.objectContaining({
+          modified: [],
+          deleted: ['NATIVE_FILTER-2'],
+          reordered: expect.arrayContaining([
+            'NATIVE_FILTER-2',
+            'NATIVE_FILTER-3',
+            'NATIVE_FILTER-1',
+          ]),
+        }),
       }),
     ),
   );
@@ -604,10 +648,17 @@ test('modifies the name of a filter', async () => {
       buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     ];
 
+    const filtersMap = nativeFilterState.reduce(
+      (acc, filter) => {
+        acc[filter.id] = filter;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
     const state = {
       ...defaultState(),
-      dashboardInfo: {
-        metadata: { native_filter_configuration: nativeFilterState },
+      nativeFilters: {
+        filters: filtersMap,
       },
       dashboardLayout,
     };
@@ -634,9 +685,11 @@ test('modifies the name of a filter', async () => {
     await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          modified: expect.arrayContaining([
-            expect.objectContaining({ name: 'New Filter Name' }),
-          ]),
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({ name: 'New Filter Name' }),
+            ]),
+          }),
         }),
       ),
     );
@@ -651,10 +704,17 @@ test('renders a filter with a chart containing BigInt values', async () => {
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
+  const filtersMap = nativeFilterState.reduce(
+    (acc, filter) => {
+      acc[filter.id] = filter;
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
   const state = {
     ...bigIntChartDataState(),
-    dashboardInfo: {
-      metadata: { native_filter_configuration: nativeFilterState },
+    nativeFilters: {
+      filters: filtersMap,
     },
     dashboardLayout,
   };

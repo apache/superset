@@ -496,7 +496,11 @@ export function exploreJSON(
         };
         if (response.name === 'AbortError') {
           appendErrorLog('abort');
-          return dispatch(chartUpdateStopped(key));
+          const currentChart = getState().charts?.[key];
+          if (currentChart?.queryController === controller) {
+            return dispatch(chartUpdateStopped(key));
+          }
+          return Promise.resolve();
         }
         return getClientErrorObject(response).then(parsedResponse => {
           if (response.statusText === 'timeout') {
