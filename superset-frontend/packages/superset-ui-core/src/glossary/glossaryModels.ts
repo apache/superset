@@ -113,6 +113,13 @@ export class GlossaryTopic {
     return this.name;
   }
 
+  /**
+   * Returns a formatted display version of the topic name with underscores replaced by spaces.
+   */
+  getDisplayName(): string {
+    return this.name.replace(/_/g, ' ');
+  }
+
   getTerm(title: string): GlossaryTerm | undefined {
     return this.terms.get(title);
   }
