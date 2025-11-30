@@ -84,29 +84,23 @@ jest.mock('src/dashboard/containers/DashboardComponent', () => {
   );
 });
 
-jest.mock(
-  'src/dashboard/components/menu/WithPopoverMenu', 
-  () => {
-    return ({ children }: { children: React.ReactNode }) => (
-      <div data-test="mock-with-popover-menu">{children}</div>
-    );
-  },
-);
+jest.mock('src/dashboard/components/menu/WithPopoverMenu', () => {
+  return ({ children }: { children: React.ReactNode }) => (
+    <div data-test="mock-with-popover-menu">{children}</div>
+  );
+});
 
-jest.mock(
-  'src/dashboard/components/DeleteComponentButton', 
-  () => {
-    return ({ onDelete }: { onDelete: () => void }) => (
-      <button
-        type="button"
-        data-test="mock-delete-component-button"
-        onClick={onDelete}
-      >
-        Delete
-      </button>
-    );
-  },
-);
+jest.mock('src/dashboard/components/DeleteComponentButton', () => {
+  return ({ onDelete }: { onDelete: () => void }) => (
+    <button
+      type="button"
+      data-test="mock-delete-component-button"
+      onClick={onDelete}
+    >
+      Delete
+    </button>
+  );
+});
 
 const rowWithoutChildren = {
   ...mockLayout.present.ROW_ID,
@@ -116,7 +110,7 @@ interface RowTestProps {
   id: string;
   parentId: string;
   component: typeof mockLayout.present.ROW_ID;
-  parentComponent: typeof mockLayout.present[typeof DASHBOARD_GRID_ID];
+  parentComponent: (typeof mockLayout.present)[typeof DASHBOARD_GRID_ID];
   index: number;
   depth: number;
   editMode: boolean;
@@ -156,9 +150,7 @@ const props: RowTestProps = {
   onChangeTab: () => {},
 };
 
-function setup(
-  overrideProps: Partial<RowTestProps> = {},
-): RenderResult {
+function setup(overrideProps: Partial<RowTestProps> = {}): RenderResult {
   // We have to wrap provide DragDropContext for the underlying DragDroppable
   // otherwise we cannot assert on DragDroppable children
   const mockStore = getMockStore({
@@ -228,7 +220,7 @@ test.skip('should render a BackgroundStyleDropdown when focused', () => {
   // we cannot set props on the Row because of the WithDragDropContext wrapper
   rerender(<Row {...props} component={rowWithoutChildren} editMode={true} />);
   const buttons = screen.getAllByRole('button');
-  const settingsButton = buttons[1]; 
+  const settingsButton = buttons[1];
   fireEvent.click(settingsButton);
 
   expect(screen.queryByTestId('background-style-dropdown')).toBeTruthy();
@@ -276,7 +268,7 @@ describe('visibility handling for intersection observers', () => {
   });
 
   afterAll(() => {
-    delete (window as any).IntersectionObserver;;
+    delete (window as any).IntersectionObserver;
   });
 
   test('should handle visibility prop changes without crashing', () => {

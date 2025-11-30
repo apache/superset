@@ -261,7 +261,6 @@ const Row = memo((props: RowProps) => {
   }, [deleteComponent, rowComponent, parentId]);
 
   const handleMenuHover = useCallback((hover: { isHovered: boolean }) => {
-    
     setHoverMenuHovered(hover.isHovered);
   }, []);
 
@@ -271,7 +270,8 @@ const Row = memo((props: RowProps) => {
   );
 
   const backgroundStyle = backgroundStyleOptions.find(
-    opt => opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
+    opt =>
+      opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
   )!;
 
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
@@ -390,9 +390,11 @@ const Row = memo((props: RowProps) => {
                         itemIndex === rowItems.length - 1 && { width: 16 }),
                     }}
                   >
-                    {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
-                      dropIndicatorProps && <div {...dropIndicatorProps} />
-                    }
+                    {({
+                      dropIndicatorProps,
+                    }: {
+                      dropIndicatorProps: JsonObject;
+                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
                   </Droppable>
                 )}
               </Fragment>
