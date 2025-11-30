@@ -48,7 +48,7 @@ export const getChartRenderer = (chartType: string) => {
  * @returns true if the column should use a chart renderer
  */
 export const shouldUseChartRenderer = (col: InputColumn): boolean => {
-  return (col.dataType === GenericDataType.Chart);
+  return col.dataType === GenericDataType.Chart;
 };
 
 export const rgbToHex = (rgb: RGBColor): string => {
