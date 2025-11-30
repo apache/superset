@@ -97,7 +97,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
-          run: testdata
+          run: playwright_testdata
       - name: Setup Node.js
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v5
