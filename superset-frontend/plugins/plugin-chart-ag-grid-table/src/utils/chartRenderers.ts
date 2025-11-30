@@ -17,10 +17,12 @@
  * under the License.
  */
 
-import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
+// import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import { SparklineRenderer } from '../renderers/SparklineRenderer';
 import { BarChartRenderer } from '../renderers/BarChartRenderer';
 import type { InputColumn } from '../types';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import { type RGBColor } from '@superset-ui/core/components';
 
 /**
  * Registry of available chart renderers
@@ -29,8 +31,8 @@ import type { InputColumn } from '../types';
 const CHART_RENDERERS = {
   'sparkline': SparklineRenderer,
   'minibar': BarChartRenderer,           // Map minibar to BarChartRenderer
-  'horizontal-bar': NumericCellRenderer, // Use existing horizontal bars
-  'default': NumericCellRenderer,        // Fallback to existing renderer
+  // 'horizontal-bar': NumericCellRenderer, // Use existing horizontal bars
+  // 'default': NumericCellRenderer,        // Fallback to existing renderer
 };
 
 /**
@@ -39,7 +41,7 @@ const CHART_RENDERERS = {
  * @returns The chart renderer component function
  */
 export const getChartRenderer = (chartType: string) => {
-  return CHART_RENDERERS[chartType as keyof typeof CHART_RENDERERS] || CHART_RENDERERS.default;
+  return CHART_RENDERERS[chartType as keyof typeof CHART_RENDERERS] || CHART_RENDERERS.sparkline;
 };
 
 /**
@@ -48,10 +50,22 @@ export const getChartRenderer = (chartType: string) => {
  * @param data - The table data (for future validation if needed)
  * @returns true if the column should use a chart renderer
  */
-export const shouldUseChartRenderer = (col: InputColumn, data: any[]): boolean => {
-  return !!(
-    col.config?.chartType && 
-    col.config.chartType !== 'default' &&
-    col.config.chartType !== 'horizontal-bar' // existing numeric renderer handles this
-  );
+export const shouldUseChartRenderer = (col: InputColumn): boolean => {
+  return (col.dataType === GenericDataType.Chart);
 };
+
+export const rgbToHex = (rgb: RGBColor): string => {
+  const { r, g, b, a = 1 } = rgb;
+  const toHex = (value: number) => {
+    const hex = Math.round(value).toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+  };
+
+  const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+  if (a !== undefined && a !== 1) {
+    return `${hexColor}${toHex(Math.round(a * 255))}`;
+  }
+
+  return hexColor;
+}

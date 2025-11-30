@@ -37,8 +37,9 @@ import {
   getSparklineTextWidth,
   createYScaleConfig,
   transformChartData,
-} from '../../utils';
-import { SparkType } from '../../types';
+} from '../../utils/sparklineHelpers';
+
+type SparkType = 'line' | 'bar' | 'area';
 
 interface Entry {
   time: string;

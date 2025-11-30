@@ -43,6 +43,7 @@ import {
   IHeaderParams,
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { type RGBColor } from '@superset-ui/core/components';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -62,18 +63,13 @@ export type TableColumnConfig = {
   displayTypeIcon?: boolean;
   // Chart renderer configuration
   chartType?: 'sparkline' | 'minibar' | 'horizontal-bar' | 'default';
-  chartConfig?: {
-    width?: number;
-    height?: number;
-    color?: string;
-    strokeWidth?: number;
-    showValues?: boolean;
-    showPoints?: boolean;
-  };
+  width?: number;
+  height?: number;
+  color?: RGBColor;
+  strokeWidth?: number;
+  showValues?: boolean;
+  showPoints?: boolean;
 };
-
-// Type alias for chart configuration
-export type ChartConfig = NonNullable<TableColumnConfig['chartConfig']>;
 
 export interface DataColumnMeta {
   // `key` is what is called `label` in the input props

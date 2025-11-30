@@ -18,9 +18,10 @@
  */
 import { styled } from '@apache-superset/core/ui';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
-import { InputColumn, ChartConfig } from '../types';
-import { SparklineCell } from '../../../../src/visualizations/TimeTable/components';
+import { InputColumn } from '../types';
+import SparklineCell from '../components/SparklineCell';
 import { parseArrayValue } from '../utils/formatValue';
+import { rgbToHex } from '../utils/chartRenderers';
 
 const CellContainer = styled.div<{ align?: string }>`
   display: flex;
@@ -38,15 +39,16 @@ export const SparklineRenderer = (
 ) => {
   const { data, col } = params;
   const value = parseArrayValue(data);
-  
+
   // Chart configuration is now processed in transformProps with proper defaults
-  const chartConfig: ChartConfig = col?.config?.chartConfig || {};
+  const chartConfig = col?.config || {};
   const {
-    width = 300,        // Default from transformProps
+    width = 100,        // Default from transformProps
     height = 60,       // Default from transformProps
     color,
     strokeWidth = 1.5, // Default from transformProps
     showValues = true, // Default from transformProps
+    showPoints = true, // Default from transformProps
   } = chartConfig;
 
   if (!Array.isArray(value)) {
@@ -56,6 +58,7 @@ export const SparklineRenderer = (
   const dataArray = parseArrayValue(value);
   const dataKey = col?.metricName || col?.key || 'value';
   const ariaLabel = `Sparkline chart for ${col?.label || dataKey}`;
+  const chartColor = (typeof color === 'object') ? rgbToHex(color) : color || '#FFFFFF';
 
   return (
     <CellContainer>
@@ -71,8 +74,9 @@ export const SparklineRenderer = (
         showYAxis={showValues}
         yAxisBounds={[undefined, undefined]}
         sparkType={'line'}
-        color={color}
+        color={chartColor}
         strokeWidth={strokeWidth}
+        showPoints={showPoints}
       />
     </CellContainer>
   );

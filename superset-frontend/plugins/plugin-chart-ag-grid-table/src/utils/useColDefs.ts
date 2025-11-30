@@ -242,8 +242,8 @@ export const useColDefs = ({
         }),
         cellRenderer: (p: CellRendererProps) => {
           // Check if column should use a chart renderer
-          if (shouldUseChartRenderer(col, data)) {
-            return getChartRenderer(col.config?.chartType || 'default')(p);
+          if (shouldUseChartRenderer(col)) {
+            return getChartRenderer(col.config?.chartType || 'sparkline')(p);
           }
           // Fall back to existing text/numeric renderer logic
           return isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p);

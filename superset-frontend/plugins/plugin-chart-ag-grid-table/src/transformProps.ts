@@ -57,6 +57,7 @@ import {
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
 
+
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(
     x => x[key] === null || x[key] === undefined || typeof x[key] === 'number',
@@ -217,7 +218,6 @@ const processComparisonColumns = (
   columns: DataColumnMeta[],
   props: TableChartProps,
   comparisonSuffix: string,
-  processedColumnConfig?: Record<string, TableColumnConfig>,
 ) =>
   columns
     .map(col => {
@@ -226,7 +226,7 @@ const processComparisonColumns = (
         rawFormData: { column_config: columnConfig = {} },
       } = props;
       // Use processed config if provided, otherwise fallback to raw config
-      const finalColumnConfig = processedColumnConfig || columnConfig;
+      const finalColumnConfig = columnConfig;
       const savedFormat = columnFormats?.[col.key];
       const savedCurrency = currencyFormats?.[col.key];
       const originalLabel = col.label;
@@ -340,7 +340,6 @@ const processDataRecords = memoizeOne(function processDataRecords(
 
 const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
-  processedColumnConfig?: Record<string, TableColumnConfig>,
 ) {
   const {
     datasource: { columnFormats, currencyFormats, verboseMap },
@@ -352,9 +351,7 @@ const processColumns = memoizeOne(function processColumns(
     },
     queriesData,
   } = props;
-  
-  // Use processed config if provided, otherwise fallback to raw config
-  const finalColumnConfig = processedColumnConfig || columnConfig;
+
   const granularity = extractTimegrain(props.rawFormData);
   const { data: records, colnames, coltypes } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
@@ -374,7 +371,19 @@ const processColumns = memoizeOne(function processColumns(
     )
     .map((key: string, i) => {
       const dataType = coltypes[i];
-      const config = finalColumnConfig[key] || {};
+      const rawConfig = columnConfig[key] || {};
+      const config = { ...rawConfig };
+
+      // if the column is a chart, apply default config
+      if (dataType === GenericDataType.Chart) {
+        config.chartType = config.chartType ?? 'sparkline';
+        config.width = config.width ?? config.columnWidth ?? 100;
+        config.height = config.height ?? 60;
+        config.color = config.color ?? { r: 0, g: 255, b: 0, a: 1 };
+        config.strokeWidth = config.strokeWidth ?? 1.5;
+        config.showValues = config.showValues ?? true;
+        config.showPoints = config.showPoints ?? true;
+      }
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
@@ -627,44 +636,8 @@ const transformProps = (
     });
   });
 
-/**
- * Process chart configuration with validation and default values
- * @param columnConfig - Raw column configuration from form data
- * @param columns - Column metadata array
- * @returns Processed column configuration with chart defaults
- */
-const processChartConfiguration = memoizeOne(function processChartConfiguration(
-  columnConfig: Record<string, TableColumnConfig>,
-  columns: DataColumnMeta[],
-) {
-  const chartColumnConfig: Record<string, TableColumnConfig> = {};
-  
-  columns.forEach(column => {
-    const config = columnConfig[column.key] || {};
-    
-    if (config.chartType && config.chartType !== 'default') {
-      // Validate and set defaults for chart configuration
-      chartColumnConfig[column.key] = {
-        ...config,
-        chartType: config.chartType ?? 'sparkline',
-        chartConfig: {
-          // Set chart defaults
-          width: config.chartConfig?.width ?? 300,
-          height: config.chartConfig?.height ?? 60,
-          color: config.chartConfig?.color,
-          strokeWidth: config.chartConfig?.strokeWidth ?? 1.5,
-          showValues: config.chartConfig?.showValues ?? true,
-          showPoints: config.chartConfig?.showPoints ?? true,
-        },
-      };
-    } else {
-      // Keep existing configuration for non-chart columns
-      chartColumnConfig[column.key] = config;
-    }
-  });
-  
-  return chartColumnConfig;
-});
+  // Process columns
+  const [, percentMetrics, columns] = processColumns(chartProps);
 
   const getBasicColorFormatterForColumn = (
     originalData: DataRecord[] | undefined,
@@ -691,14 +664,6 @@ const processChartConfiguration = memoizeOne(function processChartConfiguration(
     hasServerPageLengthChanged = true;
   }
 
-  // Process chart configurations with defaults BEFORE processing columns
-  const { rawFormData: { column_config = {} } } = chartProps;
-  // First pass: get column metadata without processed config for chart validation
-  const [, percentMetrics, tempColumns] = processColumns(chartProps);
-  const processedColumnConfig = processChartConfiguration(column_config, tempColumns);
-  // Second pass: process columns with validated chart configuration
-  const [, , columns] = processColumns(chartProps, processedColumnConfig);
-
   const timeGrain = extractTimegrain(formData);
 
   const comparisonSuffix = isUsingTimeComparison
@@ -712,7 +677,6 @@ const processChartConfiguration = memoizeOne(function processChartConfiguration(
       columns,
       chartProps,
       comparisonSuffix,
-      processedColumnConfig,
     );
   }
 

@@ -23,12 +23,13 @@ import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGr
 import { XYChart, BarSeries, buildChartTheme, Axis } from '@visx/xychart';
 import { GridRows } from '@visx/grid';
 import { scaleLinear } from '@visx/scale';
-import { ChartConfig, InputColumn } from '../types';
+import { InputColumn } from '../types';
 import { parseArrayValue } from '../utils/formatValue';
 import {
   getSparklineTextWidth,
   createYScaleConfig,
-} from '../../../../src/visualizations/TimeTable/utils';
+} from '../utils/sparklineHelpers';
+import { rgbToHex } from '../utils/chartRenderers';
 
 //const dummyData = [150, 152, 155, 153, null, 'hehexd', 162, 165, 163, 168, 170, 172, 175, 173, 178, 180, 182, 185, 183, 188, 190, 192, 195, 193, 198, 200, 202, 205, 203, 208];
 
@@ -67,7 +68,6 @@ export const BarChartRenderer = (
 ) => {
   const { data, col } = params;
   const value = parseArrayValue(data);
-  
   const theme = useTheme();
 
   if (!Array.isArray(value)) {
@@ -75,29 +75,26 @@ export const BarChartRenderer = (
   }
 
   // Chart configuration is now processed in transformProps with proper defaults
-  const chartConfig: ChartConfig = col?.config?.chartConfig || {};
+  const chartConfig = col?.config || {};
   const {
-    width = 300,        // Default from transformProps
-    height = 60,       // Default from transformProps
+    width = 300, // Default from transformProps
+    height = 60, // Default from transformProps
     color,
     showValues = true, // Default from transformProps
   } = chartConfig;
-
-  console.log(width)
-  console.log(height)
 
   const dataKey = col?.metricName || col?.key || 'value';
   const ariaLabel = `Bar chart for ${col?.label || dataKey}`;
   const numberFormat = '.2f';
 
-  const validData = useMemo(
-    () => parseArrayValue(value),
-    [value],
+  const validData = useMemo(() => parseArrayValue(value), [value]);
+
+  const chartData = useMemo(
+    () => transformBarChartData(validData),
+    [validData],
   );
 
-  const chartData = useMemo(() => transformBarChartData(validData), [validData]);
-
-  const { yScaleConfig, min, max } = useMemo(
+  const { min, max } = useMemo(
     () => createYScaleConfig(validData, [undefined, undefined]),
     [validData],
   );
@@ -128,7 +125,7 @@ export const BarChartRenderer = (
   }, [showValues, numberFormat, min, max]);
 
   const innerWidth = width - margin.left - margin.right;
-  const finalSeriesColor = color || theme.colorText;
+  const finalSeriesColor = (typeof color === 'object') ? rgbToHex(color) : color || theme.colorText;
 
   const xyTheme = useMemo(
     () =>
@@ -150,13 +147,15 @@ export const BarChartRenderer = (
           width={width}
           height={height}
           margin={margin}
-          xScale={{ 
+          xScale={{
             type: 'band',
             paddingInner: 0.5,
             paddingOuter: 0.1,
           }}
           yScale={{
-            ...yScaleConfig,
+            type: 'linear',
+            domain: [min, max],
+            // Don't set range - let XYChart handle it
           }}
           theme={xyTheme}
         >
@@ -167,13 +166,15 @@ export const BarChartRenderer = (
                 hideTicks
                 numTicks={2}
                 orientation="right"
-                tickFormat={(value: number) => formatNumber(numberFormat, value)}
+                tickFormat={(value: number) =>
+                  formatNumber(numberFormat, value)
+                }
                 tickValues={[min, max]}
               />
               <GridRows
                 left={margin.left}
                 scale={scaleLinear({
-                  range: [height - margin.top - margin.bottom, 0],
+                  range: [height - margin.top, margin.bottom],
                   domain: [min, max],
                 })}
                 width={innerWidth}
@@ -186,9 +187,9 @@ export const BarChartRenderer = (
           <BarSeries
             dataKey={dataKey}
             data={chartData}
-            xAccessor={(d) => (d as VisxData).x}
-            yAccessor={(d) => (d as VisxData).y}
-            colorAccessor={() => color}
+            xAccessor={d => (d as VisxData).x}
+            yAccessor={d => (d as VisxData).y}
+            colorAccessor={() => finalSeriesColor}
           />
         </XYChart>
       </div>
