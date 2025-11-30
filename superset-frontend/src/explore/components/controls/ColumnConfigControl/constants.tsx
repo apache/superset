@@ -43,7 +43,6 @@ export type SharedColumnConfigProp =
   | 'customColumnName'
   | 'displayTypeIcon'
   | 'chartType'
-  // | 'chartConfig';
   | 'currencyFormat'
   | 'width'
   | 'height'
@@ -203,8 +202,10 @@ const chartType: ControlFormItemSpec<'Select'> = {
 const width: ControlFormItemSpec<'InputNumber'> = {
   controlType: 'InputNumber',
   label: t('Width'),
-  description: t('Width of the chart'),
-  defaultValue: 100,
+  description: t(
+    'Width of the chart. You may also need to adjust column width if the chart width is too large.',
+  ),
+  defaultValue: 100, // default width from transformProps.ts
   debounceDelay: 200,
 };
 
@@ -212,13 +213,14 @@ const height: ControlFormItemSpec<'InputNumber'> = {
   controlType: 'InputNumber',
   label: t('Height'),
   description: t('Height of the chart'),
-  defaultValue: 100,
+  defaultValue: 60, // default height from transformProps.ts
   debounceDelay: 200,
 };
 
 const color: ControlFormItemSpec<'ColorPickerControl'> = {
   controlType: 'ColorPickerControl',
   label: t('Color'),
+  defaultValue: { r: 0, g: 255, b: 0, a: 1 },
   description: t('Color of the chart'),
   debounceDelay: 200,
 };
@@ -226,8 +228,8 @@ const color: ControlFormItemSpec<'ColorPickerControl'> = {
 const strokeWidth: ControlFormItemSpec<'InputNumber'> = {
   controlType: 'InputNumber',
   label: t('Stroke Width'),
-  description: t('Stroke width of the chart'),
-  defaultValue: 1,
+  description: t('Stroke width of the chart (sparkline only)'),
+  defaultValue: 1.5, // default stroke width from transformProps.ts
   debounceDelay: 200,
 };
 
@@ -340,7 +342,6 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       tab: t('Chart Settings'),
       children: [
         ['chartType'],
-        // ['chartConfig'],
         ['width', 'height'],
         ['color'],
         ['strokeWidth'],
@@ -348,5 +349,5 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
         ['showPoints'],
       ],
     },
-  ]
+  ],
 };
