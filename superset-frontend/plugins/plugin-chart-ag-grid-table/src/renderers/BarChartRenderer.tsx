@@ -31,8 +31,6 @@ import {
 } from '../utils/sparklineHelpers';
 import { rgbToHex } from '../utils/chartRenderers';
 
-//const dummyData = [150, 152, 155, 153, null, 'hehexd', 162, 165, 163, 168, 170, 172, 175, 173, 178, 180, 182, 185, 183, 188, 190, 192, 195, 193, 198, 200, 202, 205, 203, 208];
-
 interface VisxData {
   x: number;
   y: number;
