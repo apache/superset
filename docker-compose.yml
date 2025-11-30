@@ -97,7 +97,7 @@ services:
     build:
       <<: *common-build
     container_name: superset_app
-    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
       - 8088:8088
@@ -111,7 +111,6 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      GUNICORN_CMD_ARGS: "--workers=4 --worker-class=gthread --threads=4 --timeout=300"
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
 
   superset-websocket:
