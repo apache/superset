@@ -399,19 +399,14 @@ function ExploreViewContainer(props) {
   );
 
   function onStop() {
-    console.log('Stopping query', props.chart);
-    
     // Method 1: Abort the in-flight HTTP request using AbortController
     if (props.chart?.queryController) {
-      console.log('Aborting query via AbortController');
       props.chart.queryController.abort();
     }
     
     // Method 2: Send stop request to backend if we have a query ID
     const queryId = props.chart?.latestQueryId;
-    console.log('Latest query ID:', queryId);
     if (queryId) {
-      console.log('Stopping query on backend with query_id:', queryId);
       SupersetClient.post({
         endpoint: '/api/v1/query/stop',
         body: JSON.stringify({ client_id: queryId }),
