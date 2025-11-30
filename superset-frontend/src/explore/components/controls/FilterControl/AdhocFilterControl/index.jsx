@@ -280,14 +280,20 @@ class AdhocFilterControl extends Component {
   }
 
   moveLabel(dragIndex, hoverIndex) {
-    const { values } = this.state;
 
-    const newValues = [...values];
-    [newValues[hoverIndex], newValues[dragIndex]] = [
-      newValues[dragIndex],
-      newValues[hoverIndex],
-    ];
-    this.setState({ values: newValues });
+    const { values } = this.state;
+    if (
+      dragIndex === hoverIndex ||
+      dragIndex < 0 ||
+      hoverIndex < 0 ||
+      dragIndex >= values.length ||
+      hoverIndex >= values.length
+    ) {
+      return;
+    }
+    const [moved] = this.values.splice(dragIndex, 1);
+    this.values.splice(hoverIndex, 0, moved);
+    this.props.onChange(this.state.values);
   }
 
   mapOption(option) {
