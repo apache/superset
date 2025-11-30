@@ -81,7 +81,7 @@ export const glossaryDefinition: GlossaryDefinition = {
       ),
     },
   },
-  Time_Comparison: {
+  Advanced_Analytics: {
     Time_Shift: {
       short: t(
         'Overlay results from a relative time period. ' +

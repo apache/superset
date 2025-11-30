@@ -27,7 +27,7 @@ import { INVALID_DATE } from '..';
 import { glossary } from '@superset-ui/core';
 
 // Glossary terms used for tooltips
-const TIME_SHIFT_DESCRIPTION = glossary.Time_Comparison.Time_Shift.encode();
+const TIME_SHIFT_DESCRIPTION = glossary.Advanced_Analytics.Time_Shift.encode();
 
 const fullChoices = [
   ['1 day ago', t('1 day ago')],
