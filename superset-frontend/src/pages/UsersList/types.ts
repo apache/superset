@@ -52,3 +52,10 @@ export type UserObject = {
   username: string;
   groups: Group[];
 };
+
+export type UserAssetsSummary = {
+  count: number;
+  dashboards: string[] | null;
+  charts: string[] | null;
+  saved_queries: string[] | null;
+};

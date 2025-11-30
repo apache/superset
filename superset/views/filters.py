@@ -75,13 +75,16 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
         ):
             query = extra_filters(query)
 
+        # Exclude soft-deleted users 
+        user_model = security_manager.user_model
+        query = query.filter(~user_model.is_deleted)
+
         exclude_users = (
             security_manager.get_exclude_users_from_lists()
             if app.config["EXCLUDE_USERS_FROM_LISTS"] is None
             else app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
         if exclude_users:
-            user_model = security_manager.user_model
             return query.filter(and_(user_model.username.not_in(exclude_users)))
 
         return query

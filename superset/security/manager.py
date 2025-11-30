@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
+from datetime import datetime
 import logging
 import re
 import time
@@ -44,10 +45,12 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
+from flask_appbuilder.api import expose, protect, safe
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
+
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, inspect, or_
+from sqlalchemy import and_, inspect, or_,  Boolean, Column, DateTime
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
@@ -60,6 +63,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.security.filters import NotDeletedUserFilter
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -168,7 +172,8 @@ class SupersetUserApi(UserApi):
         Overriding this method to be able to delete items when they have constraints
         """
         item.roles = []
-
+    
+    base_filters = [["is_deleted", NotDeletedUserFilter, lambda: []]]
 
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
@@ -251,7 +256,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
-
+    
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
         "UserDBModelView",
