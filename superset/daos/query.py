@@ -58,8 +58,12 @@ class QueryDAO(BaseDAO[Query]):
 
     @staticmethod
     def stop_query(client_id: str) -> None:
+        print(f"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nStopping query with {client_id}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+        logger.debug("Stopping query with client_id=%s", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
         if not query:
+            print(f"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nFirst if in query.py\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+            logger.debug("Query with client_id %s not found", client_id)
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
 
         if query.status in [
@@ -67,14 +71,32 @@ class QueryDAO(BaseDAO[Query]):
             QueryStatus.SUCCESS,
             QueryStatus.TIMED_OUT,
         ]:
+            print(f"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSecond if in query.py\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+            logger.debug("Query %s already complete; cannot stop", client_id)
             logger.warning(
                 "Query with client_id could not be stopped: query already complete",
             )
             return
 
-        if not sql_lab.cancel_query(query):
+        # Print the found query details for debugging (id, client_id, status, extra)
+        try:
+            print(
+                f"[QueryDAO.stop_query] found Query id={getattr(query, 'id', None)} "
+                f"client_id={getattr(query, 'client_id', None)} status={getattr(query, 'status', None)} extra={getattr(query, 'extra', None)}"
+            )
+        except Exception:
+            logger.debug("Could not print QueryDAO found query info", exc_info=True)
+
+        logger.debug("Attempting to cancel query: client_id=%s, extra=%s", query.client_id, query.extra)
+        cancelled = sql_lab.cancel_query(query)
+        logger.debug("Cancel result for client_id=%s: %s", query.client_id, cancelled)
+        if not cancelled:
+            print(f"\n\n\n\n\n\n\n\n\n\n\n\n\n\nThird if in query.py\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+            logger.warning("Could not cancel query with client_id=%s", query.client_id)
             raise SupersetCancelQueryException("Could not cancel query")
 
+        print(f"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\npassed all ifs in query.py\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+        logger.debug("Query %s cancelled/stopped successfully", client_id)
         query.status = QueryStatus.STOPPED
         query.end_time = now_as_float()
 

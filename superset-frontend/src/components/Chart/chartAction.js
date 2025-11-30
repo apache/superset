@@ -17,6 +17,8 @@
  * under the License.
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+// imported nanoid by arshiya
+import { nanoid } from 'nanoid';
 import {
   FeatureFlag,
   isDefined,
@@ -45,11 +47,13 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-export function chartUpdateStarted(queryController, latestQueryFormData, key) {
+// added latest questy id here by arshiya
+export function chartUpdateStarted(queryController, latestQueryFormData, key, latestQueryId) {
   return {
     type: CHART_UPDATE_STARTED,
     queryController,
     latestQueryFormData,
+    latestQueryId,
     key,
   };
 }
@@ -153,6 +157,7 @@ const legacyChartDataRequest = async (
   );
 };
 
+// added clientId in the two const below by arshiya
 const v1ChartDataRequest = async (
   formData,
   resultFormat,
@@ -162,6 +167,7 @@ const v1ChartDataRequest = async (
   setDataMask,
   ownState,
   parseMethod,
+  clientId,
 ) => {
   const payload = await buildV1ChartDataPayload({
     formData,
@@ -170,6 +176,7 @@ const v1ChartDataRequest = async (
     force,
     setDataMask,
     ownState,
+    clientId,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -201,6 +208,7 @@ const v1ChartDataRequest = async (
   return SupersetClient.post(querySettings);
 };
 
+// added clientId here by arshiya
 export async function getChartDataRequest({
   formData,
   setDataMask = () => {},
@@ -210,6 +218,7 @@ export async function getChartDataRequest({
   method = 'POST',
   requestParams = {},
   ownState = {},
+  clientId,
 }) {
   let querySettings = {
     ...requestParams,
@@ -234,6 +243,7 @@ export async function getChartDataRequest({
       parseMethod,
     );
   }
+  // added clientId here by arshiya
   return v1ChartDataRequest(
     formData,
     resultFormat,
@@ -243,6 +253,7 @@ export async function getChartDataRequest({
     setDataMask,
     ownState,
     parseMethod,
+    clientId,
   );
 }
 
@@ -376,6 +387,10 @@ export function addChart(chart, key) {
 }
 
 export function handleChartDataResponse(response, json, useLegacyApi) {
+
+  console.log('handleChartDataResponse', response, json, useLegacyApi);
+  // todo: hopefully handle responses of chart view
+
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
     const result = 'result' in json ? json.result : json;
@@ -423,7 +438,13 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    dispatch(chartUpdateStarted(controller, formData, key));
+    // added nanoid here by arshiya
+    
+    // Generate client_id upfront (like SqlLab does) so we can use it to stop the query by arshiya
+    const clientId = nanoid(11);
+    console.log('Generated client_id for chart query:', clientId);
+    
+    dispatch(chartUpdateStarted(controller, formData, key, clientId));
     /**
      * Abort in-flight requests after the new controller has been stored in
      * state. Delaying ensures we do not mutate the Redux state between
@@ -433,6 +454,7 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
+    // added clientID by arshiya
     const chartDataRequest = getChartDataRequest({
       setDataMask,
       formData,
@@ -442,10 +464,12 @@ export function exploreJSON(
       method: 'POST',
       requestParams,
       ownState,
+      clientId,
     });
 
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
+    // changed things here by arshiya
       .then(({ response, json }) =>
         handleChartDataResponse(response, json, useLegacyApi),
       )

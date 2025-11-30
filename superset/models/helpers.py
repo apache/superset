@@ -130,6 +130,7 @@ class ValidationResultDict(TypedDict):
 
 
 if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
     from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
@@ -1139,7 +1140,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(self, query_obj: QueryObjectDict, query: Query | None = None) -> QueryResult:
         """
         Executes the query and returns a dataframe.
 
@@ -1182,6 +1183,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 self.catalog,
                 self.schema,
                 mutator=assign_column_label,
+                query=query,
             )
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
@@ -1296,7 +1298,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return df
 
-    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+    def get_query_result(self, query_object: QueryObject, query: Query | None = None) -> QueryResult:
         """
         Execute query and return results with full processing pipeline.
 
@@ -1309,8 +1311,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param query_object: The query configuration
         :return: QueryResult with processed dataframe
         """
-        # Execute the base query
-        result = self.query(query_object.to_dict())
+        # Execute the base query. Some datasource implementations (e.g., older
+        # connector implementations) may not accept a second `query` parameter
+        # on their `query()` method. Try passing the `query` model and fall back
+        # to calling without it if the implementation doesn't accept it.
+        try:
+            result = self.query(query_object.to_dict(), query=query)
+        except TypeError:
+            # Fallback for implementations that don't accept the optional
+            # `query` parameter (backwards compatibility)
+            result = self.query(query_object.to_dict())
         query = result.query + ";\n\n" if result.query else ""
 
         # Process the dataframe if not empty

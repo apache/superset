@@ -32,6 +32,9 @@ from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
+
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
@@ -676,6 +679,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
+        query: 'Query' | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -709,6 +713,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
+            try:
+                print(
+                    f"[Database._execute] executing statements count={len(script.statements)} "
+                    f"db_id={getattr(self, 'id', None)} "
+                    f"engine_has_execute_with_cursor={hasattr(self.db_engine_spec, 'execute_with_cursor')} "
+                    f"query_present={query is not None}"
+                )
+            except Exception:
+                logger.debug("Could not print _execute debug info", exc_info=True)
+
             for i, statement in enumerate(script.statements):
                 sql_ = self.mutate_sql_based_on_config(
                     statement.format(),
@@ -721,7 +735,55 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     database=self,
                     object_ref=__name__,
                 ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+                    # If a Query model was provided, prefer to call the engine's
+                    # `execute_with_cursor` path so engines that need the running
+                    # cursor (eg Trino) can capture a cancel id via `handle_cursor`.
+                    # Fall back to the normal `execute` call if not available or if
+                    # the engine signature differs.
+                    try:
+                        if query is not None and hasattr(self.db_engine_spec, "execute_with_cursor"):
+                            logger.debug(
+                                "Using db_engine_spec.execute_with_cursor for query id=%s client_id=%s",
+                                getattr(query, "id", None),
+                                getattr(query, "client_id", None),
+                            )
+                            try:
+                                # Preferred signature: (cursor, sql, query)
+                                self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
+                            except TypeError:
+                                # Some engine implementations may not accept the `query`
+                                # argument; try the two-arg form as a fallback.
+                                self.db_engine_spec.execute_with_cursor(cursor, sql_)
+                        else:
+                            # Best-effort: some engines can expose a cancel id prior to
+                            # execution via `get_cancel_query_id` — attempt to persist
+                            # that so other processes can cancel the query.
+                            try:
+                                from superset.constants import QUERY_CANCEL_KEY
+                                if query is not None:
+                                    cancel_query_id = self.db_engine_spec.get_cancel_query_id(
+                                        cursor, query
+                                    )
+                                    if cancel_query_id is not None:
+                                        query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                                        from superset.extensions import db as _db
+
+                                        _db.session.commit()
+                            except Exception:
+                                logger.debug(
+                                    "Could not obtain or persist cancel id for query",
+                                    exc_info=True,
+                                )
+
+                            try:
+                                # Preferred `execute` signature tries to accept query kwarg
+                                self.db_engine_spec.execute(cursor, sql_, self, query=query)
+                            except TypeError:
+                                # Older signatures may not accept the keyword; fall back
+                                self.db_engine_spec.execute(cursor, sql_, self)
+                    except Exception:
+                        # Do not interrupt query execution for instrumentation/logging failures
+                        logger.debug("Error while routing execute call to engine spec", exc_info=True)
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
@@ -767,9 +829,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        query: 'Query' | None = None,
     ) -> pd.DataFrame:
+        try:
+            print(
+                f"[Database.get_df] called for database_id={getattr(self, 'id', None)} "
+                f"query_id={getattr(query, 'id', None) if query is not None else None} "
+                f"client_id={getattr(query, 'client_id', None) if query is not None else None}"
+            )
+        except Exception:
+            logger.debug("Could not print Database.get_df debug info", exc_info=True)
+
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
-            sql, catalog, schema, fetch_last_result=True
+            sql, catalog, schema, fetch_last_result=True, query=query
         )
 
         df = None
