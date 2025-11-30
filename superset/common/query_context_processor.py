@@ -154,6 +154,14 @@ class QueryContextProcessor:
                             )
                             _db.session.add(query_model)
                             _db.session.commit()
+                        # Emit debug info to help trace lifecycle of the persisted Query
+                        try:
+                            print(
+                                f"[query_context_processor] Query model created/reused: id={getattr(query_model, 'id', None)} "
+                                f"client_id={getattr(query_model, 'client_id', None)} database_id={getattr(query_model, 'database_id', None)}"
+                            )
+                        except Exception:
+                            logger.debug("Could not print query_model debug info", exc_info=True)
                 except Exception:  # pragma: no cover - best-effort creation
                     logger.debug("Could not create Query model for chart query", exc_info=True)
 
