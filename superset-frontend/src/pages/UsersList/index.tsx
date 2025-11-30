@@ -99,7 +99,7 @@ function UsersList({ user }: UsersListProps) {
     setModalState(prev => ({ ...prev, [type]: false }));
 
   const [currentUser, setCurrentUser] = useState<UserObject | null>(null);
-  const [DeleteModalState, setDeleteModalState] = useState({
+  const [deleteModalState, setDeleteModalState] = useState({
     open: false,
     userToDelete: null as UserObject | null,
     assets: null as any,
@@ -162,7 +162,7 @@ function UsersList({ user }: UsersListProps) {
   }, [fetchGroups]);
 
   const handleUserDelete = async (newOwnerId: number | null, softDelete: boolean) => {
-    const user = DeleteModalState.userToDelete;
+    const user = deleteModalState.userToDelete;
     setDeleteModalState({ open: false, userToDelete: null, assets: null });
     if (!user) {
       addDangerToast(t('There was an issue deleting the user'));
@@ -608,13 +608,13 @@ function UsersList({ user }: UsersListProps) {
         />
       )}
 
-      {DeleteModalState.open && DeleteModalState.userToDelete && (
+      {deleteModalState.open && deleteModalState.userToDelete && (
         <UserListDeleteModal
-          userToDelete={DeleteModalState.userToDelete}
+          userToDelete={deleteModalState.userToDelete}
           availableUsers={users.filter(
-            u => u.id !== DeleteModalState.userToDelete?.id,
+            u => u.id !== deleteModalState.userToDelete?.id,
           )}
-          assets={DeleteModalState.assets}
+          assets={deleteModalState.assets}
           onConfirm={({ newOwnerId, softDelete }) => {
             handleUserDelete(newOwnerId, softDelete);
             setDeleteModalState({ open: false, userToDelete: null, assets: null });
