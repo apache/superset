@@ -264,6 +264,11 @@ const Column: FC<ColumnProps> = props => {
                     parentId={columnComponent.id}
                     depth={depth + 1}
                     index={itemIndex}
+		    availableColumnCount={columnComponent.meta.width}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
                     isComponentVisible={isComponentVisible}
                     onChangeTab={onChangeTab}
                   />
