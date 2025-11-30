@@ -19,12 +19,13 @@
 
 import { GlossaryMap, GlossaryTerm, type GlossaryTopic } from './glossaryModels';
 import { glossaryDefinition } from './glossary';
+import { t } from '@superset-ui/core';
 
 export const GLOSSARY_BASE_URL = 'http://localhost:3000/docs'; // TODO: Change to use the url for the environment.
 
-// Pattern matches: [GLOSSARY]|topic|title|description
-// Captures: topic, title, and description (which may contain pipes)
-const GLOSSARY_ENCODING_PATTERN = /^\[GLOSSARY\]\|([^|]+)\|([^|]+)\|(.*)$/;
+// Pattern matches: [GLOSSARY]|topic|title
+// Captures: topic and title for lookup in glossary
+const GLOSSARY_ENCODING_PATTERN = /^\[GLOSSARY\]\|([^|]+)\|([^|]+)$/;
 
 /**
  * The exported glossary object is a runtime structure where each entry is a GlossaryTerm instance, but the key
@@ -67,7 +68,12 @@ export const resolveGlossaryString = (glossaryString: string): [string | undefin
   }
   const topic = match[1];
   const title = match[2];
-  const description = match[3];
+  
+  // Look up the term from the glossary to get the translated description
+  const glossaryTopic = glossaryMap.getTopic(topic);
+  const term = glossaryTopic?.getTerm(title);
+  const description = term ? term.getShort(t) : glossaryString;
+  
   const glossaryUrl = buildGlossaryUrl(topic, title);
   return [glossaryUrl, description];
 };
