@@ -46,29 +46,51 @@ export const glossaryDefinition: GlossaryDefinition = {
   Query: {
     Dimension: {
       short: t(
-        'Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.',
+        'Dimensions contain qualitative values such as names, dates, or geographical data. ' +
+        'Use dimensions to categorize, segment, and reveal the details in your data. ' +
+        'Dimensions affect the level of detail in the view.'
       ),
     },
     Metric: {
       short: t(
-        'Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.',
+        'Select one or many metrics to display. ' +
+        'You can use an aggregation function on a column or write custom SQL to create a metric.'
       ),
     },
     Series: {
       short: t(
-        'Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
+        'Limits the number of series that get displayed. ' +
+        'A joined subquery (or an extra phase where subqueries are not supported) is applied ' +
+        'to limit the number of series that get fetched and rendered. ' +
+        'This feature is useful when grouping by high cardinality column(s) ' +
+        'though does increase the query complexity and cost.'
       ),
     },
     Row_Limit: {
       short: t(
-        'Limits the number of rows that get displayed. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.',
+        'Limits the number of rows that get displayed. ' +
+        'This feature is useful when grouping by high cardinality column(s) ' +
+        'though does increase the query complexity and cost.'
       ),
     },
     Sort: {
       short: t(
-        'Orders the query result that generates the source data for this chart. If a series or row limit is reached, this determines what data are truncated. If undefined, defaults to the first metric (where appropriate).',
+        'Orders the query result that generates the source data for this chart. ' +
+        'If a series or row limit is reached, this determines what data are truncated. ' +
+        'If undefined, defaults to the first metric (where appropriate).'
       ),
-    }
+    },
+  },
+  Time_Comparison: {
+    Time_Shift: {
+      short: t(
+        'Overlay results from a relative time period. ' +
+        'Expects relative time deltas in natural language (example: 24 hours, 7 days, ' +
+        '52 weeks, 365 days). Free text is supported. ' +
+        'Use "Inherit range from time filters" to shift the comparison time range ' +
+        'by the same length as your time range and use "Custom" to set a custom comparison range.'
+      ),
+    },
   },
 };
 

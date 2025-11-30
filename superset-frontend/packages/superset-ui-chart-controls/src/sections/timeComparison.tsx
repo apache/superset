@@ -24,6 +24,10 @@ import {
   ControlState,
 } from '../types';
 import { INVALID_DATE } from '..';
+import { glossary } from '@superset-ui/core';
+
+// Glossary terms used for tooltips
+const TIME_SHIFT_DESCRIPTION = glossary.Time_Comparison.Time_Shift.encode();
 
 const fullChoices = [
   ['1 day ago', t('1 day ago')],
@@ -81,16 +85,7 @@ export const timeComparisonControls: ({
           placeholder: t('Select or type a custom value...'),
           label: t('Time shift'),
           choices: showFullChoices ? fullChoices : reducedChoices,
-          description: t(
-            'Overlay results from a relative time period. ' +
-              'Expects relative time deltas ' +
-              'in natural language (example:  24 hours, 7 days, ' +
-              '52 weeks, 365 days). Free text is supported. ' +
-              'Use "Inherit range from time filters" ' +
-              'to shift the comparison time range ' +
-              'by the same length as your time range ' +
-              'and use "Custom" to set a custom comparison range.',
-          ),
+          description: t(TIME_SHIFT_DESCRIPTION),
         },
       },
     ],
