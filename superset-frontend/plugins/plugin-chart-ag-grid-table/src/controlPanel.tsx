@@ -321,7 +321,7 @@ const config: ControlPanelConfig = {
               type: 'ChartColumnsControl',
               label: t('Chart columns'),
               description: t(
-                'Add columns that display charts for each row. Charts summarize numerical metrics in each row. Best used when the metric columns make sense to be visualized in a chart.',
+                'Add columns that display charts for each row. The charts will visualize the metrics selected above for each row. To control which metrics are visualized, select the desired metrics in the "Metrics" control. Best used when the metric columns make sense to be visualized in a chart.',
               ),
               default: [],
               visibility: isAggMode,
