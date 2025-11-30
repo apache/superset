@@ -93,7 +93,7 @@ const ChartColumnsControl = ({
               title={t('Edit chart column')}
               config={chartColumn}
               onChange={config => onEdit(config, index)}
-              destroyTooltipOnHide
+              destroyOnHidden
             >
               <OptionControlLabel
                 label={chartColumn.label}

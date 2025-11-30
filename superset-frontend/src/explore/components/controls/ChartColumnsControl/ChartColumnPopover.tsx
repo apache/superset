@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Popover, Input } from '@superset-ui/core/components';
+import { Popover, Input, Button } from '@superset-ui/core/components';
 import { ChartColumnPopoverProps, ChartColumnConfig } from './types';
 
 const PopoverContent = styled.div`
@@ -40,30 +40,13 @@ const Label = styled.div`
 
 const ButtonContainer = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
-  padding: ${({ theme }) => `${theme.sizeUnit}px ${theme.sizeUnit * 3}px`};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorBorder};
-  background-color: ${({ theme, primary }) =>
-    primary ? theme.colorPrimary : theme.colorBgLayout};
-  color: ${({ theme, primary }) =>
-    primary ? theme.colorTextLightSolid : theme.colorText};
-  cursor: pointer;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-
-  &:hover {
-    opacity: 0.8;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+const StyledButton = styled(Button)`
+  flex: 1;
 `;
 
 export const ChartColumnPopover = ({
@@ -83,21 +66,38 @@ export const ChartColumnPopover = ({
     };
     onChange(newConfig);
     setIsOpen(false);
-    // Reset for next add
+    // reset for next add
     if (!config) {
       setLabel('');
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsOpen(false);
-    // Reset to original values if editing
+    // reset to original values if editing
     if (config) {
       setLabel(config.label);
     } else {
       setLabel('');
     }
-  };
+  }, [config]);
+
+  // close popover on ESC key press
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleCancel();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleCancel]);
 
   const content = (
     <PopoverContent>
@@ -110,10 +110,16 @@ export const ChartColumnPopover = ({
         />
       </FormItem>
       <ButtonContainer>
-        <Button onClick={handleCancel}>{t('Cancel')}</Button>
-        <Button primary onClick={handleSave} disabled={!label.trim()}>
+        <StyledButton buttonStyle="secondary" onClick={handleCancel}>
+          {t('Close')}
+        </StyledButton>
+        <StyledButton
+          buttonStyle="primary"
+          onClick={handleSave}
+          disabled={!label.trim()}
+        >
           {t('Save')}
-        </Button>
+        </StyledButton>
       </ButtonContainer>
     </PopoverContent>
   );
@@ -125,6 +131,7 @@ export const ChartColumnPopover = ({
       trigger="click"
       open={isOpen}
       onOpenChange={setIsOpen}
+      placement="right"
       {...popoverProps}
     >
       {children}
