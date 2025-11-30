@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Popover, Input, Button } from '@superset-ui/core/components';
+import { Popover, Input, Button, InputRef } from '@superset-ui/core/components';
 import { ChartColumnPopoverProps, ChartColumnConfig } from './types';
 
 const PopoverContent = styled.div`
@@ -58,6 +58,7 @@ export const ChartColumnPopover = ({
 }: ChartColumnPopoverProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [label, setLabel] = useState(config?.label || '');
+  const inputRef = useRef<InputRef>(null);
 
   const handleSave = () => {
     const newConfig: ChartColumnConfig = {
@@ -82,6 +83,13 @@ export const ChartColumnPopover = ({
     }
   }, [config]);
 
+  // focus input when popover opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus({ cursor: 'end' });
+    }
+  }, [isOpen]);
+
   // close popover on ESC key press
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -104,6 +112,7 @@ export const ChartColumnPopover = ({
       <FormItem>
         <Label>{t('Column Label')}</Label>
         <Input
+          ref={inputRef}
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={t('Enter column label')}
