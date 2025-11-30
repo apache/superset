@@ -271,6 +271,7 @@ class ReassignmentRestAPI(BaseSupersetApi):
                     assets = db.session.query(a['model']).filter(a['model'].user_id == user_id).all()
                     for asset in assets:
                         asset.user = new_owner
+                        asset.created_by = new_owner
                 else:
                     assets = db.session.query(a['model']).filter(a['model'].owners.any(User.id == user_id)).all()
                     for asset in assets:
