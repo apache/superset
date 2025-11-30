@@ -26,12 +26,16 @@ import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
 jest.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
-    ({ type, id }) => (
-      <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>
-    ),
+    ({
+      type,
+      id,
+    }: {
+      type: string;
+      id: string;
+    }) => <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>,
 );
 
-function setup() {
+function setup(): RenderResult {
   return render(<NewRow />);
 }
 
