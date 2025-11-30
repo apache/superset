@@ -112,8 +112,6 @@ def test_get_metric_name_invalid_metric():
     with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name(None)
     with pytest.raises(ValueError):  # noqa: PT011
-        get_metric_name(0)
-    with pytest.raises(ValueError):  # noqa: PT011
         get_metric_name({})
 
 

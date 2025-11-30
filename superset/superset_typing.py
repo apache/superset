@@ -111,8 +111,8 @@ FilterValue: TypeAlias = bool | datetime | float | int | str
 FilterValues: TypeAlias = FilterValue | list[FilterValue] | tuple[FilterValue]
 FormData: TypeAlias = dict[str, Any]
 Granularity: TypeAlias = str | dict[str, str | float]
-Column: TypeAlias = AdhocColumn | str
-Metric: TypeAlias = AdhocMetric | str
+Column: TypeAlias = AdhocColumn | str | int
+Metric: TypeAlias = AdhocMetric | str | int
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
 
 
