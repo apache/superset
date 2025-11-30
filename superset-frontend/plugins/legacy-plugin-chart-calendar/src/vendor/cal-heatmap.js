@@ -2719,16 +2719,15 @@ CalHeatMap.prototype = {
   getMonthDomain: function (d, range) {
     'use strict';
 
-    var start = new Date(d.getFullYear(), d.getMonth());
-    var stop = null;
+    var start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+    var stopExclusive;
     if (range instanceof Date) {
-      stop = new Date(range.getFullYear(), range.getMonth());
+      stopExclusive = new Date(Date.UTC(range.getUTCFullYear(), range.getUTCMonth(), 1));
     } else {
-      stop = new Date(start);
-      stop = stop.setMonth(stop.getMonth() + range);
+      stopExclusive = new Date(start);
+      stopExclusive.setUTCMonth(stopExclusive.getUTCMonth() + range);
     }
-
-    return d3.time.months(Math.min(start, stop), Math.max(start, stop));
+    return d3.time.months(start, stopExclusive);
   },
 
   /**
