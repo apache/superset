@@ -599,4 +599,15 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 value?: Currency;
                 defaultValue?: Currency;
               }
-            : {});
+            : T extends 'ColorPickerControl'
+              ? {
+                  controlType: 'ColorPickerControl';
+                  value?: { r: number; g: number; b: number; a?: number };
+                  defaultValue?: {
+                    r: number;
+                    g: number;
+                    b: number;
+                    a?: number;
+                  };
+                }
+              : {});

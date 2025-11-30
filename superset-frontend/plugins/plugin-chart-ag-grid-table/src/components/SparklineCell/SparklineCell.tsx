@@ -37,8 +37,9 @@ import {
   getSparklineTextWidth,
   createYScaleConfig,
   transformChartData,
-} from '../../utils';
-import { SparkType } from '../../types';
+} from '../../utils/sparklineHelpers';
+
+type SparkType = 'line' | 'bar' | 'area';
 
 interface Entry {
   time: string;
@@ -165,7 +166,7 @@ const SparklineCell = ({
         yScale={{
           ...yScaleConfig,
         }}
-        xScale={{ type: 'band', paddingInner: 0.5, paddingOuter: 0.1 }}
+        xScale={{ type: 'band', paddingInner: 0.5,  paddingOuter: 0.1}}
         theme={xyTheme}
       >
         {showYAxis && (

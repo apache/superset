@@ -28,6 +28,7 @@ import {
   FieldBinaryOutlined,
   FieldStringOutlined,
   NumberOutlined,
+  LineChartOutlined
 } from '@ant-design/icons';
 
 export type ColumnLabelExtendedType = 'expression' | '';
@@ -69,6 +70,8 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
     typeIcon = <FieldBinaryOutlined aria-label={t('boolean type icon')} />;
   } else if (type === GenericDataType.Temporal) {
     typeIcon = <ClockCircleOutlined aria-label={t('temporal type icon')} />;
+  } else if (type === GenericDataType.Chart) {
+    typeIcon = <LineChartOutlined aria-label={t('chart type icon')} />;
   }
 
   return <TypeIconWrapper>{typeIcon}</TypeIconWrapper>;
