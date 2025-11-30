@@ -32,7 +32,7 @@ const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
-  value: number | string,
+  value: number | string | boolean | null,
   cutoffPoint: number | string,
   extremeValue: number | string,
   minOpacity = MIN_OPACITY_BOUNDED,
@@ -70,15 +70,15 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
   }: ConditionalFormattingConfig,
-  columnValues: number[] | string[],
+  columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
   let comparatorFunction: (
-    value: number | string,
-    allValues: number[] | string[],
+    value: number | string | boolean | null,
+    allValues: number[] | string[] | (boolean | null)[],
   ) => false | { cutoffValue: number | string; extremeValue: number | string };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
@@ -221,13 +221,38 @@ export const getColorFunction = (
         !value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
+
+      break;
+    case Comparator.IsTrue:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsFalse:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && !value
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsNull:
+      comparatorFunction = (value: boolean | null) =>
+        value === null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
+      break;
+    case Comparator.IsNotNull:
+      comparatorFunction = (value: boolean | null) =>
+        isBoolean(value) && value !== null
+          ? { cutoffValue: targetValue!, extremeValue: targetValue! }
+          : false;
       break;
     default:
       comparatorFunction = () => false;
       break;
   }
 
-  return (value: number | string) => {
+  return (value: number | string | boolean | null) => {
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
@@ -288,4 +313,8 @@ export const getColorFormatters = memoizeOne(
 
 function isString(value: unknown) {
   return typeof value === 'string';
+}
+
+function isBoolean(value: unknown) {
+  return typeof value === 'boolean';
 }

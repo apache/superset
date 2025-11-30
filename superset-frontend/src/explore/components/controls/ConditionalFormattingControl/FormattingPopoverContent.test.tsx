@@ -40,6 +40,11 @@ const columnsStringType = [
   { label: 'Column 2', value: 'column2', dataType: GenericDataType.String },
 ];
 
+const columnsBooleanType = [
+  { label: 'Column 1', value: 'column1', dataType: GenericDataType.Boolean },
+  { label: 'Column 2', value: 'column2', dataType: GenericDataType.Boolean },
+];
+
 const extraColorChoices = [
   {
     value: ColorSchemeEnum.Green,
@@ -146,6 +151,22 @@ test('displays the correct input fields based on the selected string type operat
   });
   fireEvent.click(await screen.findByTitle('begins with'));
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+});
+
+test('does not display the input fields when selected a boolean type operator', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsBooleanType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.IsTrue },
+  });
+  fireEvent.click(await screen.findByTitle('is true'));
+  expect(await screen.queryByLabelText('Target value')).toBeNull();
 });
 
 test('displays the toAllRow and toTextColor flags based on the selected numeric type operator', () => {
