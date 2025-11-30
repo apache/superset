@@ -598,7 +598,7 @@ const config: ControlPanelConfig = {
                   explore?.controls?.chart_columns?.value || [];
                 if (Array.isArray(chartColumns)) {
                   chartColumns.forEach(
-                    (col: { key: string; label: string; type: string }) => {
+    (col: { key: string; label: string }) => {
                       if (!colnames.includes(col.label)) {
                         colnames.push(col.label);
                         coltypes.push(GenericDataType.Chart);
