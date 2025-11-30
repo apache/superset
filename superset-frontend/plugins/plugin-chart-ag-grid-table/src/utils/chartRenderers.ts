@@ -45,7 +45,6 @@ export const getChartRenderer = (chartType: string) => {
 /**
  * Determines if a column should use a chart renderer instead of the default text/numeric renderer
  * @param col - The column definition containing configuration
- * @param data - The table data (for future validation if needed)
  * @returns true if the column should use a chart renderer
  */
 export const shouldUseChartRenderer = (col: InputColumn): boolean => {
