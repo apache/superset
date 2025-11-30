@@ -362,7 +362,17 @@ clickhousedb://localhost/default
 
 #### Cloudflare D1
 
-<Add content here>
+To use Cloudflare D1 with superset, install the [superset-engine-d1](https://github.com/sqlalchemy-cf-d1/superset-engine-d1) library.
+
+```
+pip install superset-engine-d1
+```
+
+The expected connection string is formatted as follows:
+
+```
+d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}
+```
 
 #### CockroachDB
 
