@@ -41,6 +41,18 @@ jest.mock('@superset-ui/core/components/Select', () => ({
   ),
 }));
 
+jest.mock('@superset-ui/core/components/TreeSelect', () => ({
+  TreeSelect: ({ onChange, disabled }) => {
+    return (
+      <input
+        data-test="mock-tree-select"
+        disabled={disabled}
+        onChange={({ target: { value } }) => onChange(value)}
+      />
+    );
+  },
+}));
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const initialState = {
@@ -344,4 +356,63 @@ test('removes form_data_key from URL parameters after save', () => {
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
   expect(result.get('save_action')).toEqual('overwrite');
+});
+
+test('disables tab selector when no dashboard selected', () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('renders tab selector when saving as ', async () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: '1' } });
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('onDashboardChange triggers tabs load for existing dashboard', async () => {
+  const dashboardId = mockEvent.value;
+
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}/tabs`, {
+    json: {
+      result: {
+        tab_tree: [{ value: 'tab1', title: 'Main Tab' }],
+      },
+    },
+  });
+  const component = new PureSaveModal(defaultProps);
+  const loadTabsMock = jest
+    .fn()
+    .mockResolvedValue([{ value: 'tab1', title: 'Main Tab' }]);
+  component.loadTabs = loadTabsMock;
+  await component.onDashboardChange({
+    value: dashboardId,
+    label: 'Test Dashboard',
+  });
+  expect(loadTabsMock).toHaveBeenCalledWith(dashboardId);
+});
+
+test('onTabChange updates selectedTab state', () => {
+  const component = new PureSaveModal(defaultProps);
+
+  const setStateMock = jest.fn();
+  component.setState = setStateMock;
+
+  component.state.tabsData = [
+    { value: 'tab1', title: 'Main Tab', key: 'tab1' },
+    { value: 'tab2', title: 'Analytics Tab', key: 'tab2' },
+  ];
+  component.onTabChange('tab2');
+  expect(setStateMock).toHaveBeenCalledWith({
+    selectedTab: {
+      value: 'tab2',
+      label: 'Analytics Tab',
+    },
+  });
 });

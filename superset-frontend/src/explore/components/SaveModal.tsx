@@ -32,6 +32,7 @@ import {
   Input,
   Loading,
   Divider,
+  TreeSelect,
 } from '@superset-ui/core/components';
 import {
   DatasourceType,
@@ -42,11 +43,13 @@ import {
 } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { Layout } from 'src/dashboard/types';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import { TabNode, TreeDataNode } from '../types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -72,6 +75,8 @@ type SaveModalState = {
   isLoading: boolean;
   saveStatus?: string | null;
   dashboard?: { label: string; value: string | number };
+  selectedTab?: { label: string; value: string | number };
+  tabsData: Array<{ value: string; title: string; key: string }>;
 };
 
 export const StyledModal = styled(Modal)`
@@ -94,6 +99,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
       dashboard: undefined,
+      tabsData: [],
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
@@ -152,10 +158,20 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange(dashboard: { label: string; value: string | number }) {
-    this.setState({ dashboard });
-  }
+  onDashboardChange = async (dashboard: {
+    label: string;
+    value: string | number;
+  }) => {
+    this.setState({
+      dashboard,
+      tabsData: [],
+      selectedTab: undefined,
+    });
 
+    if (typeof dashboard.value === 'number') {
+      await this.loadTabs(dashboard.value);
+    }
+  };
   changeAction(action: SaveActionType) {
     this.setState({ action });
   }
@@ -210,6 +226,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       delete formData.url_params;
 
       let dashboard: DashboardGetResponse | null = null;
+      let selectedTabId: string | undefined;
       if (this.state.dashboard) {
         let validId = this.state.dashboard.value;
         if (this.isNewDashboard()) {
@@ -231,6 +248,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
           formData.dashboards = sliceDashboards;
+          if (this.state.action === 'saveas') {
+            selectedTabId = this.state.selectedTab?.value as string;
+          }
         }
       }
 
@@ -262,6 +282,20 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
               }
             : null,
         );
+        if (dashboard && selectedTabId) {
+          try {
+            await this.addChartToDashboardTab(
+              dashboard.id,
+              value.id,
+              selectedTabId,
+            );
+          } catch (error) {
+            logging.error('Error adding chart to dashboard tab:', error);
+            this.props.addDangerToast(
+              t('Chart was saved but could not be added to the selected tab.'),
+            );
+          }
+        }
       }
 
       try {
@@ -276,10 +310,13 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
-        this.props.history.push(dashboard.url);
+        let url = dashboard.url;
+        if (this.state.selectedTab?.value) {
+          url += `#${this.state.selectedTab.value}`;
+        }
+        this.props.history.push(url);
         return;
       }
-
       const searchParams = this.handleRedirect(window.location.search, value);
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
@@ -289,6 +326,91 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       this.setState({ isLoading: false });
     }
   }
+  addChartToDashboardTab = async (
+    dashboardId: number,
+    chartId: number,
+    tabId: string,
+  ) => {
+    try {
+      const dashboardResponse = await SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboardId}`,
+      });
+
+      const dashboard = dashboardResponse.json.result;
+
+      let positionJson = dashboard.position_json;
+      if (typeof positionJson === 'string') {
+        positionJson = JSON.parse(positionJson);
+      }
+      positionJson = positionJson || {};
+
+      const updatedPositionJson = JSON.parse(JSON.stringify(positionJson));
+
+      const chartKey = `CHART-${chartId}`;
+      const rowIndex = this.findNextRowPosition(updatedPositionJson);
+      const rowKey = `ROW-${rowIndex}`;
+
+      updatedPositionJson[chartKey] = {
+        type: 'CHART',
+        id: chartKey,
+        children: [],
+        parents: ['ROOT_ID', 'GRID_ID', rowKey],
+        meta: {
+          width: 4,
+          height: 50,
+          chartId: chartId,
+          sliceName: `Chart ${chartId}`,
+        },
+      };
+
+      updatedPositionJson[rowKey] = {
+        type: 'ROW',
+        id: rowKey,
+        children: [chartKey],
+        parents: ['ROOT_ID', 'GRID_ID', tabId],
+        meta: {
+          background: 'BACKGROUND_TRANSPARENT',
+        },
+      };
+
+      if (updatedPositionJson[tabId]) {
+        if (!updatedPositionJson[tabId].children) {
+          updatedPositionJson[tabId].children = [];
+        }
+        updatedPositionJson[tabId].children.push(rowKey);
+      } else {
+        throw new Error(`Tab ${tabId} not found in positionJson`);
+      }
+
+      const response = await SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${dashboardId}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          position_json: JSON.stringify(updatedPositionJson),
+        }),
+      });
+
+      return response;
+    } catch (error) {
+      throw new Error('Error adding chart to dashboard tab:', error);
+      throw error;
+    }
+  };
+
+  findNextRowPosition = (layout: Layout): number => {
+    const rowIndices: number[] = [];
+
+    Object.keys(layout).forEach(key => {
+      if (key.startsWith('ROW-')) {
+        const rest = key.substring(4);
+        if (/^\d+$/.test(rest)) {
+          rowIndices.push(parseInt(rest, 10));
+        }
+      }
+    });
+
+    return rowIndices.length > 0 ? Math.max(...rowIndices) + 1 : 0;
+  };
 
   loadDashboard = async (id: number) => {
     const response = await SupersetClient.get({
@@ -330,6 +452,64 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       ),
       totalCount: count,
     };
+  };
+  loadTabs = async (dashboardId: number) => {
+    try {
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboardId}/tabs`,
+      });
+
+      const { result } = response.json;
+      const tabTree = result.tab_tree || [];
+
+      const convertToTreeData = (nodes: TabNode[]): TreeDataNode[] =>
+        nodes.map(node => ({
+          value: node.value,
+          title: node.title,
+          key: node.value,
+          children:
+            node.children && node.children.length > 0
+              ? convertToTreeData(node.children)
+              : undefined,
+        }));
+
+      const treeData = convertToTreeData(tabTree);
+      this.setState({ tabsData: treeData });
+      return treeData;
+    } catch (error) {
+      logging.error('Error loading tabs:', error);
+      this.setState({ tabsData: [] });
+      return [];
+    }
+  };
+
+  onTabChange = (value: string) => {
+    if (value) {
+      const findTabInTree = (data: TabNode[]): TabNode | null => {
+        for (const item of data) {
+          if (item.value === value) {
+            return item;
+          }
+          if (item.children) {
+            const found = findTabInTree(item.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const selectedTab = findTabInTree(this.state.tabsData);
+      if (selectedTab) {
+        this.setState({
+          selectedTab: {
+            value: selectedTab.value,
+            label: selectedTab.title,
+          },
+        });
+      }
+    } else {
+      this.setState({ selectedTab: undefined });
+    }
   };
 
   renderSaveChartModal = () => {
@@ -403,6 +583,27 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             }
           />
         </FormItem>
+        {this.state.action === 'saveas' && (
+          <FormItem
+            label={t('Add to tabs')}
+            data-test="save-chart-modal-select-tabs-form"
+          >
+            <TreeSelect
+              showSearch
+              allowClear
+              treeDefaultExpandAll
+              treeData={this.state.tabsData}
+              onChange={this.onTabChange}
+              value={this.state.selectedTab?.value}
+              disabled={
+                !this.state.dashboard ||
+                typeof this.state.dashboard.value === 'string' ||
+                this.state.tabsData.length === 0
+              }
+              placeholder={t('Select a tab')}
+            />
+          </FormItem>
+        )}
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
           <Alert
