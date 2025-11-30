@@ -62,10 +62,10 @@ type ColumnProps = {
   updateComponents: (updates: Record<string, JsonObject>) => void;
   isComponentVisible: boolean;
   onChangeTab: (tabId: string) => void;
-}
+};
 
 const ColumnStyles = styled.div<{ editMode: boolean }>`
-${({ theme, editMode }) => css`
+  ${({ theme, editMode }) => css`
     &.grid-column {
       width: 100%;
       position: relative;
@@ -287,7 +287,11 @@ const Column: FC<ColumnProps> = props => {
                       )}
                       editMode
                     >
-                      {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
                         dropIndicatorProps && <div {...dropIndicatorProps} />
                       }
                     </Droppable>
