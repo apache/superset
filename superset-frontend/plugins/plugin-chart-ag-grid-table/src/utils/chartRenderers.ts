@@ -31,8 +31,6 @@ import { type RGBColor } from '@superset-ui/core/components';
 const CHART_RENDERERS = {
   'sparkline': SparklineRenderer,
   'minibar': BarChartRenderer,           // Map minibar to BarChartRenderer
-  // 'horizontal-bar': NumericCellRenderer, // Use existing horizontal bars
-  // 'default': NumericCellRenderer,        // Fallback to existing renderer
 };
 
 /**

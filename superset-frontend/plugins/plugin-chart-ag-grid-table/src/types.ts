@@ -62,7 +62,7 @@ export type TableColumnConfig = {
   customColumnName?: string;
   displayTypeIcon?: boolean;
   // Chart renderer configuration
-  chartType?: 'sparkline' | 'minibar' | 'horizontal-bar' | 'default';
+  chartType?: 'sparkline' | 'minibar';
   width?: number;
   height?: number;
   color?: RGBColor;
