@@ -29,6 +29,9 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
+import { glossary } from '@superset-ui/core';
+
+const TIME_SHIFT_DESCRIPTION = glossary.Advanced_Analytics.Time_Shift.encode();
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -323,10 +326,7 @@ const config: ControlPanelConfig = {
                 ['3 years', t('3 years')],
               ],
               description: t(
-                'Overlay one or more timeseries from a ' +
-                  'relative time period. Expects relative time deltas ' +
-                  'in natural language (example: 24 hours, 7 days, ' +
-                  '52 weeks, 365 days). Free text is supported.',
+                TIME_SHIFT_DESCRIPTION,
               ),
             },
           },
