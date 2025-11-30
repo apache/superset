@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, DatasourceType } from '@superset-ui/core';
 import transformProps from './transformProps';
 
 interface PolygonFeature {
@@ -55,7 +55,13 @@ describe('Polygon transformProps', () => {
         ],
       },
     ],
-    datasource: { type: 'table' as const, id: 1 },
+    datasource: {
+      type: DatasourceType.Table,
+      id: 1,
+      name: 'test_datasource',
+      columns: [],
+      metrics: [],
+    },
     height: 400,
     width: 600,
     hooks: {},
