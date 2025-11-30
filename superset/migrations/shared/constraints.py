@@ -111,7 +111,7 @@ def redefine_exact(
             batch_op.drop_constraint(constraint, type_="foreignkey")
 
         batch_op.create_foreign_key(
-            constraint_name=foreign_key.constraint_name,
+            constraint_name=constraint,
             referent_table=foreign_key.referent_table,
             local_cols=foreign_key.local_cols,
             remote_cols=foreign_key.remote_cols,

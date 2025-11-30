@@ -125,11 +125,11 @@ def upgrade():
     )
 
 def downgrade():
-    # Redefine constraints
+    # Rollback constraints to "NO ACTION"
     for foreign_key in cascade_fks:
-        redefine_exact(foreign_key)
+        redefine_exact(foreign_key, on_delete="NO ACTION")
     for foreign_key in set_null_fks:
-        redefine_exact(foreign_key)
+        redefine_exact(foreign_key, on_delete="NO ACTION")
 
     # Drop index and columns
     op.drop_index("idx_ab_user_is_deleted", table_name="ab_user")
