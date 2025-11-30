@@ -16,6 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Row from './Row';
-
-export default Row;
+export { default } from './Row';
