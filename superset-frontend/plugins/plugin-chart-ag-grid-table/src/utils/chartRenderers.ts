@@ -17,7 +17,6 @@
  * under the License.
  */
 
-// import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import { SparklineRenderer } from '../renderers/SparklineRenderer';
 import { BarChartRenderer } from '../renderers/BarChartRenderer';
 import type { InputColumn } from '../types';
