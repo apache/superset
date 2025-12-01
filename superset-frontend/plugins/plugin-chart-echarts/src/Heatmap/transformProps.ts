@@ -117,7 +117,7 @@ function sortAxisValues(
   }
 
   // Alphabetical/lexicographic sort
-  return values.sort((a, b) => {
+  return [...values].sort((a, b) => {
     // Check if both values are numeric for proper numeric sorting
     const aNum = typeof a === 'number' ? a : Number(a);
     const bNum = typeof b === 'number' ? b : Number(b);
