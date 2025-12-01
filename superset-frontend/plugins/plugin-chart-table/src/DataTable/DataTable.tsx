@@ -26,6 +26,7 @@ import {
   CSSProperties,
   DragEvent,
   useEffect,
+  useMemo,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
 import {
@@ -88,6 +89,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchInputId?: string;
   onSearchColChange: (searchCol: string) => void;
   searchOptions: SearchOption[];
+  onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -130,6 +132,7 @@ export default typedMemo(function DataTable<D extends object>({
   searchInputId,
   onSearchColChange,
   searchOptions,
+  onFilteredDataChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -215,6 +218,7 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
+    rows,
     state: {
       pageIndex,
       pageSize,
@@ -236,6 +240,30 @@ export default typedMemo(function DataTable<D extends object>({
     },
     ...tableHooks,
   );
+
+  const rowSignature = useMemo(
+    // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
+    () =>
+      rows
+        .map((row, index) => row.id ?? index)
+        .sort()
+        .join('|'),
+    [rows],
+  );
+
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
+  useEffect(() => {
+    if (!onFilteredDataChange) {
+      return;
+    }
+
+    const searchText =
+      typeof filterValue === 'string' ? filterValue : undefined;
+
+    onFilteredDataChange(rowsRef.current, searchText);
+  }, [filterValue, onFilteredDataChange, rowSignature]);
 
   const handleSearchChange = useCallback(
     (query: string) => {

@@ -235,5 +235,49 @@ describe('plugin-chart-table', () => {
         expect(queries[0].post_processing).toEqual([]);
       });
     });
+
+    describe('Testing for server pagination with search filter', () => {
+      const baseFormDataWithServerPagination: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        server_pagination: true,
+        search_filter: 'A',
+        groupby: ['category'],
+      };
+
+      const ownState = {
+        searchText: 'A',
+        searchColumn: 'category',
+      };
+
+      it('includes search filter in query payload when server pagination is enabled', () => {
+        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+          ownState,
+        });
+
+        expect(queries[0].filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: `${ownState.searchColumn}`,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            }),
+          ]),
+        );
+      });
+
+      it('does not include search filter when not provided', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            server_pagination: false,
+          },
+          { ownState },
+        );
+
+        expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
+      });
+    });
   });
 });
