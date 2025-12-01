@@ -28,9 +28,9 @@ This page serves as a registry of community-created Superset extensions. These e
 
 ## Extensions
 
-| Name | Description | Author | Preview |
-|------|-------------|--------|---------|
-| [Query Insights](https://github.com/example/superset-query-insights) | A SQL Lab extension that displays metadata and data quality information about tables referenced in your queries. Shows table descriptions, data quality scores, latest partition dates, data retention policies, team ownership, and example queries. | Michael S. Molina | <a href="/img/extensions/example.png" target="_blank"><img src="/img/extensions/example.png" alt="Query Insights" width="120" /></a> |
+| Name                                                                                                      | Description                                                                                                                                                                                                                                         | Author            | Preview                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Extensions API Explorer](https://github.com/michael-s-molina/superset-extensions/tree/main/api_explorer) | A SQL Lab panel that demonstrates the Extensions API by providing an interactive explorer for testing commands like getTabs, getCurrentTab, and getDatabases. Useful for extension developers to understand and experiment with the available APIs. | Michael S. Molina | <a href="/img/extensions/api_explorer.png" target="_blank"><img src="/img/extensions/api_explorer.png" alt="Extensions API Explorer" width="120" /></a> |
 
 ## How to Add Your Extension
 
