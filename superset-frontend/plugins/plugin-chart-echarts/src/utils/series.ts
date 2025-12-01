@@ -443,9 +443,7 @@ export function getLegendProps(
     orientation === LegendOrientation.Bottom;
 
   const effectiveType =
-    type === LegendType.Scroll || !isHorizontal
-      ? type
-      : LegendType.Scroll;
+    type === LegendType.Scroll || !isHorizontal ? type : LegendType.Scroll;
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
