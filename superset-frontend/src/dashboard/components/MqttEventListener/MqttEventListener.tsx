@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import mqtt from 'mqtt';
+import * as mqtt from 'mqtt/dist/mqtt.min';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import type { RootState } from 'src/dashboard/types';
 
