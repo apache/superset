@@ -172,6 +172,7 @@
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
+    "mqtt": "^5.14.1",
     "mustache": "^4.2.0",
     "nanoid": "^5.0.9",
     "ol": "^7.5.2",
