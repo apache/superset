@@ -902,6 +902,18 @@ describe('getLegendProps', () => {
       ...expectedThemeProps,
     });
   });
+
+  it('should default plain legends to scroll for top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
+  });
 });
 
 describe('getChartPadding', () => {
