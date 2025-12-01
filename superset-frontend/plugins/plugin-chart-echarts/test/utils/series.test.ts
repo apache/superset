@@ -51,16 +51,7 @@ import {
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
-const expectedThemeProps = {
-  selector: ['all', 'inverse'],
-  selected: undefined,
-  selectorLabel: {
-    fontFamily: theme.fontFamily,
-    fontSize: theme.fontSizeSM,
-    color: theme.colorText,
-    borderColor: theme.colorBorder,
-  },
-};
+const expectedThemeProps = {};
 
 const sortData: DataRecord[] = [
   { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
@@ -909,6 +900,7 @@ describe('getLegendProps', () => {
     ).toEqual({
       show: false,
       top: 0,
+      right: 0,
       orient: 'horizontal',
       type: 'scroll',
       ...expectedThemeProps,
