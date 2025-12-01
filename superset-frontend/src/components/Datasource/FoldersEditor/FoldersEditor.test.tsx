@@ -37,19 +37,6 @@ import { FoldersEditorItemType } from '../types';
 const renderEditor = (ui: ReactElement, options = {}) =>
   render(ui, { useRedux: true, ...options });
 
-// Mock window.crypto.randomUUID for tests
-let mockUuidCounter = 0;
-Object.defineProperty(window, 'crypto', {
-  value: {
-    ...window.crypto,
-    randomUUID: () => `mock-uuid-${mockUuidCounter++}`,
-  },
-});
-
-beforeEach(() => {
-  mockUuidCounter = 0;
-});
-
 const mockMetrics: Metric[] = [
   {
     uuid: 'metric1',
