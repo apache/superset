@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, cleanup } from '@testing-library/react-hooks';
+import { renderHook, cleanup } from '@testing-library/react';
 import { TestDataset } from '@superset-ui/chart-controls';
 import { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';
 

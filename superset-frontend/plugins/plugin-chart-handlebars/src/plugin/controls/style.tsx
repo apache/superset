@@ -47,7 +47,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {props.label as any}
           <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
             tooltip={t('You need to configure HTML sanitization to use CSS')}

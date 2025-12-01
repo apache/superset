@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -88,7 +88,7 @@ describe('useTables hook', () => {
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -139,7 +139,7 @@ describe('useTables hook', () => {
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -176,7 +176,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -205,7 +205,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -248,7 +248,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       ({ schema }) =>
         useTables({
           dbId: expectDbId,

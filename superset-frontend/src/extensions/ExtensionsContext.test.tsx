@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { render } from 'spec/helpers/testing-library';
 import { ExtensionsProvider, useExtensionsContext } from './ExtensionsContext';
 
@@ -91,7 +91,7 @@ test('unregisters a view provider', () => {
 test('throws error when useExtensionsContext is used outside provider', () => {
   const { result } = renderHook(() => useExtensionsContext());
 
-  expect(result.error).toEqual(
+  expect((result as any).error).toEqual(
     Error('useExtensionsContext must be used within a ExtensionsProvider'),
   );
 });

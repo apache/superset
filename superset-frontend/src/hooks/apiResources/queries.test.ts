@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -76,15 +76,12 @@ test('returns api response mapping camelCase keys', async () => {
   const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
-  const { result, waitFor } = renderHook(
-    () => useEditorQueriesQuery({ editorId }),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store,
-      }),
-    },
-  );
+  const { result } = renderHook(() => useEditorQueriesQuery({ editorId }), {
+    wrapper: createWrapper({
+      useRedux: true,
+      store,
+    }),
+  });
   await waitFor(() =>
     expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
   );
@@ -124,7 +121,7 @@ test('merges paginated results', async () => {
   const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
-  const { waitFor } = renderHook(() => useEditorQueriesQuery({ editorId }), {
+  renderHook(() => useEditorQueriesQuery({ editorId }), {
     wrapper: createWrapper({
       useRedux: true,
       store,

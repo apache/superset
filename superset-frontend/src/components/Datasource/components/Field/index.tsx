@@ -52,7 +52,7 @@ export default function Field<V>({
   errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
-    newValue => {
+    (newValue: any) => {
       onChange(fieldKey, newValue);
     },
     [onChange, fieldKey],

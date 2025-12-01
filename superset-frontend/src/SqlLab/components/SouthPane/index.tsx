@@ -134,7 +134,7 @@ const SouthPane = ({
     logAction(LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB, { tab: id });
   };
   const removeTable = useCallback(
-    (key, action) => {
+    (key: any, action: any) => {
       if (action === 'remove') {
         const table = pinnedTables.find(
           ({ dbId, catalog, schema, name }) =>

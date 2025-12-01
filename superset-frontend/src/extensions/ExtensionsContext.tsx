@@ -23,6 +23,7 @@ import {
   ReactElement,
   useEffect,
   useMemo,
+  PropsWithChildren,
 } from 'react';
 import { ErrorBoundary } from 'src/components';
 import { setExtensionsContextValue } from './ExtensionsContextUtils';
@@ -38,7 +39,9 @@ const ExtensionsContext = createContext<ExtensionsContextType | undefined>(
   undefined,
 );
 
-export const ExtensionsProvider: React.FC = ({ children }) => {
+export const ExtensionsProvider: React.FC<PropsWithChildren> = ({
+  children,
+}) => {
   const [viewProviders, setViewProviders] = useState<{
     [id: string]: () => ReactElement;
   }>({});

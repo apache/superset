@@ -356,7 +356,6 @@ const config = {
               'prop-types-extra',
               'redux',
               'react-redux',
-              'react-hot-loader',
               'react-sortable-hoc',
               'react-table',
               'react-ace',

@@ -35,8 +35,7 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
 import { configureStore, Store } from '@reduxjs/toolkit';
@@ -99,7 +98,17 @@ export function createWrapper(options?: Options) {
     }
 
     if (useDnd) {
-      result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
+      const DndWrapper = ({ children }: { children: ReactNode }) => {
+        const sensors = useSensors(
+          useSensor(PointerSensor, {
+            activationConstraint: {
+              distance: 8,
+            },
+          }),
+        );
+        return <DndContext sensors={sensors}>{children}</DndContext>;
+      };
+      result = <DndWrapper>{result}</DndWrapper>;
     }
 
     if (useRedux || store) {

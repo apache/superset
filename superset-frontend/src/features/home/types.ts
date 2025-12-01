@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import React from 'react';
 import { Filter } from 'src/views/CRUD/types';
 import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
@@ -45,6 +46,7 @@ export interface RightMenuProps {
     text: string;
     color: string;
   };
+  children?: React.ReactNode;
 }
 
 export enum GlobalMenuDataOptions {

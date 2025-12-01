@@ -46,7 +46,7 @@ export default function EchartsTreemap({
   coltypeMapping,
 }: TreemapTransformedProps) {
   const getCrossFilterDataMask = useCallback(
-    (data, treePathInfo) => {
+    (data: any, treePathInfo: any) => {
       if (data?.children) {
         return undefined;
       }
@@ -96,7 +96,7 @@ export default function EchartsTreemap({
   );
 
   const handleChange = useCallback(
-    (data, treePathInfo) => {
+    (data: any, treePathInfo: any) => {
       if (!emitCrossFilters || groupby.length === 0) {
         return;
       }

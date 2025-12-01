@@ -67,5 +67,5 @@ export const TextCellRenderer = (params: CellRendererProps) => {
     }
   }
 
-  return <div>{valueFormatted ?? value}</div>;
+  return <div>{String(valueFormatted ?? value)}</div>;
 };
