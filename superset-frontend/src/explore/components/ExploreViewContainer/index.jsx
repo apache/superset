@@ -412,7 +412,7 @@ function ExploreViewContainer(props) {
         body: JSON.stringify({ client_id: queryId }),
         headers: { 'Content-Type': 'application/json' },
       }).catch(error => {
-        props.addDangerToast('Failed to stop query.');
+        props.addDangerToast(t('Failed to stop query.'));
       });
     }
   }

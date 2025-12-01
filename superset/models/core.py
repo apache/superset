@@ -730,50 +730,46 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     # cursor (eg Trino) can capture a cancel id via `handle_cursor`.
                     # Fall back to the normal `execute` call if not available or if
                     # the engine signature differs.
-                    try:
-                        if query is not None and hasattr(self.db_engine_spec, "execute_with_cursor"):
-                            logger.debug(
-                                "Using db_engine_spec.execute_with_cursor for query id=%s client_id=%s",
-                                getattr(query, "id", None),
-                                getattr(query, "client_id", None),
-                            )
-                            try:
-                                # Preferred signature: (cursor, sql, query)
-                                self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
-                            except TypeError:
-                                # Some engine implementations may not accept the `query`
-                                # argument; try the two-arg form as a fallback.
-                                self.db_engine_spec.execute_with_cursor(cursor, sql_)
-                        else:
-                            # Best-effort: some engines can expose a cancel id prior to
-                            # execution via `get_cancel_query_id` — attempt to persist
-                            # that so other processes can cancel the query.
-                            try:
-                                from superset.constants import QUERY_CANCEL_KEY
-                                if query is not None:
-                                    cancel_query_id = self.db_engine_spec.get_cancel_query_id(
-                                        cursor, query
-                                    )
-                                    if cancel_query_id is not None:
-                                        query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-                                        from superset.extensions import db as _db
-
-                                        _db.session.commit()
-                            except Exception:
-                                logger.debug(
-                                    "Could not obtain or persist cancel id for query",
-                                    exc_info=True,
+                    if query is not None and hasattr(self.db_engine_spec, "execute_with_cursor"):
+                        logger.debug(
+                            "Using db_engine_spec.execute_with_cursor for query id=%s client_id=%s",
+                            getattr(query, "id", None),
+                            getattr(query, "client_id", None),
+                        )
+                        try:
+                            # Preferred signature: (cursor, sql, query)
+                            self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
+                        except TypeError:
+                            # Some engine implementations may not accept the `query`
+                            # argument; try the two-arg form as a fallback.
+                            self.db_engine_spec.execute_with_cursor(cursor, sql_)
+                    else:
+                        # Best-effort: some engines can expose a cancel id prior to
+                        # execution via `get_cancel_query_id` — attempt to persist
+                        # that so other processes can cancel the query.
+                        try:
+                            from superset.constants import QUERY_CANCEL_KEY
+                            if query is not None:
+                                cancel_query_id = self.db_engine_spec.get_cancel_query_id(
+                                    cursor, query
                                 )
+                                if cancel_query_id is not None:
+                                    query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                                    from superset.extensions import db as _db
 
-                            try:
-                                # Preferred `execute` signature tries to accept query kwarg
-                                self.db_engine_spec.execute(cursor, sql_, self, query=query)
-                            except TypeError:
-                                # Older signatures may not accept the keyword; fall back
-                                self.db_engine_spec.execute(cursor, sql_, self)
-                    except Exception:
-                        # Do not interrupt query execution for instrumentation/logging failures
-                        logger.debug("Error while routing execute call to engine spec", exc_info=True)
+                                    _db.session.commit()
+                        except Exception:
+                            logger.debug(
+                                "Could not obtain or persist cancel id for query",
+                                exc_info=True,
+                            )
+
+                        try:
+                            # Preferred `execute` signature tries to accept query kwarg
+                            self.db_engine_spec.execute(cursor, sql_, self, query=query)
+                        except TypeError:
+                            # Older signatures may not accept the keyword; fall back
+                            self.db_engine_spec.execute(cursor, sql_, self)
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:

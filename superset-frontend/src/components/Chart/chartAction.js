@@ -382,7 +382,7 @@ export function addChart(chart, key) {
 }
 
 export function handleChartDataResponse(response, json, useLegacyApi) {
-  // todo: hopefully handle responses of chart view
+  // TODO: Add handling for chart view responses in future implementation
 
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
