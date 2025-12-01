@@ -77,6 +77,7 @@ from superset.utils.core import (
     merge_extra_filters,
     simple_filter_to_adhoc,
 )
+from superset.utils.currency import detect_currency
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import md5_sha_from_str
 
@@ -476,6 +477,32 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return md5_sha_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
+    def _detect_currency(self, query_obj: QueryObjectDict | None = None) -> str | None:
+        """
+        Detect currency from filtered data for AUTO mode currency formatting.
+
+        Delegates to the shared detect_currency utility with parameters extracted
+        from the legacy query object.
+
+        :param query_obj: The query object with filters
+        :return: ISO 4217 currency code (e.g., "USD") or None
+        """
+        # Only detect if currency_format.symbol is AUTO
+        currency_format = self.form_data.get("currency_format", {})
+        if currency_format.get("symbol") != "AUTO":
+            return None
+
+        base_query_obj = query_obj or self.query_obj()
+        return detect_currency(
+            datasource=self.datasource,
+            filters=base_query_obj.get("filter"),
+            granularity=base_query_obj.get("granularity"),
+            from_dttm=base_query_obj.get("from_dttm"),
+            to_dttm=base_query_obj.get("to_dttm"),
+            extras=base_query_obj.get("extras"),
+        )
+
+    @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
         """Returns a payload of metadata and data"""
 
@@ -514,6 +541,11 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
+
+        # Add detected currency for AUTO mode formatting
+        if detected_currency := self._detect_currency(query_obj):
+            payload["detected_currency"] = detected_currency
+
         return payload
 
     @deprecated(deprecated_in="3.0")

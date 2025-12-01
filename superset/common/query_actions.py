@@ -33,6 +33,7 @@ from superset.utils.core import (
     get_column_name,
     get_time_filter_status,
 )
+from superset.utils.currency import detect_currency
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -109,63 +110,22 @@ def _detect_currency(
     """
     Detect currency from filtered data for AUTO mode currency formatting.
 
-    Executes a lightweight query to get distinct currency values using the same
-    filters as the main query. Returns the currency code if all filtered data
-    contains a single currency, or None if multiple currencies are present.
+    Delegates to the shared detect_currency utility with parameters extracted
+    from the QueryObject.
 
-    :param query_context: The query context
+    :param query_context: The query context (unused, kept for API compatibility)
     :param query_obj: The original query object with filters
     :param datasource: The datasource being queried
     :return: ISO 4217 currency code (e.g., "USD") or None
     """
-    # Check if datasource has a currency code column configured
-    currency_column = getattr(datasource, "currency_code_column", None)
-    if not currency_column:
-        return None
-
-    try:
-        # Create a modified query object that only selects the currency column
-        # with the same filters applied
-        currency_query_obj = copy.copy(query_obj)
-        currency_query_obj.columns = [currency_column]
-        currency_query_obj.metrics = []
-        currency_query_obj.orderby = []
-        currency_query_obj.row_limit = 1000  # Reasonable limit for distinct values
-        currency_query_obj.row_offset = 0
-        currency_query_obj.is_timeseries = False
-        currency_query_obj.post_processing = []
-        currency_query_obj.series_columns = []
-        currency_query_obj.series_limit = 0
-        currency_query_obj.series_limit_metric = None
-
-        # Execute the query to get currency values
-        result = datasource.query(currency_query_obj.to_dict())
-
-        if result.status != QueryStatus.SUCCESS or result.df.empty:
-            return None
-
-        # Get unique non-null currency values
-        if currency_column not in result.df.columns:
-            return None
-
-        unique_currencies = (
-            result.df[currency_column].dropna().astype(str).str.upper().unique()
-        )
-
-        # Return single currency if only one exists, None otherwise
-        if len(unique_currencies) == 1:
-            return str(unique_currencies[0])
-
-        return None
-
-    except Exception:  # pylint: disable=broad-except
-        # Currency detection should never block the main query
-        logger.warning(
-            "Failed to detect currency for datasource %s",
-            getattr(datasource, "id", "unknown"),
-            exc_info=True,
-        )
-        return None
+    return detect_currency(
+        datasource=datasource,
+        filters=query_obj.filter,
+        granularity=query_obj.granularity,
+        from_dttm=query_obj.from_dttm,
+        to_dttm=query_obj.to_dttm,
+        extras=query_obj.extras,
+    )
 
 
 def _get_full(

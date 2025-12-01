@@ -52,7 +52,7 @@ export default function transformProps(chartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const data = queriesData[0].data;
+  const { data, detected_currency: detectedCurrency } = queriesData[0];
 
   const formatter = getValueFormatter(
     metric,
@@ -63,6 +63,7 @@ export default function transformProps(chartProps) {
     undefined,
     data,
     currencyCodeColumn,
+    detectedCurrency,
   );
 
   return {
