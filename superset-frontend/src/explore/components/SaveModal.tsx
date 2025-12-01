@@ -393,7 +393,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       return response;
     } catch (error) {
       throw new Error('Error adding chart to dashboard tab:', error);
-      throw error;
     }
   };
 
