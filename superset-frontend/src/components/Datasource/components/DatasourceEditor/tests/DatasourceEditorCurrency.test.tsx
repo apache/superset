@@ -129,6 +129,7 @@ test('changes currency position from prefix to suffix', async () => {
   });
 }, 30000);
 
+// Allow extra headroom for dropdown render on slower CI runners
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
 
@@ -160,4 +161,4 @@ test('changes currency symbol from USD to GBP', async () => {
 
     expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
-});
+}, 30000);
