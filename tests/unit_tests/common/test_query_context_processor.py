@@ -440,11 +440,12 @@ def test_get_temporal_column_for_filter_with_x_axis_fallback(processor):
 
 
 def test_get_temporal_column_for_filter_with_datasource_columns(processor):
-    """Test _get_temporal_column_for_filter finds datetime column from datasource."""
+    """Test _get_temporal_column_for_filter
+    returns None when no clear temporal column."""
     query_object = MagicMock()
     query_object.granularity = None
+    query_object.filter = []
 
-    # Mock datasource with datetime columns
     mock_datetime_col = MagicMock()
     mock_datetime_col.is_dttm = True
     mock_datetime_col.column_name = "created_at"
@@ -459,21 +460,18 @@ def test_get_temporal_column_for_filter_with_datasource_columns(processor):
         query_object, None
     )
 
-    assert result == "created_at"
+    assert result is None
 
 
-def test_get_temporal_column_for_filter_with_datasource_name_attr(processor):
-    """Test _get_temporal_column_for_filter with columns using name attribute."""
+def test_get_temporal_column_for_filter_prefers_granularity(processor):
+    """Test _get_temporal_column_for_filter uses granularity when available."""
     query_object = MagicMock()
-    query_object.granularity = None
+    query_object.granularity = "timestamp_col"
+    query_object.filter = []
 
-    # Mock datasource with datetime column using 'name' attribute
-    # instead of 'column_name'
     mock_datetime_col = MagicMock()
     mock_datetime_col.is_dttm = True
-    mock_datetime_col.name = "timestamp_col"
-    # Remove column_name attribute to test name fallback
-    del mock_datetime_col.column_name
+    mock_datetime_col.name = "other_col"
 
     processor._qc_datasource.columns = [mock_datetime_col]
 
