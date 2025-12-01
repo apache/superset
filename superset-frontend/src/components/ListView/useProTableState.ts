@@ -21,6 +21,9 @@
  * A simplified state management hook for ProTable that replaces the heavy
  * react-table based useListViewState. This hook manages pagination, sorting,
  * filtering, and view mode state while syncing with URL query params.
+ *
+ * Note: Row selection uses row.id when available for stable selection across
+ * pagination. If row.id is not present, it falls back to array index.
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
@@ -194,9 +197,13 @@ export function useProTableState<T extends object>({
   // Selection state
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
-  // Computed selected rows
+  // Computed selected rows - uses row.id when available, falls back to index
   const selectedRows = useMemo(
-    () => data.filter((_, index) => selectedRowKeys.includes(String(index))),
+    () =>
+      data.filter((row, index) => {
+        const rowKey = String((row as { id?: number | string }).id ?? index);
+        return selectedRowKeys.includes(rowKey);
+      }),
     [data, selectedRowKeys],
   );
 
@@ -261,6 +268,7 @@ export function useProTableState<T extends object>({
       sortBy,
       filters: convertFilters(internalFilters),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageIndex, pageSize, sortBy, internalFilters, viewMode, renderCard]);
 
   // Reset to first page if current page is invalid
@@ -270,11 +278,12 @@ export function useProTableState<T extends object>({
     }
   }, [pageCount, pageIndex]);
 
-  // Sync from URL on initial load
+  // Sync from URL on initial load - intentionally only runs once on mount
   useEffect(() => {
     if (query.pageIndex !== undefined && query.pageIndex !== pageIndex) {
       setPageIndex(query.pageIndex);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Actions
@@ -308,7 +317,12 @@ export function useProTableState<T extends object>({
   const toggleAllRowsSelected = useCallback(
     (selected: boolean) => {
       if (selected) {
-        setSelectedRowKeys(data.map((_, index) => String(index)));
+        // Use row.id when available for stable selection
+        setSelectedRowKeys(
+          data.map((row, index) =>
+            String((row as { id?: number | string }).id ?? index),
+          ),
+        );
       } else {
         setSelectedRowKeys([]);
       }

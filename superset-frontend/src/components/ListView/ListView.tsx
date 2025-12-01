@@ -31,8 +31,10 @@ import cx from 'classnames';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 
 import { ProTable, type ProColumns } from '@ant-design/pro-components';
+/* eslint-disable no-restricted-imports */
 import { ConfigProvider } from 'antd';
 import enUS from 'antd/locale/en_US';
+/* eslint-enable no-restricted-imports */
 
 import {
   Button,
@@ -349,7 +351,10 @@ export function ListView<T extends object = any>({
           ? (_: unknown, record: T & { _rowKey: string }) =>
               col.Cell({
                 value: dataIndex
-                  ? dataIndex.split('.').reduce((obj: any, key: string) => obj?.[key], record)
+                  ? (Array.isArray(dataIndex) ? dataIndex : dataIndex.split('.')).reduce(
+                      (obj: any, key: string) => obj?.[key],
+                      record,
+                    )
                   : undefined,
                 row: { original: record, id: record._rowKey },
               })
@@ -359,8 +364,13 @@ export function ListView<T extends object = any>({
   }, [columns, sortBy, columnsForWrapText]);
 
   // Add row keys to data for selection and identification
+  // Use row.id if available for stable selection across pagination, fallback to index
   const dataWithKeys = useMemo(
-    () => data.map((row, index) => ({ ...row, _rowKey: String(index) })),
+    () =>
+      data.map((row, index) => ({
+        ...row,
+        _rowKey: String((row as { id?: number | string }).id ?? index),
+      })),
     [data],
   );
 
@@ -456,20 +466,24 @@ export function ListView<T extends object = any>({
   }, [gotoPage, loading, pageCount, pageIndex]);
 
   // For CardCollection compatibility - create row objects with selection methods
+  // Uses row._rowKey which is based on row.id when available
   const cardRows = useMemo(
     () =>
-      dataWithKeys.map((row, index) => ({
-        id: String(index),
-        original: row,
-        isSelected: selectedRowKeys.includes(String(index)),
-        toggleRowSelected: (value?: boolean) => {
-          const newKeys =
-            value ?? !selectedRowKeys.includes(String(index))
-              ? [...selectedRowKeys, String(index)]
-              : selectedRowKeys.filter(k => k !== String(index));
-          setSelectedRowKeys(newKeys);
-        },
-      })),
+      dataWithKeys.map(row => {
+        const rowKey = row._rowKey;
+        return {
+          id: rowKey,
+          original: row,
+          isSelected: selectedRowKeys.includes(rowKey),
+          toggleRowSelected: (value?: boolean) => {
+            const newKeys =
+              value ?? !selectedRowKeys.includes(rowKey)
+                ? [...selectedRowKeys, rowKey]
+                : selectedRowKeys.filter(k => k !== rowKey);
+            setSelectedRowKeys(newKeys);
+          },
+        };
+      }),
     [dataWithKeys, selectedRowKeys, setSelectedRowKeys],
   );
 
@@ -585,36 +599,36 @@ export function ListView<T extends object = any>({
                   <ProTable
                     data-test="listview-table"
                     actionRef={actionRef}
-                  columns={proColumns as ProColumns[]}
-                  dataSource={dataWithKeys}
-                  loading={loading && dataWithKeys.length > 0}
-                  search={false}
-                  options={false}
-                  rowKey="_rowKey"
-                  rowSelection={rowSelection}
-                  pagination={paginationConfig}
-                  locale={{ emptyText: null }}
-                  onChange={handleTableChange}
-                  tableAlertRender={false}
-                  toolBarRender={false}
-                  scroll={{ x: 'max-content' }}
-                  sortDirections={['ascend', 'descend']}
-                  rowClassName={record =>
-                    (record as T & { id?: number }).id === highlightRowId
-                      ? 'table-row-highlighted'
-                      : ''
-                  }
-                  components={{
-                    header: {
-                      cell: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
-                        <th {...props} data-test="sort-header" role="columnheader" />
-                      ),
-                    },
-                    body: {
-                      row: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
-                        <tr {...props} data-test="table-row" />
-                      ),
-                    },
+                    columns={proColumns as ProColumns[]}
+                    dataSource={dataWithKeys}
+                    loading={loading && dataWithKeys.length > 0}
+                    search={false}
+                    options={false}
+                    rowKey="_rowKey"
+                    rowSelection={rowSelection}
+                    pagination={paginationConfig}
+                    locale={{ emptyText: null }}
+                    onChange={handleTableChange}
+                    tableAlertRender={false}
+                    toolBarRender={false}
+                    scroll={{ x: 'max-content' }}
+                    sortDirections={['ascend', 'descend']}
+                    rowClassName={record =>
+                      (record as T & { id?: number }).id === highlightRowId
+                        ? 'table-row-highlighted'
+                        : ''
+                    }
+                    components={{
+                      header: {
+                        cell: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
+                          <th {...props} data-test="sort-header" role="columnheader" />
+                        ),
+                      },
+                      body: {
+                        row: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
+                          <tr {...props} data-test="table-row" />
+                        ),
+                      },
                     }}
                   />
                 </ConfigProvider>
