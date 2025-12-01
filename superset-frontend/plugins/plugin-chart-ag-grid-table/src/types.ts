@@ -191,9 +191,20 @@ export interface SortState {
   sort: 'asc' | 'desc' | null;
 }
 
+export type FilterInputPosition = 'first' | 'second' | 'unknown';
+
+export interface AGGridFilterInstance {
+  eGui?: HTMLElement;
+  eConditionBodies?: HTMLElement[];
+  eJoinAnds?: Array<{ eGui?: HTMLElement }>;
+  eJoinOrs?: Array<{ eGui?: HTMLElement }>;
+}
+
 export interface CustomContext {
   initialSortState: SortState[];
   onColumnHeaderClicked: (args: { column: SortState }) => void;
+  lastFilteredColumn?: string;
+  lastFilteredInputPosition?: FilterInputPosition;
 }
 
 export interface CustomHeaderParams extends IHeaderParams {
