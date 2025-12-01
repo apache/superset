@@ -479,8 +479,6 @@ export function getLegendProps(
   return legend;
 }
 
-
-
 export function getChartPadding(
   show: boolean,
   orientation: LegendOrientation,
