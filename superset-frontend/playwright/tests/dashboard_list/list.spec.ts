@@ -21,19 +21,19 @@ import { test, expect } from '@playwright/test';
 import { DashboardListPage } from '../../pages/DashboardListPage';
 
 /**
- * Dashboard list test suite.
- * Tests list/card view modes, sorting, bulk operations, and CRUD actions.
+ * Dashboard list E2E test suite.
  *
- * Migration notes from Cypress:
- * - Replaced cy.visit() with page object goto()
- * - Replaced cy.getBySel() with page.locator('[data-test="..."]')
- * - Replaced cy.get().should() chains with expect(locator).toBe...()
- * - Replaced cy.wait('@intercept') with page.waitForResponse() in page object
- * - Replaced .contains() with locator.filter({ hasText: '...' }) or getByText()
- * - Moved all API intercepts into page object methods (encapsulation)
- * - Moved helper functions into page object methods (DRY principle)
- * - Used beforeEach for test isolation instead of before/beforeEach mix
- * - Assertions stay in tests, actions moved to page object
+ * Per SIP-178, E2E tests focus on true end-to-end user workflows:
+ * - Page navigation and loading
+ * - View mode switching (list/card)
+ * - Bulk selection UI
+ * - CRUD operations (create, delete, edit, favorite)
+ *
+ * Filter/sort behavior is NOT tested here - that's covered by component tests:
+ * - src/components/ListView/ListView.test.tsx
+ *
+ * Note: setFilter() calls in CRUD tests are for deterministic test data ordering only,
+ * not for testing filter functionality.
  */
 test.describe('Dashboards list', () => {
     test.describe('list mode', () => {
@@ -64,24 +64,8 @@ test.describe('Dashboards list', () => {
             );
         });
 
-        test('should sort correctly in list mode', async () => {
-            // Sort ascending
-            await dashboardListPage.clickSortHeader(0);
-            await dashboardListPage.waitForLoadingComplete();
-            await expect(dashboardListPage.getTableRow(0)).toContainText(
-                'Supported Charts Dashboard',
-            );
-
-            // Sort descending
-            await dashboardListPage.clickSortHeader(0);
-            await dashboardListPage.waitForLoadingComplete();
-            await expect(dashboardListPage.getTableRow(0)).toContainText(
-                "World Bank's Data",
-            );
-
-            // Reset sort
-            await dashboardListPage.clickSortHeader(0);
-        });
+        // Sort behavior is tested in src/components/ListView/ListView.test.tsx
+        // See: 'calls fetchData on sort' test
 
         test('should bulk select in list mode', async () => {
             await dashboardListPage.toggleBulkSelect();
@@ -151,19 +135,7 @@ test.describe('Dashboards list', () => {
             await expect(dashboardListPage.getBulkSelectActions()).toHaveCount(0);
         });
 
-        test('should sort in card mode', async () => {
-            await dashboardListPage.setFilter('Sort', 'Alphabetical');
-            await expect(dashboardListPage.getCard(0)).toContainText(
-                'Supported Charts Dashboard',
-            );
-        });
-
-        test('should preserve other filters when sorting', async () => {
-            await expect(dashboardListPage.getCards()).toHaveCount(5);
-            await dashboardListPage.setFilter('Status', 'Published');
-            await dashboardListPage.setFilter('Sort', 'Least recently modified');
-            await expect(dashboardListPage.getCards()).toHaveCount(3);
-        });
+        // Sort/filter behavior is tested in src/components/ListView/ListView.test.tsx
     });
 
     test.describe('common actions', () => {

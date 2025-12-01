@@ -17,7 +17,6 @@
  * under the License.
  */
 import { test, expect } from '@playwright/test';
-import { nanoid } from 'nanoid';
 import { ExplorePage } from '../../pages/ExplorePage';
 
 // Migration of link.test.ts
@@ -47,7 +46,7 @@ test.describe('Explore links', () => {
     });
 
     test('Chart save as AND overwrite', async ({ page }) => {
-        const newChartName = `Test chart [${nanoid()}]`;
+        const newChartName = `Test chart [${Date.now()}]`;
         // Save As
         await explore.startSaveChart();
         await explore.chooseSaveAs();
@@ -70,8 +69,8 @@ test.describe('Explore links', () => {
 
     test('Chart save as and add to new dashboard', async ({ page }) => {
         const baseName = 'Growth Rate';
-        const newChartName = `${baseName} [${nanoid()}]`;
-        const dashboardTitle = `Test dashboard [${nanoid()}]`;
+        const newChartName = `${baseName} [${Date.now()}]`;
+        const dashboardTitle = `Test dashboard [${Date.now()}]`;
         // Save As + new dashboard
         await explore.startSaveChart();
         await explore.chooseSaveAs();
