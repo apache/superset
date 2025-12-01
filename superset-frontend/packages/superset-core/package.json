@@ -35,6 +35,8 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/fira-code": "^5.2.6",
+    "@fontsource/inter": "^5.2.6",
     "nanoid": "^5.0.9",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",

@@ -766,10 +766,7 @@ THEME_DEFAULT: Theme = {
         "colorSuccess": "#5ac189",
         "colorInfo": "#66bcfe",
         # Fonts
-        "fontUrls": [
-            "https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600&display=swap",
-            "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap",
-        ],
+        "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
