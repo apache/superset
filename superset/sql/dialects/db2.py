@@ -66,51 +66,6 @@ class DB2(Postgres):
     class Parser(Postgres.Parser):
         """DB2 SQL parser with support for labeled durations."""
 
-        def _parse_column(self) -> exp.Expression | None:
-            """
-            Override column parsing to prevent time units from being treated as aliases.
-
-            This is called during SELECT projection parsing. When SQLGlot sees a pattern
-            like `expr identifier`, it treats the identifier as an alias. We need to
-            check if this identifier is actually a DB2 time unit that should be parsed
-            as part of date arithmetic instead.
-            """
-            column = super()._parse_column()
-            if not column:
-                return None
-
-            # If we just parsed a column and the next token looks like it might be a
-            # time unit, check if it's preceded by a number (which would indicate
-            # labeled duration) Pattern: ... number DAYS
-            if (
-                self._prev
-                and self._prev.token_type
-                in (tokens.TokenType.NUMBER, tokens.TokenType.VAR)
-                and self._curr
-                and self._curr.token_type == tokens.TokenType.VAR
-                and self._curr.text.upper()
-                in {
-                    "MICROSECOND",
-                    "MICROSECONDS",
-                    "SECOND",
-                    "SECONDS",
-                    "MINUTE",
-                    "MINUTES",
-                    "HOUR",
-                    "HOURS",
-                    "DAY",
-                    "DAYS",
-                    "MONTH",
-                    "MONTHS",
-                    "YEAR",
-                    "YEARS",
-                }
-            ):
-                # Looks like time unit after number - treat as expression, not column
-                return None
-
-            return column
-
         def _parse_term(self) -> exp.Expression | None:
             """
             Override term parsing to support DB2 labeled durations.
@@ -128,7 +83,7 @@ class DB2(Postgres):
 
                 # Parse the right side of the + or -
                 rhs = self._parse_factor()
-                if not rhs:
+                if not rhs:  # pragma: no cover
                     break
 
                 # Check if there's a time unit after the right side
