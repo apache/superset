@@ -122,6 +122,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self._apply_granularity(query_object, form_data, datasource)
         self._apply_filters(query_object)
         self._add_tooltip_columns(query_object, form_data)
+        self._add_currency_column(query_object, form_data, datasource)
         return query_object
 
     def _add_tooltip_columns(
@@ -196,6 +197,39 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if column_name:
                         tooltip_columns.append(column_name)
         return tooltip_columns
+
+    def _add_currency_column(
+        self,
+        query_object: QueryObject,
+        form_data: dict[str, Any] | None,
+        datasource: BaseDatasource,
+    ) -> None:
+        """
+        Add currency_code_column to the query for cell-level currency detection.
+
+        When currency_format.symbol is 'AUTO', this injects the datasource's
+        currency_code_column into the query columns. This enables aggregated
+        queries (like pivot tables) to include currency codes per row,
+        allowing per-cell currency formatting based on the data.
+        """
+        if not form_data or not query_object.columns:
+            return
+
+        currency_format = form_data.get("currency_format", {})
+        if currency_format.get("symbol") != "AUTO":
+            return
+
+        currency_column = getattr(datasource, "currency_code_column", None)
+        if not currency_column:
+            return
+
+        existing_columns = self._get_existing_column_names(query_object.columns)
+        if currency_column in existing_columns:
+            return
+
+        # For simple columns (non-calculated), use the column name string directly.
+        # This is the standard format expected by the query system.
+        query_object.columns.append(currency_column)
 
     def _apply_granularity(  # noqa: C901
         self,
