@@ -27,6 +27,7 @@ import {
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
   props,
+  createProps,
   DATASOURCE_ENDPOINT,
   asyncRender,
   fastRender,
@@ -275,12 +276,12 @@ test('Source Tab: readOnly mode', async () => {
 test('calls onChange with empty SQL when switching to physical dataset', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 
-  props.onChange.mockClear();
+  const testProps = createProps();
 
   await asyncRender({
-    ...props,
+    ...testProps,
     datasource: {
-      ...props.datasource,
+      ...testProps.datasource,
       table_name: 'Vehicle Sales +',
       type: DatasourceType.Query,
       sql: 'SELECT * FROM users',
@@ -298,8 +299,8 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
   await userEvent.click(physicalRadioBtn);
 
   // Assert that the latest onChange call has empty SQL
-  expect(props.onChange).toHaveBeenCalled();
-  const updatedDatasource = props.onChange.mock.calls[0];
+  expect(testProps.onChange).toHaveBeenCalled();
+  const updatedDatasource = testProps.onChange.mock.calls[0];
   expect(updatedDatasource[0].sql).toBe('');
 });
 
