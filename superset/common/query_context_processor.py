@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, cast, ClassVar, TYPE_CHECKING
+from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
 from flask import current_app
@@ -251,9 +251,13 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
-    def ensure_totals_available(self) -> None:
-        queries_needing_totals = []
-        totals_queries = []
+    def _prepare_contribution_totals(self) -> tuple[list[int], int | None]:
+        """
+        Identify contribution queries and normalize the totals query so cache keys
+        align with cached results.
+        """
+        queries_needing_totals: list[int] = []
+        totals_idx: int | None = None
 
         for i, query in enumerate(self._query_context.queries):
             needs_totals = any(
@@ -267,16 +271,27 @@ class QueryContextProcessor:
             is_totals_query = (
                 not query.columns and query.metrics and not query.post_processing
             )
-            if is_totals_query:
-                totals_queries.append(i)
+            if is_totals_query and totals_idx is None:
+                totals_idx = i
 
-        if not queries_needing_totals or not totals_queries:
+        if queries_needing_totals and totals_idx is not None:
+            totals_query = self._query_context.queries[totals_idx]
+            totals_query.row_limit = None
+
+        return queries_needing_totals, totals_idx
+
+    def ensure_totals_available(
+        self,
+        queries_needing_totals: Sequence[int] | None = None,
+        totals_idx: int | None = None,
+    ) -> None:
+        if queries_needing_totals is None or totals_idx is None:
+            queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+
+        if not queries_needing_totals or totals_idx is None:
             return
 
-        totals_idx = totals_queries[0]
         totals_query = self._query_context.queries[totals_idx]
-
-        totals_query.row_limit = None
 
         result = self._query_context.get_query_result(totals_query)
         df = result.df
@@ -299,10 +314,12 @@ class QueryContextProcessor:
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
+        queries_needing_totals, totals_idx = self._prepare_contribution_totals()
+
         # Skip ensure_totals_available when force_cached=True
         # This prevents recalculating contribution_totals from cached results
         if not force_cached:
-            self.ensure_totals_available()
+            self.ensure_totals_available(queries_needing_totals, totals_idx)
 
             # Update cache_values to reflect modifications made by
             # ensure_totals_available()

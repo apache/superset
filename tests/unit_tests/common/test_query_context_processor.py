@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
 
@@ -1215,3 +1217,97 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     assert query1.cache_key() != query2.cache_key(), (
         "Cache keys should differ for different non-contribution post_processing"
     )
+
+
+def test_force_cached_normalizes_totals_query_row_limit():
+    """
+    When fetching from cache (force_cached=True), the totals query should still be
+    normalized so its cache key matches the cached entry, but the totals query should
+    not be executed.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.column_names = ["region", "sales"]
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.database.extra = "{}"
+    mock_datasource.database.impersonate_user = False
+    mock_datasource.database.db_engine_spec.get_impersonation_key.return_value = None
+
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["sales"],
+        row_limit=1000,
+    )
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["region"],
+        metrics=["sales"],
+        row_limit=1000,
+        post_processing=[{"operation": "contribution", "options": {}}],
+    )
+
+    totals_query.validate = MagicMock()
+    main_query.validate = MagicMock()
+
+    captured_limits: list[int | None] = []
+
+    def totals_cache_key(**kwargs: Any) -> str:
+        captured_limits.append(totals_query.row_limit)
+        return "totals-cache-key"
+
+    totals_query.cache_key = totals_cache_key
+    main_query.cache_key = lambda **kwargs: "main-cache-key"
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.datasource = mock_datasource
+    mock_query_context.queries = [main_query, totals_query]
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+    mock_query_context.cache_values = {
+        "queries": [main_query.to_dict(), totals_query.to_dict()]
+    }
+    mock_query_context.get_query_result = MagicMock()
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    mock_query_context.get_df_payload = processor.get_df_payload
+    mock_query_context.get_data = processor.get_data
+
+    with patch(
+        "superset.common.query_context_processor.security_manager"
+    ) as mock_security_manager:
+        mock_security_manager.get_rls_cache_key.return_value = None
+
+        with patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as mock_cache_manager:
+
+            def cache_get(*args: Any, **kwargs: Any) -> Any:
+                df = pd.DataFrame({"region": ["North"], "sales": [100]})
+                cache = MagicMock()
+                cache.is_loaded = True
+                cache.df = df
+                cache.query = "SELECT 1"
+                cache.error_message = None
+                cache.status = QueryStatus.SUCCESS
+                cache.applied_template_filters = []
+                cache.applied_filter_columns = []
+                cache.rejected_filter_columns = []
+                cache.annotation_data = {}
+                cache.is_cached = True
+                cache.sql_rowcount = len(df)
+                cache.cache_dttm = "2024-01-01T00:00:00"
+                return cache
+
+            mock_cache_manager.get.side_effect = cache_get
+
+            processor.get_payload(cache_query_context=False, force_cached=True)
+
+    assert captured_limits == [None], "Totals query should be normalized before caching"
+    mock_query_context.get_query_result.assert_not_called()
