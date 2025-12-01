@@ -31,7 +31,6 @@ import {
   QueryParamConfig,
 } from 'use-query-params';
 import rison from 'rison';
-import { isEqual } from 'lodash';
 import {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilter as Filter,
