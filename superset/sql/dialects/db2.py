@@ -154,7 +154,7 @@ class DB2(Postgres):
                         "YEARS",
                     }
                 ):
-                    # Yes! This is a DB2 labeled duration
+                    # Found a DB2 labeled duration
                     unit_token = self._curr
                     self._advance()
 
