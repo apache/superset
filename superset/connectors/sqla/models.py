@@ -102,6 +102,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.sql.parse import Table
+from superset.explorables.base import TimeGrainDict
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -265,7 +266,7 @@ class BaseDatasource(
         # Check if all requested columns are drillable
         return set(column_names).issubset(drillable_columns)
 
-    def get_time_grains(self) -> list[dict[str, Any]]:
+    def get_time_grains(self) -> list[TimeGrainDict]:
         """
         Get available time granularities from the database.
 
