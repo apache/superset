@@ -64,8 +64,11 @@ jobs:
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
+          echo "=== DEBUG: Git info ==="
+          git log --oneline -1
+          git ls-tree HEAD -- docker/pythonpath_dev/superset_config_docker_light.py
           echo "=== DEBUG: File content before pre-commit ==="
-          head -25 docker/pythonpath_dev/superset_config_docker_light.py
+          cat -n docker/pythonpath_dev/superset_config_docker_light.py | head -30
           echo "=== END DEBUG ==="
           export SKIP=eslint-frontend,type-checking-frontend
           pre-commit run --all-files
