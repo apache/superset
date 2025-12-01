@@ -340,7 +340,6 @@ class Explorable(Protocol):
 
         :return: True if RLS is supported, False otherwise
         """
-        return False
 
     @property
     def query_language(self) -> str | None:

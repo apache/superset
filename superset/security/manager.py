@@ -726,13 +726,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        datasource_id = getattr(
-            datasource,
-            "id",
-            datasource.data.get("id") if hasattr(datasource, "data") else None,
-        )
         return (
-            f"This endpoint requires the datasource {datasource_id}, "
+            f"This endpoint requires the datasource {datasource.data['id']}, "
             "database or `all_datasource_access` permission"
         )
 
@@ -764,18 +759,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": getattr(
-                    datasource,
-                    "id",
-                    datasource.data.get("id") if hasattr(datasource, "data") else None,
-                ),
-                "datasource_name": getattr(
-                    datasource,
-                    "name",
-                    datasource.data.get("name")
-                    if hasattr(datasource, "data")
-                    else None,
-                ),
+                "datasource": datasource.data["id"],
+                "datasource_name": datasource.data["name"],
             },
         )
 
@@ -2489,14 +2474,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId")
-                                == getattr(
-                                    datasource,
-                                    "id",
-                                    datasource.data.get("id")
-                                    if hasattr(datasource, "data")
-                                    else None,
-                                )
+                                target.get("datasetId") == datasource.data["id"]
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
@@ -2610,16 +2588,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return: A list of filters
         """
         if guest_user := self.get_current_guest_user_if_guest():
-            dataset_id = getattr(
-                dataset,
-                "id",
-                dataset.data.get("id") if hasattr(dataset, "data") else None,
-            )
             return [
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset_id)
+                or str(rule.get("dataset")) == str(dataset.data["id"])
             ]
         return []
 
@@ -2659,11 +2632,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        table_id = getattr(
-            table, "id", table.data.get("id") if hasattr(table, "data") else None
-        )
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
-            RLSFilterTables.c.table_id == table_id
+            RLSFilterTables.c.table_id == table.data["id"]
         )
         query = (
             self.session.query(

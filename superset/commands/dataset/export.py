@@ -83,10 +83,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
         # SQLAlchemy returns column names as quoted_name objects which PyYAML cannot
         # serialize. Convert all keys to regular strings to fix YAML serialization.
-        try:
-            payload = {str(key): value for key, value in payload.items()}
-        except ImportError:
-            pass
+        payload = {str(key): value for key, value in payload.items()}
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
