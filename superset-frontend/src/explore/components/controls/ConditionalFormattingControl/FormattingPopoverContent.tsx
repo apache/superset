@@ -164,12 +164,17 @@ const renderOperator = ({
   showOnlyNone,
   columnType,
 }: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
-  const options =
-    columnType === GenericDataType.String
-      ? stringOperatorOptions
-      : columnType === GenericDataType.Boolean
-        ? booleanOperatorOptions
-        : operatorOptions;
+  let options;
+  switch (columnType) {
+    case GenericDataType.String:
+      options = stringOperatorOptions;
+      break;
+    case GenericDataType.Boolean:
+      options = booleanOperatorOptions;
+      break;
+    default:
+      options = operatorOptions;
+  }
 
   return (
     <FormItem
@@ -330,12 +335,20 @@ export const FormattingPopoverContent = ({
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
     if (newColumnType !== previousColumnType) {
-      const defaultOperator =
-        newColumnType === GenericDataType.String
-          ? stringOperatorOptions[0].value
-          : newColumnType === GenericDataType.Boolean
-            ? booleanOperatorOptions[0].value
-            : operatorOptions[0].value;
+      let defaultOperator: Comparator;
+
+      switch (newColumnType) {
+        case GenericDataType.String:
+          defaultOperator = stringOperatorOptions[0].value;
+          break;
+
+        case GenericDataType.Boolean:
+          defaultOperator = booleanOperatorOptions[0].value;
+          break;
+
+        default:
+          defaultOperator = operatorOptions[0].value;
+      }
 
       form.setFieldsValue({
         operator: defaultOperator,
