@@ -1644,14 +1644,6 @@ class SqlaTable(
         This overrides ExploreMixin.query() to add SqlaTable-specific behavior
         for handling column_order from extras.
         """
-        # Get the base result from ExploreMixin, forwarding optional Query model
-        try:
-            print(
-                f"[SqlaTable.query] dataset_id={getattr(self, 'id', None)} forwarding query_id={getattr(query, 'id', None) if query else None} client_id={getattr(query, 'client_id', None) if query else None}"
-            )
-        except Exception:
-            logger.debug("Could not print SqlaTable.query debug info", exc_info=True)
-
         result = ExploreMixin.query(self, query_obj, query=query)
 
         # Apply SqlaTable-specific column ordering

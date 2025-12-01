@@ -1414,12 +1414,6 @@ class ChartDataQueryContextSchema(Schema):
     result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 
     form_data = fields.Raw(allow_none=True, required=False)
-
-    client_id = fields.String(
-        allow_none=True,
-        required=False,
-        metadata={"description": "Client ID for tracking the query execution"},
-    )
     
     client_id = fields.String(
         required=False,
