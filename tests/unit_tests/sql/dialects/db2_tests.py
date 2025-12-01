@@ -15,9 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .db2 import DB2
-from .dremio import Dremio
-from .firebolt import Firebolt, FireboltOld
-from .pinot import Pinot
+from sqlglot import parse_one
 
-__all__ = ["DB2", "Dremio", "Firebolt", "FireboltOld", "Pinot"]
+from superset.sql.dialects.db2 import DB2
+
+
+def test_regexp_split() -> None:
+    """
+    Test that regexp_split works correctly in Dremio dialect.
+    """
+    sql = """
+SELECT "DATE" - (DAY("DATE")-1) DAYS AS "DATE", sum("TOTAL_FEE") AS "SUM(TOTAL_FEE)"
+    """
+
+    ast = parse_one(sql, dialect=DB2)
+    regenerated = ast.sql(dialect=DB2)
+
+    assert regenerated == (
+        'SELECT "DATE" - (DAY("DATE") - 1) DAYS AS "DATE", '
+        'SUM("TOTAL_FEE") AS "SUM(TOTAL_FEE)"'
+    )
