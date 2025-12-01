@@ -93,6 +93,27 @@ export class DashboardListPage {
     }
 
     /**
+     * Wait for the list view table to be visible.
+     * Follows same pattern as DatasetListPage/Table component.
+     */
+    async waitForTableLoad(options?: { timeout?: number }): Promise<void> {
+        await this.page
+            .locator(DashboardListPage.SELECTORS.LISTVIEW_TABLE)
+            .waitFor({ state: 'visible', ...options });
+    }
+
+    /**
+     * Wait for card view to be visible and populated with data.
+     */
+    async waitForCardLoad(): Promise<void> {
+        // Wait for at least one card to be visible
+        await this.page
+            .locator(DashboardListPage.SELECTORS.STYLED_CARD)
+            .first()
+            .waitFor({ state: 'visible' });
+    }
+
+    /**
      * Set grid view mode (card or list)
      */
     async setGridMode(mode: 'card' | 'list'): Promise<void> {
@@ -101,6 +122,13 @@ export class DashboardListPage {
                 ? DashboardListPage.SELECTORS.CARD_VIEW_BUTTON
                 : DashboardListPage.SELECTORS.LIST_VIEW_BUTTON;
         await this.page.locator(selector).click();
+
+        // Wait for the appropriate view to load
+        if (mode === 'list') {
+            await this.waitForTableLoad();
+        } else {
+            await this.waitForCardLoad();
+        }
     }
 
     /**
