@@ -33,6 +33,10 @@ from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
+# Viz types that support cell-level currency detection.
+# These charts can display different currencies per row/cell.
+CELL_LEVEL_CURRENCY_VIZ_TYPES = {"pivot_table_v2", "table"}
+
 
 def create_query_object_factory() -> QueryObjectFactory:
     return QueryObjectFactory(current_app.config, DatasourceDAO())
@@ -211,8 +215,16 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         currency_code_column into the query columns. This enables aggregated
         queries (like pivot tables) to include currency codes per row,
         allowing per-cell currency formatting based on the data.
+
+        Only applies to viz types that support cell-level detection (e.g., pivot tables)
+        Other charts like pie charts use the dataset-level detected_currency instead.
         """
         if not form_data or not query_object.columns:
+            return
+
+        # Only inject currency column for viz types that support cell-level detection
+        viz_type = form_data.get("viz_type")
+        if viz_type not in CELL_LEVEL_CURRENCY_VIZ_TYPES:
             return
 
         currency_format = form_data.get("currency_format", {})
