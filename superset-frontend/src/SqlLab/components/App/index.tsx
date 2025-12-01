@@ -37,6 +37,8 @@ import {
 } from 'src/logger/LogUtils';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
+import PopEditorTab from '../PopEditorTab';
+import SqlEditorSidebarWrapper from '../SqlEditorSidebarWrapper';
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -216,7 +218,11 @@ class App extends PureComponent<AppProps, AppState> {
           queries={queries}
           queriesLastUpdate={queriesLastUpdate}
         />
-        <TabbedSqlEditors />
+        <PopEditorTab>
+          <SqlEditorSidebarWrapper>
+            <TabbedSqlEditors />
+          </SqlEditorSidebarWrapper>
+        </PopEditorTab>
       </SqlLabStyles>
     );
   }
