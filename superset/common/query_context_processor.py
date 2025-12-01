@@ -160,8 +160,8 @@ class QueryContextProcessor:
                                 f"[query_context_processor] Query model created/reused: id={getattr(query_model, 'id', None)} "
                                 f"client_id={getattr(query_model, 'client_id', None)} database_id={getattr(query_model, 'database_id', None)}"
                             )
-                except Exception:  # pragma: no cover - best-effort creation
-                    logger.debug("Could not create Query model for chart query", exc_info=True)
+                        except Exception:  # pragma: no cover - best-effort creation
+                            logger.debug("Could not create Query model for chart query", exc_info=True)
 
                 query_result = self.get_query_result(query_obj, query=query_model)
                 annotation_data = self.get_annotation_data(query_obj)
