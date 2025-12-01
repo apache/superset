@@ -1386,7 +1386,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (sig !== clientViewSigRef.current) {
       clientViewSigRef.current = sig;
       updateTableOwnState(setDataMask, {
-        ...(serverPaginationData || {}),
+        ...serverPaginationData,
         clientView: {
           rows: clientViewRows,
           columns: exportColumns,
