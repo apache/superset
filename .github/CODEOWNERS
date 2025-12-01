@@ -33,6 +33,7 @@
 
 # Notify PMC members of changes to extension-related files
 
+/docs/developer_portal/extensions/ @michael-s-molina @villebro @rusackas
 /superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
 /superset-extensions-cli/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
 /superset/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
