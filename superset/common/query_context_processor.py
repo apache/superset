@@ -122,23 +122,23 @@ class QueryContextProcessor:
                 # behavior; it is best-effort and only created if the datasource has
                 # an underlying database.
                 query_model = None
-                try:
-                    from uuid import uuid4
+                if hasattr(self._qc_datasource, "database") and getattr(
+                    self._qc_datasource, "database", None
+                ) is not None:
+                    try:
+                        from uuid import uuid4
 
-                    from superset.extensions import db as _db
-                    from superset.models.sql_lab import Query as SqlLabQuery
-                    from superset.utils.core import get_user_id
+                        from superset.extensions import db as _db
+                        from superset.models.sql_lab import Query as SqlLabQuery
+                        from superset.utils.core import get_user_id
 
-                    # Use client_id if provided by the client (e.g., frontend)
-                    provided_client_id = (
-                        self._query_context.cache_values.get("client_id")
-                        if isinstance(self._query_context.cache_values, dict)
-                        else None
-                    )
+                        # Use client_id if provided by the client (e.g., frontend)
+                        provided_client_id = (
+                            self._query_context.cache_values.get("client_id")
+                            if isinstance(self._query_context.cache_values, dict)
+                            else None
+                        )
 
-                    if hasattr(self._qc_datasource, "database") and getattr(
-                        self._qc_datasource, "database", None
-                    ) is not None:
                         client_id = provided_client_id or uuid4().hex[:11]
 
                         # If a Query with this client_id already exists, reuse it.
@@ -154,14 +154,16 @@ class QueryContextProcessor:
                             )
                             _db.session.add(query_model)
                             _db.session.commit()
-                        # Emit debug info to help trace lifecycle of the persisted Query
-                        try:
-                            print(
-                                f"[query_context_processor] Query model created/reused: id={getattr(query_model, 'id', None)} "
-                                f"client_id={getattr(query_model, 'client_id', None)} database_id={getattr(query_model, 'database_id', None)}"
-                            )
-                        except Exception:  # pragma: no cover - best-effort creation
-                            logger.debug("Could not create Query model for chart query", exc_info=True)
+                        
+                        logger.debug(
+                            "[query_context_processor] Query model created/reused: id=%s client_id=%s database_id=%s",
+                            getattr(query_model, 'id', None),
+                            getattr(query_model, 'client_id', None),
+                            getattr(query_model, 'database_id', None),
+                        )
+                    except Exception:  # pragma: no cover - best-effort Query model creation
+                        logger.debug("Could not create Query model for chart query", exc_info=True)
+                        query_model = None
 
                 query_result = self.get_query_result(query_obj, query=query_model)
                 annotation_data = self.get_annotation_data(query_obj)
