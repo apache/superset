@@ -116,7 +116,7 @@ repos:
         types: [python]
       - id: ruff
         name: ruff
-        entry: ruff check --fix
+        entry: ruff check --fix --show-fixes
         language: system
         types: [python]
   - repo: local
