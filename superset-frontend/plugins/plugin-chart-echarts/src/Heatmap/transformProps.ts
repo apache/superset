@@ -109,7 +109,7 @@ function sortAxisValues(
       }
     });
 
-    return values.sort((a, b) => {
+    return [...values].sort((a, b) => {
       const aValue = valueMap.get(a) || 0;
       const bValue = valueMap.get(b) || 0;
       return isAscending ? aValue - bValue : bValue - aValue;
