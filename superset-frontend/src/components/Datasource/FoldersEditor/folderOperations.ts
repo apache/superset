@@ -24,6 +24,7 @@
 
 import { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
+import { v4 as uuidv4 } from 'uuid';
 import {
   DatasourceFolder,
   DatasourceFolderItem,
@@ -36,7 +37,7 @@ import {
 } from './constants';
 
 export const createFolder = (name: string): DatasourceFolder => ({
-  uuid: window.crypto.randomUUID(),
+  uuid: uuidv4(),
   type: FoldersEditorItemType.Folder,
   name,
   children: [],
