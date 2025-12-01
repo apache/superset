@@ -431,14 +431,6 @@ def init(
     frontend_opt: bool | None,
     backend_opt: bool | None,
 ) -> None:
-    # Check if running in non-interactive mode (required options provided)
-    non_interactive = (
-        id_opt is not None
-        and name_opt is not None
-        and frontend_opt is not None
-        and backend_opt is not None
-    )
-
     id_ = id_opt or click.prompt(
         "Extension ID (unique identifier, alphanumeric only)", type=str
     )
@@ -451,24 +443,8 @@ def init(
     name = name_opt or click.prompt(
         "Extension name (human-readable display name)", type=str
     )
-    version = (
-        version_opt
-        if version_opt is not None
-        else (
-            "0.1.0"
-            if non_interactive
-            else click.prompt("Initial version", default="0.1.0")
-        )
-    )
-    license_ = (
-        license_opt
-        if license_opt is not None
-        else (
-            "Apache-2.0"
-            if non_interactive
-            else click.prompt("License", default="Apache-2.0")
-        )
-    )
+    version = version_opt or click.prompt("Initial version", default="0.1.0")
+    license_ = license_opt or click.prompt("License", default="Apache-2.0")
     include_frontend = (
         frontend_opt
         if frontend_opt is not None

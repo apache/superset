@@ -399,8 +399,8 @@ def test_init_non_interactive_with_all_options(cli_runner, isolated_filesystem):
 
 
 @pytest.mark.cli
-def test_init_non_interactive_frontend_only(cli_runner, isolated_filesystem):
-    """Test non-interactive mode with frontend only."""
+def test_init_frontend_only_with_cli_options(cli_runner, isolated_filesystem):
+    """Test init with frontend only using CLI options."""
     result = cli_runner.invoke(
         app,
         [
@@ -409,6 +409,10 @@ def test_init_non_interactive_frontend_only(cli_runner, isolated_filesystem):
             "frontend_ext",
             "--name",
             "Frontend Extension",
+            "--version",
+            "1.0.0",
+            "--license",
+            "MIT",
             "--frontend",
             "--no-backend",
         ],
@@ -422,8 +426,8 @@ def test_init_non_interactive_frontend_only(cli_runner, isolated_filesystem):
 
 
 @pytest.mark.cli
-def test_init_non_interactive_backend_only(cli_runner, isolated_filesystem):
-    """Test non-interactive mode with backend only."""
+def test_init_backend_only_with_cli_options(cli_runner, isolated_filesystem):
+    """Test init with backend only using CLI options."""
     result = cli_runner.invoke(
         app,
         [
@@ -432,6 +436,10 @@ def test_init_non_interactive_backend_only(cli_runner, isolated_filesystem):
             "backend_ext",
             "--name",
             "Backend Extension",
+            "--version",
+            "1.0.0",
+            "--license",
+            "MIT",
             "--no-frontend",
             "--backend",
         ],
@@ -445,8 +453,9 @@ def test_init_non_interactive_backend_only(cli_runner, isolated_filesystem):
 
 
 @pytest.mark.cli
-def test_init_non_interactive_uses_defaults(cli_runner, isolated_filesystem):
-    """Test that non-interactive mode uses defaults for version and license."""
+def test_init_prompts_for_missing_options(cli_runner, isolated_filesystem):
+    """Test that init prompts for options not provided via CLI and uses defaults."""
+    # Provide id and name via CLI, but version/license will be prompted (accept defaults)
     result = cli_runner.invoke(
         app,
         [
@@ -458,6 +467,7 @@ def test_init_non_interactive_uses_defaults(cli_runner, isolated_filesystem):
             "--frontend",
             "--backend",
         ],
+        input="\n\n",  # Accept defaults for version and license prompts
     )
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
