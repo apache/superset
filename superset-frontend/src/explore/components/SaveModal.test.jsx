@@ -366,7 +366,7 @@ test('disables tab selector when no dashboard selected', () => {
   expect(tabSelector).toBeDisabled();
 });
 
-test('renders tab selector when saving as ', async () => {
+test('renders tab selector when saving as', async () => {
   const { getByRole, getByTestId } = setup();
   fireEvent.click(getByRole('radio', { name: 'Save as...' }));
   const selection = getByTestId('mock-async-select');
