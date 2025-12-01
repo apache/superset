@@ -687,7 +687,7 @@ def cancel_query(query: Query) -> bool:
     try:
         query.database.db_engine_spec.prepare_cancel_query(query)
     except Exception:
-        logger.debug("prepare_cancel_query failed", exc_info=True)
+        logger.warning("prepare_cancel_query failed", exc_info=True)
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.
@@ -715,4 +715,5 @@ def cancel_query(query: Query) -> bool:
                     )
                     return result
                 except Exception:
+                    logger.warning("cancel_query failed", exc_info=True)
                     return False

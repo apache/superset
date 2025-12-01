@@ -240,7 +240,6 @@ export const buildV1ChartDataPayload = async ({
   );
   
   if (clientId) {
-    console.log('Adding client_id to chart data payload:', clientId);
     return {
       ...queryContext,
       client_id: clientId,

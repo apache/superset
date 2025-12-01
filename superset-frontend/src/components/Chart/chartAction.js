@@ -382,8 +382,6 @@ export function addChart(chart, key) {
 }
 
 export function handleChartDataResponse(response, json, useLegacyApi) {
-
-  console.log('handleChartDataResponse', response, json, useLegacyApi);
   // todo: hopefully handle responses of chart view
 
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -433,10 +431,8 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
-    
+
     const clientId = nanoid(11);
-    console.log('Generated client_id for chart query:', clientId);
-    
     dispatch(chartUpdateStarted(controller, formData, key, clientId));
     /**
      * Abort in-flight requests after the new controller has been stored in

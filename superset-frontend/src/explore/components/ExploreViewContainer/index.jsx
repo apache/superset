@@ -412,7 +412,7 @@ function ExploreViewContainer(props) {
         body: JSON.stringify({ client_id: queryId }),
         headers: { 'Content-Type': 'application/json' },
       }).catch(error => {
-        console.error('Error stopping query on backend:', error);
+        props.addDangerToast('Failed to stop query.');
       });
     }
   }

@@ -821,14 +821,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         mutator: Callable[[pd.DataFrame], None] | None = None,
         query: 'Query' | None = None,
     ) -> pd.DataFrame:
-        try:
-            print(
-                f"[Database.get_df] called for database_id={getattr(self, 'id', None)} "
-                f"query_id={getattr(query, 'id', None) if query is not None else None} "
-                f"client_id={getattr(query, 'client_id', None) if query is not None else None}"
-            )
-        except Exception:
-            logger.debug("Could not print Database.get_df debug info", exc_info=True)
+        logger.debug(
+            f"[Database.get_df] called for database_id={getattr(self, 'id', None)}"
+            f"query_id={getattr(query, 'id', None) if query is not None else None} "
+            f"client_id={getattr(query, 'client_id', None) if query is not None else None}"
+        )
 
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
             sql, catalog, schema, fetch_last_result=True, query=query
