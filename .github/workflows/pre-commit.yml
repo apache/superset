@@ -80,6 +80,8 @@ jobs:
               echo "❌ Pre-commit check failed (exit code: ${PRE_COMMIT_EXIT_CODE})."
               echo "🔍 Modified files:"
               git diff --name-only
+              echo "🔍 Actual diff:"
+              git diff
             else
               echo "❌ Git working directory is dirty."
               echo "📌 This likely means that pre-commit made changes that were not committed."
