@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import * as mqtt from 'mqtt/dist/mqtt.min';
+import mqtt, { type MqttClient } from 'mqtt';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import type { RootState } from 'src/dashboard/types';
 
@@ -71,7 +71,7 @@ const GLOBAL_TOPIC = 'smartLight/events';
 const MqttEventListener = () => {
   const { addInfoToast, addWarningToast, addDangerToast, addSuccessToast } = useToasts();
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
-  const clientRef = useRef<mqtt.MqttClient | null>(null);
+  const clientRef = useRef<MqttClient | null>(null);
   const isConnectedRef = useRef(false);
 
   useEffect(() => {
