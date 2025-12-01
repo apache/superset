@@ -21,6 +21,7 @@ import {
   ControlPanelConfig,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import { RotationControl, ColorSchemeControl } from './controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -63,25 +64,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<RotationControl name="rotation" key="rotation" renderTrigger />],
         [
-          {
-            name: 'rotation',
-            config: {
-              type: 'SelectControl',
-              label: t('Word Rotation'),
-              choices: [
-                ['random', t('random')],
-                ['flat', t('flat')],
-                ['square', t('square')],
-              ],
-              renderTrigger: true,
-              default: 'square',
-              clearable: false,
-              description: t('Rotation to apply to words in the cloud'),
-            },
-          },
+          <ColorSchemeControl
+            name="color_scheme"
+            key="color_scheme"
+            renderTrigger
+          />,
         ],
-        ['color_scheme'],
       ],
     },
   ],
