@@ -1,6 +1,7 @@
 {
   "name": "superset",
   "version": "0.0.0-dev",
+  "private": true,
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -388,5 +389,6 @@
   "scarfSettings": {
     "allowTopLevel": true
   },
-  "_id": "superset@0.0.0-dev"
+  "_id": "superset@0.0.0-dev",
+  "packageManager": "yarn@4.12.0"
 }

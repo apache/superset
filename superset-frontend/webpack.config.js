@@ -61,7 +61,7 @@ const {
 } = parsedArgs;
 
 // Precedence: CLI args > env vars > defaults
-const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
+const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9003;
 const devserverHost =
   cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
 
