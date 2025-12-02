@@ -25,11 +25,12 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Protocol, runtime_checkable, TypedDict
+from typing import Any, Protocol, runtime_checkable, TYPE_CHECKING, TypedDict
 
-from superset.common.query_object import QueryObject
-from superset.models.helpers import QueryResult
-from superset.superset_typing import BaseDatasourceData, QueryObjectDict
+if TYPE_CHECKING:
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+    from superset.superset_typing import ExplorableData, QueryObjectDict
 
 
 class TimeGrainDict(TypedDict):
@@ -173,7 +174,7 @@ class Explorable(Protocol):
         """
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         """
         Full metadata representation sent to the frontend.
 

@@ -195,7 +195,7 @@ class QueryObjectDict(TypedDict, total=False):
     timeseries_limit_metric: Metric | None
 
 
-class BaseDatasourceData(TypedDict, total=False):
+class ExplorableData(TypedDict, total=False):
     """
     TypedDict for explorable data returned to the frontend.
 

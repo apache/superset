@@ -85,6 +85,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -102,11 +103,10 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.sql.parse import Table
-from superset.explorables.base import TimeGrainDict
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
-    BaseDatasourceData,
+    ExplorableData,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
@@ -436,7 +436,7 @@ class BaseDatasource(
         return verb_map
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
@@ -1429,7 +1429,7 @@ class SqlaTable(
         return [(g.duration, g.name) for g in self.database.grains() or []]
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         data_ = super().data
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla

@@ -96,6 +96,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+from superset.explorables.base import Explorable
 from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -115,7 +116,6 @@ from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
-    from superset.explorables.base import Explorable
     from superset.models.core import Database
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -1656,9 +1656,7 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
     return "string"  # If no match is found, return "string" as default
 
 
-def get_metric_type_from_column(
-    column: Any, datasource: "Explorable"
-) -> str:
+def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     """
     Determine the metric type from a given column in a datasource.
 
@@ -1700,7 +1698,7 @@ def get_metric_type_from_column(
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: "Explorable | None" = None,
+    datasource: Explorable | None = None,
 ) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1771,7 +1769,7 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "Explorable",
+    datasource: Explorable,
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {

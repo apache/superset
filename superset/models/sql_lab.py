@@ -50,8 +50,8 @@ from superset_core.api.models import Query as CoreQuery, SavedQuery as CoreSaved
 
 from superset import security_manager
 from superset.exceptions import SupersetParseError, SupersetSecurityException
-from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.explorables.base import TimeGrainDict
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
     ExploreMixin,
@@ -64,7 +64,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import BaseDatasourceData, QueryObjectDict
+from superset.superset_typing import ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     get_column_name,
@@ -240,7 +240,7 @@ class Query(
         return None
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         """Returns query data for the frontend"""
         order_by_choices = []
         for col in self.columns:
