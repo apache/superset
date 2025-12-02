@@ -429,6 +429,10 @@ const config: Config = {
             },
           ],
         },
+        {
+          label: 'In the Wild',
+          to: '/inTheWild'
+        },
         ...dynamicNavbarItems,
         {
           href: '/docs/intro',
