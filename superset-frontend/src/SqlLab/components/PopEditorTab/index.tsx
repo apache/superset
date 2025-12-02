@@ -58,18 +58,18 @@ const PopEditorTab: React.FC = ({ children }) => {
   const popSqlEditor = useEffectEvent(() => {
     const bootstrapData = getBootstrapData();
     const {
-      id,
-      name,
-      sql,
-      savedQueryId,
-      datasourceKey,
-      queryId,
-      dbid,
-      catalog,
-      schema,
-      autorun,
-      permalink,
-      new: isNewQuery,
+      id = undefined,
+      name = undefined,
+      sql = undefined,
+      savedQueryId = undefined,
+      datasourceKey = undefined,
+      queryId = undefined,
+      dbid = undefined,
+      catalog = undefined,
+      schema = undefined,
+      autorun = undefined,
+      permalink = undefined,
+      new: isNewQuery = undefined,
       ...restUrlParams
     } = {
       ...requestedQuery,

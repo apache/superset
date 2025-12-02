@@ -37,7 +37,6 @@ import {
   REMOVE_QUERY_EDITOR,
   QUERY_EDITOR_SET_TITLE,
   ADD_QUERY_EDITOR,
-  QUERY_EDITOR_TOGGLE_LEFT_BAR,
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
