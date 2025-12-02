@@ -36,6 +36,7 @@ import {
   t,
   VizType,
   useTheme,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -476,6 +477,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
+  const extensionsRegistry = getExtensionsRegistry();
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -1597,7 +1603,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let mode = 'multiple';
     if (filterType === 'filter_time') {
       return (
-        <DateFilterControl
+        <DateFilterComponent
           name="time_range"
           onChange={timeRange => {
             setNativeFilterData(
