@@ -353,6 +353,7 @@ export const StyledInputContainer = styled.div`
         display: flex;
         flex-direction: column;
         flex: 1;
+        ovwerflow: auto;
       }
 
       .filters-delete {
