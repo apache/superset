@@ -285,7 +285,6 @@ export default function transformProps(
 
         if (xIndex === undefined || yIndex === undefined) {
           // Log a warning for debugging
-          // eslint-disable-next-line no-console
           logging.warn(
             `Heatmap: Skipping row due to missing axis value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
             row,
