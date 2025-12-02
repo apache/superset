@@ -31,6 +31,7 @@ import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewButton from '../gridComponents/new/NewButton';
 import NewModel3D from '../gridComponents/new/NewModel3D';
+import NewAlerts from '../gridComponents/new/NewAlerts';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
@@ -102,6 +103,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
                 <NewMarkdown />
                 <NewButton />
                 <NewModel3D />
+                <NewAlerts />
                 <NewDivider />
                 {dashboardComponents
                   .getAll()

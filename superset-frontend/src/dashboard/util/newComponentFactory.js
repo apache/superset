@@ -30,6 +30,7 @@ import {
   TAB_TYPE,
   BUTTON_TYPE,
   MODEL3D_TYPE,
+  ALERTS_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -81,6 +82,17 @@ const typeToDefaultMetaData = {
     errorMessage: t('Unable to execute action.'),
     confirmBeforeExecute: false,
     confirmMessage: t('Are you sure you want to run this action?'),
+  },
+  [ALERTS_TYPE]: {
+    width: GRID_DEFAULT_CHART_WIDTH,
+    height: GRID_MIN_ROW_UNITS,
+    text: t('Alert Listener'),
+    mqttTopic: '',
+    includeGlobalTopic: true,
+    eventFilter: '',
+    severityFilter: [],
+    showVisualIndicator: true,
+    indicatorColor: '#1890ff',
   },
   [DYNAMIC_TYPE]: {
     width: GRID_COLUMN_COUNT,

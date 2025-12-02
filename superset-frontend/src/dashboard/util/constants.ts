@@ -33,6 +33,7 @@ export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
 export const NEW_BUTTON_ID = 'NEW_BUTTON_ID';
 export const NEW_MODEL3D_ID = 'NEW_MODEL3D_ID';
+export const NEW_ALERTS_ID = 'NEW_ALERTS_ID';
 export const NEW_DYNAMIC_COMPONENT = 'NEW_DYNAMIC_COMPONENT';
 
 // grid constants

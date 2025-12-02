@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  BUTTON_TYPE,
-  MODEL3D_TYPE,
-  ALERTS_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import { t } from '@superset-ui/core';
 
-export default function componentIsResizable(entity: { type: string }): boolean {
+import { Icons } from '@superset-ui/core/components';
+import { ALERTS_TYPE } from '../../../util/componentTypes';
+import { NEW_ALERTS_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+
+export default function NewAlerts() {
   return (
-    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, BUTTON_TYPE, MODEL3D_TYPE, ALERTS_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
+    <DraggableNewComponent
+      id={NEW_ALERTS_ID}
+      type={ALERTS_TYPE}
+      label={t('Alerts')}
+      IconComponent={Icons.BellOutlined}
+    />
   );
 }

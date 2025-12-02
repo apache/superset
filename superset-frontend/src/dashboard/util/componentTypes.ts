@@ -30,6 +30,7 @@ export const TABS_TYPE = 'TABS';
 export const TAB_TYPE = 'TAB';
 export const BUTTON_TYPE = 'BUTTON';
 export const MODEL3D_TYPE = 'MODEL3D';
+export const ALERTS_TYPE = 'ALERTS';
 // Dynamic type proposes lazy loading of custom dashboard components that can be added in separate repository
 export const DYNAMIC_TYPE = 'DYNAMIC';
 
@@ -48,5 +49,6 @@ export default {
   TAB_TYPE,
   BUTTON_TYPE,
   MODEL3D_TYPE,
+  ALERTS_TYPE,
   DYNAMIC_TYPE,
 };

@@ -16,20 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  BUTTON_TYPE,
-  MODEL3D_TYPE,
-  ALERTS_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
-
-export default function componentIsResizable(entity: { type: string }): boolean {
-  return (
-    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, BUTTON_TYPE, MODEL3D_TYPE, ALERTS_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
-  );
-}
+export { default } from './Alerts';

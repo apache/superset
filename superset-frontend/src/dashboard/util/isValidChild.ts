@@ -45,6 +45,7 @@ import {
   TAB_TYPE,
   BUTTON_TYPE,
   MODEL3D_TYPE,
+  ALERTS_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -72,6 +73,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [HEADER_TYPE]: depthOne,
     [BUTTON_TYPE]: depthOne,
     [MODEL3D_TYPE]: depthOne,
+    [ALERTS_TYPE]: depthOne,
     [ROW_TYPE]: depthOne,
     [TABS_TYPE]: depthOne,
   },
@@ -82,6 +84,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [MARKDOWN_TYPE]: depthFour,
     [BUTTON_TYPE]: depthFour,
     [MODEL3D_TYPE]: depthFour,
+    [ALERTS_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
 
@@ -95,6 +98,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [MARKDOWN_TYPE]: depthFive,
     [BUTTON_TYPE]: depthFive,
     [MODEL3D_TYPE]: depthFive,
+    [ALERTS_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
@@ -108,6 +112,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
     [MARKDOWN_TYPE]: depthFive,
     [BUTTON_TYPE]: depthFive,
     [MODEL3D_TYPE]: depthFive,
+    [ALERTS_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
     [TABS_TYPE]: depthThree,
@@ -121,6 +126,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [MARKDOWN_TYPE]: {},
   [BUTTON_TYPE]: {},
   [MODEL3D_TYPE]: {},
+  [ALERTS_TYPE]: {},
 };
 
 interface IsValidChildProps {

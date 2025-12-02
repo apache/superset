@@ -49,7 +49,6 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
-import MqttEventListener from 'src/dashboard/components/MqttEventListener/MqttEventListener';
 
 import { nanoid } from 'nanoid';
 import { RootState } from '../types';
@@ -264,7 +263,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       {readyToRender && hasDashboardInfoInitiated ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
-          <MqttEventListener />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
               themeId={
