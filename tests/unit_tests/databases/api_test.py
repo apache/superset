@@ -255,7 +255,7 @@ def test_database_connection(
                     "service_account_info": {
                         "type": "service_account",
                         "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
                         "private_key": "XXXXXXXXXX",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",

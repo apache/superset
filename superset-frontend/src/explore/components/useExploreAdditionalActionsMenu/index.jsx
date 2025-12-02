@@ -874,6 +874,7 @@ export const useExploreAdditionalActionsMenu = (
     slice,
     theme.sizeUnit,
     ownState,
+    hasExportCurrentView,
   ]);
 
   // Return streaming modal state and handlers for parent to render

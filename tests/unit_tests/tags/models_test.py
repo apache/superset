@@ -74,12 +74,12 @@ def test_get_tag_with_special_characters() -> None:
     for tag_name in tag_names:
         result = get_tag(tag_name, mock_session, TagType.custom)
 
-        assert isinstance(result.name, str), (
-            f"Tag name '{tag_name}' should be a plain string"
-        )
-        assert not isinstance(result.name, Markup), (
-            f"Tag name '{tag_name}' should NOT be a Markup object"
-        )
+        assert isinstance(
+            result.name, str
+        ), f"Tag name '{tag_name}' should be a plain string"
+        assert not isinstance(
+            result.name, Markup
+        ), f"Tag name '{tag_name}' should NOT be a Markup object"
         assert result.name == tag_name, f"Tag name should match input: '{tag_name}'"
 
 
@@ -106,12 +106,12 @@ def test_get_tag_with_html_characters() -> None:
     for tag_name in tag_names:
         result = get_tag(tag_name, mock_session, TagType.custom)
 
-        assert isinstance(result.name, str), (
-            f"Tag name '{tag_name}' should be a plain string"
-        )
-        assert not isinstance(result.name, Markup), (
-            f"Tag name '{tag_name}' should NOT be a Markup object"
-        )
+        assert isinstance(
+            result.name, str
+        ), f"Tag name '{tag_name}' should be a plain string"
+        assert not isinstance(
+            result.name, Markup
+        ), f"Tag name '{tag_name}' should NOT be a Markup object"
         # Name should remain unchanged (not HTML-escaped)
         assert result.name == tag_name, f"Tag name should not be escaped: '{tag_name}'"
 
@@ -135,12 +135,12 @@ def test_get_tag_strips_whitespace() -> None:
         result = get_tag(input_name, mock_session, TagType.custom)
 
         assert isinstance(result.name, str), "Tag name should be a plain string"
-        assert not isinstance(result.name, Markup), (
-            "Tag name should NOT be a Markup object"
-        )
-        assert result.name == expected_name, (
-            f"Tag name should be stripped: '{expected_name}'"
-        )
+        assert not isinstance(
+            result.name, Markup
+        ), "Tag name should NOT be a Markup object"
+        assert (
+            result.name == expected_name
+        ), f"Tag name should be stripped: '{expected_name}'"
 
 
 def test_get_tag_returns_existing_tag() -> None:
@@ -190,9 +190,9 @@ def test_get_tag_creates_new_tag() -> None:
     added_tag = mock_session.add.call_args[0][0]
     assert isinstance(added_tag, Tag), "Should add a Tag object"
     assert isinstance(added_tag.name, str), "Tag name should be a plain string"
-    assert not isinstance(added_tag.name, Markup), (
-        "Tag name should NOT be a Markup object"
-    )
+    assert not isinstance(
+        added_tag.name, Markup
+    ), "Tag name should NOT be a Markup object"
     assert added_tag.name == tag_name, "Tag name should match"
     assert added_tag.type == tag_type, "Tag type should match"
 
@@ -215,12 +215,12 @@ def test_get_tag_with_different_tag_types() -> None:
         tag_name = f"tag-{tag_type.name}"
         result = get_tag(tag_name, mock_session, tag_type)
 
-        assert isinstance(result.name, str), (
-            f"Tag name for {tag_type} should be a plain string"
-        )
-        assert not isinstance(result.name, Markup), (
-            f"Tag name for {tag_type} should NOT be a Markup object"
-        )
+        assert isinstance(
+            result.name, str
+        ), f"Tag name for {tag_type} should be a plain string"
+        assert not isinstance(
+            result.name, Markup
+        ), f"Tag name for {tag_type} should NOT be a Markup object"
         assert result.type == tag_type, f"Tag type should be {tag_type}"
 
 
@@ -240,24 +240,24 @@ def test_tag_name_type_after_database_operation() -> None:
     result = get_tag(tag_name, mock_session, TagType.custom)
 
     # Verify the tag object before database operations
-    assert isinstance(result.name, str), (
-        "Tag name should be a string before DB operations"
-    )
-    assert not isinstance(result.name, Markup), (
-        "Tag name should NOT be Markup before DB operations"
-    )
+    assert isinstance(
+        result.name, str
+    ), "Tag name should be a string before DB operations"
+    assert not isinstance(
+        result.name, Markup
+    ), "Tag name should NOT be Markup before DB operations"
 
     # Verify that session.add was called with the correct tag
     mock_session.add.assert_called_once()
     added_tag = mock_session.add.call_args[0][0]
 
     # The critical check: ensure the name passed to the database is a plain string
-    assert isinstance(added_tag.name, str), (
-        "Tag name should be a plain string when added to session"
-    )
-    assert not isinstance(added_tag.name, Markup), (
-        "Tag name should NOT be Markup when added to session"
-    )
-    assert added_tag.name.__class__ is str, (
-        "Tag name should be exactly str type, not a subclass"
-    )
+    assert isinstance(
+        added_tag.name, str
+    ), "Tag name should be a plain string when added to session"
+    assert not isinstance(
+        added_tag.name, Markup
+    ), "Tag name should NOT be Markup when added to session"
+    assert (
+        added_tag.name.__class__ is str
+    ), "Tag name should be exactly str type, not a subclass"

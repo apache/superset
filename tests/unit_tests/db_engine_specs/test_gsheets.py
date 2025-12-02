@@ -160,58 +160,61 @@ def test_validate_parameters_catalog(
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
-    assert errors == [
-        SupersetError(
-            message=(
-                "The URL could not be identified. Please check for typos "
-                "and make sure that ‘Type of Google Sheets allowed’ "
-                "selection matches the input."
-            ),
-            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "catalog": {
-                    "idx": 0,
-                    "url": True,
+    assert (
+        errors
+        == [
+            SupersetError(
+                message=(
+                    "The URL could not be identified. Please check for typos "
+                    "and make sure that ‘Type of Google Sheets allowed’ "
+                    "selection matches the input."
+                ),
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={
+                    "catalog": {
+                        "idx": 0,
+                        "url": True,
+                    },
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                        },
+                    ],
                 },
-                "issue_codes": [
-                    {
-                        "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                    },
-                    {
-                        "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                    },
-                ],
-            },
-        ),
-        SupersetError(
-            message=(
-                "The URL could not be identified. Please check for typos "
-                "and make sure that ‘Type of Google Sheets allowed’ "
-                "selection matches the input."
             ),
-            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "catalog": {
-                    "idx": 2,
-                    "url": True,
+            SupersetError(
+                message=(
+                    "The URL could not be identified. Please check for typos "
+                    "and make sure that ‘Type of Google Sheets allowed’ "
+                    "selection matches the input."
+                ),
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={
+                    "catalog": {
+                        "idx": 2,
+                        "url": True,
+                    },
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                        },
+                    ],
                 },
-                "issue_codes": [
-                    {
-                        "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                    },
-                    {
-                        "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                    },
-                ],
-            },
-        ),
-    ]
+            ),
+        ]
+    )
 
     create_engine.assert_called_with(
         "gsheets://",

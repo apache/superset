@@ -221,7 +221,6 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
-    rows,
     state: {
       pageIndex,
       pageSize,
@@ -480,7 +479,9 @@ export default typedMemo(function DataTable<D extends object>({
 
     if (sig !== lastSigRef.current) {
       lastSigRef.current = sig;
-
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
       rafRef.current = requestAnimationFrame(() => {
         if (isMountedRef.current) onFilteredRowsChange(filtered);
       });

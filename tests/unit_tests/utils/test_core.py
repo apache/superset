@@ -637,9 +637,9 @@ def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
     database_mock = mocker.MagicMock()
     database_mock.database_name = "mydb"
 
-    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
-        "The default user agent should be returned"
-    )
+    assert (
+        get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset"
+    ), "The default user agent should be returned"
 
 
 @with_config(
@@ -652,9 +652,9 @@ def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None
     database_mock = mocker.MagicMock()
     database_mock.database_name = "mydb"
 
-    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
-        "the custom user agent function result should have been returned"
-    )
+    assert (
+        get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD"
+    ), "the custom user agent function result should have been returned"
 
 
 def test_merge_extra_filters():

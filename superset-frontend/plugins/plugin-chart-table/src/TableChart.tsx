@@ -1371,26 +1371,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [visibleColumnsMeta],
   );
 
-  const clientViewSigRef = useRef<string>('');
+  // Use a ref to store previous clientViewRows and exportColumns for robust change detection
+  const prevClientViewRef = useRef<{
+    rows: DataRecord[];
+    columns: typeof exportColumns;
+  } | null>(null);
   useEffect(() => {
     if (serverPagination) return; // only for client-side mode
-
-    const len = clientViewRows.length;
-    const first = len ? clientViewRows[0]?.[exportColumns[0]?.key ?? ''] : '';
-    const last = len
-      ? clientViewRows[len - 1]?.[exportColumns[0]?.key ?? '']
-      : '';
-    const colSig = exportColumns.map(c => c.key).join(',');
-    const sig = `${len}|${String(first)}|${String(last)}|${colSig}`;
-
-    if (sig !== clientViewSigRef.current) {
-      clientViewSigRef.current = sig;
+    const prev = prevClientViewRef.current;
+    const rowsChanged = !prev || !isEqual(prev.rows, clientViewRows);
+    const columnsChanged = !prev || !isEqual(prev.columns, exportColumns);
+    if (rowsChanged || columnsChanged) {
+      prevClientViewRef.current = {
+        rows: clientViewRows,
+        columns: exportColumns,
+      };
       updateTableOwnState(setDataMask, {
         ...serverPaginationData,
         clientView: {
           rows: clientViewRows,
           columns: exportColumns,
-          count: len,
+          count: clientViewRows.length,
         },
       });
     }
