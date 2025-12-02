@@ -739,7 +739,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         except TypeError:
                             # Some engine implementations may not accept the `query`
                             # argument; try the two-arg form as a fallback.
-                            self.db_engine_spec.execute_with_cursor(cursor, sql_)
+                            self.db_engine_spec.execute_with_cursor(cursor, sql_)  # type: ignore
                     else:
                         # Best-effort: some engines can expose a cancel id prior to
                         # execution via `get_cancel_query_id` — attempt to persist
@@ -768,7 +768,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
                         try:
                             # Preferred `execute` signature tries to accept query kwarg
-                            self.db_engine_spec.execute(cursor, sql_, self, query=query)
+                            self.db_engine_spec.execute(cursor, sql_, self, query=query)  # type: ignore
                         except TypeError:
                             # Older signatures may not accept the keyword; fall back
                             self.db_engine_spec.execute(cursor, sql_, self)

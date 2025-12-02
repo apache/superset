@@ -1325,7 +1325,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Fallback for implementations that don't accept the optional
             # `query` parameter (backwards compatibility)
             result = self.query(query_object.to_dict())
-        query = result.query + ";\n\n" if result.query else ""
+        query_str = result.query + ";\n\n" if result.query else ""
 
         # Process the dataframe if not empty
         df = result.df
@@ -1342,8 +1342,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 df = time_offsets["df"]
                 queries = time_offsets["queries"]
-                query += ";\n\n".join(queries)
-                query += ";\n\n"
+                query_str += ";\n\n".join(queries)
+                query_str += ";\n\n"
 
             # Execute post-processing operations
             try:
@@ -1353,7 +1353,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Update result with processed data
         result.df = df
-        result.query = query
+        result.query = query_str
         result.from_dttm = query_object.from_dttm
         result.to_dttm = query_object.to_dttm
 
