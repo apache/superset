@@ -64,10 +64,10 @@ const PopEditorTab: React.FC = ({ children }) => {
       savedQueryId = undefined,
       datasourceKey = undefined,
       queryId = undefined,
-      dbid = undefined,
+      dbid = 0,
       catalog = undefined,
       schema = undefined,
-      autorun = undefined,
+      autorun = false,
       permalink = undefined,
       new: isNewQuery = undefined,
       ...restUrlParams
