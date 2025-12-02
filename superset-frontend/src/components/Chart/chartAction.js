@@ -205,6 +205,18 @@ const v1ChartDataRequest = async (
   return SupersetClient.post(querySettings);
 };
 
+/**
+ * @param {Object} params
+ * @param {*} params.formData
+ * @param {Function} [params.setDataMask]
+ * @param {string} [params.resultFormat]
+ * @param {string} [params.resultType]
+ * @param {boolean} [params.force]
+ * @param {string} [params.method]
+ * @param {Object} [params.requestParams]
+ * @param {Object} [params.ownState]
+ * @param {*} [params.clientId]
+ */
 export async function getChartDataRequest({
   formData,
   setDataMask = () => {},
@@ -214,7 +226,7 @@ export async function getChartDataRequest({
   method = 'POST',
   requestParams = {},
   ownState = {},
-  clientId,
+  clientId = undefined,
 }) {
   let querySettings = {
     ...requestParams,
