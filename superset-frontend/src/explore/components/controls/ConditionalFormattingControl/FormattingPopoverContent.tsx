@@ -197,7 +197,7 @@ const renderOperatorFields = (
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
   const columnTypeBoolean = columnType === GenericDataType.Boolean;
-  const operatorColSpan = columnTypeString ? 8 : 6;
+  const operatorColSpan = columnTypeString || columnTypeBoolean ? 8 : 6;
   const valueColSpan = columnTypeString ? 16 : 18;
 
   if (columnTypeBoolean) {
