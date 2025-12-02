@@ -27,7 +27,7 @@ from superset.mcp_service.auth import mcp_auth_hook
 logger = logging.getLogger(__name__)
 
 
-@mcp.resource("superset://chart/configs")
+@mcp.resource("chart://configs")
 @mcp_auth_hook
 def get_chart_configs_resource() -> str:
     """

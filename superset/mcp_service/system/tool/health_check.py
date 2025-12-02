@@ -50,8 +50,8 @@ async def health_check(ctx: Context) -> HealthCheckResponse:
         HealthCheckResponse: Health status and system information including:
             - status: "healthy" or "error"
             - timestamp: ISO format timestamp
-            - service: Service name from APP_NAME config (e.g., "Superset MCP Service")
-            - version: Superset version string
+            - service: Service name derived from APP_NAME config
+            - version: Application version string
             - python_version: Python version
             - platform: Operating system platform
 
