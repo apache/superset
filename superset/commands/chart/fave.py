@@ -50,7 +50,7 @@ class AddFavoriteChartCommand(BaseCommand):
             raise ChartNotFoundError()
 
         try:
-            security_manager.raise_for_ownership(chart)
+            security_manager.raise_for_access(chart=chart)
         except SupersetSecurityException as ex:
             raise ChartForbiddenError() from ex
 
