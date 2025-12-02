@@ -5,3 +5,5 @@ src/temp
 .temp_cache/
 .tsbuildinfo
 .swc/
+
+superset.log

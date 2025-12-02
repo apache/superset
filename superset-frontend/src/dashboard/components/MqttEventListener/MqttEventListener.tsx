@@ -49,226 +49,6 @@ const GLOBAL_TOPIC = 'smartLight/events';
 
 /**
  * MqttEventListener - Hybrid MQTT notification system for Superset dashboards
- * Uses native WebSocket with MQTT protocol to avoid CSP issues
- */
-const MqttEventListener = () => {
-  const { addInfoToast, addWarningToast, addDangerToast, addSuccessToast } = useToasts();
-  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
-  const wsRef = useRef<WebSocket | null>(null);
-  const isConnectedRef = useRef(false);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const dashboardId = dashboardInfo?.id;
-    
-    if (!dashboardId) {
-      console.log('[MQTT] Waiting for dashboard info...');
-      return;
-    }
-
-    // Get MQTT configuration from dashboard metadata
-    const mqttConfig: MqttConfig = dashboardInfo?.metadata?.mqtt_config || {};
-    
-    if (mqttConfig.enabled === false) {
-      console.log(`[MQTT] MQTT disabled for dashboard ${dashboardId}`);
-      return;
-    }
-
-    console.log(`[MQTT] Initializing for dashboard ${dashboardId}`, mqttConfig);
-
-    // Build topic subscription list
-    const topics: string[] = [];
-    topics.push(`dashboard/${dashboardId}/events`);
-    
-    if (mqttConfig.include_global !== false) {
-      topics.push(GLOBAL_TOPIC);
-    }
-    
-    if (mqttConfig.custom_topic) {
-      topics.push(mqttConfig.custom_topic);
-    }
-
-    console.log('[MQTT] Will subscribe to topics:', topics);
-
-    // Use dynamic import to avoid webpack issues
-    let mqttClient: any = null;
-
-    const connectMqtt = async () => {
-      try {
-        // Dynamically import mqtt
-        const mqtt = await import('mqtt');
-        
-        console.log('[MQTT] Creating MQTT client...');
-        
-        mqttClient = mqtt.connect(MQTT_BROKER_URL, {
-          reconnectPeriod: 5000,
-          connectTimeout: 30000,
-          clientId: `superset_dashboard_${dashboardId}_${Math.random().toString(16).substr(2, 8)}`,
-          clean: true,
-          keepalive: 60,
-          username: MQTT_USERNAME,
-          password: MQTT_PASSWORD,
-          protocolVersion: 4,
-        });
-
-        mqttClient.on('connect', () => {
-          console.log('[MQTT] Connected to broker');
-          isConnectedRef.current = true;
-
-          mqttClient.subscribe(topics, { qos: 1 }, (err: Error) => {
-            if (err) {
-              console.error('[MQTT] Subscription error:', err);
-              addDangerToast('Failed to subscribe to real-time notifications');
-            } else {
-              console.log('[MQTT] Successfully subscribed to:', topics.join(', '));
-            }
-          });
-        });
-
-        mqttClient.on('error', (error: Error) => {
-          console.error('[MQTT] Connection error:', error);
-          if (!isConnectedRef.current) {
-            addDangerToast('Failed to connect to real-time notification service');
-          }
-        });
-
-        mqttClient.on('offline', () => {
-          console.log('[MQTT] Client went offline');
-          isConnectedRef.current = false;
-        });
-
-        mqttClient.on('reconnect', () => {
-          console.log('[MQTT] Attempting to reconnect...');
-        });
-
-        mqttClient.on('close', () => {
-          console.log('[MQTT] Connection closed');
-          isConnectedRef.current = false;
-        });
-
-        mqttClient.on('message', (topic: string, payload: Buffer) => {
-          try {
-            console.log(`[MQTT] Message received on topic: ${topic}`);
-            const messageData: MqttMessage = JSON.parse(payload.toString());
-            console.log('[MQTT] Parsed message:', messageData);
-
-            // Apply event type filter
-            if (mqttConfig.event_filter) {
-              const eventType = messageData.eventType || messageData.message || '';
-              if (!eventType.toLowerCase().includes(mqttConfig.event_filter.toLowerCase())) {
-                console.log(`[MQTT] Message filtered by event_filter: ${mqttConfig.event_filter}`);
-                return;
-              }
-            }
-
-            // Apply severity filter
-            const severity = messageData.severity || 'info';
-            if (mqttConfig.severity_filter && mqttConfig.severity_filter.length > 0) {
-              if (!mqttConfig.severity_filter.includes(severity)) {
-                console.log(`[MQTT] Message filtered by severity_filter: ${severity}`);
-                return;
-              }
-            }
-
-            // Build toast message
-            let message = messageData.message || messageData.eventType || 'Event received';
-            
-            if (messageData.deviceName || messageData.deviceId) {
-              const deviceInfo = messageData.deviceName || messageData.deviceId;
-              message = `${deviceInfo} • ${messageData.description || message}`;
-            }
-
-            // Display toast based on severity
-            switch (severity) {
-              case 'error':
-                addDangerToast(message);
-                break;
-              case 'warning':
-                addWarningToast(message);
-                break;
-              case 'success':
-                addSuccessToast(message);
-                break;
-              case 'info':
-              default:
-                addInfoToast(message);
-                break;
-            }
-
-            if (messageData.data) {
-              console.log('[MQTT] Additional event data:', messageData.data);
-            }
-          } catch (error) {
-            console.error('[MQTT] Error parsing message:', error);
-            const rawMessage = payload.toString();
-            if (rawMessage && rawMessage.length > 0 && rawMessage.length < 200) {
-              addInfoToast(rawMessage);
-            }
-          }
-        });
-
-      } catch (error) {
-        console.error('[MQTT] Failed to initialize MQTT client:', error);
-        addDangerToast('Failed to initialize real-time notification service');
-      }
-    };
-
-    connectMqtt();
-
-    // Cleanup
-    return () => {
-      console.log('[MQTT] Cleaning up MQTT connection');
-      if (mqttClient) {
-        mqttClient.end(true);
-        mqttClient = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      isConnectedRef.current = false;
-    };
-  }, [
-    dashboardInfo?.id,
-    dashboardInfo?.metadata?.mqtt_config,
-    addInfoToast,
-    addWarningToast,
-    addDangerToast,
-    addSuccessToast,
-  ]);
-
-  return null;
-};
-
-export default MqttEventListener;
-
-interface MqttConfig {
-  enabled?: boolean;
-  include_global?: boolean;
-  custom_topic?: string;
-  event_filter?: string;
-  severity_filter?: string[];
-}
-
-interface MqttMessage {
-  message?: string;
-  eventType?: string;
-  deviceName?: string;
-  deviceId?: string;
-  description?: string;
-  severity?: 'info' | 'warning' | 'error' | 'success';
-  dateObserved?: string;
-  timestamp?: string;
-  data?: any;
-}
-
-// MQTT Broker Configuration
-const MQTT_BROKER_URL = 'wss://mqtt.snap4idtcity.com/';
-const MQTT_USERNAME = 'webclient';
-const MQTT_PASSWORD = 'root';
-const GLOBAL_TOPIC = 'smartLight/events';
-
-/**
- * MqttEventListener - Hybrid MQTT notification system for Superset dashboards
  * 
  * Features:
  * - Auto-subscribes to dashboard-specific topic: dashboard/{id}/events
@@ -290,7 +70,7 @@ const GLOBAL_TOPIC = 'smartLight/events';
 const MqttEventListener = () => {
   const { addInfoToast, addWarningToast, addDangerToast, addSuccessToast } = useToasts();
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
-  const clientRef = useRef<MqttClient | null>(null);
+  const clientRef = useRef<any>(null);
   const isConnectedRef = useRef(false);
 
   useEffect(() => {
@@ -331,147 +111,156 @@ const MqttEventListener = () => {
 
     console.log('[MQTT] Subscribing to topics:', topics);
 
-    try {
-      // Create MQTT client
-      const client = mqtt.connect(MQTT_BROKER_URL, {
-        reconnectPeriod: 5000,
-        connectTimeout: 30000,
-        clientId: `superset_dashboard_${dashboardId}_${Math.random().toString(16).substr(2, 8)}`,
-        clean: true,
-        keepalive: 60,
-        username: MQTT_USERNAME,
-        password: MQTT_PASSWORD,
-        protocolVersion: 4,
-      });
+    // Use dynamic import to load MQTT at runtime (avoids webpack/CSP issues)
+    const connectMqtt = async () => {
+      try {
+        // Dynamically import mqtt module
+        const mqttModule = await import('mqtt');
+        const mqtt = mqttModule.default || mqttModule;
+        
+        console.log('[MQTT] Creating MQTT client...');
+        
+        // Create MQTT client
+        const client = mqtt.connect(MQTT_BROKER_URL, {
+          reconnectPeriod: 5000,
+          connectTimeout: 30000,
+          clientId: `superset_dashboard_${dashboardId}_${Math.random().toString(16).substr(2, 8)}`,
+          clean: true,
+          keepalive: 60,
+          username: MQTT_USERNAME,
+          password: MQTT_PASSWORD,
+          protocolVersion: 4,
+        });
 
-      clientRef.current = client;
+        clientRef.current = client;
 
-      // Connection established
-      client.on('connect', () => {
-        console.log('[MQTT] Connected to broker');
-        isConnectedRef.current = true;
+        // Connection established
+        client.on('connect', () => {
+          console.log('[MQTT] Connected to broker');
+          isConnectedRef.current = true;
 
-        // Subscribe to all configured topics
-        client.subscribe(topics, { qos: 1 }, (err) => {
-          if (err) {
-            console.error('[MQTT] Subscription error:', err);
-            addDangerToast('Failed to subscribe to real-time notifications');
-          } else {
-            console.log('[MQTT] Successfully subscribed to:', topics.join(', '));
+          // Subscribe to all configured topics
+          client.subscribe(topics, { qos: 1 }, (err: any) => {
+            if (err) {
+              console.error('[MQTT] Subscription error:', err);
+              addDangerToast('Failed to subscribe to real-time notifications');
+            } else {
+              console.log('[MQTT] Successfully subscribed to:', topics.join(', '));
+            }
+          });
+        });
+
+        // Connection error
+        client.on('error', (error: Error) => {
+          console.error('[MQTT] Connection error:', error);
+          if (!isConnectedRef.current) {
+            addDangerToast('Failed to connect to real-time notification service');
           }
         });
-      });
 
-      // Connection error
-      client.on('error', (error) => {
-        console.error('[MQTT] Connection error:', error);
-        if (!isConnectedRef.current) {
-          // Only show error on initial connection failure
-          addDangerToast('Failed to connect to real-time notification service');
-        }
-      });
+        // Connection lost
+        client.on('offline', () => {
+          console.log('[MQTT] Client went offline');
+          isConnectedRef.current = false;
+        });
 
-      // Connection lost
-      client.on('offline', () => {
-        console.log('[MQTT] Client went offline');
-        isConnectedRef.current = false;
-      });
+        // Reconnection attempt
+        client.on('reconnect', () => {
+          console.log('[MQTT] Attempting to reconnect...');
+        });
 
-      // Reconnection attempt
-      client.on('reconnect', () => {
-        console.log('[MQTT] Attempting to reconnect...');
-      });
+        // Connection closed
+        client.on('close', () => {
+          console.log('[MQTT] Connection closed');
+          isConnectedRef.current = false;
+        });
 
-      // Connection closed
-      client.on('close', () => {
-        console.log('[MQTT] Connection closed');
-        isConnectedRef.current = false;
-      });
-
-      // Message received
-      client.on('message', (topic, payload) => {
-        try {
-          console.log(`[MQTT] Message received on topic: ${topic}`);
-          const messageData: MqttMessage = JSON.parse(payload.toString());
-          console.log('[MQTT] Parsed message:', messageData);
-
-          // Apply event type filter if configured
-          if (mqttConfig.event_filter) {
-            const eventType = messageData.eventType || messageData.message || '';
-            if (!eventType.toLowerCase().includes(mqttConfig.event_filter.toLowerCase())) {
-              console.log(`[MQTT] Message filtered out by event_filter: ${mqttConfig.event_filter}`);
-              return;
-            }
-          }
-
-          // Apply severity filter if configured
-          const severity = messageData.severity || 'info';
-          if (mqttConfig.severity_filter && mqttConfig.severity_filter.length > 0) {
-            if (!mqttConfig.severity_filter.includes(severity)) {
-              console.log(`[MQTT] Message filtered out by severity_filter: ${severity}`);
-              return;
-            }
-          }
-
-          // Build toast message
-          let message = messageData.message || messageData.eventType || 'Event received';
-          
-          // Add device information if available
-          if (messageData.deviceName || messageData.deviceId) {
-            const deviceInfo = messageData.deviceName || messageData.deviceId;
-            message = `${deviceInfo} • ${messageData.description || message}`;
-          }
-
-          // Display toast based on severity
-          switch (severity) {
-            case 'error':
-              addDangerToast(message);
-              break;
-            case 'warning':
-              addWarningToast(message);
-              break;
-            case 'success':
-              addSuccessToast(message);
-              break;
-            case 'info':
-            default:
-              addInfoToast(message);
-              break;
-          }
-
-          // Log additional data if present
-          if (messageData.data) {
-            console.log('[MQTT] Additional event data:', messageData.data);
-          }
-        } catch (error) {
-          console.error('[MQTT] Error parsing message:', error);
-          console.error('[MQTT] Raw payload:', payload.toString());
-          
-          // Try to show raw message if JSON parsing fails
+        // Message received
+        client.on('message', (topic: string, payload: Buffer) => {
           try {
+            console.log(`[MQTT] Message received on topic: ${topic}`);
+            const messageData: MqttMessage = JSON.parse(payload.toString());
+            console.log('[MQTT] Parsed message:', messageData);
+
+            // Apply event type filter if configured
+            if (mqttConfig.event_filter) {
+              const eventType = messageData.eventType || messageData.message || '';
+              if (!eventType.toLowerCase().includes(mqttConfig.event_filter.toLowerCase())) {
+                console.log(`[MQTT] Message filtered out by event_filter: ${mqttConfig.event_filter}`);
+                return;
+              }
+            }
+
+            // Apply severity filter if configured
+            const severity = messageData.severity || 'info';
+            if (mqttConfig.severity_filter && mqttConfig.severity_filter.length > 0) {
+              if (!mqttConfig.severity_filter.includes(severity)) {
+                console.log(`[MQTT] Message filtered out by severity_filter: ${severity}`);
+                return;
+              }
+            }
+
+            // Build toast message
+            let message = messageData.message || messageData.eventType || 'Event received';
+            
+            // Add device information if available
+            if (messageData.deviceName || messageData.deviceId) {
+              const deviceInfo = messageData.deviceName || messageData.deviceId;
+              message = `${deviceInfo} • ${messageData.description || message}`;
+            }
+
+            // Display toast based on severity
+            switch (severity) {
+              case 'error':
+                addDangerToast(message);
+                break;
+              case 'warning':
+                addWarningToast(message);
+                break;
+              case 'success':
+                addSuccessToast(message);
+                break;
+              case 'info':
+              default:
+                addInfoToast(message);
+                break;
+            }
+
+            // Log additional data if present
+            if (messageData.data) {
+              console.log('[MQTT] Additional event data:', messageData.data);
+            }
+          } catch (error) {
+            console.error('[MQTT] Error parsing message:', error);
+            console.error('[MQTT] Raw payload:', payload.toString());
+            
+            // Try to show raw message if JSON parsing fails
             const rawMessage = payload.toString();
             if (rawMessage && rawMessage.length > 0 && rawMessage.length < 200) {
               addInfoToast(rawMessage);
             }
-          } catch (e) {
-            console.error('[MQTT] Failed to display raw message:', e);
           }
-        }
-      });
+        });
 
-    } catch (error) {
-      console.error('[MQTT] Failed to initialize MQTT client:', error);
-      addDangerToast('Failed to initialize real-time notification service');
-    }
+      } catch (error) {
+        console.error('[MQTT] Failed to initialize MQTT client:', error);
+        addDangerToast('Failed to initialize real-time notification service');
+      }
+    };
+
+    // Start the connection
+    connectMqtt();
 
     // Cleanup on unmount or dashboard change
     return () => {
       console.log('[MQTT] Cleaning up MQTT connection');
       if (clientRef.current) {
-        clientRef.current.end(true, {}, () => {
-          console.log('[MQTT] Connection closed successfully');
-        });
-        clientRef.current = null;
+        try {
+          clientRef.current.end(true);
+          clientRef.current = null;
+        } catch (error) {
+          console.error('[MQTT] Error during cleanup:', error);
+        }
       }
       isConnectedRef.current = false;
     };

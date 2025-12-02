@@ -555,7 +555,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
-    # Try to optimize SQL queries — for now only predicate pushdown is supported.
+    # Try to optimize SQL queries  for now only predicate pushdown is supported.
     "OPTIMIZE_SQL": False,
     # When impersonating a user, use the email prefix instead of the username
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
@@ -1926,6 +1926,8 @@ TALISMAN_CONFIG = {
             "https://home.snap4idtcity.com",
             # Allow API calls from Button component
             "https://app.idtcities.com",
+            # Allow MQTT WebSocket connections for real-time notifications
+            "wss://mqtt.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1973,6 +1975,8 @@ TALISMAN_DEV_CONFIG = {
             "https://home.snap4idtcity.com",
             # Allow API calls from Button component
             "https://app.idtcities.com",
+            # Allow MQTT WebSocket connections for real-time notifications
+            "wss://mqtt.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
