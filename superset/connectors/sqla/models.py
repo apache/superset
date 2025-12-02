@@ -1506,14 +1506,10 @@ class SqlaTable(
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
-        is_column_reference = col.get("isColumnReference")
+        is_column_reference = col.get("isColumnReference", False)
 
         # First, check if this is a column reference that exists in metadata
-        col_in_metadata = None
-        if is_column_reference:
-            col_in_metadata = self.get_column(sql_expression)
-
-        if col_in_metadata:
+        if col_in_metadata := self.get_column(sql_expression):
             # Column exists in metadata - use it directly
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
