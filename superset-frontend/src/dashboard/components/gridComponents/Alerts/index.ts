@@ -16,4 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './Alerts';
+import Alerts from './Alerts';
+
+export default Alerts;
