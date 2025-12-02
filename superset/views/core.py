@@ -80,7 +80,6 @@ from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import (
     BaseDatasourceData,
     FlaskResponse,
-    QueryData,
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
@@ -538,7 +537,7 @@ class Superset(BaseSupersetView):
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
-        datasource_data: BaseDatasourceData | QueryData
+        datasource_data: BaseDatasourceData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):

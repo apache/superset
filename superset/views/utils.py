@@ -49,7 +49,6 @@ from superset.superset_typing import (
     BaseDatasourceData,
     FlaskResponse,
     FormData,
-    QueryData,
 )
 from superset.utils import json
 from superset.utils.core import DatasourceType
@@ -92,12 +91,10 @@ def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
 
 
 def sanitize_datasource_data(
-    datasource_data: BaseDatasourceData | QueryData,
+    datasource_data: BaseDatasourceData,
 ) -> dict[str, Any]:
     """
     Sanitize datasource data by removing sensitive database parameters.
-
-    Accepts TypedDict types (BaseDatasourceData, QueryData).
     """
     if datasource_data:
         datasource_database = datasource_data.get("database")
