@@ -237,12 +237,12 @@ def test_handles_empty_dashboard_filters(
             ChartWarmUpCacheCommand(chart, 42, None).run()
 
             # VALIDATE: No filters added (empty list case)
-            assert (
-                len(mock_query.filter) == 0
-            ), "No filters should be added when dashboard has no filters"
-            assert (
-                mock_get_dashboard_filters.called
-            ), "Should still call get_dashboard_extra_filters"
+            assert len(mock_query.filter) == 0, (
+                "No filters should be added when dashboard has no filters"
+            )
+            assert mock_get_dashboard_filters.called, (
+                "Should still call get_dashboard_extra_filters"
+            )
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -305,12 +305,12 @@ def test_none_query_context_raises_chart_invalid_error(mock_chart_data_command):
             assert result["viz_error"] is not None, "Should return an error"
             assert result["chart_id"] == 129
             error_str = str(result["viz_error"]).lower()
-            assert (
-                "query context" in error_str
-            ), f"Error should mention query context: {result['viz_error']}"
-            assert (
-                "not exist" in error_str
-            ), f"Error should mention not exist: {result['viz_error']}"
+            assert "query context" in error_str, (
+                f"Error should mention query context: {result['viz_error']}"
+            )
+            assert "not exist" in error_str, (
+                f"Error should mention not exist: {result['viz_error']}"
+            )
 
 
 @patch("superset.commands.chart.warm_up_cache.viz_types", ["table"])
@@ -336,12 +336,12 @@ def test_legacy_chart_without_datasource_raises_error():
             assert result["viz_error"] is not None, "Should return an error"
             assert result["chart_id"] == 130
             error_str = str(result["viz_error"]).lower()
-            assert (
-                "datasource" in error_str
-            ), f"Error should mention datasource: {result['viz_error']}"
-            assert (
-                "not exist" in error_str
-            ), f"Error should mention not exist: {result['viz_error']}"
+            assert "datasource" in error_str, (
+                f"Error should mention datasource: {result['viz_error']}"
+            )
+            assert "not exist" in error_str, (
+                f"Error should mention not exist: {result['viz_error']}"
+            )
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")

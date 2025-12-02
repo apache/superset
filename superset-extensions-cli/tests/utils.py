@@ -44,9 +44,9 @@ def assert_directory_exists(path: Path, description: str = "") -> None:
         description: Optional description for better error messages
     """
     desc_msg = f" ({description})" if description else ""
-    assert (
-        path.exists()
-    ), f"Expected directory {path}{desc_msg} to exist, but it doesn't"
+    assert path.exists(), (
+        f"Expected directory {path}{desc_msg} to exist, but it doesn't"
+    )
     assert path.is_dir(), f"Expected {path}{desc_msg} to be a directory, but it's not"
 
 
@@ -136,9 +136,9 @@ def assert_json_content(path: Path, expected_values: dict[str, Any]) -> None:
     for key, expected_value in expected_values.items():
         assert key in content, f"Expected key '{key}' not found in {path}"
         actual_value = content[key]
-        assert (
-            actual_value == expected_value
-        ), f"Expected {key}='{expected_value}' but got '{actual_value}' in {path}"
+        assert actual_value == expected_value, (
+            f"Expected {key}='{expected_value}' but got '{actual_value}' in {path}"
+        )
 
 
 def assert_file_contains(path: Path, text: str) -> None:

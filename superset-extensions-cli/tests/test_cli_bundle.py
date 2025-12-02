@@ -208,9 +208,9 @@ def test_bundle_includes_all_files_recursively(
             "backend/src/complex_extension/utils/helpers.py",
         }
 
-        assert expected_files.issubset(
-            file_list
-        ), f"Missing files: {expected_files - file_list}"
+        assert expected_files.issubset(file_list), (
+            f"Missing files: {expected_files - file_list}"
+        )
 
 
 @pytest.mark.cli

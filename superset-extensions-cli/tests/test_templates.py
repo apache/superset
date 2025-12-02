@@ -297,9 +297,9 @@ def test_template_whitespace_handling(jinja_env, template_context):
     empty_line_count = sum(1 for line in lines if line.strip() == "")
 
     # Some empty lines are OK for formatting, but not excessive
-    assert (
-        empty_line_count < len(lines) / 2
-    ), "Too many empty lines in rendered template"
+    assert empty_line_count < len(lines) / 2, (
+        "Too many empty lines in rendered template"
+    )
 
     # Should be properly formatted JSON
     parsed = json.loads(rendered)

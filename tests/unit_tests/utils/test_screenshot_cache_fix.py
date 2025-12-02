@@ -163,9 +163,9 @@ class TestCacheOnlyOnSuccess:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
             # Cache should be empty during screenshot generation
-            assert (
-                cached_value is None
-            ), "Cache should not be saved during COMPUTING state"
+            assert cached_value is None, (
+                "Cache should not be saved during COMPUTING state"
+            )
             return b"image_data"
 
         mocker.patch(

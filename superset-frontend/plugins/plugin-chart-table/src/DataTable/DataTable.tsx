@@ -488,7 +488,7 @@ export default typedMemo(function DataTable<D extends object>({
   // Very small, fast hash for strings (no crypto dependency).
   function hashString(s: string): string {
     let h = 0;
-    for (let i = 0; i < s.length; i+=1) {
+    for (let i = 0; i < s.length; i += 1) {
       h = (h * 31 + s.charCodeAt(i)) | 0;
     }
     return String(h);

@@ -912,9 +912,9 @@ def test_get_df_payload_validates_before_cache_key_generation():
     def mock_cache_key(*args, **kwargs):
         call_order.append("cache_key")
         # Verify that extras have been sanitized at this point
-        assert (
-            query_obj.extras["where"] == "(col1 > 0)"
-        ), f"Expected sanitized clause in cache_key, got: {query_obj.extras['where']}"
+        assert query_obj.extras["where"] == "(col1 > 0)", (
+            f"Expected sanitized clause in cache_key, got: {query_obj.extras['where']}"
+        )
         return original_cache_key(*args, **kwargs)
 
     with patch.object(query_obj, "validate", side_effect=mock_validate):
@@ -1172,9 +1172,9 @@ def test_cache_key_preserves_other_post_processing_options():
     )
 
     # Cache keys should differ because rename_columns is different
-    assert (
-        query1.cache_key() != query2.cache_key()
-    ), "Cache keys should differ when other post_processing options differ"
+    assert query1.cache_key() != query2.cache_key(), (
+        "Cache keys should differ when other post_processing options differ"
+    )
 
 
 def test_cache_key_non_contribution_post_processing_unchanged():
@@ -1214,9 +1214,9 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     )
 
     # Cache keys should differ because aggregates option is different
-    assert (
-        query1.cache_key() != query2.cache_key()
-    ), "Cache keys should differ for different non-contribution post_processing"
+    assert query1.cache_key() != query2.cache_key(), (
+        "Cache keys should differ for different non-contribution post_processing"
+    )
 
 
 def test_force_cached_normalizes_totals_query_row_limit():
