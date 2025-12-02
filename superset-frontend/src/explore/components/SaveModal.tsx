@@ -49,7 +49,7 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
-import { TabNode, TreeDataNode } from '../types';
+import { TabNode, TabTreeNode } from '../types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -76,7 +76,7 @@ type SaveModalState = {
   saveStatus?: string | null;
   dashboard?: { label: string; value: string | number };
   selectedTab?: { label: string; value: string | number };
-  tabsData: Array<{ value: string; title: string; key: string }>;
+  tabsData: TabTreeNode[];
 };
 
 export const StyledModal = styled(Modal)`
@@ -459,9 +459,14 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       });
 
       const { result } = response.json;
-      const tabTree = result.tab_tree || [];
+      if (!result || !Array.isArray(result.tab_tree)) {
+        logging.warn('Invalid tabs response format');
+        this.setState({ tabsData: [] });
+        return [];
+      }
+      const tabTree = result.tab_tree;
 
-      const convertToTreeData = (nodes: TabNode[]): TreeDataNode[] =>
+      const convertToTreeData = (nodes: TabNode[]): TabTreeNode[] =>
         nodes.map(node => ({
           value: node.value,
           title: node.title,
@@ -484,7 +489,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   onTabChange = (value: string) => {
     if (value) {
-      const findTabInTree = (data: TabNode[]): TabNode | null => {
+      const findTabInTree = (data: TabTreeNode[]): TabTreeNode | null => {
         for (const item of data) {
           if (item.value === value) {
             return item;

@@ -130,9 +130,9 @@ export interface TabNode {
   children?: TabNode[];
 }
 
-export interface TreeDataNode {
+export interface TabTreeNode {
   value: string;
   title: string;
   key: string;
-  children?: TreeDataNode[];
+  children?: TabTreeNode[];
 }
