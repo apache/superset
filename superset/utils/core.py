@@ -114,10 +114,9 @@ from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource, TableColumn
+    from superset.connectors.sqla.models import TableColumn
     from superset.explorables.base import Explorable
     from superset.models.core import Database
-    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1658,7 +1657,7 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
 
 
 def get_metric_type_from_column(
-    column: Any, datasource: BaseDatasource | Explorable | Query
+    column: Any, datasource: "Explorable"
 ) -> str:
     """
     Determine the metric type from a given column in a datasource.
@@ -1701,7 +1700,7 @@ def get_metric_type_from_column(
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: BaseDatasource | Explorable | Query | None = None,
+    datasource: "Explorable | None" = None,
 ) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1772,7 +1771,7 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: BaseDatasource | Explorable,
+    datasource: "Explorable",
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
