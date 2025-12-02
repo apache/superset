@@ -114,11 +114,7 @@ const QueryHistory = ({
   }
 
   return editorQueries.length > 0 ? (
-    <div
-      css={css`
-        padding-left: ${theme.sizeUnit * 4}px;
-      `}
-    >
+    <>
       <QueryTable
         columns={[
           'state',
@@ -144,7 +140,7 @@ const QueryHistory = ({
         />
       )}
       {isFetching && <Skeleton active />}
-    </div>
+    </>
   ) : (
     <StyledEmptyStateWrapper>
       <EmptyState

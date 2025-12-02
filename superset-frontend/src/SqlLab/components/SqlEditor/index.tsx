@@ -166,8 +166,7 @@ const StyledSqlEditor = styled.div`
     height: 100%;
 
     .queryPane {
-      padding: ${theme.sizeUnit * 2}px;
-      padding-left: 0px;
+      padding: ${theme.sizeUnit * 2}px 0px;
       + .ant-splitter-bar .ant-splitter-bar-dragger {
         &::before {
           background: transparent;
@@ -183,6 +182,14 @@ const StyledSqlEditor = styled.div`
 
     .north-pane {
       height: 100%;
+      margin: 0 ${theme.sizeUnit * 4}px;
+    }
+
+    .SouthPane .ant-tabs-tabpane {
+      margin: 0 ${theme.sizeUnit * 4}px;
+      & .ant-tabs {
+        margin: 0 ${theme.sizeUnit * -4}px;
+      }
     }
 
     .sql-container {

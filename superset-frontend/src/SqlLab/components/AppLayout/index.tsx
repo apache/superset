@@ -19,9 +19,9 @@
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { css, styled } from '@apache-superset/core';
+import { styled } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
-import { Button, Grid, Icons } from '@superset-ui/core/components';
+import { Grid } from '@superset-ui/core/components';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import { Splitter } from 'src/components/Splitter';
@@ -39,15 +39,8 @@ export const RIGHT_SIDEBAR_VIEW_ID = 'sqllab.rightSidebar';
 const StyledContainer = styled.div`
   height: 100%;
 
-  & .ant-splitter-panel:not(.sqllab-body) {
+  & .ant-splitter-panel:not(.sqllab-body):not(.queryPane) {
     background-color: ${({ theme }) => theme.colorBgBase};
-  }
-
-  &
-    .ant-splitter-panel:first-child
-    + .ant-splitter-bar
-    .ant-splitter-bar-dragger::after {
-    background-color: transparent !important;
   }
 
   & .sqllab-body {
@@ -91,22 +84,10 @@ const AppLayout: React.FC = ({ children }) => {
   }, [md]);
   const onSidebarChange = (sizes: number[]) => {
     const [updatedWidth, _, possibleRightWidth] = sizes;
-    if (updatedWidth === 0) {
-      setLeftWidth(0);
-    } else {
-      // Due to a bug in the splitter, the width must be changed
-      // in order to properly restore the previous size
-      setLeftWidth(updatedWidth + 0.01);
-    }
+    setLeftWidth(updatedWidth);
 
     if (typeof possibleRightWidth === 'number') {
-      if (possibleRightWidth === 0) {
-        setRightWidth(0);
-      } else {
-        // Due to a bug in the splitter, the width must be changed
-        // in order to properly restore the previous size
-        setRightWidth(possibleRightWidth + 0.01);
-      }
+      setRightWidth(possibleRightWidth);
     }
   };
   const contributions =
@@ -119,7 +100,11 @@ const AppLayout: React.FC = ({ children }) => {
     <StyledContainer>
       <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
         <Splitter.Panel
-          collapsible={{ showCollapsibleIcon: false }}
+          collapsible={{
+            start: true,
+            end: true,
+            showCollapsibleIcon: true,
+          }}
           size={leftWidth}
           min={SQL_EDITOR_LEFTBAR_WIDTH}
         >
@@ -128,47 +113,9 @@ const AppLayout: React.FC = ({ children }) => {
               key={queryEditorId}
               queryEditorId={queryEditorId}
             />
-            <Button
-              css={css`
-                position: absolute;
-                top: 10px;
-                inset-inline-end: 0px;
-                border-top-right-radius: 0px;
-                border-bottom-right-radius: 0px;
-                padding: 0 2px 0 4px;
-              `}
-              onClick={() => onSidebarChange([0])}
-            >
-              <Icons.VerticalAlignBottomOutlined
-                iconSize="l"
-                css={css`
-                  rotate: 90deg;
-                `}
-              />
-            </Button>
           </StyledSidebar>
         </Splitter.Panel>
-        <Splitter.Panel className="sqllab-body">
-          {children}
-          {leftWidth === 0 && (
-            <Button
-              css={css`
-                position: absolute;
-                top: 10px;
-                inset-inline-start: -4px;
-                padding: 0 4px;
-              `}
-              onClick={() => onSidebarChange([SQL_EDITOR_LEFTBAR_WIDTH])}
-            >
-              <Icons.VerticalAlignBottomOutlined
-                iconSize="l"
-                css={css`
-                  rotate: -90deg;
-                `}
-              />
-            </Button>
-          )}
-        </Splitter.Panel>
+        <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
         {contributions.length > 0 && (
           <Splitter.Panel
             collapsible={{
