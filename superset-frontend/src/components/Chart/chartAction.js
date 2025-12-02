@@ -46,7 +46,12 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-export function chartUpdateStarted(queryController, latestQueryFormData, key, latestQueryId) {
+export function chartUpdateStarted(
+  queryController,
+  latestQueryFormData,
+  key,
+  latestQueryId,
+) {
   return {
     type: CHART_UPDATE_STARTED,
     queryController,
