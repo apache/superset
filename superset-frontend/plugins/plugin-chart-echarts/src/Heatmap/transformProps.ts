@@ -24,6 +24,7 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  logging,
   rgbToHex,
   addAlpha,
   tooltipHtml,
@@ -285,7 +286,7 @@ export default function transformProps(
         if (xIndex === undefined || yIndex === undefined) {
           // Log a warning for debugging
           // eslint-disable-next-line no-console
-          console.warn(
+          logging.warn(
             `Heatmap: Skipping row due to missing axis value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
             row,
           );
