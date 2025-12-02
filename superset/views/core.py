@@ -78,7 +78,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import (
-    BaseDatasourceData,
+    ExplorableData,
     FlaskResponse,
 )
 from superset.tasks.utils import get_current_user
@@ -530,14 +530,14 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: BaseDatasourceData = {
+        dummy_datasource_data: ExplorableData = {
             "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
-        datasource_data: BaseDatasourceData
+        datasource_data: ExplorableData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):

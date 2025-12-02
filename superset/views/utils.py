@@ -46,7 +46,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.superset_typing import (
-    BaseDatasourceData,
+    ExplorableData,
     FlaskResponse,
     FormData,
 )
@@ -91,7 +91,7 @@ def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
 
 
 def sanitize_datasource_data(
-    datasource_data: BaseDatasourceData,
+    datasource_data: ExplorableData,
 ) -> dict[str, Any]:
     """
     Sanitize datasource data by removing sensitive database parameters.
