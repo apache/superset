@@ -267,6 +267,56 @@ class KeyValue(CoreModel):
     changed_by_fk: int | None
 
 
+class AsyncTask(CoreModel):
+    """
+    Abstract AsyncTask model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    uuid: UUID
+    task_name: str
+    status: str
+
+    # Execution tracking
+    started_at: datetime | None
+    completed_at: datetime | None
+    retry_count: int
+    max_retries: int
+
+    # Data fields (JSON serialized)
+    parameters: str | None  # Task input parameters as JSON
+    result: str | None  # Task execution result as JSON
+    error_message: str | None  # Error details if failed
+    progress_info: str | None  # Progress tracking info as JSON
+
+    # Deduplication
+    task_signature: str | None  # SHA256 hash for deduplication
+
+    # User context
+    user_id: int | None
+    created_by_fk: int | None
+
+    # Audit timestamps
+    created_on: datetime
+    changed_on: datetime
+
+    @property
+    def duration(self) -> float | None:
+        """Task duration in seconds."""
+        raise NotImplementedError
+
+    @property
+    def is_active(self) -> bool:
+        """Check if task is currently active (pending/running/retrying)."""
+        raise NotImplementedError
+
+
 def get_session() -> scoped_session:
     """
     Retrieve the SQLAlchemy session to directly interface with the
@@ -281,6 +331,7 @@ def get_session() -> scoped_session:
 
 
 __all__ = [
+    "AsyncTask",
     "Dataset",
     "Database",
     "Chart",
