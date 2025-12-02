@@ -466,16 +466,49 @@ export default typedMemo(function DataTable<D extends object>({
   const rafRef = useRef<number | null>(null);
   const lastSigRef = useRef<string>('');
 
+  // Prefer a stable identifier from original row data; otherwise use a deterministic
+  // concatenation of visible values (keys sorted so column order changes are detected).
+  function stableRowKey<D extends object>(r: Row<D>): string {
+    const orig = r.original as Record<string, unknown> | undefined;
+    if (orig) {
+      const idLike =
+        (orig as any).id ??
+        (orig as any).ID ??
+        (orig as any).key ??
+        (orig as any).uuid;
+      if (idLike != null) return String(idLike);
+    }
+
+    // Fallback: derive from row.values, but make it stable against column order changes.
+    const v = r.values as Record<string, unknown>;
+    const keys = Object.keys(v).sort(); // detect column order changes
+    return keys.map(k => String(v[k] ?? '')).join('|');
+  }
+
+  // Very small, fast hash for strings (no crypto dependency).
+  function hashString(s: string): string {
+    let h = 0;
+    for (let i = 0; i < s.length; i+=1) {
+      h = (h * 31 + s.charCodeAt(i)) | 0;
+    }
+    return String(h);
+  }
+
+  function signatureOfRows<D extends object>(rs: Row<D>[]): string {
+    const keys = rs.map(stableRowKey);
+    const len = keys.length;
+    const first = keys[0] ?? '';
+    const last = keys[len - 1] ?? '';
+    const digest = hashString(keys.join('\u0001')); // non-printable separator to avoid collisions
+    return `${len}|${first}|${last}|${digest}`;
+  }
+
   useEffect(() => {
     if (serverPagination || typeof onFilteredRowsChange !== 'function') {
       return;
     }
 
-    const filtered = rows.map(r => r.original as D);
-    const len = filtered.length;
-    const first = len ? Object.values(filtered[0] as any)[0] : '';
-    const last = len ? Object.values(filtered[len - 1] as any)[0] : '';
-    const sig = `${len}|${String(first)}|${String(last)}`;
+    const sig = signatureOfRows(rows);
 
     if (sig !== lastSigRef.current) {
       lastSigRef.current = sig;
@@ -483,7 +516,10 @@ export default typedMemo(function DataTable<D extends object>({
         cancelAnimationFrame(rafRef.current);
       }
       rafRef.current = requestAnimationFrame(() => {
-        if (isMountedRef.current) onFilteredRowsChange(filtered);
+        if (isMountedRef.current) {
+          // Only emit originals when the signature truly changed
+          onFilteredRowsChange(rows.map(r => r.original as D));
+        }
       });
     }
 

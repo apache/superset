@@ -77,6 +77,7 @@ const MENU_KEYS = {
   EXPORT_ALL_DATA_GROUP: 'export_all_data_group',
   EXPORT_CURRENT_VIEW_GROUP: 'export_current_view_group',
   EXPORT_CURRENT_TO_CSV: 'export_current_to_csv',
+  EXPORT_ALL_SCREENSHOT: 'export_all_screenshot',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -711,6 +712,27 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           dispatch(
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      },
+      {
+        key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
+        label: t('Export screenshot (jpeg)'),
+        icon: <Icons.FileImageOutlined />,
+        onClick: e => {
+          // Visual export of the currently visible chart
+          downloadAsImage(
+            '.panel-body .chart-container',
+            slice?.slice_name ?? t('New chart'),
+            true,
+            theme,
+          )(e.domEvent);
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
               chartId: slice?.slice_id,
               chartName: slice?.slice_name,
             }),
