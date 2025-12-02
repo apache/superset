@@ -1926,6 +1926,8 @@ TALISMAN_CONFIG = {
             "https://home.snap4idtcity.com",
             # Allow API calls from Button component
             "https://app.idtcities.com",
+            # Allow MQTT WebSocket connections for real-time notifications
+            "wss://mqtt.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
@@ -1973,6 +1975,8 @@ TALISMAN_DEV_CONFIG = {
             "https://home.snap4idtcity.com",
             # Allow API calls from Button component
             "https://app.idtcities.com",
+            # Allow MQTT WebSocket connections for real-time notifications
+            "wss://mqtt.snap4idtcity.com",
         ]
         + ADDITIONAL_CSP_CONNECT_SOURCES,
         "object-src": "'none'",
