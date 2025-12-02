@@ -181,8 +181,9 @@ class QueryContextProcessor:
         warning = None
         if getattr(g, "bq_memory_limited", False):
             row_count = getattr(g, "bq_memory_limited_row_count", len(cache.df))
-            warning = f"Results truncated to {row_count:,} rows due to memory constraints."
-
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = f"{prefix}Results truncated to {row_count:,} rows due to memory constraints."
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,

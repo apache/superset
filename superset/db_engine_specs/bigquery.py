@@ -39,6 +39,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
 from sqlalchemy.sql.expression import table as sql_table
 
+from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
@@ -253,13 +254,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """
-        Progressive fetch using fetchmany to avoid loading huge results into memory.
-        Fetches first batch to estimate row size, then fetches only what fits in memory limit.
-        Sets flask.g.bq_memory_limited for thread-safe access.
-
-        Enabled via BQ_MEMORY_LIMIT_FETCH feature flag.
+        Progressive fetch implementation for BigQuery to prevent memory overload.
+        Samples first batch to estimate row size and extrapolates total rows that fit in memory limit.
         """
-        from superset import is_feature_enabled
 
         # If feature flag is off, use default behavior
         if not is_feature_enabled("BQ_MEMORY_LIMIT_FETCH"):
