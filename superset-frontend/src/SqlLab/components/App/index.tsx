@@ -38,7 +38,7 @@ import {
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
 import PopEditorTab from '../PopEditorTab';
-import SqlEditorSidebarWrapper from '../SqlEditorSidebarWrapper';
+import AppLayout from '../AppLayout';
 
 const SqlLabStyles = styled.div`
   ${({ theme }) => css`
@@ -48,7 +48,7 @@ const SqlLabStyles = styled.div`
       right: 0;
       bottom: 0;
       left: 0;
-      padding: 0 ${theme.sizeUnit * 2}px;
+      padding: 0;
 
       pre:not(.code) {
         padding: 0 !important;
@@ -219,9 +219,9 @@ class App extends PureComponent<AppProps, AppState> {
           queriesLastUpdate={queriesLastUpdate}
         />
         <PopEditorTab>
-          <SqlEditorSidebarWrapper>
+          <AppLayout>
             <TabbedSqlEditors />
-          </SqlEditorSidebarWrapper>
+          </AppLayout>
         </PopEditorTab>
       </SqlLabStyles>
     );

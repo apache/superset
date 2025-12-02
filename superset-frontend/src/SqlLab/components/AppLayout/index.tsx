@@ -16,29 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { noop } from 'lodash';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Button, Grid, Icons } from '@superset-ui/core/components';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { toggleLeftBar } from 'src/SqlLab/actions/sqlLab';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
-import { noop } from 'lodash';
+import {
+  SQL_EDITOR_LEFTBAR_WIDTH,
+  SQL_EDITOR_RIGHTBAR_WIDTH,
+} from 'src/SqlLab/constants';
+
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 
-type Props = {
-  queryEditorId: string;
-};
+export const RIGHT_SIDEBAR_VIEW_ID = 'sqllab.rightSidebar';
 
 const StyledContainer = styled.div`
   height: 100%;
-  background-color: ${({ theme }) => theme.colorBgBase};
 
-  & .ant-splitter-bar-dragger::after {
+  & .ant-splitter-panel:not(.sqllab-body) {
+    background-color: ${({ theme }) => theme.colorBgBase};
+  }
+
+  &
+    .ant-splitter-panel:first-child
+    + .ant-splitter-bar
+    .ant-splitter-bar-dragger::after {
     background-color: transparent !important;
   }
 
@@ -53,18 +61,27 @@ const StyledSidebar = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
 `;
 
-const SqlEditorSidebarWrapper: React.FC<Props> = ({
-  queryEditorId,
-  children,
-}) => {
+const ContentWrapper = styled.div`
+  flex: 1;
+  overflow: auto;
+`;
+
+const AppLayout: React.FC = ({ children }) => {
+  const queryEditorId = useSelector<SqlLabRootState, string>(
+    ({ sqlLab: { tabHistory } }) => tabHistory.slice(-1)[0],
+  );
   const { md } = Grid.useBreakpoint();
-  const [width, setWidth] = useStoredSidebarWidth(
+  const [leftWidth, setLeftWidth] = useStoredSidebarWidth(
     'sqllab:leftbar',
     SQL_EDITOR_LEFTBAR_WIDTH,
   );
+  const [rightWidth, setRightWidth] = useStoredSidebarWidth(
+    'sqllab:rightbar',
+    SQL_EDITOR_RIGHTBAR_WIDTH,
+  );
   const autoHide = useEffectEvent(() => {
-    if (width > 0) {
-      setWidth(0);
+    if (leftWidth > 0) {
+      setLeftWidth(0);
     }
   });
   useComponentDidUpdate(() => {
@@ -73,22 +90,37 @@ const SqlEditorSidebarWrapper: React.FC<Props> = ({
     }
   }, [md]);
   const onSidebarChange = (sizes: number[]) => {
-    const [updatedWidth] = sizes;
+    const [updatedWidth, _, possibleRightWidth] = sizes;
     if (updatedWidth === 0) {
-      setWidth(0);
+      setLeftWidth(0);
     } else {
       // Due to a bug in the splitter, the width must be changed
       // in order to properly restore the previous size
-      setWidth(updatedWidth + 0.01);
+      setLeftWidth(updatedWidth + 0.01);
+    }
+
+    if (typeof possibleRightWidth === 'number') {
+      if (possibleRightWidth === 0) {
+        setRightWidth(0);
+      } else {
+        // Due to a bug in the splitter, the width must be changed
+        // in order to properly restore the previous size
+        setRightWidth(possibleRightWidth + 0.01);
+      }
     }
   };
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions(
+      RIGHT_SIDEBAR_VIEW_ID,
+    ) || [];
+  const { getView } = useExtensionsContext();
 
   return (
     <StyledContainer>
       <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
         <Splitter.Panel
           collapsible={{ showCollapsibleIcon: false }}
-          size={width}
+          size={leftWidth}
           min={SQL_EDITOR_LEFTBAR_WIDTH}
         >
           <StyledSidebar>
@@ -100,8 +132,10 @@ const SqlEditorSidebarWrapper: React.FC<Props> = ({
               css={css`
                 position: absolute;
                 top: 10px;
-                inset-inline-end: -4px;
-                padding: 0 4px;
+                inset-inline-end: 0px;
+                border-top-right-radius: 0px;
+                border-bottom-right-radius: 0px;
+                padding: 0 2px 0 4px;
               `}
               onClick={() => onSidebarChange([0])}
             >
@@ -116,7 +150,7 @@ const SqlEditorSidebarWrapper: React.FC<Props> = ({
         </Splitter.Panel>
         <Splitter.Panel className="sqllab-body">
           {children}
-          {width === 0 && (
+          {leftWidth === 0 && (
             <Button
               css={css`
                 position: absolute;
@@ -135,9 +169,24 @@ const SqlEditorSidebarWrapper: React.FC<Props> = ({
             </Button>
           )}
         </Splitter.Panel>
+        {contributions.length > 0 && (
+          <Splitter.Panel
+            collapsible={{
+              start: true,
+              end: true,
+              showCollapsibleIcon: true,
+            }}
+            size={rightWidth}
+            min={SQL_EDITOR_RIGHTBAR_WIDTH}
+          >
+            <ContentWrapper>
+              {contributions.map(contribution => getView(contribution.id))}
+            </ContentWrapper>
+          </Splitter.Panel>
+        )}
       </Splitter>
     </StyledContainer>
   );
 };
 
-export default SqlEditorSidebarWrapper;
+export default AppLayout;
