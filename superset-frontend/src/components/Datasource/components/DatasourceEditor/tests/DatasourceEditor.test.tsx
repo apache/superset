@@ -26,7 +26,6 @@ import {
 } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import {
-  props,
   createProps,
   DATASOURCE_ENDPOINT,
   asyncRender,
@@ -55,17 +54,19 @@ afterEach(async () => {
 });
 
 test('renders Tabs', async () => {
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
 });
 
 test('can sync columns from source', async () => {
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
 
   const columnsTab = screen.getByTestId('collection-tab-Columns');
@@ -95,13 +96,14 @@ test('can sync columns from source', async () => {
 
 // to add, remove and modify columns accordingly
 test('can modify columns', async () => {
+  const baseProps = createProps();
   const limitedProps = {
-    ...props,
+    ...baseProps,
     onChange: jest.fn(),
     datasource: {
-      ...props.datasource,
+      ...baseProps.datasource,
       table_name: 'Vehicle Sales +',
-      columns: props.datasource.columns
+      columns: baseProps.datasource.columns
         .slice(0, 1)
         .map(column => ({ ...column })),
     },
@@ -141,13 +143,14 @@ test('can modify columns', async () => {
 });
 
 test('can delete columns', async () => {
+  const baseProps = createProps();
   const limitedProps = {
-    ...props,
+    ...baseProps,
     onChange: jest.fn(),
     datasource: {
-      ...props.datasource,
+      ...baseProps.datasource,
       table_name: 'Vehicle Sales +',
-      columns: props.datasource.columns
+      columns: baseProps.datasource.columns
         .slice(0, 1)
         .map(column => ({ ...column })),
     },
@@ -190,9 +193,10 @@ test('can delete columns', async () => {
 });
 
 test('can add new columns', async () => {
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
 
   const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
@@ -213,9 +217,10 @@ test('can add new columns', async () => {
 });
 
 test('renders isSqla fields', async () => {
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
 
   const columnsTab = screen.getByRole('tab', {
@@ -232,9 +237,10 @@ test('renders isSqla fields', async () => {
 test('Source Tab: edit mode', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
 
   const getLockBtn = screen.getByRole('img', { name: /lock/i });
@@ -254,9 +260,10 @@ test('Source Tab: edit mode', async () => {
 test('Source Tab: readOnly mode', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 
+  const testProps = createProps();
   await asyncRender({
-    ...props,
-    datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
   });
 
   const getLockBtn = screen.getByRole('img', { name: /lock/i });
@@ -305,7 +312,7 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
 });
 
 test('properly renders the metric information', async () => {
-  await asyncRender(props);
+  await asyncRender(createProps());
 
   const metricButton = screen.getByTestId('collection-tab-Metrics');
   await userEvent.click(metricButton);
@@ -326,7 +333,7 @@ test('properly renders the metric information', async () => {
 });
 
 test('properly updates the metric information', async () => {
-  await asyncRender(props);
+  await asyncRender(createProps());
 
   const metricButton = screen.getByTestId('collection-tab-Metrics');
   await userEvent.click(metricButton);
@@ -354,7 +361,7 @@ test('properly updates the metric information', async () => {
 });
 
 test('shows the default datetime column', async () => {
-  await asyncRender(props);
+  await asyncRender(createProps());
 
   const columnsButton = screen.getByTestId('collection-tab-Columns');
   await userEvent.click(columnsButton);
@@ -369,7 +376,7 @@ test('shows the default datetime column', async () => {
 });
 
 test('allows choosing only temporal columns as the default datetime', async () => {
-  await asyncRender(props);
+  await asyncRender(createProps());
 
   const columnsButton = screen.getByTestId('collection-tab-Columns');
   await userEvent.click(columnsButton);
