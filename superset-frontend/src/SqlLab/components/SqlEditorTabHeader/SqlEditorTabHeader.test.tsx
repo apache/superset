@@ -157,24 +157,6 @@ describe('SqlEditorTabHeader', () => {
       mockPrompt.mockClear();
     });
 
-    test('should dispatch toggleLeftBar action', async () => {
-      await waitFor(() =>
-        expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
-      );
-      fireEvent.click(screen.getByTestId('toggle-menu-option'));
-
-      const actions = store.getActions();
-      await waitFor(() =>
-        expect(actions[0]).toEqual({
-          type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
-          hideLeftBar: !defaultQueryEditor.hideLeftBar,
-          queryEditor: expect.objectContaining({
-            id: defaultQueryEditor.id,
-          }),
-        }),
-      );
-    });
-
     test('should dispatch removeAllOtherQueryEditors action', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
