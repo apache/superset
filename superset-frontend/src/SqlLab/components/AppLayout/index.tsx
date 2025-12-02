@@ -33,8 +33,7 @@ import {
 } from 'src/SqlLab/constants';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
-
-export const RIGHT_SIDEBAR_VIEW_ID = 'sqllab.rightSidebar';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 const StyledContainer = styled.div`
   height: 100%;
@@ -92,7 +91,7 @@ const AppLayout: React.FC = ({ children }) => {
   };
   const contributions =
     ExtensionsManager.getInstance().getViewContributions(
-      RIGHT_SIDEBAR_VIEW_ID,
+      ViewContribution.RightSidebar,
     ) || [];
   const { getView } = useExtensionsContext();
 
