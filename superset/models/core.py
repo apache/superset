@@ -679,7 +679,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
-        query: 'Query' | None = None,
+        query: "Query" | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -730,12 +730,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     # cursor (eg Trino) can capture a cancel id via `handle_cursor`.
                     # Fall back to the normal `execute` call if not available or if
                     # the engine signature differs.
-                    if query is not None and hasattr(self.db_engine_spec, "execute_with_cursor"):
-                        logger.debug(
-                            "Using db_engine_spec.execute_with_cursor for query id=%s client_id=%s",
-                            getattr(query, "id", None),
-                            getattr(query, "client_id", None),
-                        )
+                    if query is not None and hasattr(
+                        self.db_engine_spec, "execute_with_cursor"
+                    ):
                         try:
                             # Preferred signature: (cursor, sql, query)
                             self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
@@ -749,12 +746,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         # that so other processes can cancel the query.
                         try:
                             from superset.constants import QUERY_CANCEL_KEY
+
                             if query is not None:
-                                cancel_query_id = self.db_engine_spec.get_cancel_query_id(
-                                    cursor, query
+                                cancel_query_id = (
+                                    self.db_engine_spec.get_cancel_query_id(
+                                        cursor, query
+                                    )
                                 )
                                 if cancel_query_id is not None:
-                                    query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                                    query.set_extra_json_key(
+                                        QUERY_CANCEL_KEY, cancel_query_id
+                                    )
                                     from superset.extensions import db as _db
 
                                     _db.session.commit()
@@ -815,14 +817,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
-        query: 'Query' | None = None,
+        query: "Query" | None = None,
     ) -> pd.DataFrame:
-        logger.debug(
-            f"[Database.get_df] called for database_id={getattr(self, 'id', None)}"
-            f"query_id={getattr(query, 'id', None) if query is not None else None} "
-            f"client_id={getattr(query, 'client_id', None) if query is not None else None}"
-        )
-
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
             sql, catalog, schema, fetch_last_result=True, query=query
         )

@@ -130,11 +130,11 @@ class ValidationResultDict(TypedDict):
 
 
 if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
     from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -1140,7 +1140,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def query(self, query_obj: QueryObjectDict, query: Query | None = None) -> QueryResult:
+    def query(
+        self, query_obj: QueryObjectDict, query: Query | None = None
+    ) -> QueryResult:
         """
         Executes the query and returns a dataframe.
 
@@ -1298,7 +1300,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return df
 
-    def get_query_result(self, query_object: QueryObject, query: Query | None = None) -> QueryResult:
+    def get_query_result(
+        self, query_object: QueryObject, query: Query | None = None
+    ) -> QueryResult:
         """
         Execute query and return results with full processing pipeline.
 

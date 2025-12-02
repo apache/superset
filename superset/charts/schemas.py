@@ -1414,11 +1414,11 @@ class ChartDataQueryContextSchema(Schema):
     result_format = fields.Enum(ChartDataResultFormat, by_value=True)
 
     form_data = fields.Raw(allow_none=True, required=False)
-    
+
     client_id = fields.String(
         required=False,
         allow_none=True,
-        metadata={"description": "Optional client-generated id for this chart query (used to stop/cancel queries)"},
+        metadata={"description": "Optional client-generated id for this chart query"},
     )
 
     # pylint: disable=unused-argument

@@ -122,9 +122,10 @@ class QueryContextProcessor:
                 # behavior; it is best-effort and only created if the datasource has
                 # an underlying database.
                 query_model = None
-                if hasattr(self._qc_datasource, "database") and getattr(
-                    self._qc_datasource, "database", None
-                ) is not None:
+                if (
+                    hasattr(self._qc_datasource, "database")
+                    and getattr(self._qc_datasource, "database", None) is not None
+                ):
                     try:
                         from uuid import uuid4
 
@@ -142,9 +143,11 @@ class QueryContextProcessor:
                         client_id = provided_client_id or uuid4().hex[:11]
 
                         # If a Query with this client_id already exists, reuse it.
-                        query_model = _db.session.query(SqlLabQuery).filter_by(
-                            client_id=client_id
-                        ).one_or_none()
+                        query_model = (
+                            _db.session.query(SqlLabQuery)
+                            .filter_by(client_id=client_id)
+                            .one_or_none()
+                        )
 
                         if not query_model:
                             query_model = SqlLabQuery(
@@ -154,15 +157,14 @@ class QueryContextProcessor:
                             )
                             _db.session.add(query_model)
                             _db.session.commit()
-                        
+
+                    except (
+                        Exception
+                    ):  # pragma: no cover - best-effort Query model creation
                         logger.debug(
-                            "[query_context_processor] Query model created/reused: id=%s client_id=%s database_id=%s",
-                            getattr(query_model, 'id', None),
-                            getattr(query_model, 'client_id', None),
-                            getattr(query_model, 'database_id', None),
+                            "Could not create Query model for chart query",
+                            exc_info=True,
                         )
-                    except Exception:  # pragma: no cover - best-effort Query model creation
-                        logger.debug("Could not create Query model for chart query", exc_info=True)
                         query_model = None
 
                 query_result = self.get_query_result(query_obj, query=query_model)
@@ -277,7 +279,9 @@ class QueryContextProcessor:
         )
         return cache_key
 
-    def get_query_result(self, query_object: QueryObject, query: Query | None = None) -> QueryResult:
+    def get_query_result(
+        self, query_object: QueryObject, query: Query | None = None
+    ) -> QueryResult:
         """
         Returns a pandas dataframe based on the query object.
 

@@ -403,7 +403,7 @@ function ExploreViewContainer(props) {
     if (props.chart?.queryController) {
       props.chart.queryController.abort();
     }
-    
+
     // Method 2: Send stop request to backend if we have a query ID
     const queryId = props.chart?.latestQueryId;
     if (queryId) {

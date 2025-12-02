@@ -238,14 +238,14 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
-  
+
   if (clientId) {
     return {
       ...queryContext,
       client_id: clientId,
     };
   }
-  
+
   return queryContext;
 };
 

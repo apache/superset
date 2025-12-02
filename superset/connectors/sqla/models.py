@@ -1637,7 +1637,9 @@ class SqlaTable(
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict, query: 'Query' | None = None) -> QueryResult:
+    def query(
+        self, query_obj: QueryObjectDict, query: "Query" | None = None
+    ) -> QueryResult:
         """
         Executes the query for SqlaTable with additional column ordering logic.
 

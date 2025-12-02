@@ -694,7 +694,8 @@ def cancel_query(query: Query) -> bool:
         # This can happen if the query cancellation key can only be acquired after the
         # query has been executed
         logger.debug(
-            "Query marked early-cancel (QUERY_EARLY_CANCEL_KEY) for id=%s", getattr(query, 'id', None)
+            "Query marked early-cancel (QUERY_EARLY_CANCEL_KEY) for id=%s",
+            getattr(query, "id", None),
         )
         return True
 
