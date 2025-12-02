@@ -886,7 +886,7 @@ rsa==4.9.1
     # via
     #   -c requirements/base-constraint.txt
     #   google-auth
-ruff==0.8.0
+ruff==0.9.7
     # via apache-superset
 secretstorage==3.4.1
     # via keyring

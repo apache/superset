@@ -352,6 +352,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "superset/translations/utils.py" = ["TID251"]
 "superset/extensions/__init__.py" = ["TID251"]
 "superset/utils/json.py" = ["TID251"]
+"docker/*" = ["I"]  # Docker config files have non-standard imports that vary by environment
 
 [tool.ruff.lint.isort]
 case-sensitive = false

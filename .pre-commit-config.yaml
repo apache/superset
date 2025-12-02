@@ -106,12 +106,19 @@ repos:
         files: helm
         verbose: false
         args: ["--log-level", "error"]
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.7
+  # Using local hooks ensures ruff version matches requirements/development.txt
+  - repo: local
     hooks:
       - id: ruff-format
+        name: ruff-format
+        entry: ruff format
+        language: system
+        types: [python]
       - id: ruff
-        args: [--fix]
+        name: ruff
+        entry: ruff check --fix --show-fixes
+        language: system
+        types: [python]
   - repo: local
     hooks:
       - id: pylint

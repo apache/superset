@@ -17,7 +17,13 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@superset-ui/core/spec';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import transformProps from '../src/transformProps';
@@ -1084,6 +1090,52 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
           'rgba(172, 225, 196, 1)',
         );
+      });
+
+      it('recalculates totals when user filters data', async () => {
+        const formDataWithTotals = {
+          ...testData.basic.formData,
+          show_totals: true,
+          include_search: true,
+          server_pagination: false,
+          metrics: ['sum__num'],
+        };
+
+        const data = testData.basic.queriesData[0].data;
+        const totalBeforeFilter = data.reduce(
+          (sum, row) => sum + Number(row.sum__num || 0),
+          0,
+        );
+        const totalAfterFilter =
+          data.find(item => item.name === 'Michael')?.sum__num || 0;
+
+        const props = transformProps({
+          ...testData.basic,
+          formData: formDataWithTotals,
+        });
+        props.totals = { sum__num: totalBeforeFilter };
+        props.includeSearch = true;
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        const totalCellBefore = within(table).getByText(
+          String(totalBeforeFilter),
+        );
+        expect(totalCellBefore).toBeInTheDocument();
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          const totalCellAfter = within(table).getByText(
+            String(totalAfterFilter),
+          );
+          expect(totalCellAfter).toBeInTheDocument();
+        });
       });
     });
   });
