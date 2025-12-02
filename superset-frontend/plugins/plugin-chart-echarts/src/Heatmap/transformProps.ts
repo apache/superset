@@ -273,16 +273,25 @@ export default function transformProps(
     {
       name: metricLabel,
       type: 'heatmap',
-      data: data.map(row => {
+      data: data.flatMap(row => {
         const xValue = row[xAxisColumnName];
         const yValue = row[yAxisColumnName];
         const metricValue = row[metricLabel];
 
         // Convert to axis indices for ECharts when explicit axis data is provided
-        const xIndex = xAxisIndexMap.get(xValue) ?? 0;
-        const yIndex = yAxisIndexMap.get(yValue) ?? 0;
+        const xIndex = xAxisIndexMap.get(xValue);
+        const yIndex = yAxisIndexMap.get(yValue);
 
-        return [xIndex, yIndex, metricValue] as [number, number, any];
+        if (xIndex === undefined || yIndex === undefined) {
+          // Log a warning for debugging
+          // eslint-disable-next-line no-console
+          console.warn(
+            `Heatmap: Skipping row due to missing axis value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
+            row,
+          );
+          return [];
+        }
+        return [[xIndex, yIndex, metricValue] as [number, number, any]];
       }),
       label: {
         show: showValues,
