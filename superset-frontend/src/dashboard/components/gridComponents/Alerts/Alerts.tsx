@@ -58,6 +58,19 @@ const AlertsStyles = styled.div`
       border-radius: ${theme.borderRadius}px;
       min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
 
+      /* Hide in view mode, only show in edit mode */
+      .dashboard:not(.dashboard--editing) & {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        visibility: hidden;
+        position: absolute;
+      }
+
       .dashboard--editing & {
         cursor: move;
       }
