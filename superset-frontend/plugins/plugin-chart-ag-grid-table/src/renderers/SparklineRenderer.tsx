@@ -57,7 +57,7 @@ export const SparklineRenderer = (
   const ariaLabel = `Sparkline chart for ${col?.label || dataKey}`;
   const theme = useTheme();
   const chartColor =
-    typeof color === 'object' ? rgbToHex(color) : color || theme.colorText;
+    color && typeof color === 'object' ? rgbToHex(color) : color || theme.colorText;
 
   return (
     <CellContainer>
