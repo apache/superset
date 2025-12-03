@@ -236,3 +236,66 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
     return [filtersInScope, filtersOutOfScope];
   }, [filters, dashboardHasTabs, isFilterInScope]);
 }
+
+export function useIsCustomizationInScope() {
+  const activeTabs = useActiveDashboardTabs();
+  const selectChartTabParents = useSelectChartTabParents();
+
+  return useCallback(
+    (customization: ChartCustomization | ChartCustomizationDivider) => {
+      if ('title' in customization) return true;
+
+      const isChartInScope =
+        Array.isArray(customization.chartsInScope) &&
+        customization.chartsInScope.length > 0 &&
+        customization.chartsInScope.some((chartId: number) => {
+          const tabParents = selectChartTabParents(chartId);
+          return (
+            !tabParents ||
+            tabParents.length === 0 ||
+            tabParents.every(tab => activeTabs.includes(tab))
+          );
+        });
+
+      const isCustomizationInActiveTab = customization.tabsInScope?.some(tab =>
+        activeTabs.includes(tab),
+      );
+
+      return isChartInScope || isCustomizationInActiveTab;
+    },
+    [selectChartTabParents, activeTabs],
+  );
+}
+
+export function useSelectCustomizationsInScope(
+  customizations: (ChartCustomization | ChartCustomizationDivider)[],
+) {
+  const dashboardHasTabs = useDashboardHasTabs();
+  const isCustomizationInScope = useIsCustomizationInScope();
+
+  return useMemo(() => {
+    let customizationsInScope: (
+      | ChartCustomization
+      | ChartCustomizationDivider
+    )[] = [];
+    const customizationsOutOfScope: (
+      | ChartCustomization
+      | ChartCustomizationDivider
+    )[] = [];
+
+    if (!dashboardHasTabs) {
+      customizationsInScope = customizations;
+    } else {
+      customizations.forEach(customization => {
+        const customizationInScope = isCustomizationInScope(customization);
+
+        if (customizationInScope) {
+          customizationsInScope.push(customization);
+        } else {
+          customizationsOutOfScope.push(customization);
+        }
+      });
+    }
+    return [customizationsInScope, customizationsOutOfScope];
+  }, [customizations, dashboardHasTabs, isCustomizationInScope]);
+}
