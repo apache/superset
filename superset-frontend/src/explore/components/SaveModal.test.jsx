@@ -349,21 +349,24 @@ test('removes form_data_key from URL parameters after save', () => {
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {
   // Spy on the removeChartState action creator
-  const removeChartStateSpy = jest.spyOn(dashboardStateActions, 'removeChartState');
-  
+  const removeChartStateSpy = jest.spyOn(
+    dashboardStateActions,
+    'removeChartState',
+  );
+
   // Mock the dashboard API response
   const dashboardId = 123;
   const dashboardUrl = '/superset/dashboard/test-dashboard/';
   fetchMock.get(
     `glob:*/api/v1/dashboard/${dashboardId}*`,
     {
-      result: { 
-        id: dashboardId, 
+      result: {
+        id: dashboardId,
         dashboard_title: 'Test Dashboard',
-        url: dashboardUrl 
+        url: dashboardUrl,
       },
     },
-    { overwriteRoutes: true }
+    { overwriteRoutes: true },
   );
 
   const mockDispatch = jest.fn();
@@ -374,7 +377,7 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
   const chartId = 42;
   const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: chartId }));
   const mockSetFormData = jest.fn();
-  
+
   const myProps = {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'title', owners: [1] },
@@ -412,7 +415,7 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
 
   // Verify removeChartState was called with the correct chart ID
   expect(removeChartStateSpy).toHaveBeenCalledWith(chartId);
-  
+
   // Verify the action was dispatched (check the action object directly)
   expect(mockDispatch).toHaveBeenCalled();
   expect(mockDispatch).toHaveBeenCalledWith({
@@ -422,7 +425,7 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
 
   // Verify navigation happened
   expect(mockHistory.push).toHaveBeenCalled();
-  
+
   // Clean up
   removeChartStateSpy.mockRestore();
 });
