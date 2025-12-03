@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import {
+  cloneElement,
   isValidElement,
   ReactNode,
   useCallback,
@@ -30,13 +31,9 @@ import {
 import {
   ensureIsArray,
   t,
-  styled,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
-  css,
-  SupersetTheme,
-  useTheme,
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
@@ -44,6 +41,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -578,7 +576,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
+    const { controls, chart, exploreState, form_data, actions } = props;
     const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -627,7 +625,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined iconColor={theme.colorErrorText} />
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
           </Tooltip>
         )}
       </span>
@@ -660,7 +658,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   }
                   if (isValidElement(controlItem)) {
                     // When the item is a React element
-                    return controlItem;
+                    const element = controlItem as React.ReactElement<
+                      Record<string, unknown>
+                    >;
+
+                    const controlName = (element.props as { name: string })
+                      .name;
+                    if (!controlName) {
+                      return element;
+                    }
+                    const controlState = controls[controlName];
+
+                    return cloneElement(element, {
+                      ...(element.props as Record<string, unknown>),
+                      actions,
+                      controls,
+                      chart,
+                      exploreState,
+                      form_data,
+                      ...(controlState && {
+                        value: controlState.value,
+                        validationErrors: controlState.validationErrors,
+                        default: controlState.default,
+                        onChange: (value: unknown, errors: unknown[]) =>
+                          setControlValue(controlName, value, errors),
+                      }),
+                    });
                   }
                   if (
                     isCustomControlItem(controlItem) &&
@@ -752,9 +775,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="query-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>
@@ -813,9 +836,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={t('This section contains validation errors')}
             >
-              <Icons.InfoCircleOutlined
+              <Icons.ExclamationCircleOutlined
                 data-test="matrixify-validation-error-tooltip-trigger"
-                iconColor={theme.colorErrorText}
+                iconColor={theme.colorError}
                 iconSize="s"
               />
             </Tooltip>

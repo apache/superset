@@ -22,7 +22,8 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
+import { truncationCSS } from '@superset-ui/core';
+import { styled, SupersetTheme } from '@apache-superset/core/ui';
 import {
   FormItem as StyledFormItem,
   Form,
@@ -52,6 +53,7 @@ const VerticalFilterControlTitle = styled.h4`
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   color: ${({ theme }) => theme.colorText};
+  margin: 0;
   ${truncationCSS};
 `;
 
@@ -59,6 +61,7 @@ const HorizontalOverflowFilterControlTitle = styled(
   HorizontalFilterControlTitle,
 )`
   max-width: none;
+  margin: ${({ theme }) => `${theme.sizeUnit * 2}px 0 ${theme.sizeUnit}px`};
 `;
 
 const VerticalFilterControlTitleBox = styled.div`
@@ -151,6 +154,10 @@ const VerticalFormItem = styled(StyledFormItem)<{
       flex-direction: column;
     `}
   }
+
+  .ant-col {
+    min-height: auto;
+  }
 `;
 
 const HorizontalFormItem = styled(StyledFormItem)<{
@@ -161,7 +168,7 @@ const HorizontalFormItem = styled(StyledFormItem)<{
     align-items: center;
   }
 
-  .ant-form-item-label {
+  && > .ant-row > .ant-form-item-label {
     display: flex;
     align-items: center;
     overflow: visible;

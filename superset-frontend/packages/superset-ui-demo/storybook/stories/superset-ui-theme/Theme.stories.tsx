@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 
 const colorTypes = ['primary', 'error', 'warning', 'success', 'info'];
 

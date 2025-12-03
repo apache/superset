@@ -19,18 +19,15 @@
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import {
-  styled,
   SupersetClient,
   getClientErrorObject,
   t,
   SupersetError,
-  useTheme,
-  css,
 } from '@superset-ui/core';
+import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
 import {
   Icons,
-  Alert,
   Button,
   Checkbox,
   Modal,
@@ -196,6 +193,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
+
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';

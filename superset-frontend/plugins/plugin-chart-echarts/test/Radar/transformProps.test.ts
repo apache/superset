@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { RadarSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Radar/transformProps';
 import {

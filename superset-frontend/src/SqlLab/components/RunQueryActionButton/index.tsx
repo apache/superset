@@ -18,7 +18,8 @@
  */
 import { useMemo, FC, ReactElement } from 'react';
 
-import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 
 import { Button, DropdownButton } from '@superset-ui/core/components';
 import { IconType, Icons } from '@superset-ui/core/components/Icons';
