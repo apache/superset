@@ -24,6 +24,7 @@ import {
   BigNumberWithTrendlineChartProps,
   BigNumberWithTrendlineFormData,
 } from '../../src/BigNumber/types';
+import { TIMESERIES_CONSTANTS } from '../../src/constants';
 
 const formData = {
   metric: 'value',
@@ -183,6 +184,127 @@ describe('BigNumberWithTrendline', () => {
         '$ 1.23',
       );
     });
+
+    it('should show X axis when showXAxis is true', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+        },
+      });
+      expect((transformed.echartOptions?.xAxis as any).show).toBe(true);
+    });
+
+    it('should not show X axis when showXAxis is false', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: false,
+        },
+      });
+      expect((transformed.echartOptions?.xAxis as any).show).toBe(false);
+    });
+
+    it('should show Y axis when showYAxis is true', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showYAxis: true,
+        },
+      });
+      expect((transformed.echartOptions?.yAxis as any).show).toBe(true);
+    });
+
+    it('should not show Y axis when showYAxis is false', () => {
+      const transformed = transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showYAxis: false,
+        },
+      });
+      expect((transformed.echartOptions?.yAxis as any).show).toBe(false);
+    });
+  });
+
+  it('should respect min/max label visibility settings', () => {
+    const transformed = transformProps({
+      ...props,
+      formData: {
+        ...props.formData,
+        showXAxisMinMaxLabels: false,
+        showYAxisMinMaxLabels: true,
+      },
+    });
+    const xAxis = transformed.echartOptions?.xAxis as any;
+    const yAxis = transformed.echartOptions?.yAxis as any;
+
+    expect(xAxis.axisLabel.showMinLabel).toBe(false);
+    expect(xAxis.axisLabel.showMaxLabel).toBe(false);
+    expect(yAxis.axisLabel.showMinLabel).toBe(true);
+    expect(yAxis.axisLabel.showMaxLabel).toBe(true);
+  });
+
+  it('should use minimal grid when both axes are hidden', () => {
+    const transformed = transformProps({
+      ...props,
+      formData: {
+        ...props.formData,
+        showXAxis: false,
+        showYAxis: false,
+      },
+    });
+
+    expect(transformed.echartOptions?.grid).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 0,
+    });
+  });
+
+  it('should use expanded grid when either axis is shown', () => {
+    const expandedGrid = {
+      containLabel: true,
+      bottom: TIMESERIES_CONSTANTS.gridOffsetBottom,
+      left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+      right: TIMESERIES_CONSTANTS.gridOffsetRight,
+      top: TIMESERIES_CONSTANTS.gridOffsetTop,
+    };
+
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+          showYAxis: false,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: false,
+          showYAxis: true,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
+    expect(
+      transformProps({
+        ...props,
+        formData: {
+          ...props.formData,
+          showXAxis: true,
+          showYAxis: true,
+        },
+      }).echartOptions?.grid,
+    ).toEqual(expandedGrid);
   });
 });
 

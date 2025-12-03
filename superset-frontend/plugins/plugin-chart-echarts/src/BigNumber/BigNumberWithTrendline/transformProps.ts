@@ -30,6 +30,8 @@ import {
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
+import { TIMESERIES_CONSTANTS } from '../../constants';
+import { getXAxisFormatter } from '../../utils/formatters';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -103,6 +105,10 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    showXAxis = false,
+    showXAxisMinMaxLabels = false,
+    showYAxis = false,
+    showYAxisMinMaxLabels = false,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -234,21 +240,6 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter = getValueFormatter(
-    metric,
-    currencyFormats,
-    columnFormats,
-    metricEntry?.d3format || yAxisFormat,
-    currencyFormat,
-  );
-
-  const headerFormatter =
-    metricColtype === GenericDataType.Temporal ||
-    metricColtype === GenericDataType.String ||
-    forceTimestampFormatting
-      ? formatTime
-      : numberFormatter;
-
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
     if (!trendLineData[0][0] || trendLineData[0][0] > fromDatetime) {
@@ -261,6 +252,21 @@ export default function transformProps(
       trendLineData.push([toDatetimeOrToday, null]);
     }
   }
+
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    metricEntry?.d3format || yAxisFormat,
+    currencyFormat,
+  );
+  const xAxisFormatter = getXAxisFormatter(timeFormat);
+  const yAxisFormatter =
+    metricColtype === GenericDataType.Temporal ||
+    metricColtype === GenericDataType.String ||
+    forceTimestampFormatting
+      ? formatTime
+      : numberFormatter;
 
   const echartOptions: EChartsCoreOption = trendLineData
     ? {
@@ -288,21 +294,49 @@ export default function transformProps(
           },
         ],
         xAxis: {
-          min: trendLineData[0][0],
-          max: trendLineData[trendLineData.length - 1][0],
-          show: false,
-          type: 'value',
+          type: 'time',
+          show: showXAxis,
+          splitLine: {
+            show: false,
+          },
+          axisLabel: {
+            hideOverlap: true,
+            formatter: xAxisFormatter,
+            alignMinLabel: 'left',
+            alignMaxLabel: 'right',
+            showMinLabel: showXAxisMinMaxLabels,
+            showMaxLabel: showXAxisMinMaxLabels,
+          },
         },
         yAxis: {
+          type: 'value',
+          show: showYAxis,
           scale: !startYAxisAtZero,
-          show: false,
+          splitLine: {
+            show: false,
+          },
+          axisLabel: {
+            hideOverlap: true,
+            formatter: yAxisFormatter,
+            showMinLabel: showYAxisMinMaxLabels,
+            showMaxLabel: showYAxisMinMaxLabels,
+          },
         },
-        grid: {
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0,
-        },
+        grid:
+          showXAxis || showYAxis
+            ? {
+                containLabel: true,
+                bottom: TIMESERIES_CONSTANTS.gridOffsetBottom,
+                left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+                right: TIMESERIES_CONSTANTS.gridOffsetRight,
+                top: TIMESERIES_CONSTANTS.gridOffsetTop,
+              }
+            : {
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+              },
         tooltip: {
           ...getDefaultTooltip(refs),
           show: !inContextMenu,
@@ -314,7 +348,7 @@ export default function transformProps(
                   metricName,
                   params[0].data[1] === null
                     ? t('N/A')
-                    : headerFormatter.format(params[0].data[1]),
+                    : yAxisFormatter.format(params[0].data[1]),
                 ],
               ],
               formatTime(params[0].data[0]),
@@ -326,6 +360,7 @@ export default function transformProps(
             description: `Big number visualization ${subheader}`,
           },
         },
+        useUTC: true,
       }
     : {};
 
@@ -338,7 +373,7 @@ export default function transformProps(
     // @ts-ignore
     bigNumberFallback,
     className,
-    headerFormatter,
+    headerFormatter: yAxisFormatter,
     formatTime,
     formData,
     metricName: originalLabel,

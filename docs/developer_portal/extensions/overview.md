@@ -50,3 +50,4 @@ Extensions can provide:
 - **[Deployment](./deployment)** - Packaging and deploying extensions
 - **[MCP Integration](./mcp)** - Adding AI agent capabilities using extensions
 - **[Security](./security)** - Security considerations and best practices
+- **[Community Extensions](./registry)** - Browse extensions shared by the community

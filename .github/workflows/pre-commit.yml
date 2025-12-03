@@ -71,7 +71,9 @@ jobs:
           GIT_DIFF_EXIT_CODE=$?
           if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ] || [ "${GIT_DIFF_EXIT_CODE}" -ne 0 ]; then
             if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ]; then
-              echo "❌ Pre-commit check failed (exit code: ${EXIT_CODE})."
+              echo "❌ Pre-commit check failed (exit code: ${PRE_COMMIT_EXIT_CODE})."
+              echo "🔍 Modified files:"
+              git diff --name-only
             else
               echo "❌ Git working directory is dirty."
               echo "📌 This likely means that pre-commit made changes that were not committed."

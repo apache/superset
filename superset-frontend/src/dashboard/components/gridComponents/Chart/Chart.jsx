@@ -114,6 +114,33 @@ const SliceContainer = styled.div`
 const EMPTY_OBJECT = {};
 const EMPTY_ARRAY = [];
 
+// Helper function to get chart state with fallback
+const getChartStateWithFallback = (chartState, formData, vizType) => {
+  if (!hasChartStateConverter(vizType)) {
+    return null;
+  }
+
+  return (
+    chartState?.state || formData.table_state || formData.pivot_table_state
+  );
+};
+
+// Helper function to create own state with chart state conversion
+const createOwnStateWithChartState = (baseOwnState, chartState, vizType) => {
+  const state = getChartStateWithFallback(chartState, {}, vizType);
+
+  if (!state) {
+    return baseOwnState;
+  }
+
+  const convertedState = convertChartStateToOwnState(vizType, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
+
 const Chart = props => {
   const dispatch = useDispatch();
   const descriptionRef = useRef(null);
@@ -383,16 +410,11 @@ const Chart = props => {
 
   const ownState = useMemo(() => {
     const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
-
-    if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
-      return {
-        ...baseOwnState,
-        ...convertChartStateToOwnState(slice.viz_type, chartState.state),
-        chartState: chartState.state,
-      };
-    }
-
-    return baseOwnState;
+    return createOwnStateWithChartState(
+      baseOwnState,
+      chartState,
+      slice.viz_type,
+    );
   }, [
     dataMask[props.id]?.ownState,
     props.id,
@@ -486,19 +508,19 @@ const Chart = props => {
         const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
         filename = `${safeChartName}${timestamp}.csv`;
       }
-      let ownState = dataMask[props.id]?.ownState || {};
+      const baseOwnState = dataMask[props.id]?.ownState || {};
+      const state = getChartStateWithFallback(
+        chartState,
+        formData,
+        slice.viz_type,
+      );
 
-      // Convert chart-specific state to backend format using registered converter
-      if (hasChartStateConverter(slice.viz_type) && chartState?.state) {
-        const convertedState = convertChartStateToOwnState(
-          slice.viz_type,
-          chartState.state,
-        );
-        ownState = {
-          ...ownState,
-          ...convertedState,
-        };
-      }
+      const ownState = state
+        ? {
+            ...baseOwnState,
+            ...convertChartStateToOwnState(slice.viz_type, state),
+          }
+        : baseOwnState;
 
       exportChart({
         formData: exportFormData,
@@ -671,7 +693,17 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={ownState}
+          ownState={createOwnStateWithChartState(
+            dataMask[props.id]?.ownState || EMPTY_OBJECT,
+            {
+              state: getChartStateWithFallback(
+                chartState,
+                formData,
+                slice.viz_type,
+              ),
+            },
+            slice.viz_type,
+          )}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}

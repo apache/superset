@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import {
   DatasourceType,
   ensureIsArray,
@@ -179,6 +179,14 @@ export function getAllControlsState(
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,
+            state,
+            formData[name],
+          );
+        } else if (React.isValidElement(field)) {
+          const props = field.props as { name: string; [key: string]: any };
+          const { name, ...configProps } = props;
+          controlsState[name] = getControlStateFromControlConfig(
+            configProps as ControlConfig<any>,
             state,
             formData[name],
           );
