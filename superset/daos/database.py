@@ -19,7 +19,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.orm import joinedload
 
 from superset import is_feature_enabled
@@ -67,18 +66,25 @@ class DatabaseDAO(BaseDAO[Database]):
 
     @classmethod
     def find_by_id(
-        cls, model_id: str | int, skip_base_filter: bool = False
+        cls,
+        model_id: str | int,
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
         """
         query = db.session.query(cls.model_cls).options(joinedload(Database.ssh_tunnel))
-        if cls.base_filter and not skip_base_filter:  # type: ignore
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
-        return query.filter_by(id=model_id).one_or_none()
+        query = cls._apply_base_filter(query, skip_base_filter)
+
+        column_name = id_column or cls.id_column_name
+        if not hasattr(cls.model_cls, column_name):
+            raise AttributeError(
+                "{0} has no column {1}".format(cls.model_cls, column_name)
+            )
+
+        column = getattr(cls.model_cls, column_name)
+        return query.filter(column == model_id).one_or_none()
 
     @classmethod
     def update(
