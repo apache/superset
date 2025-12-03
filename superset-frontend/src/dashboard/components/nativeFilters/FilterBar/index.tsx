@@ -91,7 +91,6 @@ const EXCLUDED_URL_PARAMS: string[] = [
   URL_PARAMS.permalinkKey.name,
 ];
 
-const EMPTY_ARRAY: (ChartCustomization | ChartCustomizationDivider)[] = [];
 const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
 
 const publishDataMask = debounce(
