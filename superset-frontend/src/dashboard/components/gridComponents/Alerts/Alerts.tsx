@@ -44,8 +44,8 @@ const AlertsStyles = styled.div`
     &.dashboard-alerts {
       /* Position absolutely to not take up layout space */
       position: fixed !important;
-      top: 70px;
-      right: 20px;
+      bottom: 70px;
+      left: 20px;
       z-index: 1000;
       
       /* Fixed size for floating indicator */
