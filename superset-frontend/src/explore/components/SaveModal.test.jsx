@@ -413,11 +413,12 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
   // Verify removeChartState was called with the correct chart ID
   expect(removeChartStateSpy).toHaveBeenCalledWith(chartId);
   
-  // Verify the action was dispatched
+  // Verify the action was dispatched (check the action object directly)
   expect(mockDispatch).toHaveBeenCalled();
-  expect(mockDispatch).toHaveBeenCalledWith(
-    dashboardStateActions.removeChartState(chartId)
-  );
+  expect(mockDispatch).toHaveBeenCalledWith({
+    type: 'REMOVE_CHART_STATE',
+    chartId,
+  });
 
   // Verify navigation happened
   expect(mockHistory.push).toHaveBeenCalled();
