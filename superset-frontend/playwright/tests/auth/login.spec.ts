@@ -22,15 +22,21 @@ import { AuthPage } from '../../pages/AuthPage';
 import { URL } from '../../utils/urls';
 import { TIMEOUT } from '../../utils/constants';
 
+// Test credentials - can be overridden via environment variables
+const adminUsername = process.env.PLAYWRIGHT_ADMIN_USERNAME || 'admin';
+const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'general';
+
 /**
  * Auth/login tests use per-test navigation via beforeEach.
  * Each test starts fresh on the login page without global authentication.
  * This follows the Cypress pattern for auth testing - simple and isolated.
  */
 
+let authPage: AuthPage;
+
 test.beforeEach(async ({ page }) => {
   // Navigate to login page before each test (ensures clean state)
-  const authPage = new AuthPage(page);
+  authPage = new AuthPage(page);
   await authPage.goto();
   await authPage.waitForLoginForm();
 });
@@ -38,14 +44,11 @@ test.beforeEach(async ({ page }) => {
 test('should redirect to login with incorrect username and password', async ({
   page,
 }) => {
-  // Create page object (already on login page from beforeEach)
-  const authPage = new AuthPage(page);
-
   // Setup request interception before login attempt
   const loginRequestPromise = authPage.waitForLoginRequest();
 
   // Attempt login with incorrect credentials
-  await authPage.loginWithCredentials('admin', 'wrongpassword');
+  await authPage.loginWithCredentials(adminUsername, 'wrongpassword');
 
   // Wait for login request and verify response
   const loginResponse = await loginRequestPromise;
@@ -67,14 +70,11 @@ test('should redirect to login with incorrect username and password', async ({
 });
 
 test('should login with correct username and password', async ({ page }) => {
-  // Create page object (already on login page from beforeEach)
-  const authPage = new AuthPage(page);
-
   // Setup request interception before login attempt
   const loginRequestPromise = authPage.waitForLoginRequest();
 
   // Login with correct credentials
-  await authPage.loginWithCredentials('admin', 'general');
+  await authPage.loginWithCredentials(adminUsername, adminPassword);
 
   // Wait for login request and verify response
   const loginResponse = await loginRequestPromise;

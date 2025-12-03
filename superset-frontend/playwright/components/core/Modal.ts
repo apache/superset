@@ -72,7 +72,7 @@ export class Modal {
    * @param buttonText - The text content of the button
    */
   private getFooterButton(buttonText: string): Locator {
-    return this.footer.locator('button', { hasText: buttonText });
+    return this.footer.getByRole('button', { name: buttonText, exact: true });
   }
 
   /**

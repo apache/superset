@@ -23,6 +23,7 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   params?: Record<string, string>;
   failOnStatusCode?: boolean;
+  allowMissingCsrf?: boolean;
 }
 
 /**
@@ -36,27 +37,33 @@ function getBaseUrl(_page: Page): string {
   return process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
 }
 
+interface CsrfResult {
+  token: string;
+  error?: string;
+}
+
 /**
  * Get CSRF token from the API endpoint
  * Superset provides a CSRF token via api/v1/security/csrf_token/
  * The session cookie is automatically included by page.request
  */
-async function getCsrfToken(page: Page): Promise<string> {
+async function getCsrfToken(page: Page): Promise<CsrfResult> {
   try {
     const response = await page.request.get('api/v1/security/csrf_token/', {
       failOnStatusCode: false,
     });
 
     if (!response.ok()) {
-      console.warn('[CSRF] Failed to fetch CSRF token:', response.status());
-      return '';
+      return {
+        token: '',
+        error: `HTTP ${response.status()} ${response.statusText()}`,
+      };
     }
 
     const json = await response.json();
-    return json.result || '';
+    return { token: json.result || '' };
   } catch (error) {
-    console.warn('[CSRF] Error fetching CSRF token:', error);
-    return '';
+    return { token: '', error: String(error) };
   }
 }
 
@@ -68,7 +75,7 @@ async function buildHeaders(
   page: Page,
   options?: ApiRequestOptions,
 ): Promise<Record<string, string>> {
-  const csrfToken = await getCsrfToken(page);
+  const { token: csrfToken, error: csrfError } = await getCsrfToken(page);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options?.headers,
@@ -78,6 +85,12 @@ async function buildHeaders(
   if (csrfToken) {
     headers['X-CSRFToken'] = csrfToken;
     headers['Referer'] = getBaseUrl(page);
+  } else if (!options?.allowMissingCsrf) {
+    const errorDetail = csrfError ? ` (${csrfError})` : '';
+    throw new Error(
+      `Missing CSRF token${errorDetail} - mutation requests require authentication. ` +
+        'Ensure global authentication completed or test has valid session.',
+    );
   }
 
   return headers;

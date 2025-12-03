@@ -116,19 +116,27 @@ export class AuthPage {
       throw new Error(`Login failed: expected redirect (3xx), got ${status}`);
     }
 
-    // 4. Poll for session cookie to appear (may take a moment after redirect)
-    const pollInterval = TIMEOUT.API_POLL_INTERVAL;
-    while (Date.now() - startTime < timeout) {
+    // 4. Poll for session cookie to appear (HttpOnly cookie, not accessible via document.cookie)
+    // Use page.context().cookies() since session cookie is HttpOnly
+    const pollInterval = 500; // 500ms instead of 100ms for less chattiness
+    while (true) {
+      const remaining = timeout - (Date.now() - startTime);
+      if (remaining <= 0) {
+        break; // Timeout exceeded
+      }
+
       const sessionCookie = await this.getSessionCookie();
       if (sessionCookie && sessionCookie.value) {
         // Success - session cookie has landed
         return;
       }
-      await this.page.waitForTimeout(pollInterval);
+
+      await this.page.waitForTimeout(Math.min(pollInterval, remaining));
     }
 
+    const currentUrl = await this.page.url();
     throw new Error(
-      `Login timeout: session cookie did not appear within ${timeout}ms`,
+      `Login timeout: session cookie did not appear within ${timeout}ms. Current URL: ${currentUrl}`,
     );
   }
 

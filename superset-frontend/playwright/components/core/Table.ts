@@ -45,7 +45,12 @@ export class Table {
   /**
    * Gets a table row by exact text match in the first cell (dataset name column).
    * Uses exact match to avoid substring collisions (e.g., 'members_channels_2' vs 'duplicate_members_channels_2_123').
+   *
+   * Note: Returns a Locator that will auto-wait when used in assertions or actions.
+   * If row doesn't exist, operations on the locator will timeout with clear error.
+   *
    * @param rowText - Exact text to find in the row's first cell
+   * @returns Locator for the matching row
    */
   getRow(rowText: string): Locator {
     return this.element.locator(Table.SELECTORS.TABLE_ROW).filter({
@@ -78,6 +83,20 @@ export class Table {
    */
   async clickRowAction(rowText: string, selector: string): Promise<void> {
     const row = this.getRow(rowText);
-    await row.locator(selector).first().click();
+    const actionButton = row.locator(selector);
+
+    const count = await actionButton.count();
+    if (count === 0) {
+      throw new Error(
+        `No action button found with selector "${selector}" in row "${rowText}"`,
+      );
+    }
+    if (count > 1) {
+      throw new Error(
+        `Multiple action buttons (${count}) found with selector "${selector}" in row "${rowText}". Use more specific selector.`,
+      );
+    }
+
+    await actionButton.click();
   }
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, APIResponse, expect } from '@playwright/test';
+import { Page, APIResponse } from '@playwright/test';
 import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 export const ENDPOINTS = {
@@ -117,7 +117,12 @@ export async function duplicateDataset(
     table_name: newName,
   });
 
-  expect(response.status()).toBe(201);
+  if (response.status() !== 201) {
+    throw new Error(
+      `Failed to duplicate dataset ${datasetId}: expected 201, got ${response.status()}`,
+    );
+  }
+
   const data = await response.json();
 
   return {

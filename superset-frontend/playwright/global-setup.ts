@@ -40,6 +40,10 @@ async function globalSetup(config: FullConfig) {
   // FullConfig.use doesn't exist in the type - baseURL is only in projects[0].use
   const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:8088';
 
+  // Test credentials - can be overridden via environment variables
+  const adminUsername = process.env.PLAYWRIGHT_ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'general';
+
   console.log('[Global Setup] Authenticating as admin user...');
 
   let browser: Browser | null = null;
@@ -61,7 +65,7 @@ async function globalSetup(config: FullConfig) {
     const authPage = new AuthPage(page);
     await authPage.goto();
     await authPage.waitForLoginForm();
-    await authPage.loginWithCredentials('admin', 'general');
+    await authPage.loginWithCredentials(adminUsername, adminPassword);
     await authPage.waitForLoginSuccess();
 
     // Save authentication state for all tests to reuse
