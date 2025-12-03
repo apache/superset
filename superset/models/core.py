@@ -136,9 +136,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(
-    CoreDatabase, AuditMixinNullable, ImportExportMixin
-):  # pylint: disable=too-many-public-methods
+class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -415,7 +413,9 @@ class Database(
         return (
             username
             if (username := get_username())
-            else object_url.username if self.impersonate_user else None
+            else object_url.username
+            if self.impersonate_user
+            else None
         )
 
     @contextmanager
@@ -431,9 +431,6 @@ class Database(
         This method will return a context manager for a SQLAlchemy engine. The engine
         manager handles connection pooling, SSH tunnels, and other connection details
         based on the configured mode (NEW or SINGLETON).
-
-        Note: The nullpool parameter is kept for backwards compatibility but is ignored.
-        Pool configuration is now read from the database's extra configuration.
         """
         # Import here to avoid circular imports
         from superset.extensions import engine_manager_extension
@@ -470,7 +467,6 @@ class Database(
         self,
         catalog: str | None = None,
         schema: str | None = None,
-        nullpool: bool = True,  # Kept for backwards compatibility, but ignored
         source: utils.QuerySource | None = None,
     ) -> Connection:
         with self.get_sqla_engine(

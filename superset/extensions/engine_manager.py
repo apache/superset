@@ -45,24 +45,12 @@ class EngineManagerExtension:
         Initialize the EngineManager with Flask app configuration.
         """
         # Get configuration values with defaults
-        mode_name = app.config.get("ENGINE_MANAGER_MODE", "NEW")
-        cleanup_interval = app.config.get("ENGINE_MANAGER_CLEANUP_INTERVAL", 300.0)
-        auto_start_cleanup = app.config.get("ENGINE_MANAGER_AUTO_START_CLEANUP", True)
-
-        # Convert mode string to enum
-        try:
-            mode = EngineModes[mode_name.upper()]
-        except KeyError:
-            logger.warning(
-                f"Invalid ENGINE_MANAGER_MODE '{mode_name}', defaulting to NEW"
-            )
-            mode = EngineModes.NEW
+        mode = app.config["ENGINE_MANAGER_MODE"]
+        cleanup_interval = app.config["ENGINE_MANAGER_CLEANUP_INTERVAL"]
+        auto_start_cleanup = app.config["ENGINE_MANAGER_AUTO_START_CLEANUP"]
 
         # Create the engine manager
-        self.engine_manager = EngineManager(
-            mode=mode,
-            cleanup_interval=cleanup_interval,
-        )
+        self.engine_manager = EngineManager(mode, cleanup_interval)
 
         # Start cleanup thread if requested and in SINGLETON mode
         if auto_start_cleanup and mode == EngineModes.SINGLETON:
@@ -83,8 +71,9 @@ class EngineManagerExtension:
         atexit.register(shutdown_engine_manager)
 
         logger.info(
-            f"Initialized EngineManager with mode={mode.name}, "
-            f"cleanup_interval={cleanup_interval}s"
+            "Initialized EngineManager with mode=%s, cleanup_interval=%ds",
+            mode,
+            cleanup_interval.total_seconds(),
         )
 
     @property

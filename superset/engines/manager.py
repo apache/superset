@@ -20,6 +20,7 @@ import logging
 import threading
 from collections import defaultdict
 from contextlib import contextmanager
+from datetime import timedelta
 from io import StringIO
 from typing import Any, TYPE_CHECKING
 
@@ -71,7 +72,7 @@ class EngineManager:
     def __init__(
         self,
         mode: EngineModes = EngineModes.NEW,
-        cleanup_interval: float = 300.0,  # 5 minutes default
+        cleanup_interval: timedelta = timedelta(minutes=5),
     ) -> None:
         self.mode = mode
         self.cleanup_interval = cleanup_interval
@@ -100,7 +101,7 @@ class EngineManager:
         except Exception as ex:
             # Avoid exceptions during garbage collection, but log if possible
             try:
-                logger.warning(f"Error stopping cleanup thread: {ex}")
+                logger.warning("Error stopping cleanup thread: %s", ex)
             except Exception:  # noqa: S110
                 # If logging fails during destruction, we can't do anything
                 pass
@@ -212,6 +213,10 @@ class EngineManager:
         needed, since it needs to connect to the tunnel instead of the original DB. But
         that information is only available after the tunnel is created.
         """
+        # Import here to avoid circular imports
+        from superset.extensions import security_manager
+        from superset.utils.feature_flag_manager import FeatureFlagManager
+
         uri = make_url_safe(database.sqlalchemy_uri_decrypted)
 
         extra = database.get_extra(source)
@@ -241,10 +246,6 @@ class EngineManager:
 
         # get effective username
         username = database.get_effective_user(uri)
-
-        # Import here to avoid circular imports
-        from superset.extensions import security_manager
-        from superset.utils.feature_flag_manager import FeatureFlagManager
 
         feature_flag_manager = FeatureFlagManager()
         if username and feature_flag_manager.is_feature_enabled(
@@ -322,7 +323,6 @@ class EngineManager:
             user_id,
         )
 
-        tunnel = None
         if database.ssh_tunnel:
             tunnel = self._get_tunnel(database.ssh_tunnel, uri)
             uri = uri.set(
@@ -444,7 +444,8 @@ class EngineManager:
                 )
                 self._cleanup_thread.start()
                 logger.info(
-                    f"Started cleanup thread with {self.cleanup_interval}s interval"
+                    "Started cleanup thread with %ds interval",
+                    self.cleanup_interval.total_seconds(),
                 )
 
     def stop_cleanup_thread(self) -> None:
@@ -475,7 +476,9 @@ class EngineManager:
                 logger.exception("Error during background cleanup")
 
             # Use wait() instead of sleep() to allow for immediate shutdown
-            if self._cleanup_stop_event.wait(timeout=self.cleanup_interval):
+            if self._cleanup_stop_event.wait(
+                timeout=self.cleanup_interval.total_seconds()
+            ):
                 break  # Stop event was set
 
     def cleanup(self) -> None:
@@ -502,7 +505,8 @@ class EngineManager:
 
         if abandoned_engine_locks:
             logger.debug(
-                f"Cleaned up {len(abandoned_engine_locks)} abandoned engine locks"
+                "Cleaned up %d abandoned engine locks",
+                len(abandoned_engine_locks),
             )
 
         # Clean up tunnel locks
@@ -513,7 +517,8 @@ class EngineManager:
 
         if abandoned_tunnel_locks:
             logger.debug(
-                f"Cleaned up {len(abandoned_tunnel_locks)} abandoned tunnel locks"
+                "Cleaned up %d abandoned tunnel locks",
+                len(abandoned_tunnel_locks),
             )
 
     def _add_disposal_listener(self, engine: Engine, engine_key: EngineKey) -> None:
@@ -522,7 +527,9 @@ class EngineManager:
             try:
                 # `pop` is atomic -- no lock needed
                 if self._engines.pop(engine_key, None):
-                    logger.info(f"Engine disposed and removed from cache: {engine_key}")
+                    logger.info(
+                        "Engine disposed and removed from cache: %s", engine_key
+                    )
                     self._engine_locks.pop(engine_key, None)
             except Exception as ex:
                 logger.error(
