@@ -279,13 +279,7 @@ function ColumnCollectionTable({
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       sortColumns={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
@@ -297,13 +291,7 @@ function ColumnCollectionTable({
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       allowDeletes
       allowAddItem={allowAddItem}
@@ -1055,7 +1043,7 @@ class DatasourceEditor extends PureComponent {
               <span>{t('Currency code column')}</span>
               <InfoTooltip
                 tooltip={t(
-                  "Select the column containing currency codes such as USD, EUR, GBP, etc. Used when building charts when 'Auto-detect from dataset' currency formatting is enabled. If this column is not set or if a chart metric contains multiple currencies, charts will fall back to neutral numeric formatting.",
+                  "Select the column containing currency codes such as USD, EUR, GBP, etc. Used when building charts when 'Auto-detect' currency formatting is enabled. If this column is not set or if a chart metric contains multiple currencies, charts will fall back to neutral numeric formatting.",
                 )}
               />
             </FieldLabelWithTooltip>

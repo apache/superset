@@ -326,7 +326,7 @@ const currency_format: SharedControlConfig<'CurrencyControl'> = {
   label: t('Currency format'),
   renderTrigger: true,
   description: t(
-    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect from dataset' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
+    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
   ),
 };
 
