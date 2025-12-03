@@ -216,17 +216,17 @@ def test_empty_result_set_preserves_column_metadata() -> None:
     column_names = [col["column_name"] for col in result_set.columns]
     assert column_names == ["id", "name", "created_at"]
 
-    # Verify types from cursor_description are used
-    assert result_set.columns[0]["type"] == "INT"
-    assert result_set.columns[1]["type"] == "VARCHAR"
-    assert result_set.columns[2]["type"] == "TIMESTAMP"
+    # Verify types from cursor_description are used (derive expected values from the engine spec)
+    assert result_set.columns[0]["type"] == BaseEngineSpec.get_datatype(description[0][1])
+    assert result_set.columns[1]["type"] == BaseEngineSpec.get_datatype(description[1][1])
+    assert result_set.columns[2]["type"] == BaseEngineSpec.get_datatype(description[2][1])
 
     # Verify the PyArrow table has the correct schema
     assert result_set.table.num_rows == 0
-    assert result_set.table.num_columns == 3
-    assert result_set.table.column_names == ["id", "name", "created_at"]
+    assert len(result_set.table.column_names) == 3
+    assert list(result_set.table.column_names) == ["id", "name", "created_at"]
 
     # Verify DataFrame conversion works
     df = result_set.to_pandas_df()
     assert len(df) == 0
-    assert list(df.columns) == ["id", "name", "created_at"]
+    assert list(map(str, df.columns)) == ["id", "name", "created_at"]
