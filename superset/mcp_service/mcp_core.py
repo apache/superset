@@ -128,17 +128,19 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
     ) -> L:
-        # If filters is a string (e.g., from a test), parse it as JSON
-        if isinstance(filters, str):
-            from superset.utils import json
+        # Parse filters using generic utility (accepts JSON string or object)
+        from superset.mcp_service.utils.schema_utils import (
+            parse_json_or_list,
+            parse_json_or_passthrough,
+        )
 
-            filters = json.loads(filters)
-        # Ensure select_columns is a list and track what was requested
+        filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         if select_columns:
-            if isinstance(select_columns, str):
-                select_columns = [
-                    col.strip() for col in select_columns.split(",") if col.strip()
-                ]
+            select_columns = parse_json_or_list(
+                select_columns, param_name="select_columns"
+            )
             columns_to_load = select_columns
             columns_requested = select_columns
         else:

@@ -17,9 +17,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-20 14:26+0300\n"
-"PO-Revision-Date: 2025-10-21 02:47+0300\n"
-"Last-Translator: Sofia Kalinina\n"
+"POT-Creation-Date: 2025-11-05 14:28+0300\n"
+"PO-Revision-Date: 2025-11-05 14:37+0300\n"
+"Last-Translator: innovark\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
 "Language: ru\n"
@@ -10629,6 +10629,9 @@ msgstr "Показать верхние метки"
 msgid "Show Values"
 msgstr "Показать значения"
 
+msgid "Show X-axis"
+msgstr "Показать ось X"
+
 msgid "Show Y-axis"
 msgstr "Показать ось Y"
 
@@ -10688,6 +10691,9 @@ msgstr "Показать легенду"
 
 msgid "Show less columns"
 msgstr "Показать меньше столбцов"
+
+msgid "Show min/max axis labels"
+msgstr "Показать минимум и максимум на оси"
 
 msgid "Show minor ticks on axes."
 msgstr "Показать промежуточные деления на оси."
@@ -14077,6 +14083,13 @@ msgstr "Когда предоставляется вторичная мера, �
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Если отмечено, карта будет масштабирована к вашим данным после каждого запроса"
 
+msgid ""
+"When enabled, the axis will display labels for the minimum and maximum values of "
+"your data"
+msgstr ""
+"Если этот параметр включен, на оси будут отображаться подписи для минимального и "
+"максимального значений данных"
+
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr ""
 "Если этот параметр включен, пользователи могут смотреть ответ запросов SQL Lab в режиме "
@@ -14179,6 +14192,12 @@ msgstr "Отобразить пузырьки поверх стран"
 
 msgid "Whether to display in the chart"
 msgstr "Отображать ли на диаграмме"
+
+msgid "Whether to display the X Axis"
+msgstr "Отобразить ось X"
+
+msgid "Whether to display the Y Axis"
+msgstr "Отобразить ось Y"
 
 msgid "Whether to display the aggregate count"
 msgstr "Отобразить совокупное количество"

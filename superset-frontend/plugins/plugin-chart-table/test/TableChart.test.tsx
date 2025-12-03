@@ -17,13 +17,46 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@superset-ui/core/spec';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+
+const expectValidAriaLabels = (container: HTMLElement) => {
+  const allCells = container.querySelectorAll('tbody td');
+  const cellsWithLabels = container.querySelectorAll(
+    'tbody td[aria-labelledby]',
+  );
+
+  // Table must render data cells (catch empty table regression)
+  expect(allCells.length).toBeGreaterThan(0);
+
+  // ALL data cells must have aria-labelledby (no unlabeled cells)
+  expect(cellsWithLabels.length).toBe(allCells.length);
+
+  // ALL aria-labelledby values should be valid
+  cellsWithLabels.forEach(cell => {
+    const labelledBy = cell.getAttribute('aria-labelledby');
+    expect(labelledBy).not.toBeNull();
+    expect(labelledBy).toEqual(expect.stringMatching(/\S/));
+    const labelledByValue = labelledBy as string;
+    expect(labelledByValue).not.toMatch(/\s/);
+    expect(labelledByValue).not.toMatch(/[%#△]/);
+    const referencedHeader = container.querySelector(
+      `#${CSS.escape(labelledByValue)}`,
+    );
+    expect(referencedHeader).toBeTruthy();
+  });
+};
 
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
@@ -602,7 +635,7 @@ describe('plugin-chart-table', () => {
         // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
         const props = transformProps(testData.comparison);
 
-        const { container } = render(<TableChart {...props} sticky={false} />);
+        render(<TableChart {...props} sticky={false} />);
 
         const headers = screen.getAllByRole('columnheader');
 
@@ -632,25 +665,16 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid characters: alphanumeric, underscore, hyphen
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // CRITICAL: Verify ALL cells reference valid headers (no broken ARIA)
-        const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
-        );
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Check that the ID doesn't contain spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Check that the ID doesn't contain special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
-        });
+      test('should validate ARIA references for time-comparison table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.comparison);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        expectValidAriaLabels(container);
       });
 
       test('should set meaningful header IDs for regular table columns', () => {
@@ -711,25 +735,20 @@ describe('plugin-chart-table', () => {
           // IDs should only contain valid CSS selector characters
           expect(header.id).toMatch(/^header-[a-zA-Z0-9_-]+$/);
         });
+      });
 
-        // Test 6: Verify ALL cells reference valid headers (no broken ARIA)
-        const cellsWithLabels = container.querySelectorAll(
-          'td[aria-labelledby]',
+      test('should validate ARIA references for regular table cells', () => {
+        // Test that ALL cells with aria-labelledby have valid references
+        // This is critical for screen reader accessibility
+        const props = transformProps(testData.advanced);
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
         );
-        cellsWithLabels.forEach(cell => {
-          const labelledBy = cell.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            // Verify no spaces (would be interpreted as multiple IDs)
-            expect(labelledBy).not.toMatch(/\s/);
-            // Verify no special characters
-            expect(labelledBy).not.toMatch(/[%#△]/);
-            // Verify the referenced header actually exists
-            const referencedHeader = container.querySelector(
-              `#${CSS.escape(labelledBy)}`,
-            );
-            expect(referencedHeader).toBeTruthy();
-          }
-        });
+
+        expectValidAriaLabels(container);
       });
 
       test('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
@@ -1071,6 +1090,52 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
           'rgba(172, 225, 196, 1)',
         );
+      });
+
+      it('recalculates totals when user filters data', async () => {
+        const formDataWithTotals = {
+          ...testData.basic.formData,
+          show_totals: true,
+          include_search: true,
+          server_pagination: false,
+          metrics: ['sum__num'],
+        };
+
+        const data = testData.basic.queriesData[0].data;
+        const totalBeforeFilter = data.reduce(
+          (sum, row) => sum + Number(row.sum__num || 0),
+          0,
+        );
+        const totalAfterFilter =
+          data.find(item => item.name === 'Michael')?.sum__num || 0;
+
+        const props = transformProps({
+          ...testData.basic,
+          formData: formDataWithTotals,
+        });
+        props.totals = { sum__num: totalBeforeFilter };
+        props.includeSearch = true;
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        const totalCellBefore = within(table).getByText(
+          String(totalBeforeFilter),
+        );
+        expect(totalCellBefore).toBeInTheDocument();
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          const totalCellAfter = within(table).getByText(
+            String(totalAfterFilter),
+          );
+          expect(totalCellAfter).toBeInTheDocument();
+        });
       });
     });
   });

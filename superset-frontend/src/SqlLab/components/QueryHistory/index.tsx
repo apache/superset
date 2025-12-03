@@ -91,7 +91,11 @@ const QueryHistory = ({
             editorId,
           )
             .concat(data.result)
-            .reverse()
+            .sort((a, b) => {
+              const aTime = a.startDttm || 0;
+              const bTime = b.startDttm || 0;
+              return aTime - bTime;
+            })
         : getEditorQueries(queries, editorId),
     [queries, data, editorId],
   );
