@@ -35,6 +35,8 @@ apache_superset.egg-info
 .*csv
 # jinja templates often need to be as-is
 .*j2
+# Static images for doc
+docs/static/img/*
 # Generated doc files
 env/*
 docs/.htaccess*
