@@ -132,7 +132,7 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
   return columnChanges;
 }
 
-export async function fetchSyncedColumns(datasource) {
+export async function fetchSyncedColumns(datasource, signal) {
   const params = {
     datasource_type: datasource.type || datasource.datasource_type,
     database_name:
@@ -152,6 +152,6 @@ export async function fetchSyncedColumns(datasource) {
   const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
     params,
   )}`;
-  const { json } = await SupersetClient.get({ endpoint });
+  const { json } = await SupersetClient.get({ endpoint, signal });
   return json;
 }

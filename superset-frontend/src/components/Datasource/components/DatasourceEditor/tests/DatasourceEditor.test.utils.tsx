@@ -34,6 +34,7 @@ export interface DatasourceEditorProps {
   onChange: jest.MockedFunction<
     (datasource: DatasetObject, errors?: unknown) => void
   >;
+  formatQuery?: jest.Mock;
   columnLabels?: Record<string, string>;
   columnLabelTooltips?: Record<string, string>;
 }
@@ -47,6 +48,7 @@ export const createProps = (): DatasourceEditorProps => ({
   addSuccessToast: () => {},
   addDangerToast: () => {},
   onChange: jest.fn(),
+  formatQuery: jest.fn().mockResolvedValue({ json: { result: '' } }),
   columnLabels: {
     state: 'State',
   },
@@ -159,3 +161,17 @@ export const dismissDatasourceWarning = async () => {
     await userEvent.click(closeButton);
   }
 };
+
+/**
+ * Creates a deferred promise that can be manually resolved/rejected.
+ * Useful for controlling timing in abort/unmount tests.
+ */
+export function createDeferredPromise<T = any>() {
+  let resolve: (value: T) => void;
+  let reject: (reason?: any) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve: resolve!, reject: reject! };
+}

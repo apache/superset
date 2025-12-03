@@ -668,6 +668,12 @@ class DatasourceEditor extends PureComponent {
     };
 
     this.isComponentMounted = false;
+    this.abortControllers = {
+      formatQuery: null,
+      formatSql: null,
+      syncMetadata: null,
+      fetchUsageData: null,
+    };
 
     this.onChange = this.onChange.bind(this);
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
@@ -765,24 +771,30 @@ class DatasourceEditor extends PureComponent {
       return;
     }
 
-    try {
-      const response = await this.props.formatQuery(datasource.sql);
+    // Abort previous formatQuery if still pending
+    if (this.abortControllers.formatQuery) {
+      this.abortControllers.formatQuery.abort();
+    }
 
-      if (this.isComponentMounted) {
-        this.onDatasourcePropChange('sql', response.json.result);
-        this.props.addSuccessToast(t('SQL was formatted'));
-      }
+    this.abortControllers.formatQuery = new AbortController();
+    const { signal } = this.abortControllers.formatQuery;
+
+    try {
+      const response = await this.props.formatQuery(datasource.sql, { signal });
+
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
 
-      if (this.isComponentMounted) {
-        this.props.addDangerToast(
-          clientError ||
-            statusText ||
-            t('An error occurred while formatting SQL'),
-        );
-      }
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
     }
   }
 
@@ -815,68 +827,84 @@ class DatasourceEditor extends PureComponent {
       return;
     }
 
+    // Abort previous formatSql if still pending
+    if (this.abortControllers.formatSql) {
+      this.abortControllers.formatSql.abort();
+    }
+
+    this.abortControllers.formatSql = new AbortController();
+    const { signal } = this.abortControllers.formatSql;
+
     try {
       const response = await SupersetClient.post({
         endpoint: '/api/v1/sql/format',
         body: JSON.stringify({ sql: datasource.sql }),
         headers: { 'Content-Type': 'application/json' },
+        signal,
       });
 
-      if (this.isComponentMounted) {
-        this.onDatasourcePropChange('sql', response.json.result);
-        this.props.addSuccessToast(t('SQL was formatted'));
-      }
+      this.onDatasourcePropChange('sql', response.json.result);
+      this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
 
-      if (this.isComponentMounted) {
-        this.props.addDangerToast(
-          clientError ||
-            statusText ||
-            t('An error occurred while formatting SQL'),
-        );
-      }
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while formatting SQL'),
+      );
     }
   }
 
   async syncMetadata() {
     const { datasource } = this.state;
 
-    if (this.isComponentMounted) {
-      this.setState({ metadataLoading: true });
+    // Abort previous syncMetadata if still pending
+    if (this.abortControllers.syncMetadata) {
+      this.abortControllers.syncMetadata.abort();
     }
 
+    this.abortControllers.syncMetadata = new AbortController();
+    const { signal } = this.abortControllers.syncMetadata;
+
+    this.setState({ metadataLoading: true });
+
     try {
-      const newCols = await fetchSyncedColumns(datasource);
+      const newCols = await fetchSyncedColumns(datasource, signal);
 
-      if (this.isComponentMounted) {
-        const columnChanges = updateColumns(
-          datasource.columns,
-          newCols,
-          this.props.addSuccessToast,
-        );
-        this.setColumns({
-          databaseColumns: columnChanges.finalColumns.filter(
-            col => !col.expression, // remove calculated columns
-          ),
-        });
+      const columnChanges = updateColumns(
+        datasource.columns,
+        newCols,
+        this.props.addSuccessToast,
+      );
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
 
-        clearDatasetCache(datasource.id);
+      clearDatasetCache(datasource.id);
 
-        this.props.addSuccessToast(t('Metadata has been synced'));
-        this.setState({ metadataLoading: false });
-      }
+      this.props.addSuccessToast(t('Metadata has been synced'));
+      this.setState({ metadataLoading: false });
     } catch (error) {
+      if (error.name === 'AbortError') {
+        if (this.isComponentMounted) {
+          this.setState({ metadataLoading: false });
+        }
+        return;
+      }
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
 
-      if (this.isComponentMounted) {
-        this.props.addDangerToast(
-          clientError || statusText || t('An error has occurred'),
-        );
-        this.setState({ metadataLoading: false });
-      }
+      this.props.addDangerToast(
+        clientError || statusText || t('An error has occurred'),
+      );
+      this.setState({ metadataLoading: false });
     }
   }
 
@@ -887,6 +915,15 @@ class DatasourceEditor extends PureComponent {
     sortDirection = 'desc',
   ) {
     const { datasource } = this.state;
+
+    // Abort previous fetchUsageData if still pending
+    if (this.abortControllers.fetchUsageData) {
+      this.abortControllers.fetchUsageData.abort();
+    }
+
+    this.abortControllers.fetchUsageData = new AbortController();
+    const { signal } = this.abortControllers.fetchUsageData;
+
     try {
       const queryParams = rison.encode({
         columns: [
@@ -922,6 +959,7 @@ class DatasourceEditor extends PureComponent {
 
       const { json = {} } = await SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${queryParams}`,
+        signal,
       });
 
       const charts = json?.result || [];
@@ -946,20 +984,20 @@ class DatasourceEditor extends PureComponent {
         ids,
       };
     } catch (error) {
+      if (error.name === 'AbortError') throw error;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
 
-      if (this.isComponentMounted) {
-        this.props.addDangerToast(
-          clientError ||
-            statusText ||
-            t('An error occurred while fetching usage data'),
-        );
-        this.setState({
-          usageCharts: [],
-          usageChartsCount: 0,
-        });
-      }
+      this.props.addDangerToast(
+        clientError ||
+          statusText ||
+          t('An error occurred while fetching usage data'),
+      );
+      this.setState({
+        usageCharts: [],
+        usageChartsCount: 0,
+      });
 
       return {
         charts: [],
@@ -1983,6 +2021,12 @@ class DatasourceEditor extends PureComponent {
 
   componentWillUnmount() {
     this.isComponentMounted = false;
+
+    // Abort all pending requests
+    Object.values(this.abortControllers).forEach(controller => {
+      if (controller) controller.abort();
+    });
+
     Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
@@ -1996,7 +2040,7 @@ const DataSourceComponent = withTheme(DatasourceEditor);
 const mapDispatchToProps = dispatch => ({
   runQuery: payload => dispatch(executeQuery(payload)),
   resetQuery: () => dispatch(resetDatabaseState()),
-  formatQuery: sql => dispatch(formatQuery(sql)),
+  formatQuery: (sql, options) => dispatch(formatQuery(sql, options)),
 });
 const mapStateToProps = state => ({
   database: state?.database,
