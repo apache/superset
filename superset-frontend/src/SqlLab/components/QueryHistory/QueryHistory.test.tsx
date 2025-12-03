@@ -211,7 +211,7 @@ test('displays multiple queries with newest query first', async () => {
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, multipleQueriesApiResult);
   const { container } = render(setup(), { useRedux: true, initialState });
-  
+
   await waitFor(() =>
     expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
   );
