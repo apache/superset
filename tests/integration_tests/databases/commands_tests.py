@@ -813,7 +813,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value) == (
+            "Error importing database: databases/imported_database.yaml: "
+            "{'ssh_tunnel': {'password': 'Either password or private_key is required'}}"
+        )
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.commands.database.importers.v1.utils.add_permissions")

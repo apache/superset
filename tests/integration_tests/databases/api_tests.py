@@ -328,9 +328,7 @@ class TestDatabaseApi(SupersetTestCase):
             .filter(SSHTunnel.database_id == response.get("id"))
             .one()
         )
-        assert (
-            response.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"
-        )  # noqa: S105
+        assert response.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"  # noqa: S105
         assert model_ssh_tunnel.database_id == response.get("id")
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
@@ -380,9 +378,7 @@ class TestDatabaseApi(SupersetTestCase):
             .filter(SSHTunnel.database_id == response.get("id"))
             .one()
         )
-        assert (
-            response.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"
-        )  # noqa: S105
+        assert response.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"  # noqa: S105
         assert model_ssh_tunnel.database_id == response.get("id")
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
@@ -763,9 +759,7 @@ class TestDatabaseApi(SupersetTestCase):
             .one()
         )
         assert model_ssh_tunnel.database_id == response_update.get("id")
-        assert (
-            response_update.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"
-        )  # noqa: S105
+        assert response_update.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"  # noqa: S105
         assert model_ssh_tunnel.username == "Test"
         assert model_ssh_tunnel.server_address == "123.132.123.1"
         assert model_ssh_tunnel.server_port == 8080
@@ -2959,7 +2953,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "Error importing database",
+                    "message": (
+                        "Error importing database: databases/database_1.yaml: "
+                        "{'ssh_tunnel': {'password': 'Either password or private_key "
+                        "is required'}}"
+                    ),
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
