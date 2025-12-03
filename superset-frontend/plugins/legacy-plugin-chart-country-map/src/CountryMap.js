@@ -152,10 +152,7 @@ function CountryMap(element, props) {
       .style('top', `${position[1] + 30}px`)
       .style('left', `${position[0]}px`)
       .html(
-        `<div>
-          <strong>${getNameOfRegion(d)}</strong><br>
-          ${result.length > 0 ? format(result[0].metric) : ''}
-        </div>`,
+        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? format(result[0].metric) : ''}</div>`,
       );
   };
 
