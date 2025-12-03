@@ -97,7 +97,7 @@ export class AuthPage {
    * @param options - Optional wait options
    */
   async waitForLoginSuccess(options?: { timeout?: number }): Promise<void> {
-    const timeout = options?.timeout || TIMEOUT.PAGE_LOAD;
+    const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
     const startTime = Date.now();
 
     // 1. Guard: Check if session cookie already exists (race condition protection)
@@ -107,8 +107,13 @@ export class AuthPage {
       return;
     }
 
-    // 2. Wait for POST /login/ response
-    const loginResponse = await this.waitForLoginRequest();
+    // 2. Wait for POST /login/ response (bounded by caller's timeout)
+    const loginResponse = await this.page.waitForResponse(
+      response =>
+        response.url().includes('/login/') &&
+        response.request().method() === 'POST',
+      { timeout },
+    );
 
     // 3. Verify it's a redirect (3xx status code indicates successful login)
     const status = loginResponse.status();

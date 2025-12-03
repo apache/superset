@@ -42,7 +42,7 @@ export class ExplorePage {
    * @param options - Optional wait options
    */
   async waitForPageLoad(options?: { timeout?: number }): Promise<void> {
-    const timeout = options?.timeout || TIMEOUT.PAGE_LOAD;
+    const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
 
     await this.page.waitForURL('**/explore/**', { timeout });
 

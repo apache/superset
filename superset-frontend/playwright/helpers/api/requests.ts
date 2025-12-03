@@ -31,7 +31,7 @@ export interface ApiRequestOptions {
  * Reads from environment variable configured in playwright.config.ts
  * Preserves full base URL including path prefix (e.g., /app/prefix)
  */
-function getBaseUrl(_page: Page): string {
+function getBaseUrl(): string {
   // Use environment variable which includes path prefix if configured
   // This matches playwright.config.ts baseURL setting exactly
   return process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
@@ -84,7 +84,7 @@ async function buildHeaders(
   // Include CSRF token and Referer for Flask-WTF CSRFProtect
   if (csrfToken) {
     headers['X-CSRFToken'] = csrfToken;
-    headers['Referer'] = getBaseUrl(page);
+    headers['Referer'] = getBaseUrl();
   } else if (!options?.allowMissingCsrf) {
     const errorDetail = csrfError ? ` (${csrfError})` : '';
     throw new Error(

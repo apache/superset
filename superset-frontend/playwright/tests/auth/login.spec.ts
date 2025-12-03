@@ -47,8 +47,8 @@ test('should redirect to login with incorrect username and password', async ({
   // Setup request interception before login attempt
   const loginRequestPromise = authPage.waitForLoginRequest();
 
-  // Attempt login with incorrect credentials
-  await authPage.loginWithCredentials(adminUsername, 'wrongpassword');
+  // Attempt login with incorrect credentials (both username and password invalid)
+  await authPage.loginWithCredentials('wronguser', 'wrongpassword');
 
   // Wait for login request and verify response
   const loginResponse = await loginRequestPromise;
