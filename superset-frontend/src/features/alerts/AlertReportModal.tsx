@@ -754,11 +754,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
-  const filterNativeFilterOptions = () =>
+  const filterNativeFilterOptions = (currentIdx?: number) =>
     nativeFilterOptions.filter(
       option =>
         !nativeFilterData.some(
-          filter => filter.nativeFilterId === option.value,
+          (filter, idx) =>
+            filter.nativeFilterId === option.value && idx !== currentIdx,
         ),
     );
 
@@ -2385,8 +2386,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                       }
                                       ariaLabel={t('Select Filter')}
                                       placeholder={t('Select Filter')}
-                                      value={nativeFilterData[idx]?.filterName}
-                                      options={filterNativeFilterOptions()}
+                                      value={
+                                        nativeFilterData[idx]?.nativeFilterId
+                                      }
+                                      options={filterNativeFilterOptions(idx)}
                                       onChange={value =>
                                         onChangeDashboardFilter(
                                           idx,
