@@ -355,40 +355,40 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       }
       positionJson = positionJson || {};
 
-      const updatedPositionJson = JSON.parse(JSON.stringify(positionJson));
-
       const chartKey = `CHART-${chartId}`;
-      const rowIndex = this.findNextRowPosition(updatedPositionJson);
+      const rowIndex = this.findNextRowPosition(positionJson);
       const rowKey = `ROW-${rowIndex}`;
 
-      updatedPositionJson[chartKey] = {
-        type: 'CHART',
-        id: chartKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', rowKey],
-        meta: {
-          width: 4,
-          height: 50,
-          chartId: chartId,
-          sliceName: sliceName ?? `Chart ${chartId}`,
+      const updatedPositionJson = {
+        ...positionJson,
+        [chartKey]: {
+          type: 'CHART',
+          id: chartKey,
+          children: [],
+          parents: ['ROOT_ID', 'GRID_ID', rowKey],
+          meta: {
+            width: 4,
+            height: 50,
+            chartId: chartId,
+            sliceName: sliceName ?? `Chart ${chartId}`,
+          },
+        },
+        [rowKey]: {
+          type: 'ROW',
+          id: rowKey,
+          children: [chartKey],
+          parents: ['ROOT_ID', 'GRID_ID', tabId],
+          meta: {
+            background: 'BACKGROUND_TRANSPARENT',
+          },
         },
       };
 
-      updatedPositionJson[rowKey] = {
-        type: 'ROW',
-        id: rowKey,
-        children: [chartKey],
-        parents: ['ROOT_ID', 'GRID_ID', tabId],
-        meta: {
-          background: 'BACKGROUND_TRANSPARENT',
-        },
-      };
-
-      if (updatedPositionJson[tabId]) {
-        if (!updatedPositionJson[tabId].children) {
-          updatedPositionJson[tabId].children = [];
-        }
-        updatedPositionJson[tabId].children.push(rowKey);
+      if (positionJson[tabId]) {
+        updatedPositionJson[tabId] = {
+          ...positionJson[tabId],
+          children: [...(positionJson[tabId].children || []), rowKey],
+        };
       } else {
         throw new Error(`Tab ${tabId} not found in positionJson`);
       }
