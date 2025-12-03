@@ -19,7 +19,6 @@
 import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { t } from '@apache-superset/core';
-import { omit } from 'lodash';
 import {
   makeApi,
   getClientErrorObject,
@@ -35,7 +34,6 @@ import {
   removeDataMask,
   setDataMaskForFilterChangesComplete,
 } from 'src/dataMask/actions';
-import { selectFilterConfiguration } from 'src/dashboard/components/nativeFilters/state';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
   SET_NATIVE_FILTERS_CONFIG_COMPLETE,
@@ -108,27 +106,19 @@ export function saveChartCustomization(
         reordered: reorderedIds,
       });
 
-      const customizationsWithoutScopes = response.result.map(
-        (customization: ChartCustomization | ChartCustomizationDivider) =>
-          omit(customization, ['chartsInScope', 'tabsInScope']),
-      ) as (ChartCustomization | ChartCustomizationDivider)[];
-
+      const currentMetadata = getState().dashboardInfo.metadata;
       dispatch(
         dashboardInfoChanged({
           metadata: {
-            ...metadata,
-            chart_customization_config: customizationsWithoutScopes,
+            ...currentMetadata,
+            chart_customization_config: response.result,
           },
         }),
       );
 
-      const nativeFilters = selectFilterConfiguration(getState());
-
-      const allFilters = [...nativeFilters, ...response.result];
-
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: allFilters,
+        filterChanges: response.result,
       });
 
       if (resetDataMask) {

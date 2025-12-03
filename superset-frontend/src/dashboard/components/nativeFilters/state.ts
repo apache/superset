@@ -21,10 +21,8 @@ import { useCallback, useMemo } from 'react';
 import { createSelector } from '@reduxjs/toolkit';
 import {
   Filter,
-  FilterConfiguration,
   Divider,
   isFilterDivider,
-  NativeFilterType,
   ChartCustomization,
   ChartCustomizationDivider,
   ChartCustomizationConfiguration,
@@ -34,31 +32,45 @@ import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
+const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
-export const selectFilterConfiguration = createSelector(
-  (state: RootState) => state.nativeFilters?.filters || {},
-  (filtersMap): FilterConfiguration =>
-    Object.values(filtersMap).filter(
+export const selectFilterConfiguration: (
+  state: RootState,
+) => (Filter | Divider)[] = createSelector(
+  (state: RootState) =>
+    state.dashboardInfo?.metadata?.native_filter_configuration,
+  (nativeFilterConfig): (Filter | Divider)[] => {
+    if (!nativeFilterConfig) {
+      return defaultFilterConfiguration;
+    }
+    return nativeFilterConfig.filter(
       (
-        item: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
-      ): item is Filter | Divider =>
-        item.type === NativeFilterType.NativeFilter ||
-        item.type === NativeFilterType.Divider,
-    ),
+        filter:
+          | Filter
+          | Divider
+          | ChartCustomization
+          | ChartCustomizationDivider,
+      ) =>
+        filter.type !== 'CHART_CUSTOMIZATION' &&
+        filter.type !== 'CHART_CUSTOMIZATION_DIVIDER',
+    ) as (Filter | Divider)[];
+  },
 );
 
 export function useFilterConfiguration() {
   return useSelector(selectFilterConfiguration);
 }
 
-export const selectChartCustomizationFromRedux = createSelector(
+export const selectChartCustomizationFromRedux: (
+  state: RootState,
+) => (ChartCustomization | ChartCustomizationDivider)[] = createSelector(
   (state: RootState) => state.nativeFilters?.filters || {},
   (filtersMap): (ChartCustomization | ChartCustomizationDivider)[] =>
     Object.values(filtersMap).filter(
       (
         item: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
       ): item is ChartCustomization | ChartCustomizationDivider =>
-        isChartCustomizationId(item.id),
+        item?.id != null && isChartCustomizationId(item.id),
     ),
 );
 

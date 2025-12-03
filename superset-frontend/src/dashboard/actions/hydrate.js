@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { omit } from 'lodash';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -227,12 +226,8 @@ export const hydrateDashboard =
     }
 
     const chartCustomizations = metadata?.chart_customization_config || [];
-
-    const filtersWithoutScopes = (
-      metadata?.native_filter_configuration || []
-    ).map(filter => omit(filter, ['chartsInScope', 'tabsInScope']));
-
-    const combinedFilters = [...filtersWithoutScopes, ...chartCustomizations];
+    const filters = metadata?.native_filter_configuration || [];
+    const combinedFilters = [...filters, ...chartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({
       filterConfig: combinedFilters,
