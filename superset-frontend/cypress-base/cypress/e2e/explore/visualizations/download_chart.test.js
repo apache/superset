@@ -36,11 +36,23 @@ describe('Download Chart > Bar chart', () => {
     };
 
     cy.visitChartByParams(formData);
-    cy.get('.header-with-actions .ant-dropdown-trigger').click();
-    cy.get(':nth-child(3) > .ant-dropdown-menu-submenu-title').click();
-    cy.get(
-      '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(3)',
-    ).click();
+    // 1) Open "Data Export Options"
+    cy.get('body .ant-dropdown-menu-title-content')
+      .contains(/^Data Export Options$/)
+      .parents('.ant-dropdown-menu-submenu-title')
+      .trigger('mouseover', { force: true })
+      .click({ force: true });
+    // 2) Open "Export All Data"
+    cy.get('body .ant-dropdown-menu-title-content')
+      .contains(/^Export All Data$/)
+      .parents('.ant-dropdown-menu-submenu-title')
+      .trigger('mouseover', { force: true })
+      .click({ force: true });
+    // 3) Click the specific format (avoid partial "Export" matches)
+    cy.get('body li.ant-dropdown-menu-item')
+      .contains(/^Export to \.CSV$/)
+      .should('be.visible')
+      .click({ force: true });
     cy.verifyDownload('.jpg', {
       contains: true,
       timeout: 25000,
