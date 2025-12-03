@@ -272,10 +272,11 @@ const Row = memo((props: RowProps) => {
     [rowComponent.children],
   );
 
-  const backgroundStyle = backgroundStyleOptions.find(
-    opt =>
-      opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
-  )!;
+  const backgroundStyle =
+    backgroundStyleOptions.find(
+      opt =>
+        opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
+    ) ?? backgroundStyleOptions[0];
 
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
   const renderChild = useCallback(
