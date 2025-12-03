@@ -43,12 +43,12 @@
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^16.5.0",
     "jest": "^29.7.0",
-    "prettier": "^3.6.2",
+    "prettier": "^3.7.4",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.0"
+    "typescript-eslint": "^8.48.1"
   },
   "engines": {
     "node": "^20.19.4",
