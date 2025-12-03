@@ -77,7 +77,7 @@ import Horizontal from './Horizontal';
 import Vertical from './Vertical';
 import {
   useSelectFiltersInScope,
-  useChartCustomizationFromRedux,
+  useChartCustomizationConfiguration,
 } from '../state';
 
 // FilterBar is just being hidden as it must still
@@ -168,7 +168,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     useImmer<DataMaskStateWithId>(dataMaskApplied);
   const [pendingCustomizationDataMasks, setPendingCustomizationDataMasks] =
     useState<Record<string, DataMask>>(EMPTY_DATA_MASK_RECORD);
-  const chartCustomizationValues = useChartCustomizationFromRedux();
+  const chartCustomizationValues = useChartCustomizationConfiguration();
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
