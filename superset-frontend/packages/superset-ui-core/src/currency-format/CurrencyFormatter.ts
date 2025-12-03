@@ -46,10 +46,10 @@ export const getCurrencySymbol = (currency: Partial<Currency>) =>
     .find(x => x.type === 'currency')?.value;
 
 /**
- * Normalize currency codes and symbols to standardized ISO 4217 codes.
- * Handles lowercase codes, common symbols, and whitespace.
+ * Normalize a currency value to ISO 4217 format (e.g., "USD", "EUR").
+ * Expects ISO 4217 codes - handles case normalization and whitespace.
  *
- * @param value - Currency code or symbol to normalize
+ * @param value - Currency code to normalize (should be ISO 4217 format)
  * @returns Normalized ISO 4217 currency code, or null if invalid
  */
 export function normalizeCurrency(
@@ -62,32 +62,9 @@ export function normalizeCurrency(
 
   const upper = str.toUpperCase();
 
-  // Already ISO code (3 uppercase letters)
   if (/^[A-Z]{3}$/.test(upper)) return upper;
 
-  // Common symbol mappings (use original case-sensitive value)
-  const symbolMap: Record<string, string> = {
-    $: 'USD',
-    '€': 'EUR',
-    '£': 'GBP',
-    '¥': 'JPY',
-    '₹': 'INR',
-  };
-
-  // Full currency name mappings (use uppercase)
-  const nameMap: Record<string, string> = {
-    DOLLAR: 'USD',
-    DOLLARS: 'USD',
-    EURO: 'EUR',
-    EUROS: 'EUR',
-    POUND: 'GBP',
-    POUNDS: 'GBP',
-    YEN: 'JPY',
-    RUPEE: 'INR',
-    RUPEES: 'INR',
-  };
-
-  return symbolMap[str] || nameMap[upper] || null;
+  return null;
 }
 
 /**
@@ -146,14 +123,12 @@ class CurrencyFormatter extends ExtensibleFunction {
       value,
     );
 
-    // Check if AUTO mode is enabled
     const isAutoMode = this.currency?.symbol === 'AUTO';
 
     if (!this.hasValidCurrency() && !isAutoMode) {
       return formattedValue as string;
     }
 
-    // AUTO mode: Use row context if available
     if (isAutoMode) {
       if (rowData && currencyColumn && rowData[currencyColumn]) {
         const rawCurrency = rowData[currencyColumn];
@@ -163,26 +138,21 @@ class CurrencyFormatter extends ExtensibleFunction {
           try {
             const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
             if (symbol) {
-              if (this.currency.symbolPosition === 'prefix') {
-                return `${symbol} ${formattedValue}`;
-              }
-              return `${formattedValue} ${symbol}`;
+              return this.currency.symbolPosition === 'prefix'
+                ? `${symbol} ${formattedValue}`
+                : `${formattedValue} ${symbol}`;
             }
-          } catch (error) {
-            // If currency code is invalid, fall through to neutral format
+          } catch {
+            // Invalid currency code - fall through to neutral format
           }
         }
       }
-
-      // No row context or invalid currency - return neutral format
       return formattedValue as string;
     }
 
-    // Static mode: Use configured currency
-    if (this.currency.symbolPosition === 'prefix') {
-      return `${getCurrencySymbol(this.currency)} ${formattedValue}`;
-    }
-    return `${formattedValue} ${getCurrencySymbol(this.currency)}`;
+    return this.currency.symbolPosition === 'prefix'
+      ? `${getCurrencySymbol(this.currency)} ${formattedValue}`
+      : `${formattedValue} ${getCurrencySymbol(this.currency)}`;
   }
 }
 

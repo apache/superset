@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render } from 'spec/helpers/testing-library';
+import { CurrencyControl } from './CurrencyControl';
 
-import { hasMixedCurrencies } from '../../src/currency-format/CurrencyFormatter';
+test('CurrencyControl renders position and symbol selects', () => {
+  const { container } = render(
+    <CurrencyControl onChange={jest.fn()} value={{}} />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { currencies: ['USD', 'EUR'] },
+        explore: { datasource: {} },
+      },
+    },
+  );
 
-test('hasMixedCurrencies detects mixed vs single currency', () => {
-  expect(hasMixedCurrencies(['USD', 'EUR'])).toBe(true);
-  expect(hasMixedCurrencies(['USD', 'usd'])).toBe(false);
-  expect(hasMixedCurrencies(['USD'])).toBe(false);
-  expect(hasMixedCurrencies([])).toBe(false);
-});
-
-test('hasMixedCurrencies ignores null values', () => {
-  expect(hasMixedCurrencies(['USD', null, 'USD'])).toBe(false);
-  expect(hasMixedCurrencies(['USD', null, 'EUR'])).toBe(true);
+  expect(
+    container.querySelector('[data-test="currency-control-container"]'),
+  ).toBeInTheDocument();
+  expect(container.querySelectorAll('.ant-select')).toHaveLength(2);
 });

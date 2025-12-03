@@ -19,50 +19,16 @@
 
 import { normalizeCurrency } from '../../src/currency-format/CurrencyFormatter';
 
-test('normalizeCurrency converts lowercase ISO codes to uppercase', () => {
-  expect(normalizeCurrency('usd')).toBe('USD');
-  expect(normalizeCurrency('eur')).toBe('EUR');
-  expect(normalizeCurrency('gbp')).toBe('GBP');
-  expect(normalizeCurrency('jpy')).toBe('JPY');
-});
-
-test('normalizeCurrency maps common currency symbols', () => {
-  expect(normalizeCurrency('$')).toBe('USD');
-  expect(normalizeCurrency('€')).toBe('EUR');
-  expect(normalizeCurrency('£')).toBe('GBP');
-  expect(normalizeCurrency('¥')).toBe('JPY');
-  expect(normalizeCurrency('₹')).toBe('INR');
-});
-
-test('normalizeCurrency returns ISO codes unchanged', () => {
+test('normalizeCurrency normalizes valid ISO 4217 codes', () => {
   expect(normalizeCurrency('USD')).toBe('USD');
-  expect(normalizeCurrency('EUR')).toBe('EUR');
-  expect(normalizeCurrency('GBP')).toBe('GBP');
-  expect(normalizeCurrency('JPY')).toBe('JPY');
+  expect(normalizeCurrency('usd')).toBe('USD');
+  expect(normalizeCurrency(' eur ')).toBe('EUR');
 });
 
-test('normalizeCurrency handles null and undefined', () => {
+test('normalizeCurrency returns null for invalid input', () => {
   expect(normalizeCurrency(null)).toBe(null);
-  expect(normalizeCurrency(undefined)).toBe(null);
   expect(normalizeCurrency('')).toBe(null);
-});
-
-test('normalizeCurrency handles whitespace', () => {
-  expect(normalizeCurrency(' USD ')).toBe('USD');
-  expect(normalizeCurrency(' usd ')).toBe('USD');
-});
-
-test('normalizeCurrency maps full currency names', () => {
-  expect(normalizeCurrency('EURO')).toBe('EUR');
-  expect(normalizeCurrency('euro')).toBe('EUR');
-  expect(normalizeCurrency('EUROS')).toBe('EUR');
-  expect(normalizeCurrency('euros')).toBe('EUR');
-  expect(normalizeCurrency('DOLLAR')).toBe('USD');
-  expect(normalizeCurrency('dollar')).toBe('USD');
-  expect(normalizeCurrency('DOLLARS')).toBe('USD');
-  expect(normalizeCurrency('POUND')).toBe('GBP');
-  expect(normalizeCurrency('POUNDS')).toBe('GBP');
-  expect(normalizeCurrency('YEN')).toBe('JPY');
-  expect(normalizeCurrency('RUPEE')).toBe('INR');
-  expect(normalizeCurrency('RUPEES')).toBe('INR');
+  expect(normalizeCurrency('$')).toBe(null);
+  expect(normalizeCurrency('DOLLAR')).toBe(null);
+  expect(normalizeCurrency('USDD')).toBe(null);
 });

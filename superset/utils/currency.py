@@ -56,13 +56,11 @@ def detect_currency(
     :param extras: Optional extra query parameters (having, where clauses)
     :return: ISO 4217 currency code (e.g., "USD", "EUR") or None
     """
-    # Check if datasource has a currency code column configured
     currency_column = getattr(datasource, "currency_code_column", None)
     if not currency_column:
         return None
 
     try:
-        # Build a minimal query to get distinct currency values
         query_obj: dict[str, Any] = {
             "granularity": granularity,
             "from_dttm": from_dttm,
@@ -70,18 +68,15 @@ def detect_currency(
             "is_timeseries": False,
             "groupby": [currency_column],
             "metrics": [],
-            "row_limit": 1000,  # Reasonable limit for distinct values
             "filter": filters or [],
             "extras": extras or {},
         }
 
-        # Execute the query to get currency values
         result = datasource.query(query_obj)
 
         if result.status != QueryStatus.SUCCESS or result.df.empty:
             return None
 
-        # Get unique non-null currency values
         if currency_column not in result.df.columns:
             return None
 
@@ -89,14 +84,12 @@ def detect_currency(
             result.df[currency_column].dropna().astype(str).str.upper().unique()
         )
 
-        # Return single currency if only one exists, None otherwise
         if len(unique_currencies) == 1:
             return str(unique_currencies[0])
 
         return None
 
     except Exception:  # pylint: disable=broad-except
-        # Currency detection should never block the main query
         logger.warning(
             "Failed to detect currency for datasource %s",
             getattr(datasource, "id", "unknown"),

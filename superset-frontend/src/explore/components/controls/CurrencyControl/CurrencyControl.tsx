@@ -152,7 +152,7 @@ export const CurrencyControl = ({
             ${currencySelectAdditionalStyles};
           }
         `}
-        className="currency-control-container"
+        data-test="currency-control-container"
       >
         <Select
           ariaLabel={t('Currency prefix or suffix')}

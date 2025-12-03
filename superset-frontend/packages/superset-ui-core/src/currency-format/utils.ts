@@ -51,7 +51,6 @@ export const analyzeCurrencyInData = (
     return null;
   }
 
-  // Extract all currency values from the data
   const currencies = data
     .map(row => row[currencyColumn])
     .filter(val => val !== null && val !== undefined);
@@ -60,12 +59,10 @@ export const analyzeCurrencyInData = (
     return null;
   }
 
-  // Use existing hasMixedCurrencies utility
   if (hasMixedCurrencies(currencies)) {
-    return null; // Mixed currencies - use neutral format
+    return null;
   }
 
-  // Single currency detected - normalize and return it
   return normalizeCurrency(currencies[0]);
 };
 
@@ -80,18 +77,15 @@ export const buildCustomFormatters = (
 ) => {
   const metricsArray = ensureIsArray(metrics);
 
-  // Detect currency for AUTO mode
   let resolvedCurrency = currencyFormat;
   if (currencyFormat?.symbol === 'AUTO' && data && currencyCodeColumn) {
     const detectedCurrency = analyzeCurrencyInData(data, currencyCodeColumn);
     if (detectedCurrency) {
-      // Single currency: use it with same position as configured
       resolvedCurrency = {
         symbol: detectedCurrency,
         symbolPosition: currencyFormat.symbolPosition,
       };
     } else {
-      // Mixed currencies: use neutral format (explicitly set to null to prevent fallback)
       resolvedCurrency = null;
     }
   }
@@ -99,7 +93,7 @@ export const buildCustomFormatters = (
   return metricsArray.reduce((acc, metric) => {
     if (isSavedMetric(metric)) {
       const actualD3Format = d3Format ?? savedColumnFormats[metric];
-      // null means "explicitly no currency" (from AUTO mixed detection), don't fall back
+      // null means explicitly no currency (from AUTO mixed detection)
       const actualCurrencyFormat =
         resolvedCurrency === null
           ? undefined
@@ -146,39 +140,25 @@ export const getValueFormatter = (
   currencyCodeColumn?: string,
   detectedCurrency?: string | null,
 ) => {
-  // Detect currency for AUTO mode
   let resolvedCurrency: Currency | undefined | null = currencyFormat;
   if (currencyFormat?.symbol === 'AUTO') {
-    // Priority 1: Use backend-detected currency if available
+    // Use backend-detected currency, or fallback to frontend analysis
     if (detectedCurrency !== undefined) {
-      if (detectedCurrency) {
-        // Single currency detected by backend
-        resolvedCurrency = {
-          symbol: detectedCurrency,
-          symbolPosition: currencyFormat.symbolPosition,
-        };
-      } else {
-        // Mixed currencies (null from backend) - use neutral format
-        resolvedCurrency = null;
-      }
-    }
-    // Priority 2: Fallback to frontend data analysis (for Table charts with currency column in data)
-    else if (data && currencyCodeColumn) {
-      const frontendDetectedCurrency = analyzeCurrencyInData(
-        data,
-        currencyCodeColumn,
-      );
-      if (frontendDetectedCurrency) {
-        resolvedCurrency = {
-          symbol: frontendDetectedCurrency,
-          symbolPosition: currencyFormat.symbolPosition,
-        };
-      } else {
-        resolvedCurrency = null;
-      }
-    }
-    // Priority 3: No detection possible - use neutral format
-    else {
+      resolvedCurrency = detectedCurrency
+        ? {
+            symbol: detectedCurrency,
+            symbolPosition: currencyFormat.symbolPosition,
+          }
+        : null;
+    } else if (data && currencyCodeColumn) {
+      const frontendDetected = analyzeCurrencyInData(data, currencyCodeColumn);
+      resolvedCurrency = frontendDetected
+        ? {
+            symbol: frontendDetected,
+            symbolPosition: currencyFormat.symbolPosition,
+          }
+        : null;
+    } else {
       resolvedCurrency = null;
     }
   }
@@ -198,7 +178,6 @@ export const getValueFormatter = (
   if (customFormatter) {
     return customFormatter;
   }
-  // null means neutral format (don't use currency), undefined means try currency if available
   if (resolvedCurrency === null) {
     return getNumberFormatter(d3Format);
   }

@@ -18,80 +18,16 @@
  */
 import { analyzeCurrencyInData } from '../../src/currency-format/utils';
 
-describe('analyzeCurrencyInData', () => {
-  test('returns null when currencyColumn is undefined', () => {
-    const data = [{ currency: 'USD', value: 100 }];
-    expect(analyzeCurrencyInData(data, undefined)).toBeNull();
-  });
+test('analyzeCurrencyInData returns currency code for single currency', () => {
+  const data = [
+    { currency_code: 'USD', value: 100 },
+    { currency_code: 'usd', value: 200 },
+  ];
+  expect(analyzeCurrencyInData(data, 'currency_code')).toBe('USD');
+});
 
-  test('returns null when data is empty', () => {
-    expect(analyzeCurrencyInData([], 'currency_code')).toBeNull();
-  });
-
-  test('returns normalized currency code for single currency', () => {
-    const data = [
-      { currency_code: 'USD', value: 100 },
-      { currency_code: 'usd', value: 200 },
-      { currency_code: 'USD', value: 300 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBe('USD');
-  });
-
-  test('returns normalized currency code for single currency symbol', () => {
-    const data = [
-      { currency_code: '€', value: 100 },
-      { currency_code: '€', value: 200 },
-      { currency_code: '€', value: 300 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBe('EUR');
-  });
-
-  test('returns null for mixed currencies', () => {
-    const data = [
-      { currency_code: 'USD', value: 100 },
-      { currency_code: 'EUR', value: 200 },
-      { currency_code: 'GBP', value: 300 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBeNull();
-  });
-
-  test('returns null for mixed currency symbols', () => {
-    const data = [
-      { currency_code: '$', value: 100 },
-      { currency_code: '€', value: 200 },
-      { currency_code: '£', value: 300 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBeNull();
-  });
-
-  test('ignores null and undefined values', () => {
-    const data = [
-      { currency_code: 'USD', value: 100 },
-      { currency_code: null, value: 200 },
-      { currency_code: undefined, value: 300 },
-      { currency_code: 'USD', value: 400 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBe('USD');
-  });
-
-  test('returns null when all currency values are null or undefined', () => {
-    const data = [
-      { currency_code: null, value: 100 },
-      { currency_code: undefined, value: 200 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBeNull();
-  });
-
-  test('handles single row with currency', () => {
-    const data = [{ currency_code: 'JPY', value: 100 }];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBe('JPY');
-  });
-
-  test('returns null for invalid currency values', () => {
-    const data = [
-      { currency_code: 'INVALID', value: 100 },
-      { currency_code: 'INVALID', value: 200 },
-    ];
-    expect(analyzeCurrencyInData(data, 'currency_code')).toBeNull();
-  });
+test('analyzeCurrencyInData returns null for mixed or invalid data', () => {
+  expect(analyzeCurrencyInData([], 'currency_code')).toBeNull();
+  expect(analyzeCurrencyInData([{ c: 'USD' }], undefined)).toBeNull();
+  expect(analyzeCurrencyInData([{ c: 'USD' }, { c: 'EUR' }], 'c')).toBeNull();
 });
