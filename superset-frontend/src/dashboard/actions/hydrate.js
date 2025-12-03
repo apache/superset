@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { omit } from 'lodash';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -225,8 +226,16 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
+    const chartCustomizations = metadata?.chart_customization_config || [];
+
+    const filtersWithoutScopes = (
+      metadata?.native_filter_configuration || []
+    ).map(filter => omit(filter, ['chartsInScope', 'tabsInScope']));
+
+    const combinedFilters = [...filtersWithoutScopes, ...chartCustomizations];
+
     const nativeFilters = getInitialNativeFilterState({
-      filterConfig: metadata?.native_filter_configuration || [],
+      filterConfig: combinedFilters,
     });
 
     const { chartConfiguration, globalChartConfiguration } =
@@ -243,8 +252,6 @@ export const hydrateDashboard =
     const crossFiltersEnabled = isCrossFiltersEnabled(
       metadata.cross_filters_enabled,
     );
-
-    const chartCustomizationItems = metadata?.chart_customization_config || [];
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -311,7 +318,6 @@ export const hydrateDashboard =
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},
-          chartCustomizationItems,
         },
         dashboardLayout,
       },

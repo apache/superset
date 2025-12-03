@@ -378,6 +378,7 @@ describe('Native filters', () => {
       cy.get(nativeFilters.filtersPanel.filterGear).click({
         force: true,
       });
+      cy.get('.ant-dropdown-menu').should('be.visible');
       cy.get(nativeFilters.filterFromDashboardView.createFilterButton).should(
         'be.visible',
       );
@@ -405,6 +406,8 @@ describe('Native filters', () => {
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
       cy.contains('Filter value is required').scrollIntoView();
+      cy.get('body').trigger('mousemove', { clientX: 0, clientY: 0 });
+      cy.wait(300);
 
       cy.contains('Filter value is required').should('be.visible').click({
         force: true,
