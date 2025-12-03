@@ -63,18 +63,17 @@ class LogPruneCommand(BaseCommand):
         total_deleted = 0
         start_time = time.time()
 
-        # Select IDs to delete, order by oldest for deterministic deletion.
-        select_stmt = (
-            sa.select(Log.id)
-            .where(
-                Log.dttm < datetime.now() - timedelta(days=self.retention_period_days)
-            )
-            .order_by(Log.dttm.asc(), Log.id.asc())
+        # Select all IDs that need to be deleted
+        select_stmt = sa.select(Log.id).where(
+            Log.dttm < datetime.now() - timedelta(days=self.retention_period_days)
         )
 
         # Optionally limited by max_rows_per_run
+        # order by oldest first for deterministic deletion
         if self.max_rows_per_run is not None and self.max_rows_per_run > 0:
-            select_stmt = select_stmt.limit(self.max_rows_per_run)
+            select_stmt = select_stmt.order_by(Log.dttm.asc(), Log.id.asc()).limit(
+                self.max_rows_per_run
+            )
 
         ids_to_delete = db.session.execute(select_stmt).scalars().all()
 
