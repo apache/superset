@@ -24,9 +24,8 @@ metadata:
   name: {{ template "superset.fullname" . }}-flower
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}-flower
+    {{- include "supersetCeleryFlower.selectorLabels" . | nindent 4 }}
     chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     {{- if .Values.extraLabels }}
       {{- toYaml .Values.extraLabels | nindent 4 }}
@@ -48,8 +47,7 @@ spec:
           {{- toYaml .Values.supersetCeleryFlower.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: "{{ template "superset.name" . }}-flower"
-        release: {{ .Release.Name }}
+        {{- include "supersetCeleryFlower.selectorLabels" . | nindent 8 }}
         {{- if .Values.extraLabels }}
           {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}

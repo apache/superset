@@ -27,9 +27,8 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ include "superset.fullname" $ }}-flower-pdb
   labels:
-    app: {{ template "superset.name" $ }}-flower
+    {{- include "supersetCeleryFlower.selectorLabels" $ | nindent 4 }}
     chart: {{ template "superset.chart" $ }}
-    release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
     {{- if $.Values.extraLabels }}
       {{- toYaml $.Values.extraLabels | nindent 4 }}
