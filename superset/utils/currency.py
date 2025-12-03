@@ -26,13 +26,15 @@ from superset.common.db_query_status import QueryStatus
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.superset_typing import QueryObjectDict
+    from superset.utils.core import QueryObjectFilterClause
 
 logger = logging.getLogger(__name__)
 
 
 def detect_currency(
     datasource: BaseDatasource,
-    filters: list[dict[str, Any]] | None = None,
+    filters: list[QueryObjectFilterClause] | None = None,
     granularity: str | None = None,
     from_dttm: datetime | None = None,
     to_dttm: datetime | None = None,
@@ -61,7 +63,7 @@ def detect_currency(
         return None
 
     try:
-        query_obj: dict[str, Any] = {
+        query_obj: QueryObjectDict = {
             "granularity": granularity,
             "from_dttm": from_dttm,
             "to_dttm": to_dttm,
