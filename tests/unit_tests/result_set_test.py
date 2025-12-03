@@ -216,7 +216,6 @@ def test_empty_result_set_preserves_column_metadata() -> None:
     column_names = [col["column_name"] for col in result_set.columns]
     assert column_names == ["id", "name", "created_at"]
 
-    # Verify types from cursor_description are used (derive expected values from the engine spec)
     assert result_set.columns[0]["type"] == BaseEngineSpec.get_datatype(description[0][1])
     assert result_set.columns[1]["type"] == BaseEngineSpec.get_datatype(description[1][1])
     assert result_set.columns[2]["type"] == BaseEngineSpec.get_datatype(description[2][1])
