@@ -43,9 +43,7 @@ export const CustomizationsOutOfScopeCollapsible = ({
     ghost
     bordered
     expandIconPosition="end"
-    collapsible={
-      customizationsOutOfScope.length === 0 ? 'disabled' : undefined
-    }
+    collapsible={customizationsOutOfScope.length === 0 ? 'disabled' : undefined}
     items={[
       {
         key: 'out-of-scope-customizations',
