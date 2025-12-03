@@ -18,6 +18,7 @@
  */
 
 import memoizeOne from 'memoize-one';
+import React from 'react';
 import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry, JsonObject } from '@superset-ui/core';
 import type { ControlMap } from 'src/components/AlteredSliceTag/types';
@@ -56,6 +57,17 @@ const memoizedControls = memoizeOne(
                     config: JsonObject;
                   };
                   controlsMap[controlObj.name] = controlObj.config;
+                } else if (React.isValidElement(control)) {
+                  const { name } = control.props as { name: string };
+                  if (name) {
+                    const ComponentType = control.type as React.ComponentType;
+                    controlsMap[name] = {
+                      type:
+                        ComponentType.displayName ||
+                        ComponentType.name ||
+                        'CustomControl',
+                    };
+                  }
                 }
               });
             }
