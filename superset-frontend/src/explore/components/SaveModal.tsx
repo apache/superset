@@ -19,6 +19,7 @@
 /* eslint camelcase: 0 */
 import { ChangeEvent, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
+import { nanoid } from 'nanoid';
 import rison from 'rison';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
@@ -43,7 +44,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
-import { Layout } from 'src/dashboard/types';
+import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
@@ -356,42 +357,74 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       positionJson = positionJson || {};
 
       const chartKey = `CHART-${chartId}`;
-      const rowIndex = this.findNextRowPosition(positionJson);
-      const rowKey = `ROW-${rowIndex}`;
+      const chartWidth = 4;
 
-      const updatedPositionJson = {
-        ...positionJson,
-        [chartKey]: {
-          type: 'CHART',
-          id: chartKey,
-          children: [],
-          parents: ['ROOT_ID', 'GRID_ID', rowKey],
-          meta: {
-            width: 4,
-            height: 50,
-            chartId: chartId,
-            sliceName: sliceName ?? `Chart ${chartId}`,
-          },
-        },
-        [rowKey]: {
+      // Find a row in the tab with available space
+      const tabChildren = positionJson[tabId]?.children || [];
+      let targetRowKey: string | null = null;
+
+      for (const childKey of tabChildren) {
+        const child = positionJson[childKey];
+        if (child?.type === 'ROW') {
+          const rowChildren = child.children || [];
+          const totalWidth = rowChildren.reduce((sum: number, key: string) => {
+            const component = positionJson[key];
+            return sum + (component?.meta?.width || 0);
+          }, 0);
+
+          if (totalWidth + chartWidth <= GRID_COLUMN_COUNT) {
+            targetRowKey = childKey;
+            break;
+          }
+        }
+      }
+
+      const updatedPositionJson = { ...positionJson };
+
+      // Create a new row if no existing row has space
+      if (!targetRowKey) {
+        targetRowKey = `ROW-${nanoid()}`;
+        updatedPositionJson[targetRowKey] = {
           type: 'ROW',
-          id: rowKey,
-          children: [chartKey],
+          id: targetRowKey,
+          children: [],
           parents: ['ROOT_ID', 'GRID_ID', tabId],
           meta: {
             background: 'BACKGROUND_TRANSPARENT',
           },
+        };
+
+        if (positionJson[tabId]) {
+          updatedPositionJson[tabId] = {
+            ...positionJson[tabId],
+            children: [...(positionJson[tabId].children || []), targetRowKey],
+          };
+        } else {
+          throw new Error(`Tab ${tabId} not found in positionJson`);
+        }
+      }
+
+      updatedPositionJson[chartKey] = {
+        type: 'CHART',
+        id: chartKey,
+        children: [],
+        parents: ['ROOT_ID', 'GRID_ID', tabId, targetRowKey],
+        meta: {
+          width: chartWidth,
+          height: 50,
+          chartId,
+          sliceName: sliceName ?? `Chart ${chartId}`,
         },
       };
 
-      if (positionJson[tabId]) {
-        updatedPositionJson[tabId] = {
-          ...positionJson[tabId],
-          children: [...(positionJson[tabId].children || []), rowKey],
-        };
-      } else {
-        throw new Error(`Tab ${tabId} not found in positionJson`);
-      }
+      // Add chart to the target row
+      updatedPositionJson[targetRowKey] = {
+        ...updatedPositionJson[targetRowKey],
+        children: [
+          ...(updatedPositionJson[targetRowKey].children || []),
+          chartKey,
+        ],
+      };
 
       const response = await SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
@@ -405,22 +438,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     } catch (error) {
       throw new Error('Error adding chart to dashboard tab:', error);
     }
-  };
-
-  // Finds the position to insert a new row in a dashboard tab layout.
-  findNextRowPosition = (layout: Layout): number => {
-    const rowIndices: number[] = [];
-
-    Object.keys(layout).forEach(key => {
-      if (key.startsWith('ROW-')) {
-        const rest = key.substring(4);
-        if (/^\d+$/.test(rest)) {
-          rowIndices.push(parseInt(rest, 10));
-        }
-      }
-    });
-
-    return rowIndices.length > 0 ? Math.max(...rowIndices) + 1 : 0;
   };
 
   loadDashboard = async (id: number) => {
