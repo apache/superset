@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMask } from '@superset-ui/core';
+import { FilterState, QueryFormData } from '@superset-ui/core';
+import { RefObject } from 'react';
+import type { RefSelectProps } from '@superset-ui/core/components';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-interface DatasetReference {
+export interface DatasetReference {
   value: string | number;
   label?: string;
   table_name?: string;
@@ -30,61 +33,50 @@ export interface ColumnOption {
   value: string;
 }
 
-export interface GroupByCustomization {
-  name: string;
-  dataset: string | number | DatasetReference | null;
+interface PluginFilterGroupByCustomizeProps {
+  dataset?: string | number | DatasetReference | null;
   datasetInfo?: {
     label: string;
     value: number;
     table_name: string;
   };
-  column: string | string[] | null;
+  column?: string | string[] | null;
   description?: string;
   sortFilter?: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
   hasDefaultValue?: boolean;
-  defaultValue?: string;
+  defaultValue?: string | string[] | null;
   isRequired?: boolean;
   selectFirst?: boolean;
-  defaultDataMask?: DataMask;
-  defaultValueQueriesData?: ColumnOption[] | null;
-  aggregation?: string;
   canSelectMultiple?: boolean;
-  controlValues?: {
-    enableEmptyFilter?: boolean;
-  };
+  aggregation?: string;
+  enableEmptyFilter?: boolean;
+  inputRef?: RefObject<HTMLInputElement>;
 }
 
-export interface FilterOption {
-  label: string;
-  value: string;
+export type PluginFilterGroupByQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
+  PluginFilterGroupByCustomizeProps;
+
+export interface ColumnData {
+  column_name: string;
+  verbose_name?: string | null;
+  dtype?: number;
 }
 
-export interface ChartCustomizationItem {
-  id: string;
-  title?: string;
-  removed?: boolean;
-  dataset?: string | null;
-  description?: string;
-  removeTimerId?: number;
-  chartId?: number;
-  settings?: {
-    sortFilter: boolean;
-    hasDefaultValue: boolean;
-    isRequired: boolean;
-    selectFirstByDefault: boolean;
-  };
-  customization: GroupByCustomization;
-}
+export type PluginFilterGroupByProps = PluginFilterStylesProps & {
+  data: (ColumnOption | ColumnData)[];
+  filterState: FilterState;
+  formData: PluginFilterGroupByQueryFormData;
+  inputRef: RefObject<RefSelectProps>;
+} & PluginFilterHooks;
 
-export interface ChartCustomizationChangesType {
-  modified: string[];
-  deleted: string[];
-  reordered: string[];
-}
-
-export interface ChartCustomizationRemoval {
-  isPending: boolean;
-  timerId: number;
-}
+export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
+  dataset: null,
+  column: null,
+  sortFilter: false,
+  sortAscending: true,
+  canSelectMultiple: true,
+  defaultValue: null,
+};

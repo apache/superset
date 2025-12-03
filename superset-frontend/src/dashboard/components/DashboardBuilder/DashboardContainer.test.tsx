@@ -114,13 +114,17 @@ function setupWithStore(overrideState = {}) {
 }
 
 let setInScopeStatusMock: jest.SpyInstance;
+const originalSetInScopeStatus = nativeFiltersActions.setInScopeStatusOfFilters;
 
 beforeEach(() => {
   setInScopeStatusMock = jest.spyOn(
     nativeFiltersActions,
     'setInScopeStatusOfFilters',
   );
-  setInScopeStatusMock.mockReturnValue(jest.fn());
+  setInScopeStatusMock.mockImplementation(args => {
+    const thunk = originalSetInScopeStatus(args);
+    return thunk;
+  });
 });
 
 afterEach(() => {
@@ -144,35 +148,37 @@ test('calculates chartsInScope correctly for filters', async () => {
   );
 });
 
-test('recalculates chartsInScope when filter non-scope properties change', async () => {
+test('preserves chartsInScope when filter non-scope properties change', async () => {
   const { store } = setupWithStore();
 
   await waitFor(() => {
     expect(setInScopeStatusMock).toHaveBeenCalled();
   });
 
-  setInScopeStatusMock.mockClear();
+  const stateBeforeUpdate = store.getState();
+  const filterBeforeUpdate =
+    stateBeforeUpdate.nativeFilters.filters['FILTER-1'];
 
-  // Bug scenario: Editing non-scope properties (e.g., "Sort filter values")
-  // triggers backend save, but response lacks chartsInScope.
-  // The fix ensures useEffect recalculates chartsInScope anyway.
-  const initialState = store.getState();
+  expect(filterBeforeUpdate.chartsInScope).toEqual([sliceId]);
+
   store.dispatch({
     type: 'SET_NATIVE_FILTERS_CONFIG_COMPLETE',
     filterChanges: [
       {
-        ...initialState.nativeFilters.filters['FILTER-1'],
+        ...filterBeforeUpdate,
         controlValues: {
-          ...initialState.nativeFilters.filters['FILTER-1'].controlValues,
+          ...filterBeforeUpdate.controlValues,
           sortAscending: false,
         },
       },
     ],
   });
 
-  await waitFor(() => {
-    expect(setInScopeStatusMock).toHaveBeenCalled();
-  });
+  const stateAfterUpdate = store.getState();
+  const filterAfterUpdate = stateAfterUpdate.nativeFilters.filters['FILTER-1'];
+
+  expect(filterAfterUpdate.chartsInScope).toEqual([sliceId]);
+  expect(filterAfterUpdate.controlValues?.sortAscending).toBe(false);
 });
 
 test('handles multiple filters with different scopes', async () => {

@@ -619,6 +619,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_delete_embedded",
             "can_set_embedded",
             "can_cache_dashboard_screenshot",
+            "can_put_chart_customizations",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -1916,6 +1917,330 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.put_assert_metric(uri, put_data, "put_filters")
         assert rv.status_code == 400
 
+        model = db.session.query(Dashboard).get(dashboard_id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_add_dashboard_chart_customizations(self):
+        """
+        Dashboard API: Test that chart customizations were added
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Custom 1",
+                    "config": {"key": "value1"},
+                },
+                {
+                    "id": "chart_customization_2",
+                    "name": "Custom 2",
+                    "config": {"key": "value2"},
+                },
+            ],
+            "deleted": [],
+            "reordered": [],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        chart_customization_config = json.loads(json_metadata)[
+            "chart_customization_config"
+        ]
+
+        assert len(chart_customization_config) == 2
+        assert chart_customization_config[0]["name"] == "Custom 1"
+        assert chart_customization_config[1]["name"] == "Custom 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_chart_customizations(self):
+        """
+        Dashboard API: Test that chart customizations were modified
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "chart_customization_config": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Custom X",
+                    "config": {"key": "valueX"},
+                }
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Modified Custom 1",
+                    "config": {"key": "modified_value1"},
+                },
+                {
+                    "id": "chart_customization_2",
+                    "name": "Custom 2",
+                    "config": {"key": "value2"},
+                },
+            ],
+            "deleted": [],
+            "reordered": [],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        chart_customization_config = json.loads(json_metadata)[
+            "chart_customization_config"
+        ]
+
+        assert len(chart_customization_config) == 2
+        assert chart_customization_config[0]["name"] == "Modified Custom 1"
+        assert chart_customization_config[1]["name"] == "Custom 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_reorder_dashboard_chart_customizations(self):
+        """
+        Dashboard API: Test chart customizations reordered
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "chart_customization_config": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Custom 1",
+                    "config": {"key": "value1"},
+                },
+                {
+                    "id": "chart_customization_2",
+                    "name": "Custom 2",
+                    "config": {"key": "value2"},
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [],
+            "deleted": [],
+            "reordered": ["chart_customization_2", "chart_customization_1"],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        chart_customization_config = json.loads(json_metadata)[
+            "chart_customization_config"
+        ]
+
+        assert len(chart_customization_config) == 2
+        assert chart_customization_config[0]["id"] == "chart_customization_2"
+        assert chart_customization_config[1]["id"] == "chart_customization_1"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_delete_dashboard_chart_customizations(self):
+        """
+        Dashboard API: Test chart customizations deleted
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "chart_customization_config": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Custom 1",
+                    "config": {"key": "value1"},
+                },
+                {
+                    "id": "chart_customization_2",
+                    "name": "Custom 2",
+                    "config": {"key": "value2"},
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [],
+            "deleted": ["chart_customization_1"],
+            "reordered": [],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        chart_customization_config = json.loads(json_metadata)[
+            "chart_customization_config"
+        ]
+
+        assert len(chart_customization_config) == 1
+        assert chart_customization_config[0]["id"] == "chart_customization_2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_complex_dashboard_chart_customizations_update(self):
+        """
+        Dashboard API: Test complex chart customizations operation
+        (modify, add, delete, reorder)
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "chart_customization_config": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Custom 1",
+                    "config": {"key": "value1"},
+                },
+                {
+                    "id": "chart_customization_2",
+                    "name": "Custom 2",
+                    "config": {"key": "value2"},
+                },
+                {
+                    "id": "chart_customization_3",
+                    "name": "Custom 3",
+                    "config": {"key": "value3"},
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [
+                {
+                    "id": "chart_customization_1",
+                    "name": "Modified Custom 1",
+                    "config": {"key": "modified_value1"},
+                },
+                {
+                    "id": "chart_customization_4",
+                    "name": "Custom 4",
+                    "config": {"key": "value4"},
+                },
+            ],
+            "deleted": ["chart_customization_2"],
+            "reordered": [
+                "chart_customization_4",
+                "chart_customization_3",
+                "chart_customization_1",
+            ],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        chart_customization_config = json.loads(json_metadata)[
+            "chart_customization_config"
+        ]
+
+        assert len(chart_customization_config) == 3
+        assert chart_customization_config[0]["id"] == "chart_customization_4"
+        assert chart_customization_config[1]["id"] == "chart_customization_3"
+        assert chart_customization_config[2]["id"] == "chart_customization_1"
+        assert chart_customization_config[2]["name"] == "Modified Custom 1"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_chart_customizations_invalid_data(self):
+        """
+        Dashboard API: Test modify chart customizations with invalid data
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {"invalid_key": "invalid_value"}
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 400
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_chart_customizations_not_found(self):
+        """
+        Dashboard API: Test chart customizations update on non-existent dashboard
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/999999/chart_customizations"
+        put_data = {
+            "modified": [{"id": "custom_1", "name": "Test"}],
+            "deleted": [],
+            "reordered": [],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 404
+
+    def test_dashboard_chart_customizations_forbidden(self):
+        """
+        Dashboard API: Test chart customizations update forbidden for non-owner
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
+        put_data = {
+            "modified": [{"id": "custom_1", "name": "Test"}],
+            "deleted": [],
+            "reordered": [],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
+        assert rv.status_code == 404
+
+        self.login(ADMIN_USERNAME)
         model = db.session.query(Dashboard).get(dashboard_id)
         db.session.delete(model)
         db.session.commit()

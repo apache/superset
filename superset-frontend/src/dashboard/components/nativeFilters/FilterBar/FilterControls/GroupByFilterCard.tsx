@@ -18,8 +18,17 @@
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core';
-import { DataMaskStateWithId, useTruncation } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  Filter,
+  useTruncation,
+  ChartCustomization,
+  NativeFilterTarget,
+  Filters,
+  NativeFilterType,
+} from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   Typography,
   Select,
@@ -31,18 +40,28 @@ import {
 } from '@superset-ui/core/components';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import {
-  setPendingChartCustomization,
-  loadChartCustomizationData,
-} from 'src/dashboard/actions/chartCustomizationActions';
+import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
-import { dispatchChartCustomizationHoverAction } from '../FilterBar/FilterControls/utils';
-import { mergeExtraFormData } from '../utils';
-import { ChartCustomizationItem } from './types';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { dispatchChartCustomizationHoverAction } from './utils';
+import { mergeExtraFormData } from '../../utils';
+
+interface ColumnApiResponse {
+  column_name?: string;
+  name?: string;
+  verbose_name?: string;
+  filterable?: boolean;
+}
 
 interface GroupByFilterCardProps {
-  customizationItem: ChartCustomizationItem;
+  customizationItem: ChartCustomization;
   orientation?: 'vertical' | 'horizontal';
+  dataMaskSelected?: DataMaskStateWithId;
+  onFilterSelectionChange?: (
+    filter: Filter | ChartCustomization,
+    dataMask: DataMask,
+  ) => void;
 }
 
 const Row = styled.div`
@@ -137,7 +156,6 @@ const HorizontalFormItem = styled(FormItem)`
     width: 100%;
   }
 
-  /* Allow dropdown to expand beyond form item width */
   .ant-select-dropdown {
     min-width: 200px !important;
     max-width: 400px !important;
@@ -152,7 +170,7 @@ const ToolTipContainer = styled.div`
 
 const RequiredFieldIndicator = () => (
   <span
-    css={(theme: any) => ({
+    css={(theme: SupersetTheme) => ({
       color: theme.colorError,
       fontSize: `${theme.fontSizeSM}px`,
       paddingLeft: '1px',
@@ -188,53 +206,28 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
 );
 
 const GroupByFilterCardContent: FC<{
-  customizationItem: ChartCustomizationItem;
+  customizationItem: ChartCustomization;
   hidePopover: () => void;
 }> = ({ customizationItem }) => {
-  const { description, customization } = customizationItem;
-  const { dataset, name } = customization || {};
+  const { description, name } = customizationItem;
+  const dataset = customizationItem.targets?.[0]?.datasetId;
   const [titleRef, , titleTruncated] = useTruncation();
   const displayName = name?.trim() || t('Dynamic group by');
 
   const datasetLabel = useMemo(() => {
-    const { datasetInfo, dataset: datasetValue } =
-      customizationItem.customization;
-
-    if (datasetInfo) {
-      if ('table_name' in datasetInfo) {
-        return (datasetInfo as { table_name: string }).table_name;
-      }
-      if ('label' in datasetInfo) {
-        const { label } = datasetInfo as { label: string };
-        const tableNameMatch = label.match(/^([^([]+)/);
-        return tableNameMatch ? tableNameMatch[1].trim() : label;
-      }
+    if (!dataset) {
+      return t('Not set');
     }
-
-    if (datasetValue) {
-      if (typeof datasetValue === 'object' && 'label' in datasetValue) {
-        const { label } = datasetValue as { label: string };
-        const tableNameMatch = label.match(/^([^([]+)/);
-        return tableNameMatch ? tableNameMatch[1].trim() : label;
-      }
-      if (typeof datasetValue === 'object' && 'table_name' in datasetValue) {
-        return (datasetValue as { table_name: string }).table_name;
-      }
-      return `Dataset ${dataset}`;
-    }
-    return t('Not set');
-  }, [
-    customizationItem.customization.dataset,
-    customizationItem.customization.datasetInfo,
-    dataset,
-  ]);
+    return `Dataset ${dataset}`;
+  }, [dataset]);
 
   const aggregationDisplay = useMemo(() => {
-    if (customization.sortMetric) {
-      return customization.sortMetric.toUpperCase();
+    const sortMetric = customizationItem.controlValues?.sortMetric;
+    if (sortMetric) {
+      return sortMetric.toUpperCase();
     }
     return t('None');
-  }, [customization.sortMetric]);
+  }, [customizationItem.controlValues?.sortMetric]);
 
   return (
     <div>
@@ -291,10 +284,11 @@ const GroupByFilterCardContent: FC<{
 const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   customizationItem,
   orientation = 'vertical',
+  dataMaskSelected,
+  onFilterSelectionChange,
 }) => {
   const theme = useTheme();
-  const { customization } = customizationItem;
-  const { dataset } = customization || {};
+  const dataset = customizationItem.targets?.[0]?.datasetId;
   const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
   const [loading, setLoading] = useState(false);
@@ -322,142 +316,177 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   );
 
   const isRequired = useMemo(
-    () => !!customizationItem.customization?.controlValues?.enableEmptyFilter,
-    [customizationItem.customization?.controlValues?.enableEmptyFilter],
+    () => !!customizationItem.controlValues?.enableEmptyFilter,
+    [customizationItem.controlValues?.enableEmptyFilter],
   );
 
-  const chartCustomizationLoading = useSelector<RootState, boolean>(
-    state =>
-      state.dashboardInfo.chartCustomizationLoading?.[customizationItem.id] ||
-      false,
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
   );
 
-  const datasetId = useMemo(() => {
-    if (!dataset) return null;
+  const effectiveDataMask = dataMaskSelected ?? dataMask;
 
-    if (typeof dataset === 'string') {
-      return dataset;
-    }
+  const columnName = customizationItem.targets?.[0]?.column?.name;
 
-    if (typeof dataset === 'object' && dataset !== null) {
-      if ('value' in dataset) {
-        return String((dataset as { value: string | number }).value);
-      }
-      if ('id' in dataset) {
-        return String((dataset as { id: string | number }).id);
-      }
+  const currentValue = useMemo(() => {
+    const dataMaskValue =
+      effectiveDataMask[customizationItem.id]?.filterState?.value;
+
+    if (dataMaskValue !== undefined) {
+      return dataMaskValue;
     }
 
     return null;
-  }, [dataset]);
+  }, [effectiveDataMask, customizationItem.id]);
 
-  const columnName = customizationItem.customization?.column;
   const canSelectMultiple =
-    customizationItem.customization?.canSelectMultiple ?? true;
+    customizationItem.controlValues?.canSelectMultiple ?? true;
 
   const columnDisplayName = useMemo(() => {
-    if (customizationItem.customization?.name) {
-      return customizationItem.customization.name;
-    }
-    if (customizationItem.title) {
-      return customizationItem.title;
+    if (customizationItem.name) {
+      return customizationItem.name;
     }
     if (columnName) {
       return columnName;
     }
     return t('Group By');
-  }, [
-    customizationItem.customization?.name,
-    customizationItem.title,
-    columnName,
-  ]);
+  }, [customizationItem.name, columnName]);
 
-  const useChartCustomizationDependencies = () => {
-    const dataMask = useSelector<RootState, DataMaskStateWithId>(
-      state => state.dataMask,
-    );
-    const filters = useSelector<RootState, any>(
-      state => state.nativeFilters.filters,
-    );
+  const handleColumnChange = useCallback(
+    (value: string | string[]) => {
+      const columnValue = canSelectMultiple
+        ? Array.isArray(value)
+          ? value.length > 0
+            ? value
+            : null
+          : value || null
+        : typeof value === 'string'
+          ? value
+          : null;
 
-    return useMemo(() => {
-      let dependencies = {};
+      const targets: [Partial<NativeFilterTarget>] = columnValue
+        ? ([
+            {
+              datasetId: dataset,
+              column: { name: columnValue },
+            },
+          ] as [Partial<NativeFilterTarget>])
+        : ([{}] as [Partial<NativeFilterTarget>]);
 
-      Object.entries(filters).forEach(([filterId, filter]: [string, any]) => {
-        if (
-          filter.type === 'DIVIDER' ||
-          !dataMask[filterId]?.filterState?.value
-        ) {
-          return;
-        }
-
-        const filterState = dataMask[filterId];
-        dependencies = mergeExtraFormData(
-          dependencies,
-          filterState?.extraFormData,
-        );
-      });
-
-      return dependencies;
-    }, [dataMask, filters]);
-  };
-
-  const dependencies = useChartCustomizationDependencies();
-
-  useEffect(() => {
-    if (datasetId && columnName) {
       dispatch(
-        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
+        setPendingChartCustomization({
+          ...customizationItem,
+          targets,
+        }),
       );
-    }
-  }, [datasetId, columnName, dispatch, customizationItem.id, dependencies]);
 
-  useEffect(() => {
-    setLoading(chartCustomizationLoading);
-  }, [chartCustomizationLoading]);
+      const groupbyValue = columnValue
+        ? Array.isArray(columnValue)
+          ? columnValue
+          : [columnValue]
+        : [];
+
+      const dataMask: DataMask = {
+        extraFormData: {
+          custom_form_data: {
+            groupby: groupbyValue,
+          },
+        },
+        filterState: {
+          label: groupbyValue.join(', '),
+          value: columnValue,
+        },
+        ownState: {
+          column: columnValue,
+        },
+      };
+
+      onFilterSelectionChange?.(customizationItem, dataMask);
+    },
+    [
+      canSelectMultiple,
+      dataset,
+      dispatch,
+      customizationItem,
+      onFilterSelectionChange,
+    ],
+  );
+
+  const filters = useSelector<RootState, Filters>(
+    state => state.nativeFilters.filters,
+  );
+
+  const dependencies = useMemo(() => {
+    let deps = {};
+
+    Object.entries(filters).forEach(([filterId, filter]) => {
+      if (
+        filter.type === NativeFilterType.Divider ||
+        !effectiveDataMask[filterId]?.filterState?.value
+      ) {
+        return;
+      }
+
+      const filterState = effectiveDataMask[filterId];
+      deps = mergeExtraFormData(deps, filterState?.extraFormData);
+    });
+
+    return deps;
+  }, [effectiveDataMask, filters]);
 
   useEffect(() => {
     const fetchColumnOptions = async () => {
-      if (!dataset) return;
+      const datasetSource = dataset;
 
-      try {
-        const datasetId =
-          typeof dataset === 'string'
-            ? dataset
-            : typeof dataset === 'object' &&
-                dataset !== null &&
-                'value' in dataset
-              ? (dataset as { value: string | number }).value
+      if (!datasetSource) {
+        return;
+      }
+
+      const datasetId =
+        typeof datasetSource === 'number'
+          ? datasetSource
+          : typeof datasetSource === 'string'
+            ? datasetSource
+            : typeof datasetSource === 'object' &&
+                datasetSource !== null &&
+                'value' in datasetSource
+              ? (datasetSource as { value: string | number }).value
               : null;
 
-        if (!datasetId) return;
+      if (!datasetId) {
+        return;
+      }
 
-        const response = await fetch(`/api/v1/dataset/${datasetId}`);
-        const data = await response.json();
+      setLoading(true);
+      try {
+        const endpoint = `/api/v1/dataset/${datasetId}`;
+        const { json } = await cachedSupersetGet({ endpoint });
 
-        if (data?.result?.columns) {
-          const options = data.result.columns
-            .filter((col: any) => col.filterable !== false)
-            .map((col: any) => ({
-              label: col.verbose_name || col.column_name || col.name,
-              value: col.column_name || col.name,
+        if (json?.result?.columns) {
+          const options = json.result.columns
+            .filter((col: ColumnApiResponse) => col.filterable !== false)
+            .map((col: ColumnApiResponse) => ({
+              label: col.verbose_name || col.column_name || col.name || '',
+              value: col.column_name || col.name || '',
             }));
           setColumnOptions(options);
         }
       } catch (error) {
-        console.warn('Failed to fetch column options:', error);
         setColumnOptions([]);
+        dispatch(
+          addDangerToast(t('Failed to load columns for dataset %s', datasetId)),
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchColumnOptions();
-  }, [dataset]);
+  }, [dataset, dependencies, dispatch]);
 
   const displayTitle = columnDisplayName;
 
-  const description =
-    customizationItem.description?.trim() ||
-    customizationItem.customization.description?.trim();
+  const description = customizationItem.description?.trim();
 
   return (
     <div>
@@ -542,31 +571,8 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               allowClear
               autoClearSearchValue
               placeholder={t('Search columns...')}
-              value={columnName || null}
-              onChange={(value: string | string[]) => {
-                const columnValue = canSelectMultiple
-                  ? Array.isArray(value)
-                    ? value.length > 0
-                      ? value
-                      : null
-                    : value || null
-                  : typeof value === 'string'
-                    ? value
-                    : null;
-
-                const updatedCustomization = {
-                  ...customizationItem.customization,
-                  column: columnValue,
-                };
-
-                dispatch(
-                  setPendingChartCustomization({
-                    id: customizationItem.id,
-                    title: customizationItem.title,
-                    customization: updatedCustomization,
-                  }),
-                );
-              }}
+              value={currentValue}
+              onChange={handleColumnChange}
               options={columnOptions}
               showSearch
               mode={canSelectMultiple ? 'multiple' : undefined}
@@ -578,6 +584,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               getPopupContainer={triggerNode => triggerNode.parentNode}
               oneLine={isHorizontalLayout}
               className="select-container"
+              loading={loading}
             />
           </div>
         </HorizontalFormItem>
@@ -593,31 +600,8 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             allowClear
             autoClearSearchValue
             placeholder={t('Search columns...')}
-            value={columnName || null}
-            onChange={(value: string | string[]) => {
-              const columnValue = canSelectMultiple
-                ? Array.isArray(value)
-                  ? value.length > 0
-                    ? value
-                    : null
-                  : value || null
-                : typeof value === 'string'
-                  ? value
-                  : null;
-
-              const updatedCustomization = {
-                ...customizationItem.customization,
-                column: columnValue,
-              };
-
-              dispatch(
-                setPendingChartCustomization({
-                  id: customizationItem.id,
-                  title: customizationItem.title,
-                  customization: updatedCustomization,
-                }),
-              );
-            }}
+            value={currentValue}
+            onChange={handleColumnChange}
             options={columnOptions}
             showSearch
             mode={canSelectMultiple ? 'multiple' : undefined}
@@ -626,6 +610,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 .toLowerCase()
                 .includes(input.toLowerCase())
             }
+            loading={loading}
           />
         </div>
       )}

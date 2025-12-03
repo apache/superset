@@ -20,12 +20,47 @@ import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { t } from '@apache-superset/core';
+import {
+  ChartCustomization,
+  ChartCustomizationDivider,
+  DataMaskStateWithId,
+} from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
-import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
+import { useChartCustomizationFromRedux } from '../nativeFilters/state';
 import { RootState } from '../../types';
 import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
+
+const getCustomizationDataset = (
+  item: ChartCustomization | any,
+): string | number | null => {
+  if (item.targets?.[0]?.datasetId !== undefined) {
+    return item.targets[0].datasetId;
+  }
+  if (item.customization?.dataset !== undefined) {
+    return item.customization.dataset;
+  }
+  return null;
+};
+
+const getCustomizationColumn = (
+  item: ChartCustomization | any,
+): string | null => {
+  if (item.targets?.[0]?.column?.name) {
+    return item.targets[0].column.name;
+  }
+  if (item.customization?.column) {
+    const column = item.customization.column;
+    if (typeof column === 'string') {
+      return column;
+    }
+    if (Array.isArray(column) && column.length > 0) {
+      return column[0];
+    }
+  }
+  return null;
+};
 
 const makeSelectChartDataset = (chartId: number) =>
   createSelector(
@@ -155,12 +190,10 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
-  const chartCustomizationItems = useSelector<
-    RootState,
-    ChartCustomizationItem[]
-  >(
-    ({ dashboardInfo }) =>
-      dashboardInfo.metadata?.chart_customization_config || [],
+  const chartCustomizationItems = useChartCustomizationFromRedux();
+
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
   );
 
   // Use memoized selectors for chart data
@@ -183,19 +216,31 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     }
 
     return chartCustomizationItems.filter(item => {
-      if (item.removed) return false;
+      if (item.removed) {
+        return false;
+      }
 
-      const targetDataset = item.customization?.dataset;
-      if (!targetDataset) return false;
+      if (item.chartsInScope && !item.chartsInScope.includes(chartId)) {
+        return false;
+      }
+
+      const targetDataset = getCustomizationDataset(item);
+      if (!targetDataset) {
+        return false;
+      }
 
       const targetDatasetId = String(targetDataset);
       const matchesDataset = chartDataset === targetDatasetId;
 
-      const hasColumn = item.customization?.column;
+      const columnName = getCustomizationColumn(item);
 
-      return matchesDataset && hasColumn;
+      return (
+        matchesDataset &&
+        (!!columnName ||
+          item.filterType === 'chart_customization_deckgl_layer_visibility')
+      );
     });
-  }, [chartCustomizationItems, chartDataset]);
+  }, [chartCustomizationItems, chartDataset, chartId]);
 
   const effectiveGroupBys = useMemo(() => {
     if (!chartType || applicableGroupBys.length === 0) {
@@ -206,99 +251,12 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
-    if (!chartFormData) {
-      return applicableGroupBys;
-    }
-
-    const existingColumns = new Set<string>();
-
-    const extractColumnNames = (columns: unknown[]): void => {
-      if (Array.isArray(columns)) {
-        columns.forEach((col: unknown) => {
-          if (typeof col === 'string') {
-            existingColumns.add(col);
-          } else if (col && typeof col === 'object' && 'column_name' in col) {
-            existingColumns.add((col as { column_name: string }).column_name);
-          }
-        });
-      }
-    };
-
-    const existingGroupBy = Array.isArray(chartFormData.groupby)
-      ? chartFormData.groupby
-      : chartFormData.groupby
-        ? [chartFormData.groupby]
-        : [];
-    existingGroupBy.forEach((col: string) => existingColumns.add(col));
-
-    if (chartFormData.x_axis) {
-      existingColumns.add(chartFormData.x_axis);
-    }
-
-    const metrics = chartFormData.metrics || [];
-    metrics.forEach((metric: any) => {
-      if (typeof metric === 'string') {
-        existingColumns.add(metric);
-      } else if (metric && typeof metric === 'object' && 'column' in metric) {
-        const metricColumn = metric.column;
-        if (typeof metricColumn === 'string') {
-          existingColumns.add(metricColumn);
-        } else if (
-          metricColumn &&
-          typeof metricColumn === 'object' &&
-          'column_name' in metricColumn
-        ) {
-          existingColumns.add(metricColumn.column_name);
-        }
-      }
+    return applicableGroupBys.filter(groupBy => {
+      const filterState = dataMask[groupBy.id]?.filterState;
+      const value = filterState?.value;
+      return value !== null && value !== undefined;
     });
-
-    if (chartFormData.series) {
-      existingColumns.add(chartFormData.series);
-    }
-    if (chartFormData.entity) {
-      existingColumns.add(chartFormData.entity);
-    }
-    if (chartFormData.source) {
-      existingColumns.add(chartFormData.source);
-    }
-    if (chartFormData.target) {
-      existingColumns.add(chartFormData.target);
-    }
-
-    if (chartType === 'pivot_table_v2') {
-      extractColumnNames(chartFormData.groupbyColumns || []);
-    }
-
-    if (chartType === 'box_plot') {
-      extractColumnNames(chartFormData.columns || []);
-    }
-
-    return applicableGroupBys.filter(item => {
-      if (!item.customization?.column) return false;
-
-      let columnNames: string[] = [];
-      if (typeof item.customization.column === 'string') {
-        columnNames = [item.customization.column];
-      } else if (Array.isArray(item.customization.column)) {
-        columnNames = item.customization.column.filter(
-          col => typeof col === 'string' && col.trim() !== '',
-        );
-      } else if (
-        typeof item.customization.column === 'object' &&
-        item.customization.column !== null
-      ) {
-        const columnObj = item.customization.column as any;
-        const columnName =
-          columnObj.column_name || columnObj.name || String(columnObj);
-        if (columnName && columnName.trim() !== '') {
-          columnNames = [columnName];
-        }
-      }
-
-      return columnNames.length > 0;
-    });
-  }, [applicableGroupBys, chartType, chartFormData]);
+  }, [applicableGroupBys, chartType, dataMask]);
 
   const groupByCount = effectiveGroupBys.length;
 
@@ -309,26 +267,30 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     <TooltipContent>
       <div>
         <SectionName>
-          {t('Chart Customization (%d)', applicableGroupBys.length)}
+          {t('Chart Customization (%d)', effectiveGroupBys.length)}
         </SectionName>
         <GroupByInfo>
-          {effectiveGroupBys.map(groupBy => (
-            <GroupByItem key={groupBy.id}>
-              <div>
-                {groupBy.customization?.name &&
-                groupBy.customization?.column ? (
-                  <>
-                    <GroupByName>{groupBy.customization.name}: </GroupByName>
-                    <GroupByValue>
-                      {getFilterValueForDisplay(groupBy.customization.column)}
-                    </GroupByValue>
-                  </>
-                ) : (
-                  groupBy.customization?.name || t('None')
-                )}
-              </div>
-            </GroupByItem>
-          ))}
+          {effectiveGroupBys.map(groupBy => {
+            const filterState = dataMask[groupBy.id]?.filterState;
+            const displayValue = filterState?.label || filterState?.value;
+
+            return (
+              <GroupByItem key={groupBy.id}>
+                <div>
+                  {groupBy.name && displayValue ? (
+                    <>
+                      <GroupByName>{groupBy.name}: </GroupByName>
+                      <GroupByValue>
+                        {getFilterValueForDisplay(displayValue)}
+                      </GroupByValue>
+                    </>
+                  ) : (
+                    groupBy.name || t('None')
+                  )}
+                </div>
+              </GroupByItem>
+            );
+          })}
         </GroupByInfo>
       </div>
     </TooltipContent>

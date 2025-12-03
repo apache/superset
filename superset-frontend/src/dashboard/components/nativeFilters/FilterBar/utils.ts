@@ -70,9 +70,12 @@ export const checkIsApplyDisabled = (
     ),
   );
 
+  const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
+  const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
+
   const areEqual = areObjectsEqual(
-    getOnlyExtraFormData(dataMaskSelected),
-    getOnlyExtraFormData(dataMaskApplied),
+    selectedExtraFormData,
+    appliedExtraFormData,
     { ignoreUndefined: true },
   );
 

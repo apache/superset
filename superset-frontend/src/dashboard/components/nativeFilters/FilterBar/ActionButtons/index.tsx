@@ -22,13 +22,14 @@ import {
   DataMaskState,
   DataMaskStateWithId,
   isDefined,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
@@ -37,7 +38,7 @@ interface ActionButtonsProps {
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
-  chartCustomizationItems?: ChartCustomizationItem[];
+  chartCustomizationItems?: (ChartCustomization | ChartCustomizationDivider)[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
 }
@@ -126,7 +127,7 @@ const ActionButtons = ({
     );
 
     const hasChartCustomizations = chartCustomizationItems?.some(
-      item => item.customization?.column && !item.removed,
+      item => item.targets?.[0]?.column?.name && !item.removed,
     );
 
     return hasSelectedChanges || hasAppliedChanges || hasChartCustomizations;
