@@ -470,3 +470,40 @@ test('allows simultaneous different async operations', async () => {
   // without more complex setup, but the pattern is tested via unit structure
   expect(props.datasource).toBeDefined();
 });
+
+test('fetchUsageData rethrows AbortError without updating state', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+  const props = createProps();
+  const { unmount } = await asyncRender(props);
+
+  // Mock the API to reject with AbortError
+  fetchMock.get(
+    'glob:*/api/v1/chart/*',
+    () => {
+      const error = new Error('The operation was aborted');
+      error.name = 'AbortError';
+      throw error;
+    },
+    { overwriteRoutes: true },
+  );
+
+  // Navigate to Usage tab to trigger fetchUsageData
+  const usageTab = screen.getByRole('tab', { name: /usage/i });
+  await userEvent.click(usageTab);
+
+  // Unmount immediately
+  unmount();
+
+  await cleanupAsyncOperations();
+
+  // Verify no setState warnings
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('setState'),
+  );
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('unmounted component'),
+  );
+
+  consoleErrorSpy.mockRestore();
+});
