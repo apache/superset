@@ -29,8 +29,12 @@ import {
   Filters,
   FilterState,
   ExtraFormData,
+  ChartCustomization,
 } from '@superset-ui/core';
-import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import {
+  NATIVE_FILTER_PREFIX,
+  isChartCustomization,
+} from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import { isEqual } from 'lodash';
@@ -47,6 +51,33 @@ type FilterWithExtaFromData = Filter & {
   extraFormData?: ExtraFormData;
   filterState?: FilterState;
 };
+
+interface DashboardMetadata {
+  chart_configuration?: Record<string, unknown>;
+  native_filter_configuration?: FilterConfiguration;
+  chart_customization_config?: ChartCustomization[];
+}
+
+interface HydrateDashboardAction {
+  type: typeof HYDRATE_DASHBOARD;
+  data: {
+    dashboardInfo: {
+      metadata: DashboardMetadata;
+    };
+    dataMask?: DataMaskStateWithId;
+  };
+}
+
+function isChartCustomizationItem(item: unknown): item is ChartCustomization {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'id' in item &&
+    typeof item.id === 'string' &&
+    'type' in item &&
+    'defaultDataMask' in item
+  );
+}
 
 export function getInitialDataMask(
   id?: string | number,
@@ -103,6 +134,7 @@ function updateDataMaskForFilterChanges(
   mergedDataMask: DataMaskStateWithId,
   draftDataMask: DataMaskStateWithId,
   initialDataMask?: Filters,
+  isCustomizationChanges?: boolean,
 ) {
   const dataMask = initialDataMask || {};
 
@@ -140,14 +172,21 @@ function updateDataMaskForFilterChanges(
   });
 
   Object.values(draftDataMask).forEach(filter => {
-    if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+    const filterId = String(filter?.id);
+    const shouldSkip = isCustomizationChanges
+      ? isChartCustomization(filterId)
+      : filterId.startsWith(NATIVE_FILTER_PREFIX);
+    if (!shouldSkip) {
       mergedDataMask[filter?.id] = filter;
     }
   });
 }
 
 const dataMaskReducer = produce(
-  (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
+  (
+    draft: DataMaskStateWithId,
+    action: AnyDataMaskAction | HydrateDashboardAction,
+  ) => {
     const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
       case CLEAR_DATA_MASK_STATE:
@@ -159,76 +198,83 @@ const dataMaskReducer = produce(
           ...action.dataMask,
         };
         return draft;
-      // TODO: update hydrate to .ts
-      // @ts-ignore
-      case HYDRATE_DASHBOARD:
-        Object.keys(
-          // @ts-ignore
-          action.data.dashboardInfo?.metadata?.chart_configuration,
-        ).forEach(id => {
+      case HYDRATE_DASHBOARD: {
+        const hydrateDashboardAction = action as HydrateDashboardAction;
+        const metadata = hydrateDashboardAction.data.dashboardInfo?.metadata;
+        const loadedDataMask = hydrateDashboardAction.data.dataMask;
+
+        Object.keys(metadata?.chart_configuration || {}).forEach(id => {
           cleanState[id] = {
-            ...(getInitialDataMask(id) as DataMaskWithId), // take initial data
+            ...(getInitialDataMask(id) as DataMaskWithId),
           };
         });
+
         fillNativeFilters(
-          // @ts-ignore
-          action.data.dashboardInfo?.metadata?.native_filter_configuration ??
-            [],
+          metadata?.native_filter_configuration ?? [],
           cleanState,
           draft,
-          // @ts-ignore
-          action.data.dataMask,
+          loadedDataMask,
         );
 
-        {
-          const chartCustomizationItems =
-            (
-              action as {
-                data: {
-                  dashboardInfo: {
-                    metadata: { chart_customization_config?: unknown[] };
-                  };
-                };
-              }
-            ).data.dashboardInfo?.metadata?.chart_customization_config || [];
+        const chartCustomizationConfig =
+          metadata?.chart_customization_config || [];
 
-          chartCustomizationItems.forEach((item: unknown) => {
-            if (
-              typeof item === 'object' &&
-              item !== null &&
-              'id' in item &&
-              'customization' in item &&
-              typeof item.customization === 'object' &&
-              item.customization !== null &&
-              'column' in item.customization
-            ) {
-              const customizationFilterId = `chart_customization_${(item as { id: string }).id}`;
+        chartCustomizationConfig.forEach(item => {
+          if (!isChartCustomizationItem(item)) {
+            return;
+          }
 
-              if ((item.customization as { column: string }).column) {
-                const { defaultDataMask } = item.customization as {
-                  defaultDataMask?: { filterState?: { value?: string[] } };
-                };
-                cleanState[customizationFilterId] = {
-                  ...getInitialDataMask(customizationFilterId),
-                  filterState: {
-                    value: defaultDataMask?.filterState?.value || [],
-                  },
-                  ownState: {
-                    column: (item.customization as { column: string }).column,
-                  },
-                } as DataMaskWithId;
-              }
-            }
-          });
-        }
+          const customizationFilterId = item.id;
+          const dataMask = loadedDataMask || {};
+
+          cleanState[customizationFilterId] = {
+            ...getInitialDataMask(customizationFilterId),
+            ...item.defaultDataMask,
+            ...dataMask[customizationFilterId],
+          };
+
+          if (
+            draft[customizationFilterId] &&
+            item.defaultDataMask &&
+            !areObjectsEqual(
+              item.defaultDataMask,
+              draft[customizationFilterId],
+              { ignoreUndefined: true },
+            )
+          ) {
+            cleanState[customizationFilterId] = {
+              ...cleanState[customizationFilterId],
+              ...item.defaultDataMask,
+            };
+          }
+
+          if (item.controlValues?.column) {
+            cleanState[customizationFilterId].ownState = {
+              ...cleanState[customizationFilterId].ownState,
+              column: item.controlValues.column,
+            };
+          }
+        });
+
+        Object.values(draft).forEach(filter => {
+          if (
+            filter?.id &&
+            !isChartCustomization(String(filter.id)) &&
+            !cleanState[filter.id]
+          ) {
+            cleanState[filter.id] = filter;
+          }
+        });
 
         return cleanState;
+      }
       case SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE:
         updateDataMaskForFilterChanges(
           action.filterChanges,
           cleanState,
           draft,
           action.filters,
+          action.isCustomizationChanges,
         );
         return cleanState;
       case REMOVE_DATA_MASK:

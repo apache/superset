@@ -25,7 +25,6 @@ import {
 } from '../actions/dashboardInfo';
 import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
-  INITIALIZE_CHART_CUSTOMIZATION,
   SET_CHART_CUSTOMIZATION_DATA_LOADING,
   SET_CHART_CUSTOMIZATION_DATA,
   SET_PENDING_CHART_CUSTOMIZATION,
@@ -42,17 +41,13 @@ export default function dashboardStateReducer(state = {}, action) {
       const updatedState = {
         ...state,
         ...otherInfo,
-        // server-side compare last_modified_time in second level
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
 
-      // Handle theme_id conversion to theme object
       if (themeId !== undefined) {
         if (themeId === null) {
           updatedState.theme = null;
         } else {
-          // Convert theme_id to theme object
-          // If we have theme name from themes cache, use it, otherwise create placeholder
           updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
         }
       }
@@ -73,7 +68,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         ...action.data.dashboardInfo,
-        // set async api call data
+        pendingChartCustomizations: {},
       };
     case SET_FILTER_BAR_ORIENTATION:
       return {
@@ -86,24 +81,6 @@ export default function dashboardStateReducer(state = {}, action) {
         crossFiltersEnabled: action.crossFiltersEnabled,
       };
     case SAVE_CHART_CUSTOMIZATION_COMPLETE:
-      return {
-        ...state,
-        metadata: {
-          ...state.metadata,
-          native_filter_configuration: (
-            state.metadata?.native_filter_configuration || []
-          ).filter(
-            item =>
-              !(
-                item.type === 'CHART_CUSTOMIZATION' &&
-                item.id === 'chart_customization_groupby'
-              ),
-          ),
-          chart_customization_config: action.chartCustomization,
-        },
-        last_modified_time: Math.round(new Date().getTime() / 1000),
-      };
-    case INITIALIZE_CHART_CUSTOMIZATION:
       return {
         ...state,
         metadata: {
@@ -166,10 +143,9 @@ export default function dashboardStateReducer(state = {}, action) {
           chart_customization_config:
             state.metadata?.chart_customization_config?.map(customization => ({
               ...customization,
-              customization: {
-                ...customization.customization,
-                column: null,
-              },
+              targets: customization.targets?.map(target => ({
+                datasetId: target.datasetId,
+              })),
             })) || [],
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),

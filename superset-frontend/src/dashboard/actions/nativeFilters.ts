@@ -23,7 +23,7 @@ import {
   makeApi,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {
@@ -77,19 +77,21 @@ export const setFilterConfiguration =
       filterChanges,
     });
 
-    const updateFilters = makeApi<
-      SaveFilterChangesType,
-      { result: SaveFilterChangesType }
-    >({
+    const updateFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}/filters`,
     });
     try {
       const response = await updateFilters(filterChanges);
-      dispatch(nativeFiltersConfigChanged(response.result));
+
+      const filtersWithoutScopes = response.result.map((filter: Filter) =>
+        omit(filter, ['chartsInScope', 'tabsInScope']),
+      );
+
+      dispatch(nativeFiltersConfigChanged(filtersWithoutScopes));
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: response.result,
+        filterChanges: filtersWithoutScopes,
       });
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
@@ -97,6 +99,7 @@ export const setFilterConfiguration =
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      throw err;
     }
   };
 

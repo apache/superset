@@ -19,33 +19,88 @@
 import { useSelector } from 'react-redux';
 import { useCallback, useMemo } from 'react';
 import { createSelector } from '@reduxjs/toolkit';
-import { Filter, Divider, isFilterDivider } from '@superset-ui/core';
+import {
+  Filter,
+  FilterConfiguration,
+  Divider,
+  isFilterDivider,
+  NativeFilterType,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  ChartCustomizationConfiguration,
+} from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { isChartCustomizationId } from './FiltersConfigModal/utils';
 
-const defaultFilterConfiguration: Filter[] = [];
+const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 
-const selectFilterConfiguration = createSelector(
-  (state: RootState) =>
-    state.dashboardInfo?.metadata?.native_filter_configuration,
-  (nativeFilterConfig): (Filter | Divider)[] => {
-    if (!nativeFilterConfig) {
-      return defaultFilterConfiguration;
-    }
-    return nativeFilterConfig.filter(
-      (filter: any) => filter.type !== 'CHART_CUSTOMIZATION',
-    );
-  },
+export const selectFilterConfiguration = createSelector(
+  (state: RootState) => state.nativeFilters?.filters || {},
+  (filtersMap): FilterConfiguration =>
+    Object.values(filtersMap).filter(
+      (
+        item: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+      ): item is Filter | Divider =>
+        item.type === NativeFilterType.NativeFilter ||
+        item.type === NativeFilterType.Divider,
+    ),
 );
 
-export function useFilterConfiguration(): (Filter | Divider)[] {
+export function useFilterConfiguration() {
   return useSelector(selectFilterConfiguration);
 }
 
-/**
- * returns the dashboard's filter configuration,
- * converted into a map of id -> filter
- */
+export const selectChartCustomizationFromRedux = createSelector(
+  (state: RootState) => state.nativeFilters?.filters || {},
+  (filtersMap): (ChartCustomization | ChartCustomizationDivider)[] =>
+    Object.values(filtersMap).filter(
+      (
+        item: Filter | Divider | ChartCustomization | ChartCustomizationDivider,
+      ): item is ChartCustomization | ChartCustomizationDivider =>
+        isChartCustomizationId(item.id),
+    ),
+);
+
+export function useChartCustomizationFromRedux() {
+  return useSelector(selectChartCustomizationFromRedux);
+}
+
+const selectDashboardChartIds = createSelector(
+  (state: RootState) => state.dashboardLayout?.present,
+  (dashboardLayout): Set<number> =>
+    new Set(
+      Object.values(dashboardLayout)
+        .filter(item => item.type === CHART_TYPE && item.meta?.chartId)
+        .map(item => item.meta.chartId),
+    ),
+);
+
+const selectChartCustomizationConfiguration = createSelector(
+  [
+    (state: RootState) =>
+      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
+    selectDashboardChartIds,
+  ],
+  (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration =>
+    allCustomizations.filter(customization => {
+      if (
+        !customization.chartsInScope ||
+        customization.chartsInScope.length === 0
+      ) {
+        return true;
+      }
+
+      return customization.chartsInScope.some((chartId: number) =>
+        dashboardChartIds.has(chartId),
+      );
+    }),
+);
+
+export function useChartCustomizationConfiguration() {
+  return useSelector(selectChartCustomizationConfiguration);
+}
+
 export function useFilterConfigMap() {
   const filterConfig = useFilterConfiguration();
   return useMemo(
@@ -61,8 +116,28 @@ export function useFilterConfigMap() {
   );
 }
 
+export function useChartCustomizationConfigMap() {
+  const filterConfig = useChartCustomizationConfiguration();
+  return useMemo(
+    () =>
+      filterConfig.reduce<
+        Record<string, ChartCustomization | ChartCustomizationDivider>
+      >(
+        (
+          acc: Record<string, ChartCustomization | ChartCustomizationDivider>,
+          chartCustomization: ChartCustomization | ChartCustomizationDivider,
+        ) => {
+          acc[chartCustomization.id] = chartCustomization;
+          return acc;
+        },
+        {},
+      ),
+    [filterConfig],
+  );
+}
+
 export function useDashboardLayout() {
-  return useSelector<any, DashboardLayout>(
+  return useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout?.present,
   );
 }
@@ -126,9 +201,9 @@ export function useIsFilterInScope() {
           );
         });
 
-      const isFilterInActiveTab =
-        filter.scope?.rootPath &&
-        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+      const isFilterInActiveTab = filter.scope?.rootPath?.some(tab =>
+        activeTabs.includes(tab),
+      );
 
       return isChartInScope || isFilterInActiveTab;
     },
