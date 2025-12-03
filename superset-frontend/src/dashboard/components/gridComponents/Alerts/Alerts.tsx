@@ -475,7 +475,9 @@ const DashboardAlerts = ({
 
   const getStatusIcon = () => {
     if (!isConfigured) {
-      return <Icons.AlertOutlined className="alerts-icon" />;
+      // AlertOutlined isn't part of the antd icon set we wrap — use BellOutlined
+      // (same icon used as the default in the connected/other cases below).
+      return <Icons.BellOutlined className="alerts-icon" />;
     }
     
     switch (connectionStatus) {

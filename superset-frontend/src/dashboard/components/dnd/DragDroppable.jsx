@@ -215,6 +215,30 @@ export class UnwrappedDragDroppable extends PureComponent {
           'data-test': 'dragdroppable-content',
         };
 
+    // Call the child function in a guarded block so we can log helpful
+    // diagnostics if the render fails because a child component is undefined
+    // (the common cause of "Element type is invalid: expected a string ... got: undefined").
+    let childOutput = null;
+    try {
+      if (typeof children === 'function') {
+        childOutput = children(childProps);
+      } else {
+        // If someone passed plain JSX instead of a render function, warn explicitly
+        // because DragDroppable expects a function-as-child.
+        // eslint-disable-next-line no-console
+        console.error(
+          'DragDroppable expected `children` to be a function. Received:',
+          children,
+        );
+      }
+    } catch (err) {
+      // Log the props we passed and the error so it's easier to find the culprit.
+      // eslint-disable-next-line no-console
+      console.error('Error rendering DragDroppable child. childProps=', childProps, err);
+      // Re-throw so behavior remains unchanged (tests/consumers still see the error).
+      throw err;
+    }
+
     return (
       <DragDroppableStyles
         style={style}
@@ -229,7 +253,7 @@ export class UnwrappedDragDroppable extends PureComponent {
           className,
         )}
       >
-        {children(childProps)}
+        {childOutput}
       </DragDroppableStyles>
     );
   }
