@@ -17,14 +17,10 @@
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING
 
 from flask import Flask
 
 from superset.engines.manager import EngineManager, EngineModes
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +70,12 @@ class EngineManagerExtension:
         def shutdown_engine_manager() -> None:
             if self.engine_manager:
                 self.engine_manager.stop_cleanup_thread()
-                logger.info("Stopped EngineManager cleanup thread")
+                # Use a try-except to handle closed log file handlers during tests
+                try:
+                    logger.info("Stopped EngineManager cleanup thread")
+                except ValueError:
+                    # Ignore logging errors during test shutdown when file handles are closed
+                    pass
 
         app.teardown_appcontext_funcs.append(lambda exc: None)
 

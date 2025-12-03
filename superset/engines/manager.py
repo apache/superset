@@ -16,6 +16,8 @@
 # under the License.
 
 import enum
+import hashlib
+import json
 import logging
 import threading
 from contextlib import contextmanager
@@ -33,7 +35,6 @@ from sshtunnel import SSHTunnelForwarder
 from superset.databases.utils import make_url_safe
 from superset.superset_typing import DBConnectionMutator, EngineContextManager
 from superset.utils.core import get_query_source_from_request, get_user_id, QuerySource
-from superset.utils.json import dumps
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -48,7 +49,16 @@ class _LockManager:
     Manages per-key locks safely without defaultdict race conditions.
 
     This class provides a thread-safe way to create and manage locks for specific keys,
-    avoiding race conditions.
+    avoiding the race conditions that occur when using defaultdict with threading.Lock.
+
+    The implementation uses a two-level locking strategy:
+    1. A meta-lock to protect the lock dictionary itself
+    2. Per-key locks to protect specific resources
+
+    This ensures that:
+    - Different keys can be locked concurrently (scalability)
+    - Lock creation is thread-safe (no race conditions)
+    - The same key always gets the same lock instance
     """
 
     def __init__(self) -> None:
@@ -58,6 +68,16 @@ class _LockManager:
     def get_lock(self, key: str) -> threading.RLock:
         """
         Get or create a lock for the given key.
+
+        This method uses double-checked locking to ensure thread safety:
+        1. First check without lock (fast path)
+        2. Acquire meta-lock if needed
+        3. Double-check inside the lock to prevent race conditions
+
+        This approach minimizes lock contention while ensuring correctness.
+
+        :param key: The key to get a lock for
+        :returns: An RLock instance for the given key
         """
         if lock := self._locks.get(key):
             return lock
@@ -73,6 +93,11 @@ class _LockManager:
     def cleanup(self, active_keys: set[str]) -> None:
         """
         Remove locks for keys that are no longer in use.
+
+        This prevents memory leaks from accumulating locks for resources
+        that have been disposed.
+
+        :param active_keys: Set of keys that are still active
         """
         with self._meta_lock:
             # Find locks to remove
@@ -83,6 +108,64 @@ class _LockManager:
 
 EngineKey = str
 TunnelKey = str
+
+
+def _normalize_value(value: Any) -> str:
+    """
+    Normalize a value for consistent hashing.
+
+    Converts various types to a consistent string representation for hashing.
+    Handles special cases like bytes, class objects, and nested structures.
+
+    :param value: The value to normalize
+    :returns: String representation suitable for hashing
+    """
+    if isinstance(value, bytes):
+        # For binary data (like private keys), hash it to avoid encoding issues
+        return hashlib.sha256(value).hexdigest()[:16]
+    elif isinstance(value, type):
+        # For class objects (like pool classes), use the class name
+        return value.__name__
+    elif isinstance(value, dict):
+        # For nested dicts, recursively normalize
+        normalized_dict = {}
+        for k, v in sorted(value.items()):
+            normalized_dict[k] = _normalize_value(v)
+        return json.dumps(normalized_dict, sort_keys=True, separators=(",", ":"))
+    elif isinstance(value, (list, tuple)):
+        # For lists/tuples, normalize each item
+        normalized_list = [_normalize_value(item) for item in value]
+        return json.dumps(normalized_list, separators=(",", ":"))
+    else:
+        # For everything else, convert to string
+        return str(value)
+
+
+def _generate_secure_key(components: dict[str, Any]) -> str:
+    """
+    Generate a secure hash-based key from components.
+
+    Creates a SHA-256 hash of the components to ensure:
+    1. The key includes all parameters for proper caching
+    2. Sensitive data is not exposed in logs or errors
+    3. The key is deterministic for the same inputs
+
+    :param components: Dictionary of components to hash
+    :returns: 32-character hex string representing the secure key
+    """
+    # Create deterministic string representation
+    # Sort keys for consistency
+    key_data = {
+        k: _normalize_value(v) if v is not None else ""
+        for k, v in sorted(components.items())
+    }
+
+    # Create compact JSON representation
+    key_string = json.dumps(key_data, sort_keys=True, separators=(",", ":"))
+
+    # Generate SHA-256 hash and return first 32 hex characters
+    # 32 characters = 128 bits of entropy, sufficient for collision resistance
+    return hashlib.sha256(key_string.encode("utf-8")).hexdigest()[:32]
 
 
 class EngineModes(enum.Enum):
@@ -231,19 +314,37 @@ class EngineManager:
         user_id: int | None,
     ) -> EngineKey:
         """
-        Generate a unique key for the engine based on the database and context.
+        Generate a secure hash-based key for the engine.
+
+        The key includes all parameters (including OAuth tokens and other sensitive
+        data) to ensure proper cache isolation, but uses a one-way hash to prevent
+        credential exposure in logs or errors.
+
+        :returns: 32-character hex string representing the secure key
         """
-        uri, keys = self._get_engine_args(
+        # Get all parameters that affect the engine
+        uri, kwargs = self._get_engine_args(
             database,
             catalog,
             schema,
             source,
             user_id,
         )
-        keys["uri"] = uri
-        keys["source"] = source
 
-        return dumps(keys, sort_keys=True)
+        # Create components for the key
+        # Include all parameters to ensure proper cache isolation
+        key_components = {
+            "database_id": database.id,
+            "catalog": catalog,
+            "schema": schema,
+            "uri": str(uri),  # SQLAlchemy URLs mask passwords
+            "source": str(source) if source else None,
+            "user_id": user_id,
+            "kwargs": kwargs,  # Includes OAuth tokens and other sensitive params
+        }
+
+        # Generate secure hash-based key
+        return _generate_secure_key(key_components)
 
     def _get_engine_args(
         self,
@@ -432,11 +533,20 @@ class EngineManager:
 
     def _get_tunnel_key(self, ssh_tunnel: "SSHTunnel", uri: URL) -> TunnelKey:
         """
-        Build a unique key for the SSH tunnel.
-        """
-        keys = self._get_tunnel_kwargs(ssh_tunnel, uri)
+        Generate a secure hash-based key for the SSH tunnel.
 
-        return dumps(keys, sort_keys=True)
+        The key includes all tunnel parameters (including passwords and private keys)
+        to ensure proper cache isolation, but uses a one-way hash to prevent
+        credential exposure in logs or errors.
+
+        :returns: 32-character hex string representing the secure key
+        """
+        # Get all tunnel parameters
+        tunnel_kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
+
+        # Generate secure hash-based key
+        # The tunnel_kwargs may contain sensitive data like passwords and private keys
+        return _generate_secure_key(tunnel_kwargs)
 
     def _create_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
@@ -565,12 +675,10 @@ class EngineManager:
             try:
                 # Remove engine from cache - no per-key locks to clean up anymore
                 if self._engines.pop(engine_key, None):
-                    logger.info(
-                        "Engine disposed and removed from cache: %s", engine_key
-                    )
+                    # Log only first 8 chars of hash for safety
+                    # (still enough for debugging, but doesn't expose full key)
+                    log_key = engine_key[:8] + "..."
+                    logger.info("Engine disposed and removed from cache: %s", log_key)
             except Exception as ex:
-                logger.error(
-                    "Error during engine disposal cleanup for %s: %s",
-                    engine_key,
-                    str(ex),
-                )
+                logger.error("Error during engine disposal cleanup: %s", str(ex))
+                # Don't log engine_key to avoid exposing credential hash

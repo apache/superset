@@ -34,6 +34,7 @@ from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
+    from superset.models.core import Database
     from superset.utils.core import (
         GenericDataType,
         QueryObjectFilterClause,
@@ -49,9 +50,6 @@ DBConnectionMutator: TypeAlias = Callable[
 ]
 
 # Type alias for engine context manager
-if TYPE_CHECKING:
-    from superset.models.core import Database
-
 EngineContextManager: TypeAlias = Callable[
     ["Database", str | None, str | None], ContextManager[None]
 ]
