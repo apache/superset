@@ -74,6 +74,16 @@ def create_app(
                 and app_root != "/"
             ):
                 app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
+                # Also update theme tokens for subdirectory deployments
+                for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
+                    theme = app.config[theme_key]
+                    token = theme.get("token", {})
+                    # Update brandLogoUrl if it points to /static/
+                    if token.get("brandLogoUrl", "").startswith("/static/"):
+                        token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
+                    # Update brandLogoHref if it's the default "/"
+                    if token.get("brandLogoHref") == "/":
+                        token["brandLogoHref"] = app_root
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 
