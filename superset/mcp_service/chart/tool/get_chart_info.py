@@ -46,10 +46,22 @@ async def get_chart_info(
     IMPORTANT FOR LLM CLIENTS:
     - ALWAYS display the chart URL when returned
     - URL field contains chart's screenshot URL for preview
+    - Use numeric ID or UUID string (NOT chart name)
+    - To find a chart ID, use the list_charts tool first
 
-    Supports:
-    - Numeric ID (e.g., 123)
-    - UUID string (e.g., "a1b2c3d4-...")
+    Example usage:
+    ```json
+    {
+        "identifier": 123
+    }
+    ```
+
+    Or with UUID:
+    ```json
+    {
+        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
 
     Returns chart details including name, type, and URL.
     """
