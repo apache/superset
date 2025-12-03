@@ -382,7 +382,10 @@ test('onDashboardChange triggers tabs load for existing dashboard', async () => 
   fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}/tabs`, {
     json: {
       result: {
-        tab_tree: [{ value: 'tab1', title: 'Main Tab' }],
+        tab_tree: [
+          { value: 'tab1', title: 'Main Tab' },
+          { value: 'tab2', title: 'Tab' },
+        ],
       },
     },
   });
@@ -398,21 +401,39 @@ test('onDashboardChange triggers tabs load for existing dashboard', async () => 
   expect(loadTabsMock).toHaveBeenCalledWith(dashboardId);
 });
 
-test('onTabChange updates selectedTab state', () => {
+test('onTabChange correctly updates selectedTab via forceUpdate', () => {
   const component = new PureSaveModal(defaultProps);
 
-  const setStateMock = jest.fn();
-  component.setState = setStateMock;
+  component.state = {
+    ...component.state,
+    tabsData: [
+      {
+        value: 'tab1',
+        title: 'Main Tab',
+        key: 'tab1',
+        children: [
+          {
+            value: 'tab2',
+            title: 'Analytics Tab',
+            key: 'tab2',
+          },
+        ],
+      },
+    ],
+  };
 
-  component.state.tabsData = [
-    { value: 'tab1', title: 'Main Tab', key: 'tab1' },
-    { value: 'tab2', title: 'Analytics Tab', key: 'tab2' },
-  ];
+  component.setState = function (stateUpdate) {
+    if (typeof stateUpdate === 'function') {
+      this.state = { ...this.state, ...stateUpdate(this.state) };
+    } else {
+      this.state = { ...this.state, ...stateUpdate };
+    }
+  }.bind(component);
+
   component.onTabChange('tab2');
-  expect(setStateMock).toHaveBeenCalledWith({
-    selectedTab: {
-      value: 'tab2',
-      label: 'Analytics Tab',
-    },
+
+  expect(component.state.selectedTab).toEqual({
+    value: 'tab2',
+    label: 'Analytics Tab',
   });
 });

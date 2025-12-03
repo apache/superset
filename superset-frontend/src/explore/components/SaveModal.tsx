@@ -100,6 +100,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       isLoading: false,
       dashboard: undefined,
       tabsData: [],
+      selectedTab: undefined,
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
@@ -139,6 +140,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
           });
+          await this.loadTabs(dashboardId);
         }
       } catch (error) {
         logging.warn(error);
@@ -288,6 +290,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
               dashboard.id,
               value.id,
               selectedTabId,
+              this.state.newSliceName,
             );
           } catch (error) {
             logging.error('Error adding chart to dashboard tab:', error);
@@ -326,10 +329,18 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       this.setState({ isLoading: false });
     }
   }
+
+  /* Adds a new chart to a new row on the specified dashboard tab.
+   * @param {number} dashboardId - ID of the dashboard.
+   * @param {number} chartId - ID of the chart to add.
+   * @param {string} tabId - ID of the dashboard tab where the chart is added.
+   * @param {string | undefined}  sliceName - Chart name
+   * */
   addChartToDashboardTab = async (
     dashboardId: number,
     chartId: number,
     tabId: string,
+    sliceName: string | undefined,
   ) => {
     try {
       const dashboardResponse = await SupersetClient.get({
@@ -359,7 +370,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           width: 4,
           height: 50,
           chartId: chartId,
-          sliceName: `Chart ${chartId}`,
+          sliceName: sliceName ?? `Chart ${chartId}`,
         },
       };
 
@@ -396,6 +407,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     }
   };
 
+  // Finds the position to insert a new row in a dashboard tab layout.
   findNextRowPosition = (layout: Layout): number => {
     const rowIndices: number[] = [];
 
@@ -452,6 +464,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       totalCount: count,
     };
   };
+  // Loads dashboard tabs and returns the tab hierarchy for display.
   loadTabs = async (dashboardId: number) => {
     try {
       const response = await SupersetClient.get({
