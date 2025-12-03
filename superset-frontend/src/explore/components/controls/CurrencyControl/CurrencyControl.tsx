@@ -28,6 +28,7 @@ import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
+import { ExplorePageState } from 'src/explore/types';
 import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
@@ -75,6 +76,10 @@ export const CurrencyControl = ({
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
+  const currencyCodeColumn = useSelector<ExplorePageState, string | undefined>(
+    state => state?.explore?.datasource?.currency_code_column,
+  );
+
   const currenciesOptions = useMemo(() => {
     const options = ensureIsArray(currencies).map(currencyCode => ({
       value: currencyCode,
@@ -83,39 +88,56 @@ export const CurrencyControl = ({
       })} (${currencyCode})`,
     }));
 
-    // Prepend "Auto-detect from dataset" option and append "Custom..." option
-    return [
-      {
-        value: 'AUTO',
-        label: t('Auto-detect from dataset'),
-        className: 'currency-auto-detect-option',
-      },
-      ...options,
-      {
-        value: '',
-        label: t('Custom...'),
-      },
-    ];
-  }, [currencies]);
+    const autoDetectOption = currencyCodeColumn
+      ? [
+          {
+            value: 'AUTO',
+            label: t('Auto-detect'),
+            className: 'currency-auto-detect-option',
+          },
+        ]
+      : [];
 
-  // Custom sort comparator to keep AUTO option first and Custom last
+    return [
+      ...autoDetectOption,
+      ...options,
+      { value: '', label: t('Custom...') },
+    ];
+  }, [currencies, currencyCodeColumn]);
+
   const currencySortComparator = useCallback(
     (
       a: { value?: string | number },
       b: { value?: string | number },
     ): number => {
-      // AUTO should always be first
       if (a.value === 'AUTO') return -1;
       if (b.value === 'AUTO') return 1;
-      // Custom (empty string) should always be last
       if (a.value === '') return 1;
       if (b.value === '') return -1;
-      // Default alphabetical sort for others
       const labelA = String(a.value ?? '');
       const labelB = String(b.value ?? '');
       return labelA.localeCompare(labelB);
     },
     [],
+  );
+
+  const renderCurrencyPopup = useMemo(
+    () =>
+      currencyCodeColumn
+        ? (menu: React.ReactNode) => (
+            <div
+              css={css`
+                .currency-auto-detect-option {
+                  border-bottom: 1px solid ${theme.colorBorderSecondary};
+                  margin-bottom: ${theme.sizeUnit}px;
+                }
+              `}
+            >
+              {menu}
+            </div>
+          )
+        : undefined,
+    [currencyCodeColumn, theme],
   );
 
   return (
@@ -156,18 +178,7 @@ export const CurrencyControl = ({
           allowClear
           allowNewOptions
           sortComparator={currencySortComparator}
-          popupRender={menu => (
-            <div
-              css={css`
-                .currency-auto-detect-option {
-                  border-bottom: 1px solid ${theme.colorBorderSecondary};
-                  margin-bottom: ${theme.sizeUnit}px;
-                }
-              `}
-            >
-              {menu}
-            </div>
-          )}
+          popupRender={renderCurrencyPopup}
           {...currencySelectOverrideProps}
         />
       </CurrencyControlContainer>

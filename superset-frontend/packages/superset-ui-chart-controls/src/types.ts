@@ -72,6 +72,7 @@ export interface Dataset {
   currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
+  currency_code_column?: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
   time_grain_sqla?: [string, string][];
