@@ -46,7 +46,7 @@ from superset.mcp_service.utils.url_utils import get_mcp_service_url
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool(tags=["mutate"])
 @mcp_auth_hook
 @parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(

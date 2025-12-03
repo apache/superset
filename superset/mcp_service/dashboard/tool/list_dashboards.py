@@ -65,7 +65,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@mcp.tool
+@mcp.tool(tags=["core"])
 @mcp_auth_hook
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(

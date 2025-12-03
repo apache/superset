@@ -2020,7 +2020,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@mcp.tool
+@mcp.tool(tags=["data"])
 @mcp_auth_hook
 @parse_request(GetChartPreviewRequest)
 async def get_chart_preview(

@@ -70,7 +70,7 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@mcp.tool
+@mcp.tool(tags=["core"])
 @mcp_auth_hook
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(

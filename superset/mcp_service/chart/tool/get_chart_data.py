@@ -41,7 +41,7 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool(tags=["data"])
 @mcp_auth_hook
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context

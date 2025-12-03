@@ -48,7 +48,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool(tags=["mutate"])
 @mcp_auth_hook
 @parse_request(UpdateChartRequest)
 async def update_chart(

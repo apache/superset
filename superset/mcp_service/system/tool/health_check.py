@@ -32,7 +32,7 @@ from superset.utils.version import get_version_metadata
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+@mcp.tool(tags=["core"])
 @mcp_auth_hook
 async def health_check(ctx: Context) -> HealthCheckResponse:
     """

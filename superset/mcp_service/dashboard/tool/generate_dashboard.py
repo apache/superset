@@ -118,7 +118,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@mcp.tool
+@mcp.tool(tags=["mutate"])
 @mcp_auth_hook
 @parse_request(GenerateDashboardRequest)
 def generate_dashboard(

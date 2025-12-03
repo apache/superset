@@ -38,7 +38,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.utils.schema_utils import parse_request
 
 
-@mcp.tool
+@mcp.tool(tags=["explore"])
 @mcp_auth_hook
 @parse_request(GenerateExploreLinkRequest)
 async def generate_explore_link(
