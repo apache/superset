@@ -73,11 +73,6 @@ const ConfigFormWrapper = styled.div`
 export type AlertsConfig = Pick<
   DashboardAlertsMeta,
   | 'mqttTopic'
-  | 'includeGlobalTopic'
-  | 'eventFilter'
-  | 'severityFilter'
-  | 'showVisualIndicator'
-  | 'indicatorColor'
 >;
 
 type FormValues = AlertsConfig;
@@ -91,11 +86,6 @@ interface AlertsConfigMenuItemProps {
 function getInitialValues(meta: DashboardAlertsMeta): FormValues {
   return {
     mqttTopic: meta.mqttTopic ?? '',
-    includeGlobalTopic: meta.includeGlobalTopic ?? true,
-    eventFilter: meta.eventFilter ?? '',
-    severityFilter: meta.severityFilter ?? [],
-    showVisualIndicator: meta.showVisualIndicator ?? true,
-    indicatorColor: meta.indicatorColor ?? '#1890ff',
   };
 }
 
@@ -108,16 +98,6 @@ const AlertsConfigMenuItem = ({
   const [form] = Form.useForm<FormValues>();
 
   const initialValues = useMemo(() => getInitialValues(meta), [meta]);
-
-  const severityOptions = useMemo(
-    () => [
-      { value: 'info', label: t('Info') },
-      { value: 'success', label: t('Success') },
-      { value: 'warning', label: t('Warning') },
-      { value: 'error', label: t('Error') },
-    ],
-    [],
-  );
 
   const handleOpenModal = useCallback(() => {
     form.setFieldsValue(initialValues);
@@ -136,11 +116,6 @@ const AlertsConfigMenuItem = ({
       .then(values => {
         const updates: AlertsConfig = {
           mqttTopic: values.mqttTopic?.trim() || '',
-          includeGlobalTopic: values.includeGlobalTopic ?? true,
-          eventFilter: values.eventFilter?.trim() || '',
-          severityFilter: values.severityFilter || [],
-          showVisualIndicator: values.showVisualIndicator ?? true,
-          indicatorColor: values.indicatorColor || '#1890ff',
         };
         onSave(updates);
         handleCloseModal();
@@ -162,7 +137,7 @@ const AlertsConfigMenuItem = ({
         title={t('Configure Alert Listener')}
         visible={modalVisible}
         onCancel={handleCloseModal}
-        width={600}
+        width={500}
         footer={null}
         destroyOnClose
       >
@@ -173,13 +148,10 @@ const AlertsConfigMenuItem = ({
             initialValues={initialValues}
             preserve={false}
           >
-            {/* MQTT Topic Configuration */}
-            <div className="form-section-title">{t('MQTT Topic')}</div>
-            
             <Form.Item
               name="mqttTopic"
-              label={t('Custom Topic')}
-              extra={t('Enter the MQTT topic to subscribe to (e.g., "temperature/alerts", "dashboard/123/events")')}
+              label={t('MQTT Topic')}
+              extra={t('Enter the MQTT topic to subscribe to (e.g., "sensors/temperature")')}
               rules={[
                 {
                   validator: (_, value) => {
@@ -200,69 +172,9 @@ const AlertsConfigMenuItem = ({
               ]}
             >
               <Input
-                placeholder={t('e.g., sensors/temperature or devices/+/events')}
+                placeholder={t('e.g., sensors/temperature')}
                 allowClear
               />
-            </Form.Item>
-
-            <Form.Item
-              name="includeGlobalTopic"
-              label={t('Include Global Topic')}
-              valuePropName="checked"
-              extra={t('Also subscribe to the global "smartLight/events" topic')}
-            >
-              <Switch />
-            </Form.Item>
-
-            {/* Filtering Options */}
-            <div className="form-section-title" style={{ marginTop: 24 }}>
-              {t('Filters')}
-            </div>
-
-            <Form.Item
-              name="eventFilter"
-              label={t('Event Type Filter')}
-              extra={t('Only show events matching this text (case-insensitive)')}
-            >
-              <Input
-                placeholder={t('e.g., Critical, Warning, Alert')}
-                allowClear
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="severityFilter"
-              label={t('Severity Filter')}
-              extra={t('Only show events with these severity levels')}
-            >
-              <Select
-                mode="multiple"
-                options={severityOptions}
-                placeholder={t('Select severity levels')}
-                allowClear
-              />
-            </Form.Item>
-
-            {/* Visual Options */}
-            <div className="form-section-title" style={{ marginTop: 24 }}>
-              {t('Display Options')}
-            </div>
-
-            <Form.Item
-              name="showVisualIndicator"
-              label={t('Show Visual Indicator')}
-              valuePropName="checked"
-              extra={t('Display a visual indicator when this alert listener is active')}
-            >
-              <Switch />
-            </Form.Item>
-
-            <Form.Item
-              name="indicatorColor"
-              label={t('Indicator Color')}
-              extra={t('Color of the visual indicator')}
-            >
-              <Input type="color" style={{ width: 100 }} />
             </Form.Item>
 
             <div className="config-form-footer">
