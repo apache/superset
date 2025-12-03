@@ -24,6 +24,7 @@ import {
   Collapse,
   CollapseLabelInModal,
   JsonEditor,
+  Button,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
@@ -60,6 +61,7 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import { VersionHistoryModal } from 'src/components/VersionControl';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -136,6 +138,7 @@ const PropertiesModal = ({
   >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -632,6 +635,17 @@ const PropertiesModal = ({
       }
       saveText={saveLabel}
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
+      extraFooter={
+        <Button
+          htmlType="button"
+          buttonSize="small"
+          onClick={() => setShowVersionHistory(true)}
+          data-test="properties-modal-version-history-button"
+          cta
+        >
+          {t('Version History')}
+        </Button>
+      }
     >
       <Form
         form={form}
@@ -771,6 +785,15 @@ const PropertiesModal = ({
           ]}
         />
       </Form>
+      {dashboardId && dashboardInfo?.title && (
+        <VersionHistoryModal
+          visible={showVersionHistory}
+          assetType="dashboard"
+          assetId={dashboardId}
+          assetName={dashboardInfo.title}
+          onCancel={() => setShowVersionHistory(false)}
+        />
+      )}
     </StandardModal>
   );
 };
