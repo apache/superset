@@ -51,8 +51,8 @@ And parses it into:
 }
 
 """
-import superset.utils.json as json
 import re
+import superset.utils.json as json
 
 categories = {}
 FILEPATH_IN = "text.md" #CHANGE TO YOUR PATH
