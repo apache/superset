@@ -111,7 +111,7 @@ export function saveChartCustomization(
       const customizationsWithoutScopes = response.result.map(
         (customization: ChartCustomization | ChartCustomizationDivider) =>
           omit(customization, ['chartsInScope', 'tabsInScope']),
-      );
+      ) as (ChartCustomization | ChartCustomizationDivider)[];
 
       dispatch(
         dashboardInfoChanged({

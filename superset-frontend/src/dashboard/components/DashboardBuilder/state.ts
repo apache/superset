@@ -21,20 +21,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  ChartCustomization,
-  ChartCustomizationDivider,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
 import { useChartCustomizationFromRedux } from '../nativeFilters/state';
 import { toggleNativeFiltersBar } from '../../actions/dashboardState';
-
-const EMPTY_ARRAY: ChartCustomization[] = [];
 
 export const useNativeFilters = () => {
   const dispatch = useDispatch();
