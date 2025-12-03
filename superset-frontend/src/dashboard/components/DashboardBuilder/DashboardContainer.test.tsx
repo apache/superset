@@ -43,7 +43,38 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   default: () => <div data-test="mock-dashboard-grid" />,
 }));
 
-function createTestState(overrides = {}) {
+const defaultTestFilter = {
+  id: 'FILTER-1',
+  name: 'Test Filter',
+  filterType: 'filter_select',
+  targets: [
+    {
+      datasetId: 1,
+      column: { name: 'country' },
+    },
+  ],
+  defaultDataMask: {
+    filterState: { value: null },
+  },
+  cascadeParentIds: [],
+  scope: {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+  },
+  controlValues: {},
+  type: NativeFilterType.NativeFilter,
+};
+
+function createTestState(overrides: Record<string, unknown> = {}) {
+  const nativeFilterConfig = (
+    overrides.dashboardInfo as { metadata?: { native_filter_configuration?: unknown[] } } | undefined
+  )?.metadata?.native_filter_configuration ?? [defaultTestFilter];
+
+  const nativeFiltersMap: Record<string, unknown> = {};
+  (nativeFilterConfig as Array<{ id: string }>).forEach(filter => {
+    nativeFiltersMap[filter.id] = filter;
+  });
+
   return {
     ...mockState,
     dashboardState: {
@@ -66,30 +97,15 @@ function createTestState(overrides = {}) {
         },
       },
     },
-    nativeFilters: {
-      filters: {
-        'FILTER-1': {
-          id: 'FILTER-1',
-          name: 'Test Filter',
-          filterType: 'filter_select',
-          targets: [
-            {
-              datasetId: 1,
-              column: { name: 'country' },
-            },
-          ],
-          defaultDataMask: {
-            filterState: { value: null },
-          },
-          cascadeParentIds: [],
-          scope: {
-            rootPath: ['ROOT_ID'],
-            excluded: [],
-          },
-          controlValues: {},
-          type: NativeFilterType.NativeFilter,
-        },
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: nativeFilterConfig,
       },
+    },
+    nativeFilters: {
+      filters: nativeFiltersMap,
     },
     ...overrides,
   };
@@ -186,8 +202,28 @@ test('handles multiple filters with different scopes', async () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { CHART_ID: _removed, ...cleanLayout } = baseDashboardLayout;
 
+  const multipleFilters = [
+    {
+      id: 'FILTER-1',
+      name: 'Filter 1',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 1, column: { name: 'country' } }],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      controlValues: {},
+      type: NativeFilterType.NativeFilter,
+    },
+    {
+      id: 'FILTER-2',
+      name: 'Filter 2',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 1, column: { name: 'region' } }],
+      scope: { rootPath: ['ROOT_ID'], excluded: [19] },
+      controlValues: {},
+      type: NativeFilterType.NativeFilter,
+    },
+  ];
+
   const stateWithMultipleFilters = {
-    ...mockState,
     dashboardState: {
       ...mockState.dashboardState,
       sliceIds: [18, 19],
@@ -210,26 +246,17 @@ test('handles multiple filters with different scopes', async () => {
         },
       },
     },
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: multipleFilters,
+      },
+    },
     nativeFilters: {
       filters: {
-        'FILTER-1': {
-          id: 'FILTER-1',
-          name: 'Filter 1',
-          filterType: 'filter_select',
-          targets: [{ datasetId: 1, column: { name: 'country' } }],
-          scope: { rootPath: ['ROOT_ID'], excluded: [] },
-          controlValues: {},
-          type: NativeFilterType.NativeFilter,
-        },
-        'FILTER-2': {
-          id: 'FILTER-2',
-          name: 'Filter 2',
-          filterType: 'filter_select',
-          targets: [{ datasetId: 1, column: { name: 'region' } }],
-          scope: { rootPath: ['ROOT_ID'], excluded: [19] },
-          controlValues: {},
-          type: NativeFilterType.NativeFilter,
-        },
+        'FILTER-1': multipleFilters[0],
+        'FILTER-2': multipleFilters[1],
       },
     },
   };
@@ -256,20 +283,24 @@ test('handles multiple filters with different scopes', async () => {
 
 test('handles filters with no charts in scope', async () => {
   const stateWithExcludedFilter = createTestState({
-    nativeFilters: {
-      filters: {
-        'FILTER-1': {
-          id: 'FILTER-1',
-          name: 'Excluded Filter',
-          filterType: 'filter_select',
-          targets: [{ datasetId: 1, column: { name: 'country' } }],
-          scope: {
-            rootPath: ['ROOT_ID'],
-            excluded: [sliceId],
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [
+          {
+            id: 'FILTER-1',
+            name: 'Excluded Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'country' } }],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [sliceId],
+            },
+            controlValues: {},
+            type: NativeFilterType.NativeFilter,
           },
-          controlValues: {},
-          type: NativeFilterType.NativeFilter,
-        },
+        ],
       },
     },
   });
@@ -292,8 +323,12 @@ test('handles filters with no charts in scope', async () => {
 
 test('does not dispatch when there are no filters', () => {
   const stateWithoutFilters = createTestState({
-    nativeFilters: {
-      filters: {},
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [],
+      },
     },
   });
 
@@ -307,8 +342,17 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { CHART_ID: _removed, ...cleanLayout } = baseDashboardLayout;
 
+  const tabScopedFilter = {
+    id: 'FILTER-TAB-SCOPED',
+    name: 'Tab Scoped Filter',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 1, column: { name: 'region' } }],
+    scope: { rootPath: ['ROOT_ID'], excluded: [22] },
+    controlValues: {},
+    type: NativeFilterType.NativeFilter,
+  };
+
   const stateWithTabs = {
-    ...mockState,
     dashboardState: {
       ...mockState.dashboardState,
       sliceIds: [20, 21, 22],
@@ -362,17 +406,16 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
         },
       },
     },
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [tabScopedFilter],
+      },
+    },
     nativeFilters: {
       filters: {
-        'FILTER-TAB-SCOPED': {
-          id: 'FILTER-TAB-SCOPED',
-          name: 'Tab Scoped Filter',
-          filterType: 'filter_select',
-          targets: [{ datasetId: 1, column: { name: 'region' } }],
-          scope: { rootPath: ['ROOT_ID'], excluded: [22] },
-          controlValues: {},
-          type: NativeFilterType.NativeFilter,
-        },
+        'FILTER-TAB-SCOPED': tabScopedFilter,
       },
     },
   };
