@@ -62,6 +62,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { AlertToastProvider } from '../components/gridComponents/Alerts/AlertToastContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -261,7 +262,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     <>
       <Global styles={globalStyles} />
       {readyToRender && hasDashboardInfoInitiated ? (
-        <>
+        <AlertToastProvider>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
@@ -279,7 +280,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               </DashboardContainer>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
-        </>
+        </AlertToastProvider>
       ) : (
         <Loading />
       )}

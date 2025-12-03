@@ -26,7 +26,6 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   GRID_MIN_COLUMN_COUNT,
 } from 'src/dashboard/util/constants';
@@ -38,6 +37,7 @@ import AlertsConfigMenuItem, {
   type AlertsConfig,
 } from './AlertsConfigMenuItem';
 import type { DashboardAlertsMeta, MqttMessage } from './types';
+import { useAlertToasts } from './AlertToastContext';
 
 const AlertsStyles = styled.div`
   ${({ theme }) => css`
@@ -203,7 +203,7 @@ const DashboardAlerts = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('disconnected');
-  const { addInfoToast, addWarningToast, addDangerToast, addSuccessToast } = useToasts();
+  const { addToast } = useAlertToasts();
   
   const clientRef = useRef<any>(null);
   const isConnectedRef = useRef(false);
@@ -383,36 +383,31 @@ const DashboardAlerts = ({
               }
             }
 
-            // Build toast message
-            let message = messageData.message || messageData.eventType || 'Event received';
+            // Build toast title and message
+            let title = messageData.eventType || 'Event Notification';
+            let message = messageData.message || messageData.description || '';
             
             // Add device information if available
             if (messageData.deviceName || messageData.deviceId) {
               const deviceInfo = messageData.deviceName || messageData.deviceId;
-              message = `${deviceInfo} • ${messageData.description || message}`;
+              message = `${deviceInfo} • ${message || messageData.eventType || 'Event received'}`;
             }
 
-            // Display toast based on severity
-            switch (severity) {
-              case 'error':
-                addDangerToast(message);
-                break;
-              case 'warning':
-                addWarningToast(message);
-                break;
-              case 'success':
-                addSuccessToast(message);
-                break;
-              case 'info':
-              default:
-                addInfoToast(message);
-                break;
-            }
+            // Display custom toast
+            addToast({
+              title,
+              message,
+              severity,
+            });
           } catch (error) {
             console.error('[Alerts] Error parsing message:', error);
             const rawMessage = payload.toString();
             if (rawMessage && rawMessage.length > 0 && rawMessage.length < 200) {
-              addInfoToast(rawMessage);
+              addToast({
+                title: 'Event Notification',
+                message: rawMessage,
+                severity: 'info',
+              });
             }
           }
         });
@@ -446,10 +441,7 @@ const DashboardAlerts = ({
     meta.includeGlobalTopic,
     meta.eventFilter,
     meta.severityFilter,
-    addInfoToast,
-    addWarningToast,
-    addDangerToast,
-    addSuccessToast,
+    addToast,
   ]);
 
   // Safety check for parentComponent
