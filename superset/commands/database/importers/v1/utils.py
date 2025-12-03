@@ -68,11 +68,11 @@ def import_database(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
-    # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
+    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
     database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)
 
@@ -81,14 +81,13 @@ def import_database(
 
     if ssh_tunnel_config:
         ssh_tunnel_config["database_id"] = database.id
-        ssh_tunnel = SSHTunnel.import_from_dict(ssh_tunnel_config, recursive=False)
-    else:
-        ssh_tunnel = None
-
-    # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+        database.ssh_tunnel = SSHTunnel.import_from_dict(
+            ssh_tunnel_config,
+            recursive=False,
+        )
 
     try:
-        add_permissions(database, ssh_tunnel)
+        add_permissions(database)
     except SupersetDBAPIConnectionError as ex:
         logger.warning(ex.message)
 

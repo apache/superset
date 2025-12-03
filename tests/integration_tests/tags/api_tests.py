@@ -850,9 +850,10 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         rv = self.client.post(uri, json=data)
 
         # Should succeed without SQL errors (201 for created or 200 for success)
-        assert rv.status_code in [200, 201], (
-            f"Tag creation should succeed, got {rv.status_code}"
-        )
+        assert rv.status_code in [
+            200,
+            201,
+        ], f"Tag creation should succeed, got {rv.status_code}"
 
         # Query the database to verify the tag was created correctly
         created_tag = db.session.query(Tag).filter_by(name=tag_name).first()
