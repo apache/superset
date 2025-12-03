@@ -50,7 +50,7 @@
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
     "antd": "^5.29.1",
-    "caniuse-lite": "^1.0.30001757",
+    "caniuse-lite": "^1.0.30001759",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
     "less": "^4.4.2",
