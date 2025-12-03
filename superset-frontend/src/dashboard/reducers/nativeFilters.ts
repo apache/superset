@@ -34,7 +34,6 @@ import {
   NativeFiltersState,
   ChartCustomization,
   ChartCustomizationDivider,
-  Filters,
 } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -52,10 +51,12 @@ export function getInitialState({
   state?: ExtendedNativeFiltersState;
 }): ExtendedNativeFiltersState {
   const state: Partial<ExtendedNativeFiltersState> = {};
+
   if (filterConfig) {
-    // Merge new filterConfig with existing filters to preserve items
-    // that aren't in the new config (e.g., customizations when updating filters)
-    const filters = { ...prevState?.filters } as Filters;
+    const filters = { ...prevState?.filters } as Record<
+      string,
+      Filter | Divider | ChartCustomization | ChartCustomizationDivider
+    >;
     filterConfig.forEach(filter => {
       const { id } = filter;
       filters[id] = filter;
@@ -64,6 +65,7 @@ export function getInitialState({
   } else {
     state.filters = prevState?.filters ?? {};
   }
+
   state.focusedFilterId = undefined;
   state.hoveredChartCustomizationId = undefined;
   return state as ExtendedNativeFiltersState;
@@ -77,19 +79,16 @@ function handleFilterChangesComplete(
 ) {
   const modifiedFilters = { ...state.filters };
   filters.forEach(filter => {
-    const existingFilter = state.filters[filter.id];
-
-    modifiedFilters[filter.id] = {
-      ...filter,
-      chartsInScope:
-        'chartsInScope' in filter && filter.chartsInScope !== undefined
-          ? filter.chartsInScope
-          : existingFilter?.chartsInScope,
-      tabsInScope:
-        'tabsInScope' in filter && filter.tabsInScope !== undefined
-          ? filter.tabsInScope
-          : existingFilter?.tabsInScope,
-    } as typeof filter;
+    if (filter.chartsInScope != null && filter.tabsInScope != null) {
+      modifiedFilters[filter.id] = filter;
+    } else {
+      const existingFilter = modifiedFilters[filter.id];
+      modifiedFilters[filter.id] = {
+        ...filter,
+        chartsInScope: filter.chartsInScope ?? existingFilter?.chartsInScope,
+        tabsInScope: filter.tabsInScope ?? existingFilter?.tabsInScope,
+      };
+    }
   });
 
   return {
@@ -107,19 +106,34 @@ export default function nativeFilterReducer(
   switch (action.type) {
     case HYDRATE_DASHBOARD: {
       const incomingFilters = action.data.nativeFilters.filters;
+      const existingFilters = state.filters;
 
-      const preservedFilters: typeof incomingFilters = {};
-      Object.entries(incomingFilters).forEach(([id, filter]) => {
-        const existingFilter = state.filters[id];
-        preservedFilters[id] = {
-          ...filter,
-          chartsInScope: existingFilter?.chartsInScope ?? filter.chartsInScope,
-          tabsInScope: existingFilter?.tabsInScope ?? filter.tabsInScope,
-        };
+      type FilterType =
+        | Filter
+        | Divider
+        | ChartCustomization
+        | ChartCustomizationDivider;
+      const mergedFilters: Record<string, FilterType> = {};
+
+      Object.entries(incomingFilters).forEach(([id, incomingFilter]) => {
+        const filter = incomingFilter as FilterType;
+        const existingFilter = existingFilters[id];
+        if (
+          filter.chartsInScope == null &&
+          existingFilter?.chartsInScope != null
+        ) {
+          mergedFilters[id] = {
+            ...filter,
+            chartsInScope: existingFilter.chartsInScope,
+            tabsInScope: existingFilter.tabsInScope,
+          };
+        } else {
+          mergedFilters[id] = filter;
+        }
       });
 
       return {
-        filters: preservedFilters,
+        filters: mergedFilters,
       };
     }
 
