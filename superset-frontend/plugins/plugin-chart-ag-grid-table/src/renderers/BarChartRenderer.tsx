@@ -139,7 +139,7 @@ export const BarChartRenderer = (
   );
 
   return (
-    <CellContainer align={'left'}>
+    <CellContainer align="left">
       <div style={{ width, height, overflow: 'hidden' }}>
         <XYChart
           accessibilityLabel={ariaLabel}
