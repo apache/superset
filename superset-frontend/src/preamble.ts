@@ -26,6 +26,7 @@ import {
   LanguagePack,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import { ensureJalaliDayjsPlugin } from 'src/utils/persianCalendar';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -43,6 +44,9 @@ import 'dayjs/plugin/customParseFormat';
 import 'dayjs/plugin/duration';
 import 'dayjs/plugin/updateLocale';
 import 'dayjs/plugin/localizedFormat';
+import 'dayjs/plugin/isSameOrBefore';
+
+ensureJalaliDayjsPlugin();
 
 configure();
 
