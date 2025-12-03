@@ -18,13 +18,12 @@
 import enum
 import logging
 import threading
-from collections import defaultdict
 from contextlib import contextmanager
 from datetime import timedelta
 from io import StringIO
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 
-from flask import current_app
+import sshtunnel
 from paramiko import RSAKey
 from sqlalchemy import create_engine, event, pool
 from sqlalchemy.engine import Engine
@@ -32,6 +31,7 @@ from sqlalchemy.engine.url import URL
 from sshtunnel import SSHTunnelForwarder
 
 from superset.databases.utils import make_url_safe
+from superset.superset_typing import DBConnectionMutator, EngineContextManager
 from superset.utils.core import get_query_source_from_request, get_user_id, QuerySource
 from superset.utils.json import dumps
 
@@ -41,6 +41,44 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class _LockManager:
+    """
+    Manages per-key locks safely without defaultdict race conditions.
+
+    This class provides a thread-safe way to create and manage locks for specific keys,
+    avoiding race conditions.
+    """
+
+    def __init__(self) -> None:
+        self._locks: dict[str, threading.RLock] = {}
+        self._meta_lock = threading.Lock()
+
+    def get_lock(self, key: str) -> threading.RLock:
+        """
+        Get or create a lock for the given key.
+        """
+        if lock := self._locks.get(key):
+            return lock
+
+        with self._meta_lock:
+            # Double-check inside the lock
+            lock = self._locks.get(key)
+            if lock is None:
+                lock = threading.RLock()
+                self._locks[key] = lock
+            return lock
+
+    def cleanup(self, active_keys: set[str]) -> None:
+        """
+        Remove locks for keys that are no longer in use.
+        """
+        with self._meta_lock:
+            # Find locks to remove
+            locks_to_remove = self._locks.keys() - active_keys
+            for key in locks_to_remove:
+                self._locks.pop(key, None)
 
 
 EngineKey = str
@@ -71,21 +109,27 @@ class EngineManager:
 
     def __init__(
         self,
+        engine_context_manager: EngineContextManager,
+        db_connection_mutator: DBConnectionMutator | None = None,
         mode: EngineModes = EngineModes.NEW,
         cleanup_interval: timedelta = timedelta(minutes=5),
+        local_bind_address: str = "127.0.0.1",
+        tunnel_timeout: timedelta = timedelta(seconds=30),
+        ssh_timeout: timedelta = timedelta(seconds=1),
     ) -> None:
+        self.engine_context_manager = engine_context_manager
+        self.db_connection_mutator = db_connection_mutator
         self.mode = mode
         self.cleanup_interval = cleanup_interval
+        self.local_bind_address = local_bind_address
+
+        sshtunnel.TUNNEL_TIMEOUT = tunnel_timeout.total_seconds()
+        sshtunnel.SSH_TIMEOUT = ssh_timeout.total_seconds()
 
         self._engines: dict[EngineKey, Engine] = {}
-        self._engine_locks: dict[EngineKey, threading.Lock] = defaultdict(
-            threading.Lock
-        )
-
+        self._engine_locks = _LockManager()
         self._tunnels: dict[TunnelKey, SSHTunnelForwarder] = {}
-        self._tunnel_locks: dict[TunnelKey, threading.Lock] = defaultdict(
-            threading.Lock
-        )
+        self._tunnel_locks = _LockManager()
 
         # Background cleanup thread management
         self._cleanup_thread: threading.Thread | None = None
@@ -113,14 +157,13 @@ class EngineManager:
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
-    ) -> Engine:
+    ) -> Iterator[Engine]:
         """
         Context manager to get a SQLAlchemy engine.
         """
         # users can wrap the engine in their own context manager for different
         # reasons
-        customization = current_app.config["ENGINE_CONTEXT_MANAGER"]
-        with customization(database, catalog, schema):
+        with self.engine_context_manager(database, catalog, schema):
             # we need to check for errors indicating that OAuth2 is needed, and
             # return the proper exception so it starts the authentication flow
             from superset.utils.oauth2 import check_for_oauth2
@@ -158,22 +201,26 @@ class EngineManager:
             user_id,
         )
 
-        if engine_key not in self._engines:
-            with self._engine_locks[engine_key]:
-                # double-checked locking to ensure thread safety and prevent unnecessary
-                # engine creation
-                if engine_key not in self._engines:
-                    engine = self._create_engine(
-                        database,
-                        catalog,
-                        schema,
-                        source,
-                        user_id,
-                    )
-                    self._engines[engine_key] = engine
-                    self._add_disposal_listener(engine, engine_key)
+        if engine := self._engines.get(engine_key):
+            return engine
 
-        return self._engines[engine_key]
+        lock = self._engine_locks.get_lock(engine_key)
+        with lock:
+            # Double-check inside the lock
+            if engine := self._engines.get(engine_key):
+                return engine
+
+            # Create and cache the engine
+            engine = self._create_engine(
+                database,
+                catalog,
+                schema,
+                source,
+                user_id,
+            )
+            self._engines[engine_key] = engine
+            self._add_disposal_listener(engine, engine_key)
+            return engine
 
     def _get_engine_key(
         self,
@@ -284,12 +331,12 @@ class EngineManager:
         database.update_params_from_encrypted_extra(kwargs)
 
         # mutate URI
-        if mutator := current_app.config["DB_CONNECTION_MUTATOR"]:
+        if self.db_connection_mutator:
             source = source or get_query_source_from_request()
             # Import here to avoid circular imports
             from superset.extensions import security_manager
 
-            uri, kwargs = mutator(
+            uri, kwargs = self.db_connection_mutator(
                 uri,
                 kwargs,
                 username,
@@ -340,20 +387,19 @@ class EngineManager:
     def _get_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         tunnel_key = self._get_tunnel_key(ssh_tunnel, uri)
 
-        #  tunnel exists and is healthy
-        if tunnel_key in self._tunnels:
-            tunnel = self._tunnels[tunnel_key]
-            if tunnel.is_active:
+        tunnel = self._tunnels.get(tunnel_key)
+        if tunnel is not None and tunnel.is_active:
+            return tunnel
+
+        lock = self._tunnel_locks.get_lock(tunnel_key)
+        with lock:
+            # Double-check inside the lock
+            tunnel = self._tunnels.get(tunnel_key)
+            if tunnel is not None and tunnel.is_active:
                 return tunnel
 
-        # create or recreate tunnel
-        with self._tunnel_locks[tunnel_key]:
-            existing_tunnel = self._tunnels.get(tunnel_key)
-            if existing_tunnel and existing_tunnel.is_active:
-                return existing_tunnel
-
-            # replace inactive or missing tunnel
-            return self._replace_tunnel(tunnel_key, ssh_tunnel, uri, existing_tunnel)
+            # Create or replace tunnel
+            return self._replace_tunnel(tunnel_key, ssh_tunnel, uri, tunnel)
 
     def _replace_tunnel(
         self,
@@ -400,15 +446,15 @@ class EngineManager:
         return tunnel
 
     def _get_tunnel_kwargs(self, ssh_tunnel: "SSHTunnel", uri: URL) -> dict[str, Any]:
-        backend = uri.get_backend_name()
         # Import here to avoid circular imports
         from superset.utils.ssh_tunnel import get_default_port
 
+        backend = uri.get_backend_name()
         kwargs = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
             "remote_bind_address": (uri.host, uri.port or get_default_port(backend)),
-            "local_bind_address": (ssh_tunnel.local_bind_address,),
+            "local_bind_address": (self.local_bind_address,),
             "debug_level": logging.getLogger("flask_appbuilder").level,
         }
 
@@ -492,45 +538,36 @@ class EngineManager:
 
     def _cleanup_abandoned_locks(self) -> None:
         """
-        Remove locks for engines and tunnels that no longer exist.
+        Clean up locks for engines and tunnels that no longer exist.
 
-        This prevents memory leaks from accumulating locks in defaultdict
-        when engines/tunnels are disposed outside of normal cleanup paths.
+        This prevents memory leaks from accumulating locks when engines/tunnels
+        are disposed outside of normal cleanup paths.
         """
-        # Clean up engine locks
+        # Clean up engine locks for inactive engines
         active_engine_keys = set(self._engines.keys())
-        abandoned_engine_locks = set(self._engine_locks.keys()) - active_engine_keys
-        for key in abandoned_engine_locks:
-            self._engine_locks.pop(key, None)
+        self._engine_locks.cleanup(active_engine_keys)
 
-        if abandoned_engine_locks:
-            logger.debug(
-                "Cleaned up %d abandoned engine locks",
-                len(abandoned_engine_locks),
-            )
-
-        # Clean up tunnel locks
+        # Clean up tunnel locks for inactive tunnels
         active_tunnel_keys = set(self._tunnels.keys())
-        abandoned_tunnel_locks = set(self._tunnel_locks.keys()) - active_tunnel_keys
-        for key in abandoned_tunnel_locks:
-            self._tunnel_locks.pop(key, None)
+        self._tunnel_locks.cleanup(active_tunnel_keys)
 
-        if abandoned_tunnel_locks:
+        # Log for debugging
+        if active_engine_keys or active_tunnel_keys:
             logger.debug(
-                "Cleaned up %d abandoned tunnel locks",
-                len(abandoned_tunnel_locks),
+                "EngineManager resources - Engines: %d, Tunnels: %d",
+                len(active_engine_keys),
+                len(active_tunnel_keys),
             )
 
     def _add_disposal_listener(self, engine: Engine, engine_key: EngineKey) -> None:
         @event.listens_for(engine, "engine_disposed")
         def on_engine_disposed(engine_instance: Engine) -> None:
             try:
-                # `pop` is atomic -- no lock needed
+                # Remove engine from cache - no per-key locks to clean up anymore
                 if self._engines.pop(engine_key, None):
                     logger.info(
                         "Engine disposed and removed from cache: %s", engine_key
                     )
-                    self._engine_locks.pop(engine_key, None)
             except Exception as ex:
                 logger.error(
                     "Error during engine disposal cleanup for %s: %s",

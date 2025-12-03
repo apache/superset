@@ -30,7 +30,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -136,7 +136,9 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(
+    CoreDatabase, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -413,9 +415,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager
@@ -424,7 +424,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         source: utils.QuerySource | None = None,
-    ) -> Engine:
+    ) -> Iterator[Engine]:
         """
         Context manager for a SQLAlchemy engine.
 
@@ -437,12 +437,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         # Use the engine manager to get the engine
         engine_manager = engine_manager_extension.manager
-        return engine_manager.get_engine(
+        with engine_manager.get_engine(
             database=self,
             catalog=catalog,
             schema=schema,
             source=source,
-        )
+        ) as engine:
+            yield engine
 
     def add_database_to_signature(
         self,

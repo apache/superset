@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from flask import Flask
@@ -44,13 +45,25 @@ class EngineManagerExtension:
         """
         Initialize the EngineManager with Flask app configuration.
         """
-        # Get configuration values with defaults
+        engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
+        db_connection_mutator = app.config["DB_CONNECTION_MUTATOR"]
         mode = app.config["ENGINE_MANAGER_MODE"]
         cleanup_interval = app.config["ENGINE_MANAGER_CLEANUP_INTERVAL"]
+        local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
+        tunnel_timeout = timedelta(seconds=app.config["SSH_TUNNEL_TIMEOUT_SEC"])
+        ssh_timeout = timedelta(seconds=app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"])
         auto_start_cleanup = app.config["ENGINE_MANAGER_AUTO_START_CLEANUP"]
 
         # Create the engine manager
-        self.engine_manager = EngineManager(mode, cleanup_interval)
+        self.engine_manager = EngineManager(
+            engine_context_manager,
+            db_connection_mutator,
+            mode,
+            cleanup_interval,
+            local_bind_address,
+            tunnel_timeout,
+            ssh_timeout,
+        )
 
         # Start cleanup thread if requested and in SINGLETON mode
         if auto_start_cleanup and mode == EngineModes.SINGLETON:

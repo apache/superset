@@ -56,7 +56,6 @@ from superset.extensions import (
     migrate,
     profiling,
     results_backend_manager,
-    ssh_manager_factory,
     stats_logger_manager,
     talisman,
 )
@@ -588,7 +587,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_auth_provider()
         self.configure_engine_manager()
         self.configure_async_queries()
-        self.configure_ssh_manager()
         self.configure_stats_manager()
 
         # Hook that provides administrators a handle on the Flask APP
@@ -765,9 +763,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_engine_manager(self) -> None:
         engine_manager_extension.init_app(self.superset_app)
-
-    def configure_ssh_manager(self) -> None:
-        ssh_manager_factory.init_app(self.superset_app)
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
