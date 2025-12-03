@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { InputColumn } from '../types';
 import SparklineCell from '../components/SparklineCell';
@@ -55,8 +55,9 @@ export const SparklineRenderer = (
 
   const dataKey = col?.metricName || col?.key || 'value';
   const ariaLabel = `Sparkline chart for ${col?.label || dataKey}`;
+  const theme = useTheme();
   const chartColor =
-    typeof color === 'object' ? rgbToHex(color) : color || '#FFFFFF';
+    typeof color === 'object' ? rgbToHex(color) : color || theme.colorText;
 
   return (
     <CellContainer>
@@ -67,11 +68,11 @@ export const SparklineRenderer = (
         entries={value.map(_ => ({ time: '' }))}
         width={width}
         height={height}
-        numberFormat={'.2f'}
+        numberFormat=".2f"
         dateFormat={''}
         showYAxis={showValues}
         yAxisBounds={[undefined, undefined]}
-        sparkType={'line'}
+        sparkType="line"
         color={chartColor}
         strokeWidth={strokeWidth}
         showPoints={showPoints}

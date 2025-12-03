@@ -57,7 +57,6 @@ import {
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
 
-
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(
     x => x[key] === null || x[key] === undefined || typeof x[key] === 'number',
@@ -242,7 +241,11 @@ const processComparisonColumns = (
             metricName: col.key,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
-            config: getComparisonColConfig(t('Main'), col.key, finalColumnConfig),
+            config: getComparisonColConfig(
+              t('Main'),
+              col.key,
+              finalColumnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('Main'),
               col,

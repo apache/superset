@@ -28,8 +28,8 @@ import { type RGBColor } from '@superset-ui/core/components';
  * Maps chartType strings to their corresponding renderer components
  */
 const CHART_RENDERERS = {
-  'sparkline': SparklineRenderer,
-  'minibar': BarChartRenderer,           // Map minibar to BarChartRenderer
+  sparkline: SparklineRenderer,
+  minibar: BarChartRenderer, // Map minibar to BarChartRenderer
 };
 
 /**
@@ -37,18 +37,17 @@ const CHART_RENDERERS = {
  * @param chartType - The type of chart renderer to retrieve
  * @returns The chart renderer component function
  */
-export const getChartRenderer = (chartType: string) => {
-  return CHART_RENDERERS[chartType as keyof typeof CHART_RENDERERS] || CHART_RENDERERS.sparkline;
-};
+export const getChartRenderer = (chartType: string) =>
+  CHART_RENDERERS[chartType as keyof typeof CHART_RENDERERS] ||
+  CHART_RENDERERS.sparkline;
 
 /**
- * Determines if a column should use a chart renderer instead of the default text/numeric renderer
- * @param col - The column definition containing configuration
- * @returns true if the column should use a chart renderer
+ * Determines if a column should use a chart renderer
+ * @param col The column definition
+ * @returns True if the column is a chart type
  */
-export const shouldUseChartRenderer = (col: InputColumn): boolean => {
-  return col.dataType === GenericDataType.Chart;
-};
+export const shouldUseChartRenderer = (col: InputColumn): boolean =>
+  col.dataType === GenericDataType.Chart;
 
 export const rgbToHex = (rgb: RGBColor): string => {
   const { r, g, b, a = 1 } = rgb;
@@ -64,4 +63,4 @@ export const rgbToHex = (rgb: RGBColor): string => {
   }
 
   return hexColor;
-}
+};

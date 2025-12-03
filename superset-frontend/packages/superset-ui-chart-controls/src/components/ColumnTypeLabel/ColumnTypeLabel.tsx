@@ -28,7 +28,7 @@ import {
   FieldBinaryOutlined,
   FieldStringOutlined,
   NumberOutlined,
-  LineChartOutlined
+  LineChartOutlined,
 } from '@ant-design/icons';
 
 export type ColumnLabelExtendedType = 'expression' | '';

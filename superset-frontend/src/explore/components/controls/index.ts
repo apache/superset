@@ -61,7 +61,6 @@ import ColorBreakpointsControl from './ColorBreakpointsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import ChartColumnsControl from './ChartColumnsControl';
 
-
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
   'filter.dateFilterControl',

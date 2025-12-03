@@ -349,6 +349,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     [GenericDataType.String]: undefined,
     [GenericDataType.Temporal]: tooltipTimeFormatter,
     [GenericDataType.Boolean]: undefined,
+    [GenericDataType.Chart]: undefined,
   };
 
   const echartOptions: EChartsCoreOption = {

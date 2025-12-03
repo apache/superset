@@ -32,12 +32,15 @@ import {
   type SeriesProps,
   AxisScale,
 } from '@visx/xychart';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   getSparklineTextWidth,
   createYScaleConfig,
   transformChartData,
 } from '../../utils/sparklineHelpers';
+
+dayjs.extend(utc);
 
 type SparkType = 'line' | 'bar' | 'area';
 
@@ -166,7 +169,7 @@ const SparklineCell = ({
         yScale={{
           ...yScaleConfig,
         }}
-        xScale={{ type: 'band', paddingInner: 0.5,  paddingOuter: 0.1}}
+        xScale={{ type: 'band', paddingInner: 0.5, paddingOuter: 0.1 }}
         theme={xyTheme}
       >
         {showYAxis && (
@@ -246,10 +249,7 @@ const SparklineCell = ({
                         fontSize: '12px',
                       })}
                     >
-                      {formatTime(
-                        dateFormat,
-                        extendedDayjs.utc(timeValue).toDate(),
-                      )}
+                      {formatTime(dateFormat, dayjs.utc(timeValue).toDate())}
                     </div>
                   )}
                 </div>

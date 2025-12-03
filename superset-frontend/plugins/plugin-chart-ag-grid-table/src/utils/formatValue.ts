@@ -135,14 +135,14 @@ export const parseArrayValue = (
   if (Array.isArray(value)) {
     return value.filter((item): item is number => typeof item === 'number');
   }
-  
+
   // Handle object input - extract all numeric property values
   if (typeof value === 'object' && value !== null) {
     return Object.values(value).filter(
       (item): item is number => typeof item === 'number',
     );
   }
-  
+
   // Return empty array for other types
   return [];
 };
