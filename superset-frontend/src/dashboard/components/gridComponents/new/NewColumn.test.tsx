@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, RenderResult } from 'spec/helpers/testing-library';
 
 import NewColumn from 'src/dashboard/components/gridComponents/new/NewColumn';
 
@@ -31,7 +31,7 @@ jest.mock(
     ),
 );
 
-function setup() {
+function setup(): RenderResult {
   return render(<NewColumn />);
 }
 
