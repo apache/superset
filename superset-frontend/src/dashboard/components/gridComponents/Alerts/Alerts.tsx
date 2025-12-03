@@ -25,22 +25,15 @@ import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
+import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
-  GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import type {
   LayoutItem,
   LayoutItemMeta,
 } from 'src/dashboard/types';
-import type {
-  ResizeCallback,
-  ResizeStartCallback,
-} from 're-resizable';
 import AlertsConfigMenuItem, {
   type AlertsConfig,
 } from './AlertsConfigMenuItem';
@@ -49,26 +42,29 @@ import type { DashboardAlertsMeta, MqttMessage } from './types';
 const AlertsStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-alerts {
-      width: 100%;
-      height: 100%;
+      /* Position absolutely to not take up layout space */
+      position: fixed !important;
+      top: 70px;
+      right: 20px;
+      z-index: 1000;
+      
+      /* Fixed size for floating indicator */
+      width: 280px !important;
+      height: auto !important;
+      min-height: 150px;
+      max-height: 400px;
+      
       display: flex;
       flex-direction: column;
       background-color: ${theme.colorBgContainer};
       border: 1px solid ${theme.colorBorder};
       border-radius: ${theme.borderRadius}px;
-      min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
       /* Hide in view mode, only show in edit mode */
       .dashboard:not(.dashboard--editing) & {
         display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: none !important;
         visibility: hidden;
-        position: absolute;
       }
 
       .dashboard--editing & {
@@ -82,8 +78,9 @@ const AlertsStyles = styled.div`
         align-items: center;
         justify-content: center;
         padding: ${theme.sizeUnit * 3}px;
-        min-height: ${GRID_BASE_UNIT * GRID_MIN_ROW_UNITS}px;
+        min-height: 120px;
         gap: ${theme.sizeUnit * 2}px;
+        overflow: hidden;
       }
 
       .alerts-icon {
@@ -189,11 +186,6 @@ interface DashboardAlertsProps {
   deleteComponent: (id: string, parentId: string) => void;
   handleComponentDrop: (dropResult: unknown) => void;
   updateComponents: (components: Record<string, LayoutItem>) => void;
-  availableColumnCount: number;
-  columnWidth: number;
-  onResizeStart: ResizeStartCallback;
-  onResize: ResizeCallback;
-  onResizeStop: ResizeCallback;
 }
 
 const DashboardAlerts = ({
@@ -207,11 +199,6 @@ const DashboardAlerts = ({
   deleteComponent,
   handleComponentDrop,
   updateComponents,
-  availableColumnCount,
-  columnWidth,
-  onResizeStart,
-  onResize,
-  onResizeStop,
 }: DashboardAlertsProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -471,16 +458,6 @@ const DashboardAlerts = ({
     return null;
   }
 
-  const widthMultiple =
-    parentComponent.type === COLUMN_TYPE
-      ? parentComponent.meta?.width || GRID_MIN_COLUMN_COUNT
-      : component.meta?.width || GRID_MIN_COLUMN_COUNT;
-
-  const heightMultiple =
-    component.meta?.height && component.meta.height > 0
-      ? component.meta.height
-      : GRID_MIN_ROW_UNITS;
-
   const alertsLabel =
     meta.text && meta.text.length > 0 ? meta.text : t('Alert Listener');
 
@@ -545,79 +522,62 @@ const DashboardAlerts = ({
             className="dashboard-alerts"
             id={component.id}
           >
-            <ResizableContainer
-              id={component.id}
-              adjustableWidth={parentComponent.type === ROW_TYPE}
-              adjustableHeight
-              widthStep={columnWidth}
-              widthMultiple={widthMultiple}
-              heightStep={GRID_BASE_UNIT}
-              heightMultiple={heightMultiple}
-              minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-              minHeightMultiple={GRID_MIN_ROW_UNITS}
-              maxWidthMultiple={availableColumnCount + widthMultiple}
-              onResizeStart={onResizeStart}
-              onResize={onResize}
-              onResizeStop={onResizeStop}
-              editMode={isFocused ? false : editMode}
+            <div
+              ref={dragSourceRef}
+              className="dashboard-component dashboard-component-chart-holder"
+              data-test="dashboard-component-chart-holder"
             >
-              <div
-                ref={dragSourceRef}
-                className="dashboard-component dashboard-component-chart-holder"
-                data-test="dashboard-component-chart-holder"
-              >
-                {editMode && (
-                  <HoverMenu position="top">
-                    <AlertsConfigMenuItem
-                      meta={meta}
-                      onSave={handleConfigSave}
-                      onVisibilityChange={handleConfigVisibilityChange}
-                    />
-                    <DeleteComponentButton onDelete={handleDeleteComponent} />
-                  </HoverMenu>
-                )}
-                
-                {getStatusIcon()}
-                
-                <div className="alerts-title">
-                  {editMode ? (
-                    <EditableTitle
-                      title={alertsLabel}
-                      canEdit
-                      onSaveTitle={handleChangeText}
-                      showTooltip={false}
-                    />
-                  ) : (
-                    alertsLabel
-                  )}
-                </div>
-                
-                {isConfigured && (
-                  <div className="alerts-topic">
-                    {meta.mqttTopic}
-                  </div>
-                )}
-                
-                <div className="alerts-info">
-                  {getStatusText()}
-                </div>
-
-                {!editMode && isConfigured && (
-                  <div className="alerts-status">
-                    <div className={`status-indicator ${connectionStatus}`} />
-                    <span>
-                      {connectionStatus === 'connected' 
-                        ? t('Active') 
-                        : connectionStatus === 'connecting'
-                        ? t('Connecting')
-                        : connectionStatus === 'error'
-                        ? t('Error')
-                        : t('Disconnected')}
-                    </span>
-                  </div>
+              {editMode && (
+                <HoverMenu position="top">
+                  <AlertsConfigMenuItem
+                    meta={meta}
+                    onSave={handleConfigSave}
+                    onVisibilityChange={handleConfigVisibilityChange}
+                  />
+                  <DeleteComponentButton onDelete={handleDeleteComponent} />
+                </HoverMenu>
+              )}
+              
+              {getStatusIcon()}
+              
+              <div className="alerts-title">
+                {editMode ? (
+                  <EditableTitle
+                    title={alertsLabel}
+                    canEdit
+                    onSaveTitle={handleChangeText}
+                    showTooltip={false}
+                  />
+                ) : (
+                  alertsLabel
                 )}
               </div>
-            </ResizableContainer>
+              
+              {isConfigured && (
+                <div className="alerts-topic">
+                  {meta.mqttTopic}
+                </div>
+              )}
+              
+              <div className="alerts-info">
+                {getStatusText()}
+              </div>
+
+              {!editMode && isConfigured && (
+                <div className="alerts-status">
+                  <div className={`status-indicator ${connectionStatus}`} />
+                  <span>
+                    {connectionStatus === 'connected' 
+                      ? t('Active') 
+                      : connectionStatus === 'connecting'
+                      ? t('Connecting')
+                      : connectionStatus === 'error'
+                      ? t('Error')
+                      : t('Disconnected')}
+                  </span>
+                </div>
+              )}
+            </div>
           </AlertsStyles>
         </WithPopoverMenu>
       )}
