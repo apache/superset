@@ -44,15 +44,13 @@ const AlertsStyles = styled.div`
     &.dashboard-alerts {
       /* Position absolutely to not take up layout space */
       position: fixed !important;
-      bottom: 70px;
+      bottom: 20px;
       left: 20px;
       z-index: 1000;
       
-      /* Fixed size for floating indicator */
-      width: 280px !important;
+      /* Compact size for floating indicator */
+      width: 180px !important;
       height: auto !important;
-      min-height: 150px;
-      max-height: 400px;
       
       display: flex;
       flex-direction: column;
@@ -72,19 +70,16 @@ const AlertsStyles = styled.div`
       }
 
       .dashboard-component-chart-holder {
-        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: ${theme.sizeUnit * 3}px;
-        min-height: 120px;
-        gap: ${theme.sizeUnit * 2}px;
-        overflow: hidden;
+        padding: ${theme.sizeUnit * 2}px;
+        gap: ${theme.sizeUnit}px;
       }
 
       .alerts-icon {
-        font-size: 32px;
+        font-size: 24px;
         color: ${theme.colorPrimary};
         
         &.connected {
@@ -97,51 +92,24 @@ const AlertsStyles = styled.div`
       }
 
       .alerts-title {
-        font-size: ${theme.fontSizeLg}px;
+        font-size: ${theme.fontSizeBase}px;
         font-weight: ${theme.fontWeightBold};
         color: ${theme.colorText};
         text-align: center;
       }
 
-      .alerts-info {
-        font-size: ${theme.fontSizeSm}px;
-        color: ${theme.colorTextDescription};
-        text-align: center;
-        max-width: 300px;
-      }
-
       .alerts-topic {
-        font-size: ${theme.fontSizeSm}px;
+        font-size: ${theme.fontSizeXs}px;
         color: ${theme.colorTextSecondary};
         background-color: ${theme.colorBgElevated};
-        padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+        padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
         border-radius: ${theme.borderRadiusXs}px;
         font-family: ${theme.fontFamilyCode};
         word-break: break-all;
-      }
-
-      .alerts-status {
-        display: flex;
-        align-items: center;
-        gap: ${theme.sizeUnit}px;
-        font-size: ${theme.fontSizeSm}px;
-        color: ${theme.colorTextDescription};
-        
-        .status-indicator {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background-color: ${theme.colorTextDescription};
-          
-          &.connected {
-            background-color: ${theme.colorSuccess};
-            animation: pulse 2s infinite;
-          }
-          
-          &.error {
-            background-color: ${theme.colorError};
-          }
-        }
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       @keyframes pulse {
@@ -546,27 +514,8 @@ const DashboardAlerts = ({
               </div>
               
               {isConfigured && (
-                <div className="alerts-topic">
+                <div className="alerts-topic" title={meta.mqttTopic}>
                   {meta.mqttTopic}
-                </div>
-              )}
-              
-              <div className="alerts-info">
-                {getStatusText()}
-              </div>
-
-              {!editMode && isConfigured && (
-                <div className="alerts-status">
-                  <div className={`status-indicator ${connectionStatus}`} />
-                  <span>
-                    {connectionStatus === 'connected' 
-                      ? t('Active') 
-                      : connectionStatus === 'connecting'
-                      ? t('Connecting')
-                      : connectionStatus === 'error'
-                      ? t('Error')
-                      : t('Disconnected')}
-                  </span>
                 </div>
               )}
             </div>
