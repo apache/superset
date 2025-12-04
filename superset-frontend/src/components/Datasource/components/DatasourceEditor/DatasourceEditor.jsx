@@ -765,6 +765,10 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the formatQuery action.
+   * Aborts any pending format requests before starting a new one.
+   */
   async onQueryFormat() {
     const { datasource } = this.state;
     if (!datasource.sql || !this.state.isEditMode) {
@@ -795,6 +799,8 @@ class DatasourceEditor extends PureComponent {
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatQuery = null;
     }
   }
 
@@ -821,6 +827,10 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the SQL format API endpoint.
+   * Aborts any pending format requests before starting a new one.
+   */
   async formatSql() {
     const { datasource } = this.state;
     if (!datasource.sql) {
@@ -856,9 +866,16 @@ class DatasourceEditor extends PureComponent {
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatSql = null;
     }
   }
 
+  /**
+   * Syncs dataset columns with the database schema.
+   * Fetches column metadata from the underlying table/view and updates the dataset.
+   * Aborts any pending sync requests before starting a new one.
+   */
   async syncMetadata() {
     const { datasource } = this.state;
 
@@ -892,6 +909,7 @@ class DatasourceEditor extends PureComponent {
       this.setState({ metadataLoading: false });
     } catch (error) {
       if (error.name === 'AbortError') {
+        // Only update state if still mounted (abort may happen during unmount)
         if (this.isComponentMounted) {
           this.setState({ metadataLoading: false });
         }
@@ -905,9 +923,21 @@ class DatasourceEditor extends PureComponent {
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    } finally {
+      this.abortControllers.syncMetadata = null;
     }
   }
 
+  /**
+   * Fetches chart usage data for this dataset (which charts use this dataset).
+   * Aborts any pending fetch requests before starting a new one.
+   *
+   * @param {number} page - Page number (1-indexed)
+   * @param {number} pageSize - Number of results per page
+   * @param {string} sortColumn - Column to sort by
+   * @param {string} sortDirection - Sort direction ('asc' or 'desc')
+   * @returns {Promise<{charts: Array, count: number, ids: Array}>} Chart usage data
+   */
   async fetchUsageData(
     page = 1,
     pageSize = 25,
@@ -971,7 +1001,8 @@ class DatasourceEditor extends PureComponent {
         id: ids[index],
       }));
 
-      if (this.isComponentMounted) {
+      // Only update state if not aborted and component still mounted
+      if (!signal.aborted && this.isComponentMounted) {
         this.setState({
           usageCharts: chartsWithIds,
           usageChartsCount: json?.count || 0,
@@ -984,6 +1015,7 @@ class DatasourceEditor extends PureComponent {
         ids,
       };
     } catch (error) {
+      // Rethrow AbortError so callers can handle gracefully
       if (error.name === 'AbortError') throw error;
 
       const { error: clientError, statusText } =
@@ -1004,6 +1036,8 @@ class DatasourceEditor extends PureComponent {
         count: 0,
         ids: [],
       };
+    } finally {
+      this.abortControllers.fetchUsageData = null;
     }
   }
 
