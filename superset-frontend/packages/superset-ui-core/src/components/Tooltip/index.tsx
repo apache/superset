@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { CSSProperties } from 'react';
 import { Tooltip as AntdTooltip } from 'antd';
 
 import type { TooltipProps, TooltipPlacement } from './types';
 import { resolveGlossaryString } from '../../glossary/glossaryUtils';
+
+const TOOLTIP_SEPARATOR_STYLE: CSSProperties = {
+  margin: '8px 0',
+  border: 'none',
+  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+};
 
 export const Tooltip = ({
   overlayStyle,
@@ -27,13 +34,23 @@ export const Tooltip = ({
   children,
   ...props
 }: TooltipProps) => {
-  // Check if the title matches a glossary term and get the URL if it does
 
-  if(typeof title !== 'string') {
-    return <>{children}</>;
+  if (typeof title !== 'string') {
+      return (
+        <AntdTooltip
+          title={title}
+          styles={{
+            body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+            root: overlayStyle ?? {},
+          }}
+          {...props}
+        >
+          {children}
+        </AntdTooltip>
+      );
   }
 
-  const [glossaryUrl, description] = resolveGlossaryString(title as string);
+  const [glossaryUrl, description] = resolveGlossaryString(title);
   const wrappedChildren = glossaryUrl ? (
     <a href={glossaryUrl} target="_blank" rel="noopener noreferrer">
       {children}
@@ -45,7 +62,7 @@ export const Tooltip = ({
   const wrappedDescription = glossaryUrl ? (
     <>
       {description}
-      <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }} />
+      <hr style={TOOLTIP_SEPARATOR_STYLE} />
       <em>Click to Learn More</em>
     </>
   ) : (
