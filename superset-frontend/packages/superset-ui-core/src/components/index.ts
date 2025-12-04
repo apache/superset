@@ -102,6 +102,13 @@ export {
   type DynamicEditableTitleProps,
 } from './DynamicEditableTitle';
 export { EditableTitle, type EditableTitleProps } from './EditableTitle';
+export {
+  EmojiTextArea,
+  type EmojiTextAreaProps,
+  type EmojiItem,
+  filterEmojis,
+  EMOJI_DATA,
+} from './EmojiTextArea';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { Empty, type EmptyProps } from './EmptyState/Empty';
 export { FaveStar, type FaveStarProps } from './FaveStar';
