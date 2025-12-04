@@ -35,6 +35,9 @@ const countValues = mockData.map(row => row.count);
 const strData = [{ name: 'Brian' }, { name: 'Carlos' }, { name: 'Diana' }];
 const strValues = strData.map(row => row.name);
 
+const boolData = [{ isMember: true }, { isMember: false }, { isMember: null }];
+const boolValues = boolData.map(row => row.isMember);
+
 describe('round', () => {
   it('round', () => {
     expect(round(1)).toEqual(1);
@@ -426,6 +429,66 @@ describe('getColorFunction()', () => {
     expect(colorFunction('Carlos')).toEqual('#FF0000FF');
     expect(colorFunction('Brian')).toEqual('#FF0000FF');
   });
+
+  it('getColorFunction IsTrue', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.IsTrue,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      boolValues,
+    );
+    expect(colorFunction(true)).toEqual('#FF0000FF');
+    expect(colorFunction(false)).toBeUndefined();
+    expect(colorFunction(null)).toBeUndefined();
+  });
+
+  it('getColorFunction IsFalse', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.IsFalse,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      boolValues,
+    );
+    expect(colorFunction(true)).toBeUndefined();
+    expect(colorFunction(false)).toEqual('#FF0000FF');
+    expect(colorFunction(null)).toBeUndefined();
+  });
+
+  it('getColorFunction IsNull', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.IsNull,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      boolValues,
+    );
+    expect(colorFunction(true)).toBeUndefined();
+    expect(colorFunction(false)).toBeUndefined();
+    expect(colorFunction(null)).toEqual('#FF0000FF');
+  });
+
+  it('getColorFunction IsNotNull', () => {
+    const colorFunction = getColorFunction(
+      {
+        operator: Comparator.IsNotNull,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      boolValues,
+    );
+    expect(colorFunction(true)).toEqual('#FF0000FF');
+    expect(colorFunction(false)).toEqual('#FF0000FF');
+    expect(colorFunction(null)).toBeUndefined();
+  });
 });
 
 describe('getColorFormatters()', () => {
@@ -517,5 +580,49 @@ describe('getColorFormatters()', () => {
 
     expect(colorFormatters[3].column).toEqual('name');
     expect(colorFormatters[3].getColorFromValue('Carlos')).toEqual('#FF0000FF');
+  });
+
+  it('correct column boolean config', () => {
+    const columnConfigBoolean = [
+      {
+        operator: Comparator.IsTrue,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      {
+        operator: Comparator.IsFalse,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      {
+        operator: Comparator.IsNull,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+      {
+        operator: Comparator.IsNotNull,
+        targetValue: '',
+        colorScheme: '#FF0000',
+        column: 'isMember',
+      },
+    ];
+    const colorFormatters = getColorFormatters(columnConfigBoolean, boolData);
+    expect(colorFormatters.length).toEqual(4);
+
+    expect(colorFormatters[0].column).toEqual('isMember');
+    expect(colorFormatters[0].getColorFromValue(true)).toEqual('#FF0000FF');
+
+    expect(colorFormatters[1].column).toEqual('isMember');
+    expect(colorFormatters[1].getColorFromValue(false)).toEqual('#FF0000FF');
+
+    expect(colorFormatters[2].column).toEqual('isMember');
+    expect(colorFormatters[2].getColorFromValue(null)).toEqual('#FF0000FF');
+
+    expect(colorFormatters[3].column).toEqual('isMember');
+    expect(colorFormatters[3].getColorFromValue(true)).toEqual('#FF0000FF');
+    expect(colorFormatters[3].getColorFromValue(false)).toEqual('#FF0000FF');
   });
 });
