@@ -18,7 +18,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import d3 from 'd3';
 import ReactCountryMap from '../src/ReactCountryMap';
 
