@@ -318,7 +318,7 @@
     "eslint-plugin-react-prefer-function-component": "^3.3.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "^0.5.1",
     "eslint-plugin-storybook": "^0.8.0",
-    "eslint-plugin-testing-library": "^6.4.0",
+    "eslint-plugin-testing-library": "^7.13.3",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
     "fetch-mock": "^11.1.5",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
