@@ -63,7 +63,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@tool
+@tool(tags=["core"])
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context

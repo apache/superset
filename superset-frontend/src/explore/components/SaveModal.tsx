@@ -49,6 +49,7 @@ import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { removeChartState } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
 import { TabNode, TabTreeNode } from '../types';
 
@@ -318,6 +319,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         if (this.state.selectedTab?.value) {
           url += `#${this.state.selectedTab.value}`;
         }
+        this.props.dispatch(removeChartState(value.id));
         this.props.history.push(url);
         return;
       }

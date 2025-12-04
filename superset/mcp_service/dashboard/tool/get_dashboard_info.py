@@ -40,7 +40,7 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["discovery"])
 @parse_request(GetDashboardInfoRequest)
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
