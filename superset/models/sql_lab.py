@@ -49,6 +49,7 @@ from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
 from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -62,7 +63,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import QueryData, QueryObjectDict
+from superset.superset_typing import ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     get_column_name,
@@ -238,7 +239,7 @@ class Query(
         return None
 
     @property
-    def data(self) -> QueryData:
+    def data(self) -> ExplorableData:
         """Returns query data for the frontend"""
         order_by_choices = []
         for col in self.columns:
@@ -333,6 +334,32 @@ class Query(
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         return []
+
+    def get_time_grains(self) -> list[TimeGrainDict]:
+        """
+        Get available time granularities from the database.
+
+        Delegates to the database's time grain definitions.
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
+
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        For Query objects, all columns are considered drillable since they
+        come from ad-hoc SQL queries without predefined metadata.
+        """
+        if not column_names:
+            return False
+        return set(column_names).issubset(set(self.column_names))
 
     @property
     def tracking_url(self) -> Optional[str]:

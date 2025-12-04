@@ -25,11 +25,32 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable, TYPE_CHECKING, TypedDict
 
-from superset.common.query_object import QueryObject
-from superset.models.helpers import QueryResult
-from superset.superset_typing import QueryObjectDict
+if TYPE_CHECKING:
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+    from superset.superset_typing import ExplorableData, QueryObjectDict
+
+
+class TimeGrainDict(TypedDict):
+    """
+    TypedDict for time grain options returned by get_time_grains.
+
+    Represents a time granularity option that can be used for grouping
+    temporal data. Each time grain specifies how to bucket timestamps.
+
+    Attributes:
+        name: Display name for the time grain (e.g., "Hour", "Day", "Week")
+        function: Implementation-specific expression for applying the grain.
+            For SQL datasources, this is typically a SQL expression template
+            like "DATE_TRUNC('hour', {col})".
+        duration: ISO 8601 duration string (e.g., "PT1H", "P1D", "P1W")
+    """
+
+    name: str
+    function: str
+    duration: str | None
 
 
 @runtime_checkable
@@ -152,9 +173,8 @@ class Explorable(Protocol):
         :return: List of column name strings
         """
 
-    # TODO: use TypedDict for return type
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> ExplorableData:
         """
         Full metadata representation sent to the frontend.
 
@@ -257,7 +277,7 @@ class Explorable(Protocol):
     # Time Granularity
     # =========================================================================
 
-    def get_time_grains(self) -> list[dict[str, Any]]:
+    def get_time_grains(self) -> list[TimeGrainDict]:
         """
         Get available time granularities for temporal grouping.
 
