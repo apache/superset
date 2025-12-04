@@ -986,7 +986,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:  # noqa: PT012
             command_without_db_name.run()
-            assert str(excinfo.value) == ("Stopped an unsafe database connection")
+        assert str(excinfo.value) == ("Stopped an unsafe database connection")
 
         mock_event_logger.assert_called()
 
@@ -1008,9 +1008,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         with pytest.raises(SupersetErrorsException) as excinfo:  # noqa: PT012
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Connection failed, please check your connection settings"
-            )
+        assert str(excinfo.value) == (
+            "Connection failed, please check your connection settings"
+        )
 
         mock_event_logger.assert_called()
 
@@ -1147,7 +1147,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
 
         with pytest.raises(DatabaseNotFoundError) as excinfo:  # noqa: PT012
             command.run()
-            assert str(excinfo.value) == ("Database not found.")
+        assert str(excinfo.value) == ("Database not found.")
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
@@ -1166,7 +1166,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
-            assert str(excinfo.value) == "Test Error"
+        assert str(excinfo.value) == "Test Error"
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
@@ -1182,10 +1182,10 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()
-            assert (
-                str(excinfo.value)
-                == "Unexpected error occurred, please check your logs for details"
-            )
+        assert (
+            str(excinfo.value)
+            == "Unexpected error occurred, please check your logs for details"
+        )
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
