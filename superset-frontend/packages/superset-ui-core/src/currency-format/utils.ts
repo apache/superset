@@ -53,6 +53,30 @@ export const analyzeCurrencyInData = (
   return normalizeCurrency(currencies[0]);
 };
 
+/** Resolve AUTO currency to detected value, null (mixed), or passthrough original. */
+export const resolveAutoCurrency = (
+  currencyFormat: Currency | undefined,
+  backendDetected: string | null | undefined,
+  data?: Record<string, any>[],
+  currencyCodeColumn?: string,
+): Currency | undefined | null => {
+  if (currencyFormat?.symbol !== 'AUTO') return currencyFormat;
+
+  const detectedCurrency =
+    backendDetected ??
+    (data && currencyCodeColumn
+      ? analyzeCurrencyInData(data, currencyCodeColumn)
+      : null);
+
+  if (detectedCurrency) {
+    return {
+      symbol: detectedCurrency,
+      symbolPosition: currencyFormat.symbolPosition,
+    };
+  }
+  return null; // Mixed currencies
+};
+
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
   savedCurrencyFormats: Record<string, Currency>,

@@ -83,7 +83,6 @@ class DatasetColumnsPutSchema(Schema):
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
     is_dttm = fields.Boolean(allow_none=True, dump_default=False)
-    is_currency_code = fields.Boolean(allow_none=True, dump_default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )

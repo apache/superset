@@ -21,10 +21,8 @@ import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
-  analyzeCurrencyInData,
   buildCustomFormatters,
   CategoricalColorNamespace,
-  Currency,
   CurrencyFormatter,
   ensureIsArray,
   tooltipHtml,
@@ -38,6 +36,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  resolveAutoCurrency,
   t,
   TimeseriesChartDataResponseResult,
   NumberFormats,
@@ -283,23 +282,12 @@ export default function transformProps(
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
 
   // Resolve currency for AUTO mode (backend detection takes precedence)
-  let resolvedCurrency: Currency | undefined | null = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO') {
-    const detectedCurrency =
-      backendDetectedCurrency ??
-      (data && currencyCodeColumn
-        ? analyzeCurrencyInData(data, currencyCodeColumn)
-        : null);
-    if (detectedCurrency) {
-      resolvedCurrency = {
-        symbol: detectedCurrency,
-        symbolPosition: currencyFormat.symbolPosition,
-      };
-    } else {
-      // Mixed currencies: explicitly use null to prevent fallback to metric-level settings
-      resolvedCurrency = null;
-    }
-  }
+  const resolvedCurrency = resolveAutoCurrency(
+    currencyFormat,
+    backendDetectedCurrency,
+    data,
+    currencyCodeColumn,
+  );
 
   const defaultFormatter = resolvedCurrency?.symbol
     ? new CurrencyFormatter({

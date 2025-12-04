@@ -773,7 +773,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     description = Column(utils.MediumText())
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     is_dttm = Column(Boolean, default=False)
-    is_currency_code = Column(Boolean, default=False)
     expression = Column(utils.MediumText())
     python_date_format = Column(String(255))
     datetime_format = Column(String(100))
@@ -789,7 +788,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         "column_name",
         "verbose_name",
         "is_dttm",
-        "is_currency_code",
         "is_active",
         "type",
         "advanced_data_type",
@@ -992,7 +990,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "id",
             "uuid",
             "is_certified",
-            "is_currency_code",
             "is_dttm",
             "python_date_format",
             "type",

@@ -62,6 +62,8 @@ def detect_currency(
     if not currency_column:
         return None
 
+    datasource_id = getattr(datasource, "id", 0)
+
     try:
         query_obj: QueryObjectDict = {
             "granularity": granularity,
@@ -94,7 +96,7 @@ def detect_currency(
     except Exception:  # pylint: disable=broad-except
         logger.warning(
             "Failed to detect currency for datasource %s",
-            getattr(datasource, "id", "unknown"),
+            datasource_id,
             exc_info=True,
         )
         return None

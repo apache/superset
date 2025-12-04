@@ -32,13 +32,7 @@ down_revision = "a9c01ec10479"
 
 
 def upgrade():
-    """Add currency column support to datasets and table columns."""
-    # Add boolean flag to table_columns for currency code identification
-    add_columns(
-        "table_columns",
-        sa.Column("is_currency_code", sa.Boolean(), nullable=True, default=False),
-    )
-
+    """Add currency column support to datasets."""
     # Add currency code column designation to tables (like main_dttm_col pattern)
     add_columns(
         "tables",
@@ -48,14 +42,7 @@ def upgrade():
 
 def downgrade():
     """Remove currency column support."""
-    # Drop columns from tables
     drop_columns(
         "tables",
         "currency_code_column",
-    )
-
-    # Drop columns from table_columns
-    drop_columns(
-        "table_columns",
-        "is_currency_code",
     )

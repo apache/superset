@@ -19,12 +19,10 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
-  analyzeCurrencyInData,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
-  Currency,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
@@ -38,6 +36,7 @@ import {
   isTimeseriesAnnotationLayer,
   QueryFormData,
   QueryFormMetric,
+  resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
@@ -115,30 +114,6 @@ const getFormatter = (
     getCustomFormatter(customFormatters, metrics, formatterKey) ??
     defaultFormatter
   );
-};
-
-/** Resolve AUTO currency mode using backend detection or frontend analysis. */
-const resolveCurrencyForAutoMode = (
-  currencyFormat: Currency | undefined,
-  backendDetected: string | null | undefined,
-  data: TimeseriesDataRecord[] | undefined,
-  currencyCodeColumn: string | undefined,
-): Currency | undefined | null => {
-  if (currencyFormat?.symbol !== 'AUTO') return currencyFormat;
-
-  const detectedCurrency =
-    backendDetected ??
-    (data && currencyCodeColumn
-      ? analyzeCurrencyInData(data, currencyCodeColumn)
-      : null);
-
-  if (detectedCurrency) {
-    return {
-      symbol: detectedCurrency,
-      symbolPosition: currencyFormat.symbolPosition,
-    };
-  }
-  return null; // Mixed currencies
 };
 
 export default function transformProps(
@@ -307,13 +282,13 @@ export default function transformProps(
   });
   const series: SeriesOption[] = [];
 
-  const resolvedCurrency = resolveCurrencyForAutoMode(
+  const resolvedCurrency = resolveAutoCurrency(
     currencyFormat,
     backendDetectedCurrency,
     data1,
     currencyCodeColumn,
   );
-  const resolvedCurrencySecondary = resolveCurrencyForAutoMode(
+  const resolvedCurrencySecondary = resolveAutoCurrency(
     currencyFormatSecondary,
     backendDetectedCurrencyB,
     data2,
