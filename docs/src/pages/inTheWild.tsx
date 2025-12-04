@@ -1,5 +1,3 @@
-// Updated version of the page with the requested text added
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+
 import BlurredSection from '../components/BlurredSection';
 import { Collapse } from 'antd';
 import Layout from '@theme/Layout';
@@ -58,6 +56,7 @@ const Card = styled('div')`
   strong {
     font-size: 20px;
     transition: color 0.25s ease;
+    color: var(--ifm-font-base-color);
   }
   a:hover strong {
     color: var(--ifm-color-primary);
@@ -65,7 +64,7 @@ const Card = styled('div')`
   a:hover {
     text-decoration: none;
   }
-  a:hover ~ & {
+  &:hover {
     box-shadow: 0 4px 14px rgba(0,0,0,0.12);
     transform: translateY(-2px);
   }
@@ -83,6 +82,8 @@ const LinkedCard = styled(Card)`
   img {
     height: 80px;
     margin-bottom: 12px;
+    max-width: 100%;
+    object-fit: contain;
   }
 `;
 
@@ -95,44 +96,6 @@ const CollapseStyles = styled('div')`
 `;
 
 export default function NewPage() {
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-
-  useEffect(() => {
-    const logos = Object.values(DataSet.categories)
-      .flat()
-      .map(item => (item.logo || '').trim())
-      .filter(Boolean);
-
-    if (logos.length === 0) {
-      setImagesLoaded(true);
-      return;
-    }
-
-    let loaded = 0;
-    const imageObjects = logos.map(src => {
-      const img = new Image();
-      img.onload = () => {
-        loaded += 1;
-        if (loaded === logos.length) setImagesLoaded(true);
-      };
-      img.onerror = () => {
-        loaded += 1;
-        if (loaded === logos.length) setImagesLoaded(true);
-      };
-      img.src = `/img/logos/${src}`;
-      return img;
-    });
-
-    return () => {
-      imageObjects.forEach(img => {
-        img.onload = null;
-        img.onerror = null;
-      });
-    };
-  }, []);
-
-  if (!imagesLoaded) return null;
-
   return (
     <Layout title="In the Wild" description="Visually display our users">
       <main>
@@ -154,8 +117,7 @@ export default function NewPage() {
           </div>
         </BlurredSection>
 
-        <div style={{ height: '100px' }}></div>
-
+        <div style={{ height: '70px' }}></div>
         <div style={{ maxWidth: '850px', margin: '0 auto' }}>
           <CollapseStyles>
             <Collapse
@@ -168,41 +130,69 @@ export default function NewPage() {
                 padding: '10px'
               }}
             >
-              {Object.entries(DataSet.categories).map(([category, items]) => (
-                <Collapse.Panel
-                  header={
-                    <span
-                      style={{
-                        color: 'var(--ifm-font-base-color)',
-                        fontSize: '22px',
-                        fontWeight: 600
-                      }}
-                    >
-                      {`${category} (${items.length})`}
-                    </span>
-                  }
-                  key={category}
-                  style={{ borderBottom: '1px solid var(--ifm-border-color)' }}
-                >
-                  <StyledGrid>
-                    {items.map(({ name, url, logo }, index) => (
-                      logo && logo.trim() !== '' ? (
-                        <LinkedCard key={index}>
-                          <a href={url} target="_blank" rel="noreferrer">
-                            <img src={`/img/logos/${logo}`} alt={name} />
-                          </a>
-                        </LinkedCard>
-                      ) : (
-                        <Card key={index}>
-                          <a href={url} target="_blank" rel="noreferrer">
-                            <strong>{name}</strong>
-                          </a>
-                        </Card>
-                      )
-                    ))}
-                  </StyledGrid>
-                </Collapse.Panel>
-              ))}
+              {Object.entries(DataSet.categories).map(([category, items]) => {
+                const logoItems = items.filter(({ logo }) => logo && logo.trim() !== '');
+                const textItems = items.filter(({ logo }) => !logo || logo.trim() === '');
+                return (
+                  <Collapse.Panel
+                    header={
+                      <span
+                        style={{
+                          color: 'var(--ifm-font-base-color)',
+                          fontSize: '22px',
+                          fontWeight: 600
+                        }}
+                      >
+                        {`${category} (${items.length})`}
+                      </span>
+                    }
+                    key={category}
+                    style={{ borderBottom: '1px solid var(--ifm-border-color)' }}
+                  >
+                    {logoItems.length > 0 && (
+                      <StyledGrid>
+                        {logoItems.map(({ name, url, logo }, index) => (
+                          <LinkedCard key={index}>
+                            <a href={url} target="_blank" rel="noreferrer">
+                              <img src={`/img/logos/${logo}`} alt={name} />
+                            </a>
+                          </LinkedCard>
+                        ))}
+                      </StyledGrid>
+                    )}
+
+                    {textItems.length > 0 && (
+                      <ul style={{ marginTop: '16px', paddingLeft: '0', listStyle: 'none' }}>
+                        {textItems.map(({ name, url }, idx) => (
+                          <li
+                            key={idx}
+                            style={{
+                              marginBottom: '8px',
+                              fontSize: '15px',
+                              border: '1px solid var(--ifm-border-color)',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
+                              background: 'rgba(0,122,204,0.04)',
+                              transition: 'background 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,122,204,0.09)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,122,204,0.04)')}
+                          >
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: 'var(--ifm-link-color)', textDecoration: 'none' }}
+                            >
+                              {name}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Collapse.Panel>
+                );
+              })}
             </Collapse>
           </CollapseStyles>
         </div>

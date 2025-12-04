@@ -72,13 +72,13 @@ export const results = {
             {
                 "name": "American Express",
                 "url": "https://www.americanexpress.com",
-                "logo": "",
+                "logo": "americanExpress.svg",
                 "contributors": "[@TheLastSultan]"
             },
             {
                 "name": "bumper",
                 "url": "https://www.bumper.co/",
-                "logo": "",
+                "logo": "bumper.svg",
                 "contributors": "[@vasu-ram, @JamiePercival]"
             },
             {
@@ -138,7 +138,7 @@ export const results = {
             {
                 "name": "Xendit",
                 "url": "https://xendit.co/",
-                "logo": "",
+                "logo": "xendit.svg",
                 "contributors": "[@LieAlbertTriAdrian]"
             },
             {
