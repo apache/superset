@@ -323,14 +323,14 @@ const Row = memo((props: RowProps) => {
             <Droppable
               {...(rowItems.length === 0
                 ? {
-                  component: rowComponent,
-                  parentComponent: rowComponent,
-                  dropToChild: true,
-                }
+                    component: rowComponent,
+                    parentComponent: rowComponent,
+                    dropToChild: true,
+                  }
                 : {
-                  component: rowItems[0],
-                  parentComponent: rowComponent,
-                })}
+                    component: rowItems[0],
+                    parentComponent: rowComponent,
+                  })}
               depth={depth}
               index={0}
               orientation="row"
@@ -384,8 +384,8 @@ const Row = memo((props: RowProps) => {
                       'empty-droptarget',
                       'empty-droptarget--vertical',
                       remainColumnCount === 0 &&
-                      itemIndex === rowItems.length - 1 &&
-                      'droptarget-side',
+                        itemIndex === rowItems.length - 1 &&
+                        'droptarget-side',
                     )}
                     editMode
                     style={{
