@@ -47,6 +47,7 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
+import AlertIcon from 'src/dashboard/components/gridComponents/Alerts/AlertIcon';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -714,6 +715,7 @@ const Header = () => {
           <UndoRedoKeyListeners onUndo={handleCtrlZ} onRedo={handleCtrlY} />
         ) : (
           <div css={actionButtonsStyle}>
+            <AlertIcon />
             {NavExtension && <NavExtension />}
             {userCanEdit && (
               <Button

@@ -17,3 +17,5 @@
  * under the License.
  */
 export { default } from './Alerts';
+export { default as AlertIcon } from './AlertIcon';
+export { default as AlertsPanel } from './AlertsPanel';
