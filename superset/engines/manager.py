@@ -323,7 +323,7 @@ class EngineManager:
         kwargs = extra.get("engine_params", {})
 
         # get pool class
-        if self.mode == EngineModes.NEW or "poolclass" not in extra:
+        if self.mode == EngineModes.NEW or "poolclass" not in kwargs:
             kwargs["poolclass"] = pool.NullPool
         else:
             pools = {
