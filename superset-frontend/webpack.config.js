@@ -244,7 +244,6 @@ if (isDevMode) {
   // A Superset webpage normally includes two JS bundles in dev, `theme.ts` and
   // the main entrypoint. Only the main entry should have the dev server client,
   // otherwise the websocket client will initialize twice, creating two sockets.
-  // Ref: https://github.com/gaearon/react-hot-loader/issues/141
   PREAMBLE.unshift(
     `webpack-dev-server/client?http://localhost:${devserverPort}`,
   );
@@ -377,11 +376,9 @@ const config = {
               'prop-types-extra',
               'redux',
               'react-redux',
-              'react-hot-loader',
               'react-sortable-hoc',
               'react-table',
               'react-ace',
-              '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
               'lodash.*',
