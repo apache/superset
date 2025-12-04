@@ -55,15 +55,15 @@ def inject_dao_implementations() -> None:
     from superset.daos.user import UserDAO as HostUserDAO
 
     # Replace abstract classes with concrete implementations
-    core_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore
-    core_dao_module.DatabaseDAO = HostDatabaseDAO  # type: ignore
-    core_dao_module.ChartDAO = HostChartDAO  # type: ignore
-    core_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore
-    core_dao_module.UserDAO = HostUserDAO  # type: ignore
-    core_dao_module.QueryDAO = HostQueryDAO  # type: ignore
-    core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore
-    core_dao_module.TagDAO = HostTagDAO  # type: ignore
-    core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore
+    core_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
+    core_dao_module.DatabaseDAO = HostDatabaseDAO  # type: ignore[assignment,misc]
+    core_dao_module.ChartDAO = HostChartDAO  # type: ignore[assignment,misc]
+    core_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore[assignment,misc]
+    core_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
+    core_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
+    core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
+    core_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
+    core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
 
     core_dao_module.__all__ = [
         "DatasetDAO",
@@ -97,15 +97,15 @@ def inject_model_implementations() -> None:
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement - extensions will import concrete implementations
-    core_models_module.Database = HostDatabase  # type: ignore
-    core_models_module.Dataset = HostDataset  # type: ignore
-    core_models_module.Chart = HostChart  # type: ignore
-    core_models_module.Dashboard = HostDashboard  # type: ignore
-    core_models_module.User = HostUser  # type: ignore
-    core_models_module.Query = HostQuery  # type: ignore
-    core_models_module.SavedQuery = HostSavedQuery  # type: ignore
-    core_models_module.Tag = HostTag  # type: ignore
-    core_models_module.KeyValue = HostKeyValue  # type: ignore
+    core_models_module.Database = HostDatabase  # type: ignore[misc]
+    core_models_module.Dataset = HostDataset  # type: ignore[misc]
+    core_models_module.Chart = HostChart  # type: ignore[misc]
+    core_models_module.Dashboard = HostDashboard  # type: ignore[misc]
+    core_models_module.User = HostUser  # type: ignore[misc]
+    core_models_module.Query = HostQuery  # type: ignore[misc]
+    core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
+    core_models_module.Tag = HostTag  # type: ignore[misc]
+    core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
