@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/ui';
 import { Modal, Loading, Flex, Button, Tooltip } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
