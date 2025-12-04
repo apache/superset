@@ -95,8 +95,37 @@ describe('CountryMap (legacy d3)', () => {
 
     expect(d3.json).toHaveBeenCalledTimes(1);
 
-    const region = await document.querySelector('path.region');
+    const region = document.querySelector('path.region');
     expect(region).not.toBeNull();
+  });
+
+  it('shows tooltip on mouseenter/mousemove/mouseout', async () => {
+    d3.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+
+    render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+      />,
+    );
+
+    const region = document.querySelector('path.region');
+    expect(region).not.toBeNull();
+
+    const popup = document.querySelector('.hover-popup');
+    expect(popup).not.toBeNull();
+
+    fireEvent.mouseEnter(region!);
+    expect(popup!).toHaveStyle({ display: 'block' });
+
+    fireEvent.mouseOut(region!);
+    expect(popup!).toHaveStyle({ display: 'none' });
   });
 
   it('shows tooltip on mouseenter/mousemove/mouseout', async () => {
