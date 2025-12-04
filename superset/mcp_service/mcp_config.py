@@ -76,13 +76,39 @@ MCP_FACTORY_CONFIG = {
 # Response Caching Configuration (FastMCP 2.13+)
 # Enables TTL-based caching for tool/resource/prompt responses
 # See: https://github.com/jlowin/fastmcp/releases/tag/v2.13.0
-MCP_CACHE_CONFIG = {
-    # Enable response caching middleware
-    "enabled": True,
+#
+# IMPORTANT: Caching is DISABLED by default for the following reasons:
+# 1. MCP tools typically perform small OLTP queries that are fast enough
+# 2. In-memory caching doesn't work well with multi-process deployments
+# 3. Cache invalidation adds complexity without clear benefits
+#
+# To enable caching, you MUST:
+# 1. Set "enabled": True
+# 2. Configure Redis backend using Superset's existing Redis infrastructure
+#    (uses REDIS_HOST, REDIS_PORT from Superset config)
+#
+# Example in superset_config.py:
+#   MCP_CACHE_CONFIG = {
+#       "enabled": True,
+#       "use_redis": True,  # Uses Superset's Redis config
+#   }
+#
+# WARNING: There is no event-based cache invalidation. Cached data
+# will remain stale until TTL expiration. This may cause issues if
+# dashboards/charts are frequently updated.
+MCP_CACHE_CONFIG: dict[str, Any] = {
+    # Caching disabled by default - most MCP queries are fast OLTP operations
+    "enabled": False,
+    # Use Redis for caching (requires Superset's Redis to be configured)
+    # When True, uses REDIS_HOST/REDIS_PORT from Superset config
+    # When False and enabled=True, falls back to in-memory (not recommended)
+    "use_redis": True,
+    # Redis database number for MCP cache (default: same as Superset's cache DB)
+    "redis_db": None,  # Uses Superset's REDIS_RESULTS_DB if not set
+    # Key prefix for MCP cache entries
+    "redis_key_prefix": "mcp_cache:",
     # Maximum size of cached items (1MB default)
     "max_item_size": 1024 * 1024,
-    # Cache backend - None uses in-memory cache, can be customized with AsyncKeyValue
-    "cache_storage": None,
     # List operations caching (5 minutes default)
     "list_tools_ttl": 300,
     "list_resources_ttl": 300,
@@ -223,29 +249,101 @@ def get_mcp_config_with_overrides(
     return {**defaults, **app_config}
 
 
+def _create_redis_cache_storage(
+    app_config: dict[str, Any], cache_config: dict[str, Any]
+) -> Any | None:
+    """Create Redis-based cache storage using Superset's Redis config.
+
+    Args:
+        app_config: Flask app configuration dict
+        cache_config: MCP cache configuration dict
+
+    Returns:
+        RedisStore instance or None if Redis is not configured/available
+    """
+    try:
+        from key_value.aio.stores.redis import RedisStore
+    except ImportError:
+        logger.warning(
+            "key_value package not available for Redis caching. "
+            "Install with: pip install key-value[redis]"
+        )
+        return None
+
+    # Get Redis config from Superset's standard config keys
+    redis_host = app_config.get("REDIS_HOST", "localhost")
+    redis_port = int(app_config.get("REDIS_PORT", 6379))
+    redis_db = cache_config.get("redis_db") or app_config.get("REDIS_RESULTS_DB", 1)
+
+    try:
+        cache_storage = RedisStore(
+            host=redis_host,
+            port=redis_port,
+            db=int(redis_db),
+        )
+        logger.info(
+            "Created Redis cache storage: host=%s, port=%s, db=%s",
+            redis_host,
+            redis_port,
+            redis_db,
+        )
+        return cache_storage
+    except Exception as e:
+        logger.warning("Failed to create Redis cache storage: %s", e)
+        return None
+
+
 def create_response_caching_middleware(
     app_config: dict[str, Any] | None = None,
 ) -> Any | None:
     """Create ResponseCachingMiddleware with configuration from app.config.
+
+    Caching is DISABLED by default. To enable:
+    1. Set MCP_CACHE_CONFIG["enabled"] = True in superset_config.py
+    2. Ensure Redis is configured (REDIS_HOST, REDIS_PORT)
+
+    The middleware will use Redis for distributed caching across
+    multiple Superset processes/servers. In-memory caching is not
+    recommended for production deployments.
 
     Args:
         app_config: Optional Flask app configuration dict
 
     Returns:
         ResponseCachingMiddleware instance or None if caching is disabled
-
     """
     app_config = app_config or {}
 
     # Get cache config from app.config or use defaults
     cache_config = {**MCP_CACHE_CONFIG, **app_config.get("MCP_CACHE_CONFIG", {})}
 
-    if not cache_config.get("enabled", True):
-        logger.info("Response caching middleware disabled")
+    # Default is disabled - must explicitly enable
+    if not cache_config.get("enabled", False):
+        logger.debug("MCP response caching disabled (default)")
         return None
 
     try:
         from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+        # Determine cache storage backend
+        cache_storage = cache_config.get("cache_storage")
+        if cache_storage is None and cache_config.get("use_redis", True):
+            cache_storage = _create_redis_cache_storage(app_config, cache_config)
+            if cache_storage is None:
+                logger.warning(
+                    "Redis cache storage not available. "
+                    "MCP caching requires Redis for multi-process deployments. "
+                    "Disabling caching."
+                )
+                return None
+
+        if cache_storage is None:
+            # In-memory fallback - warn about limitations
+            logger.warning(
+                "Using in-memory cache for MCP responses. "
+                "This is NOT recommended for production with multiple processes. "
+                "Configure Redis via REDIS_HOST/REDIS_PORT for distributed caching."
+            )
 
         # Build settings dictionaries for each operation type
         list_tools_settings = {
@@ -280,7 +378,7 @@ def create_response_caching_middleware(
             call_tool_settings["excluded_tools"] = cache_config["excluded_tools"]
 
         middleware = ResponseCachingMiddleware(
-            cache_storage=cache_config.get("cache_storage"),
+            cache_storage=cache_storage,
             list_tools_settings=list_tools_settings,
             list_resources_settings=list_resources_settings,
             list_prompts_settings=list_prompts_settings,
@@ -290,8 +388,11 @@ def create_response_caching_middleware(
             max_item_size=cache_config.get("max_item_size", 1024 * 1024),
         )
 
+        storage_type = "Redis" if cache_storage else "in-memory"
         logger.info(
-            "Created ResponseCachingMiddleware with TTLs: list=%ds, read=%ds, call=%ds",
+            "Created ResponseCachingMiddleware (%s) with TTLs: "
+            "list=%ds, read=%ds, call=%ds",
+            storage_type,
             cache_config.get("list_tools_ttl", 300),
             cache_config.get("read_resource_ttl", 3600),
             cache_config.get("call_tool_ttl", 3600),

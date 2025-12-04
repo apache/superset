@@ -104,9 +104,7 @@ def run_server(
 
         # Create middleware list - response caching is enabled by default
         middleware_list = []
-        caching_middleware = create_response_caching_middleware(
-            dict(flask_app.config)
-        )
+        caching_middleware = create_response_caching_middleware(dict(flask_app.config))
         if caching_middleware:
             middleware_list.append(caching_middleware)
             logging.info("Response caching middleware enabled")
