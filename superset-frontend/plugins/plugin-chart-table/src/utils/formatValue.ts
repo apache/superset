@@ -33,7 +33,7 @@ import DateWithFormatter from './DateWithFormatter';
 function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
-  rowData?: Record<string, any>,
+  rowData?: Record<string, DataRecordValue>,
   currencyColumn?: string,
 ): [boolean, string] {
   // render undefined as empty string
@@ -65,7 +65,7 @@ function formatValue(
 export function formatColumnValue(
   column: DataColumnMeta,
   value: DataRecordValue,
-  rowData?: Record<string, any>,
+  rowData?: Record<string, DataRecordValue>,
 ) {
   const { dataType, formatter, config = {}, currencyCodeColumn } = column;
   const isNumber = dataType === GenericDataType.Numeric;

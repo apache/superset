@@ -17,7 +17,7 @@
 """add currency column support
 
 Revision ID: 9787190b3d89
-Revises: x2s8ocx6rto6
+Revises: a9c01ec10479
 Create Date: 2025-11-18 14:00:00.000000
 
 """

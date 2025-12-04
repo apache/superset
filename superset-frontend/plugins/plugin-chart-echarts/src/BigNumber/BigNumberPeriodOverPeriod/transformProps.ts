@@ -104,7 +104,7 @@ export default function transformProps(chartProps: ChartProps) {
     columnConfig = {},
   } = formData;
   const { data: dataA = [], detected_currency: detectedCurrency } =
-    queriesData[0];
+    queriesData[0] || {};
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];

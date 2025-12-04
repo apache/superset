@@ -38,6 +38,7 @@ from superset.utils.currency import detect_currency
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +105,17 @@ def _detect_currency(
     Delegates to the shared detect_currency utility with parameters extracted
     from the QueryObject.
 
-    :param query_context: The query context (unused, kept for API compatibility)
+    :param query_context: The query context with form_data containing currency_format
     :param query_obj: The original query object with filters
     :param datasource: The datasource being queried
     :return: ISO 4217 currency code (e.g., "USD") or None
     """
+    # Only detect if currency_format.symbol is AUTO
+    form_data = query_context.form_data or {}
+    currency_format = form_data.get("currency_format", {})
+    if currency_format.get("symbol") != "AUTO":
+        return None
+
     return detect_currency(
         datasource=datasource,
         filters=query_obj.filter,
