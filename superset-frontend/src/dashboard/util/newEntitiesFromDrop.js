@@ -29,41 +29,20 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
   const dragType = dragging.type;
   const dropEntity = layout[destination.id];
   const dropType = dropEntity.type;
-  let newDropChild = newComponentFactory(dragType, dragging.meta);
-  newDropChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
 
-  if (componentIsResizable(dragging)) {
-    newDropChild.meta.width = // don't set a 0 width
-      getComponentWidthFromDrop({ dropResult, layout }) || undefined;
-  }
+  const newEntities = {};
 
-  const wrapChildInRow = shouldWrapChildInRow({
-    parentType: dropType,
-    childType: dragType,
-  });
-
-  const newEntities = {
-    [newDropChild.id]: newDropChild,
-  };
-
-  if (wrapChildInRow) {
-    const rowWrapper = newComponentFactory(ROW_TYPE);
-    rowWrapper.children = [newDropChild.id];
-    rowWrapper.parents = (dropEntity.parents || []).concat(dropEntity.id);
-    newEntities[rowWrapper.id] = rowWrapper;
-    newDropChild.parents = rowWrapper.parents.concat(rowWrapper.id);
-    newDropChild = rowWrapper;
-  } else if (dragType === TABS_TYPE) {
-    // create a new tab component
-    const tabChild = newComponentFactory(TAB_TYPE);
-    tabChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
-    newDropChild.children = [tabChild.id];
-    newEntities[tabChild.id] = tabChild;
-  } else if (dragType === ALERTS_TYPE) {
-    // When an Alert component is dropped, automatically create a Tabs with Alert Data Table
-    // Place both Alert component and Tabs side by side in a row
+  // Handle ALERTS_TYPE specially - create container with tabs and table BEFORE wrapChildInRow check
+  if (dragType === ALERTS_TYPE) {
     console.log('[ALERT DROP] Creating tabs and alert data table for alert component');
     
+    let newDropChild = newComponentFactory(dragType, dragging.meta);
+    newDropChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
+
+    if (componentIsResizable(dragging)) {
+      newDropChild.meta.width = getComponentWidthFromDrop({ dropResult, layout }) || undefined;
+    }
+
     const containerRow = newComponentFactory(ROW_TYPE);
     const tabsWrapper = newComponentFactory(TABS_TYPE);
     const tabChild = newComponentFactory(TAB_TYPE, { text: 'Alert Data' });
@@ -90,20 +69,54 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
     tabChild.children = [alertDataTable.id];
     
     // Add all entities
+    newEntities[newDropChild.id] = newDropChild;
     newEntities[containerRow.id] = containerRow;
     newEntities[tabsWrapper.id] = tabsWrapper;
     newEntities[tabChild.id] = tabChild;
     newEntities[alertDataTable.id] = alertDataTable;
     
-    console.log('[ALERT DROP] Entities to be added:', {
-      containerRow: containerRow,
-      tabsWrapper: tabsWrapper,
-      tabChild: tabChild,
-      alertDataTable: alertDataTable,
-    });
-    
-    // The container row is what gets added to the drop destination
-    newDropChild = containerRow;
+    console.log('[ALERT DROP] Entities added to newEntities');
+
+    const nextDropChildren = [...dropEntity.children];
+    nextDropChildren.splice(destination.index, 0, containerRow.id);
+
+    newEntities[destination.id] = {
+      ...dropEntity,
+      children: nextDropChildren,
+    };
+
+    return newEntities;
+  }
+
+  // Standard flow for all other components
+  let newDropChild = newComponentFactory(dragType, dragging.meta);
+  newDropChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
+
+  if (componentIsResizable(dragging)) {
+    newDropChild.meta.width = // don't set a 0 width
+      getComponentWidthFromDrop({ dropResult, layout }) || undefined;
+  }
+
+  const wrapChildInRow = shouldWrapChildInRow({
+    parentType: dropType,
+    childType: dragType,
+  });
+
+  newEntities[newDropChild.id] = newDropChild;
+
+  if (wrapChildInRow) {
+    const rowWrapper = newComponentFactory(ROW_TYPE);
+    rowWrapper.children = [newDropChild.id];
+    rowWrapper.parents = (dropEntity.parents || []).concat(dropEntity.id);
+    newEntities[rowWrapper.id] = rowWrapper;
+    newDropChild.parents = rowWrapper.parents.concat(rowWrapper.id);
+    newDropChild = rowWrapper;
+  } else if (dragType === TABS_TYPE) {
+    // create a new tab component
+    const tabChild = newComponentFactory(TAB_TYPE);
+    tabChild.parents = (dropEntity.parents || []).concat(dropEntity.id);
+    newDropChild.children = [tabChild.id];
+    newEntities[tabChild.id] = tabChild;
   }
 
   const nextDropChildren = [...dropEntity.children];
