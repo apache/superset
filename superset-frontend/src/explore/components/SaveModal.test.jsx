@@ -604,6 +604,6 @@ test('chart placement logic finds row with available space', () => {
   // Test case 2: Should not find row (full)
   expect(findRowWithSpace(positionJson2, ['row1'])).toBeNull();
 
-  // Test case 3: Should find row (6 + 4 + 4 = 14 > 12, so no space)
+  // Test case 3: Should not find row (6 + 4 = 10, adding 4 = 14 > 12)
   expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
 });

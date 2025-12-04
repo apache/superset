@@ -52,6 +52,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { removeChartState } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
 import { TabNode, TabTreeNode } from '../types';
+import { CHART_WIDTH, CHART_HEIGHT } from '../constants';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -142,7 +143,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
           });
-          await this.loadTabs(dashboardId);
+          if (this.state.action === 'saveas') {
+            await this.loadTabs(dashboardId);
+          }
         }
       } catch (error) {
         logging.warn(error);
@@ -333,12 +336,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     }
   }
 
-  /* Adds a new chart to a new row on the specified dashboard tab.
+  /* Adds a chart to the specified dashboard tab. If an existing row has space, the chart is added there; otherwise, a new row is created.
    * @param {number} dashboardId - ID of the dashboard.
    * @param {number} chartId - ID of the chart to add.
    * @param {string} tabId - ID of the dashboard tab where the chart is added.
-   * @param {string | undefined}  sliceName - Chart name
-   * */
+   * @param {string | undefined} sliceName - Chart name
+   */
   addChartToDashboardTab = async (
     dashboardId: number,
     chartId: number,
@@ -359,7 +362,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       positionJson = positionJson || {};
 
       const chartKey = `CHART-${chartId}`;
-      const chartWidth = 4;
 
       // Find a row in the tab with available space
       const tabChildren = positionJson[tabId]?.children || [];
@@ -374,7 +376,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             return sum + (component?.meta?.width || 0);
           }, 0);
 
-          if (totalWidth + chartWidth <= GRID_COLUMN_COUNT) {
+          if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
             targetRowKey = childKey;
             break;
           }
@@ -412,8 +414,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         children: [],
         parents: ['ROOT_ID', 'GRID_ID', tabId, targetRowKey],
         meta: {
-          width: chartWidth,
-          height: 50,
+          width: CHART_WIDTH,
+          height: CHART_HEIGHT,
           chartId,
           sliceName: sliceName ?? `Chart ${chartId}`,
         },
@@ -438,7 +440,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       return response;
     } catch (error) {
-      throw new Error('Error adding chart to dashboard tab:', error);
+      throw new Error(`Error adding chart to dashboard tab: ${error}`);
     }
   };
 
