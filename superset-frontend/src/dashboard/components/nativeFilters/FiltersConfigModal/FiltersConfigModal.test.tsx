@@ -388,22 +388,17 @@ test.skip("doesn't render time range pre-filter if there are no temporal columns
 });
 
 test('filters are draggable', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...defaultState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -430,22 +425,17 @@ test('filters are draggable', async () => {
 */
 
 test('deletes a filter', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...defaultState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -477,22 +467,17 @@ test('deletes a filter', async () => {
 }, 30000); // Increase timeout to 30 seconds for slow async operations
 
 test('deletes a filter including dependencies', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...defaultState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -525,23 +510,18 @@ test('deletes a filter including dependencies', async () => {
 });
 
 test('reorders filters via drag and drop', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
 
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...defaultState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -582,23 +562,18 @@ test('reorders filters via drag and drop', async () => {
 });
 
 test('rearranges three filters and deletes one of them', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
 
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...defaultState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
@@ -643,22 +618,17 @@ test('rearranges three filters and deletes one of them', async () => {
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
   try {
-    const nativeFilterState = [
+    const nativeFilterConfig = [
       buildNativeFilter('NATIVE_FILTER-1', 'state', []),
       buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     ];
 
-    const filtersMap = nativeFilterState.reduce(
-      (acc, filter) => {
-        acc[filter.id] = filter;
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
     const state = {
       ...defaultState(),
-      nativeFilters: {
-        filters: filtersMap,
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
       },
       dashboardLayout,
     };
@@ -699,22 +669,17 @@ test('modifies the name of a filter', async () => {
 });
 
 test('renders a filter with a chart containing BigInt values', async () => {
-  const nativeFilterState = [
+  const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
     buildNativeFilter('NATIVE_FILTER-3', 'product', []),
   ];
-  const filtersMap = nativeFilterState.reduce(
-    (acc, filter) => {
-      acc[filter.id] = filter;
-      return acc;
-    },
-    {} as Record<string, any>,
-  );
   const state = {
     ...bigIntChartDataState(),
-    nativeFilters: {
-      filters: filtersMap,
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
     },
     dashboardLayout,
   };
