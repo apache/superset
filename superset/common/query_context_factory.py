@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from flask import current_app
 
@@ -26,12 +26,10 @@ from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
-
-if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -104,7 +102,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             cache_values=cache_values,
         )
 
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+    def _convert_to_model(self, datasource: DatasourceDict) -> Explorable:
         return DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             database_id_or_uuid=datasource["id"],
@@ -115,7 +113,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     def _process_query_object(
         self,
-        datasource: BaseDatasource,
+        datasource: Explorable,
         form_data: dict[str, Any] | None,
         query_object: QueryObject,
     ) -> QueryObject:
@@ -201,7 +199,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self,
         query_object: QueryObject,
         form_data: dict[str, Any] | None,
-        datasource: BaseDatasource,
+        datasource: Explorable,
     ) -> None:
         temporal_columns = {
             column["column_name"] if isinstance(column, dict) else column.column_name
