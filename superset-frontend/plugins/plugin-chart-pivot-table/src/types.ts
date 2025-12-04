@@ -69,7 +69,7 @@ interface PivotTableCustomizeProps {
   valueFormat: string;
   currencyFormat: Currency;
   currencyCodeColumn?: string;
-  detectedCurrency?: string;
+  detectedCurrency?: string | null;
   setDataMask: SetDataMaskHook;
   emitCrossFilters?: boolean;
   selectedFilters?: SelectedFiltersType;
