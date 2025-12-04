@@ -106,6 +106,11 @@ export function saveChartCustomization(
         reordered: reorderedIds,
       });
 
+      dispatch({
+        type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+        filterChanges: response.result,
+      });
+
       const currentMetadata = getState().dashboardInfo.metadata;
       dispatch(
         dashboardInfoChanged({
@@ -115,11 +120,6 @@ export function saveChartCustomization(
           },
         }),
       );
-
-      dispatch({
-        type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: response.result,
-      });
 
       if (resetDataMask) {
         const oldConfig = metadata?.chart_customization_config || [];
