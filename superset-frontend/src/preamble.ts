@@ -39,11 +39,6 @@ import 'dayjs/plugin/localizedFormat';
 
 configure();
 
-// Set hot reloader config
-if (process.env.WEBPACK_MODE === 'development') {
-  // React Refresh is now used for hot module replacement
-}
-
 // Grab initial bootstrap data
 const bootstrapData = getBootstrapData();
 
