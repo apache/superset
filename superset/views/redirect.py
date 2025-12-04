@@ -41,7 +41,10 @@ class RedirectView(BaseSupersetView):
     @has_access
     def redirect_warning(self) -> FlaskResponse:
         """
-        Show a warning page before redirecting to an external URL
+        Show a warning page before redirecting to an external URL.
+
+        The React frontend handles the UI - this endpoint validates the URL
+        and redirects trusted/internal URLs directly.
         """
         # Get the target URL from query parameters
         target_url = request.args.get("url", "")
@@ -100,8 +103,5 @@ class RedirectView(BaseSupersetView):
         # Log external redirect attempt for monitoring
         logger.info("Showing warning for external URL: %s", target_url)
 
-        # Otherwise, show the warning page
-        return self.render_template(
-            "superset/redirect_warning.html",
-            target_url=target_url,
-        )
+        # Render the React SPA which handles the warning UI
+        return super().render_app_template()

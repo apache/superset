@@ -171,6 +171,13 @@ const UserRegistrations = lazy(
     ),
 );
 
+const RedirectWarning = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -179,6 +186,10 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
+  {
+    path: '/redirect/',
+    Component: RedirectWarning,
+  },
   {
     path: '/login/',
     Component: Login,
