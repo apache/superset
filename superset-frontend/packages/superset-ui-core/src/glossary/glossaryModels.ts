@@ -93,7 +93,7 @@ export class GlossaryTerm {
 
   /**
    * Encodes the glossary term into a string format that can be resolved later.
-   * Format: [GLOSSARY]|topic|title|description
+   * Format: [GLOSSARY]|topic|title
    */
   encode(): string {
     return `${GLOSSARY_ENCODING_PREFIX}${this.topic}|${this.title}`;
