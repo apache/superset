@@ -84,11 +84,11 @@ export const setFilterConfiguration =
     });
     try {
       const response = await updateFilters(filterChanges);
-      dispatch(nativeFiltersConfigChanged(response.result));
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
         filterChanges: response.result,
       });
+      dispatch(nativeFiltersConfigChanged(response.result));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
       dispatch({
@@ -117,7 +117,6 @@ export const setInScopeStatusOfFilters =
       type: SET_IN_SCOPE_STATUS_OF_FILTERS,
       filterConfig: filtersWithScopes,
     });
-    // need to update native_filter_configuration in the dashboard metadata
     const metadata = cloneDeep(getState().dashboardInfo.metadata);
     const filterConfig =
       (metadata.native_filter_configuration as FilterConfiguration) || [];
@@ -128,7 +127,11 @@ export const setInScopeStatusOfFilters =
       if (!filterWithScope) {
         return filter;
       }
-      return { ...filterWithScope, ...filter };
+      return {
+        ...filter,
+        chartsInScope: filterWithScope.chartsInScope,
+        tabsInScope: filterWithScope.tabsInScope,
+      };
     });
     metadata.native_filter_configuration = mergedFilterConfig;
     dispatch(
