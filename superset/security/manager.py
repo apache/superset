@@ -951,7 +951,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             tables = (
                 self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
+                .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
             )
             accessible_schemas.update(
@@ -1011,7 +1011,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             tables = (
                 self.session.query(SqlaTable.schema)
                 .filter(SqlaTable.database_id == database.id)
-                .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
+                .filter(or_(SqlaTable.perm.in_(perms)))
                 .distinct()
             )
             accessible_catalogs.update(

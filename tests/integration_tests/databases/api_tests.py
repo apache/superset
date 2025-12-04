@@ -4126,6 +4126,74 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 422
         assert "Kaboom!" in response["errors"][0]["message"]
 
+    @mock.patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_with_jinja_templates(self):
+        """
+        Database API: validate SQL with Jinja templates
+        """
+        request_payload = {
+            "sql": (
+                "SELECT *\nFROM birth_names\nWHERE 1=1\n"
+                "{% if city_filter is defined %}\n"
+                "    AND city = '{{ city_filter }}'\n{% endif %}\n"
+                "LIMIT {{ limit | default(100) }}"
+            ),
+            "schema": None,
+            "template_params": {},
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Should not contain Jinja syntax errors like "syntax error at or near {"
+        for error in response["result"]:
+            assert "{" not in error["message"]
+            assert "%" not in error["message"]
+
+    @mock.patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_with_jinja_templates_and_params(self):
+        """
+        Database API: validate SQL with Jinja templates and parameters
+        """
+        request_payload = {
+            "sql": (
+                "SELECT *\nFROM birth_names\nWHERE 1=1\n"
+                "{% if city_filter is defined %}\n"
+                "    AND city = '{{ city_filter }}'\n"
+                "{% endif %}\nLIMIT {{ limit }}"
+            ),
+            "schema": None,
+            "template_params": {"city_filter": "New York", "limit": 50},
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Should not contain Jinja syntax errors
+        for error in response["result"]:
+            assert "{" not in error["message"]
+            assert "%" not in error["message"]
+
     def test_get_databases_with_extra_filters(self):
         """
         API: Test get database with extra query filter.
