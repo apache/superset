@@ -111,8 +111,8 @@ test('formatColumnValue with AUTO mode normalizes currency codes', () => {
   const [, result1] = formatColumnValue(column, 500, rowData1);
   expect(result1).toContain('$');
 
-  // Test currency symbol
-  const rowData2 = { revenue: 750, currency_code: '£' };
+  // Test uppercase currency code (GBP -> £)
+  const rowData2 = { revenue: 750, currency_code: 'GBP' };
   const [, result2] = formatColumnValue(column, 750, rowData2);
   expect(result2).toContain('£');
 });
