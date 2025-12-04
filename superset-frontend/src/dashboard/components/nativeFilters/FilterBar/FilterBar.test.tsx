@@ -275,6 +275,13 @@ describe('FilterBar', () => {
     };
     const stateWithDivider = {
       ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        ...stateWithoutNativeFilters.dashboardInfo,
+        metadata: {
+          ...stateWithoutNativeFilters.dashboardInfo.metadata,
+          native_filter_configuration: [divider],
+        },
+      },
       nativeFilters: {
         filters: {
           'NATIVE_FILTER_DIVIDER-1': divider,
