@@ -613,7 +613,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
       });
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
@@ -984,6 +986,128 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
           'rgba(172, 225, 196, 1)',
         );
+      });
+
+      test('render color with boolean column color formatter (operator is true)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is true',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is false)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is false',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is null)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is null',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+      });
+
+      test('render color with boolean column color formatter (operator is not null)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.nameAndBoolean,
+                  rawFormData: {
+                    ...testData.nameAndBoolean.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'is_adult',
+                        operator: 'is not null',
+                        targetValue: '',
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+        const trueElements = screen.getAllByText('true');
+        const falseElements = screen.getAllByText('false');
+        expect(getComputedStyle(trueElements[0]).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(falseElements[0]).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
 
       test('render color with column color formatter to entire row', () => {

@@ -16,22 +16,32 @@
 # under the License.
 
 """
-System prompts for general Superset guidance
+System prompts for general guidance
 """
 
 import logging
 
+from flask import current_app
 from superset_core.mcp import prompt
 
 logger = logging.getLogger(__name__)
 
 
-@prompt("superset_quickstart")
-async def superset_quickstart_prompt(
+def _get_app_name() -> str:
+    """Get the application name from Flask config."""
+    try:
+        return current_app.config.get("APP_NAME", "Superset")
+    except RuntimeError:
+        # Outside of Flask application context
+        return "Superset"
+
+
+@prompt("quickstart")
+async def quickstart_prompt(
     user_type: str = "analyst", focus_area: str = "general"
 ) -> str:
     """
-    Guide new users through their first Superset experience.
+    Guide new users through their first experience with the platform.
 
     This prompt helps users:
     1. Understand what data is available
@@ -66,27 +76,28 @@ async def superset_quickstart_prompt(
 
     intro = intro_messages.get(user_type, intro_messages["analyst"])
     focus = focus_examples.get(focus_area, focus_examples["general"])
+    app_name = _get_app_name()
 
-    return f"""Welcome to Apache Superset! I'll guide you through creating your first
+    return f"""Welcome to {app_name}! I'll guide you through creating your first
     dashboard.
 
 {intro} {focus}
 
 I'll help you through these steps:
-1. 📊 **Explore Available Data** - See what datasets you can work with
-2. 🔍 **Understand Your Data** - Examine columns, metrics, and sample data
-3. 📈 **Create Visualizations** - Build charts that tell a story
-4. 🎯 **Design a Dashboard** - Combine charts into an interactive dashboard
-5. 🚀 **Learn Advanced Features** - Discover filters, SQL Lab, and more
+1. **Explore Available Data** - See what datasets you can work with
+2. **Understand Your Data** - Examine columns, metrics, and sample data
+3. **Create Visualizations** - Build charts that tell a story
+4. **Design a Dashboard** - Combine charts into an interactive dashboard
+5. **Learn Advanced Features** - Discover filters, SQL Lab, and more
 
 To get started, I'll use these tools:
-- `get_instance_info` - Overview of your Superset instance
+- `get_instance_info` - Overview of your {app_name} instance
 - `list_datasets` - Find available datasets
 - `get_dataset_info` - Explore dataset details
 - `generate_chart` - Create visualizations
 - `generate_dashboard` - Build your dashboard
 
-Let me begin by checking what's available in your Superset instance. I'll first get
+Let me begin by checking what's available in your {app_name} instance. I'll first get
 an overview, then show you the datasets filtered by your interest in {focus_area}.
 
 Would you like me to start by showing you what data you can work with?"""

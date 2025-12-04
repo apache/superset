@@ -16,7 +16,7 @@
 # under the License.
 
 """
-FastMCP app factory and initialization for Superset MCP service.
+FastMCP app factory and initialization for the MCP service.
 This file provides a configurable factory function to create FastMCP instances
 following the Flask application factory pattern. All tool modules should import
 mcp from here and use @mcp.tool decorators.
@@ -81,11 +81,11 @@ System Information:
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
-- superset://instance/metadata: Access instance configuration and metadata
-- superset://chart/templates: Access chart configuration templates
+- instance/metadata: Access instance configuration and metadata
+- chart/templates: Access chart configuration templates
 
 Available Prompts:
-- superset_quickstart: Interactive guide for getting started with the MCP service
+- quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
 Common Chart Types (viz_type) and Behaviors:
@@ -130,7 +130,7 @@ General usage tips:
 - Chart previews are served as PNG images via custom screenshot endpoints
 
 If you are unsure which tool to use, start with get_instance_info
-or use the superset_quickstart prompt for an interactive guide.
+or use the quickstart prompt for an interactive guide.
 """
 
 
@@ -197,7 +197,7 @@ def _log_instance_creation(
 
 
 def create_mcp_app(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
     branding: str | None = None,
     auth: Any | None = None,
@@ -230,6 +230,10 @@ def create_mcp_app(
     Returns:
         Configured FastMCP instance
     """
+    # Default name if not provided
+    if name is None:
+        name = "MCP Server"
+
     # Use default instructions if none provided
     if instructions is None:
         # If branding is provided, use it to generate instructions
