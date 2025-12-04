@@ -543,8 +543,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             payload["colnames"] = list(df.columns)
 
         # Add detected currency for AUTO mode formatting
-        if detected_currency := self._detect_currency(query_obj):
-            payload["detected_currency"] = detected_currency
+        payload["detected_currency"] = self._detect_currency(query_obj)
 
         return payload
 

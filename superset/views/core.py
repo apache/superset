@@ -179,9 +179,7 @@ class Superset(BaseSupersetView):
             "sql_rowcount": payload.get("sql_rowcount"),
         }
         # Add detected currency for AUTO mode formatting
-        detected_currency = viz_obj._detect_currency()  # pylint: disable=protected-access
-        if detected_currency:
-            response["detected_currency"] = detected_currency
+        response["detected_currency"] = viz_obj._detect_currency()  # pylint: disable=protected-access
         return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
