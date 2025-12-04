@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 
@@ -30,9 +30,7 @@ from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
-
-if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 
 # Charts supporting per-cell currency detection
 CELL_LEVEL_CURRENCY_VIZ_TYPES = {"pivot_table_v2", "table"}
