@@ -274,7 +274,50 @@ class VersionControlRestApi(BaseSupersetApi):
     @protect()
     @safe
     def save_version(self, asset_type: str, asset_id: int) -> Response:
-        """Save a new version to the database"""
+        """Save a new version to the database.
+        ---
+        post:
+          summary: Save a new version of an asset
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: asset_type
+            description: Type of asset (chart, dashboard, dataset)
+          - in: path
+            schema:
+              type: integer
+            name: asset_id
+            description: The asset id
+          requestBody:
+            description: Version description
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    description:
+                      type: string
+          responses:
+            200:
+              description: Version saved successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         cfg = self.cfg
         if not cfg["enabled"]:
             return self.response_400(message="Version control not configured")
@@ -358,7 +401,43 @@ class VersionControlRestApi(BaseSupersetApi):
     @protect()
     @safe
     def list_versions(self, asset_type: str, asset_id: int) -> Response:
-        """List all versions from the database"""
+        """List all versions from the database.
+        ---
+        get:
+          summary: List all versions of an asset
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: asset_type
+            description: Type of asset (chart, dashboard, dataset)
+          - in: path
+            schema:
+              type: integer
+            name: asset_id
+            description: The asset id
+          responses:
+            200:
+              description: List of versions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+                          versions:
+                            type: array
+                            items:
+                              type: object
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             if not self.cfg["enabled"]:
                 return self.response(200, result={"count": 0, "versions": []})
@@ -395,7 +474,50 @@ class VersionControlRestApi(BaseSupersetApi):
     @protect()
     @safe
     def restore_version(self, asset_type: str, asset_id: int) -> Response:
-        """Restore a previous version from the database"""
+        """Restore a previous version from the database.
+        ---
+        post:
+          summary: Restore a previous version of an asset
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: asset_type
+            description: Type of asset (chart, dashboard, dataset)
+          - in: path
+            schema:
+              type: integer
+            name: asset_id
+            description: The asset id
+          requestBody:
+            description: Version to restore
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    version_number:
+                      type: integer
+          responses:
+            200:
+              description: Version restored successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         if not self.cfg["enabled"]:
             return self.response_400(message="Version control not enabled")
 
