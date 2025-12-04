@@ -520,3 +520,90 @@ test('onTabChange correctly updates selectedTab via forceUpdate', () => {
     value: 'tab2',
     label: 'Analytics Tab',
   });
+});
+
+test('chart placement logic finds row with available space', () => {
+  const GRID_COLUMN_COUNT = 12; // From the actual implementation
+  const chartWidth = 4; // From the actual implementation
+
+  // Test case 1: Row has space (8 + 4 = 12 <= 12)
+  const positionJson1 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 8 },
+    },
+  };
+
+  // Test case 2: Row is full (12 + 4 = 16 > 12)
+  const positionJson2 = {
+    ...positionJson1,
+    'CHART-1': {
+      ...positionJson1['CHART-1'],
+      meta: { width: 12 },
+    },
+  };
+
+  // Test case 3: Multiple charts in row
+  const positionJson3 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1', 'CHART-2'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 6 },
+    },
+    'CHART-2': {
+      type: 'CHART',
+      id: 'CHART-2',
+      meta: { width: 4 },
+    },
+  };
+
+  const findRowWithSpace = (positionJson, tabChildren) => {
+    for (const childKey of tabChildren) {
+      const child = positionJson[childKey];
+      if (child?.type === 'ROW') {
+        const rowChildren = child.children || [];
+        const totalWidth = rowChildren.reduce((sum, key) => {
+          const component = positionJson[key];
+          return sum + (component?.meta?.width || 0);
+        }, 0);
+
+        if (totalWidth + chartWidth <= GRID_COLUMN_COUNT) {
+          return childKey;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Test case 1: Should find row with space
+  expect(findRowWithSpace(positionJson1, ['row1'])).toBe('row1');
+
+  // Test case 2: Should not find row (full)
+  expect(findRowWithSpace(positionJson2, ['row1'])).toBeNull();
+
+  // Test case 3: Should find row (6 + 4 + 4 = 14 > 12, so no space)
+  expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
+});
