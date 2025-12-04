@@ -17,7 +17,6 @@
 
 import enum
 import hashlib
-import json
 import logging
 import threading
 from contextlib import contextmanager
@@ -110,62 +109,22 @@ EngineKey = str
 TunnelKey = str
 
 
-def _normalize_value(value: Any) -> str:
+def _generate_cache_key(*args: Any) -> str:
     """
-    Normalize a value for consistent hashing.
+    Generate a deterministic cache key from arbitrary arguments.
 
-    Converts various types to a consistent string representation for hashing.
-    Handles special cases like bytes, class objects, and nested structures.
+    Uses repr() for serialization and SHA-256 for hashing. The resulting key
+    is a 32-character hex string that:
+    1. Is deterministic for the same inputs
+    2. Does not expose sensitive data (everything is hashed)
+    3. Has sufficient entropy to avoid collisions
 
-    :param value: The value to normalize
-    :returns: String representation suitable for hashing
+    :param args: Arguments to include in the cache key
+    :returns: 32-character hex string
     """
-    if isinstance(value, bytes):
-        # For binary data (like private keys), hash it to avoid encoding issues
-        return hashlib.sha256(value).hexdigest()[:16]
-    elif isinstance(value, type):
-        # For class objects (like pool classes), use the class name
-        return value.__name__
-    elif isinstance(value, dict):
-        # For nested dicts, recursively normalize
-        normalized_dict = {}
-        for k, v in sorted(value.items()):
-            normalized_dict[k] = _normalize_value(v)
-        return json.dumps(normalized_dict, sort_keys=True, separators=(",", ":"))
-    elif isinstance(value, (list, tuple)):
-        # For lists/tuples, normalize each item
-        normalized_list = [_normalize_value(item) for item in value]
-        return json.dumps(normalized_list, separators=(",", ":"))
-    else:
-        # For everything else, convert to string
-        return str(value)
-
-
-def _generate_secure_key(components: dict[str, Any]) -> str:
-    """
-    Generate a secure hash-based key from components.
-
-    Creates a SHA-256 hash of the components to ensure:
-    1. The key includes all parameters for proper caching
-    2. Sensitive data is not exposed in logs or errors
-    3. The key is deterministic for the same inputs
-
-    :param components: Dictionary of components to hash
-    :returns: 32-character hex string representing the secure key
-    """
-    # Create deterministic string representation
-    # Sort keys for consistency
-    key_data = {
-        k: _normalize_value(v) if v is not None else ""
-        for k, v in sorted(components.items())
-    }
-
-    # Create compact JSON representation
-    key_string = json.dumps(key_data, sort_keys=True, separators=(",", ":"))
-
-    # Generate SHA-256 hash and return first 32 hex characters
-    # 32 characters = 128 bits of entropy, sufficient for collision resistance
-    return hashlib.sha256(key_string.encode("utf-8")).hexdigest()[:32]
+    # Use repr() which works with most Python objects and is deterministic
+    serialized = repr(args).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()[:32]
 
 
 class EngineModes(enum.Enum):
@@ -314,15 +273,13 @@ class EngineManager:
         user_id: int | None,
     ) -> EngineKey:
         """
-        Generate a secure hash-based key for the engine.
+        Generate a cache key for the engine.
 
-        The key includes all parameters (including OAuth tokens and other sensitive
-        data) to ensure proper cache isolation, but uses a one-way hash to prevent
-        credential exposure in logs or errors.
+        The key is a hash of all parameters that affect the engine, ensuring
+        proper cache isolation without exposing sensitive data.
 
-        :returns: 32-character hex string representing the secure key
+        :returns: 32-character hex string
         """
-        # Get all parameters that affect the engine
         uri, kwargs = self._get_engine_args(
             database,
             catalog,
@@ -331,20 +288,15 @@ class EngineManager:
             user_id,
         )
 
-        # Create components for the key
-        # Include all parameters to ensure proper cache isolation
-        key_components = {
-            "database_id": database.id,
-            "catalog": catalog,
-            "schema": schema,
-            "uri": str(uri),  # SQLAlchemy URLs mask passwords
-            "source": str(source) if source else None,
-            "user_id": user_id,
-            "kwargs": kwargs,  # Includes OAuth tokens and other sensitive params
-        }
-
-        # Generate secure hash-based key
-        return _generate_secure_key(key_components)
+        return _generate_cache_key(
+            database.id,
+            catalog,
+            schema,
+            str(uri),
+            source,
+            user_id,
+            kwargs,
+        )
 
     def _get_engine_args(
         self,
@@ -533,20 +485,12 @@ class EngineManager:
 
     def _get_tunnel_key(self, ssh_tunnel: "SSHTunnel", uri: URL) -> TunnelKey:
         """
-        Generate a secure hash-based key for the SSH tunnel.
+        Generate a cache key for the SSH tunnel.
 
-        The key includes all tunnel parameters (including passwords and private keys)
-        to ensure proper cache isolation, but uses a one-way hash to prevent
-        credential exposure in logs or errors.
-
-        :returns: 32-character hex string representing the secure key
+        :returns: 32-character hex string
         """
-        # Get all tunnel parameters
         tunnel_kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
-
-        # Generate secure hash-based key
-        # The tunnel_kwargs may contain sensitive data like passwords and private keys
-        return _generate_secure_key(tunnel_kwargs)
+        return _generate_cache_key(tunnel_kwargs)
 
     def _create_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
