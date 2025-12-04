@@ -189,12 +189,11 @@ const usFmtPct = numberFormat({
 const fmtNonString = formatter => (x, aggregator) =>
   typeof x === 'string' ? x : formatter(x, aggregator);
 
+/*
+ * Aggregators track currencies via push() and expose them via getCurrencies()
+ * for per-cell currency detection in AUTO mode.
+ */
 const baseAggregatorTemplates = {
-  /**
-   * Count aggregator - counts number of records.
-   * Note: Count doesn't track currencies as it's not a monetary value.
-   * @param {Function} formatter - Number formatter function
-   */
   count(formatter = usFmtInt) {
     return () =>
       function () {
@@ -211,12 +210,6 @@ const baseAggregatorTemplates = {
       };
   },
 
-  /**
-   * Uniques aggregator - tracks unique values.
-   * Tracks currencies for per-cell currency detection.
-   * @param {Function} fn - Function to apply to unique values
-   * @param {Function} formatter - Number formatter function
-   */
   uniques(fn, formatter = usFmtInt) {
     return function ([attr]) {
       return function () {
@@ -235,10 +228,6 @@ const baseAggregatorTemplates = {
           value() {
             return fn(this.uniq);
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -249,11 +238,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Sum aggregator - sums numeric values.
-   * Tracks currencies for per-cell currency detection.
-   * @param {Function} formatter - Number formatter function
-   */
   sum(formatter = usFmt) {
     return function ([attr]) {
       return function () {
@@ -274,10 +258,6 @@ const baseAggregatorTemplates = {
           value() {
             return this.sum;
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -288,12 +268,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Extremes aggregator - finds min/max/first/last values.
-   * Tracks currencies for per-cell currency detection.
-   * @param {string} mode - 'min', 'max', 'first', or 'last'
-   * @param {Function} formatter - Number formatter function
-   */
   extremes(mode, formatter = usFmt) {
     return function ([attr]) {
       return function (data) {
@@ -340,10 +314,6 @@ const baseAggregatorTemplates = {
           value() {
             return this.val;
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -359,12 +329,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Quantile aggregator - calculates quantile values (median, etc.).
-   * Tracks currencies for per-cell currency detection.
-   * @param {number} q - Quantile value (0-1)
-   * @param {Function} formatter - Number formatter function
-   */
   quantile(q, formatter = usFmt) {
     return function ([attr]) {
       return function () {
@@ -408,10 +372,6 @@ const baseAggregatorTemplates = {
             const i = (this.vals.length - 1) * q;
             return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -422,13 +382,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Running statistics aggregator - calculates mean/variance/stdev.
-   * Tracks currencies for per-cell currency detection.
-   * @param {string} mode - 'mean', 'var', or 'stdev'
-   * @param {number} ddof - Delta degrees of freedom
-   * @param {Function} formatter - Number formatter function
-   */
   runningStat(mode = 'mean', ddof = 1, formatter = usFmt) {
     return function ([attr]) {
       return function () {
@@ -484,10 +437,6 @@ const baseAggregatorTemplates = {
                 throw new Error('unknown mode for runningStat');
             }
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -498,11 +447,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Sum over sum aggregator - calculates ratio of two sums.
-   * Tracks currencies for per-cell currency detection.
-   * @param {Function} formatter - Number formatter function
-   */
   sumOverSum(formatter = usFmt) {
     return function ([num, denom]) {
       return function () {
@@ -525,10 +469,6 @@ const baseAggregatorTemplates = {
           value() {
             return this.sumNum / this.sumDenom;
           },
-          /**
-           * Get tracked currencies for this aggregation cell.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.currencies;
           },
@@ -540,13 +480,6 @@ const baseAggregatorTemplates = {
     };
   },
 
-  /**
-   * Fraction of aggregator - wraps another aggregator to show as fraction.
-   * Delegates currency tracking to inner aggregator.
-   * @param {Function} wrapped - The aggregator to wrap
-   * @param {string} type - 'total', 'row', or 'col'
-   * @param {Function} formatter - Number formatter function
-   */
   fractionOf(wrapped, type = 'total', formatter = usFmtPct) {
     return (...x) =>
       function (data, rowKey, colKey) {
@@ -570,10 +503,6 @@ const baseAggregatorTemplates = {
 
             return this.inner.value() / acc;
           },
-          /**
-           * Delegate currency tracking to inner aggregator.
-           * @returns {Array} Array of currency codes/symbols seen in this cell
-           */
           getCurrencies() {
             return this.inner.getCurrencies ? this.inner.getCurrencies() : [];
           },

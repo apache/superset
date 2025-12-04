@@ -28,20 +28,7 @@ import {
 import { normalizeCurrency, hasMixedCurrencies } from './CurrencyFormatter';
 
 /**
- * Analyze data to detect if it contains single or mixed currencies.
- * Used by AUTO mode to determine whether to show currency symbols or neutral formatting.
- *
- * @param data - Array of data records from chart query results
- * @param currencyColumn - Name of the column containing currency codes/symbols
- * @returns Normalized ISO 4217 currency code if single currency detected, null otherwise
- *
- * @example
- * // Single currency detected
- * analyzeCurrencyInData([{curr: 'USD'}, {curr: 'usd'}], 'curr') // 'USD'
- *
- * @example
- * // Mixed currencies detected
- * analyzeCurrencyInData([{curr: 'USD'}, {curr: 'EUR'}], 'curr') // null
+ * Detect single currency in data. Returns ISO 4217 code if uniform, null if mixed.
  */
 export const analyzeCurrencyInData = (
   data: Record<string, any>[],

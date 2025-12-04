@@ -264,6 +264,10 @@ export default function transformProps(
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const xAxisFormatter = getXAxisFormatter(timeFormat);
   const yAxisFormatter =

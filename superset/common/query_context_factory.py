@@ -33,8 +33,7 @@ from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
-# Viz types that support cell-level currency detection.
-# These charts can display different currencies per row/cell.
+# Charts supporting per-cell currency detection
 CELL_LEVEL_CURRENCY_VIZ_TYPES = {"pivot_table_v2", "table"}
 
 

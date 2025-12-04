@@ -158,9 +158,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     theme,
   );
 
-  // Pass currencyFormat with AUTO symbol intact for per-cell detection.
-  // Per-cell logic in PivotTableChart will handle AUTO mode based on
-  // currencies tracked during aggregation.
+  // AUTO symbol passed through - PivotTableChart handles per-cell currency detection
 
   return {
     width,

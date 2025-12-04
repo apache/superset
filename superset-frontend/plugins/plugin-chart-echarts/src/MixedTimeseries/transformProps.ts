@@ -117,6 +117,30 @@ const getFormatter = (
   );
 };
 
+/** Resolve AUTO currency mode using backend detection or frontend analysis. */
+const resolveCurrencyForAutoMode = (
+  currencyFormat: Currency | undefined,
+  backendDetected: string | null | undefined,
+  data: TimeseriesDataRecord[] | undefined,
+  currencyCodeColumn: string | undefined,
+): Currency | undefined | null => {
+  if (currencyFormat?.symbol !== 'AUTO') return currencyFormat;
+
+  const detectedCurrency =
+    backendDetected ??
+    (data && currencyCodeColumn
+      ? analyzeCurrencyInData(data, currencyCodeColumn)
+      : null);
+
+  if (detectedCurrency) {
+    return {
+      symbol: detectedCurrency,
+      symbolPosition: currencyFormat.symbolPosition,
+    };
+  }
+  return null; // Mixed currencies
+};
+
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
 ): EchartsMixedTimeseriesChartTransformedProps {
@@ -142,14 +166,10 @@ export default function transformProps(
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const {
-    label_map: labelMap,
-    detected_currency: backendDetectedCurrency,
-  } = queriesData[0] as TimeseriesChartDataResponseResult;
-  const {
-    label_map: labelMapB,
-    detected_currency: backendDetectedCurrencyB,
-  } = queriesData[1] as TimeseriesChartDataResponseResult;
+  const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
+    queriesData[0] as TimeseriesChartDataResponseResult;
+  const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
+    queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
@@ -287,43 +307,18 @@ export default function transformProps(
   });
   const series: SeriesOption[] = [];
 
-  // Resolve currency for AUTO mode (primary axis, backend detection takes precedence)
-  let resolvedCurrency: Currency | undefined | null = currencyFormat;
-  if (currencyFormat?.symbol === 'AUTO') {
-    const detectedCurrency =
-      backendDetectedCurrency ??
-      (data1 && currencyCodeColumn
-        ? analyzeCurrencyInData(data1, currencyCodeColumn)
-        : null);
-    if (detectedCurrency) {
-      resolvedCurrency = {
-        symbol: detectedCurrency,
-        symbolPosition: currencyFormat.symbolPosition,
-      };
-    } else {
-      // Mixed currencies: explicitly use null to prevent fallback to metric-level settings
-      resolvedCurrency = null;
-    }
-  }
-
-  // Resolve currency for AUTO mode (secondary axis, backend detection takes precedence)
-  let resolvedCurrencySecondary: Currency | undefined | null =
-    currencyFormatSecondary;
-  if (currencyFormatSecondary?.symbol === 'AUTO') {
-    const detectedCurrency =
-      backendDetectedCurrencyB ??
-      (data2 && currencyCodeColumn
-        ? analyzeCurrencyInData(data2, currencyCodeColumn)
-        : null);
-    if (detectedCurrency) {
-      resolvedCurrencySecondary = {
-        symbol: detectedCurrency,
-        symbolPosition: currencyFormatSecondary.symbolPosition,
-      };
-    } else {
-      resolvedCurrencySecondary = null;
-    }
-  }
+  const resolvedCurrency = resolveCurrencyForAutoMode(
+    currencyFormat,
+    backendDetectedCurrency,
+    data1,
+    currencyCodeColumn,
+  );
+  const resolvedCurrencySecondary = resolveCurrencyForAutoMode(
+    currencyFormatSecondary,
+    backendDetectedCurrencyB,
+    data2,
+    currencyCodeColumn,
+  );
 
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')

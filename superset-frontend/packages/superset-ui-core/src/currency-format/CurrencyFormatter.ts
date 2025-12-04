@@ -45,13 +45,7 @@ export const getCurrencySymbol = (currency: Partial<Currency>) =>
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
 
-/**
- * Normalize a currency value to ISO 4217 format (e.g., "USD", "EUR").
- * Expects ISO 4217 codes - handles case normalization and whitespace.
- *
- * @param value - Currency code to normalize (should be ISO 4217 format)
- * @returns Normalized ISO 4217 currency code, or null if invalid
- */
+/** Normalize currency to ISO 4217 format (e.g., "USD"). Returns null if invalid. */
 export function normalizeCurrency(
   value: string | null | undefined,
 ): string | null {
@@ -67,13 +61,7 @@ export function normalizeCurrency(
   return null;
 }
 
-/**
- * Determine if an array of currency values contains mixed currencies.
- * Normalizes currencies before comparison to handle different formats.
- *
- * @param currencies - Array of currency codes/symbols to check
- * @returns True if multiple distinct currencies are present, false otherwise
- */
+/** Check if array contains multiple distinct currencies (after normalization). */
 export function hasMixedCurrencies(
   currencies: (string | null | undefined)[],
 ): boolean {

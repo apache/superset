@@ -104,30 +104,14 @@ const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
   stroke-width: 16px;
 `;
 
-/**
- * Interface for aggregator objects that support currency tracking.
- */
+/** Aggregator with currency tracking support */
 interface CurrencyTrackingAggregator {
   getCurrencies?: () => string[];
 }
 
-/**
- * Base formatter type - can be NumberFormatter or CurrencyFormatter
- */
 type BaseFormatter = NumberFormatter | CurrencyFormatter;
 
-/**
- * Creates a currency-aware formatter that wraps a base formatter.
- * When AUTO mode is enabled and aggregator has currency tracking,
- * it will show currency symbol for single-currency cells and
- * neutral format for mixed-currency cells.
- *
- * @param baseFormatter - The base number formatter to use
- * @param currencyConfig - Currency configuration (may have symbol='AUTO')
- * @param d3Format - The d3 format string for number formatting
- * @param fallbackCurrency - Fallback currency from detected_currency API response
- * @returns A formatter function that accepts (value, aggregator?)
- */
+/** Create formatter that handles AUTO mode with per-cell currency detection */
 const createCurrencyAwareFormatter = (
   baseFormatter: BaseFormatter,
   currencyConfig: Currency | undefined,
