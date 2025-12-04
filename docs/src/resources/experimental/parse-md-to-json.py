@@ -49,84 +49,89 @@ And parses it into:
         ]
     }
 }
-
 """
+
 import re
+
 import superset.utils.json as json
 
-categories = {}
-FILEPATH_IN = "text.md" #CHANGE TO YOUR PATH
-FILEPATH_OUT = "new.json" #CHANGE TO YOUR PATH
+FILEPATH_IN = "text.md"  # CHANGE TO YOUR PATH
+FILEPATH_OUT = "new.json"  # CHANGE TO YOUR PATH
 
 ### For Parsing:
-ID_CAT = "###" # Category Identifier
-ID_ENTRY = "-" # Entry Identifier
-PATTERN = r'(?:<!--\s*(.*?)\s*-->)|(\[.*?\])|(\(.*?\))' \
-  ''
-def to_json(line): #str -> dict
-   line = line[2:]
+ID_CAT = "###"  # Category Identifier
+ID_ENTRY = "-"  # Entry Identifier
+PATTERN = r"(?:<!--\s*(.*?)\s*-->)|(\[.*?\])|(\(.*?\))"
 
-   # Split the string using re.split
-   # Filter out empty strings and whitespace
-   result = [p for p in re.split(PATTERN, line) if p and not p.isspace() and p != '']
-   print(result)
-   name = result[0][1:-1]
-   url = result[1][1:-1]
 
-   contributors = ""
-   logo = ""
+def to_json(line: str) -> dict[str, str]:
+    line = line[2:]
 
-   # if contributor and logo:
-   if len(result) == 4:
-     contributors = result[2]
-     logo = result[3]
-   #if contributor but not logo
-   if len(result) == 3:
-    if '@' in result[2]:
-      contributors = result[2]
-   #if logo but not contributor
-    elif '@' not in result[2]:
-      logo = result[2]
-    
-   return {
+    # Split the string using re.split
+    # Filter out empty strings and whitespace
+    result = [p for p in re.split(PATTERN, line) if p and not p.isspace() and p != ""]
+    # If you'd like to see it compact/line by line, print(result)
+    name = result[0][1:-1]
+    url = result[1][1:-1]
+
+    contributors = ""
+    logo = ""
+
+    # if contributor and logo:
+    if len(result) == 4:
+        contributors = result[2]
+        logo = result[3]
+    # if contributor but not logo
+    if len(result) == 3:
+        if "@" in result[2]:
+            contributors = result[2]
+        # if logo but not contributor
+        elif "@" not in result[2]:
+            logo = result[2]
+
+    return {
       "name": name,
       "url": url,
-      "logo" : logo,
-      "contributors": contributors
-    }
+      "logo": logo,
+      "contributors": contributors,
+}
+
 
 if __name__ == "__main__":
-  with open(FILEPATH_IN, "r") as file:
-    while True:
-      line = file.readline()
+    categories = {}
+    with open(FILEPATH_IN, "r") as file:
+        while True:
+            line = file.readline()
 
-      if not line: #EOF
-        break
+            if not line:  # EOF
+                break
 
-      # Category identifer is "###"
-      if (line[0:3] == ID_CAT):
-        last_category_position = file.tell() # Record position to return
+            # Category identifer is "###"
+            if line[0:3] == ID_CAT:
+                last_category_position = file.tell()  # Record position to return
 
-        category_name = line[3:].strip()
-        entries_list = []
-        # Loop unil the next category or end of file
-        # Use seek/tell for moving file pointer back to last category
+                category_name = line[3:].strip()
+                entries_list = []
+                # Loop unil the next category or end of file
+                # Use seek/tell for moving file pointer back to last category
 
-        # If next category, or end of file, stop.
-        looping_through_line = file.readline()
-        while looping_through_line[0:3] != ID_CAT:
-          # If an entry, add it to the category
-          if looping_through_line[0] == ID_ENTRY:
-             entries_list.append(to_json(looping_through_line))
-          looping_through_line = file.readline()
-          if not looping_through_line:
-            break
-          
-        # If finished adding entries, add the category to our categories
-        categories.update({category_name: entries_list})
-        file.seek(last_category_position)
+                # If next category, or end of file, stop.
+                looping_through_line = file.readline()
+                while looping_through_line[0:3] != ID_CAT:
+                    # If an entry, add it to the category
+                    if looping_through_line[0] == ID_ENTRY:
+                        entries_list.append(to_json(looping_through_line))
+                    looping_through_line = file.readline()
+                    if not looping_through_line:
+                        break
 
-    # Finally export or write out
-    with open(FILEPATH_OUT, "w") as file:
-       result = {"categories": categories}
-       file.write(json.dumps(result, indent = 4, ensure_ascii=False))
+                # If finished adding entries, add the category to our categories
+                categories.update({category_name: entries_list})
+                file.seek(last_category_position)
+
+        # Finally export or write out
+        with open(FILEPATH_OUT, "w") as file:
+            result = {"categories": categories}
+            file.write(json.dumps(result, indent=4, encoding="utf-8"))
+            # Replace when running local:
+            # file.write(json.dumps(result, indent = 4, ensure_ascii=False))
