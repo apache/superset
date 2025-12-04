@@ -77,7 +77,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
@@ -121,4 +121,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
             payload["version"] = EXPORT_VERSION
 
-            yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
+            yield (
+                file_path,
+                lambda: yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
+            )
