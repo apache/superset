@@ -1215,7 +1215,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_logs": {
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
-        #     "kwargs": {"retention_period_days": 180},
+        #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
