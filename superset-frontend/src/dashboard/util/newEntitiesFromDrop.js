@@ -61,32 +61,46 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
     newEntities[tabChild.id] = tabChild;
   } else if (dragType === ALERTS_TYPE) {
     // When an Alert component is dropped, automatically create a Tabs with Alert Data Table
+    // Place both Alert component and Tabs side by side in a row
+    console.log('[ALERT DROP] Creating tabs and alert data table for alert component');
+    
+    const containerRow = newComponentFactory(ROW_TYPE);
     const tabsWrapper = newComponentFactory(TABS_TYPE);
     const tabChild = newComponentFactory(TAB_TYPE, { text: 'Alert Data' });
     const alertDataTable = newComponentFactory(ALERT_DATA_TABLE_TYPE);
     
-    // Set up the parent-child hierarchy
-    tabsWrapper.parents = (dropEntity.parents || []).concat(dropEntity.id);
+    console.log('[ALERT DROP] Created entities:', {
+      containerRowId: containerRow.id,
+      tabsWrapperId: tabsWrapper.id,
+      tabChildId: tabChild.id,
+      alertDataTableId: alertDataTable.id,
+    });
+    
+    // Set up the parent-child hierarchy with correct parents
+    const baseParents = (dropEntity.parents || []).concat(dropEntity.id);
+    containerRow.parents = baseParents;
+    newDropChild.parents = baseParents.concat(containerRow.id);
+    tabsWrapper.parents = baseParents.concat(containerRow.id);
     tabChild.parents = tabsWrapper.parents.concat(tabsWrapper.id);
     alertDataTable.parents = tabChild.parents.concat(tabChild.id);
     
     // Link children
+    containerRow.children = [newDropChild.id, tabsWrapper.id];
     tabsWrapper.children = [tabChild.id];
     tabChild.children = [alertDataTable.id];
     
     // Add all entities
+    newEntities[containerRow.id] = containerRow;
     newEntities[tabsWrapper.id] = tabsWrapper;
     newEntities[tabChild.id] = tabChild;
     newEntities[alertDataTable.id] = alertDataTable;
     
-    // Place both Alert component and Tabs side by side in a row
-    const containerRow = newComponentFactory(ROW_TYPE);
-    containerRow.parents = (dropEntity.parents || []).concat(dropEntity.id);
-    containerRow.children = [newDropChild.id, tabsWrapper.id];
-    newEntities[containerRow.id] = containerRow;
-    
-    // Update parents for the alert component
-    newDropChild.parents = containerRow.parents.concat(containerRow.id);
+    console.log('[ALERT DROP] Entities to be added:', {
+      containerRow: containerRow,
+      tabsWrapper: tabsWrapper,
+      tabChild: tabChild,
+      alertDataTable: alertDataTable,
+    });
     
     // The container row is what gets added to the drop destination
     newDropChild = containerRow;
