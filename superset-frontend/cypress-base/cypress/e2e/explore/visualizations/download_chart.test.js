@@ -37,21 +37,14 @@ describe('Download Chart > Bar chart', () => {
 
     cy.visitChartByParams(formData);
     cy.get('.header-with-actions .ant-dropdown-trigger').click();
-    // Open first-level submenu: "Data Export Options"
-    cy.get('.ant-dropdown-menu-submenu-title')
-      .contains('Data Export Options') // <- simple text-only contains
-      .trigger('mouseover', { force: true });
+    cy.get(':nth-child(3) > .ant-dropdown-menu-submenu-title').click();
+    cy.get(
+      '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(1) > .ant-dropdown-menu-submenu-title',
+    ).click();
+    cy.get(
+      '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(3)',
+    ).click();
 
-    // Open second-level submenu: "Export All Data"
-    cy.get('.ant-dropdown-menu-submenu-title')
-      .contains('Export All Data')
-      .trigger('mouseover', { force: true });
-
-    // Wait for nested submenu to appear, then click the export item
-    cy.get('.ant-dropdown-menu-submenu .ant-dropdown-menu')
-      .find('.ant-dropdown-menu-item')
-      .contains('Export screenshot (jpeg)')
-      .click({ force: true });
     cy.verifyDownload('.jpg', {
       contains: true,
       timeout: 25000,
