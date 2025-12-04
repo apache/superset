@@ -85,6 +85,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -105,7 +106,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
-    BaseDatasourceData,
+    ExplorableData,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
@@ -265,7 +266,7 @@ class BaseDatasource(
         # Check if all requested columns are drillable
         return set(column_names).issubset(drillable_columns)
 
-    def get_time_grains(self) -> list[dict[str, Any]]:
+    def get_time_grains(self) -> list[TimeGrainDict]:
         """
         Get available time granularities from the database.
 
@@ -435,7 +436,7 @@ class BaseDatasource(
         return verb_map
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
@@ -1441,7 +1442,7 @@ class SqlaTable(
         return [(g.duration, g.name) for g in self.database.grains() or []]
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         data_ = super().data
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
