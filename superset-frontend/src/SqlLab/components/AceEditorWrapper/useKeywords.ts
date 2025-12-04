@@ -153,6 +153,7 @@ export function useKeywords(
           data.value,
           catalog,
           schema,
+          false, // Don't auto-expand/switch tabs when adding via autocomplete
         ),
       );
     }

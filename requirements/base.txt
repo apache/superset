@@ -116,7 +116,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==5.0.0
+flask-appbuilder==5.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -298,7 +298,9 @@ pyasn1-modules==0.4.2
 pycparser==2.22
     # via cffi
 pydantic==2.11.7
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pydantic-core==2.33.2
     # via pydantic
 pygments==2.19.1
@@ -364,6 +366,8 @@ rsa==4.9.1
     # via google-auth
 selenium==4.32.0
     # via apache-superset (pyproject.toml)
+setuptools==80.9.0
+    # via -r requirements/base.in
 shillelagh==1.4.3
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
@@ -384,6 +388,7 @@ sqlalchemy==1.4.54
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   apache-superset-core
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -392,9 +397,12 @@ sqlalchemy==1.4.54
 sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
     #   flask-appbuilder
 sqlglot==27.15.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
@@ -409,6 +417,7 @@ typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   apache-superset-core
     #   cattrs
     #   limits
     #   pydantic

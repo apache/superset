@@ -16,7 +16,7 @@
 # under the License.
 
 """
-FastMCP app factory and initialization for Superset MCP service.
+FastMCP app factory and initialization for the MCP service.
 This file provides a configurable factory function to create FastMCP instances
 following the Flask application factory pattern. All tool modules should import
 mcp from here and use @mcp.tool decorators.
@@ -29,10 +29,20 @@ from fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
-# Default instructions for the Superset MCP service
-DEFAULT_INSTRUCTIONS = """
-You are connected to the Apache Superset MCP (Model Context Protocol) service.
-This service provides programmatic access to Superset dashboards, charts, datasets,
+
+def get_default_instructions(branding: str = "Apache Superset") -> str:
+    """Get default instructions with configurable branding.
+
+    Args:
+        branding: Product name to use in instructions
+            (e.g., "ACME Analytics", "Apache Superset")
+
+    Returns:
+        Formatted instructions string with branding applied
+    """
+    return f"""
+You are connected to the {branding} MCP (Model Context Protocol) service.
+This service provides programmatic access to {branding} dashboards, charts, datasets,
 SQL Lab, and instance metadata via a comprehensive set of tools.
 
 Available tools:
@@ -68,13 +78,14 @@ Explore & Analysis:
 
 System Information:
 - get_instance_info: Get instance-wide statistics and metadata
+- health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
-- superset://instance/metadata: Access instance configuration and metadata
-- superset://chart/templates: Access chart configuration templates
+- instance/metadata: Access instance configuration and metadata
+- chart/templates: Access chart configuration templates
 
 Available Prompts:
-- superset_quickstart: Interactive guide for getting started with the MCP service
+- quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
 Common Chart Types (viz_type) and Behaviors:
@@ -106,9 +117,9 @@ Common Visualization Types:
 
 Query Examples:
 - List all interactive tables:
-  filters=[{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}]
+  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
 - List time series charts:
-  filters=[{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}]
+  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
 - Search by name: search="sales"
 
 General usage tips:
@@ -119,8 +130,12 @@ General usage tips:
 - Chart previews are served as PNG images via custom screenshot endpoints
 
 If you are unsure which tool to use, start with get_instance_info
-or use the superset_quickstart prompt for an interactive guide.
+or use the quickstart prompt for an interactive guide.
 """
+
+
+# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding
+DEFAULT_INSTRUCTIONS = get_default_instructions()
 
 
 def _build_mcp_kwargs(
@@ -182,8 +197,9 @@ def _log_instance_creation(
 
 
 def create_mcp_app(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
+    branding: str | None = None,
     auth: Any | None = None,
     lifespan: Callable[..., Any] | None = None,
     tools: List[Any] | None = None,
@@ -202,6 +218,7 @@ def create_mcp_app(
     Args:
         name: Human-readable server name
         instructions: Server description and usage instructions
+        branding: Product name for instructions (e.g., "ACME Analytics")
         auth: Authentication provider for securing HTTP transports
         lifespan: Async context manager for startup/shutdown logic
         tools: List of tools or functions to add to the server
@@ -213,9 +230,17 @@ def create_mcp_app(
     Returns:
         Configured FastMCP instance
     """
+    # Default name if not provided
+    if name is None:
+        name = "MCP Server"
+
     # Use default instructions if none provided
     if instructions is None:
-        instructions = DEFAULT_INSTRUCTIONS
+        # If branding is provided, use it to generate instructions
+        if branding is not None:
+            instructions = get_default_instructions(branding)
+        else:
+            instructions = DEFAULT_INSTRUCTIONS
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
@@ -235,13 +260,12 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-# Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app(stateless_http=True)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
-# Tools use @mcp.tool decorators and register automatically on import.
-# Import prompts and resources to register them with the mcp instance
+# Tools use the @tool decorator from `superset-core` and register automatically
+# on import. Import prompts and resources to register them with the mcp instance
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
@@ -289,7 +313,7 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
 
 
 def init_fastmcp_server(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
     auth: Any | None = None,
     lifespan: Callable[..., Any] | None = None,
@@ -307,16 +331,33 @@ def init_fastmcp_server(
     a new instance will be created with those settings.
 
     Args:
-        Same as create_mcp_app()
+        name: Server name (defaults to "{APP_NAME} MCP Server")
+        instructions: Custom instructions (defaults to branded with APP_NAME)
+        auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
+        **kwargs: Additional FastMCP configuration
 
     Returns:
         FastMCP instance (either the global one or a new custom one)
     """
+    # Read branding from Flask config's APP_NAME
+    from superset.mcp_service.flask_singleton import app as flask_app
+
+    # Derive branding from Superset's APP_NAME config (defaults to "Superset")
+    app_name = flask_app.config.get("APP_NAME", "Superset")
+    branding = app_name
+    default_name = f"{app_name} MCP Server"
+
+    # Apply branding defaults if not explicitly provided
+    if name is None:
+        name = default_name
+    if instructions is None:
+        instructions = get_default_instructions(branding)
+
     # If any custom parameters are provided, create a new instance
     custom_params_provided = any(
         [
-            name != "Superset MCP Server",
-            instructions is not None,
+            name != default_name,
+            instructions != get_default_instructions(branding),
             auth is not None,
             lifespan is not None,
             tools is not None,

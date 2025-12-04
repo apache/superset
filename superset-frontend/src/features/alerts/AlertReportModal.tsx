@@ -32,6 +32,7 @@ import {
   SupersetClient,
   t,
   VizType,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import rison from 'rison';
@@ -474,6 +475,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
+  const extensionsRegistry = getExtensionsRegistry();
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -1595,7 +1601,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let mode = 'multiple';
     if (filterType === 'filter_time') {
       return (
-        <DateFilterControl
+        <DateFilterComponent
           name="time_range"
           onChange={timeRange => {
             setNativeFilterData(
