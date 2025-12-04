@@ -30,7 +30,6 @@ export type ColumnObject = {
   groupby: boolean;
   is_active: boolean;
   is_dttm: boolean;
-  is_currency_code?: boolean;
   python_date_format?: string;
   uuid?: string;
   extra?: string;
