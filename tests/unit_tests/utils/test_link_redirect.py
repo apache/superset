@@ -45,8 +45,8 @@ def test_process_html_links_external_urls(app):
         result = process_html_links(html)
 
         # Check that external links are redirected
-        assert "/redirect?url=https%3A%2F%2Fevil.com%2Fphishing" in result
-        assert "/redirect?url=http%3A%2F%2Fexternal.site%2Fpage" in result
+        assert "/redirect/?url=https%3A%2F%2Fevil.com%2Fphishing" in result
+        assert "/redirect/?url=http%3A%2F%2Fexternal.site%2Fpage" in result
 
         # Check that external-link class is added
         assert 'class="external-link"' in result or "class='external-link'" in result
@@ -67,7 +67,7 @@ def test_process_html_links_internal_urls(app):
         # Check that internal links are NOT redirected
         assert "http://superset.example.com/dashboard/1" in result
         assert "http://superset.example.com/chart/list" in result
-        assert "/redirect?" not in result
+        assert "/redirect/?" not in result
 
 
 def test_process_html_links_mixed_urls(app):
@@ -88,7 +88,7 @@ def test_process_html_links_mixed_urls(app):
         assert "http://superset.example.com/dashboard/1" in result
 
         # External link should be redirected
-        assert "/redirect?url=https%3A%2F%2Fexternal.com%2Fpage" in result
+        assert "/redirect/?url=https%3A%2F%2Fexternal.com%2Fpage" in result
 
         # Relative paths and non-http(s) links should not be modified
         assert "/relative/path" in result
@@ -109,7 +109,7 @@ def test_process_html_links_no_links(app):
         html = "<div><p>This is some text without any links.</p></div>"
         result = process_html_links(html)
         assert "This is some text without any links." in result
-        assert "/redirect?" not in result
+        assert "/redirect/?" not in result
 
 
 def test_process_html_links_already_redirected(app):
@@ -117,14 +117,14 @@ def test_process_html_links_already_redirected(app):
     with app.app_context():
         html = """
         <div>
-            <a href="/redirect?url=https%3A%2F%2Fexternal.com">Already redirected</a>
+            <a href="/redirect/?url=https%3A%2F%2Fexternal.com">Already redirected</a>
         </div>
         """
 
         result = process_html_links(html)
 
         # Should not double-redirect
-        assert result.count("/redirect?") == 1
+        assert result.count("/redirect/?") == 1
 
 
 def test_process_html_links_complex_html(app):
@@ -147,9 +147,9 @@ def test_process_html_links_complex_html(app):
         result = process_html_links(html)
 
         # External links should be redirected
-        assert "/redirect?url=https%3A%2F%2Fevil.com" in result
-        assert "/redirect?url=https%3A%2F%2Fgoogle.com" in result
-        assert "/redirect?url=https%3A%2F%2Fgithub.com" in result
+        assert "/redirect/?url=https%3A%2F%2Fevil.com" in result
+        assert "/redirect/?url=https%3A%2F%2Fgoogle.com" in result
+        assert "/redirect/?url=https%3A%2F%2Fgithub.com" in result
 
         # Internal link should not be redirected
         assert "http://superset.example.com/dashboard" in result
@@ -172,7 +172,7 @@ def test_process_html_links_with_custom_base_url(app):
         assert "https://mycompany.com/page" in result
 
         # external.com link should be redirected
-        assert "/redirect?url=https%3A%2F%2Fexternal.com%2Fpage" in result
+        assert "/redirect/?url=https%3A%2F%2Fexternal.com%2Fpage" in result
 
 
 def test_process_html_links_disable_indicator(app):
@@ -184,7 +184,7 @@ def test_process_html_links_disable_indicator(app):
         result = process_html_links(html)
 
         # Should have redirect but no external-link class
-        assert "/redirect?url=https%3A%2F%2Fexternal.com" in result
+        assert "/redirect/?url=https%3A%2F%2Fexternal.com" in result
         assert "external-link" not in result
 
 
@@ -201,7 +201,7 @@ def test_process_html_links_malformed_html(app):
         result = process_html_links(html)
 
         # Should still process the link
-        assert "/redirect?" in result
+        assert "/redirect/?" in result
 
 
 def test_is_safe_redirect_url(app):
@@ -261,7 +261,7 @@ def test_process_html_links_empty_href_values(app):
         # Should not modify empty or whitespace-only hrefs
         assert 'href=""' in result
         assert 'href="  "' in result
-        assert "/redirect?" not in result
+        assert "/redirect/?" not in result
 
 
 def test_is_safe_redirect_url_case_insensitive(app):
@@ -324,5 +324,26 @@ def test_process_html_links_large_html(app):
         result = process_html_links(large_html)
 
         # Should still process correctly
-        assert "/redirect?" in result
-        assert result.count("/redirect?") == 1000  # All links should be processed
+        assert "/redirect/?" in result
+        assert result.count("/redirect/?") == 1000  # All links should be processed
+
+
+def test_process_html_links_protocol_relative_urls(app):
+    """Test that protocol-relative URLs are handled and redirected"""
+    with app.app_context():
+        html = """
+        <div>
+            <a href="//evil.com/phishing">Protocol relative external</a>
+            <a href="//superset.example.com/dashboard">Protocol relative internal</a>
+        </div>
+        """
+
+        result = process_html_links(html)
+
+        # Protocol-relative external link should be converted to https and redirected
+        assert "/redirect/?url=https%3A%2F%2Fevil.com%2Fphishing" in result
+
+        # Protocol-relative internal link should be converted but not redirected
+        assert "https://superset.example.com/dashboard" in result
+        # Should not have redirect for internal
+        assert "superset.example.com%2Fdashboard" not in result

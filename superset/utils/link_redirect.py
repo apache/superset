@@ -20,13 +20,15 @@ from typing import Any, Optional
 from urllib.parse import quote, urlparse
 
 from bs4 import BeautifulSoup
-from flask import current_app, url_for
+from flask import current_app
 
 logger = logging.getLogger(__name__)
 
 
-def _get_base_host(base_url: Optional[str]) -> Optional[str]:
-    """Extract and validate base host from URL."""
+def _get_base_url_and_host(
+    base_url: Optional[str],
+) -> tuple[Optional[str], Optional[str]]:
+    """Extract and validate base URL and host."""
     if base_url is None:
         base_url = current_app.config.get(
             "WEBDRIVER_BASEURL_USER_FRIENDLY",
@@ -35,7 +37,7 @@ def _get_base_host(base_url: Optional[str]) -> Optional[str]:
 
     if not base_url:
         logger.warning("No base URL configured, skipping link processing")
-        return None
+        return None, None
 
     # Parse base URL to get the host
     base_parsed = urlparse(base_url)
@@ -44,38 +46,50 @@ def _get_base_host(base_url: Optional[str]) -> Optional[str]:
     # Validate that the base URL has a proper scheme and host
     if not base_host or not base_parsed.scheme:
         logger.warning("Invalid base URL configured, skipping link processing")
-        return None
+        return None, None
 
-    return base_host
+    return base_url, base_host
 
 
-def _process_link_element(link: Any, base_host: str) -> None:
+def _get_redirect_url(original_url: str, base_url: str) -> str:
+    """
+    Build the redirect URL for an external link.
+
+    Uses REDIRECT_URL_PAGE config if set, otherwise builds URL from base_url.
+    This avoids using url_for which requires a request context.
+    """
+    if custom_redirect_page := current_app.config.get("REDIRECT_URL_PAGE"):
+        return f"{custom_redirect_page}?url={quote(original_url, safe='')}"
+
+    # Build the redirect URL from the base URL
+    # Remove trailing slash from base_url if present
+    base = base_url.rstrip("/")
+    return f"{base}/redirect/?url={quote(original_url, safe='')}"
+
+
+def _process_link_element(link: Any, base_host: str, base_url: str) -> None:
     """Process a single link element for external URL redirection."""
     original_url = link["href"].strip()
 
     if not original_url or "/redirect?" in original_url:
         return
 
+    # Handle protocol-relative URLs (e.g., //evil.com/foo)
+    if original_url.startswith("//"):
+        # Convert to https for processing
+        original_url = "https:" + original_url
+        link["href"] = original_url
+
     # Parse the URL
     parsed_url = urlparse(original_url)
 
-    # Check if it's an external link
+    # Check if it's an external link (http, https, or protocol-relative)
     if parsed_url.scheme in ("http", "https"):
         link_host = parsed_url.netloc
 
         # If the hosts don't match, it's an external link
-        if link_host and link_host != base_host:
-            # use custom redirect URL if configured, otherwise internal
-            if custom_redirect_page := current_app.config.get("REDIRECT_URL_PAGE"):
-                redirect_url = (
-                    f"{custom_redirect_page}?url={quote(original_url, safe='')}"
-                )
-            else:
-                redirect_url = url_for(
-                    "RedirectView.redirect_warning",
-                    url=original_url,
-                    _external=True,
-                )
+        if link_host and link_host.lower() != base_host.lower():
+            redirect_url = _get_redirect_url(original_url, base_url)
             link["href"] = redirect_url
 
             # Optionally add a visual indicator
@@ -115,14 +129,14 @@ def process_html_links(html_content: str, base_url: Optional[str] = None) -> str
         # Parse the HTML content
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Get and validate base host
-        base_host = _get_base_host(base_url)
-        if not base_host:
+        # Get and validate base URL and host
+        resolved_base_url, base_host = _get_base_url_and_host(base_url)
+        if not base_host or not resolved_base_url:
             return html_content
 
         # Find all anchor tags with href attribute and process them
         for link in soup.find_all("a", href=True):
-            _process_link_element(link, base_host)
+            _process_link_element(link, base_host, resolved_base_url)
 
         # Return the modified HTML
         return str(soup)

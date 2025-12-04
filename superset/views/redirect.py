@@ -20,8 +20,8 @@ from urllib.parse import unquote, urlparse
 
 from flask import abort, redirect, request
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access
 
+from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.link_redirect import is_safe_redirect_url
@@ -29,16 +29,72 @@ from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
+DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
+
+
+def _normalize_url(url: str) -> str:
+    """Normalize URL for comparison (remove trailing slashes and fragments)."""
+    parsed = urlparse(url)
+    path = parsed.path.rstrip("/") if parsed.path else ""
+    normalized = f"{parsed.scheme}://{parsed.netloc}{path}"
+    if parsed.query:
+        normalized += f"?{parsed.query}"
+    return normalized
+
+
+def _get_validated_url() -> str:
+    """
+    Extract and validate the target URL from request parameters.
+
+    Returns the decoded and validated URL, or aborts with appropriate error.
+    """
+    target_url = request.args.get("url", "")
+
+    if not target_url or not target_url.strip():
+        logger.warning("Redirect requested without URL parameter")
+        abort(400, description="Missing URL parameter")
+
+    try:
+        target_url = unquote(target_url).strip()
+    except Exception as ex:
+        logger.error("Failed to decode URL parameter: %s", str(ex))
+        abort(400, description="Invalid URL parameter")
+
+    if target_url.lower().startswith(DANGEROUS_SCHEMES):
+        logger.warning("Blocked potentially dangerous URL scheme: %s", target_url[:50])
+        abort(400, description="Invalid URL scheme")
+
+    return target_url
+
+
+def _is_url_in_trusted_cookie(target_url: str) -> bool:
+    """Check if the URL is in the trusted URLs cookie."""
+    try:
+        trusted_urls_cookie = request.cookies.get("superset_trusted_urls", "[]")
+        trusted_urls = json.loads(trusted_urls_cookie)
+        normalized_target = _normalize_url(target_url)
+
+        return any(
+            _normalize_url(trusted_url) == normalized_target
+            for trusted_url in trusted_urls
+        )
+    except Exception as ex:
+        logger.debug("Failed to parse trusted URLs cookie: %s", str(ex))
+        return False
+
 
 class RedirectView(BaseSupersetView):
     """
-    View for handling external link redirects with warning page
+    View for handling external link redirects with warning page.
+
+    This endpoint is publicly accessible (no authentication required)
+    to support external link warnings in email reports sent to users
+    who may not have active Superset sessions.
     """
 
     route_base = "/redirect"
 
     @expose("/")
-    @has_access
     def redirect_warning(self) -> FlaskResponse:
         """
         Show a warning page before redirecting to an external URL.
@@ -46,62 +102,21 @@ class RedirectView(BaseSupersetView):
         The React frontend handles the UI - this endpoint validates the URL
         and redirects trusted/internal URLs directly.
         """
-        # Get the target URL from query parameters
-        target_url = request.args.get("url", "")
+        if not is_feature_enabled("ALERT_REPORTS"):
+            abort(404)
 
-        if not target_url or not target_url.strip():
-            logger.warning("Redirect requested without URL parameter")
-            abort(400, description="Missing URL parameter")
+        target_url = _get_validated_url()
 
-        # Decode the URL
-        try:
-            target_url = unquote(target_url).strip()
-        except Exception as ex:
-            logger.error("Failed to decode URL parameter: %s", str(ex))
-            abort(400, description="Invalid URL parameter")
-
-        # Additional validation - prevent certain dangerous schemes
-        target_url_lower = target_url.lower()
-        if target_url_lower.startswith(("javascript:", "data:", "vbscript:", "file:")):
-            logger.warning(
-                "Blocked potentially dangerous URL scheme: %s", target_url[:50]
-            )
-            abort(400, description="Invalid URL scheme")
-
-        # Check if this is actually an external URL
+        # Redirect directly for internal URLs
         if is_safe_redirect_url(target_url):
-            # If it's a safe/internal URL, redirect directly
             logger.info("Redirecting to internal URL: %s", target_url)
             return redirect(target_url)
 
-        # Check if URL is in trusted URLs cookie
-        try:
-            trusted_urls_cookie = request.cookies.get("superset_trusted_urls", "[]")
-            trusted_urls = json.loads(trusted_urls_cookie)
+        # Redirect directly for trusted URLs from cookie
+        if _is_url_in_trusted_cookie(target_url):
+            logger.info("Redirecting to trusted URL: %s", target_url)
+            return redirect(target_url)
 
-            # Normalize URL for comparison (remove trailing slashes and fragments)
-            def normalize_url(url: str) -> str:
-                parsed = urlparse(url)
-                # Remove fragment and trailing slash from path
-                path = parsed.path.rstrip("/") if parsed.path else ""
-                normalized = f"{parsed.scheme}://{parsed.netloc}{path}"
-                if parsed.query:
-                    normalized += f"?{parsed.query}"
-                return normalized
-
-            normalized_target = normalize_url(target_url)
-
-            # Check if this exact URL is trusted
-            for trusted_url in trusted_urls:
-                if normalize_url(trusted_url) == normalized_target:
-                    logger.info("Redirecting to trusted URL: %s", target_url)
-                    return redirect(target_url)
-        except Exception as ex:
-            # If cookie parsing fails, continue to warning page
-            logger.debug("Failed to parse trusted URLs cookie: %s", str(ex))
-
-        # Log external redirect attempt for monitoring
+        # Show the React warning page for external URLs
         logger.info("Showing warning for external URL: %s", target_url)
-
-        # Render the React SPA which handles the warning UI
         return super().render_app_template()
