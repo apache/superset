@@ -134,3 +134,4 @@ CLAUDE.local.md
 .claude_rc*
 .env.local
 PROJECT.md
+*.code-workspace
