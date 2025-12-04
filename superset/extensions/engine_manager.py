@@ -70,12 +70,6 @@ class EngineManagerExtension:
         def shutdown_engine_manager() -> None:
             if self.engine_manager:
                 self.engine_manager.stop_cleanup_thread()
-                # Use a try-except to handle closed log file handlers during tests
-                try:
-                    logger.info("Stopped EngineManager cleanup thread")
-                except ValueError:
-                    # Ignore logging errors during test shutdown when file handles are closed
-                    pass
 
         app.teardown_appcontext_funcs.append(lambda exc: None)
 

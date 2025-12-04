@@ -897,7 +897,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
@@ -906,19 +906,19 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
+        mock_get_sqla_engine.__enter__.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
         with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:  # noqa: PT012
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Unexpected error occurred, please check your logs for details"
-            )
+        assert str(excinfo.value) == (
+            "Unexpected error occurred, please check your logs for details"
+        )
         mock_event_logger.assert_called()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
@@ -927,7 +927,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.return_value.dialect.do_ping.side_effect = Exception(
+        mock_get_sqla_engine.__enter__().dialect.do_ping.side_effect = Exception(
             "An error has occurred!"
         )
         db_uri = database.sqlalchemy_uri_decrypted
@@ -967,7 +967,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
@@ -977,7 +977,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         connection exc is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = SupersetSecurityException(
+        mock_get_sqla_engine.__enter__.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info")
         )
         db_uri = database.sqlalchemy_uri_decrypted
@@ -990,7 +990,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
@@ -999,7 +999,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure event_logger is called when DBAPIError is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = DBAPIError(
+        mock_get_sqla_engine.__enter__.side_effect = DBAPIError(
             statement="error", params={}, orig={}
         )
         db_uri = database.sqlalchemy_uri_decrypted

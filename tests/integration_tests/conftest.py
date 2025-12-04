@@ -170,7 +170,6 @@ def example_db_provider() -> Callable[[], Database]:
             return self._db
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
-            self._db._get_sqla_engine()  # type: ignore
             self._db.backend  # type: ignore  # noqa: B018
 
         def remove(self) -> None:
