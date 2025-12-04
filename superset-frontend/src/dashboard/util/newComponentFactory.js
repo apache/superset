@@ -31,6 +31,7 @@ import {
   BUTTON_TYPE,
   MODEL3D_TYPE,
   ALERTS_TYPE,
+  ALERT_DATA_TABLE_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
@@ -93,6 +94,10 @@ const typeToDefaultMetaData = {
     severityFilter: [],
     showVisualIndicator: true,
     indicatorColor: '#1890ff',
+  },
+  [ALERT_DATA_TABLE_TYPE]: {
+    width: GRID_DEFAULT_CHART_WIDTH,
+    height: 50,
   },
   [DYNAMIC_TYPE]: {
     width: GRID_COLUMN_COUNT,

@@ -28,6 +28,7 @@ import {
   BUTTON_TYPE,
   MODEL3D_TYPE,
   ALERTS_TYPE,
+  ALERT_DATA_TABLE_TYPE,
   DYNAMIC_TYPE,
 } from '../../util/componentTypes';
 
@@ -42,6 +43,7 @@ import Tabs from './Tabs';
 import Button from './Button';
 import Model3D from './Model3D';
 import Alerts from './Alerts';
+import AlertDataTable from './AlertDataTable';
 import DynamicComponent from './DynamicComponent';
 
 export const componentLookup = {
@@ -56,5 +58,6 @@ export const componentLookup = {
   [BUTTON_TYPE]: Button,
   [MODEL3D_TYPE]: Model3D,
   [ALERTS_TYPE]: Alerts,
+  [ALERT_DATA_TABLE_TYPE]: AlertDataTable,
   [DYNAMIC_TYPE]: DynamicComponent,
 };
