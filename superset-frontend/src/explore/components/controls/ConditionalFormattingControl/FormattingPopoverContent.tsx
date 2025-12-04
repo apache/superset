@@ -292,6 +292,9 @@ export const FormattingPopoverContent = ({
   const [toTextColor, setToTextColor] = useState(() =>
     Boolean(config?.toTextColor),
   );
+  const [useGradient, setUseGradient] = useState(() =>
+    config?.useGradient !== undefined ? config.useGradient : true,
+  );
 
   const useConditionalFormattingFlag = (
     flagKey: 'toAllRowCheck' | 'toColorTextCheck',
@@ -404,6 +407,23 @@ export const FormattingPopoverContent = ({
               options={[...colorScheme, ...extraColorChoices]}
             />
           </FormItem>
+        </Col>
+      </Row>
+      <Row gutter={20}>
+        <Col span={1}>
+          <FormItem
+            name="useGradient"
+            valuePropName="checked"
+            initialValue={useGradient}
+          >
+            <Checkbox
+              onChange={event => setUseGradient(event.target.checked)}
+              checked={useGradient}
+            />
+          </FormItem>
+        </Col>
+        <Col>
+          <FormItem required>{t('Use gradient')}</FormItem>
         </Col>
       </Row>
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>

@@ -1216,6 +1216,136 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('render color with useGradient false returns solid color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is false, should return solid color (no opacity variation)
+        // The color should be the same for all matching values
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient true returns gradient color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is true, should return gradient color with opacity
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        // useGradient is undefined
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is undefined, should default to gradient for backward compatibility
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgba(172, 225, 196, 1)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      });
+
+      test('render color with useGradient false and None operator returns solid color', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: 'None',
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        // When useGradient is false with None operator, all values should have solid color
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
       it('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,

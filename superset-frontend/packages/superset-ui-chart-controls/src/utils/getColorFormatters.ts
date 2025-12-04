@@ -69,6 +69,7 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    useGradient,
   }: ConditionalFormattingConfig,
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
@@ -256,6 +257,13 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
+
+    // If useGradient is explicitly false, return solid color
+    if (useGradient === false) {
+      return colorScheme;
+    }
+
+    // Otherwise apply gradient (default behavior for backward compatibility)
     if (alpha === undefined || alpha) {
       return addAlpha(
         colorScheme,
