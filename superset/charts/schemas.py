@@ -1529,7 +1529,7 @@ class ChartDataResponseResult(Schema):
     detected_currency = fields.String(
         metadata={
             "description": "Detected ISO 4217 currency code when AUTO mode is used. "
-            "Returns the currency code if all filtered data contains a single currency, "
+            "Returns the currency code if all filtered data contains a single currency "
             "or null if multiple currencies are present."
         },
         allow_none=True,

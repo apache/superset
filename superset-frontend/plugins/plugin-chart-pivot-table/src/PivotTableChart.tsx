@@ -276,7 +276,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         baseFormatter,
         currencyFormat,
         valueFormat,
-        detectedCurrency,
+        detectedCurrency ?? undefined,
       ),
     [baseFormatter, currencyFormat, valueFormat, detectedCurrency],
   );
@@ -317,7 +317,7 @@ export default function PivotTableChart(props: PivotTableProps) {
                     metricBaseFormatter,
                     currency as Currency | undefined,
                     d3Format as string,
-                    detectedCurrency,
+                    detectedCurrency ?? undefined,
                   ),
                 ];
               }),
