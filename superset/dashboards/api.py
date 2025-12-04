@@ -260,6 +260,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @expose("/", methods=("GET",))
     @protect()
     @safe
+    @permission_name("get")
     @merge_response_func(
         BaseSupersetModelRestApi.merge_order_columns, API_ORDER_COLUMNS_RIS_KEY
     )
