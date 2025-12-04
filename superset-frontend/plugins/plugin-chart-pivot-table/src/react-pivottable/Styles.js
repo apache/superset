@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 export const Styles = styled.div`
   ${({ theme, isDashboardEditMode }) => css`
@@ -28,6 +28,7 @@ export const Styles = styled.div`
       text-align: left;
       margin: ${theme.sizeUnit}px;
       border-collapse: separate;
+      border-spacing: 0;
       font-family: ${theme.fontFamily};
       line-height: 1.4;
     }
@@ -54,6 +55,12 @@ export const Styles = styled.div`
     table.pvtTable tbody tr.pvtRowTotals {
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       bottom: 0;
+      background-color: ${theme.colorBgBase};
+    }
+
+    table.pvtTable tbody tr.pvtRowTotals th,
+    table.pvtTable tbody tr.pvtRowTotals td {
+      background-color: ${theme.colorBgBase};
     }
 
     table.pvtTable thead tr:last-of-type th,

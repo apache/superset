@@ -475,4 +475,28 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(query.columns).toEqual(['state', 'city']);
     });
   });
+
+  describe('buildQuery - metrics handling in different query modes', () => {
+    test('should not include metrics in raw records mode', () => {
+      const query = buildQuery({
+        viz_type: VizType.Table,
+        datasource: '11__table',
+        query_mode: QueryMode.Raw,
+        all_columns: ['state', 'city'],
+      }).queries[0];
+
+      expect(query.metrics).toBeUndefined();
+    });
+
+    test('should set metrics to empty array in aggregate mode when no metrics specified', () => {
+      const query = buildQuery({
+        viz_type: VizType.Table,
+        datasource: '11__table',
+        query_mode: QueryMode.Aggregate,
+        groupby: ['state'],
+      }).queries[0];
+
+      expect(query.metrics).toEqual([]);
+    });
+  });
 });

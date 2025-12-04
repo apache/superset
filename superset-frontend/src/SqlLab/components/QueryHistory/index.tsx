@@ -21,14 +21,8 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
-import {
-  t,
-  styled,
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-  useTheme,
-} from '@superset-ui/core';
+import { t, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
@@ -97,7 +91,11 @@ const QueryHistory = ({
             editorId,
           )
             .concat(data.result)
-            .reverse()
+            .sort((a, b) => {
+              const aTime = a.startDttm || 0;
+              const bTime = b.startDttm || 0;
+              return aTime - bTime;
+            })
         : getEditorQueries(queries, editorId),
     [queries, data, editorId],
   );

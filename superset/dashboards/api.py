@@ -24,7 +24,14 @@ from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, merge_response_func, protect, rison, safe
+from flask_appbuilder.const import (
+    API_DESCRIPTION_COLUMNS_RIS_KEY,
+    API_LABEL_COLUMNS_RIS_KEY,
+    API_LIST_COLUMNS_RIS_KEY,
+    API_LIST_TITLE_RIS_KEY,
+    API_ORDER_COLUMNS_RIS_KEY,
+)
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
@@ -129,6 +136,7 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
+from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
     BaseFilterRelatedRoles,
@@ -160,8 +168,54 @@ def with_dashboard(
     return functools.update_wrapper(wraps, f)
 
 
+# Base columns (everything except tags)
+BASE_LIST_COLUMNS = [
+    "id",
+    "uuid",
+    "published",
+    "status",
+    "slug",
+    "url",
+    "thumbnail_url",
+    "certified_by",
+    "certification_details",
+    "changed_by.first_name",
+    "changed_by.last_name",
+    "changed_by.id",
+    "changed_by_name",
+    "changed_on_utc",
+    "changed_on_delta_humanized",
+    "created_on_delta_humanized",
+    "created_by.first_name",
+    "created_by.id",
+    "created_by.last_name",
+    "dashboard_title",
+    "owners.id",
+    "owners.first_name",
+    "owners.last_name",
+    "roles.id",
+    "roles.name",
+    "is_managed_externally",
+    "uuid",
+]
+
+# Full tags (current behavior - includes all tag types)
+FULL_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
+    "tags.id",
+    "tags.name",
+    "tags.type",
+]
+
+# Custom tags only
+CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
+    "custom_tags.id",
+    "custom_tags.name",
+    "custom_tags.type",
+]
+
+
 # pylint: disable=too-many-public-methods
-class DashboardRestApi(BaseSupersetModelRestApi):
+class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
@@ -191,38 +245,83 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    list_columns = [
-        "id",
-        "uuid",
-        "published",
-        "status",
-        "slug",
-        "url",
-        "thumbnail_url",
-        "certified_by",
-        "certification_details",
-        "changed_by.first_name",
-        "changed_by.last_name",
-        "changed_by.id",
-        "changed_by_name",
-        "changed_on_utc",
-        "changed_on_delta_humanized",
-        "created_on_delta_humanized",
-        "created_by.first_name",
-        "created_by.id",
-        "created_by.last_name",
-        "dashboard_title",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
-        "roles.id",
-        "roles.name",
-        "is_managed_externally",
-        "tags.id",
-        "tags.name",
-        "tags.type",
-        "uuid",
-    ]
+    # Default list_columns (used if config not set)
+    list_columns = FULL_TAG_LIST_COLUMNS
+
+    def __init__(self) -> None:
+        # Configure custom tags optimization (mixin handles the logic)
+        self._setup_custom_tags_optimization(
+            config_key="DASHBOARD_LIST_CUSTOM_TAGS_ONLY",
+            full_columns=FULL_TAG_LIST_COLUMNS,
+            custom_columns=CUSTOM_TAG_LIST_COLUMNS,
+        )
+        super().__init__()
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_order_columns, API_ORDER_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_label_columns, API_LABEL_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_description_columns,
+        API_DESCRIPTION_COLUMNS_RIS_KEY,
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY
+    )
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
+        log_to_statsd=False,
+    )
+    @handle_api_exception
+    def get_list(self, **kwargs: Any) -> Response:
+        """Get a list of dashboards.
+        ---
+        get:
+          summary: Get a list of dashboards
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Dashboards
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return super().get_list(**kwargs)
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [

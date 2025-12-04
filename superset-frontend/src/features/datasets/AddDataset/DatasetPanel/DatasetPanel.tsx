@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled, Alert } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Alert, Loading } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components';
 import Table, {
   ColumnsType,
   TableSize,
@@ -277,7 +278,7 @@ const DatasetPanel = ({
     if (!loading && tableName && hasColumns && !hasError) {
       component = (
         <>
-          <StyledTitle>{COLUMN_TITLE}</StyledTitle>
+          <StyledTitle title={COLUMN_TITLE}>{COLUMN_TITLE}</StyledTitle>
           {tableWithDataset ? (
             <TableContainerWithBanner>
               <TableScrollContainer>
@@ -330,7 +331,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            <Icons.InsertRowAboveOutlined />
+            <Icons.InsertRowAboveOutlined iconSize="xxl" />
             {tableName}
           </StyledHeader>
         </>

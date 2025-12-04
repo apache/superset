@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { MenuDotsDropdown } from '../../../Dropdown';
 import { IconOrientation } from '../../../Dropdown/types';
 import { Menu, MenuProps } from '../../../Menu';

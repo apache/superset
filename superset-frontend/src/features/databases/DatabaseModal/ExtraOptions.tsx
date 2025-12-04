@@ -22,9 +22,9 @@ import {
   t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import {
   Input,
   Checkbox,
@@ -613,9 +613,9 @@ const ExtraOptions = ({
           ? [
               {
                 key: extraExtension?.title,
-                collapsible: extraExtension.enabled?.()
-                  ? ('icon' as const)
-                  : ('disabled' as const),
+                ...(extraExtension.enabled?.()
+                  ? {}
+                  : { collapsible: 'disabled' as const }),
                 label: (
                   <CollapseLabelInModal
                     key={extraExtension?.title}

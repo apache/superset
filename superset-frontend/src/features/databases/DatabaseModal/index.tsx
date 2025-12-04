@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  styled,
-  SupersetTheme,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { t, getExtensionsRegistry } from '@superset-ui/core';
+import { styled, SupersetTheme, Alert } from '@apache-superset/core/ui';
 
 import {
   FunctionComponent,
@@ -39,7 +35,6 @@ import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
-  Alert,
   Button,
   Icons,
   LabeledErrorBoundInput as ValidatedInput,
@@ -1069,6 +1064,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // eslint-disable-next-line camelcase
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      if (!selectedDbModel) return;
       const {
         engine,
         parameters,

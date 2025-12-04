@@ -22,16 +22,13 @@ from typing import Any, ClassVar, TYPE_CHECKING
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.query_context_processor import (
-    CachedTimeOffset,
-    QueryContextProcessor,
-)
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
+from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
     from superset.models.helpers import QueryResult
 
 
@@ -47,7 +44,7 @@ class QueryContext:
     cache_type: ClassVar[str] = "df"
     enforce_numerical_metrics: ClassVar[bool] = True
 
-    datasource: BaseDatasource
+    datasource: Explorable
     slice_: Slice | None = None
     queries: list[QueryObject]
     form_data: dict[str, Any] | None
@@ -65,7 +62,7 @@ class QueryContext:
     def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
-        datasource: BaseDatasource,
+        datasource: Explorable,
         queries: list[QueryObject],
         slice_: Slice | None,
         form_data: dict[str, Any] | None,
@@ -102,15 +99,24 @@ class QueryContext:
         return self._processor.get_payload(cache_query_context, force_cached)
 
     def get_cache_timeout(self) -> int | None:
+        """
+        Get the cache timeout for this query context.
+
+        Priority order:
+        1. Custom timeout set for this specific query
+        2. Chart-level timeout (if querying from a saved chart)
+        3. Datasource-level timeout (explorable handles its own fallback logic)
+        4. System default (None)
+
+        Note: Each explorable is responsible for its own internal fallback chain.
+        For example, BaseDatasource falls back to database.cache_timeout,
+        while semantic layers might fall back to their layer's default.
+        """
         if self.custom_cache_timeout is not None:
             return self.custom_cache_timeout
         if self.slice_ and self.slice_.cache_timeout is not None:
             return self.slice_.cache_timeout
-        if self.datasource.cache_timeout is not None:
-            return self.datasource.cache_timeout
-        if hasattr(self.datasource, "database"):
-            return self.datasource.database.cache_timeout
-        return None
+        return self.datasource.cache_timeout
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         return self._processor.query_cache_key(query_obj, **kwargs)
@@ -127,13 +133,6 @@ class QueryContext:
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         return self._processor.get_query_result(query_object)
-
-    def processing_time_offsets(
-        self,
-        df: pd.DataFrame,
-        query_object: QueryObject,
-    ) -> CachedTimeOffset:
-        return self._processor.processing_time_offsets(df, query_object)
 
     def raise_for_access(self) -> None:
         self._processor.raise_for_access()

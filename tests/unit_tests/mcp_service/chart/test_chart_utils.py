@@ -88,10 +88,11 @@ class TestMapTableConfig:
     def test_map_table_config_basic(self) -> None:
         """Test basic table config mapping with aggregated columns"""
         config = TableChartConfig(
+            chart_type="table",
             columns=[
                 ColumnRef(name="product", aggregate="COUNT"),
                 ColumnRef(name="revenue", aggregate="SUM"),
-            ]
+            ],
         )
 
         result = map_table_config(config)
@@ -107,10 +108,11 @@ class TestMapTableConfig:
     def test_map_table_config_raw_columns(self) -> None:
         """Test table config mapping with raw columns (no aggregates)"""
         config = TableChartConfig(
+            chart_type="table",
             columns=[
                 ColumnRef(name="product"),
                 ColumnRef(name="category"),
-            ]
+            ],
         )
 
         result = map_table_config(config)
@@ -124,6 +126,7 @@ class TestMapTableConfig:
     def test_map_table_config_with_filters(self) -> None:
         """Test table config mapping with filters"""
         config = TableChartConfig(
+            chart_type="table",
             columns=[ColumnRef(name="product")],
             filters=[FilterConfig(column="status", op="=", value="active")],
         )
@@ -141,7 +144,9 @@ class TestMapTableConfig:
     def test_map_table_config_with_sort(self) -> None:
         """Test table config mapping with sort"""
         config = TableChartConfig(
-            columns=[ColumnRef(name="product")], sort_by=["product", "revenue"]
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            sort_by=["product", "revenue"],
         )
 
         result = map_table_config(config)
@@ -154,6 +159,7 @@ class TestMapXYConfig:
     def test_map_xy_config_line_chart(self) -> None:
         """Test XY config mapping for line chart"""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
             kind="line",
@@ -169,6 +175,7 @@ class TestMapXYConfig:
     def test_map_xy_config_with_groupby(self) -> None:
         """Test XY config mapping with group by"""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue")],
             kind="bar",
@@ -183,6 +190,7 @@ class TestMapXYConfig:
     def test_map_xy_config_with_axes(self) -> None:
         """Test XY config mapping with axis configurations"""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue")],
             kind="area",
@@ -202,6 +210,7 @@ class TestMapXYConfig:
     def test_map_xy_config_with_legend(self) -> None:
         """Test XY config mapping with legend configuration"""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue")],
             kind="scatter",
@@ -220,14 +229,17 @@ class TestMapConfigToFormData:
 
     def test_map_table_config_type(self) -> None:
         """Test mapping table config type"""
-        config = TableChartConfig(columns=[ColumnRef(name="test")])
+        config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="test")])
         result = map_config_to_form_data(config)
         assert result["viz_type"] == "table"
 
     def test_map_xy_config_type(self) -> None:
         """Test mapping XY config type"""
         config = XYChartConfig(
-            x=ColumnRef(name="date"), y=[ColumnRef(name="revenue")], kind="line"
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
         )
         result = map_config_to_form_data(config)
         assert result["viz_type"] == "echarts_timeseries_line"
@@ -244,10 +256,11 @@ class TestGenerateChartName:
     def test_generate_table_chart_name(self) -> None:
         """Test generating name for table chart"""
         config = TableChartConfig(
+            chart_type="table",
             columns=[
                 ColumnRef(name="product"),
                 ColumnRef(name="revenue"),
-            ]
+            ],
         )
 
         result = generate_chart_name(config)
@@ -256,6 +269,7 @@ class TestGenerateChartName:
     def test_generate_xy_chart_name(self) -> None:
         """Test generating name for XY chart"""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue"), ColumnRef(name="orders")],
             kind="line",

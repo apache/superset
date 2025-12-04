@@ -25,9 +25,9 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
-  supersetTheme,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
 

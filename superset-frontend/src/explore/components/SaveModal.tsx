@@ -24,7 +24,6 @@ import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import {
   InfoTooltip,
-  Alert,
   Button,
   AsyncSelect,
   Form,
@@ -35,19 +34,19 @@ import {
   Divider,
 } from '@superset-ui/core/components';
 import {
-  css,
   DatasourceType,
   isDefined,
   logging,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { removeChartState } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
 
 // Session storage key for recent dashboard
@@ -169,9 +168,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
     searchParams.set('save_action', this.state.action);
-    if (this.state.action !== 'overwrite') {
-      searchParams.delete('form_data_key');
-    }
+
+    searchParams.delete('form_data_key');
 
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
@@ -279,6 +277,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
       // Go to new dashboard url
       if (gotodash && dashboard) {
+        this.props.dispatch(removeChartState(value.id));
         this.props.history.push(dashboard.url);
         return;
       }

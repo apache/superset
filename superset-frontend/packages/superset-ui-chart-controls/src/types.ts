@@ -462,6 +462,10 @@ export enum Comparator {
   EndsWith = 'ends with',
   Containing = 'containing',
   NotContaining = 'not containing',
+  IsTrue = 'is true',
+  IsFalse = 'is false',
+  IsNull = 'is null',
+  IsNotNull = 'is not null',
 }
 
 export const MultipleValueComparators = [
@@ -481,6 +485,7 @@ export type ConditionalFormattingConfig = {
   toAllRow?: boolean;
   toTextColor?: boolean;
   toCellBar?: boolean;
+  useGradient?: boolean;
 };
 
 export type ColorFormatters = {
@@ -488,7 +493,9 @@ export type ColorFormatters = {
   toAllRow?: boolean;
   toTextColor?: boolean;
   toCellBar?: boolean;
-  getColorFromValue: (value: number | string) => string | undefined;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
 
 export default {};
