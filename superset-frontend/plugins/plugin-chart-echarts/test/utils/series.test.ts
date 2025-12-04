@@ -53,6 +53,7 @@ import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
+  selected: undefined,
   selectorLabel: {
     fontFamily: theme.fontFamily,
     fontSize: theme.fontSizeSM,
@@ -811,16 +812,14 @@ describe('getLegendProps', () => {
         theme,
         false,
       ),
-    ).toEqual(
-      expect.objectContaining({
-        show: true,
-        top: 0,
-        right: 0,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: true,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
   });
 
   it('should return the correct props for scroll type with top orientation with zoom', () => {
@@ -832,30 +831,26 @@ describe('getLegendProps', () => {
         theme,
         true,
       ),
-    ).toEqual(
-      expect.objectContaining({
-        show: true,
-        top: 0,
-        right: 55,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: true,
+      top: 0,
+      right: 55,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
   });
 
   it('should return the correct props for plain type with left orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
-    ).toEqual(
-      expect.objectContaining({
-        show: true,
-        left: 0,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: true,
+      left: 0,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
   });
 
   it('should return the correct props for plain type with right orientation without zoom', () => {
@@ -867,16 +862,14 @@ describe('getLegendProps', () => {
         theme,
         false,
       ),
-    ).toEqual(
-      expect.objectContaining({
-        show: false,
-        right: 0,
-        top: 0,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: false,
+      right: 0,
+      top: 0,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
   });
 
   it('should return the correct props for plain type with right orientation with zoom', () => {
@@ -888,45 +881,39 @@ describe('getLegendProps', () => {
         theme,
         true,
       ),
-    ).toEqual(
-      expect.objectContaining({
-        show: false,
-        right: 0,
-        top: 30,
-        orient: 'vertical',
-        type: 'plain',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: false,
+      right: 0,
+      top: 30,
+      orient: 'vertical',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
   });
 
   it('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
-    ).toEqual(
-      expect.objectContaining({
-        show: false,
-        bottom: 0,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: false,
+      bottom: 0,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
   });
 
   it('should default plain legends to scroll for top orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
-    ).toEqual(
-      expect.objectContaining({
-        show: false,
-        top: 0,
-        right: 0,
-        orient: 'horizontal',
-        type: 'scroll',
-        ...expectedThemeProps,
-      }),
-    );
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'scroll',
+      ...expectedThemeProps,
+    });
   });
 });
 

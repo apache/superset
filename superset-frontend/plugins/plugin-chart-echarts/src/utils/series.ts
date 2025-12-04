@@ -437,7 +437,7 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
-): LegendComponentOption | LegendComponentOption[] {
+): LegendComponentOption {
   const isHorizontal =
     orientation === LegendOrientation.Top ||
     orientation === LegendOrientation.Bottom;
