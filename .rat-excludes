@@ -37,6 +37,7 @@ apache_superset.egg-info
 .*j2
 # Static images for doc
 docs/static/img/logos/*
+docs/static/img/logos/.*svg
 # Generated doc files
 env/*
 docs/.htaccess*
