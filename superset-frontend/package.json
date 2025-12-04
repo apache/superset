@@ -177,7 +177,6 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.0.9",
     "ol": "^7.5.2",
-    "polished": "^4.3.1",
     "prop-types": "^15.8.1",
     "re-resizable": "^6.10.1",
     "react": "^17.0.2",
