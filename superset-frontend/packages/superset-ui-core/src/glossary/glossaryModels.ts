@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { Glossary } from "./glossaryUtils";
+// Local type definition to avoid circular dependency with glossaryUtils
+type Glossary = Record<string, Record<string, GlossaryTerm>>;
 
 // Encoding format prefix for glossary strings
 export const GLOSSARY_ENCODING_PREFIX = '[GLOSSARY]|';
