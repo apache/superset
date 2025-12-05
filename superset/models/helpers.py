@@ -1013,7 +1013,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.get_allows_alias_in_select(self.database):
-            label = db_engine_spec.make_label_compatible(label_expected)
+            label = db_engine_spec.make_label_compatible(
+                label_expected, database=self.database
+            )
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
@@ -2672,8 +2674,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
+        # Ensure db-specific label mutation logic can access the current database
         series_column_labels = [
-            db_engine_spec.make_label_compatible(column)
+            db_engine_spec.make_label_compatible(column, database=self.database)
             for column in utils.get_column_names(
                 columns=series_columns or [],
             )
@@ -3281,7 +3284,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = db_engine_spec.make_label_compatible(gby_name + "__")
+                    col_name = db_engine_spec.make_label_compatible(
+                        gby_name + "__", database=self.database
+                    )
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
@@ -3298,7 +3303,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     def _create_join_condition(col_name: str, expr: Any) -> Any:
                         # Get the corresponding column from the subquery
                         subq_col_name = db_engine_spec.make_label_compatible(
-                            col_name + "__"
+                            col_name + "__", database=self.database
                         )
                         # Reference the column from the already-created aliased subquery
                         subq_col = subq_alias.c[subq_col_name]

@@ -1897,7 +1897,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls, label: str, database: Optional[Database] = None
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -1907,9 +1909,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
+        :param database: optional Database instance for db-specific label mutation logic
         :return: conditionally mutated label supported by the db engine
         """
-        label_mutated = cls._mutate_label(label)
+        if "database" in signature(cls._mutate_label).parameters:
+            # Dynamic dispatch based on subclass signature
+            label_mutated = cls._mutate_label(label, database=database)  # type: ignore[call-arg]
+        else:
+            label_mutated = cls._mutate_label(label)
+
         if (
             cls.max_column_name_length
             and len(label_mutated) > cls.max_column_name_length

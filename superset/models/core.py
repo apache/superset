@@ -1215,7 +1215,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         label_expected = label or sqla_col.name
         # add quotes to tables
         if self.db_engine_spec.get_allows_alias_in_select(self):
-            label = self.db_engine_spec.make_label_compatible(label_expected)
+            label = self.db_engine_spec.make_label_compatible(
+                label_expected, database=self
+            )
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
