@@ -22,7 +22,7 @@ import { Tooltip as AntdTooltip } from 'antd';
 import type { TooltipRef } from 'antd/es/tooltip';
 
 import type { TooltipProps, TooltipPlacement } from './types';
-import { resolveGlossaryString } from '../../glossary/glossaryUtils';
+import { resolveGlossaryString } from '@superset-ui/core';
 
 const TOOLTIP_SEPARATOR_STYLE: CSSProperties = {
   margin: '8px 0',
