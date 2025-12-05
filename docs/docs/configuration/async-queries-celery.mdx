@@ -74,12 +74,12 @@ RESULTS_BACKEND = RedisCache(
 # On MinIO or other S3 compatible Service
 from minio_cache import MinioCacheBackend
 
-MINIO_HOST = 'localhost'
-MINIO_PORT = '9000'
-MINIO_ACCESS_KEY = 'minio'
-MINIO_SECRET_KEY = 'minio123'
-MINIO_BUCKET = 'superset'
-MINIO_SECURE = False
+MINIO_HOST = os.environ.get('MINIO_HOST', 'localhost')
+MINIO_PORT = os.environ.get('MINIO_PORT', '9000')
+MINIO_ACCESS_KEY = os.environ.get('MINIO_ACCESS_KEY', '')
+MINIO_SECRET_KEY = os.environ.get('MINIO_SECRET_KEY', '')
+MINIO_BUCKET = os.environ.get('MINIO_BUCKET', 'superset')
+MINIO_SECURE = os.environ.get('MINIO_SECURE', 'False')
 
 RESULTS_BACKEND = MinioCacheBackend(
     endpoint=MINIO_HOST + ":" + MINIO_PORT,
