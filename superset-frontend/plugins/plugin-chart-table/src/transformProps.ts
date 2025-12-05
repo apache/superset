@@ -28,6 +28,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  normalizeCurrency,
   NumberFormats,
   QueryMode,
   t,
@@ -293,10 +294,14 @@ const processColumns = memoizeOne(function processColumns(
           detectedCurrency &&
           (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
         ) {
-          resolvedCurrency = {
-            ...currency,
-            symbol: detectedCurrency,
-          };
+          // Validate backend-provided currency code before using
+          const normalizedCurrency = normalizeCurrency(detectedCurrency);
+          if (normalizedCurrency) {
+            resolvedCurrency = {
+              ...currency,
+              symbol: normalizedCurrency,
+            };
+          }
         }
         formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({

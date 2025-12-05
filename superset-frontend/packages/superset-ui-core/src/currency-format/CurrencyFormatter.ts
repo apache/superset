@@ -138,9 +138,15 @@ class CurrencyFormatter extends ExtensibleFunction {
       return formattedValue as string;
     }
 
-    return this.currency.symbolPosition === 'prefix'
-      ? `${getCurrencySymbol(this.currency)} ${formattedValue}`
-      : `${formattedValue} ${getCurrencySymbol(this.currency)}`;
+    try {
+      const symbol = getCurrencySymbol(this.currency);
+      return this.currency.symbolPosition === 'prefix'
+        ? `${symbol} ${formattedValue}`
+        : `${formattedValue} ${symbol}`;
+    } catch {
+      // Invalid currency code - return value without currency symbol
+      return formattedValue as string;
+    }
   }
 }
 

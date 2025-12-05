@@ -177,3 +177,13 @@ test('CurrencyFormatter static mode ignores row context', () => {
   const row = { currency: 'EUR' };
   expect(formatter.format(1000, row, 'currency')).toContain('$');
 });
+
+test('CurrencyFormatter gracefully handles invalid currency code', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'INVALID_CODE', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Should not throw, should return formatted value without currency symbol
+  expect(formatter.format(1000)).toBe('1,000.00');
+});
