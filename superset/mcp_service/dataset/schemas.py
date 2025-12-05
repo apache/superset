@@ -248,19 +248,7 @@ class ListDatasetsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "table_name",
-                "schema",
-                "database_name",
-                "changed_by_name",
-                "changed_on",
-                "created_by_name",
-                "created_on",
-                "metrics",
-                "columns",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),

@@ -197,15 +197,7 @@ class ListDashboardsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "dashboard_title",
-                "slug",
-                "published",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
         ),

@@ -773,18 +773,7 @@ class ListChartsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "slice_name",
-                "viz_type",
-                "datasource_name",
-                "description",
-                "changed_by_name",
-                "created_by_name",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
