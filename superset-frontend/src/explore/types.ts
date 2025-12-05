@@ -127,6 +127,7 @@ export interface ExplorePageState {
 export interface TabNode {
   value: string;
   title: string;
+  parents: string[];
   children?: TabNode[];
 }
 

@@ -253,7 +253,10 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
           formData.dashboards = sliceDashboards;
-          if (this.state.action === 'saveas') {
+          if (
+            this.state.action === 'saveas' &&
+            this.state.selectedTab?.value !== 'OUT_OF_TAB'
+          ) {
             selectedTabId = this.state.selectedTab?.value as string;
           }
         }
@@ -497,20 +500,51 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         return [];
       }
       const tabTree = result.tab_tree;
-
+      const gridTabIds = new Set<string>();
       const convertToTreeData = (nodes: TabNode[]): TabTreeNode[] =>
-        nodes.map(node => ({
-          value: node.value,
-          title: node.title,
-          key: node.value,
-          children:
-            node.children && node.children.length > 0
-              ? convertToTreeData(node.children)
-              : undefined,
-        }));
+        nodes.map(node => {
+          const isGridTab =
+            Array.isArray(node.parents) && node.parents.includes('GRID_ID');
+          if (isGridTab) {
+            gridTabIds.add(node.value);
+          }
+          return {
+            value: node.value,
+            title: node.title,
+            key: node.value,
+            children:
+              node.children && node.children.length > 0
+                ? convertToTreeData(node.children)
+                : undefined,
+          };
+        });
 
       const treeData = convertToTreeData(tabTree);
-      this.setState({ tabsData: treeData });
+
+      // Add "Out of tab" option at the beginning
+      if (gridTabIds.size > 0) {
+        const tabsDataWithOutOfTab = [
+          {
+            value: 'OUT_OF_TAB',
+            title: 'Out of tab',
+            key: 'OUT_OF_TAB',
+            children: undefined,
+          },
+          ...treeData,
+        ];
+
+        this.setState({
+          tabsData: tabsDataWithOutOfTab,
+          selectedTab: { value: 'OUT_OF_TAB', label: 'Out of tab' },
+        });
+      } else {
+        const firstTab = treeData[0];
+        this.setState({
+          tabsData: treeData,
+          selectedTab: { value: firstTab.value, label: firstTab.title },
+        });
+      }
+
       return treeData;
     } catch (error) {
       logging.error('Error loading tabs:', error);
