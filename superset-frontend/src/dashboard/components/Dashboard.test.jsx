@@ -46,6 +46,7 @@ describe('Dashboard', () => {
   const mockTriggerQuery = jest.fn();
   const mockLogEvent = jest.fn();
   const mockClearDataMask = jest.fn();
+  const mockClearAllChartStates = jest.fn();
 
   const props = {
     actions: {
@@ -54,6 +55,7 @@ describe('Dashboard', () => {
       triggerQuery: mockTriggerQuery,
       logEvent: mockLogEvent,
       clearDataMaskState: mockClearDataMask,
+      clearAllChartStates: mockClearAllChartStates,
     },
     dashboardState,
     dashboardInfo,
