@@ -106,6 +106,8 @@ class ModelListCore(BaseCore, Generic[L]):
         search_columns: List[str],
         list_field_name: str,
         output_list_schema: Type[L],
+        all_columns: List[str] | None = None,
+        sortable_columns: List[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         super().__init__(logger)
@@ -117,6 +119,8 @@ class ModelListCore(BaseCore, Generic[L]):
         self.search_columns = search_columns
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
+        self.all_columns = all_columns or default_columns
+        self.sortable_columns = sortable_columns or []
 
     def run_tool(
         self,
@@ -195,6 +199,8 @@ class ModelListCore(BaseCore, Generic[L]):
             "has_next": page < total_pages - 1,
             "columns_requested": columns_requested,
             "columns_loaded": columns_to_load,
+            "columns_available": self.all_columns,
+            "sortable_columns": self.sortable_columns,
             "filters_applied": filters if isinstance(filters, list) else [],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
@@ -478,24 +484,41 @@ class ModelGetAvailableFiltersCore(BaseCore, Generic[S]):
     Generic tool for retrieving available filterable columns and operators for a
     model. Used for get_dataset_available_filters, get_chart_available_filters,
     get_dashboard_available_filters, etc.
+
+    Also returns column discovery metadata (select_columns, sortable_columns,
+    default_columns, search_columns) when provided.
     """
 
     def __init__(
         self,
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
+        select_columns: List[str] | None = None,
+        sortable_columns: List[str] | None = None,
+        default_columns: List[str] | None = None,
+        search_columns: List[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
+        self.select_columns = select_columns or []
+        self.sortable_columns = sortable_columns or []
+        self.default_columns = default_columns or []
+        self.search_columns = search_columns or []
 
     def run_tool(self) -> S:
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Ensure column_operators is a plain dict, not a custom type
             column_operators = dict(filterable)
-            response = self.output_schema(column_operators=column_operators)
+            response = self.output_schema(
+                column_operators=column_operators,
+                select_columns=self.select_columns,
+                sortable_columns=self.sortable_columns,
+                default_columns=self.default_columns,
+                search_columns=self.search_columns,
+            )
             self._log_info(
                 f"Successfully retrieved available filters for "
                 f"{self.dao_class.__class__.__name__}"

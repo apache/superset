@@ -41,17 +41,12 @@ from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Minimal defaults for reduced token usage - users can request more via select_columns
 DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
     "uuid",
-    "datasource_name",
-    "description",
-    "changed_by_name",
-    "created_by_name",
-    "changed_on",
-    "created_on",
 ]
 
 SORTABLE_CHART_COLUMNS = [
@@ -93,6 +88,10 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     )
 
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service.common.schema_discovery import (
+        CHART_ALL_COLUMNS,
+        CHART_SORTABLE_COLUMNS,
+    )
 
     def _serialize_chart(
         obj: "Slice | None", cols: list[str] | None
@@ -112,6 +111,8 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         ],
         list_field_name="charts",
         output_list_schema=ChartList,
+        all_columns=CHART_ALL_COLUMNS,
+        sortable_columns=CHART_SORTABLE_COLUMNS,
         logger=logger,
     )
 
@@ -132,20 +133,16 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             % (count, total_pages)
         )
 
-        # Apply field filtering via serialization context if select_columns specified
-        # This triggers ChartInfo._filter_fields_by_context for each chart
-        if request.select_columns:
-            await ctx.debug(
-                "Applying field filtering via serialization context: select_columns=%s"
-                % (request.select_columns,)
-            )
-            # Return dict with context - FastMCP will serialize it
-            return result.model_dump(
-                mode="json", context={"select_columns": request.select_columns}
-            )
-
-        # No filtering - return full result as dict
-        return result.model_dump(mode="json")
+        # Apply field filtering via serialization context
+        # Use requested columns or defaults - always filter to reduce token usage
+        columns_to_filter = request.select_columns or DEFAULT_CHART_COLUMNS
+        await ctx.debug(
+            "Applying field filtering via serialization context: select_columns=%s"
+            % (columns_to_filter,)
+        )
+        return result.model_dump(
+            mode="json", context={"select_columns": columns_to_filter}
+        )
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise

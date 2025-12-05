@@ -308,6 +308,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_instance_info,
+    get_schema,
     health_check,
 )
 

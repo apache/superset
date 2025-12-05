@@ -40,10 +40,20 @@ async def get_dataset_available_filters(
 ) -> DatasetAvailableFilters:
     """Get available dataset filter fields and operators."""
     from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.common.schema_discovery import (
+        DATASET_ALL_COLUMNS,
+        DATASET_DEFAULT_COLUMNS,
+        DATASET_SEARCH_COLUMNS,
+        DATASET_SORTABLE_COLUMNS,
+    )
 
     tool = ModelGetAvailableFiltersCore(
         dao_class=DatasetDAO,
         output_schema=DatasetAvailableFilters,
+        select_columns=DATASET_ALL_COLUMNS,
+        sortable_columns=DATASET_SORTABLE_COLUMNS,
+        default_columns=DATASET_DEFAULT_COLUMNS,
+        search_columns=DATASET_SEARCH_COLUMNS,
         logger=logger,
     )
     return tool.run_tool()

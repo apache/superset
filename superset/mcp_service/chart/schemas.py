@@ -148,6 +148,22 @@ class ChartAvailableFiltersResponse(BaseModel):
     column_operators: Dict[str, Any] = Field(
         ..., description="Available filter operators and metadata for each column"
     )
+    select_columns: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
+    default_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns returned when select_columns is not specified",
+    )
+    search_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns searched when using the search parameter",
+    )
 
 
 class ChartError(BaseModel):
@@ -312,6 +328,14 @@ class ChartList(BaseModel):
     has_next: bool
     columns_requested: List[str] | None = None
     columns_loaded: List[str] | None = None
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[ChartFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",

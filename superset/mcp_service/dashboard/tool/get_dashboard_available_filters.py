@@ -40,10 +40,20 @@ async def get_dashboard_available_filters(
 ) -> DashboardAvailableFilters:
     """Get available dashboard filter fields and operators."""
     from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.common.schema_discovery import (
+        DASHBOARD_ALL_COLUMNS,
+        DASHBOARD_DEFAULT_COLUMNS,
+        DASHBOARD_SEARCH_COLUMNS,
+        DASHBOARD_SORTABLE_COLUMNS,
+    )
 
     tool = ModelGetAvailableFiltersCore(
         dao_class=DashboardDAO,
         output_schema=DashboardAvailableFilters,
+        select_columns=DASHBOARD_ALL_COLUMNS,
+        sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
+        default_columns=DASHBOARD_DEFAULT_COLUMNS,
+        search_columns=DASHBOARD_SEARCH_COLUMNS,
         logger=logger,
     )
     return tool.run_tool()

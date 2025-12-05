@@ -41,10 +41,20 @@ def get_chart_available_filters(
 ) -> ChartAvailableFiltersResponse:
     """Get available chart filter fields and operators."""
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service.common.schema_discovery import (
+        CHART_ALL_COLUMNS,
+        CHART_DEFAULT_COLUMNS,
+        CHART_SEARCH_COLUMNS,
+        CHART_SORTABLE_COLUMNS,
+    )
 
     tool = ModelGetAvailableFiltersCore(
         dao_class=ChartDAO,
         output_schema=ChartAvailableFiltersResponse,
+        select_columns=CHART_ALL_COLUMNS,
+        sortable_columns=CHART_SORTABLE_COLUMNS,
+        default_columns=CHART_DEFAULT_COLUMNS,
+        search_columns=CHART_SEARCH_COLUMNS,
         logger=logger,
     )
     return tool.run_tool()
