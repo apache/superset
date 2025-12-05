@@ -143,9 +143,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
           });
-          if (this.state.action === 'saveas') {
-            await this.loadTabs(dashboardId);
-          }
+          await this.loadTabs(dashboardId);
         }
       } catch (error) {
         logging.warn(error);
