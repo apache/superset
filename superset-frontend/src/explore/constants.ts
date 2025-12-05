@@ -166,6 +166,3 @@ export const QUERY_MODE_REQUISITES = new Set([
   'percent_metrics',
   'order_by_cols',
 ]);
-
-export const CHART_WIDTH = 4;
-export const CHART_HEIGHT = 50;

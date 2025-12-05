@@ -52,7 +52,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { removeChartState } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
 import { TabNode, TabTreeNode } from '../types';
-import { CHART_WIDTH, CHART_HEIGHT } from '../constants';
+import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';

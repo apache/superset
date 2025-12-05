@@ -31,6 +31,8 @@ import fetchMock from 'fetch-mock';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
+import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
@@ -523,9 +525,6 @@ test('onTabChange correctly updates selectedTab via forceUpdate', () => {
 });
 
 test('chart placement logic finds row with available space', () => {
-  const GRID_COLUMN_COUNT = 12; // From the actual implementation
-  const chartWidth = 4; // From the actual implementation
-
   // Test case 1: Row has space (8 + 4 = 12 <= 12)
   const positionJson1 = {
     tab1: {
@@ -590,7 +589,7 @@ test('chart placement logic finds row with available space', () => {
           return sum + (component?.meta?.width || 0);
         }, 0);
 
-        if (totalWidth + chartWidth <= GRID_COLUMN_COUNT) {
+        if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
           return childKey;
         }
       }
