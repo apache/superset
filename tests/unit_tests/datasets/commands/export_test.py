@@ -155,6 +155,7 @@ def test_export(session: Session) -> None:
             f"datasets/my_database/my_table_{sqla_table.id}.yaml",
             f"""table_name: my_table
 main_dttm_col: ds
+currency_code_column: null
 description: This is the description
 default_endpoint: null
 offset: -8
