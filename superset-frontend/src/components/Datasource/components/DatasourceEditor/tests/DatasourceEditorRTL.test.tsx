@@ -131,7 +131,6 @@ describe('DatasourceEditor RTL Columns Tests', () => {
       name: 'Default datetime column',
     });
 
-    // Open the dropdown
     await userEvent.click(defaultDatetimeDropdown);
 
     // Check that temporal column 'ds' is in the dropdown options
