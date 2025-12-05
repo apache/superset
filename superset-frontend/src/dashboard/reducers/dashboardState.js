@@ -53,6 +53,7 @@ import {
   UPDATE_CHART_STATE,
   REMOVE_CHART_STATE,
   RESTORE_CHART_STATES,
+  CLEAR_ALL_CHART_STATES,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -324,6 +325,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         chartStates: chartStates || {},
+      };
+    },
+    [CLEAR_ALL_CHART_STATES]() {
+      return {
+        ...state,
+        chartStates: {},
       };
     },
   };
