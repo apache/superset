@@ -77,6 +77,7 @@ from superset.utils.core import (
     merge_extra_filters,
     simple_filter_to_adhoc,
 )
+from superset.utils.currency import detect_currency, detect_currency_from_df
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import md5_sha_from_str
 
@@ -476,6 +477,46 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return md5_sha_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
+    def _detect_currency(
+        self,
+        query_obj: QueryObjectDict | None = None,
+        df: pd.DataFrame | None = None,
+    ) -> str | None:
+        """
+        Detect currency from filtered data for AUTO mode currency formatting.
+
+        First attempts to detect from the provided dataframe if the currency
+        column is present. Falls back to a separate query only when needed.
+
+        :param query_obj: The query object with filters
+        :param df: Optional dataframe to detect currency from (avoids extra query)
+        :return: ISO 4217 currency code (e.g., "USD") or None
+        """
+        # Only detect if currency_format.symbol is AUTO
+        currency_format = self.form_data.get("currency_format", {})
+        if not isinstance(currency_format, dict):
+            return None
+        if currency_format.get("symbol") != "AUTO":
+            return None
+
+        currency_column = getattr(self.datasource, "currency_code_column", None)
+        if not currency_column:
+            return None
+
+        if df is not None and currency_column in df.columns:
+            return detect_currency_from_df(df, currency_column)
+
+        base_query_obj = query_obj or self.query_obj()
+        return detect_currency(
+            datasource=self.datasource,
+            filters=base_query_obj.get("filter"),
+            granularity=base_query_obj.get("granularity"),
+            from_dttm=base_query_obj.get("from_dttm"),
+            to_dttm=base_query_obj.get("to_dttm"),
+            extras=base_query_obj.get("extras"),
+        )
+
+    @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
         """Returns a payload of metadata and data"""
 
@@ -514,6 +555,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
+
         return payload
 
     @deprecated(deprecated_in="3.0")
@@ -531,6 +573,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         df = None
         cache_timeout = self.cache_timeout
         force = self.force or cache_timeout == CACHE_DISABLED_TIMEOUT
+        detected_currency: str | None = None
         if cache_key and cache_manager.data_cache and not force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
@@ -544,6 +587,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                     self.rejected_filter_columns = cache_value.get(
                         "rejected_filter_columns", []
                     )
+                    detected_currency = cache_value.get("detected_currency")
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
@@ -615,10 +659,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
+                detected_currency = self._detect_currency(query_obj, df)
                 set_and_log_cache(
                     cache_instance=cache_manager.data_cache,
                     cache_key=cache_key,
-                    cache_value={"df": df, "query": self.query},
+                    cache_value={
+                        "df": df,
+                        "query": self.query,
+                        "detected_currency": detected_currency,
+                    },
                     cache_timeout=cache_timeout,
                     datasource_uid=self.datasource.uid,
                 )
@@ -642,6 +691,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 if df is not None
                 else None
             ),
+            "detected_currency": detected_currency,
         }
 
     @staticmethod
