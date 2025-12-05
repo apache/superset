@@ -34,6 +34,7 @@ import dateFilterComparator from './dateFilterComparator';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
+import { getChartRenderer, shouldUseChartRenderer } from './chartRenderers';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
@@ -239,8 +240,14 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        cellRenderer: (p: CellRendererProps) =>
-          isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+        cellRenderer: (p: CellRendererProps) => {
+          // Check if column should use a chart renderer
+          if (shouldUseChartRenderer(col)) {
+            return getChartRenderer(col.config?.chartType || 'sparkline')(p);
+          }
+          // Fall back to existing text/numeric renderer logic
+          return isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p);
+        },
         cellRendererParams: {
           allowRenderHtml: true,
           columns,

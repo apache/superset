@@ -42,7 +42,14 @@ export type SharedColumnConfigProp =
   | 'visible'
   | 'customColumnName'
   | 'displayTypeIcon'
-  | 'currencyFormat';
+  | 'chartType'
+  | 'currencyFormat'
+  | 'width'
+  | 'height'
+  | 'color'
+  | 'strokeWidth'
+  | 'showValues'
+  | 'showPoints';
 
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   allowNewOptions: true,
@@ -179,6 +186,68 @@ const visible: ControlFormItemSpec<'Checkbox'> = {
   defaultValue: true,
   debounceDelay: 200,
 };
+
+const chartType: ControlFormItemSpec<'Select'> = {
+  controlType: 'Select',
+  label: t('Chart Type'),
+  description: t('Customize the chart type used to visualize row data.'),
+  options: [
+    { value: 'sparkline', label: t('Sparkline') },
+    { value: 'minibar', label: t('Mini Bar') },
+  ],
+  defaultValue: 'sparkline',
+  debounceDelay: 200,
+};
+
+const width: ControlFormItemSpec<'InputNumber'> = {
+  controlType: 'InputNumber',
+  label: t('Width'),
+  description: t(
+    'Width of the chart. You may also need to adjust column width if the chart width is too large.',
+  ),
+  defaultValue: 100, // default width from transformProps.ts
+  debounceDelay: 200,
+};
+
+const height: ControlFormItemSpec<'InputNumber'> = {
+  controlType: 'InputNumber',
+  label: t('Height'),
+  description: t('Height of the chart'),
+  defaultValue: 60, // default height from transformProps.ts
+  debounceDelay: 200,
+};
+
+const color: ControlFormItemSpec<'ColorPickerControl'> = {
+  controlType: 'ColorPickerControl',
+  label: t('Color'),
+  defaultValue: { r: 0, g: 255, b: 0, a: 1 },
+  description: t('Color of the chart'),
+  debounceDelay: 200,
+};
+
+const strokeWidth: ControlFormItemSpec<'InputNumber'> = {
+  controlType: 'InputNumber',
+  label: t('Stroke Width'),
+  description: t('Stroke width of the chart (sparkline only)'),
+  defaultValue: 1.5, // default stroke width from transformProps.ts
+  debounceDelay: 200,
+};
+
+const showValues: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Show Values'),
+  description: t('Whether to show values in the chart'),
+  defaultValue: true,
+  debounceDelay: 200,
+};
+
+const showPoints: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Show Points'),
+  description: t('Whether to show points in the chart'),
+  defaultValue: true,
+  debounceDelay: 200,
+};
 /**
  * All configurable column formatting properties.
  */
@@ -204,6 +273,13 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   colorPositiveNegative,
   currencyFormat,
   visible,
+  chartType,
+  width,
+  height,
+  color,
+  strokeWidth,
+  showValues,
+  showPoints,
 };
 
 export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
@@ -248,5 +324,30 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+  ],
+  [GenericDataType.Chart]: [
+    {
+      tab: t('Column Settings'),
+      children: [
+        [
+          'columnWidth',
+          { name: 'horizontalAlign', override: { defaultValue: 'left' } },
+        ],
+        ['showCellBars'],
+        ['alignPositiveNegative'],
+        ['colorPositiveNegative'],
+      ],
+    },
+    {
+      tab: t('Chart Settings'),
+      children: [
+        ['chartType'],
+        ['width', 'height'],
+        ['color'],
+        ['strokeWidth'],
+        ['showValues'],
+        ['showPoints'],
+      ],
+    },
   ],
 };

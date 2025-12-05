@@ -224,6 +224,8 @@ const processComparisonColumns = (
         datasource: { columnFormats, currencyFormats },
         rawFormData: { column_config: columnConfig = {} },
       } = props;
+      // Use processed config if provided, otherwise fallback to raw config
+      const finalColumnConfig = columnConfig;
       const savedFormat = columnFormats?.[col.key];
       const savedCurrency = currencyFormats?.[col.key];
       const originalLabel = col.label;
@@ -239,11 +241,15 @@ const processComparisonColumns = (
             metricName: col.key,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
-            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+            config: getComparisonColConfig(
+              t('Main'),
+              col.key,
+              finalColumnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('Main'),
               col,
-              columnConfig,
+              finalColumnConfig,
               savedFormat,
               savedCurrency,
             ),
@@ -254,11 +260,11 @@ const processComparisonColumns = (
             metricName: col.key,
             label: `#`,
             key: `# ${col.key}`,
-            config: getComparisonColConfig(`#`, col.key, columnConfig),
+            config: getComparisonColConfig(`#`, col.key, finalColumnConfig),
             formatter: getComparisonColFormatter(
               `#`,
               col,
-              columnConfig,
+              finalColumnConfig,
               savedFormat,
               savedCurrency,
             ),
@@ -269,11 +275,11 @@ const processComparisonColumns = (
             metricName: col.key,
             label: `△`,
             key: `△ ${col.key}`,
-            config: getComparisonColConfig(`△`, col.key, columnConfig),
+            config: getComparisonColConfig(`△`, col.key, finalColumnConfig),
             formatter: getComparisonColFormatter(
               `△`,
               col,
-              columnConfig,
+              finalColumnConfig,
               savedFormat,
               savedCurrency,
             ),
@@ -284,11 +290,11 @@ const processComparisonColumns = (
             metricName: col.key,
             label: `%`,
             key: `% ${col.key}`,
-            config: getComparisonColConfig(`%`, col.key, columnConfig),
+            config: getComparisonColConfig(`%`, col.key, finalColumnConfig),
             formatter: getComparisonColFormatter(
               `%`,
               col,
-              columnConfig,
+              finalColumnConfig,
               savedFormat,
               savedCurrency,
             ),
@@ -348,6 +354,7 @@ const processColumns = memoizeOne(function processColumns(
     },
     queriesData,
   } = props;
+
   const granularity = extractTimegrain(props.rawFormData);
   const { data: records, colnames, coltypes } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
@@ -367,7 +374,19 @@ const processColumns = memoizeOne(function processColumns(
     )
     .map((key: string, i) => {
       const dataType = coltypes[i];
-      const config = columnConfig[key] || {};
+      const rawConfig = columnConfig[key] || {};
+      const config = { ...rawConfig };
+
+      // if the column is a chart, apply default config
+      if (dataType === GenericDataType.Chart) {
+        config.chartType = config.chartType ?? 'sparkline';
+        config.width = config.width ?? config.columnWidth ?? 100;
+        config.height = config.height ?? 60;
+        config.color = config.color ?? { r: 0, g: 255, b: 0, a: 1 };
+        config.strokeWidth = config.strokeWidth ?? 1.5;
+        config.showValues = config.showValues ?? true;
+        config.showPoints = config.showPoints ?? true;
+      }
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
@@ -620,6 +639,9 @@ const transformProps = (
     });
   });
 
+  // Process columns
+  const [, percentMetrics, columns] = processColumns(chartProps);
+
   const getBasicColorFormatterForColumn = (
     originalData: DataRecord[] | undefined,
     originalColumns: DataColumnMeta[],
@@ -644,8 +666,6 @@ const transformProps = (
     serverPageLengthMap.set(slice_id, serverPageLength);
     hasServerPageLengthChanged = true;
   }
-
-  const [, percentMetrics, columns] = processColumns(chartProps);
 
   const timeGrain = extractTimegrain(formData);
 
