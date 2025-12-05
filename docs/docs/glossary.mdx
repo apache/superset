@@ -30,7 +30,8 @@ export const GlossaryContent = () => {
 
   const scrollToRow = (topic, rowKey) => {
     const topicId = encodeURIComponent(topic);
-    const row = tableRefs.current[topicId]?.[rowKey];
+    const encRowKey = encodeURIComponent(rowKey);
+    const row = tableRefs.current[topicId]?.[encRowKey];
     if (row) {
       row.scrollIntoView({ behavior: 'smooth', block: 'center' });
       row.classList.add('table-row-highlight');
@@ -86,9 +87,15 @@ export const GlossaryContent = () => {
 
                   return {
                     ref: (node) => {
+                      if (!tableRefs.current[topicId]) tableRefs.current[topicId] = {};
                       if (node) {
-                        if (!tableRefs.current[topicId]) tableRefs.current[topicId] = {};
                         tableRefs.current[topicId][record.key] = node;
+                      } else {
+                        // cleanup stale reference when row unmounts
+                        delete tableRefs.current[topicId][record.key];
+                        if (Object.keys(tableRefs.current[topicId]).length === 0) {
+                          delete tableRefs.current[topicId];
+                        }
                       }
                     },
                   };
