@@ -69,7 +69,7 @@ def test_dataset_put_schema_currency_code_column_optional() -> None:
     schema = DatasetPutSchema()
 
     # Dataset without currency code column (should not fail)
-    data = {}
+    data: dict[str, str | None] = {}
     result = schema.load(data)
     assert (
         "currency_code_column" not in result

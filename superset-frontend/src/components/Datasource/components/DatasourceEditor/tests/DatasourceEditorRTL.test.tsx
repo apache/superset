@@ -114,7 +114,10 @@ describe('DatasourceEditor RTL Columns Tests', () => {
     expect(defaultDatetimeDropdown).toBeInTheDocument();
 
     // Verify the current value is 'ds' (from main_dttm_col in props)
-    expect(defaultDatetimeDropdown).toHaveTextContent('ds');
+    const selectedValue = await screen.findByText('ds', {
+      selector: '.ant-select-selection-item',
+    });
+    expect(selectedValue).toBeInTheDocument();
   });
 
   test('default datetime dropdown shows only temporal columns', async () => {
