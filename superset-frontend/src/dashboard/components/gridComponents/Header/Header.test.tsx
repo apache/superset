@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,30 +33,60 @@ import Header from './Header';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Header', () => {
-  const props = {
+  interface HeaderTestProps {
+    id: string;
+    dashboardId: string;
+    parentId: string;
+    component: any;
+    depth: number;
+    parentComponent: any;
+    index: number;
+    editMode: boolean;
+    embeddedMode: boolean;
+    filters: Record<string, any>;
+    handleComponentDrop: () => void;
+    deleteComponent: sinon.SinonSpy;
+    updateComponents: sinon.SinonSpy;
+  }
+
+  const baseComponent = newComponentFactory(HEADER_TYPE);
+  const props: HeaderTestProps = {
     id: 'id',
+    dashboardId: '1',
     parentId: 'parentId',
-    component: newComponentFactory(HEADER_TYPE),
+    component: {
+      ...baseComponent,
+      id: 'id',
+      meta: {
+        ...(baseComponent.meta || {}),
+        text: 'New Title',
+      },
+    },
     depth: 1,
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
     index: 0,
     editMode: false,
     embeddedMode: false,
     filters: {},
-    handleComponentDrop() {},
-    deleteComponent() {},
-    updateComponents() {},
+    handleComponentDrop: () => {},
+    deleteComponent: sinon.spy(),
+    updateComponents: sinon.spy(),
   };
 
-  function setup(overrideProps) {
+  function setup(overrideProps: Partial<HeaderTestProps> = {}) {
     return render(
       <Provider store={mockStoreWithTabs}>
         <DndProvider backend={HTML5Backend}>
-          <Header {...props} {...overrideProps} />
+          <Header {...(props as HeaderTestProps)} {...overrideProps} />
         </DndProvider>
       </Provider>,
     );
   }
+
+  beforeEach(() => {
+    if (props.deleteComponent) props.deleteComponent.resetHistory();
+    if (props.updateComponents) props.updateComponents.resetHistory();
+  });
 
   test('should render a Draggable', () => {
     setup();
@@ -97,11 +127,13 @@ describe('Header', () => {
     fireEvent.change(titleInput, { target: { value: 'New title' } });
     fireEvent.blur(titleInput);
 
-    const headerId = props.component.id;
+    const headerId = props.id;
     expect(updateComponents.callCount).toBe(1);
-    expect(updateComponents.getCall(0).args[0][headerId].meta.text).toBe(
-      'New title',
-    );
+    const componentUpdates = updateComponents.getCall(0).args[0] as Record<
+      string,
+      any
+    >;
+    expect(componentUpdates[headerId].meta.text).toBe('New title');
   });
 
   test('should render a DeleteComponentButton when focused in editMode', () => {
@@ -114,8 +146,8 @@ describe('Header', () => {
     const deleteComponent = sinon.spy();
     setup({ editMode: true, deleteComponent });
 
-    const trashButton = screen.getByRole('img', { name: 'delete' });
-    fireEvent.click(trashButton.parentElement);
+    const trashButton = screen.getByRole('button', { name: 'delete' });
+    fireEvent.click(trashButton);
 
     expect(deleteComponent.callCount).toBe(1);
   });
