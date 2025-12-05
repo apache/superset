@@ -18,6 +18,7 @@
  */
 
 export { GlossaryTerm, GlossaryTopic } from './glossaryModels';
-export { default as glossary, getAllGlossaryTopics, getGlossaryTopic, resolveGlossaryString } from './glossaryUtils';
+export { default as glossary, getAllGlossaryTopics, getGlossaryTopic } from './glossaryUtils';
+export { resolveGlossaryString } from './tooltipUtils';
 
 export default {};
