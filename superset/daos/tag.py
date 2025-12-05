@@ -29,7 +29,7 @@ from superset.daos.query import SavedQueryDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.tags.models import (
-    get_tag,
+    get_or_create_tag,
     ObjectType,
     Tag,
     TaggedObject,
@@ -122,7 +122,7 @@ class TagDAO(BaseDAO[Tag]):
             .first()
         )
         if not tag:
-            tag = get_tag(name, db.session, type_)
+            tag = get_or_create_tag(name, db.session, type_)
         return tag
 
     @staticmethod
