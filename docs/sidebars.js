@@ -61,9 +61,9 @@ const sidebars = {
       ],
     },
     {
-      type: "doc",
-      label: "Glossary",
-      id: "glossary"
+      type: 'doc',
+      label: 'Glossary',
+      id: 'glossary'
     },
     {
       type: 'doc',
