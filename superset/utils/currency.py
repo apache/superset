@@ -112,7 +112,6 @@ def detect_currency(
 
         if result.status != QueryStatus.SUCCESS or result.df.empty:
             return None
-
         if currency_column not in result.df.columns:
             return None
 
