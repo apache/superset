@@ -31,9 +31,9 @@
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
     "react": "^17.0.2"
   }
 }
