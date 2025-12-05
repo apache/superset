@@ -963,11 +963,12 @@ class DatasourceEditor extends PureComponent {
       ),
     );
 
-    // validate currency code
+    // validate currency code (skip 'AUTO' - it's a placeholder for auto-detection)
     try {
       this.state.datasource.metrics?.forEach(
         metric =>
           metric.currency?.symbol &&
+          metric.currency.symbol !== 'AUTO' &&
           new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: metric.currency.symbol,
