@@ -29,10 +29,10 @@ describe('@superset-ui/legacy-plugin-chart-calendar', () => {
   });
 });
 
-/**
- * This test tests that a reasonable starting date is selected given range
- * and starting date. Since time offset is updated to be not considered,
- * it would only be 1-1-2025
+/*
+ * This test checks if the getMonthDomain functions as intended in the case that
+ * a time range has a "first day of the month" selected as an end date. This is an
+ * example of the original issue found at https://github.com/apache/superset/issues/21870.
  */
 describe('getMonthDomain filter month-day', () => {
   it('returns correct month domain for 2025-03-01 to 2025-05-01', () => {
@@ -48,7 +48,7 @@ describe('getMonthDomain filter month-day', () => {
 
 /*
  * This test checks if the getMonthDomain functions as intended during a
- * leap year, when February has one extra day. Checks only February 2024, which 
+ * leap year, when February has one extra day. Checks only February 2024, which
  * was a leap year. This works because if it is not a leap year, February won't have
  * 29 days, and the method "Date.UTC" would return March 1st instead.
 */
@@ -65,7 +65,7 @@ describe('getMonthDomain leap year test', () => {
 });
 
 /*
- * This test case checks if getMonthDomain functions as intended if the range 
+ * This test case checks if getMonthDomain functions as intended if the range
  * is an actual Date object. From March 1st 2025 to May 1st 2025.
 */
 describe('getMonthDomain with Date object range', () => {
