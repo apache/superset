@@ -201,7 +201,6 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
-
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
   const labelMap: { [key: string]: string[] } = Object.entries(
@@ -481,11 +480,17 @@ export default function transformProps(
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(
+          tooltipTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(
+          xAxisTimeFormat,
+          formData.extraFormData.time_grain_sqla ?? timeGrainSqla,
+        )
       : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
