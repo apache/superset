@@ -40,7 +40,7 @@ const glossary: Glossary = Object.fromEntries(
           topic,
           title,
           short: termStrings.short,
-          extended: termStrings.extended,
+          extended: termStrings.extended ?? '',
         }),
       ]),
     ),
