@@ -215,21 +215,20 @@ const baseAggregatorTemplates = {
       return function () {
         return {
           uniq: [],
-          currencies: [],
+          currencySet: new Set(),
           push(record) {
             if (!Array.from(this.uniq).includes(record[attr])) {
               this.uniq.push(record[attr]);
             }
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
             return fn(this.uniq);
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -243,23 +242,22 @@ const baseAggregatorTemplates = {
       return function () {
         return {
           sum: 0,
-          currencies: [],
+          currencySet: new Set(),
           push(record) {
             if (Number.isNaN(Number(record[attr]))) {
               this.sum = record[attr];
             } else {
               this.sum += parseFloat(record[attr]);
             }
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
             return this.sum;
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -273,7 +271,7 @@ const baseAggregatorTemplates = {
       return function (data) {
         return {
           val: null,
-          currencies: [],
+          currencySet: new Set(),
           sorter: getSort(
             typeof data !== 'undefined' ? data.sorters : null,
             attr,
@@ -306,16 +304,15 @@ const baseAggregatorTemplates = {
             ) {
               this.val = x;
             }
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
             return this.val;
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format(x) {
             if (typeof x === 'number') {
@@ -335,7 +332,7 @@ const baseAggregatorTemplates = {
         return {
           vals: [],
           strMap: {},
-          currencies: [],
+          currencySet: new Set(),
           push(record) {
             const val = record[attr];
             const x = Number(val);
@@ -345,9 +342,8 @@ const baseAggregatorTemplates = {
             } else {
               this.vals.push(x);
             }
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
@@ -373,7 +369,7 @@ const baseAggregatorTemplates = {
             return (this.vals[Math.floor(i)] + this.vals[Math.ceil(i)]) / 2.0;
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -390,15 +386,14 @@ const baseAggregatorTemplates = {
           m: 0.0,
           s: 0.0,
           strValue: null,
-          currencies: [],
+          currencySet: new Set(),
           push(record) {
             const x = Number(record[attr]);
             if (Number.isNaN(x)) {
               this.strValue =
                 typeof record[attr] === 'string' ? record[attr] : this.strValue;
-              // Still track currency even for non-numeric values
               if (record.__currencyColumn && record[record.__currencyColumn]) {
-                this.currencies.push(record[record.__currencyColumn]);
+                this.currencySet.add(record[record.__currencyColumn]);
               }
               return;
             }
@@ -409,9 +404,8 @@ const baseAggregatorTemplates = {
             const mNew = this.m + (x - this.m) / this.n;
             this.s += (x - this.m) * (x - mNew);
             this.m = mNew;
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
@@ -438,7 +432,7 @@ const baseAggregatorTemplates = {
             }
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format: fmtNonString(formatter),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
@@ -453,7 +447,7 @@ const baseAggregatorTemplates = {
         return {
           sumNum: 0,
           sumDenom: 0,
-          currencies: [],
+          currencySet: new Set(),
           push(record) {
             if (!Number.isNaN(Number(record[num]))) {
               this.sumNum += parseFloat(record[num]);
@@ -461,16 +455,15 @@ const baseAggregatorTemplates = {
             if (!Number.isNaN(Number(record[denom]))) {
               this.sumDenom += parseFloat(record[denom]);
             }
-            // Track currency if present in record
             if (record.__currencyColumn && record[record.__currencyColumn]) {
-              this.currencies.push(record[record.__currencyColumn]);
+              this.currencySet.add(record[record.__currencyColumn]);
             }
           },
           value() {
             return this.sumNum / this.sumDenom;
           },
           getCurrencies() {
-            return this.currencies;
+            return Array.from(this.currencySet);
           },
           format: formatter,
           numInputs:

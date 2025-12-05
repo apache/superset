@@ -33,12 +33,11 @@ from superset.utils.core import (
     get_column_name,
     get_time_filter_status,
 )
-from superset.utils.currency import detect_currency
+from superset.utils.currency import detect_currency, detect_currency_from_df
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
@@ -97,24 +96,35 @@ def _get_query(
 def _detect_currency(
     query_context: QueryContext,
     query_obj: QueryObject,
-    datasource: BaseDatasource,
+    datasource: Explorable,
+    df: Any = None,
 ) -> str | None:
     """
     Detect currency from filtered data for AUTO mode currency formatting.
 
-    Delegates to the shared detect_currency utility with parameters extracted
-    from the QueryObject.
+    First attempts to detect from the provided dataframe if the currency
+    column is present. Falls back to a separate query only when needed.
 
     :param query_context: The query context with form_data containing currency_format
     :param query_obj: The original query object with filters
     :param datasource: The datasource being queried
+    :param df: Optional dataframe to detect currency from (avoids extra query)
     :return: ISO 4217 currency code (e.g., "USD") or None
     """
     # Only detect if currency_format.symbol is AUTO
     form_data = query_context.form_data or {}
     currency_format = form_data.get("currency_format", {})
+    if not isinstance(currency_format, dict):
+        return None
     if currency_format.get("symbol") != "AUTO":
         return None
+
+    currency_column = getattr(datasource, "currency_code_column", None)
+    if not currency_column:
+        return None
+
+    if df is not None and currency_column in df.columns:
+        return detect_currency_from_df(df, currency_column)
 
     return detect_currency(
         datasource=datasource,
@@ -142,6 +152,9 @@ def _get_full(
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
         payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
+        payload["detected_currency"] = _detect_currency(
+            query_context, query_obj, datasource, df
+        )
     del payload["df"]
 
     applied_time_columns, rejected_time_columns = get_time_filter_status(
@@ -162,12 +175,6 @@ def _get_full(
         }
         for col in rejected_filter_columns
     ] + rejected_time_columns
-
-    # Detect currency for AUTO mode formatting
-    if status != QueryStatus.FAILED:
-        payload["detected_currency"] = _detect_currency(
-            query_context, query_obj, datasource
-        )
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
         return {

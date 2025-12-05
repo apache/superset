@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 
 from superset.common.db_query_status import QueryStatus
-from superset.utils.currency import detect_currency
+from superset.utils.currency import detect_currency, detect_currency_from_df
 
 
 @pytest.fixture
@@ -152,3 +152,67 @@ def test_detect_currency_returns_none_when_column_missing_from_result(
     result = detect_currency(mock_datasource)
 
     assert result is None
+
+
+# Tests for detect_currency_from_df
+
+
+def test_detect_currency_from_df_returns_single_currency() -> None:
+    """Returns currency code when all data contains single currency."""
+    df = pd.DataFrame({"currency_code": ["USD", "USD", "USD"]})
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result == "USD"
+
+
+def test_detect_currency_from_df_returns_none_for_multiple_currencies() -> None:
+    """Returns None when data contains multiple currencies."""
+    df = pd.DataFrame({"currency_code": ["USD", "EUR", "GBP"]})
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result is None
+
+
+def test_detect_currency_from_df_returns_none_for_empty_dataframe() -> None:
+    """Returns None when dataframe is empty."""
+    df = pd.DataFrame()
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result is None
+
+
+def test_detect_currency_from_df_returns_none_for_none_dataframe() -> None:
+    """Returns None when dataframe is None."""
+    result = detect_currency_from_df(None, "currency_code")
+
+    assert result is None
+
+
+def test_detect_currency_from_df_returns_none_when_column_missing() -> None:
+    """Returns None when currency column is missing from dataframe."""
+    df = pd.DataFrame({"other_column": ["value"]})
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result is None
+
+
+def test_detect_currency_from_df_normalizes_to_uppercase() -> None:
+    """Normalizes currency codes to uppercase."""
+    df = pd.DataFrame({"currency_code": ["usd", "Usd", "USD"]})
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result == "USD"
+
+
+def test_detect_currency_from_df_ignores_null_values() -> None:
+    """Ignores null currency values when detecting single currency."""
+    df = pd.DataFrame({"currency_code": ["USD", None, "USD", None]})
+
+    result = detect_currency_from_df(df, "currency_code")
+
+    assert result == "USD"

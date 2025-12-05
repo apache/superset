@@ -294,7 +294,6 @@ const processColumns = memoizeOne(function processColumns(
           detectedCurrency &&
           (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
         ) {
-          // Validate backend-provided currency code before using
           const normalizedCurrency = normalizeCurrency(detectedCurrency);
           if (normalizedCurrency) {
             resolvedCurrency = {

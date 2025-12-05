@@ -25,15 +25,43 @@ from typing import Any, TYPE_CHECKING
 from superset.common.db_query_status import QueryStatus
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.explorables.base import Explorable
     from superset.superset_typing import QueryObjectDict
     from superset.utils.core import QueryObjectFilterClause
 
 logger = logging.getLogger(__name__)
 
 
+def detect_currency_from_df(
+    df: Any,  # pd.DataFrame, but avoiding import for type checking
+    currency_column: str,
+) -> str | None:
+    """
+    Detect currency from an already-fetched dataframe.
+
+    Returns the currency code if all data contains a single currency,
+    or None if multiple currencies are present or column is missing.
+
+    :param df: The pandas DataFrame to analyze
+    :param currency_column: The name of the currency code column
+    :return: ISO 4217 currency code (e.g., "USD", "EUR") or None
+    """
+    if df is None or df.empty:
+        return None
+
+    if currency_column not in df.columns:
+        return None
+
+    unique_currencies = df[currency_column].dropna().astype(str).str.upper().unique()
+
+    if len(unique_currencies) == 1:
+        return str(unique_currencies[0])
+
+    return None
+
+
 def detect_currency(
-    datasource: BaseDatasource,
+    datasource: Explorable,
     filters: list[QueryObjectFilterClause] | None = None,
     granularity: str | None = None,
     from_dttm: datetime | None = None,
@@ -64,6 +92,10 @@ def detect_currency(
 
     datasource_id = getattr(datasource, "id", 0)
 
+    query_method = getattr(datasource, "query", None)
+    if not callable(query_method):
+        return None
+
     try:
         query_obj: QueryObjectDict = {
             "granularity": granularity,
@@ -76,7 +108,7 @@ def detect_currency(
             "extras": extras or {},
         }
 
-        result = datasource.query(query_obj)
+        result = query_method(query_obj)
 
         if result.status != QueryStatus.SUCCESS or result.df.empty:
             return None
