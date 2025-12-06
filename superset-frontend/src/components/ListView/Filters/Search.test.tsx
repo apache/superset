@@ -35,6 +35,7 @@ const defaultProps = {
   initialValue: '',
   toolTipDescription: undefined,
   onSubmit: mockOnSubmit,
+  autoComplete: undefined,
 };
 
 const setup = (props = {}) =>
@@ -171,27 +172,16 @@ test('uses custom name attribute when provided', () => {
   expect(input.name).toBe('custom-search-name');
 });
 
-test('generates random name when name is "name"', () => {
-  setup({ name: 'name' });
+test('sets autocomplete to off by default', () => {
+  setup();
   const input = screen.getByTestId('filters-search') as HTMLInputElement;
-  expect(input.name).toMatch(/^search-filter-[a-z0-9]{6}$/);
+  expect(input.autocomplete).toBe('off');
 });
 
-test('generates different random names for multiple instances', () => {
-  const { rerender } = render(
-    <SearchFilter {...defaultProps} name="name" />,
-  );
-  const firstInput = screen.getByTestId('filters-search') as HTMLInputElement;
-  const firstName = firstInput.name;
-
-  rerender(<SearchFilter {...defaultProps} name="name" />);
-  const secondInput = screen.getByTestId('filters-search') as HTMLInputElement;
-  const secondName = secondInput.name;
-
-  // Names should be different (though there's a tiny chance they could be the same)
-  // At minimum, they should match the pattern
-  expect(firstName).toMatch(/^search-filter-[a-z0-9]{6}$/);
-  expect(secondName).toMatch(/^search-filter-[a-z0-9]{6}$/);
+test('uses custom autocomplete value when provided', () => {
+  setup({ autoComplete: 'new-password' });
+  const input = screen.getByTestId('filters-search') as HTMLInputElement;
+  expect(input.autocomplete).toBe('new-password');
 });
 
 test('renders with allowClear prop', () => {
