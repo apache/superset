@@ -1,0 +1,33 @@
+# Example dataset metadata
+# This would replace the Python code for creating slices and dashboards
+
+datasets:
+  flights:
+    description: "Random set of flights in the US"
+    main_dttm_col: "ds"
+    filter_select_enabled: true
+    metrics:
+      - name: "flight_count"
+        expression: "COUNT(*)"
+      - name: "avg_delay"
+        expression: "AVG(DEPARTURE_DELAY)"
+
+  long_lat:
+    description: "Geospatial data with latitude/longitude"
+    main_dttm_col: "datetime"
+    filter_select_enabled: true
+
+  wb_health_population:
+    description: "World Bank health and population statistics"
+    main_dttm_col: "year"
+    filter_select_enabled: true
+    metrics:
+      - name: "sum__SP_POP_TOTL"
+        expression: "SUM(SP_POP_TOTL)"
+      - name: "sum__SP_RUR_TOTL_ZS"
+        expression: "SUM(SP_RUR_TOTL_ZS)"
+      - name: "sum__SP_DYN_LE00_IN"
+        expression: "SUM(SP_DYN_LE00_IN)"
+
+# Slices and dashboards would go here
+# This could be imported from the existing YAML examples

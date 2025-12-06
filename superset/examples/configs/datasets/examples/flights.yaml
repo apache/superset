@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-table_name: cleaned_sales_data
-main_dttm_col: order_date
-description: null
+table_name: flights
+main_dttm_col: ds
+description: Random set of flights in the US
 default_endpoint: null
 offset: 0
 cache_timeout: null
 catalog: null
-schema: null
+schema: public
 sql: null
 params: null
 template_params: null
@@ -30,7 +30,8 @@ fetch_values_predicate: null
 extra: null
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+folders: null
+uuid: 9abdda01-3363-488a-ab75-f19f8c579f41
 metrics:
 - metric_name: count
   verbose_name: COUNT(*)
@@ -42,7 +43,7 @@ metrics:
   extra: null
   warning_text: null
 columns:
-- column_name: order_date
+- column_name: ds
   verbose_name: null
   is_dttm: true
   is_active: true
@@ -54,7 +55,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: price_each
+- column_name: LATE_AIRCRAFT_DELAY
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -66,7 +67,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: sales
+- column_name: ARRIVAL_DELAY
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -78,7 +79,211 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: address_line1
+- column_name: DEPARTURE_DELAY
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: WEATHER_DELAY
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: AIRLINE_DELAY
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: AIR_SYSTEM_DELAY
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: ARRIVAL_TIME
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: SECURITY_DELAY
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: LATITUDE_DEST
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: ELAPSED_TIME
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: DEPARTURE_TIME
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: LATITUDE
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: AIR_TIME
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: TAXI_IN
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: TAXI_OUT
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: LONGITUDE_DEST
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: LONGITUDE
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: WHEELS_OFF
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: WHEELS_ON
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DOUBLE PRECISION
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: CANCELLATION_REASON
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -90,19 +295,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: address_line2
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: order_line_number
+- column_name: SCHEDULED_ARRIVAL
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -114,7 +307,19 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: quantity_ordered
+- column_name: DESTINATION_AIRPORT
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: CANCELLED
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -126,7 +331,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: order_number
+- column_name: SCHEDULED_DEPARTURE
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -138,7 +343,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: quarter
+- column_name: DISTANCE
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -150,7 +355,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: year
+- column_name: DAY_OF_WEEK
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -162,7 +367,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: month
+- column_name: DAY
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -174,7 +379,19 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: msrp
+- column_name: TAIL_NUMBER
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: YEAR
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -186,7 +403,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: contact_last_name
+- column_name: STATE_DEST
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -198,7 +415,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: contact_first_name
+- column_name: AIRPORT_DEST
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -210,7 +427,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: postal_code
+- column_name: AIRLINE
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -222,7 +439,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: customer_name
+- column_name: STATE
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -234,7 +451,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: deal_size
+- column_name: ORIGIN_AIRPORT
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -246,7 +463,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: product_code
+- column_name: AIRPORT
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -258,7 +475,55 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: product_line
+- column_name: FLIGHT_NUMBER
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: SCHEDULED_TIME
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: DIVERTED
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: MONTH
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: CITY_DEST
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -270,7 +535,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: state
+- column_name: COUNTRY_DEST
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -282,7 +547,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: status
+- column_name: CITY
   verbose_name: null
   is_dttm: false
   is_active: true
@@ -294,43 +559,7 @@ columns:
   description: null
   python_date_format: null
   extra: null
-- column_name: city
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: country
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: phone
-  verbose_name: null
-  is_dttm: false
-  is_active: true
-  type: TEXT
-  advanced_data_type: null
-  groupby: true
-  filterable: true
-  expression: null
-  description: null
-  python_date_format: null
-  extra: null
-- column_name: territory
+- column_name: COUNTRY
   verbose_name: null
   is_dttm: false
   is_active: true

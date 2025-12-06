@@ -1,0 +1,21 @@
+slice_name: OSM Long/Lat
+description: null
+certified_by: null
+certification_details: null
+viz_type: osm
+params:
+  all_columns:
+  - occupancy
+  all_columns_x: LON
+  all_columns_y: LAT
+  granularity_sqla: day
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  row_limit: 500000
+  since: '2014-01-01'
+  until: now
+  viz_type: mapbox
+query_context: null
+cache_timeout: null
+uuid: 7a444809-5243-45ad-b42d-f4a447bade9d
+version: 1.0.0
+dataset_uuid: dc2113b2-6256-4334-a092-c0b3d99db140

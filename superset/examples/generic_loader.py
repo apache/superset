@@ -1,0 +1,170 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Generic DuckDB example data loader."""
+
+import logging
+from typing import Optional
+
+from sqlalchemy import inspect
+
+from superset import db
+from superset.connectors.sqla.models import SqlaTable
+from superset.examples.helpers import read_example_data
+from superset.models.core import Database
+from superset.sql.parse import Table
+from superset.utils.database import get_example_database
+
+logger = logging.getLogger(__name__)
+
+
+def load_duckdb_table(
+    duckdb_file: str,
+    table_name: str,
+    database: Optional[Database] = None,
+    only_metadata: bool = False,
+    force: bool = False,
+    sample_rows: Optional[int] = None,
+) -> SqlaTable:
+    """Load a DuckDB table into the example database.
+
+    Args:
+        duckdb_file: Name of the DuckDB file (e.g., "birth_names")
+        table_name: Name for the table in the target database
+        database: Target database (defaults to example database)
+        only_metadata: If True, only create metadata without loading data
+        force: If True, replace existing table
+        sample_rows: If specified, only load this many rows
+
+    Returns:
+        The created SqlaTable object
+    """
+    if database is None:
+        database = get_example_database()
+
+    # Check if table exists
+    with database.get_sqla_engine() as engine:
+        schema = inspect(engine).default_schema_name
+
+    table_exists = database.has_table(Table(table_name, schema=schema))
+    if table_exists and not force:
+        logger.info("Table %s already exists, skipping data load", table_name)
+        tbl = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name=table_name, database_id=database.id)
+            .first()
+        )
+        if tbl:
+            return tbl
+
+    # Load data if not metadata only
+    if not only_metadata:
+        logger.info("Loading data for %s from %s.duckdb", table_name, duckdb_file)
+
+        # Read from DuckDB
+        pdf = read_example_data(f"examples://{duckdb_file}")
+
+        # Sample if requested
+        if sample_rows:
+            pdf = pdf.head(sample_rows)
+
+        # Write to target database
+        with database.get_sqla_engine() as engine:
+            pdf.to_sql(
+                table_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                method="multi",
+                index=False,
+            )
+
+        logger.info("Loaded %d rows into %s", len(pdf), table_name)
+
+    # Create or update SqlaTable metadata
+    tbl = (
+        db.session.query(SqlaTable)
+        .filter_by(table_name=table_name, database_id=database.id)
+        .first()
+    )
+
+    if not tbl:
+        tbl = SqlaTable(table_name=table_name, database_id=database.id)
+        # Set the database reference
+        tbl.database = database
+
+    if not only_metadata:
+        # Ensure database reference is set before fetching metadata
+        if not tbl.database:
+            tbl.database = database
+        tbl.fetch_metadata()
+
+    db.session.merge(tbl)
+    db.session.commit()
+
+    return tbl
+
+
+def create_generic_loader(
+    duckdb_file: str,
+    table_name: Optional[str] = None,
+    description: Optional[str] = None,
+    sample_rows: Optional[int] = None,
+) -> callable:
+    """Create a loader function for a specific DuckDB file.
+
+    This factory function creates loaders that match the existing pattern
+    used by Superset examples.
+
+    Args:
+        duckdb_file: Name of the DuckDB file (without .duckdb extension)
+        table_name: Table name (defaults to duckdb_file)
+        description: Description for the dataset
+        sample_rows: Default number of rows to sample
+
+    Returns:
+        A loader function with the standard signature
+    """
+    if table_name is None:
+        table_name = duckdb_file
+
+    def loader(
+        only_metadata: bool = False,
+        force: bool = False,
+        sample: bool = False,
+    ) -> None:
+        """Load the dataset."""
+        rows = sample_rows if sample and sample_rows else None
+
+        tbl = load_duckdb_table(
+            duckdb_file=duckdb_file,
+            table_name=table_name,
+            only_metadata=only_metadata,
+            force=force,
+            sample_rows=rows,
+        )
+
+        if description and tbl:
+            tbl.description = description
+            db.session.merge(tbl)
+            db.session.commit()
+
+    # Set function name and docstring
+    loader.__name__ = f"load_{duckdb_file}"
+    loader.__doc__ = description or f"Load {duckdb_file} dataset"
+
+    return loader

@@ -16,36 +16,14 @@
 # under the License.
 """Helpers for loading Superset example datasets.
 
-All Superset example data files (CSV, JSON, etc.) are fetched via the
-jsDelivr CDN instead of raw.githubusercontent.com to avoid GitHub API
-rate limits (60 anonymous requests/hour/IP).
-
-jsDelivr is a multi‑CDN front for public GitHub repos and supports
-arbitrary paths including nested folders. It doesn’t use the GitHub REST API
-and advertises unlimited bandwidth for open-source use.
-
-Example URL::
-
-    https://cdn.jsdelivr.net/gh/apache-superset/examples-data@master/datasets/examples/slack/messages.csv
-
-Environment knobs
------------------
-``SUPERSET_EXAMPLES_DATA_REF``  (default: ``master``)
-    Tag / branch / SHA to pin so builds remain reproducible.
-
-``SUPERSET_EXAMPLES_BASE_URL``
-    Override the base completely if you want to host the files elsewhere
-    (internal mirror, S3 bucket, ASF downloads, …).  **Include any query
-    string required by your hosting (e.g. ``?raw=true`` if you point back
-    to a GitHub *blob* URL).**
+Example datasets are stored as DuckDB files in the superset/examples/data/
+directory. Each dataset is a self-contained DuckDB file with schema and data.
 """
 
 from __future__ import annotations
 
 import os
-import time
 from typing import Any
-from urllib.error import HTTPError
 
 import pandas as pd
 from flask import current_app
@@ -56,15 +34,6 @@ from superset.models.slice import Slice
 from superset.utils import json
 
 EXAMPLES_PROTOCOL = "examples://"
-
-# ---------------------------------------------------------------------------
-# Public sample‑data mirror configuration
-# ---------------------------------------------------------------------------
-BASE_COMMIT: str = os.getenv("SUPERSET_EXAMPLES_DATA_REF", "master")
-BASE_URL: str = os.getenv(
-    "SUPERSET_EXAMPLES_BASE_URL",
-    f"https://cdn.jsdelivr.net/gh/apache-superset/examples-data@{BASE_COMMIT}/",
-)
 
 # Slices assembled into a 'Misc Chart' dashboard
 misc_dash_slices: set[str] = set()
@@ -119,52 +88,91 @@ def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_url(filepath: str) -> str:
-    """Return an absolute URL to *filepath* under the examples‑data repo.
-
-    All calls are routed through jsDelivr unless overridden. Supports nested
-    paths like ``datasets/examples/slack/messages.csv``.
-    """
-    return f"{BASE_URL}{filepath}"
-
-
 def normalize_example_data_url(url: str) -> str:
-    """Convert example data URLs to use the configured CDN.
+    """Normalize example data URLs for consistency.
 
-    Transforms examples:// URLs to the configured CDN URL.
-    Non-example URLs are returned unchanged.
+    This function ensures that example data URLs are properly formatted.
+    Since the schema validator expects valid URLs and our examples:// protocol
+    isn't standard, we convert to file:// URLs pointing to the actual location.
+
+    Args:
+        url: URL to normalize (e.g., "examples://birth_names" or "birth_names.duckdb")
+
+    Returns:
+        Normalized file:// URL pointing to the DuckDB file
     """
-    if url.startswith(EXAMPLES_PROTOCOL):
-        relative_path = url[len(EXAMPLES_PROTOCOL) :]
-        return get_example_url(relative_path)
+    import os
 
-    # Not an examples URL, return unchanged
-    return url
+    # Handle existing examples:// protocol
+    if url.startswith(EXAMPLES_PROTOCOL):
+        # Remove the protocol for processing
+        path = url[len(EXAMPLES_PROTOCOL) :]
+    elif url.startswith("file://"):
+        # Already a file URL, just return it
+        return url
+    else:
+        path = url
+
+    # Ensure .duckdb extension
+    if not path.endswith(".duckdb"):
+        path = f"{path}.duckdb"
+
+    # Build the full file path
+    full_path = os.path.join(get_examples_folder(), "data", path)
+
+    # Convert to file:// URL for schema validation
+    # This will pass URL validation and still work with our loader
+    return f"file://{full_path}"
 
 
 def read_example_data(
     filepath: str,
-    max_attempts: int = 5,
-    wait_seconds: float = 60,
+    table_name: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Load CSV or JSON from example data mirror with retry/backoff."""
-    url = normalize_example_data_url(filepath)
-    is_json = filepath.endswith(".json") or filepath.endswith(".json.gz")
+    """Load data from local DuckDB files.
 
-    for attempt in range(1, max_attempts + 1):
-        try:
-            if is_json:
-                return pd.read_json(url, **kwargs)
-            return pd.read_csv(url, **kwargs)
-        except HTTPError:
-            if attempt < max_attempts:
-                sleep_time = wait_seconds * (2 ** (attempt - 1))
-                print(
-                    f"HTTP 429 received from {url}. ",
-                    f"Retrying in {sleep_time:.1f}s ",
-                    f"(attempt {attempt}/{max_attempts})...",
-                )
-                time.sleep(sleep_time)
-            else:
-                raise
+    Args:
+        filepath: Path to the DuckDB file (e.g., "examples://birth_names.duckdb" or "file:///path/to/file.duckdb")
+        table_name: Table to read from DuckDB (defaults to filename without extension)
+        **kwargs: Ignored (kept for backward compatibility)
+
+    Returns:
+        DataFrame with the loaded data
+    """
+    import os
+
+    import duckdb
+
+    # Handle different URL formats
+    if filepath.startswith(EXAMPLES_PROTOCOL):
+        # examples:// protocol
+        relative_path = filepath[len(EXAMPLES_PROTOCOL) :]
+        if not relative_path.endswith(".duckdb"):
+            relative_path = f"{relative_path}.duckdb"
+        local_path = os.path.join(get_examples_folder(), "data", relative_path)
+    elif filepath.startswith("file://"):
+        # file:// protocol - extract the actual path
+        local_path = filepath[7:]  # Remove "file://"
+    else:
+        # Assume it's a relative path
+        relative_path = filepath
+        if not relative_path.endswith(".duckdb"):
+            relative_path = f"{relative_path}.duckdb"
+        local_path = os.path.join(get_examples_folder(), "data", relative_path)
+
+    if not os.path.exists(local_path):
+        raise FileNotFoundError(f"Example data file not found: {local_path}")
+
+    # Determine table name if not provided
+    if table_name is None:
+        base_name = os.path.basename(local_path)
+        table_name = os.path.splitext(base_name)[0]
+
+    # Connect and read from DuckDB
+    conn = duckdb.connect(local_path, read_only=True)
+    try:
+        df = conn.execute(f"SELECT * FROM {table_name}").df()  # noqa: S608
+        return df
+    finally:
+        conn.close()

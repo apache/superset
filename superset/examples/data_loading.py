@@ -14,42 +14,117 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-from .bart_lines import load_bart_lines
-from .big_data import load_big_data
-from .birth_names import load_birth_names
-from .country_map import load_country_map_data
+"""Auto-discover and load example datasets from DuckDB files."""
+
+from pathlib import Path
+from typing import Callable, Dict
+
+# Import loaders that have custom logic (dashboards, CSS, etc.)
 from .css_templates import load_css_templates
-from .deck import load_deck_dash
-from .energy import load_energy
-from .flights import load_flights
-from .long_lat import load_long_lat_data
-from .misc_dashboard import load_misc_dashboard
-from .multiformat_time_series import load_multiformat_time_series
-from .paris import load_paris_iris_geojson
-from .random_time_series import load_random_time_series_data
-from .sf_population_polygons import load_sf_population_polygons
+
+# Import generic loader for DuckDB datasets
+from .generic_loader import create_generic_loader
 from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
-from .world_bank import load_world_bank_health_n_pop
 
+# Map of DuckDB files to their table names (if different from file name)
+TABLE_NAME_OVERRIDES = {
+    "birth_france_by_region": "country_map",
+    "fcc_2018_survey": "FCC 2018 Survey",
+    "sf_population": "sf_population_polygons",
+    "wb_health_population": "wb_health_population",
+}
+
+# Dataset descriptions for documentation
+DATASET_DESCRIPTIONS = {
+    "airports": "Airport locations data",
+    "bart_lines": "BART transit lines",
+    "big_data": "Synthetic big data for testing",
+    "birth_france": "France birth data",
+    "birth_france_by_region": "France birth data by region",
+    "birth_names": "US birth names over time",
+    "channel_members": "Slack channel membership data",
+    "channels": "Slack channels data",
+    "cleaned_sales_data": "Cleaned sales data",
+    "countries": "World Bank country statistics",
+    "covid_vaccines": "COVID-19 vaccine development data",
+    "energy": "Energy flow data",
+    "exported_stats": "Exported statistics data",
+    "fcc_2018_survey": "FCC 2018 Developer Survey",
+    "flights": "Flight delays data",
+    "long_lat": "Random lat/long points",
+    "messages": "Slack messages data",
+    "multiformat_time_series": "Time series data in multiple formats",
+    "paris_iris": "Paris IRIS geographic data",
+    "random_time_series": "Random time series data",
+    "san_francisco": "San Francisco addresses",
+    "sf_population": "San Francisco population by area",
+    "sf_population_polygons": "San Francisco population polygons",
+    "threads": "Slack threads data",
+    "unicode_test": "Unicode test data",
+    "users": "Slack users data",
+    "users_channels": "Slack user-channel relationships",
+    "video_game_sales": "Video game sales data",
+    "wb_health_population": "World Bank health and population data",
+}
+
+
+def get_data_directory() -> Path:
+    """Get the path to the data directory."""
+    from .helpers import get_examples_folder
+
+    return Path(get_examples_folder()) / "data"
+
+
+def discover_datasets() -> Dict[str, Callable[..., None]]:
+    """Auto-discover all DuckDB files and create loaders for them."""
+    loaders: Dict[str, Callable[..., None]] = {}
+    data_dir = get_data_directory()
+
+    if not data_dir.exists():
+        return loaders
+
+    # Discover all .duckdb files
+    for duckdb_file in sorted(data_dir.glob("*.duckdb")):
+        dataset_name = duckdb_file.stem
+
+        # Skip birth_names as it has custom loader
+        if dataset_name == "birth_names":
+            continue
+
+        # Determine table name
+        table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
+
+        # Get description
+        description = DATASET_DESCRIPTIONS.get(
+            dataset_name, f"{dataset_name.replace('_', ' ').title()} dataset"
+        )
+
+        # Create loader function
+        loader_name = f"load_{dataset_name}"
+        loaders[loader_name] = create_generic_loader(
+            dataset_name,
+            table_name=table_name if table_name != dataset_name else None,
+            description=description,
+        )
+
+    return loaders
+
+
+# Auto-discover and create all dataset loaders
+_auto_loaders = discover_datasets()
+
+# Add auto-discovered loaders to module namespace
+globals().update(_auto_loaders)
+
+# Build __all__ list dynamically
 __all__ = [
-    "load_bart_lines",
-    "load_big_data",
-    "load_birth_names",
-    "load_country_map_data",
+    # Custom loaders (always included)
     "load_css_templates",
-    "load_deck_dash",
-    "load_energy",
-    "load_flights",
-    "load_long_lat_data",
-    "load_misc_dashboard",
-    "load_multiformat_time_series",
-    "load_paris_iris_geojson",
-    "load_random_time_series_data",
-    "load_sf_population_polygons",
     "load_supported_charts_dashboard",
     "load_tabbed_dashboard",
     "load_examples_from_configs",
-    "load_world_bank_health_n_pop",
+    # Auto-discovered loaders
+    *sorted(_auto_loaders.keys()),
 ]
