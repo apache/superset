@@ -18,9 +18,9 @@ from datetime import datetime
 from typing import Any, Dict
 
 from flask import current_app as app, g, redirect, request, Response
-from flask_appbuilder.api import expose, safe
+from flask_appbuilder.api import expose, permission_name, safe
+from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
-from flask_jwt_extended.exceptions import NoAuthorizationError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import generate_password_hash
@@ -41,6 +41,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
+    allow_browser_login = True
     openapi_spec_component_schemas = (UserResponseSchema, CurrentUserPutSchema)
 
     current_user_put_schema = CurrentUserPutSchema()
@@ -56,6 +57,8 @@ class CurrentUserRestApi(BaseSupersetApi):
             )
 
     @expose("/", methods=("GET",))
+    @protect()
+    @permission_name("read")
     @safe
     def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request.
@@ -78,15 +81,11 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-
         return self.response(200, result=user_response_schema.dump(g.user))
 
     @expose("/roles/", methods=("GET",))
+    @protect()
+    @permission_name("read")
     @safe
     def get_my_roles(self) -> Response:
         """Get the user roles corresponding to the agent making the request.
@@ -109,15 +108,12 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
         user = bootstrap_user_data(g.user, include_perms=True)
         return self.response(200, result=user)
 
     @expose("/", methods=["PUT"])
+    @protect()
+    @permission_name("write")
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -153,11 +149,6 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
         try:
             item = self.current_user_put_schema.load(request.json)
             if not item:
