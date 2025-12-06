@@ -25,6 +25,7 @@ export const getFormattedUTCTime = (
   timeFormat?: string,
 ) => {
   const date = new Date(ts);
-  const offset = date.getTimezoneOffset() * 60 * 1000;
-  return getTimeFormatter(timeFormat)(date.getTime() - offset);
+  // No need to adjust for timezone offset - the timestamp is already in UTC
+  // and should be displayed as such without local timezone conversion
+  return getTimeFormatter(timeFormat)(date.getTime());
 };
