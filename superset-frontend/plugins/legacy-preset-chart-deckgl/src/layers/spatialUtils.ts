@@ -109,11 +109,20 @@ export function addSpatialNullFilters(
   if (!spatial) return filters;
 
   const spatialColumns = getSpatialColumns(spatial);
-  const nullFilters: QueryObjectFilterClause[] = spatialColumns.map(column => ({
-    col: column,
-    op: 'IS NOT NULL',
-    val: null,
-  }));
+  const uniqueSpatialColumns = [...new Set(spatialColumns)];
+  const existingFilterCols = new Set(
+    filters
+      .filter(filter => filter.op === 'IS NOT NULL')
+      .map(filter => filter.col),
+  );
+
+  const nullFilters: QueryObjectFilterClause[] = uniqueSpatialColumns
+    .filter(column => !existingFilterCols.has(column))
+    .map(column => ({
+      col: column,
+      op: 'IS NOT NULL',
+      val: null,
+    }));
 
   return [...filters, ...nullFilters];
 }

@@ -1162,3 +1162,35 @@ def test_sanitize_url_blocks_dangerous():
     """Test that dangerous URL schemes are blocked."""
     assert sanitize_url("javascript:alert('xss')") == ""
     assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+
+
+def test_get_metric_name_with_integers() -> None:
+    """Test get_metric_name with integer IDs"""
+    from superset.utils.core import get_metric_name
+
+    assert get_metric_name("count") == "count"
+    assert get_metric_name(123) == "123"
+    assert get_metric_name(456) == "456"
+
+    from superset.superset_typing import AdhocMetric
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(amount)",
+        "label": "total_amount",
+    }
+    assert get_metric_name(adhoc_metric) == "total_amount"
+
+
+def test_get_column_name_with_integers() -> None:
+    """Test get_column_name with integer IDs"""
+    from superset.utils.core import get_column_name
+
+    assert get_column_name("age") == "age"
+    assert get_column_name(123) == "123"
+    assert get_column_name(789) == "789"
+
+    from superset.superset_typing import AdhocColumn
+
+    column_dict: AdhocColumn = {"label": "customer_name", "sqlExpression": "name"}
+    assert get_column_name(column_dict) == "customer_name"
