@@ -16,7 +16,7 @@
 # under the License.
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, text
 from sqlalchemy.orm import relationship
 
 from superset import security_manager

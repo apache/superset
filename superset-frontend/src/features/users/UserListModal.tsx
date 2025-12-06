@@ -16,18 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { t } from '@superset-ui/core';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   Checkbox,
   FormModal,
+  Modal,
   Select,
   Input,
+  Form,
   FormItem,
   FormInstance,
 } from '@superset-ui/core/components';
-import { Group, Role, UserObject } from 'src/pages/UsersList/types';
+import { Group, Role, UserObject, UserAssetsSummary } from 'src/pages/UsersList/types';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
@@ -93,7 +96,7 @@ function UserListModal({
     } else {
       try {
         await createUser(values);
-        addSuccessToast(t('The group has been created successfully.'));
+        addSuccessToast(t('The user has been created successfully.'));
       } catch (err) {
         await handleError(err, Actions.CREATE);
       }
@@ -280,5 +283,128 @@ export const UserListAddModal = (
 export const UserListEditModal = (
   props: Omit<UserModalProps, 'isEditMode'> & { user: UserObject },
 ) => <UserListModal {...props} isEditMode />;
+
+
+export interface UserDeleteModalProps {
+  userToDelete: UserObject;
+  availableUsers: UserObject[];
+  assets: UserAssetsSummary | null;
+  onConfirm: (payload: { newOwnerId: number | null; softDelete: boolean }) => void;
+  onCancel: () => void;
+}
+
+export function UserListDeleteModal({
+  userToDelete,
+  availableUsers,
+  assets,
+  onConfirm,
+  onCancel,
+}: UserDeleteModalProps) {
+  const TITLE = 'Delete User'
+  const [title, setTitle] = useState(TITLE);
+  const [doReassign, setDoReassign] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [softDelete, setSoftDelete] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+
+  const handleSubmit = () => {
+    onConfirm({ newOwnerId: selectedUserId, softDelete: softDelete});
+  };
+
+  const disableSubmit = (doReassign && !selectedUserId) ||
+                        (confirmationText.toUpperCase() !== 'DELETE');
+
+  if (!doReassign && assets?.count) {
+    setTitle('Reassign Assets and Delete User');
+    setDoReassign(true);
+  }
+
+  return (
+    <Modal
+      show
+      onHide={onCancel}
+      title={t(title)}
+      onHandledPrimaryAction={handleSubmit}
+      primaryButtonName={t('Confirm')}
+      primaryButtonStyle="danger"
+      disablePrimaryButton={disableSubmit}
+    >
+      <Form>
+        {doReassign && (<div>
+            <div style={{ marginBottom: '16px', fontWeight: 500 }}>
+              {t('User "%s" owns the following assets:', userToDelete.username)}
+              <ul style={{ marginTop: '8px' }}>
+                {assets?.dashboards && assets.dashboards.length > 0 &&
+                  (<li>{t('Dashboards:')}
+                    <ul>
+                      {assets.dashboards.map((e) => {return (
+                        <li>{e}</li>
+                      )})}
+                    </ul>
+                  </li>)}
+                {assets?.charts && assets.charts.length > 0 &&
+                  (<li>{t('Charts:')}
+                    <ul>
+                      {assets.charts.map((e) => {return (
+                        <li>{e}</li>
+                      )})}
+                    </ul>
+                  </li>)}
+                {assets?.saved_queries && assets.saved_queries.length > 0 &&
+                  (<li>{t('Saved Queries:')}
+                    <ul>
+                      {assets.saved_queries.map((e) => {return (
+                        <li>{e}</li>
+                      )})}
+                    </ul>
+                  </li>)}
+              </ul>
+            </div>
+            <div style={{ marginBottom: '16px', fontWeight: 500 }}>
+              {t('Please select a user to reassign these assets to:')}
+            </div>
+
+            <div style={{ marginBottom: '16px', fontWeight: 500 }}>
+              <Select
+                placeholder={t('Select a user')}
+                value={selectedUserId}
+                onChange={(value: number) => setSelectedUserId(value)}
+                options={availableUsers.map(user => ({
+                  label: `${user.first_name} ${user.last_name} (@${user.username})`,
+                  value: user.id,
+                }))}
+              />
+            </div>
+          </div>
+        )}
+
+        <Checkbox
+          checked={softDelete}
+          onChange={e => setSoftDelete(e.target.checked)}
+          style={{ marginBottom: '16px', fontSize: '12px', color: '#667' }}
+        >
+          {t(
+            "Soft delete user. Selecting this option allows for future retrieval of this user's account from the database if needed."
+          )}
+        </Checkbox>
+  
+        <FormItem>
+          <Input
+            placeholder={t('Type DELETE to confirm')}
+            value={confirmationText}
+            onChange={e => setConfirmationText(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </FormItem>
+
+        {confirmationText.toUpperCase() !== 'DELETE' && (
+          <div style={{ fontSize: '12px', color: '#b00' }}>
+            {t('You must type DELETE to enable the button.')}
+          </div>
+        )}
+      </Form>
+    </Modal>
+  );
+}
 
 export default UserListModal;
