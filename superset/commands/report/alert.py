@@ -32,6 +32,7 @@ from superset import jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
+    AlertQueryInfoException,
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
@@ -86,7 +87,10 @@ class AlertCommand(BaseCommand):
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
+            # Return False for None results to prevent false alert triggers
+            if self._result is None:
+                return False
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
 
@@ -117,11 +121,17 @@ class AlertCommand(BaseCommand):
 
     def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
-        if rows[0][1] in (0, None, np.nan):
+
+        if rows[0][1] is None or (
+            isinstance(rows[0][1], float) and np.isnan(rows[0][1])
+        ):
+            self._result = None
+            raise AlertQueryInfoException("Query returned NULL value")
+
+        if rows[0][1] == 0:
             self._result = 0.0
             return
         try:
-            # Check if it's float or if we can convert it
             self._result = float(rows[0][1])
             return
         except (AssertionError, TypeError, ValueError) as ex:
@@ -212,8 +222,15 @@ class AlertCommand(BaseCommand):
             self._result = None
             return
         if df.empty and self._is_validator_operator:
-            self._result = 0.0
-            return
+            logger.info(
+                "Alert query returned empty result for report_schedule_id=%s, "
+                "execution_id=%s.",
+                self._report_schedule.id,
+                self._execution_id,
+            )
+
+            self._result = None
+            raise AlertQueryInfoException("Query returned no rows (empty result set)")
         rows = df.to_records()
         if self._is_validator_not_null:
             self._validate_not_null(rows)
