@@ -517,7 +517,6 @@ class ImportV1DashboardSchema(Schema):
     description = fields.String(allow_none=True)
     css = fields.String(allow_none=True)
     slug = fields.String(allow_none=True)
-    description = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()
     metadata = fields.Dict()
