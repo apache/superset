@@ -108,7 +108,8 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         assert dashboards[0]["dashboard_title"] == "Test Dashboard"
         assert dashboards[0]["uuid"] == "test-dashboard-uuid-1"
         assert dashboards[0]["slug"] == "test-dashboard"
-        assert dashboards[0]["published"] is True
+        # Note: published is not in minimal default columns (id, dashboard_title,
+        # slug, uuid) - use select_columns to include it if needed
 
         assert "uuid" in result.data["columns_requested"]
         assert "slug" in result.data["columns_requested"]
@@ -511,6 +512,96 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
         assert "slug" in result.data["columns_requested"]
         assert "uuid" in result.data["columns_loaded"]
         assert "slug" in result.data["columns_loaded"]
+
+
+class TestDashboardDefaultColumnFiltering:
+    """Test default column filtering behavior for dashboards."""
+
+    def test_minimal_default_columns_constant(self):
+        """Test that minimal default columns are properly defined."""
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_DEFAULT_COLUMNS,
+        )
+
+        # Should have exactly 4 minimal columns
+        assert len(DASHBOARD_DEFAULT_COLUMNS) == 4
+        assert set(DASHBOARD_DEFAULT_COLUMNS) == {
+            "id",
+            "dashboard_title",
+            "slug",
+            "uuid",
+        }
+
+        # Heavy columns should NOT be in defaults
+        assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "published" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "json_metadata" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "position_json" not in DASHBOARD_DEFAULT_COLUMNS
+
+    def test_empty_select_columns_default(self):
+        """Test that select_columns defaults to empty list which triggers
+        minimal defaults in tool."""
+        request = ListDashboardsRequest()
+        assert request.select_columns == []
+
+    def test_explicit_select_columns(self):
+        """Test that explicit select_columns can include non-default columns."""
+        request = ListDashboardsRequest(
+            select_columns=["id", "dashboard_title", "published", "charts"]
+        )
+        assert "published" in request.select_columns
+        assert "charts" in request.select_columns
+        # These are explicitly requested, not defaults
+        assert len(request.select_columns) == 4
+
+    @patch("superset.daos.dashboard.DashboardDAO.list")
+    @pytest.mark.asyncio
+    async def test_default_columns_in_response(self, mock_list, mcp_server):
+        """Test that minimal default columns appear in response metadata."""
+        dashboard = Mock()
+        dashboard.id = 1
+        dashboard.dashboard_title = "Test Dashboard"
+        dashboard.slug = "test-dashboard"
+        dashboard.uuid = "test-uuid-123"
+        dashboard.url = "/dashboard/1"
+        dashboard.published = True
+        dashboard.changed_by_name = "admin"
+        dashboard.changed_on = None
+        dashboard.changed_on_humanized = None
+        dashboard.created_by_name = "admin"
+        dashboard.created_on = None
+        dashboard.created_on_humanized = None
+        dashboard.tags = []
+        dashboard.owners = []
+        dashboard.slices = []
+        dashboard.description = None
+        dashboard.css = None
+        dashboard.certified_by = None
+        dashboard.certification_details = None
+        dashboard.json_metadata = None
+        dashboard.position_json = None
+        dashboard.is_managed_externally = False
+        dashboard.external_url = None
+        dashboard.thumbnail_url = None
+        dashboard.roles = []
+        dashboard.charts = []
+        mock_list.return_value = ([dashboard], 1)
+
+        async with Client(mcp_server) as client:
+            request = ListDashboardsRequest(page=1, page_size=10)
+            result = await client.call_tool(
+                "list_dashboards", {"request": request.model_dump()}
+            )
+
+            # Verify columns_requested uses minimal defaults
+            assert "id" in result.data["columns_requested"]
+            assert "dashboard_title" in result.data["columns_requested"]
+            assert "slug" in result.data["columns_requested"]
+            assert "uuid" in result.data["columns_requested"]
+
+            # Verify heavy columns are NOT in columns_loaded by default
+            assert "json_metadata" not in result.data["columns_loaded"]
+            assert "position_json" not in result.data["columns_loaded"]
 
 
 class TestDashboardSortableColumns:
