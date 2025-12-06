@@ -123,3 +123,17 @@ export interface ExplorePageState {
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }
+
+export interface TabNode {
+  value: string;
+  title: string;
+  parents: string[];
+  children?: TabNode[];
+}
+
+export interface TabTreeNode {
+  value: string;
+  title: string;
+  key: string;
+  children?: TabTreeNode[];
+}
