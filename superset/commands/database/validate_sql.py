@@ -32,6 +32,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
 from superset.sql_validators.base import BaseSQLValidator
@@ -62,6 +63,12 @@ class ValidateSQLCommand(BaseCommand):
         sql = self._properties["sql"]
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
+        template_params = self._properties.get("template_params", {})
+
+        # Render Jinja templates to handle template syntax before validation
+        template_processor = get_template_processor(self._model)
+        sql = template_processor.process_template(sql, **template_params)
+
         try:
             timeout = app.config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
