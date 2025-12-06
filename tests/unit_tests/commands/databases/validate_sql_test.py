@@ -65,12 +65,12 @@ def test_validate_sql_with_jinja_templates(mocker: MockerFixture) -> None:
 
     # Test SQL with Jinja templates
     sql_with_jinja = """SELECT *
-FROM birth_names
-WHERE 1=1
-{% if city_filter is defined %}
-    AND city = '{{ city_filter }}'
-{% endif %}
-LIMIT {{ limit | default(100) }}"""
+        FROM birth_names
+        WHERE 1=1
+        {% if city_filter is defined %}
+            AND city = '{{ city_filter }}'
+        {% endif %}
+        LIMIT {{ limit | default(100) }}"""
 
     data = {"sql": sql_with_jinja, "schema": "public", "template_params": {}}
 
@@ -131,12 +131,12 @@ def test_validate_sql_with_jinja_templates_and_params(mocker: MockerFixture) -> 
 
     # Test SQL with Jinja templates
     sql_with_jinja = """SELECT *
-FROM birth_names
-WHERE 1=1
-{% if city_filter is defined %}
-    AND city = '{{ city_filter }}'
-{% endif %}
-LIMIT {{ limit }}"""
+        FROM birth_names
+        WHERE 1=1
+        {% if city_filter is defined %}
+            AND city = '{{ city_filter }}'
+        {% endif %}
+        LIMIT {{ limit }}"""
 
     template_params = {"city_filter": "New York", "limit": 50}
     data = {
