@@ -123,6 +123,11 @@ bigquery = [
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
+d1 = [
+    "superset-engine-d1>=0.1.0",
+    "sqlalchemy-d1>=0.1.0",
+    "dbapi-d1>=0.1.0",
+]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
     "databricks-sql-connector==4.1.2",
