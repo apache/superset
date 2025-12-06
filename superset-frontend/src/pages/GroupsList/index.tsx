@@ -299,6 +299,7 @@ function GroupsList({ user }: GroupsListProps) {
         id: 'name',
         input: 'search',
         operator: ListViewFilterOperator.Contains,
+        inputName: 'group_list_search',
       },
       {
         Header: t('Label'),
