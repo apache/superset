@@ -110,18 +110,30 @@ To export a theme for use in configuration files or another instance:
 
 ## Custom Fonts
 
-Superset supports custom fonts through runtime configuration, allowing you to use branded or custom typefaces without rebuilding the application.
+Superset supports custom fonts through the theme configuration, allowing you to use branded or custom typefaces without rebuilding the application.
+
+### Default Fonts
+
+By default, Superset uses Inter and Fira Code fonts which are bundled with the application via `@fontsource` packages. These fonts work offline and require no external network calls.
 
 ### Configuring Custom Fonts
 
-Add font URLs to your `superset_config.py`:
+To use custom fonts, add font URLs to your theme configuration using the `fontUrls` token:
 
 ```python
-# Load fonts from Google Fonts, Adobe Fonts, or self-hosted sources
-CUSTOM_FONT_URLS = [
-    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
-]
+THEME_DEFAULT = {
+    "token": {
+        # Load fonts from external sources (e.g., Google Fonts, Adobe Fonts)
+        "fontUrls": [
+            "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap",
+            "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
+        ],
+        # Reference the loaded fonts
+        "fontFamily": "Roboto, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontFamilyCode": "JetBrains Mono, Monaco, monospace",
+        # ... other theme tokens
+    }
+}
 
 # Update CSP to allow font sources
 TALISMAN_CONFIG = {
@@ -132,30 +144,23 @@ TALISMAN_CONFIG = {
 }
 ```
 
-### Using Custom Fonts in Themes
-
-Once configured, reference the fonts in your theme configuration:
-
-```python
-THEME_DEFAULT = {
-    "token": {
-        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-        "fontFamilyCode": "JetBrains Mono, Monaco, monospace",
-        # ... other theme tokens
-    }
-}
-```
-
 Or in the CRUD interface theme JSON:
 
 ```json
 {
   "token": {
-    "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    "fontUrls": [
+      "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap"
+    ],
+    "fontFamily": "Roboto, -apple-system, BlinkMacSystemFont, sans-serif",
     "fontFamilyCode": "JetBrains Mono, Monaco, monospace"
   }
 }
 ```
+
+:::note
+Font URLs are validated against a configurable allowlist. By default, fonts from `fonts.googleapis.com`, `fonts.gstatic.com`, and `use.typekit.net` are allowed. Configure `THEME_FONT_URL_ALLOWED_DOMAINS` to customize the allowed domains.
+:::
 
 ### Font Sources
 
