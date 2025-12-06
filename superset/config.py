@@ -797,6 +797,11 @@ THEME_DARK: Optional[Theme] = {
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
+# Enable version history for charts, dashboards, and datasets
+VERSION_CONTROL_ENABLED = True
+# Maximum number of versions to retain per asset (older versions are deleted)
+VERSION_RETENTION_LIMIT = 10
+
 # Custom font configuration
 # Load external fonts at runtime without rebuilding the application
 # Example:

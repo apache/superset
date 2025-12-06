@@ -19,7 +19,7 @@
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Modal, Loading, Flex } from '@superset-ui/core/components';
+import { Modal, Loading, Flex, Button, Tooltip } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 interface StandardModalProps {
@@ -41,6 +41,8 @@ interface StandardModalProps {
   maskClosable?: boolean;
   wrapProps?: object;
   contentLoading?: boolean;
+  /** Extra content to render in the footer before the cancel button */
+  extraFooter?: ReactNode;
 }
 
 // Standard modal widths
@@ -116,12 +118,42 @@ export function StandardModal({
   maskClosable = false,
   wrapProps,
   contentLoading = false,
+  extraFooter,
 }: StandardModalProps) {
   const primaryButtonName = saveText || (isEditMode ? t('Save') : t('Add'));
+  const isDisabled = saveDisabled || saveLoading || contentLoading;
+
+  const customFooter = extraFooter ? (
+    <>
+      {extraFooter}
+      <Button
+        key="back"
+        cta
+        data-test="modal-cancel-button"
+        buttonStyle="secondary"
+        onClick={onHide}
+      >
+        {cancelText || t('Cancel')}
+      </Button>
+      <Tooltip title={errorTooltip}>
+        <Button
+          key="submit"
+          buttonStyle="primary"
+          disabled={isDisabled}
+          loading={saveLoading}
+          onClick={onSave}
+          cta
+          data-test="modal-confirm-button"
+        >
+          {primaryButtonName}
+        </Button>
+      </Tooltip>
+    </>
+  ) : undefined;
 
   return (
     <StyledModal
-      disablePrimaryButton={saveDisabled || saveLoading || contentLoading}
+      disablePrimaryButton={isDisabled}
       primaryButtonLoading={saveLoading}
       primaryTooltipMessage={errorTooltip}
       onHandledPrimaryAction={onSave}
@@ -130,6 +162,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
+      footer={customFooter}
       title={
         icon ? (
           <ModalTitleWithIcon

@@ -37,6 +37,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
 import type { DatasourceModalProps } from '../types';
+import { VersionHistoryModal } from 'src/components/VersionControl';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
@@ -104,6 +105,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const buildPayload = (datasource: Record<string, any>) => {
@@ -333,6 +335,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       footer={
         <>
           <Button
+            data-test="datasource-modal-version-history"
+            buttonSize="small"
+            buttonStyle="secondary"
+            onClick={() => setShowVersionHistory(true)}
+          >
+            {t('Version History')}
+          </Button>
+          <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
             buttonStyle="secondary"
@@ -383,6 +393,15 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       >
         {getSaveDialog()}
       </Modal>
+      {currentDatasource.id && currentDatasource.table_name && (
+        <VersionHistoryModal
+          visible={showVersionHistory}
+          assetType="dataset"
+          assetId={currentDatasource.id}
+          assetName={currentDatasource.table_name}
+          onCancel={() => setShowVersionHistory(false)}
+        />
+      )}
     </StyledDatasourceModal>
   );
 };
