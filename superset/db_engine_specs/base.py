@@ -80,7 +80,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
@@ -1975,7 +1975,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param label: Expected expression label
         :return: Truncated label
         """
-        label = md5_sha_from_str(label)
+        label = hash_from_str(label)
         # truncate hash if it exceeds max length
         if cls.max_column_name_length and len(label) > cls.max_column_name_length:
             label = label[: cls.max_column_name_length]
