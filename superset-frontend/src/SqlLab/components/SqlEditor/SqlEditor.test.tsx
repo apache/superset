@@ -38,7 +38,6 @@ import {
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
-import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -74,7 +73,6 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
     />
   ),
 }));
-jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
@@ -177,10 +175,6 @@ describe('SqlEditor', () => {
     store = createStore(mockInitialState);
     actions = [];
 
-    (SqlEditorLeftBar as jest.Mock).mockClear();
-    (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
-      <div data-test="mock-sql-editor-left-bar" />
-    ));
     (ResultSet as unknown as jest.Mock).mockClear();
     (ResultSet as unknown as jest.Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
@@ -211,17 +205,6 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  test('render a SqlEditorLeftBar', async () => {
-    const { getByTestId, unmount } = setup(mockedProps, store);
-
-    await waitFor(
-      () => expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
-      { timeout: 10000 },
-    );
-
-    unmount();
-  }, 15000);
-
   // Update other similar tests with timeouts
   test('render an AceEditorWrapper', async () => {
     const { findByTestId, unmount } = setup(mockedProps, store);
@@ -235,14 +218,13 @@ describe('SqlEditor', () => {
   }, 15000);
 
   test('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
-    const { findByTestId, queryByTestId } = setup(
+    const { queryByTestId } = setup(
       {
         ...mockedProps,
         queryEditor: initialState.sqlLab.queryEditors[1],
       },
       store,
     );
-    expect(await findByTestId('mock-sql-editor-left-bar')).toBeInTheDocument();
     expect(queryByTestId('react-ace')).not.toBeInTheDocument();
   });
 
@@ -250,14 +232,10 @@ describe('SqlEditor', () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
     const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
       .calls.length;
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
-    // Verify the rendering regression
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
   });
 

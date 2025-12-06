@@ -148,7 +148,6 @@ const ReturnedRows = styled.div`
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
-  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ResultSetButtons = styled.div`
@@ -722,7 +721,6 @@ const ResultSet = ({
                   css={css`
                     display: flex;
                     justify-content: space-between;
-                    padding-left: ${theme.sizeUnit * 4}px;
                     align-items: center;
                     gap: ${GAP}px;
                   `}
@@ -758,7 +756,6 @@ const ResultSet = ({
             <div
               css={css`
                 flex: 1 1 auto;
-                padding-left: ${theme.sizeUnit * 4}px;
               `}
             >
               <AutoSizer disableWidth>
