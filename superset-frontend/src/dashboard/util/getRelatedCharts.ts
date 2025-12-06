@@ -24,9 +24,9 @@ import {
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
   isNativeFilter,
+  ChartCustomization,
 } from '@superset-ui/core';
 import { Slice } from 'src/types/Chart';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 
 function isGlobalScope(scope: number[], slices: Record<string, Slice>) {
   return scope.length === Object.keys(slices).length;
@@ -114,15 +114,16 @@ export function getRelatedCharts(
 }
 
 export function getRelatedChartsForChartCustomization(
-  customizationItem: ChartCustomizationItem,
+  customizationItem: ChartCustomization,
   slices: Record<string, Slice>,
 ): number[] {
-  const { customization, chartId } = customizationItem;
-  const { dataset } = customization;
+  const { chartsInScope, targets } = customizationItem;
 
-  if (chartId) {
-    return [chartId];
+  if (Array.isArray(chartsInScope)) {
+    return chartsInScope;
   }
+
+  const dataset = targets?.[0]?.datasetId;
 
   if (!dataset) {
     return [];

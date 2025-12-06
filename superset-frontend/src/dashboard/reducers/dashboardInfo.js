@@ -25,7 +25,6 @@ import {
 } from '../actions/dashboardInfo';
 import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
-  INITIALIZE_CHART_CUSTOMIZATION,
   SET_CHART_CUSTOMIZATION_DATA_LOADING,
   SET_CHART_CUSTOMIZATION_DATA,
   SET_PENDING_CHART_CUSTOMIZATION,
@@ -42,17 +41,13 @@ export default function dashboardStateReducer(state = {}, action) {
       const updatedState = {
         ...state,
         ...otherInfo,
-        // server-side compare last_modified_time in second level
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
 
-      // Handle theme_id conversion to theme object
       if (themeId !== undefined) {
         if (themeId === null) {
           updatedState.theme = null;
         } else {
-          // Convert theme_id to theme object
-          // If we have theme name from themes cache, use it, otherwise create placeholder
           updatedState.theme = { id: themeId, name: `Theme ${themeId}` };
         }
       }
@@ -60,21 +55,86 @@ export default function dashboardStateReducer(state = {}, action) {
       return updatedState;
     }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
+      const existingConfig = state.metadata?.native_filter_configuration || [];
+      const existingScopesMap = existingConfig.reduce((acc, filter) => {
+        if (filter.chartsInScope != null || filter.tabsInScope != null) {
+          acc[filter.id] = {
+            chartsInScope: filter.chartsInScope,
+            tabsInScope: filter.tabsInScope,
+          };
+        }
+        return acc;
+      }, {});
+
+      const newConfigWithScopes = action.newInfo.map(filter => {
+        const existingScopes = existingScopesMap[filter.id];
+        if (filter.chartsInScope == null && existingScopes) {
+          return {
+            ...filter,
+            chartsInScope: existingScopes.chartsInScope,
+            tabsInScope: existingScopes.tabsInScope,
+          };
+        }
+        return filter;
+      });
+
       return {
         ...state,
         metadata: {
           ...state.metadata,
-          native_filter_configuration: action.newInfo,
+          native_filter_configuration: newConfigWithScopes,
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     }
-    case HYDRATE_DASHBOARD:
+    case HYDRATE_DASHBOARD: {
+      const preserveScopes = (existingConfig, incomingConfig) => {
+        const existingScopesMap = (existingConfig || []).reduce((acc, item) => {
+          if (item.chartsInScope != null || item.tabsInScope != null) {
+            acc[item.id] = {
+              chartsInScope: item.chartsInScope,
+              tabsInScope: item.tabsInScope,
+            };
+          }
+          return acc;
+        }, {});
+
+        return (incomingConfig || []).map(item => {
+          const existingScopes = existingScopesMap[item.id];
+          if (item.chartsInScope == null && existingScopes) {
+            return {
+              ...item,
+              chartsInScope: existingScopes.chartsInScope,
+              tabsInScope: existingScopes.tabsInScope,
+            };
+          }
+          return item;
+        });
+      };
+
+      const incomingMetadata = action.data.dashboardInfo.metadata || {};
+
+      const mergedFilterConfig = preserveScopes(
+        state.metadata?.native_filter_configuration,
+        incomingMetadata.native_filter_configuration,
+      );
+
+      const mergedCustomizationConfig = preserveScopes(
+        state.metadata?.chart_customization_config,
+        incomingMetadata.chart_customization_config,
+      );
+
       return {
         ...state,
         ...action.data.dashboardInfo,
-        // set async api call data
+        metadata: {
+          ...incomingMetadata,
+          native_filter_configuration: mergedFilterConfig,
+          chart_customization_config: mergedCustomizationConfig,
+        },
+        pendingChartCustomizations: {},
       };
+    }
     case SET_FILTER_BAR_ORIENTATION:
       return {
         ...state,
@@ -86,24 +146,6 @@ export default function dashboardStateReducer(state = {}, action) {
         crossFiltersEnabled: action.crossFiltersEnabled,
       };
     case SAVE_CHART_CUSTOMIZATION_COMPLETE:
-      return {
-        ...state,
-        metadata: {
-          ...state.metadata,
-          native_filter_configuration: (
-            state.metadata?.native_filter_configuration || []
-          ).filter(
-            item =>
-              !(
-                item.type === 'CHART_CUSTOMIZATION' &&
-                item.id === 'chart_customization_groupby'
-              ),
-          ),
-          chart_customization_config: action.chartCustomization,
-        },
-        last_modified_time: Math.round(new Date().getTime() / 1000),
-      };
-    case INITIALIZE_CHART_CUSTOMIZATION:
       return {
         ...state,
         metadata: {
@@ -166,10 +208,9 @@ export default function dashboardStateReducer(state = {}, action) {
           chart_customization_config:
             state.metadata?.chart_customization_config?.map(customization => ({
               ...customization,
-              customization: {
-                ...customization.customization,
-                column: null,
-              },
+              targets: customization.targets?.map(target => ({
+                datasetId: target.datasetId,
+              })),
             })) || [],
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),
