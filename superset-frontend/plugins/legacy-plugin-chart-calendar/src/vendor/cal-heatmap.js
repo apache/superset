@@ -2710,7 +2710,7 @@ CalHeatMap.prototype = {
   },
 
   /**
-   * Return all the months between 2 dates
+   * Return all the months between 2 dates.
    *
    * @param  Date    d    A date
    * @param  int|date  range  Number of months in the range, or a stop date
