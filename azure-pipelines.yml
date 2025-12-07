@@ -1,0 +1,155 @@
+# azure-pipelines-build.yml
+# Pipeline to build and push Apache Superset Docker image
+
+trigger:
+  branches:
+    include:
+      - feature/*
+
+# Pipeline variables
+variables:
+  - name: containerRegistry
+    value: 'IntelliSuite Container Registry'
+  - name: acrDomain
+    value: 'intellisuite.azurecr.io'
+  - name: imageRepository
+    value: 'superset'
+  - name: dockerfilePath
+    value: '$(Build.SourcesDirectory)/Dockerfile'
+  - name: tag
+    value: '$(Build.BuildId)'
+  - name: vmImageName
+    value: 'ubuntu-latest'
+
+stages:
+  - stage: Build
+    displayName: 'Build and Push Docker Image'
+    jobs:
+      - job: BuildAndPush
+        displayName: 'Build and Push'
+        pool:
+          name: 'Linux-Hosted'
+          demands:
+            - Agent.Name -equals ubuntu-vm-3
+
+        steps:
+          # Checkout code
+          - checkout: self
+            clean: true
+            fetchDepth: 1
+
+          # Set dynamic variables based on branch
+          - task: Bash@3
+            displayName: 'Set Image Tags'
+            inputs:
+              targetType: 'inline'
+              script: |
+                BRANCH_NAME="$(Build.SourceBranchName)"
+                BUILD_ID="$(Build.BuildId)"
+                SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+
+                # Set semantic tag
+                SEMANTIC_TAG="${BUILD_ID}-${SHORT_SHA}"
+
+                echo "##vso[task.setvariable variable=imageTag]$BUILD_ID"
+                echo "##vso[task.setvariable variable=shortCommitSha]$SHORT_SHA"
+                echo "##vso[task.setvariable variable=semanticTag]$SEMANTIC_TAG"
+
+                echo "Image will be tagged as: $SEMANTIC_TAG"
+                echo "Build ID: $BUILD_ID"
+                echo "Commit SHA: $SHORT_SHA"
+
+          # Build Docker image
+          - task: Docker@2
+            displayName: 'Build Docker Image'
+            inputs:
+              command: build
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(containerRegistry)
+              tags: |
+                $(semanticTag)
+                latest
+              arguments: |
+                --build-arg BUILD_ID=$(Build.BuildId)
+                --build-arg COMMIT_SHA=$(Build.SourceVersion)
+                --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+                --label org.opencontainers.image.source="$(Build.Repository.Uri)"
+                --label org.opencontainers.image.revision="$(Build.SourceVersion)"
+                --label org.opencontainers.image.created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          # Push Docker image with semantic tag
+          - task: Docker@2
+            displayName: 'Push Image with Semantic Tag'
+            inputs:
+              command: push
+              repository: $(imageRepository)
+              containerRegistry: $(containerRegistry)
+              tags: $(semanticTag)
+
+          # Push Docker image with latest tag (only from master)
+          - task: Docker@2
+            displayName: 'Push Image with Latest Tag'
+            condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+            inputs:
+              command: push
+              repository: $(imageRepository)
+              containerRegistry: $(containerRegistry)
+              tags: latest
+
+          # Create deployment metadata
+          - task: Bash@3
+            displayName: 'Create Deployment Metadata'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Create JSON metadata
+                cat > "$(Build.ArtifactStagingDirectory)/deployment-metadata.json" << EOF
+                {
+                  "imageTag": "$(semanticTag)",
+                  "buildId": "$(Build.BuildId)",
+                  "commitSha": "$(Build.SourceVersion)",
+                  "shortCommitSha": "$(shortCommitSha)",
+                  "branchName": "$(Build.SourceBranchName)",
+                  "repository": "$(acrDomain)/$(imageRepository)",
+                  "fullImageName": "$(acrDomain)/$(imageRepository):$(semanticTag)",
+                  "buildDate": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+                  "triggeredBy": "$(Build.RequestedFor)"
+                }
+                EOF
+
+                # Create simple env file for easy sourcing
+                cat > "$(Build.ArtifactStagingDirectory)/deployment.env" << EOF
+                IMAGE_TAG=$(semanticTag)
+                BUILD_ID=$(Build.BuildId)
+                COMMIT_SHA=$(Build.SourceVersion)
+                SHORT_COMMIT_SHA=$(shortCommitSha)
+                FULL_IMAGE_NAME=$(acrDomain)/$(imageRepository):$(semanticTag)
+                BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+                EOF
+
+                echo "Created deployment metadata files"
+                cat "$(Build.ArtifactStagingDirectory)/deployment-metadata.json"
+
+          # Publish pipeline artifacts
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Deployment Artifacts'
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)'
+              artifact: 'deployment-metadata'
+              publishLocation: 'pipeline'
+
+          # Display build summary
+          - task: Bash@3
+            displayName: 'Build Summary'
+            inputs:
+              targetType: 'inline'
+              script: |
+                echo "=========================================="
+                echo "Build completed successfully!"
+                echo "=========================================="
+                echo "Image: $(acrDomain)/$(imageRepository):$(semanticTag)"
+                echo "Build ID: $(Build.BuildId)"
+                echo "Commit: $(shortCommitSha)"
+                echo "Branch: $(Build.SourceBranchName)"
+                echo "=========================================="
