@@ -126,9 +126,13 @@ const ActionButtons = ({
       },
     );
 
-    const hasChartCustomizations = chartCustomizationItems?.some(
-      item => item.targets?.[0]?.column?.name && !item.removed,
-    );
+    const hasChartCustomizations = chartCustomizationItems?.some(item => {
+      if (item.removed) return false;
+      const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
+      const hasValue = isDefined(mask?.filterState?.value);
+      const hasGroupBy = isDefined(mask?.ownState?.column);
+      return hasValue || hasGroupBy;
+    });
 
     return hasSelectedChanges || hasAppliedChanges || hasChartCustomizations;
   }, [dataMaskSelected, dataMaskApplied, chartCustomizationItems]);

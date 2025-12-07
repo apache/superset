@@ -106,17 +106,43 @@ export function saveChartCustomization(
         reordered: reorderedIds,
       });
 
+      const currentMetadata = getState().dashboardInfo.metadata;
+      const currentConfig = currentMetadata?.chart_customization_config || [];
+
+      const mergedResult = response.result.map(
+        (item: ChartCustomization | ChartCustomizationDivider) => {
+          const existing = currentConfig.find(
+            (c: ChartCustomization | ChartCustomizationDivider) =>
+              c.id === item.id,
+          );
+          if (!existing) {
+            return item;
+          }
+          return {
+            ...item,
+            chartsInScope:
+              (item as ChartCustomization).chartsInScope ??
+              (existing as ChartCustomization).chartsInScope,
+            tabsInScope:
+              (item as ChartCustomization).tabsInScope ??
+              (existing as ChartCustomization).tabsInScope,
+            scope:
+              (item as ChartCustomization).scope ??
+              (existing as ChartCustomization).scope,
+          };
+        },
+      );
+
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: response.result,
+        filterChanges: mergedResult,
       });
 
-      const currentMetadata = getState().dashboardInfo.metadata;
       dispatch(
         dashboardInfoChanged({
           metadata: {
             ...currentMetadata,
-            chart_customization_config: response.result,
+            chart_customization_config: mergedResult,
           },
         }),
       );
@@ -131,7 +157,7 @@ export function saveChartCustomization(
         }, {});
 
         const customizationFilterChanges: SaveFilterChangesType = {
-          modified: response.result as unknown as Filter[],
+          modified: modifiedCustomizations as unknown as Filter[],
           deleted: deletedIds,
           reordered: reorderedIds,
         };
