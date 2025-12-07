@@ -1,107 +1,92 @@
 # azure-pipelines-build.yml
+# Build & Push Superset Image (Buildx Compatible)
+
 trigger:
   branches:
     include:
       - feature/*
 
 variables:
-  - name: containerRegistry
-    value: 'IntelliSuite Container Registry'
-  - name: acrDomain
-    value: 'intellisuite.azurecr.io'
-  - name: imageRepository
-    value: 'superset'
-  - name: dockerfilePath
-    value: '$(Build.SourcesDirectory)/Dockerfile'
-  - name: tag
-    value: '$(Build.BuildId)'
+  containerRegistry: 'IntelliSuite Container Registry'
+  acrDomain: 'intellisuite.azurecr.io'
+  imageRepository: 'superset'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  vmImageName: 'ubuntu-latest'
 
 stages:
   - stage: Build
-    displayName: 'Build and Push Docker Image'
+    displayName: "Build and Push Docker Image"
     jobs:
       - job: BuildAndPush
+        displayName: "Build and Push"
         pool:
           name: 'Linux-Hosted'
           demands:
             - Agent.Name -equals ubuntu-vm-3
 
         steps:
+
+          # Checkout
           - checkout: self
             clean: true
             fetchDepth: 1
 
-          # Prepare dynamic vars
+          # Compute semantic tag + build date safely
           - task: Bash@3
-            displayName: 'Set Image Tags & Build Date'
+            displayName: "Set Build Variables"
             inputs:
-              targetType: 'inline'
+              targetType: inline
               script: |
-                BRANCH_NAME="$(Build.SourceBranchName)"
-                BUILD_ID="$(Build.BuildId)"
-                SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
-                SEMANTIC_TAG="${BUILD_ID}-${SHORT_SHA}"
                 BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+                SEMANTIC_TAG="$(Build.BuildId)-$SHORT_SHA"
 
-                echo "##vso[task.setvariable variable=imageTag]$BUILD_ID"
+                echo "##vso[task.setvariable variable=BUILD_DATE]$BUILD_DATE"
                 echo "##vso[task.setvariable variable=shortCommitSha]$SHORT_SHA"
                 echo "##vso[task.setvariable variable=semanticTag]$SEMANTIC_TAG"
-                echo "##vso[task.setvariable variable=BUILD_DATE]$BUILD_DATE"
 
                 echo "Semantic Tag: $SEMANTIC_TAG"
                 echo "Build Date: $BUILD_DATE"
 
-          # 🔧 Initialize Buildx (REQUIRED FOR BUILDX BUILDS)
-          - task: Bash@3
-            displayName: 'Initialize Docker Buildx'
+          # Login to ACR (must happen before buildx push)
+          - task: Docker@2
+            displayName: "Login to ACR"
             inputs:
-              targetType: 'inline'
+              command: login
+              containerRegistry: $(containerRegistry)
+
+          # Buildx build + push (Docker@2 cannot handle buildx)
+          - task: Bash@3
+            displayName: "Build and Push via Buildx"
+            inputs:
+              targetType: inline
               script: |
+                echo "Initializing buildx..."
                 docker buildx create --use --name pipelinebuilder
                 docker buildx inspect --bootstrap
 
-          # Buildx — but still using Docker@2 syntax
-          - task: Docker@2
-            displayName: 'Build Docker Image (Buildx)'
-            inputs:
-              command: build
-              repository: $(imageRepository)
-              dockerfile: $(dockerfilePath)
-              containerRegistry: $(containerRegistry)
-              tags: |
-                $(semanticTag)
-                latest
-              arguments: >
-                --builder pipelinebuilder
-                --build-arg BUILD_ID=$(Build.BuildId)
-                --build-arg COMMIT_SHA=$(Build.SourceVersion)
-                --build-arg BUILD_DATE=$(BUILD_DATE)
-                --label org.opencontainers.image.source=$(Build.Repository.Uri)
-                --label org.opencontainers.image.revision=$(Build.SourceVersion)
-                --label org.opencontainers.image.created=$(BUILD_DATE)
+                echo "Building image with Buildx..."
+                docker buildx build \
+                  --builder pipelinebuilder \
+                  -f "$(dockerfilePath)" \
+                  --build-arg BUILD_ID=$(Build.BuildId) \
+                  --build-arg COMMIT_SHA=$(Build.SourceVersion) \
+                  --build-arg BUILD_DATE=$(BUILD_DATE) \
+                  --label org.opencontainers.image.source=$(Build.Repository.Uri) \
+                  --label org.opencontainers.image.revision=$(Build.SourceVersion) \
+                  --label org.opencontainers.image.created=$(BUILD_DATE) \
+                  -t $(acrDomain)/$(imageRepository):$(semanticTag) \
+                  -t $(acrDomain)/$(imageRepository):latest \
+                  --push \
+                  .
 
-          - task: Docker@2
-            displayName: 'Push Image (Semantic Tag)'
-            inputs:
-              command: push
-              repository: $(imageRepository)
-              containerRegistry: $(containerRegistry)
-              tags: $(semanticTag)
+                echo "Buildx image build & push completed."
 
-          - task: Docker@2
-            displayName: 'Push Image (Latest Tag)'
-            condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
-            inputs:
-              command: push
-              repository: $(imageRepository)
-              containerRegistry: $(containerRegistry)
-              tags: latest
-
-          # Create metadata artifacts
+          # Publish deployment metadata
           - task: Bash@3
-            displayName: 'Create Deployment Metadata'
+            displayName: "Create Deployment Metadata"
             inputs:
-              targetType: 'inline'
+              targetType: inline
               script: |
                 cat > "$(Build.ArtifactStagingDirectory)/deployment-metadata.json" << EOF
                 {
@@ -126,22 +111,22 @@ stages:
                 BUILD_DATE=$(BUILD_DATE)
                 EOF
 
-                echo "Created deployment metadata files"
+                echo "Metadata written."
 
           - task: PublishPipelineArtifact@1
-            displayName: 'Publish Deployment Metadata'
+            displayName: "Publish Deployment Artifacts"
             inputs:
-              targetPath: '$(Build.ArtifactStagingDirectory)'
-              artifact: 'deployment-metadata'
-              publishLocation: 'pipeline'
+              targetPath: "$(Build.ArtifactStagingDirectory)"
+              artifact: "deployment-metadata"
+              publishLocation: "pipeline"
 
           - task: Bash@3
-            displayName: 'Build Summary'
+            displayName: "Build Summary"
             inputs:
-              targetType: 'inline'
+              targetType: inline
               script: |
                 echo "=========================================="
-                echo "Build completed successfully!"
+                echo "Build Complete"
                 echo "Image: $(acrDomain)/$(imageRepository):$(semanticTag)"
                 echo "Build ID: $(Build.BuildId)"
                 echo "Commit: $(shortCommitSha)"
