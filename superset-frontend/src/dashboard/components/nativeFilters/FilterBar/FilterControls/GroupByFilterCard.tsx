@@ -107,14 +107,10 @@ const FilterTitle = styled(Typography.Text)`
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: default;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
-  }
 `;
 
 const HorizontalFormItem = styled(FormItem)`

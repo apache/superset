@@ -39,6 +39,7 @@ import {
   SuperChart,
   ClientErrorObject,
   getClientErrorObject,
+  isChartCustomization,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
@@ -95,9 +96,7 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-export interface FilterValueProps extends FilterControlProps {
-  isCustomization?: boolean;
-}
+export type FilterValueProps = FilterControlProps;
 
 const FilterValue: FC<FilterValueProps> = ({
   dataMaskSelected,
@@ -112,9 +111,12 @@ const FilterValue: FC<FilterValueProps> = ({
   validateStatus,
   clearAllTrigger,
   onClearAllComplete,
-  isCustomization = false,
 }) => {
-  const { id, targets, filterType, adhoc_filters, time_range } = filter;
+  const { id, targets, filterType } = filter;
+  const isCustomization = isChartCustomization(filter);
+  const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
+  const timeRange = isCustomization ? undefined : filter.time_range;
+  const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
@@ -173,17 +175,18 @@ const FilterValue: FC<FilterValueProps> = ({
       datasetId,
       dependencies,
       groupby,
-      adhoc_filters,
-      time_range,
+      adhoc_filters: adhocFilters,
+      time_range: timeRange,
+      granularity_sqla: granularitySqla,
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if (filter?.cascadeParentIds?.length) {
+    if ((filter.cascadeParentIds ?? []).length) {
       // Prevent unnecessary backend requests by validating parent filter selections first
 
       let selectedParentFilterValueCounts = 0;
 
-      filter?.cascadeParentIds?.forEach(pId => {
+      (filter.cascadeParentIds ?? []).forEach(pId => {
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;

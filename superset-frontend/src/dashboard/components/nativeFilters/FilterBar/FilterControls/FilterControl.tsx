@@ -23,7 +23,7 @@ import {
   OutPortal,
 } from 'react-reverse-portal';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { ChartCustomization } from '@superset-ui/core';
+import { isChartCustomization } from '@superset-ui/core';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -39,10 +39,6 @@ import {
 } from './FilterControlShared';
 import GroupByFilterCard from './GroupByFilterCard';
 
-export interface FilterControlExtendedProps extends FilterControlProps {
-  isCustomization?: boolean;
-}
-
 const FilterControl = ({
   dataMaskSelected,
   filter,
@@ -55,8 +51,7 @@ const FilterControl = ({
   overflow = false,
   clearAllTrigger,
   onClearAllComplete,
-  isCustomization = false,
-}: FilterControlExtendedProps) => {
+}: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
@@ -114,14 +109,13 @@ const FilterControl = ({
     return FilterCardPlacement.Right;
   }, [orientation, overflow]);
 
-  const isDynamicGroupBy =
-    isCustomization &&
-    filter.filterType === 'chart_customization_dynamic_groupby';
-
-  if (isDynamicGroupBy) {
+  if (
+    isChartCustomization(filter) &&
+    filter.filterType === 'chart_customization_dynamic_groupby'
+  ) {
     return (
       <GroupByFilterCard
-        customizationItem={filter as any as ChartCustomization}
+        customizationItem={filter}
         orientation={
           orientation === FilterBarOrientation.Horizontal
             ? 'horizontal'
@@ -149,7 +143,6 @@ const FilterControl = ({
           validateStatus={validateStatus}
           clearAllTrigger={clearAllTrigger}
           onClearAllComplete={onClearAllComplete}
-          isCustomization={isCustomization}
         />
       </InPortal>
       <FilterControlContainer

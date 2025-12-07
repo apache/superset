@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core';
 import {
   AdhocFilter,
   Behavior,
+  ChartCustomization,
   DataMaskStateWithId,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
@@ -57,13 +58,15 @@ export const getFormData = ({
   type,
   dashboardId,
   id,
-}: Partial<Filter> & {
+}: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  sortMetric?: string | null;
+  granularity_sqla?: string;
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;

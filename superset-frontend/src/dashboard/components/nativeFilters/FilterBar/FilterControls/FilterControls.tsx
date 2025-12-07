@@ -34,7 +34,6 @@ import {
   Divider,
   isNativeFilterWithDataMask,
   NativeFilterTarget,
-  NativeFilterType,
   ChartCustomization,
   isChartCustomizationDivider,
   ChartCustomizationDivider,
@@ -73,27 +72,13 @@ import { useChartsVerboseMaps } from '../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
-function chartCustomizationToFilterProp(
-  item: ChartCustomization,
+function addDataMaskToCustomization(
+  customization: ChartCustomization,
   dataMaskSelected: DataMaskStateWithId,
-): Filter & { dataMask?: DataMask } {
-  const selectedMask = dataMaskSelected[item.id];
-  const initialMask = getInitialDataMask(item.id);
-  const finalMask = selectedMask ?? initialMask;
-
-  return {
-    id: item.id,
-    name: item.name || '<undefined>',
-    filterType: item.filterType || '',
-    targets: item.targets?.length > 0 ? item.targets : [{}],
-    defaultDataMask: item.defaultDataMask || {},
-    controlValues: item.controlValues || {},
-    cascadeParentIds: item.cascadeParentIds || [],
-    scope: item.scope || { rootPath: [], excluded: [] },
-    dataMask: finalMask,
-    type: NativeFilterType.NativeFilter,
-    description: item.description || '',
-  } as Filter;
+): ChartCustomization & { dataMask: DataMask } {
+  const dataMask =
+    dataMaskSelected[customization.id] ?? getInitialDataMask(customization.id);
+  return { ...customization, dataMask };
 }
 
 type FilterControlsProps = {
@@ -297,14 +282,13 @@ const FilterControls: FC<FilterControlsProps> = ({
       return (
         <FilterControl
           key={item.id}
-          filter={chartCustomizationToFilterProp(item, dataMaskSelected)}
+          filter={addDataMaskToCustomization(item, dataMaskSelected)}
           dataMaskSelected={dataMaskSelected}
-          onFilterSelectionChange={(filter, dataMask) =>
+          onFilterSelectionChange={(_, dataMask) =>
             handleChartCustomizationChange(item, dataMask)
           }
           orientation={FilterBarOrientation.Vertical}
           overflow={false}
-          isCustomization
         />
       );
     },
@@ -545,14 +529,13 @@ const FilterControls: FC<FilterControlsProps> = ({
             `}
           >
             <FilterControl
-              filter={chartCustomizationToFilterProp(item, dataMaskSelected)}
+              filter={addDataMaskToCustomization(item, dataMaskSelected)}
               dataMaskSelected={dataMaskSelected}
-              onFilterSelectionChange={(filter, dataMask) =>
+              onFilterSelectionChange={(_, dataMask) =>
                 handleChartCustomizationChange(item, dataMask)
               }
               orientation={FilterBarOrientation.Horizontal}
               overflow={false}
-              isCustomization
             />
           </div>
         ),
@@ -574,6 +557,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     theme,
     handleChartCustomizationChange,
     dataMaskSelected,
+    chartCustomizationValues.length,
   ]);
 
   const renderHorizontalContent = useCallback(
