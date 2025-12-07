@@ -241,17 +241,21 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const handleChartCustomizationChange = useCallback(
     (customizationItem: ChartCustomization, dataMask: DataMask) => {
-      const columnValue =
-        dataMask.ownState?.column || dataMask.filterState?.value;
+      const columnValue = dataMask.ownState?.column;
+      const existingTarget = customizationItem.targets?.[0] || {};
 
-      const dataset = customizationItem.targets?.[0]?.datasetId;
       dispatch(
         setPendingChartCustomization({
           ...customizationItem,
           targets: [
             {
-              datasetId: dataset,
-              ...(columnValue && { column: { name: columnValue } }),
+              ...existingTarget,
+              ...(columnValue && {
+                column: {
+                  ...existingTarget.column,
+                  name: columnValue,
+                },
+              }),
             },
           ] as [Partial<NativeFilterTarget>],
         }),

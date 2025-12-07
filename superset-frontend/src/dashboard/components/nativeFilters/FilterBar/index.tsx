@@ -64,6 +64,7 @@ import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
 import { checkIsApplyDisabled } from './utils';
+import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
   useAllAppliedDataMask,
@@ -391,8 +392,6 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
-    // Clear all native filters, not just those in scope
-    // This ensures dependent filters are cleared even if parent was cleared first
     nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
@@ -406,19 +405,17 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     });
 
-    // Check if there are chart customizations to clear
-    // Check both in-flight changes (dataMasks) and saved values (metadata)
     const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
     const hasCustomizationDataMasks = Object.keys(allDataMasks).some(key =>
       isChartCustomization(key),
     );
-    const hasSavedCustomizations = chartCustomizationValues.some(
-      item => item.targets?.[0]?.column?.name,
-    );
+    const hasSavedCustomizations = chartCustomizationValues.some(item => {
+      if (item.removed) return false;
+      const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
+      return extractLabel(mask?.filterState) !== null;
+    });
 
     if (hasCustomizationDataMasks || hasSavedCustomizations) {
-      // Clear customizations from dataMaskSelected (local state)
-      // Set value to null instead of deleting so UI shows as cleared
       chartCustomizationValues.forEach(item => {
         setDataMaskSelected(draft => {
           draft[item.id] = {
@@ -467,21 +464,11 @@ const FilterBar: FC<FiltersBarProps> = ({
       const required = !!item.controlValues?.enableEmptyFilter;
       if (!required) return false;
 
-      const pendingItem = pendingChartCustomizations?.[item.id];
-      const currentItem = pendingItem || item;
-      const columnValue = currentItem.targets?.[0]?.column?.name;
+      const mask =
+        pendingCustomizationDataMasks?.[item.id] || dataMaskSelected[item.id];
+      const hasValue = extractLabel(mask?.filterState) !== null;
 
-      if (!columnValue) return true;
-
-      if (Array.isArray(columnValue)) {
-        return columnValue.length === 0;
-      }
-
-      if (typeof columnValue === 'string') {
-        return columnValue.trim() === '';
-      }
-
-      return false;
+      return !hasValue;
     }) || false;
 
   const checkResult = checkIsApplyDisabled(

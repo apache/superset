@@ -24,6 +24,7 @@ import { ChartCustomization, DataMaskStateWithId } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
+import { extractLabel } from '../nativeFilters/selectors';
 import { useChartCustomizationFromRedux } from '../nativeFilters/state';
 import { RootState } from '../../types';
 import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
@@ -36,24 +37,6 @@ const getCustomizationDataset = (
   }
   if (item.customization?.dataset !== undefined) {
     return item.customization.dataset;
-  }
-  return null;
-};
-
-const getCustomizationColumn = (
-  item: ChartCustomization | any,
-): string | null => {
-  if (item.targets?.[0]?.column?.name) {
-    return item.targets[0].column.name;
-  }
-  if (item.customization?.column) {
-    const column = item.customization.column;
-    if (typeof column === 'string') {
-      return column;
-    }
-    if (Array.isArray(column) && column.length > 0) {
-      return column[0];
-    }
   }
   return null;
 };
@@ -78,7 +61,7 @@ const makeSelectChartFormData = (chartId: number) =>
     latestQueryFormData => latestQueryFormData,
   );
 
-export interface GroupByBadgeProps {
+export interface CustomizationsBadgeProps {
   chartId: number;
 }
 
@@ -181,7 +164,7 @@ const GroupByValue = styled.span`
   overflow: auto;
 `;
 
-export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
+export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
@@ -206,7 +189,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const chartFormData = useSelector(selectChartFormData);
   const chartType = chartFormData?.viz_type;
 
-  const applicableGroupBys = useMemo(() => {
+  const applicableCustomizations = useMemo(() => {
     if (!chartDataset) {
       return [];
     }
@@ -228,18 +211,15 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       const targetDatasetId = String(targetDataset);
       const matchesDataset = chartDataset === targetDatasetId;
 
-      const columnName = getCustomizationColumn(item);
+      const filterState = dataMask[item.id]?.filterState;
+      const hasValue = extractLabel(filterState) !== null;
 
-      return (
-        matchesDataset &&
-        (!!columnName ||
-          item.filterType === 'chart_customization_deckgl_layer_visibility')
-      );
+      return matchesDataset && hasValue;
     });
-  }, [chartCustomizationItems, chartDataset, chartId]);
+  }, [chartCustomizationItems, chartDataset, chartId, dataMask]);
 
-  const effectiveGroupBys = useMemo(() => {
-    if (!chartType || applicableGroupBys.length === 0) {
+  const effectiveCustomizations = useMemo(() => {
+    if (!chartType || applicableCustomizations.length === 0) {
       return [];
     }
 
@@ -247,41 +227,41 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       return [];
     }
 
-    return applicableGroupBys.filter(groupBy => {
-      const filterState = dataMask[groupBy.id]?.filterState;
+    return applicableCustomizations.filter(customization => {
+      const filterState = dataMask[customization.id]?.filterState;
       const value = filterState?.value;
       return value !== null && value !== undefined;
     });
-  }, [applicableGroupBys, chartType, dataMask]);
+  }, [applicableCustomizations, chartType, dataMask]);
 
-  const groupByCount = effectiveGroupBys.length;
+  const customizationsCount = effectiveCustomizations.length;
 
-  if (groupByCount === 0) {
+  if (customizationsCount === 0) {
     return null;
   }
   const tooltipContent = (
     <TooltipContent>
       <div>
         <SectionName>
-          {t('Chart Customization (%d)', effectiveGroupBys.length)}
+          {t('Chart Customization (%d)', effectiveCustomizations.length)}
         </SectionName>
         <GroupByInfo>
-          {effectiveGroupBys.map(groupBy => {
-            const filterState = dataMask[groupBy.id]?.filterState;
+          {effectiveCustomizations.map(customization => {
+            const filterState = dataMask[customization.id]?.filterState;
             const displayValue = filterState?.label || filterState?.value;
 
             return (
-              <GroupByItem key={groupBy.id}>
+              <GroupByItem key={customization.id}>
                 <div>
-                  {groupBy.name && displayValue ? (
+                  {customization.name && displayValue ? (
                     <>
-                      <GroupByName>{groupBy.name}: </GroupByName>
+                      <GroupByName>{customization.name}: </GroupByName>
                       <GroupByValue>
                         {getFilterValueForDisplay(displayValue)}
                       </GroupByValue>
                     </>
                   ) : (
-                    groupBy.name || t('None')
+                    customization.name || t('None')
                   )}
                 </div>
               </GroupByItem>
@@ -311,14 +291,14 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
     >
       <StyledTag
         ref={triggerRef}
-        aria-label={t('Group by settings (%s)', groupByCount)}
+        aria-label={t('Chart customizations (%s)', customizationsCount)}
         role="button"
         tabIndex={0}
       >
         <Icons.GroupOutlined iconSize="m" />
         <StyledBadge
-          data-test="applied-groupby-count"
-          count={groupByCount}
+          data-test="applied-customizations-count"
+          count={customizationsCount}
           showZero={false}
         />
       </StyledTag>
@@ -326,4 +306,4 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   );
 };
 
-export default memo(GroupByBadge);
+export default memo(CustomizationsBadge);
