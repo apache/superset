@@ -164,35 +164,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     if (!showIndicators && dashboardIndicators.length > 0) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
-      const hasQueriesResponse =
-        chart?.queriesResponse != null &&
-        Array.isArray(chart.queriesResponse) &&
-        chart.queriesResponse.length > 0;
-      const prevHasQueriesResponse =
-        prevChart?.queriesResponse != null &&
-        Array.isArray(prevChart.queriesResponse) &&
-        prevChart.queriesResponse.length > 0;
-
-      const currentRejected =
-        hasQueriesResponse && chart?.queriesResponse
-          ? chart.queriesResponse[0]?.rejected_filters
-          : undefined;
-      const prevRejected =
-        prevHasQueriesResponse && prevChart?.queriesResponse
-          ? prevChart.queriesResponse[0]?.rejected_filters
-          : undefined;
-      const currentApplied =
-        hasQueriesResponse && chart?.queriesResponse
-          ? chart.queriesResponse[0]?.applied_filters
-          : undefined;
-      const prevApplied =
-        prevHasQueriesResponse && prevChart?.queriesResponse
-          ? prevChart.queriesResponse[0]?.applied_filters
-          : undefined;
-
       if (
-        currentRejected !== prevRejected ||
-        currentApplied !== prevApplied ||
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
         dashboardFilters !== prevDashboardFilters ||
         datasources !== prevDatasources
       ) {
@@ -228,35 +204,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
-      const hasQueriesResponse =
-        chart?.queriesResponse != null &&
-        Array.isArray(chart.queriesResponse) &&
-        chart.queriesResponse.length > 0;
-      const prevHasQueriesResponse =
-        prevChart?.queriesResponse != null &&
-        Array.isArray(prevChart.queriesResponse) &&
-        prevChart.queriesResponse.length > 0;
-
-      const currentRejected =
-        hasQueriesResponse && chart?.queriesResponse
-          ? chart.queriesResponse[0]?.rejected_filters
-          : undefined;
-      const prevRejected =
-        prevHasQueriesResponse && prevChart?.queriesResponse
-          ? prevChart.queriesResponse[0]?.rejected_filters
-          : undefined;
-      const currentApplied =
-        hasQueriesResponse && chart?.queriesResponse
-          ? chart.queriesResponse[0]?.applied_filters
-          : undefined;
-      const prevApplied =
-        prevHasQueriesResponse && prevChart?.queriesResponse
-          ? prevChart.queriesResponse[0]?.applied_filters
-          : undefined;
-
       if (
-        currentRejected !== prevRejected ||
-        currentApplied !== prevApplied ||
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
         nativeFilters !== prevNativeFilters ||
         chartLayoutItems !== prevChartLayoutItems ||
         dataMask !== prevDataMask ||
