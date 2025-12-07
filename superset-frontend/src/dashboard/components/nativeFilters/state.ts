@@ -22,11 +22,13 @@ import { createSelector } from '@reduxjs/toolkit';
 import {
   Filter,
   Divider,
-  isFilterDivider,
+  isChartCustomization,
   ChartCustomization,
   ChartCustomizationDivider,
   ChartCustomizationConfiguration,
+  NativeFilterType,
 } from '@superset-ui/core';
+import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
@@ -198,8 +200,8 @@ export function useIsFilterInScope() {
   // Chart is in an active tab tree if all of its ancestors of type TAB are active
   // Dividers are always in scope
   return useCallback(
-    (filter: Filter | Divider) => {
-      if (isFilterDivider(filter)) return true;
+    (filter: FilterElement | Divider) => {
+      if (filter.type === NativeFilterType.Divider) return true;
 
       const isChartInScope =
         Array.isArray(filter.chartsInScope) &&
@@ -212,6 +214,13 @@ export function useIsFilterInScope() {
             tabParents.every(tab => activeTabs.includes(tab))
           );
         });
+
+      if (isChartCustomization(filter)) {
+        const isCustomizationInActiveTab = filter.tabsInScope?.some(tab =>
+          activeTabs.includes(tab),
+        );
+        return isChartInScope || isCustomizationInActiveTab;
+      }
 
       const isFilterInActiveTab = filter.scope?.rootPath?.some(tab =>
         activeTabs.includes(tab),
