@@ -54,15 +54,10 @@ const DefaultValue: FC<DefaultValueProps> = ({
 }) => {
   const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
-
   const chartType = formFilter?.filterType;
-
   const isTimeFilter = formFilter?.filterType === 'filter_time';
-
   const hasQueriesData = queriesData && queriesData.length > 0;
-
   const emptyQueriesData = useMemo(() => [{ data: [{}] }], []);
-
   const loading = hasDataset && queriesData === null;
   const value = formFilter?.defaultDataMask?.filterState?.value;
   const isMissingRequiredValue =

@@ -147,7 +147,6 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
       }
 
       onRearrange(dragIndex, hoverIndex, item.filterIds[0]);
-      // eslint-disable-next-line no-param-reassign
       item.index = hoverIndex;
     },
   });

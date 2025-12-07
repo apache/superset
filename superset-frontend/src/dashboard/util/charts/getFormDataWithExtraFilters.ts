@@ -527,10 +527,6 @@ export default function getFormDataWithExtraFilters({
     }
   }
 
-  // Extract chart customizations from dataMask to apply to chart queries.
-  // Uses prefix discrimination to identify customization dataMasks vs filter dataMasks.
-  // Customizations are chart-specific modifications (like dynamic group-by) that affect
-  // how charts display data, separate from cross-chart filters.
   const groupByState: Record<
     string,
     { selectedValues: string[]; hasInteracted: boolean }
@@ -553,11 +549,6 @@ export default function getFormDataWithExtraFilters({
       const selectedValues = mask.filterState?.value;
       groupByState[key] = {
         selectedValues: Array.isArray(selectedValues) ? selectedValues : [],
-        // hasInteracted distinguishes between:
-        // - undefined: never interacted (use defaults, preserve existing groupby)
-        // - null: intentionally cleared (clear groupby)
-        // - []: selected then cleared (clear groupby)
-        // - [values]: has selections (apply groupby)
         hasInteracted: mask.filterState?.value !== undefined,
       };
     }
