@@ -18,8 +18,12 @@
  */
 import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
-import { Modal, Button, Typography } from '@superset-ui/core/components';
-import { Progress } from 'antd';
+import {
+  Modal,
+  Button,
+  Typography,
+  Progress,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 const { Text } = Typography;
