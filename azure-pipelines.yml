@@ -22,7 +22,7 @@ stages:
         pool:
           name: 'Linux-Hosted'
           demands:
-            - Agent.Name -equals ubuntu-vm-3
+            - Agent.Name -equals agent_localhost
 
         steps:
 
