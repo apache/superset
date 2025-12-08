@@ -19,12 +19,15 @@
 URL utilities for MCP service
 """
 
+import logging
 from urllib.parse import urlparse
 
 from flask import current_app
 
+logger = logging.getLogger(__name__)
+
 # Hostnames that indicate a development/local environment
-LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0"}
+LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0"}  # noqa: S104
 
 
 def _is_local_url(url: str) -> bool:
@@ -77,8 +80,8 @@ def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
 
-    In production (multi-tenant), the MCP service is accessed via the main
-    Superset URL with /mcp prefix (routed by api-gateway). In development,
+    In production, the MCP service is typically accessed via the main
+    Superset URL with /mcp prefix. In development,
     it's accessed directly on port 5008.
 
     Returns:
@@ -94,16 +97,14 @@ def get_mcp_service_url() -> str:
 
         # In production, MCP service is accessed via main URL with /mcp prefix
         # WEBDRIVER_BASEURL_USER_FRIENDLY is the user-facing URL for the instance
-        user_friendly_url = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-        if user_friendly_url and not _is_local_url(user_friendly_url):
-            # Production/staging - use main URL with /mcp prefix
+        if (
+            user_friendly_url := config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+        ) and not _is_local_url(user_friendly_url):
             base_url = user_friendly_url.rstrip("/")
             return f"{base_url}/mcp"
 
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).debug("Config access failed: %s", e)
+        logger.debug("Config access failed: %s", e)
 
     # Development fallback - direct access to MCP service on port 5008
     return "http://localhost:5008"
