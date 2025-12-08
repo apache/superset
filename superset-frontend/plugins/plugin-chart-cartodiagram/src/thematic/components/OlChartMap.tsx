@@ -61,8 +61,9 @@ export const OlChartMap = (props: OlChartMapProps) => {
     data,
     emitCrossFilters,
     filterState,
-    geomFormat,
+    idColumn,
     geomColumn,
+    geomFormat,
     olMap,
     layerConfigs,
     mapMaxExtent,
@@ -623,13 +624,13 @@ export const OlChartMap = (props: OlChartMapProps) => {
         return;
       }
 
-      const val = clickedFeature.get(geomColumn);
+      const val = clickedFeature.get(idColumn);
       if (val === undefined || val === null) {
         return;
       }
 
       // We reset the filter if a filtered feature is clicked again.
-      const resetFilter = filterState.selectedValues?.includes(val);
+      const resetFilter = filterState.selectedValues === val;
 
       setDataMask({
         extraFormData: {
@@ -637,15 +638,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
             ? []
             : [
                 {
-                  col: geomColumn,
-                  op: 'IN' as const,
-                  val: [val],
+                  col: idColumn,
+                  op: '==',
+                  val,
                 },
               ],
         },
         filterState: {
-          label: resetFilter ? null : geomColumn,
-          value: resetFilter ? null : geomColumn,
+          label: resetFilter ? null : idColumn,
+          value: resetFilter ? null : idColumn,
           selectedValues: resetFilter ? null : val,
         },
       });
@@ -658,7 +659,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     olMap,
     currentDataLayers,
     setDataMask,
-    geomColumn,
+    idColumn,
     emitCrossFilters,
     filterState,
   ]);

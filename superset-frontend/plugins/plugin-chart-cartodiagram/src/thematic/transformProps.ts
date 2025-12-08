@@ -60,6 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
   } = chartProps;
   const {
     columns,
+    idColumn,
     geomColumn,
     geomFormat,
     layerConfigs,
@@ -76,7 +77,7 @@ export default function transformProps(chartProps: ChartProps) {
     tooltipTemplate,
   } = formData;
 
-  const { setControlValue = () => {}, setDataMask = () => {} } = hooks;
+  const { setControlValue = () => { }, setDataMask = () => { } } = hooks;
 
   const { data } = queriesData[0];
 
@@ -86,6 +87,7 @@ export default function transformProps(chartProps: ChartProps) {
     data,
     emitCrossFilters,
     filterState,
+    idColumn,
     geomColumn,
     geomFormat,
     columns,
