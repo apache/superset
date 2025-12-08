@@ -20,8 +20,6 @@ stages:
         displayName: "Build and Push"
         pool:
           name: 'Linux-Hosted'
-          demands:
-            - Agent.Name=agent_localhost  # Fixed syntax
 
         steps:
 
