@@ -216,3 +216,14 @@ def test_detect_currency_from_df_ignores_null_values() -> None:
     result = detect_currency_from_df(df, "currency_code")
 
     assert result == "USD"
+
+
+def test_detect_currency_returns_none_when_query_not_callable() -> None:
+    """Returns None when datasource query attribute is not callable."""
+    datasource = MagicMock()
+    datasource.currency_code_column = "currency_code"
+    datasource.query = "not_a_callable"  # Set to a string instead of a method
+
+    result = detect_currency(datasource)
+
+    assert result is None
