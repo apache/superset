@@ -63,40 +63,34 @@ def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
 
-    The MCP service auto-detects its own host and port since it's running
-    this code. Falls back to explicit configuration or default port.
+    In production (multi-tenant), the MCP service is accessed via the main
+    Superset URL with /mcp prefix (routed by api-gateway). In development,
+    it's accessed directly on port 5008.
 
     Returns:
-        Base URL for MCP service (always independent of Superset URL)
+        Base URL for MCP service endpoints
     """
     try:
-        # Try to auto-detect from Flask request context
-        from flask import request
-
-        if request:
-            # Get the host and port from the current request
-            scheme = request.scheme  # http or https
-            host = request.host  # includes port if non-standard
-            return f"{scheme}://{host}"
-
-    except (RuntimeError, AttributeError):
-        # Not in request context or Flask not available
-        pass
-
-    try:
-        # Check for explicit MCP_SERVICE_URL in config
         config = current_app.config
+
+        # Check for explicit MCP_SERVICE_URL first (allows override)
         mcp_service_url = config.get("MCP_SERVICE_URL")
         if mcp_service_url:
             return mcp_service_url
 
+        # In production, MCP service is accessed via main URL with /mcp prefix
+        # SUPERSET_WEBSERVER_ADDRESS is dynamically set per workspace
+        webserver_address = config.get("SUPERSET_WEBSERVER_ADDRESS")
+        if webserver_address and webserver_address != "http://localhost:9001":
+            # Production/staging - use main URL with /mcp prefix
+            return f"{webserver_address}/mcp"
+
     except Exception as e:
-        # Log and fall back if config access fails
         import logging
 
         logging.getLogger(__name__).debug("Config access failed: %s", e)
 
-    # Always fallback to MCP service default port (never use Superset URL)
+    # Development fallback - direct access to MCP service on port 5008
     return "http://localhost:5008"
 
 
