@@ -31,6 +31,7 @@ export type ConditionalFormattingConfig = {
   colorScheme?: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  useGradient?: boolean;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<

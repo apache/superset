@@ -48,7 +48,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["mutate"])
 @parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context

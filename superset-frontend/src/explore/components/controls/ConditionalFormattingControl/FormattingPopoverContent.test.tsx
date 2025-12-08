@@ -40,6 +40,11 @@ const columnsStringType = [
   { label: 'Column 2', value: 'column2', dataType: GenericDataType.String },
 ];
 
+const columnsBooleanType = [
+  { label: 'Column 1', value: 'column1', dataType: GenericDataType.Boolean },
+  { label: 'Column 2', value: 'column2', dataType: GenericDataType.Boolean },
+];
+
 const extraColorChoices = [
   {
     value: ColorSchemeEnum.Green,
@@ -148,6 +153,22 @@ test('displays the correct input fields based on the selected string type operat
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
 });
 
+test('does not display the input fields when selected a boolean type operator', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsBooleanType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.IsTrue },
+  });
+  fireEvent.click(await screen.findByTitle('is true'));
+  expect(await screen.queryByLabelText('Target value')).toBeNull();
+});
+
 test('displays the toAllRow and toTextColor flags based on the selected numeric type operator', () => {
   render(
     <FormattingPopoverContent
@@ -181,4 +202,54 @@ test('Not displays the toAllRow and toTextColor flags', () => {
 
   expect(screen.queryByText('To entire row')).not.toBeInTheDocument();
   expect(screen.queryByText('To text color')).not.toBeInTheDocument();
+});
+
+test('displays Use gradient checkbox', () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  expect(screen.getByText('Use gradient')).toBeInTheDocument();
+});
+
+// Helper function to find the "Use gradient" checkbox
+// The checkbox and text are in sibling columns within the same row
+const findUseGradientCheckbox = (): HTMLInputElement => {
+  const useGradientText = screen.getByText('Use gradient');
+  // Find the common parent row that contains both the text and checkbox
+  let rowElement: HTMLElement | null = useGradientText.parentElement;
+  while (rowElement) {
+    const checkbox = rowElement.querySelector('input[type="checkbox"]');
+    if (checkbox && rowElement.textContent?.includes('Use gradient')) {
+      return checkbox as HTMLInputElement;
+    }
+    rowElement = rowElement.parentElement;
+  }
+  throw new Error('Could not find Use gradient checkbox');
+};
+
+test('Use gradient checkbox defaults to checked', () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+});
+
+test('Use gradient checkbox can be toggled', async () => {
+  render(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+
+  // Uncheck the checkbox
+  fireEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+
+  // Check the checkbox again
+  fireEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
 });

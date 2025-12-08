@@ -361,7 +361,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     comparisonColumns[0].key,
   ]);
   const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
+  // recalculated totals to display when the search filter is applied (client-side pagination)
+  const [displayedTotals, setDisplayedTotals] = useState<D | undefined>(totals);
   const theme = useTheme();
+
+  useEffect(() => {
+    setDisplayedTotals(totals);
+  }, [totals]);
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -901,10 +907,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               formatter: ColorFormatters[number],
               valueToFormat: any,
             ) => {
-              const hasValue =
-                valueToFormat !== undefined && valueToFormat !== null;
-              if (!hasValue) return;
-
               const formatterResult =
                 formatter.getColorFromValue(valueToFormat);
               if (!formatterResult) return;
@@ -1132,7 +1134,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           </th>
         ),
 
-        Footer: totals ? (
+        Footer: displayedTotals ? (
           i === 0 ? (
             <th key={`footer-summary-${i}`}>
               <div
@@ -1157,7 +1159,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </th>
           ) : (
             <td key={`footer-total-${i}`} style={sharedStyle}>
-              <strong>{formatColumnValue(column, totals[key])[1]}</strong>
+              <strong>
+                {formatColumnValue(column, displayedTotals[key])[1]}
+              </strong>
             </td>
           )
         ) : undefined,
@@ -1177,7 +1181,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       getValueRange,
       emitCrossFilters,
       comparisonLabels,
-      totals,
+      displayedTotals,
       theme,
       sortDesc,
       groupHeaderColumns,
@@ -1201,6 +1205,36 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+
+  const handleFilteredDataChange = useCallback(
+    (rows: Row<D>[], searchText?: string) => {
+      if (!totals || serverPagination) {
+        return;
+      }
+
+      if (!searchText?.trim()) {
+        setDisplayedTotals(totals);
+        return;
+      }
+
+      const updatedTotals: Record<string, DataRecordValue> = { ...totals };
+
+      filteredColumnsMeta.forEach(column => {
+        if (column.isMetric || column.isPercentMetric) {
+          const aggregatedValue = rows.reduce<number>((acc, row) => {
+            const rawValue = row.original?.[column.key];
+            const numValue = Number(String(rawValue ?? '').replace(/,/g, ''));
+            return Number.isFinite(numValue) ? acc + numValue : acc;
+          }, 0);
+
+          updatedTotals[column.key] = aggregatedValue;
+        }
+      });
+
+      setDisplayedTotals(updatedTotals as D);
+    },
+    [filteredColumnsMeta, serverPagination, totals],
+  );
 
   useEffect(() => {
     const options = (
@@ -1356,6 +1390,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         manualSearch={serverPagination}
         onSearchChange={debouncedSearch}
         searchOptions={searchOptions}
+        onFilteredDataChange={handleFilteredDataChange}
       />
     </Styles>
   );
