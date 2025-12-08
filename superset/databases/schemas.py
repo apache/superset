@@ -450,6 +450,24 @@ class DatabaseSSHTunnel(Schema):
     private_key = fields.String(required=False)
     private_key_password = fields.String(required=False)
 
+    @validates_schema
+    def validate_authentication(self, data: dict[str, Any], **kwargs: Any) -> None:
+        errors: dict[str, str] = {}
+
+        private_key: str | None = data.get("private_key")
+        password: str | None = data.get("password")
+        private_key_password: str | None = data.get("private_key_password")
+
+        if not private_key and not password:
+            errors["password"] = "Either password or private_key is required"  # noqa: S105
+        if private_key_password and private_key is None:
+            errors["private_key"] = (
+                "private_key is required when private_key_password is provided"
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
 
 class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
@@ -831,6 +849,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     disable_data_preview = fields.Boolean(required=False)
     disable_drill_to_detail = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
+    per_user_caching = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
     schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 

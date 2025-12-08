@@ -19,10 +19,10 @@
 import {
   isFeatureEnabled,
   FeatureFlag,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -274,12 +274,17 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dashboard', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected dashboards'));
+    }
   };
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
@@ -346,7 +351,6 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: 'xxl',
         id: 'dashboard_title',
       },
       {
@@ -361,6 +365,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'published',
         size: 'sm',
         id: 'published',
+        className: 'no-ellipsis',
       },
       {
         Cell: ({
@@ -387,7 +392,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -400,7 +404,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-        size: 'xl',
         id: 'owners',
       },
       {
@@ -414,7 +417,6 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {

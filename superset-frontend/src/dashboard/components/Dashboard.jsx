@@ -120,15 +120,12 @@ class Dashboard extends PureComponent {
     this.applyCharts();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     this.applyCharts();
-  }
+    const currentChartIds = getChartIdsFromLayout(prevProps.layout);
+    const nextChartIds = getChartIdsFromLayout(this.props.layout);
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const currentChartIds = getChartIdsFromLayout(this.props.layout);
-    const nextChartIds = getChartIdsFromLayout(nextProps.layout);
-
-    if (this.props.dashboardId !== nextProps.dashboardId) {
+    if (prevProps.dashboardId !== this.props.dashboardId) {
       // single-page-app navigation check
       return;
     }
@@ -140,7 +137,7 @@ class Dashboard extends PureComponent {
       newChartIds.forEach(newChartId =>
         this.props.actions.addSliceToDashboard(
           newChartId,
-          getLayoutComponentFromChartId(nextProps.layout, newChartId),
+          getLayoutComponentFromChartId(this.props.layout, newChartId),
         ),
       );
     } else if (currentChartIds.length > nextChartIds.length) {
@@ -191,6 +188,7 @@ class Dashboard extends PureComponent {
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.props.actions.clearDataMaskState();
+    this.props.actions.clearAllChartStates();
   }
 
   onVisibilityChange() {

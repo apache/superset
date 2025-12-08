@@ -22,15 +22,8 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
-import {
-  t,
-  styled,
-  css,
-  SupersetTheme,
-  SupersetClient,
-  getExtensionsRegistry,
-  useTheme,
-} from '@superset-ui/core';
+import { t, SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   Tag,
   Tooltip,
@@ -39,7 +32,7 @@ import {
   Typography,
   TelemetryPixel,
 } from '@superset-ui/core/components';
-import type { MenuItem } from '@superset-ui/core/components/Menu';
+import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -60,16 +53,9 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 const extensionsRegistry = getExtensionsRegistry();
-
-const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
-    ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
-  color: ${theme.colorText};
-  font-size: ${theme.fontSizeSM}px;
-  white-space: nowrap;
-`;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
@@ -77,7 +63,6 @@ const StyledDiv = styled.div<{ align: string }>`
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
-  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -396,6 +381,7 @@ const RightMenu = ({
               label: menu.label,
               icon: menu.icon,
               children: childItems,
+              popupOffset: NAVBAR_MENU_POPUP_OFFSET,
             });
           } else if (menu.url) {
             if (
@@ -521,42 +507,42 @@ const RightMenu = ({
       if (navbarRight.version_string || navbarRight.version_sha) {
         items.push({ type: 'divider', key: 'version-info-divider' });
 
-        items.push({
+        const aboutItem: ItemType = {
           type: 'group',
           label: t('About'),
           key: 'about-section',
           children: [
             {
               key: 'about-info',
+              style: { height: 'auto', minHeight: 'auto' },
               label: (
-                <div className="about-section">
-                  {navbarRight.show_watermark && (
-                    <div css={versionInfoStyles}>
-                      {t('Powered by Apache Superset')}
-                    </div>
-                  )}
-                  {navbarRight.version_string && (
-                    <div css={versionInfoStyles}>
-                      {t('Version')}: {navbarRight.version_string}
-                    </div>
-                  )}
-                  {navbarRight.version_sha && (
-                    <div css={versionInfoStyles}>
-                      {t('SHA')}: {navbarRight.version_sha}
-                    </div>
-                  )}
-                  {navbarRight.build_number && (
-                    <div css={versionInfoStyles}>
-                      {t('Build')}: {navbarRight.build_number}
-                    </div>
-                  )}
+                <div
+                  css={(theme: SupersetTheme) => css`
+                    font-size: ${theme.fontSizeSM}px;
+                    color: ${theme.colorTextSecondary || theme.colorText};
+                    white-space: pre-wrap;
+                    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                  `}
+                >
+                  {[
+                    navbarRight.show_watermark &&
+                      t('Powered by Apache Superset'),
+                    navbarRight.version_string &&
+                      `${t('Version')}: ${navbarRight.version_string}`,
+                    navbarRight.version_sha &&
+                      `${t('SHA')}: ${navbarRight.version_sha}`,
+                    navbarRight.build_number &&
+                      `${t('Build')}: ${navbarRight.build_number}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n')}
                 </div>
               ),
             },
           ],
-        });
+        };
+        items.push(aboutItem);
       }
-
       return items;
     };
 
@@ -572,16 +558,11 @@ const RightMenu = ({
     if (!navbarRight.user_is_anonymous && showActionDropdown) {
       items.push({
         key: 'new-dropdown',
-        label: (
-          <Icons.PlusOutlined
-            iconColor={theme.colorPrimary}
-            data-test="new-dropdown-icon"
-          />
-        ),
+        label: <Icons.PlusOutlined data-test="new-dropdown-icon" />,
         className: 'submenu-with-caret',
-        icon: <Icons.CaretDownOutlined iconSize="xs" />,
+        icon: <Icons.DownOutlined iconSize="xs" />,
         children: buildNewDropdownItems(),
-        ...{ 'data-test': 'new-dropdown' },
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       });
     }
 
@@ -596,9 +577,10 @@ const RightMenu = ({
     items.push({
       key: 'settings',
       label: t('Settings'),
-      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      icon: <Icons.DownOutlined iconSize="xs" />,
       children: buildSettingsMenuItems(),
       className: 'submenu-with-caret',
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
     });
 
     return items;
@@ -683,13 +665,33 @@ const RightMenu = ({
           display: flex;
           flex-direction: row;
           align-items: center;
+          height: 100%;
+          border-bottom: none !important;
+
+          /* Remove the underline from menu items */
+          .ant-menu-item:after,
+          .ant-menu-submenu:after {
+            content: none !important;
+          }
 
           .submenu-with-caret {
-            padding: 0 ${theme.paddingSM}px;
+            height: 100%;
+            padding: 0;
             .ant-menu-submenu-title {
+              align-items: center;
               display: flex;
               gap: ${theme.sizeUnit * 2}px;
               flex-direction: row-reverse;
+              height: 100%;
+            }
+            &.ant-menu-submenu::after {
+              inset-inline: ${theme.sizeUnit}px;
+            }
+            &.ant-menu-submenu:hover,
+            &.ant-menu-submenu-active {
+              .ant-menu-title-content {
+                color: ${theme.colorPrimary};
+              }
             }
           }
         `}

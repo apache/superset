@@ -21,10 +21,10 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
   JsonResponse,
-  styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
@@ -241,12 +241,17 @@ function ChartList(props: ChartListProps) {
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+  const handleBulkChartExport = async (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('chart', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected charts'));
+    }
   };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
@@ -365,7 +370,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: 'xxl',
         id: 'slice_name',
       },
       {
@@ -376,7 +380,6 @@ function ChartList(props: ChartListProps) {
         }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'lg',
         id: 'viz_type',
       },
       {
@@ -387,18 +390,25 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => (
-          <Tooltip title={dsNameTxt} placement="top">
-            {/* dsNameTxt can be undefined, schema.name or just name */}
-            <GenericLink to={dsUrl}>
-              {dsNameTxt ? dsNameTxt.split('.')[1] || dsNameTxt : ''}
-            </GenericLink>
-          </Tooltip>
-        ),
+        }: any) => {
+          // Extract dataset name from datasource_name_text
+          // Format can be "schema.name" or just "name"
+          const displayName = dsNameTxt
+            ? dsNameTxt.includes('.')
+              ? dsNameTxt.split('.').slice(1).join('.') // Handle names with dots
+              : dsNameTxt // No schema, use the full name
+            : '';
+
+          return (
+            <Tooltip title={dsNameTxt} placement="top">
+              <GenericLink to={dsUrl}>{displayName}</GenericLink>
+            </Tooltip>
+          );
+        },
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'lg',
+        size: 'xl',
         id: 'datasource_id',
       },
       {
@@ -433,7 +443,6 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        size: 'lg',
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
       },
@@ -546,6 +555,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'lg',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },

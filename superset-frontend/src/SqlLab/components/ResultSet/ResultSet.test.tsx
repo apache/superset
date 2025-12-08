@@ -30,6 +30,7 @@ import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import ResultSet from 'src/SqlLab/components/ResultSet';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   cachedQuery,
   failedQueryWithErrors,
@@ -52,6 +53,7 @@ jest.mock(
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {
   cache: true,
@@ -150,9 +152,14 @@ const setup = (props?: any, store?: Store) =>
     ...(store && { store }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultSet', () => {
   beforeAll(() => {
     setupAGGridModules();
+  });
+
+  beforeEach(() => {
+    applicationRootMock.mockReturnValue('');
   });
 
   // Add cleanup after each test
@@ -483,27 +490,38 @@ describe('ResultSet', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('should allow download as CSV when user has permission to export data', async () => {
-    const { queryByTestId } = setup(
-      mockedProps,
-      mockStore({
-        ...initialState,
-        user: {
-          ...user,
-          roles: {
-            sql_lab: [['can_export_csv', 'SQLLab']],
+  test.each(['', '/myapp'])(
+    'should allow download as CSV when user has permission to export data with app_root=%s',
+    async app_root => {
+      applicationRootMock.mockReturnValue(app_root);
+      const { queryByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: {
+            ...user,
+            roles: {
+              sql_lab: [['can_export_csv', 'SQLLab']],
+            },
           },
-        },
-        sqlLab: {
-          ...initialState.sqlLab,
-          queries: {
-            [queries[0].id]: queries[0],
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [queries[0].id]: queries[0],
+            },
           },
-        },
-      }),
-    );
-    expect(queryByTestId('export-csv-button')).toBeInTheDocument();
-  });
+        }),
+      );
+      expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+      const export_csv_button = screen.getByTestId('export-csv-button');
+      expect(export_csv_button).toHaveAttribute(
+        'href',
+        expect.stringMatching(
+          new RegExp(`^${app_root}/api/v1/sqllab/export/[a-zA-Z0-9]+/$`),
+        ),
+      );
+    },
+  );
 
   test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
     const queryLimit = 2;
@@ -600,5 +618,43 @@ describe('ResultSet', () => {
       }),
     );
     expect(queryByTestId('copy-to-clipboard-button')).not.toBeInTheDocument();
+  });
+
+  test('should include sqlEditorImmutableId in query object when fetching results', async () => {
+    const queryWithResultsKey = {
+      ...queries[0],
+      resultsKey: 'test-results-key',
+      sqlEditorImmutableId: 'test-immutable-id-123',
+    };
+
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [queryWithResultsKey.id]: queryWithResultsKey,
+        },
+      },
+    });
+
+    setup({ ...mockedProps, queryId: queryWithResultsKey.id }, store);
+
+    await waitFor(() => {
+      // Check that REQUEST_QUERY_RESULTS action was dispatched
+      const actions = store.getActions();
+      const requestAction = actions.find(
+        action => action.type === 'REQUEST_QUERY_RESULTS',
+      );
+      expect(requestAction).toBeDefined();
+      // Verify sqlEditorImmutableId is present in the query object
+      expect(requestAction?.query?.sqlEditorImmutableId).toBe(
+        'test-immutable-id-123',
+      );
+    });
+
+    // Verify the API was called
+    const resultsCalls = fetchMock.calls('glob:*/api/v1/sqllab/results/*');
+    expect(resultsCalls).toHaveLength(1);
   });
 });

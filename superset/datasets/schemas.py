@@ -86,6 +86,9 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 
@@ -293,6 +296,7 @@ class ImportV1DatasetSchema(Schema):
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
+        And fixed bug when exporting template_params as empty string.
         """
         if isinstance(data.get("extra"), str):
             try:
@@ -300,6 +304,9 @@ class ImportV1DatasetSchema(Schema):
                 data["extra"] = json.loads(extra) if extra.strip() else None
             except ValueError:
                 data["extra"] = None
+
+        if "template_params" in data and data["template_params"] == "":
+            data["template_params"] = None
 
         return data
 

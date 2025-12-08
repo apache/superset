@@ -24,15 +24,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  css,
-  getExtensionsRegistry,
-  QueryData,
-  styled,
-  SupersetTheme,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, QueryData, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
@@ -40,6 +33,7 @@ import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+import GroupByBadge from 'src/dashboard/components/GroupByBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -85,7 +79,7 @@ const ChartHeaderStyles = styled.div`
     & > .header-title {
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 100%;
+      max-width: calc(100% - ${theme.sizeUnit * 4}px);
       flex-grow: 1;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -298,6 +292,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 >
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
+              )}
+              {!uiConfig.hideChartControls && (
+                <GroupByBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (

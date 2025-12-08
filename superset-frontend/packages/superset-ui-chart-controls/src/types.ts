@@ -317,7 +317,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => Boolean)
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
     | null;
 }
 
@@ -462,6 +462,10 @@ export enum Comparator {
   EndsWith = 'ends with',
   Containing = 'containing',
   NotContaining = 'not containing',
+  IsTrue = 'is true',
+  IsFalse = 'is false',
+  IsNull = 'is null',
+  IsNotNull = 'is not null',
 }
 
 export const MultipleValueComparators = [
@@ -478,11 +482,18 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  useGradient?: boolean;
 };
 
 export type ColorFormatters = {
   column: string;
-  getColorFromValue: (value: number | string) => string | undefined;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
 
 export default {};

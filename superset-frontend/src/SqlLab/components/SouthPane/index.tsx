@@ -20,14 +20,19 @@ import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
 import { Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import useLogAction from 'src/logger/useLogAction';
+import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -37,8 +42,6 @@ import {
 import Results from './Results';
 import TablePreview from '../TablePreview';
 
-const TAB_HEIGHT = 130;
-
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPreviewQueries are all queries executed for preview of table data (from SqlEditorLeft)
@@ -46,23 +49,18 @@ const TAB_HEIGHT = 130;
 export interface SouthPaneProps {
   queryEditorId: string;
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 }
-
-type StyledPaneProps = {
-  height: number;
-};
 
 const TABS_KEYS = {
   RESULTS: 'Results',
   HISTORY: 'History',
 };
 
-const StyledPane = styled.div<StyledPaneProps>`
+const StyledPane = styled.div`
   width: 100%;
-  height: ${props => props.height}px;
+  height: 100%;
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -93,7 +91,6 @@ const StyledPane = styled.div<StyledPaneProps>`
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
@@ -101,6 +98,9 @@ const SouthPane = ({
   const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useDispatch();
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+  const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -127,10 +127,11 @@ const SouthPane = ({
       ),
     [pinnedTables],
   );
-  const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
+  const logAction = useLogAction({ sqlEditorId: queryEditorId });
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
+    logAction(LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB, { tab: id });
   };
   const removeTable = useCallback(
     (key, action) => {
@@ -159,7 +160,6 @@ const SouthPane = ({
       label: t('Results'),
       children: (
         <Results
-          height={innerTabContentHeight}
           latestQueryId={latestQueryId}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
@@ -202,15 +202,17 @@ const SouthPane = ({
         />
       ),
     })),
+    ...contributions.map(contribution => ({
+      key: contribution.id,
+      label: contribution.name,
+      children: getView(contribution.id),
+      forceRender: true,
+      closable: false,
+    })),
   ];
 
   return (
-    <StyledPane
-      data-test="south-pane"
-      className="SouthPane"
-      height={height}
-      ref={southPaneRef}
-    >
+    <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}

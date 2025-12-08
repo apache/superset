@@ -23,12 +23,13 @@ import {
   isFeatureEnabled,
   logging,
   QueryFormData,
-  styled,
   t,
   SqlaFormData,
   ClientErrorObject,
   type JsonObject,
+  type AgGridChartState,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -80,6 +81,7 @@ export interface ChartProps {
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
+  onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
 export type Actions = {
@@ -253,7 +255,10 @@ class Chart extends PureComponent<ChartProps, {}> {
           data-test="chart-container"
           height={height}
         >
-          <Loading />
+          <Loading
+            size={this.props.dashboardId ? 's' : 'm'}
+            muted={!!this.props.dashboardId}
+          />
         </Styles>
       );
     }
@@ -278,7 +283,11 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     return (
       <LoadingDiv>
-        <Loading position="inline-centered" />
+        <Loading
+          position="inline-centered"
+          size={this.props.dashboardId ? 's' : 'm'}
+          muted={!!this.props.dashboardId}
+        />
         <MessageSpan>{message}</MessageSpan>
       </LoadingDiv>
     );
@@ -296,7 +305,10 @@ class Chart extends PureComponent<ChartProps, {}> {
             data-test={this.props.vizType}
           />
         ) : (
-          <Loading />
+          <Loading
+            size={this.props.dashboardId ? 's' : 'm'}
+            muted={!!this.props.dashboardId}
+          />
         )}
       </div>
     );

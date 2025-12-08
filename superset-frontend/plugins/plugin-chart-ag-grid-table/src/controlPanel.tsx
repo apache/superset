@@ -43,11 +43,10 @@ import {
 import {
   ensureIsArray,
   FeatureFlag,
-  GenericDataType,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
-  legacyValidateInteger,
+  validateInteger,
   QueryFormColumn,
   QueryMode,
   SMART_DATE_ID,
@@ -55,7 +54,7 @@ import {
   validateMaxValue,
   validateServerPagination,
 } from '@superset-ui/core';
-
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
@@ -387,6 +386,7 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+              validators: [validateInteger],
             },
           },
         ],
@@ -405,7 +405,7 @@ const config: ControlPanelConfig = {
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                legacyValidateInteger,
+                validateInteger,
                 (v, state) =>
                   validateMaxValue(
                     v,

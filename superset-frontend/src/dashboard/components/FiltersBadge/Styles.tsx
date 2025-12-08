@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 
 export const Pill = styled.div`
   ${({ theme }) => css`
@@ -103,6 +103,7 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
+    max-height: 60vh;
     margin-top: ${theme.sizeUnit}px;
     &:not(:last-child) {
       padding-bottom: ${theme.sizeUnit * 3}px;
@@ -116,7 +117,7 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colorBgBase};
+    color: ${theme.colorText};
   `}
 `;
 

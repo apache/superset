@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
-import { isFeatureEnabled, FeatureFlag, styled, t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -25,11 +26,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import {
-  SamplesPane,
-  TableControlsWrapper,
-  useResultsPane,
-} from './components';
+import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
 const StyledDiv = styled.div`
@@ -162,7 +159,7 @@ export const DataTablesPane = ({
       <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
-      <TableControlsWrapper>
+      <div>
         {panelOpen ? (
           <span
             role="button"
@@ -180,7 +177,7 @@ export const DataTablesPane = ({
             {caretIcon}
           </span>
         )}
-      </TableControlsWrapper>
+      </div>
     );
   }, [handleCollapseChange, panelOpen]);
 

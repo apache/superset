@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   CodeSyntaxHighlighterProps,
@@ -29,7 +30,6 @@ import copyTextToClipboard from 'src/utils/copy';
 
 const SyntaxHighlighterWrapper = styled.div`
   position: relative;
-  margin-top: -24px;
 
   &:hover {
     .copy-button {

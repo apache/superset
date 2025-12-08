@@ -19,17 +19,17 @@ import logging
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
+from urllib import parse
 
 import msgpack
 import pyarrow as pa
-from flask import current_app as app, flash, g, has_request_context, redirect, request
+from flask import current_app as app, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
 from sqlalchemy.exc import NoResultFound
-from werkzeug.wrappers.response import Response
 
-from superset import dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -45,7 +45,11 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+    FormData,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
@@ -59,13 +63,45 @@ if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
+def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
+    """Return a redirect response to the login view, preserving target URL.
+
+    When ``next_target`` is ``None`` the current request path (including query
+    string) is used, provided a request context is available. The resulting URL
+    always remains relative, mirroring Flask-AppBuilder expectations.
+    """
+
+    login_url = appbuilder.get_url_for_login
+    parsed = parse.urlparse(login_url)
+    query = parse.parse_qs(parsed.query, keep_blank_values=True)
+
+    target = next_target
+    if target is None and has_request_context():
+        if request.query_string:
+            target = request.full_path.rstrip("?")
+        else:
+            target = request.path
+
+    if target:
+        query["next"] = [target]
+
+    encoded_query = parse.urlencode(query, doseq=True)
+    redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
+    return redirect(redirect_url)
+
+
+def sanitize_datasource_data(
+    datasource_data: ExplorableData,
+) -> dict[str, Any]:
+    """
+    Sanitize datasource data by removing sensitive database parameters.
+    """
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
 
-    return datasource_data
+    return datasource_data  # type: ignore[return-value]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
@@ -551,8 +587,3 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
-
-
-def redirect_with_flash(url: str, message: str, category: str) -> Response:
-    flash(message=message, category=category)
-    return redirect(url)

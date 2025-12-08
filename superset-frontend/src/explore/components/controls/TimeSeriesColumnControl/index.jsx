@@ -27,7 +27,9 @@ import {
   Row,
   Select,
 } from '@superset-ui/core/components';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { Icons } from '@superset-ui/core/components/Icons';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -46,6 +48,7 @@ const propTypes = {
   bounds: PropTypes.array,
   d3format: PropTypes.string,
   dateFormat: PropTypes.string,
+  sparkType: PropTypes.string,
   onChange: PropTypes.func,
 };
 
@@ -63,6 +66,7 @@ const defaultProps = {
   bounds: [null, null],
   d3format: '',
   dateFormat: '',
+  sparkType: 'line',
 };
 
 const comparisonTypeOptions = [
@@ -77,6 +81,12 @@ const colTypeOptions = [
   { value: 'contrib', label: t('Contribution'), key: 'contrib' },
   { value: 'spark', label: t('Sparkline'), key: 'spark' },
   { value: 'avg', label: t('Period average'), key: 'avg' },
+];
+
+const sparkTypeOptions = [
+  { value: 'line', label: t('Line Chart'), key: 'line' },
+  { value: 'bar', label: t('Bar Chart'), key: 'bar' },
+  { value: 'area', label: t('Area Chart'), key: 'area' },
 ];
 
 const StyledRow = styled(Row)`
@@ -129,6 +139,7 @@ export default class TimeSeriesColumnControl extends Component {
       bounds: this.props.bounds,
       d3format: this.props.d3format,
       dateFormat: this.props.dateFormat,
+      sparkType: this.props.sparkType,
       popoverVisible: false,
     };
   }
@@ -228,6 +239,18 @@ export default class TimeSeriesColumnControl extends Component {
           />,
         )}
         <Divider />
+        {this.state.colType === 'spark' &&
+          this.formRow(
+            t('Chart type'),
+            t('Type of chart to display in sparkline'),
+            'spark-type',
+            <Select
+              ariaLabel={t('Chart Type')}
+              value={this.state.sparkType || undefined}
+              onChange={this.onSelectChange.bind(this, 'sparkType')}
+              options={sparkTypeOptions}
+            />,
+          )}
         {this.state.colType === 'spark' &&
           this.formRow(
             t('Width'),
@@ -369,11 +392,21 @@ export default class TimeSeriesColumnControl extends Component {
           open={this.state.popoverVisible}
           onOpenChange={this.onPopoverVisibleChange}
         >
-          <InfoTooltip
-            icon="edit"
-            className="text-primary"
-            label="edit-ts-column"
-          />
+          <span
+            css={theme => ({
+              display: 'inline-block',
+              cursor: 'pointer',
+              '& svg path': {
+                fill: theme.colorIcon,
+                transition: `fill ${theme.motionDurationMid} ease-out`,
+              },
+              '&:hover svg path': {
+                fill: theme.colorPrimary,
+              },
+            })}
+          >
+            <Icons.EditOutlined iconSize="s" />
+          </span>
         </ControlPopover>
       </span>
     );

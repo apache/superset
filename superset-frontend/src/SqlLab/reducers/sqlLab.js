@@ -135,7 +135,7 @@ export default function sqlLabReducer(state = {}, action) {
       };
       let newState = removeFromArr(state, 'queryEditors', queryEditor);
       // List of remaining queryEditor ids
-      const qeIds = newState.queryEditors.map(qe => qe.id);
+      const qeIds = newState.queryEditors.map(qe => qe.tabViewId ?? qe.id);
 
       const queries = {};
       Object.keys(state.queries).forEach(k => {
@@ -150,7 +150,8 @@ export default function sqlLabReducer(state = {}, action) {
 
       // Remove associated table schemas
       const tables = state.tables.filter(
-        table => table.queryEditorId !== queryEditor.id,
+        table =>
+          table.queryEditorId !== (queryEditor.tabViewId ?? queryEditor.id),
       );
 
       newState = {
@@ -167,7 +168,9 @@ export default function sqlLabReducer(state = {}, action) {
         },
         destroyedQueryEditors: {
           ...newState.destroyedQueryEditors,
-          ...(!queryEditor.inLocalStorage && { [queryEditor.id]: Date.now() }),
+          ...(!queryEditor.inLocalStorage && {
+            [queryEditor.tabViewId ?? queryEditor.id]: Date.now(),
+          }),
         },
       };
       return newState;
@@ -219,8 +222,10 @@ export default function sqlLabReducer(state = {}, action) {
       }
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at, Boolean(action.prepend));
-      newState.activeSouthPaneTab = at.id;
+      let newState = {
+        ...addToArr(state, 'tables', at, Boolean(action.prepend)),
+        ...(at.expanded && { activeSouthPaneTab: at.id }),
+      };
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, {
           dataPreviewQueryId: action.query.id,
@@ -389,6 +394,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.query?.rows || 0,
         state: QueryState.Success,
+        executedSql: action?.results?.query?.executedSql,
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,

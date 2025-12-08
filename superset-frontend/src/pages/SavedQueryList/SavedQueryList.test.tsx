@@ -32,7 +32,7 @@ import SavedQueryList from '.';
 // Increase default timeout
 jest.setTimeout(30000);
 
-const mockQueries = [...new Array(3)].map((_, i) => ({
+const mockQueries = new Array(3).fill(undefined).map((_, i) => ({
   created_by: { id: i, first_name: 'user', last_name: `${i}` },
   created_on: `${i}-2020`,
   database: { database_name: `db ${i}`, id: i },
@@ -93,24 +93,25 @@ const renderList = (props = {}, storeOverrides = {}) =>
     },
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQueryList', () => {
   beforeEach(() => {
     fetchMock.resetHistory();
   });
 
-  it('renders', async () => {
+  test('renders', async () => {
     renderList();
     expect(await screen.findByText('Saved queries')).toBeInTheDocument();
   });
 
-  it('renders a ListView', async () => {
+  test('renders a ListView', async () => {
     renderList();
     expect(
       await screen.findByTestId('saved_query-list-view'),
     ).toBeInTheDocument();
   });
 
-  it('renders query information', async () => {
+  test('renders query information', async () => {
     renderList();
 
     // Wait for list to load
@@ -128,7 +129,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  it('handles query deletion', async () => {
+  test('handles query deletion', async () => {
     renderList();
 
     // Wait for list to load
@@ -151,7 +152,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  it('handles search filtering', async () => {
+  test('handles search filtering', async () => {
     renderList();
 
     // Wait for list to load
@@ -172,7 +173,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  it('fetches data', async () => {
+  test('fetches data', async () => {
     renderList();
     await waitFor(() => {
       const calls = fetchMock.calls(/saved_query\/\?q/);
@@ -182,7 +183,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  it('handles sorting', async () => {
+  test('handles sorting', async () => {
     renderList();
 
     // Wait for list to load
@@ -203,7 +204,7 @@ describe('SavedQueryList', () => {
     });
   });
 
-  it('shows/hides elements based on permissions', async () => {
+  test('shows/hides elements based on permissions', async () => {
     // Mock info response without write permission
     fetchMock.get(
       queriesInfoEndpoint,

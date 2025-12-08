@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/ui';
 import { Divider as AntdDivider } from 'antd';
 import type { DividerProps } from './types';
 

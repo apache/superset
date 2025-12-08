@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Generic, TYPE_CHECKING, TypeVar
+from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
 from jinja2 import nodes, Template
@@ -33,6 +33,7 @@ from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
 )
+from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -44,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt
+from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -66,7 +67,7 @@ SQLGLOT_DIALECTS = {
     # "crate": ???
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
-    # "db2": ???
+    "db2": DB2,
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
@@ -81,7 +82,7 @@ SQLGLOT_DIALECTS = {
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
     # "ibmi": ???
-    # "impala": ???
+    "impala": Dialects.HIVE,
     # "kustosql": ???
     # "kylin": ???
     "mariadb": Dialects.MYSQL,
@@ -94,14 +95,14 @@ SQLGLOT_DIALECTS = {
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
-    "pinot": Dialects.MYSQL,
+    "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
     "shillelagh": Dialects.SQLITE,
-    "singlestore": Dialects.MYSQL,
+    "singlestoredb": SingleStore,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
@@ -167,14 +168,7 @@ class RLSTransformer:
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
-            return (
-                exp.And(
-                    this=predicates[0],
-                    expressions=predicates[1:],
-                )
-                if len(predicates) > 1
-                else predicates[0]
-            )
+            return sqlglot.and_(*predicates)
 
         return None
 
@@ -310,6 +304,21 @@ class Table:
 
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
+
+    def qualify(
+        self,
+        *,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Table:
+        """
+        Return a new Table with the given schema and/or catalog, if not already set.
+        """
+        return Table(
+            table=self.table,
+            schema=self.schema or schema,
+            catalog=self.catalog or catalog,
+        )
 
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
@@ -552,14 +561,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         try:
             statements = sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
-            error = ex.errors[0]
-            raise SupersetParseError(
-                script,
-                engine,
-                highlight=error["highlight"],
-                line=error["line"],
-                column=error["col"],
-            ) from ex
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(script, engine, **kwargs) from ex
         except sqlglot.errors.SqlglotError as ex:
             raise SupersetParseError(
                 script,
@@ -1380,6 +1391,18 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
 T = TypeVar("T", str, None)
 
 
+@dataclass
+class JinjaSQLResult:
+    """
+    Result of processing Jinja SQL.
+
+    Contains the processed SQL script and extracted table references.
+    """
+
+    script: SQLScript
+    tables: set[Table]
+
+
 def remove_quotes(val: T) -> T:
     """
     Helper that removes surrounding quotes from strings.
@@ -1393,9 +1416,11 @@ def remove_quotes(val: T) -> T:
     return val
 
 
-def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+def process_jinja_sql(
+    sql: str, database: Database, template_params: Optional[dict[str, Any]] = None
+) -> JinjaSQLResult:
     """
-    Extract all table references in the Jinjafied SQL statement.
+    Process Jinja-templated SQL and extract table references.
 
     Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
     statement may represent invalid SQL which is non-parsable by SQLGlot.
@@ -1407,7 +1432,8 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
 
     :param sql: The Jinjafied SQL statement
     :param database: The database associated with the SQL statement
-    :returns: The set of tables referenced in the SQL statement
+    :param template_params: Optional template parameters for Jinja templating
+    :returns: JinjaSQLResult containing the processed script and table references
     :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
     :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
     """
@@ -1448,7 +1474,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     # re-render template back into a string
     code = processor.env.compile(ast)
     template = Template.from_code(processor.env, code, globals=processor.env.globals)
-    rendered_sql = template.render(processor.get_context())
+    rendered_sql = template.render(processor.get_context(), **(template_params or {}))
 
     parsed_script = SQLScript(
         processor.process_template(rendered_sql),
@@ -1457,7 +1483,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     for parsed_statement in parsed_script.statements:
         tables |= parsed_statement.tables
 
-    return tables
+    return JinjaSQLResult(script=parsed_script, tables=tables)
 
 
 def sanitize_clause(clause: str, engine: str) -> str:
@@ -1465,6 +1491,43 @@ def sanitize_clause(clause: str, engine: str) -> str:
     Make sure the SQL clause is valid.
     """
     try:
-        return SQLStatement(clause, engine).format()
+        statement = SQLStatement(clause, engine)
+        dialect = SQLGLOT_DIALECTS.get(engine)
+        from sqlglot.dialects.dialect import Dialect
+
+        return Dialect.get_or_raise(dialect).generate(
+            statement._parsed,  # pylint: disable=protected-access
+            copy=True,
+            comments=False,
+            pretty=False,
+        )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
+
+
+def transpile_to_dialect(sql: str, target_engine: str) -> str:
+    """
+    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
+
+    If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
+    """
+    target_dialect = SQLGLOT_DIALECTS.get(target_engine)
+
+    # If no dialect mapping exists, return as-is
+    if target_dialect is None:
+        return sql
+
+    try:
+        parsed = sqlglot.parse_one(sql, dialect=Dialect)
+        return Dialect.get_or_raise(target_dialect).generate(
+            parsed,
+            copy=True,
+            comments=False,
+            pretty=False,
+        )
+    except ParseError as ex:
+        raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex
+    except Exception as ex:
+        raise QueryClauseValidationException(
+            f"Cannot transpile SQL to {target_engine}: {sql}"
+        ) from ex

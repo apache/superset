@@ -76,7 +76,10 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import SupersetTemplateException
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -702,7 +705,89 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/related_objects", methods=("GET",))
+    @expose("/<pk>/detect_datetime_formats", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".detect_datetime_formats",
+        log_to_statsd=False,
+    )
+    def detect_datetime_formats(self, pk: int) -> Response:
+        """Detect and store datetime formats for dataset columns.
+        ---
+        post:
+          summary: Detect datetime formats for dataset columns
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            schema:
+              type: boolean
+            name: force
+            description: Force re-detection even if formats already exist
+          responses:
+            200:
+              description: Datetime formats detected
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      formats:
+                        type: object
+                        additionalProperties:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.datasets.datetime_format_detector import DatetimeFormatDetector
+
+        try:
+            # Get force parameter from query string
+            force = parse_boolean_string(request.args.get("force", "false"))
+
+            # Get dataset
+            dataset = DatasetDAO.find_by_id(pk)
+            if not dataset:
+                return self.response_404()
+
+            # Check ownership
+            try:
+                security_manager.raise_for_ownership(dataset)
+            except Exception:  # pylint: disable=broad-except
+                return self.response_403()
+
+            # Detect formats
+            detector = DatetimeFormatDetector()
+            formats = detector.detect_all_formats(dataset, force=force)
+
+            return self.response(
+                200,
+                message="Datetime formats detected successfully",
+                formats=formats,
+            )
+        except Exception as ex:
+            logger.exception(
+                "Error detecting datetime formats for dataset %s: %s",
+                pk,
+                str(ex),
+            )
+            return self.response_500(message=str(ex))
+
+    @expose("/<id_or_uuid>/related_objects", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -711,16 +796,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         f".related_objects",
         log_to_statsd=False,
     )
-    def related_objects(self, pk: int) -> Response:
+    def related_objects(self, id_or_uuid: str) -> Response:
         """Get charts and dashboards count associated to a dataset.
         ---
         get:
           summary: Get charts and dashboards count associated to a dataset
           parameters:
           - in: path
-            name: pk
+            name: id_or_uuid
             schema:
-              type: integer
+              type: string
           responses:
             200:
             200:
@@ -736,10 +821,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dataset = DatasetDAO.find_by_id(pk)
+        dataset = DatasetDAO.find_by_id_or_uuid(id_or_uuid)
         if not dataset:
             return self.response_404()
-        data = DatasetDAO.get_related_objects(pk)
+        data = DatasetDAO.get_related_objects(dataset.id)
         charts = [
             {
                 "id": chart.id,
@@ -1081,7 +1166,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except CommandException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/<int:pk>", methods=("GET",))
+    @expose("/<id_or_uuid>", methods=("GET",))
     @protect()
     @safe
     @rison(get_item_schema)
@@ -1091,7 +1176,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, pk: int, **kwargs: Any) -> Response:
+    def get(self, id_or_uuid: str, **kwargs: Any) -> Response:
         """Get a dataset.
         ---
         get:
@@ -1100,9 +1185,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            description: The dataset ID
-            name: pk
+              type: string
+            description: Either the id of the dataset, or its uuid
+            name: id_or_uuid
           - in: query
             name: q
             content:
@@ -1138,13 +1223,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item: SqlaTable | None = self.datamodel.get(
-            pk,
-            self._base_filters,
-            self.show_select_columns,
-            self.show_outer_default_load,
-        )
-        if not item:
+        table = DatasetDAO.find_by_id_or_uuid(id_or_uuid)
+        if not table:
             return self.response_404()
 
         response: dict[str, Any] = {}
@@ -1162,8 +1242,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         else:
             show_model_schema = self.show_model_schema
 
-        response["id"] = pk
-        response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
+        response["id"] = table.id
+        response[API_RESULT_RES_KEY] = show_model_schema.dump(table, many=False)
 
         # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
         # possible to inspect if the feature is supported or not
@@ -1175,12 +1255,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
-                processor = get_template_processor(database=item.database)
+                processor = get_template_processor(database=table.database)
                 response["result"] = self.render_dataset_fields(
                     response["result"], processor
                 )
             except SupersetTemplateException as ex:
-                return self.response_400(message=str(ex))
+                return self.response(ex.status, message=str(ex))
+
         return self.response(200, **response)
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
@@ -1319,9 +1400,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
             try:
                 data[new_key] = func(data[key])
-            except TemplateSyntaxError as ex:
-                raise SupersetTemplateException(
+            except (TemplateSyntaxError, SupersetSyntaxErrorException) as ex:
+                template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
-                ) from ex
+                )
+                raise template_exception from ex
 
         return data

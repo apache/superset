@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 
@@ -82,6 +82,19 @@ jest.mock('../utils', () => ({
 
 jest.mock('../../utils/tooltip', () => ({
   getDefaultTooltip: jest.fn(() => ({})),
+}));
+
+jest.mock('../../utils/formatters', () => ({
+  getXAxisFormatter: jest.fn(() => String),
+}));
+
+jest.mock('../../constants', () => ({
+  TIMESERIES_CONSTANTS: {
+    gridOffsetBottom: 20,
+    gridOffsetLeft: 20,
+    gridOffsetRight: 20,
+    gridOffsetTop: 20,
+  },
 }));
 
 describe('BigNumberWithTrendline transformProps', () => {

@@ -18,20 +18,16 @@
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import {
-  css,
-  styled,
   t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
+import { css, styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Constants,
   Divider,
-  Modal,
   Tooltip,
   Select,
 } from '@superset-ui/core/components';
@@ -39,7 +35,6 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
-import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -146,7 +141,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
-    overlayStyle = 'Popover',
     isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
@@ -384,46 +378,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ControlPopover>
   );
 
-  const modalContent = (
-    <>
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          onClick={toggleOverlay}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.ModalOverlay}
-          ref={labelRef}
-        />
-      </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
-      <Modal
-        title={
-          <ModalTitleWithIcon
-            className="text"
-            isEditMode
-            title={t('Edit time range')}
-          />
-        }
-        name={t('Edit time range')}
-        show={show}
-        onHide={toggleOverlay}
-        width="600px"
-        hideFooter
-        zIndex={1030}
-      >
-        {overlayContent}
-      </Modal>
-    </>
-  );
-
   return (
     <>
       <ControlHeader {...props} />
-      {overlayStyle === 'Modal' ? modalContent : popoverContent}
+      {popoverContent}
     </>
   );
 }

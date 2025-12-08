@@ -28,6 +28,9 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.sql.elements import ColumnElement
+
+from superset.superset_typing import AdhocColumn
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -556,3 +559,1147 @@ def test_apply_series_others_grouping_no_label_in_groupby(database: Database) ->
         assert "category" in result_groupby_columns
         # The GROUP BY expression should be different from the SELECT expression
         # because only SELECT gets make_sqla_column_compatible applied
+
+
+def test_process_orderby_expression_basic(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test basic ORDER BY expression processing.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock _process_sql_expression to return a processed SELECT statement
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY column_name DESC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name DESC"
+
+
+def test_process_orderby_expression_with_case_insensitive_order_by(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with case-insensitive matching.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with lowercase "order by"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 order by column_name ASC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name ASC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name ASC"
+
+
+def test_process_orderby_expression_complex(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression with complex expressions.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    complex_orderby = "CASE WHEN status = 'active' THEN 1 ELSE 2 END, name DESC"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=f"SELECT 1 ORDER BY {complex_orderby}",
+    )
+
+    result = table._process_orderby_expression(
+        expression=complex_orderby,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == complex_orderby
+
+
+def test_process_orderby_expression_none(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with None expression.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None when input is None
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_orderby_expression(
+        expression=None,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_orderby_expression_empty_string(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression processing with empty string.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None for empty string
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_orderby_expression(
+        expression="",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_orderby_expression_strips_whitespace(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test that ORDER BY expression processing strips leading/trailing whitespace.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with extra whitespace after ORDER BY
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY   column_name DESC   ",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name DESC"
+
+
+def test_process_orderby_expression_with_template_processor(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test ORDER BY expression with template processor.
+    """
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Create a mock template processor
+    template_processor = Mock()
+
+    # Mock the _process_sql_expression to verify it receives the prefixed expression
+    mock_process = mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT 1 ORDER BY processed_column DESC",
+    )
+
+    result = table._process_orderby_expression(
+        expression="column_name DESC",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=template_processor,
+    )
+
+    # Verify _process_sql_expression was called with SELECT prefix
+    mock_process.assert_called_once()
+    call_args = mock_process.call_args[1]
+    assert call_args["expression"] == "SELECT 1 ORDER BY column_name DESC"
+    assert call_args["template_processor"] is template_processor
+
+    assert result == "processed_column DESC"
+
+
+def test_process_select_expression_basic(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test basic SELECT expression processing.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock _process_sql_expression to return a processed SELECT statement
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT COUNT(*)",
+    )
+
+    result = table._process_select_expression(
+        expression="COUNT(*)",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "COUNT(*)"
+
+
+def test_process_select_expression_with_case_insensitive_select(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression processing with case-insensitive matching.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with lowercase "select"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="select column_name",
+    )
+
+    result = table._process_select_expression(
+        expression="column_name",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name"
+
+
+def test_process_select_expression_complex(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression with complex expressions.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    complex_select = "CASE WHEN status = 'active' THEN 1 ELSE 0 END"
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=f"SELECT {complex_select}",
+    )
+
+    result = table._process_select_expression(
+        expression=complex_select,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == complex_select
+
+
+def test_process_select_expression_none(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression processing with None expression.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None when input is None
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_select_expression(
+        expression=None,
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_select_expression_empty_string(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression processing with empty string.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock should return None for empty string
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value=None,
+    )
+
+    result = table._process_select_expression(
+        expression="",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result is None
+
+
+def test_process_select_expression_strips_whitespace(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test that SELECT expression processing strips leading/trailing whitespace.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock with extra whitespace after SELECT
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT   column_name   ",
+    )
+
+    result = table._process_select_expression(
+        expression="column_name",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "column_name"
+
+
+def test_process_select_expression_with_template_processor(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression with template processor.
+    """
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Create a mock template processor
+    template_processor = Mock()
+
+    # Mock the _process_sql_expression to verify it receives the prefixed expression
+    mock_process = mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT processed_expression",
+    )
+
+    result = table._process_select_expression(
+        expression="some_expression",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=template_processor,
+    )
+
+    # Verify _process_sql_expression was called with SELECT prefix
+    mock_process.assert_called_once()
+    call_args = mock_process.call_args[1]
+    assert call_args["expression"] == "SELECT some_expression"
+    assert call_args["template_processor"] is template_processor
+
+    assert result == "processed_expression"
+
+
+def test_process_select_expression_distinct_column(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Test SELECT expression with DISTINCT keyword (e.g., "distinct owners").
+
+    This test ensures that expressions like "distinct owners" used in adhoc
+    metrics or columns are properly parsed and validated.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Mock _process_sql_expression to return a processed SELECT with DISTINCT
+    mocker.patch.object(
+        table,
+        "_process_sql_expression",
+        return_value="SELECT DISTINCT owners",
+    )
+
+    result = table._process_select_expression(
+        expression="distinct owners",
+        database_id=database.id,
+        engine="sqlite",
+        schema="",
+        template_processor=None,
+    )
+
+    assert result == "DISTINCT owners"
+
+
+def test_process_select_expression_end_to_end(database: Database) -> None:
+    """
+    End-to-end test that verifies the regex split works with real sqlglot processing.
+
+    This test does NOT mock _process_sql_expression, allowing the full flow
+    through sqlglot parsing and validation to ensure the regex extraction works.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+    )
+
+    # Test various real-world expressions
+    test_cases = [
+        # (input, expected_output)
+        ("COUNT(*)", "COUNT(*)"),
+        ("DISTINCT owners", "DISTINCT owners"),
+        ("column_name", "column_name"),
+        (
+            "CASE WHEN status = 'active' THEN 1 ELSE 0 END",
+            "CASE WHEN status = 'active' THEN 1 ELSE 0 END",
+        ),
+        ("SUM(amount) / COUNT(*)", "SUM(amount) / COUNT(*)"),
+        ("UPPER(name)", "UPPER(name)"),
+    ]
+
+    for expression, expected in test_cases:
+        result = table._process_select_expression(
+            expression=expression,
+            database_id=database.id,
+            engine="sqlite",
+            schema="",
+            template_processor=None,
+        )
+        # sqlglot may normalize the SQL slightly, so we check the result exists
+        # and doesn't contain the SELECT prefix
+        assert result is not None, f"Failed to process: {expression}"
+        assert not result.upper().startswith("SELECT"), (
+            f"Result still has SELECT prefix: {result}"
+        )
+        # The result should contain the core expression (case-insensitive check)
+        assert expected.replace(" ", "").lower() in result.replace(" ", "").lower(), (
+            f"Expected '{expected}' to be in result '{result}' for input '{expression}'"
+        )
+
+
+def test_reapply_query_filters_with_granularity(database: Database) -> None:
+    """
+    Test that _reapply_query_filters correctly applies filters with granularity.
+
+    When granularity is provided, both time_filters and where_clause_and should
+    be combined in the WHERE clause.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # Create mock filter conditions
+    time_filter = sa.column("time_col") >= "2025-01-01"
+    where_filter = sa.column("value") > 10
+
+    time_filters = [time_filter]
+    where_clause_and = [where_filter]
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity="time_col",
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify WHERE clause is present
+    assert "WHERE" in sql
+    # Both filters should be in the query
+    assert "time_col" in sql
+    assert "value" in sql
+
+
+def test_reapply_query_filters_without_granularity(database: Database) -> None:
+    """
+    Test that _reapply_query_filters works correctly without granularity.
+
+    This test verifies the bug fix where time_filters was not initialized
+    when granularity is None. The method should handle empty time_filters
+    gracefully and only apply where_clause_and.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # Empty time_filters (as would happen without granularity)
+    time_filters: list[ColumnElement] = []
+    where_filter = sa.column("value") > 10
+    where_clause_and = [where_filter]
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method with granularity=None
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify WHERE clause is present with the where_filter
+    assert "WHERE" in sql
+    assert "value" in sql
+
+
+def test_reapply_query_filters_with_having_clause(database: Database) -> None:
+    """
+    Test that _reapply_query_filters correctly applies HAVING clause.
+
+    HAVING clauses are used for filtering on aggregated metrics.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a query with GROUP BY
+    qry = sa.select(sa.column("category"), sa.func.sum(sa.column("value"))).group_by(
+        sa.column("category")
+    )
+
+    # Create HAVING condition
+    having_filter = sa.func.sum(sa.column("value")) > 100
+    having_clause_and = [having_filter]
+
+    # Call the method
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=[],
+        where_clause_and=[],
+        having_clause_and=having_clause_and,
+    )
+
+    # Compile the query to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify HAVING clause is present
+    assert "HAVING" in sql
+    assert "sum" in sql.lower()
+
+
+def test_reapply_query_filters_with_fetch_values_predicate(database: Database) -> None:
+    """
+    Test that _reapply_query_filters applies fetch_values_predicate when enabled.
+
+    Fetch values predicate is used for filtering specific column values.
+    """
+    from unittest.mock import Mock
+
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Mock fetch_values_predicate
+    fetch_predicate = sa.column("value").in_([1, 2, 3])
+    table.fetch_values_predicate = True
+
+    # Mock get_fetch_values_predicate method
+    mock_template_processor = Mock()
+    with patch.object(
+        table, "get_fetch_values_predicate", return_value=fetch_predicate
+    ):
+        # Create a simple query
+        qry = sa.select(sa.column("value"))
+
+        # Call the method with apply_fetch_values_predicate=True
+        result_qry = table._reapply_query_filters(
+            qry=qry,
+            apply_fetch_values_predicate=True,
+            template_processor=mock_template_processor,
+            granularity=None,
+            time_filters=[],
+            where_clause_and=[],
+            having_clause_and=[],
+        )
+
+        # Compile the query to SQL
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                result_qry.compile(
+                    dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+                )
+            )
+
+        # Verify WHERE clause with IN condition is present
+        assert "WHERE" in sql
+        assert "IN" in sql
+
+
+def test_reapply_query_filters_with_empty_filters(database: Database) -> None:
+    """
+    Test that _reapply_query_filters handles empty filter lists gracefully.
+
+    This is an edge case test to ensure the method doesn't fail when
+    all filter lists are empty.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="value", type="INTEGER")],
+    )
+
+    # Create a simple query
+    qry = sa.select(sa.column("value"))
+
+    # All empty filter lists
+    time_filters: list[ColumnElement] = []
+    where_clause_and: list[ColumnElement] = []
+    having_clause_and: list[ColumnElement] = []
+
+    # Call the method with empty filters
+    result_qry = table._reapply_query_filters(
+        qry=qry,
+        apply_fetch_values_predicate=False,
+        template_processor=None,
+        granularity=None,
+        time_filters=time_filters,
+        where_clause_and=where_clause_and,
+        having_clause_and=having_clause_and,
+    )
+
+    # Should not raise an error
+    # Compile the query to verify it's valid
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result_qry.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Query should be valid without WHERE or HAVING
+    assert "SELECT" in sql
+    assert "value" in sql
+
+
+def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
+    """
+    Test that adhoc_column_to_sqla properly handles column references
+    by looking up the column in metadata instead of quoting and processing through
+    SQLGlot.
+
+    This tests the fix for column names with spaces being properly handled
+    without going through SQLGlot which could misinterpret "column AS alias" patterns.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="Customer Name", type="TEXT"),
+        ],
+    )
+
+    # Test: Column reference with spaces should be found in metadata
+    col_with_spaces: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    result = table.adhoc_column_to_sqla(col_with_spaces)
+
+    # Should return a valid SQLAlchemy column
+    assert result is not None
+    result_str = str(result)
+
+    # The column name should be present (may or may not be quoted depending on dialect)
+    assert "Customer Name" in result_str or '"Customer Name"' in result_str
+
+
+def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
+    database: Database,
+) -> None:
+    """
+    Test that adhoc_column_to_sqla preserves column type info in column references.
+
+    This tests the fix where column references now look up metadata first, preserving
+    type information needed for time grain operations. Previously, quoting the column
+    name before metadata lookup would cause the column to not be found, resulting in
+    NULL type and failing to apply time grain transformations properly.
+
+    The test verifies that:
+    1. Column metadata is found by looking up the unquoted column name
+    2. The column type (DATE) is preserved when creating the SQLAlchemy column
+    3. The get_timestamp_expr method is properly called with the column type info
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    # Create a table with a temporal column
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(
+                column_name="local_date",
+                type="DATE",
+                is_dttm=True,
+            )
+        ],
+    )
+
+    # Test with a DATE column reference with time grain
+    date_col: AdhocColumn = {
+        "sqlExpression": "local_date",
+        "label": "local_date",
+        "isColumnReference": True,
+        "timeGrain": "P1D",  # Daily time grain
+        "columnType": "BASE_AXIS",
+    }
+
+    # Should not raise ColumnNotFoundException
+    result = table.adhoc_column_to_sqla(date_col)
+
+    assert result is not None
+    result_str = str(result)
+
+    # Verify the column name is present (may be quoted depending on dialect)
+    assert "local_date" in result_str
+
+
+def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> None:
+    """
+    Test that adhoc_column_to_sqla correctly handles different temporal column types.
+
+    This verifies that for different temporal types (DATE, DATETIME, TIMESTAMP),
+    the column metadata is properly found and the column type is preserved,
+    allowing time grain operations to work correctly.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    # Test different temporal types
+    temporal_types = ["DATE", "DATETIME", "TIMESTAMP"]
+
+    for type_name in temporal_types:
+        table = SqlaTable(
+            table_name="test_table",
+            database=database,
+            columns=[
+                TableColumn(
+                    column_name="time_col",
+                    type=type_name,
+                    is_dttm=True,
+                )
+            ],
+        )
+
+        time_col: AdhocColumn = {
+            "sqlExpression": "time_col",
+            "label": "time_col",
+            "isColumnReference": True,
+            "timeGrain": "P1D",
+            "columnType": "BASE_AXIS",
+        }
+
+        result = table.adhoc_column_to_sqla(time_col)
+
+        assert result is not None
+        result_str = str(result)
+
+        # Verify the column name is present
+        assert "time_col" in result_str
+
+
+def test_get_temporal_column_for_filter() -> None:
+    """Test _get_temporal_column_for_filter method with multiple strategies."""
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.utils.core import FilterOperator
+
+    # Create a mock SqlaTable with columns
+    table = SqlaTable()
+    # Test Strategy 1: Use column from existing TEMPORAL_RANGE filter
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": "date_column",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "date_column"
+
+    # Test Strategy 1 with dict column (sqlExpression)
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": {"label": "custom_date", "sqlExpression": "DATE(created_at)"},
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "custom_date"
+
+    # Test Strategy 2: Use explicitly set granularity
+    query_object = QueryObject(
+        datasource=table,
+        granularity="created_at",
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "created_at"
+
+    # Test Strategy 3: Use x_axis_label if it exists
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, "timestamp_col")
+    assert result == "timestamp_col"
+
+    # Test no temporal column found
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result is None
+
+
+def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> None:
+    """
+    Test that column names with spaces are properly quoted in the generated SQL.
+
+    This verifies that even though we look up columns using unquoted names,
+    the final SQL still properly quotes column names that need quoting (like those with
+    spaces).
+    """
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="Customer Name", type="TEXT"),
+            TableColumn(column_name="Order Total", type="NUMERIC"),
+        ],
+    )
+
+    # Test column reference with spaces
+    col_with_spaces: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    result = table.adhoc_column_to_sqla(col_with_spaces)
+
+    # Compile the column to SQL to see how it's rendered
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # The SQL should quote the column name (SQLite uses double quotes)
+    # Column names with spaces MUST be quoted in SQL
+    assert '"Customer Name"' in sql, f"Expected quoted column name in SQL: {sql}"
+
+    # Also test that it works in a query context
+    col_numeric: AdhocColumn = {
+        "sqlExpression": "Order Total",
+        "label": "Order Total",
+        "isColumnReference": True,
+    }
+
+    result_numeric = table.adhoc_column_to_sqla(col_numeric)
+
+    with database.get_sqla_engine() as engine:
+        sql_numeric = str(
+            result_numeric.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    assert '"Order Total"' in sql_numeric, (
+        f"Expected quoted column name in SQL: {sql_numeric}"
+    )
+
+
+def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
+    """
+    Test that column names with spaces work correctly in a full SELECT query.
+
+    This demonstrates that the fix properly handles column names with spaces
+    throughout the entire query generation process, with proper quoting in the final
+    SQL.
+    """
+    import sqlalchemy as sa
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="Customer Name", type="TEXT"),
+            TableColumn(column_name="Order Total", type="NUMERIC"),
+        ],
+    )
+
+    # Create adhoc columns for both columns with spaces
+    customer_col: AdhocColumn = {
+        "sqlExpression": "Customer Name",
+        "label": "Customer Name",
+        "isColumnReference": True,
+    }
+
+    order_col: AdhocColumn = {
+        "sqlExpression": "Order Total",
+        "label": "Order Total",
+        "isColumnReference": True,
+    }
+
+    # Get SQLAlchemy columns
+    customer_sqla = table.adhoc_column_to_sqla(customer_col)
+    order_sqla = table.adhoc_column_to_sqla(order_col)
+
+    # Build a full query
+    tbl = table.get_sqla_table()
+    query = sa.select(customer_sqla, order_sqla).select_from(tbl)
+
+    # Compile to SQL
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify both column names are quoted in the final SQL
+    assert '"Customer Name"' in sql, f"Customer Name not properly quoted in SQL: {sql}"
+    assert '"Order Total"' in sql, f"Order Total not properly quoted in SQL: {sql}"
+
+    # Verify SELECT and FROM clauses are present
+    assert "SELECT" in sql
+    assert "FROM" in sql

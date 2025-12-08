@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import Component from './CountryMap';
 
 const ReactComponent = reactify(Component);
@@ -58,11 +59,13 @@ export default styled(CountryMap)`
     }
 
     .superset-legacy-chart-country-map text.result-text {
+      fill: ${theme.colorText};
       font-weight: ${theme.fontWeightLight};
       font-size: ${theme.fontSizeXL}px;
     }
 
     .superset-legacy-chart-country-map text.big-text {
+      fill: ${theme.colorText};
       font-weight: ${theme.fontWeightStrong};
       font-size: ${theme.fontSizeLG}px;
     }

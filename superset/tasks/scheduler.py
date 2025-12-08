@@ -22,6 +22,7 @@ from typing import Any
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
+from celery.signals import task_failure
 from flask import current_app
 
 from superset import is_feature_enabled
@@ -41,8 +42,32 @@ from superset.utils.log import get_logger_from_status
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="reports.scheduler")
-def scheduler() -> None:
+@task_failure.connect
+def log_task_failure(  # pylint: disable=unused-argument
+    sender: Task | None = None,
+    task_id: str | None = None,
+    exception: Exception | None = None,
+    args: tuple[Any, ...] | None = None,
+    kwargs: dict[str, Any] | None = None,
+    traceback: Any = None,
+    einfo: Any = None,
+    **kw: Any,
+) -> None:
+    task_name = sender.name if sender else "Unknown"
+    logger.exception("Celery task %s failed: %s", task_name, exception, exc_info=einfo)
+
+
+@celery_app.task(
+    name="reports.scheduler",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_kwargs={
+        "max_retries": 3,
+        "countdown": 60,
+    },  # Retry up to 3 times, wait 60s between
+    retry_backoff=True,  # exponential backoff
+)
+def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
     """
     Celery beat main scheduler for reports
     """
@@ -152,7 +177,10 @@ def prune_query(
 
 @celery_app.task(name="prune_logs", bind=True)
 def prune_logs(
-    self: Task, retention_period_days: int | None = None, **kwargs: Any
+    self: Task,
+    retention_period_days: int | None = None,
+    max_rows_per_run: int | None = None,
+    **kwargs: Any,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
@@ -168,6 +196,6 @@ def prune_logs(
         )
 
     try:
-        LogPruneCommand(retention_period_days).run()
+        LogPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning logs: %s", ex)

@@ -24,6 +24,7 @@ const overlayMenu = (
   <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
     render(

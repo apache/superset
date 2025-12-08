@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme, css } from '@superset-ui/core';
+import { useTheme, css } from '@apache-superset/core/ui';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { Icons } from '@superset-ui/core/components';
 
@@ -48,19 +48,9 @@ export const CollapseLabelInModal: React.FC<CollapseLabelInModalProps> = ({
         {title}{' '}
         {validateCheckStatus !== undefined &&
           (validateCheckStatus ? (
-            <Icons.CheckCircleOutlined
-              iconColor={theme.colorSuccess}
-              aria-label="check-circle"
-            />
+            <Icons.CheckCircleOutlined iconColor={theme.colorSuccess} />
           ) : (
-            <span
-              css={css`
-                color: ${theme.colorErrorText};
-                font-size: ${theme.fontSizeLG}px;
-              `}
-            >
-              *
-            </span>
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
           ))}
       </Typography.Title>
       <Typography.Paragraph

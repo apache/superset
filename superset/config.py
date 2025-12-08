@@ -36,7 +36,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, Optional, TYPE_CHECKING, TypedDict
 
 import click
 from celery.schedules import crontab
@@ -59,10 +59,10 @@ from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
-from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.utils.version import get_dev_env_label
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,7 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 #     "rel": "icon"
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+PDF_COMPRESSION_LEVEL: Literal["NONE", "FAST", "MEDIUM", "SLOW"] = "MEDIUM"
 
 
 def _try_json_readversion(filepath: str) -> str | None:
@@ -179,7 +180,7 @@ SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
 SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
-DEFAULT_TIME_FILTER = NO_TIME_RANGE
+DEFAULT_TIME_FILTER = utils.NO_TIME_RANGE
 
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
@@ -287,7 +288,7 @@ WTF_CSRF_EXEMPT_LIST = [
 ]
 
 # Whether to run the web server in debug mode or not
-DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
+DEBUG = utils.parse_boolean_string(os.environ.get("FLASK_DEBUG"))
 FLASK_USE_RELOAD = True
 
 # Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
@@ -350,7 +351,6 @@ FAB_API_SWAGGER_UI = True
 # AUTHENTICATION CONFIG
 # ----------------------------------------------------
 # The authentication type
-# AUTH_OID : Is for OpenID
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
@@ -536,6 +536,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "ALERT_REPORT_TABS": False,
+    "ALERT_REPORTS_FILTER": False,
     "ALERT_REPORT_SLACK_V2": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -618,11 +619,16 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
+    # Force garbage collection after every request
+    "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST": False,
 }
 
 # ------------------------------
@@ -651,15 +657,16 @@ SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        k[len("SUPERSET_FEATURE_") :]: utils.parse_boolean_string(v)
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
 )
 
+
 # This function can be overridden to customize the name of the user agent
 # triggering the query.
-USER_AGENT_FUNC: Callable[[Database, QuerySource | None], str] | None = None
+USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
@@ -717,46 +724,71 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# ---------------------------------------------------
-# Theme Configuration for Superset
-# ---------------------------------------------------
+# -----------------------------------------------------------------------------
+# Theme System Configuration
+# -----------------------------------------------------------------------------
 # Superset supports custom theming through Ant Design's theme structure.
-# This allows users to customize colors, fonts, and other UI elements.
 #
-# Theme Generation:
+# Theme Hierarchy:
+# 1. THEME_DEFAULT/THEME_DARK - Base themes defined in config (foundation)
+# 2. System themes - Set by admins via UI (when ENABLE_UI_THEME_ADMINISTRATION=True)
+# 3. Dashboard themes - Applied per dashboard using the theme bolt button
+#
+# How it works:
+# - Custom themes override base themes for any properties they define
+# - Properties not defined in custom themes use the base theme values
+# - Admins can set system-wide themes that apply to all users
+# - Users can apply specific themes to individual dashboards
+#
+# Theme Creation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export or copy the generated theme JSON and assign to the variables below
-# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
-#
-# To expose a JSON theme editor modal that can be triggered from the navbar
-# set the `ENABLE_THEME_EDITOR` feature flag to True.
-#
-# Theme Structure:
-# Each theme should follow Ant Design's theme format.
-# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
-# and copy the generated JSON configuration.
-#
-# Example theme definition:
-# THEME_DEFAULT = {
-#       "token": {
-#            "colorPrimary": "#2893B3",
-#            "colorSuccess": "#5ac189",
-#            "colorWarning": "#fcc700",
-#            "colorError": "#e04355",
-#            "fontFamily": "'Inter', Helvetica, Arial",
-#            ... # other tokens
-#       },
-#       ... # other theme properties
-# }
+# - Export the generated JSON and use it in your theme configuration
+# -----------------------------------------------------------------------------
 
+# Default theme configuration - foundation for all themes
+# This acts as the base theme for all users
+THEME_DEFAULT: Theme = {
+    "token": {
+        # Brand
+        "brandLogoAlt": "Apache Superset",
+        "brandLogoUrl": APP_ICON,
+        "brandLogoMargin": "18px 0",
+        "brandLogoHref": "/",
+        "brandLogoHeight": "24px",
+        # Spinner
+        "brandSpinnerUrl": None,
+        "brandSpinnerSvg": None,
+        # Default colors
+        "colorPrimary": "#2893B3",  # NOTE: previous lighter primary color was #20a7c9 # noqa: E501
+        "colorLink": "#2893B3",
+        "colorError": "#e04355",
+        "colorWarning": "#fcc700",
+        "colorSuccess": "#5ac189",
+        "colorInfo": "#66bcfe",
+        # Fonts
+        "fontFamily": "Inter, Helvetica, Arial",
+        "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        # Direction
+        "direction": "ltr",
+        # Extra tokens
+        "transitionTiming": 0.3,
+        "brandIconMaxWidth": 37,
+        "fontSizeXS": "8",
+        "fontSizeXXL": "28",
+        "fontWeightNormal": "400",
+        "fontWeightLight": "300",
+        "fontWeightStrong": "500",
+    },
+    "algorithm": "default",
+}
 
-# Default theme configuration
-# Leave empty to use Superset's default theme
-THEME_DEFAULT: Theme = {"algorithm": "default"}
-
-# Dark theme configuration
-# Applied when user selects dark mode
-THEME_DARK: Theme = {"algorithm": "dark"}
+# Dark theme configuration - foundation for dark mode
+# Inherits all tokens from THEME_DEFAULT and adds dark algorithm
+# Set to None to disable dark mode
+THEME_DARK: Optional[Theme] = {
+    **THEME_DEFAULT,
+    "algorithm": "dark",
+}
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -979,6 +1011,12 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8-sig"}
 
+# CSV Streaming: row threshold for using streaming CSV exports
+# When row count >= this threshold, use streaming response instead of loading
+# all data into memory. Streaming provides real-time progress and handles
+# large datasets efficiently.
+CSV_STREAMING_ROW_THRESHOLD = 100000
+
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
 # note: index option should not be overridden
@@ -1095,6 +1133,13 @@ DISPLAY_MAX_ROW = 10000
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
+# Dataset datetime format detection settings
+# Auto-detect datetime formats on dataset creation/refresh
+DATASET_AUTO_DETECT_DATETIME_FORMATS = True
+
+# Sample size for datetime format detection
+DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
+
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
@@ -1120,6 +1165,11 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [43200, "12 hours"],
     [86400, "24 hours"],
 ]
+
+# Performance optimization: Return only custom tags in dashboard list API
+# When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
+# Reduces response payload and query time for dashboards with many owners
+DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
 # celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
@@ -1167,7 +1217,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_logs": {
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
-        #     "kwargs": {"retention_period_days": 180},
+        #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
@@ -1324,6 +1374,15 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# Values that should be treated as nulls for scheduled reports CSV processing.
+# If not set or None, defaults to standard pandas NA handling behavior.
+# Set to a custom list to control which values should be treated as null.
+# Examples:
+# REPORTS_CSV_NA_NAMES = None  # Use default pandas NA handling (backwards compatible)
+# REPORTS_CSV_NA_NAMES = []    # Disable all automatic NA conversion
+# REPORTS_CSV_NA_NAMES = ["", "NULL", "null"]  # Only treat these specific values as NA
+REPORTS_CSV_NA_NAMES: list[str] | None = None
+
 # Chunk size for reading CSV files during uploads
 # Smaller values use less memory but may be slower for large files
 READ_CSV_CHUNK_SIZE = 1000
@@ -1351,6 +1410,9 @@ CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
+
+# Extension startup update configuration
+EXTENSION_STARTUP_LOCK_TIMEOUT = 30  # Timeout in seconds for extension update locks
 
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
@@ -1702,6 +1764,11 @@ SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
+# Maximum number of retries when Slack API returns rate limit errors
+# Default: 2
+# For workspaces with 10k+ channels, consider increasing to 10
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
 # The webdriver to use for generating reports. Use one of the following
 # firefox
 #   Requires: geckodriver and firefox installations
@@ -1823,7 +1890,6 @@ CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
-TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
@@ -2081,6 +2147,8 @@ ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
+
+
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {
@@ -2089,8 +2157,8 @@ ENVIRONMENT_TAG_CONFIG = {
             "text": "flask-debug",
         },
         "development": {
-            "color": "error",
-            "text": "Development",
+            "color": "processing",
+            "text": get_dev_env_label(),
         },
         "production": {
             "color": "",
@@ -2162,6 +2230,17 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+# CUSTOM_DATABASE_ERRORS: Configure custom error messages for database exceptions
+# in superset/custom_database_errors.py.
+# Transform raw database errors into user-friendly messages with optional documentation
+try:
+    from superset.custom_database_errors import CUSTOM_DATABASE_ERRORS
+except ImportError:
+    CUSTOM_DATABASE_ERRORS = {}
+
+
+LOCAL_EXTENSIONS: list[str] = []
+EXTENSIONS_PATH: str | None = None
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
@@ -2200,3 +2279,15 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+# Final environment variable processing - must be at the very end
+# to override any config file assignments
+ENV_VAR_KEYS = {
+    "SUPERSET__SQLALCHEMY_DATABASE_URI",
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+}
+
+for env_var in ENV_VAR_KEYS:
+    if env_var in os.environ:
+        config_var = env_var.replace("SUPERSET__", "")
+        globals()[config_var] = os.environ[env_var]

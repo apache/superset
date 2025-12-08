@@ -19,15 +19,8 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  addAlpha,
-  css,
-  JsonObject,
-  styled,
-  t,
-  useTheme,
-  useElementOnScreen,
-} from '@superset-ui/core';
+import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
@@ -80,6 +73,7 @@ import DashboardWrapper from './DashboardWrapper';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
+  background-color: ${({ theme }) => theme.colorBgContainer};
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
@@ -95,14 +89,14 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
+const StyledHeader = styled.div<{ filterBarWidth: number }>`
+  ${({ theme, filterBarWidth }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: 100vw;
+    max-width: calc(100vw - ${filterBarWidth}px);
 
     .empty-droptarget:before {
       position: absolute;
@@ -275,6 +269,7 @@ const StyledDashboardContent = styled.div<{
   marginLeft: number;
 }>`
   ${({ theme, editMode, marginLeft }) => css`
+    background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -291,9 +286,7 @@ const StyledDashboardContent = styled.div<{
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.sizeUnit * 4}px;
-      margin-right: ${theme.sizeUnit * 8}px;
-      margin-bottom: ${theme.sizeUnit * 4}px;
+      margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
@@ -305,7 +298,7 @@ const StyledDashboardContent = styled.div<{
 
       /* this is the ParentSize wrapper */
     & > div:first-child {
-        height: inherit !important;
+        height: 100% !important;
       }
     }
 
@@ -426,6 +419,9 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
+  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
+    CLOSED_FILTER_BAR_WIDTH,
+  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -523,6 +519,7 @@ const DashboardBuilder = () => {
             shouldFocus={shouldFocusTabs}
             menuItems={[
               <IconButton
+                key="collapse-tabs"
                 icon={<Icons.FallOutlined iconSize="xl" />}
                 label={t('Collapse tab content')}
                 onClick={handleDeleteTopLevelTabs}
@@ -557,19 +554,18 @@ const DashboardBuilder = () => {
     ],
   );
 
-  const dashboardContentMarginLeft =
-    !dashboardFiltersOpen &&
-    !editMode &&
-    nativeFiltersEnabled &&
-    filterBarOrientation !== FilterBarOrientation.Horizontal
-      ? 0
-      : theme.sizeUnit * 8;
+  const dashboardContentMarginLeft = !editMode
+    ? theme.sizeUnit * 4
+    : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
     adjustedWidth => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
+      if (filterBarWidth !== currentFilterBarWidth) {
+        setCurrentFilterBarWidth(filterBarWidth);
+      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -602,23 +598,30 @@ const DashboardBuilder = () => {
     ],
   );
 
+  const isVerticalFilterBarVisible =
+    showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
+  const headerFilterBarWidth = isVerticalFilterBarVisible
+    ? currentFilterBarWidth
+    : 0;
+
   return (
     <DashboardWrapper>
-      {showFilterBar &&
-        filterBarOrientation === FilterBarOrientation.Vertical && (
-          <>
-            <ResizableSidebar
-              id={`dashboard:${dashboardId}`}
-              enable={dashboardFiltersOpen}
-              minWidth={OPEN_FILTER_BAR_WIDTH}
-              maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
-              initialWidth={OPEN_FILTER_BAR_WIDTH}
-            >
-              {renderChild}
-            </ResizableSidebar>
-          </>
-        )}
-      <StyledHeader ref={headerRef}>
+      {isVerticalFilterBarVisible && (
+        <ResizableSidebar
+          id={`dashboard:${dashboardId}`}
+          enable={dashboardFiltersOpen}
+          minWidth={OPEN_FILTER_BAR_WIDTH}
+          maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
+          initialWidth={OPEN_FILTER_BAR_WIDTH}
+        >
+          {renderChild}
+        </ResizableSidebar>
+      )}
+      <StyledHeader
+        data-test="dashboard-header-wrapper"
+        ref={headerRef}
+        filterBarWidth={headerFilterBarWidth}
+      >
         {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"

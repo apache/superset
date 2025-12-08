@@ -132,6 +132,9 @@ function RoleListEditModal({
       mapResult: (user: UserObject) => ({
         id: user.id,
         username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
       }),
     });
   }, [user_ids]);
@@ -192,7 +195,6 @@ function RoleListEditModal({
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}
-      bodyStyle={{ height: '400px' }}
       requiredFields={['roleName']}
     >
       {(form: FormInstance) => {

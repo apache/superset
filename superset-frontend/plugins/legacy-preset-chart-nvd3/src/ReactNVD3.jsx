@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify, styled } from '@superset-ui/core';
+import { reactify } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
 import Component from './NVD3Vis';
 import { hideTooltips, removeTooltip } from './utils';
@@ -71,6 +72,12 @@ export default styled(NVD3)`
     }
     text.nv-axislabel {
       font-size: ${({ theme }) => theme.fontSize} !important;
+    }
+    g.nv-axis text {
+      fill: ${({ theme }) => theme.colorText};
+    }
+    g.nv-series text {
+      fill: ${({ theme }) => theme.colorText};
     }
     g.solid path,
     line.solid {

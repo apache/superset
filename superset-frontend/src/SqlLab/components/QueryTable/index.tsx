@@ -27,7 +27,8 @@ import {
   TableView,
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
-import { t, useTheme, QueryResponse } from '@superset-ui/core';
+import { t, QueryResponse } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
@@ -302,7 +303,6 @@ const QueryTable = ({
                 <ResultSet
                   showSql
                   queryId={query.id}
-                  height={400}
                   displayLimit={displayLimit}
                   defaultQueryLimit={1000}
                 />

@@ -22,12 +22,12 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import {
-  GenericDataType,
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
   getValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
@@ -43,6 +43,7 @@ export default function transformProps(
     rawFormData,
     hooks,
     datasource: { currencyFormats = {}, columnFormats = {} },
+    theme,
   } = chartProps;
   const {
     metricNameFontSize,
@@ -105,7 +106,7 @@ export default function transformProps(
   const defaultColorFormatters = [] as ColorFormatters;
 
   const colorThresholdFormatters =
-    getColorFormatters(conditionalFormatting, data, false) ??
+    getColorFormatters(conditionalFormatting, data, theme, false) ??
     defaultColorFormatters;
   return {
     width,

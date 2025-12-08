@@ -18,8 +18,11 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/MapBox.jpg';
+import example1Dark from './images/MapBox-dark.jpg';
 import example2 from './images/MapBox2.jpg';
+import example2Dark from './images/MapBox2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,8 +30,8 @@ const metadata = new ChartMetadata({
   credits: ['https://www.mapbox.com/mapbox-gl-js/api/'],
   description: '',
   exampleGallery: [
-    { url: example1, description: t('Light mode') },
-    { url: example2, description: t('Dark mode') },
+    { url: example1, urlDark: example1Dark, description: t('Light mode') },
+    { url: example2, urlDark: example2Dark, description: t('Dark mode') },
   ],
   name: t('MapBox'),
   tags: [
@@ -40,6 +43,7 @@ const metadata = new ChartMetadata({
     t('Transformable'),
   ],
   thumbnail,
+  thumbnailDark,
   useLegacyApi: true,
 });
 

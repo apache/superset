@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { Popover, type PopoverProps } from '@superset-ui/core/components';
-import type ReactAce from 'react-ace';
+import {
+  Popover,
+  type PopoverProps,
+  SQLEditor,
+} from '@superset-ui/core/components';
 import { CalculatorOutlined } from '@ant-design/icons';
-import { css, styled, useTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
@@ -35,24 +38,10 @@ const StyledCalculatorIcon = styled(CalculatorOutlined)`
 
 export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
   const theme = useTheme();
-  const [AceEditor, setAceEditor] = useState<typeof ReactAce | null>(null);
-  useEffect(() => {
-    Promise.all([
-      import('react-ace'),
-      import('ace-builds/src-min-noconflict/mode-sql'),
-    ]).then(([reactAceModule]) => {
-      setAceEditor(() => reactAceModule.default);
-    });
-  }, []);
-
-  if (!AceEditor) {
-    return null;
-  }
   return (
     <Popover
       content={
-        <AceEditor
-          mode="sql"
+        <SQLEditor
           value={props.sqlExpression}
           editorProps={{ $blockScrolling: true }}
           setOptions={{
@@ -65,7 +54,6 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           wrapEnabled
           style={{
             border: `1px solid ${theme.colorBorder}`,
-            background: theme.colorPrimaryBg,
             maxWidth: theme.sizeUnit * 100,
           }}
         />

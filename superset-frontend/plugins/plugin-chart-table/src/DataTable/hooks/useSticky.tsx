@@ -30,6 +30,7 @@ import {
   UIEventHandler,
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
+import { useTheme, css } from '@apache-superset/core/ui';
 import getScrollBarSize from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
@@ -125,6 +126,8 @@ function StickyWrap({
   children: Table;
   sticky?: StickyState; // current sticky element sizes
 }) {
+  const theme = useTheme();
+
   if (!table || table.type !== 'table') {
     throw new Error('<StickyWrap> must have only one <table> element as child');
   }
@@ -163,7 +166,7 @@ function StickyWrap({
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
   const scrollBarSize = getScrollBarSize();
-  const { bodyHeight, columnWidths } = sticky;
+  const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
   const needSizer =
     !columnWidths ||
     sticky.width !== maxWidth ||
@@ -221,6 +224,26 @@ function StickyWrap({
   let footerTable: ReactElement | undefined;
   let bodyTable: ReactElement | undefined;
 
+  const scrollBarStyles = css`
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+  `;
+
   if (needSizer) {
     const theadWithRef = cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && cloneElement(tfoot, { ref: tfootRef });
@@ -233,6 +256,7 @@ function StickyWrap({
           visibility: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -259,13 +283,18 @@ function StickyWrap({
       </colgroup>
     );
 
+    const headerContainerWidth = hasVerticalScroll
+      ? maxWidth - scrollBarSize
+      : maxWidth;
+
     headerTable = (
       <div
         key="header"
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
@@ -285,7 +314,8 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
@@ -315,7 +345,10 @@ function StickyWrap({
           height: bodyHeight,
           overflow: 'auto',
           scrollbarGutter: 'stable',
+          width: maxWidth,
+          boxSizing: 'border-box',
         }}
+        css={scrollBarStyles}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
         role="presentation"
       >

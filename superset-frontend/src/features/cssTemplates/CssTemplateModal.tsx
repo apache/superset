@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -36,7 +37,7 @@ interface CssTemplateModalProps {
 
 type CssTemplateStringKeys = keyof Pick<
   TemplateObject,
-  OnlyKeyWithType<TemplateObject, String>
+  OnlyKeyWithType<TemplateObject, string>
 >;
 
 const StyledCssTemplateTitle = styled.div(
@@ -240,7 +241,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       }
     >
       <StyledCssTemplateTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">

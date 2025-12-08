@@ -609,7 +609,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Database."]}
         }
@@ -622,7 +622,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
@@ -643,7 +643,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the database"]
@@ -667,7 +667,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the ssh tunnel"]
@@ -691,7 +691,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": [
@@ -813,7 +813,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+        assert str(excinfo.value) == (
+            "Error importing database: databases/imported_database.yaml: "
+            "{'ssh_tunnel': {'password': 'Either password or private_key is required'}}"
+        )
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
@@ -855,13 +858,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
-                "_schema": [
-                    "Must provide a private key for the ssh tunnel",
-                    "Must provide a private key password for the ssh tunnel",
-                ]
+                "ssh_tunnel": {
+                    "password": "Either password or private_key is required",
+                    "private_key": (
+                        "private_key is required when private_key_password is provided"
+                    ),
+                }
             }
         }
 
@@ -1224,6 +1229,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             patch.object(
                 database, "get_all_view_names_in_schema", return_value=[]
             ) as mock_get_all_view_names,
+            patch.object(
+                database, "get_all_materialized_view_names_in_schema", return_value=[]
+            ) as mock_get_all_materialized_view_names,
         ):
             command = TablesDatabaseCommand(database.id, None, "schema_name", False)
             command.run()
@@ -1237,6 +1245,13 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 cache_timeout=database.table_cache_timeout,
             )
             mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_materialized_view_names.assert_called_once_with(
                 catalog="default_catalog",
                 schema="schema_name",
                 force=False,

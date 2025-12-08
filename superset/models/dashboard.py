@@ -41,6 +41,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
+from superset_core.api.models import Dashboard as CoreDashboard
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
@@ -127,7 +128,7 @@ DashboardRoles = Table(
 )
 
 
-class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
+class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
@@ -158,6 +159,16 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         secondaryjoin="TaggedObject.tag_id == Tag.id",
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
+    custom_tags = relationship(
+        "Tag",
+        overlaps="objects,tag,tags,custom_tags",
+        secondary="tagged_object",
+        primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
+        "TaggedObject.object_type == 'dashboard')",
+        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        "cast(Tag.type, String) == 'custom')",  # Filtering at JOIN level
+        viewonly=True,
+    )
     theme = relationship("Theme", foreign_keys=[theme_id])
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
@@ -174,13 +185,12 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         "json_metadata",
         "description",
         "css",
-        "theme_id",
         "slug",
         "certified_by",
         "certification_details",
         "published",
     ]
-    extra_import_fields = ["is_managed_externally", "external_url"]
+    extra_import_fields = ["is_managed_externally", "external_url", "theme_id"]
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"

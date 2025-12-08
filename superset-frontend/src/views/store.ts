@@ -19,6 +19,7 @@
 import {
   configureStore,
   ConfigureStoreOptions,
+  createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
@@ -31,6 +32,7 @@ import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
+import groupByCustomizations from 'src/dashboard/reducers/groupByCustomizations';
 import dashboardDatasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
@@ -84,6 +86,8 @@ export const userReducer = (
   return user;
 };
 
+export const listenerMiddleware = createListenerMiddleware();
+
 const getMiddleware: ConfigureStoreOptions['middleware'] =
   getDefaultMiddleware =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
@@ -97,8 +101,8 @@ const getMiddleware: ConfigureStoreOptions['middleware'] =
             ignoredPaths: [/queryController/g],
             warnAfter: 200,
           },
-        }).concat(logger, api.middleware)
-      : [thunk, logger, api.middleware];
+        }).concat(listenerMiddleware.middleware, logger, api.middleware)
+      : [listenerMiddleware.middleware, thunk, logger, api.middleware];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
@@ -140,6 +144,7 @@ const reducers = {
   saveModal,
   explore,
   database: databaseReducer,
+  groupByCustomizations,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html
