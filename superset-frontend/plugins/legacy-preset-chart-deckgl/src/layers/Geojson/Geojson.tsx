@@ -231,16 +231,18 @@ export const computeGeoJsonIconOptionsFromJsOutput = (
 export const computeGeoJsonIconOptionsFromFormData = (
   fd: SqlaFormData,
 ): Partial<GeoJsonLayerProps> => ({
-  getIcon: () => ({
-    url: fd.icon_url,
-    // This is the size deck.gl resizes the icon internally while preserving
-    // its aspect ratio. This is not the actual size the icon is rendered at,
-    // which is instead controlled by getIconSize below. These are set because
-    // deck.gl requires it, and 128x128 is a reasonable default. Read more at:
-    // https://deck.gl/docs/api-reference/layers/icon-layer#geticon
-    width: 128,
-    height: 128,
-  }),
+  getIcon: fd.icon_url
+    ? () => ({
+        url: fd.icon_url,
+        // This is the size deck.gl resizes the icon internally while preserving
+        // its aspect ratio. This is not the actual size the icon is rendered at,
+        // which is instead controlled by getIconSize below. These are set because
+        // deck.gl requires it, and 128x128 is a reasonable default. Read more at:
+        // https://deck.gl/docs/api-reference/layers/icon-layer#geticon
+        width: 128,
+        height: 128,
+      })
+    : undefined,
   getIconSize: fd.icon_size,
   iconSizeUnits: fd.icon_size_unit,
 });
