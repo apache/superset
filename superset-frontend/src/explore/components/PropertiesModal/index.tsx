@@ -23,6 +23,7 @@ import {
   AsyncSelect,
   Collapse,
   CollapseLabelInModal,
+  Button,
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
@@ -44,6 +45,7 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import { VersionHistoryModal } from 'src/components/VersionControl';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -81,6 +83,7 @@ function PropertiesModal({
     null,
   );
   const [tags, setTags] = useState<TagType[]>([]);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   // Validation setup
   const modalSections = useMemo(
@@ -305,6 +308,17 @@ function PropertiesModal({
           : errorTooltip
       }
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
+      extraFooter={
+        <Button
+          htmlType="button"
+          buttonSize="small"
+          onClick={() => setShowVersionHistory(true)}
+          data-test="properties-modal-version-history-button"
+          cta
+        >
+          {t('Version History')}
+        </Button>
+      }
     >
       <Collapse
         expandIconPosition="end"
@@ -477,6 +491,15 @@ function PropertiesModal({
           },
         ]}
       />
+      {slice.slice_id && slice.slice_name && (
+        <VersionHistoryModal
+          visible={showVersionHistory}
+          assetType="chart"
+          assetId={slice.slice_id}
+          assetName={slice.slice_name}
+          onCancel={() => setShowVersionHistory(false)}
+        />
+      )}
     </StandardModal>
   );
 }

@@ -223,6 +223,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.version_control.api import VersionControlRestApi
 
         set_app_error_handlers(self.superset_app)
         self.register_request_handlers()
@@ -269,6 +270,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
+        appbuilder.add_api(VersionControlRestApi)
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             from superset.extensions.api import ExtensionsRestApi
