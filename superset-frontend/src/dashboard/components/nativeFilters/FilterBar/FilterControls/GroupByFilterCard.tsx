@@ -458,13 +458,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             setDatasetName(json.result.table_name);
           }
           if (json.result.columns) {
-          const options = json.result.columns
-            .filter((col: ColumnApiResponse) => col.filterable !== false)
-            .map((col: ColumnApiResponse) => ({
-              label: col.verbose_name || col.column_name || col.name || '',
-              value: col.column_name || col.name || '',
-            }));
-          setColumnOptions(options);
+            const options = json.result.columns
+              .filter((col: ColumnApiResponse) => col.filterable !== false)
+              .map((col: ColumnApiResponse) => ({
+                label: col.verbose_name || col.column_name || col.name || '',
+                value: col.column_name || col.name || '',
+              }));
+            setColumnOptions(options);
           }
         }
       } catch (error) {
