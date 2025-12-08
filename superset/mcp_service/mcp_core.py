@@ -548,7 +548,21 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         """Get filterable columns and operators from the DAO."""
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
-            return dict(filterable)
+            # Defensive handling: ensure we have a valid mapping
+            if filterable is None:
+                return {}
+            # Convert to dict safely - handle both dict and dict-like objects
+            if isinstance(filterable, dict):
+                return dict(filterable)
+            # Try to convert mapping-like objects
+            try:
+                return dict(filterable)
+            except (TypeError, ValueError):
+                self._log_warning(
+                    f"Unexpected filter columns type for {self.model_type}: "
+                    f"{type(filterable)}"
+                )
+                return {}
         except Exception as e:
             self._log_warning(
                 f"Failed to get filter columns for {self.model_type}: {e}"

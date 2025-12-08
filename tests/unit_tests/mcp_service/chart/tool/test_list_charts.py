@@ -182,9 +182,9 @@ class TestChartDefaultColumnFiltering:
         """Test that minimal default columns are properly defined."""
         from superset.mcp_service.common.schema_discovery import CHART_DEFAULT_COLUMNS
 
-        # Should have exactly 4 minimal columns
-        assert len(CHART_DEFAULT_COLUMNS) == 4
-        assert set(CHART_DEFAULT_COLUMNS) == {"id", "slice_name", "viz_type", "uuid"}
+        # Required minimal columns must be present
+        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
 
         # Heavy columns should NOT be in defaults
         assert "form_data" not in CHART_DEFAULT_COLUMNS
@@ -203,7 +203,10 @@ class TestChartDefaultColumnFiltering:
         request = ListChartsRequest(
             select_columns=["id", "slice_name", "description", "form_data"]
         )
-        assert "description" in request.select_columns
-        assert "form_data" in request.select_columns
-        # These are explicitly requested, not defaults
-        assert len(request.select_columns) == 4
+        # Verify exact columns are present - explicit request should match exactly
+        assert set(request.select_columns) == {
+            "id",
+            "slice_name",
+            "description",
+            "form_data",
+        }

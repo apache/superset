@@ -53,13 +53,18 @@ def _build_schema_resource(model_type: str) -> dict[str, Any]:
         DATASET_SORTABLE_COLUMNS,
     )
 
+    def _safe_col_dict(col: Any) -> dict[str, Any]:
+        """Safely extract column metadata for JSON serialization."""
+        return {
+            "name": str(getattr(col, "name", "")),
+            "description": str(getattr(col, "description", "") or ""),
+            "type": str(getattr(col, "type", "") or ""),
+        }
+
     schemas = {
         "chart": {
             "model_type": "chart",
-            "select_columns": [
-                {"name": col.name, "description": col.description, "type": col.type}
-                for col in CHART_SELECT_COLUMNS
-            ],
+            "select_columns": [_safe_col_dict(col) for col in CHART_SELECT_COLUMNS],
             "all_column_names": CHART_ALL_COLUMNS,
             "default_columns": CHART_DEFAULT_COLUMNS,
             "sortable_columns": CHART_SORTABLE_COLUMNS,
@@ -69,10 +74,7 @@ def _build_schema_resource(model_type: str) -> dict[str, Any]:
         },
         "dataset": {
             "model_type": "dataset",
-            "select_columns": [
-                {"name": col.name, "description": col.description, "type": col.type}
-                for col in DATASET_SELECT_COLUMNS
-            ],
+            "select_columns": [_safe_col_dict(col) for col in DATASET_SELECT_COLUMNS],
             "all_column_names": DATASET_ALL_COLUMNS,
             "default_columns": DATASET_DEFAULT_COLUMNS,
             "sortable_columns": DATASET_SORTABLE_COLUMNS,
@@ -82,10 +84,7 @@ def _build_schema_resource(model_type: str) -> dict[str, Any]:
         },
         "dashboard": {
             "model_type": "dashboard",
-            "select_columns": [
-                {"name": col.name, "description": col.description, "type": col.type}
-                for col in DASHBOARD_SELECT_COLUMNS
-            ],
+            "select_columns": [_safe_col_dict(col) for col in DASHBOARD_SELECT_COLUMNS],
             "all_column_names": DASHBOARD_ALL_COLUMNS,
             "default_columns": DASHBOARD_DEFAULT_COLUMNS,
             "sortable_columns": DASHBOARD_SORTABLE_COLUMNS,

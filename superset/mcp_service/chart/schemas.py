@@ -291,8 +291,14 @@ class ChartList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each chart",
+    )
     columns_available: List[str] = Field(
         default_factory=list,
         description="All columns available for selection via select_columns parameter",

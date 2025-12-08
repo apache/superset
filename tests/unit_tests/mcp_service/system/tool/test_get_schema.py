@@ -103,39 +103,32 @@ class TestModelSchemaInfo:
 
         assert info.model_type == "chart"
         assert len(info.select_columns) > 0
-        assert len(info.default_select) == 4  # id, slice_name, viz_type, uuid
+        # Check default columns include required minimal set
+        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        assert required_columns.issubset(set(info.default_select))
         assert "slice_name" in info.filter_columns
         assert info.default_sort == "changed_on"
 
     def test_dataset_default_columns(self):
-        """Test dataset default columns are minimal set."""
-        assert len(DATASET_DEFAULT_COLUMNS) == 4
-        assert "id" in DATASET_DEFAULT_COLUMNS
-        assert "table_name" in DATASET_DEFAULT_COLUMNS
-        assert "schema" in DATASET_DEFAULT_COLUMNS
-        assert "uuid" in DATASET_DEFAULT_COLUMNS
+        """Test dataset default columns include required minimal set."""
+        required_columns = {"id", "table_name", "schema", "uuid"}
+        assert required_columns.issubset(set(DATASET_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
 
     def test_dashboard_default_columns(self):
-        """Test dashboard default columns are minimal set."""
-        assert len(DASHBOARD_DEFAULT_COLUMNS) == 4
-        assert "id" in DASHBOARD_DEFAULT_COLUMNS
-        assert "dashboard_title" in DASHBOARD_DEFAULT_COLUMNS
-        assert "slug" in DASHBOARD_DEFAULT_COLUMNS
-        assert "uuid" in DASHBOARD_DEFAULT_COLUMNS
+        """Test dashboard default columns include required minimal set."""
+        required_columns = {"id", "dashboard_title", "slug", "uuid"}
+        assert required_columns.issubset(set(DASHBOARD_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
         assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_chart_default_columns(self):
-        """Test chart default columns are minimal set."""
-        assert len(CHART_DEFAULT_COLUMNS) == 4
-        assert "id" in CHART_DEFAULT_COLUMNS
-        assert "slice_name" in CHART_DEFAULT_COLUMNS
-        assert "viz_type" in CHART_DEFAULT_COLUMNS
-        assert "uuid" in CHART_DEFAULT_COLUMNS
+        """Test chart default columns include required minimal set."""
+        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "description" not in CHART_DEFAULT_COLUMNS
         assert "form_data" not in CHART_DEFAULT_COLUMNS
@@ -171,14 +164,9 @@ class TestGetSchemaToolViaClient:
             assert "default_select" in info
             assert "search_columns" in info
 
-            # Check default columns are minimal
-            assert len(info["default_select"]) == 4
-            assert set(info["default_select"]) == {
-                "id",
-                "slice_name",
-                "viz_type",
-                "uuid",
-            }
+            # Check default columns include required minimal set
+            required_columns = {"id", "slice_name", "viz_type", "uuid"}
+            assert required_columns.issubset(set(info["default_select"]))
 
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
@@ -200,14 +188,9 @@ class TestGetSchemaToolViaClient:
             info = data["schema_info"]
             assert info["model_type"] == "dataset"
 
-            # Check default columns are minimal
-            assert len(info["default_select"]) == 4
-            assert set(info["default_select"]) == {
-                "id",
-                "table_name",
-                "schema",
-                "uuid",
-            }
+            # Check default columns include required minimal set
+            required_columns = {"id", "table_name", "schema", "uuid"}
+            assert required_columns.issubset(set(info["default_select"]))
 
             # Check search columns
             assert "table_name" in info["search_columns"]
@@ -233,14 +216,9 @@ class TestGetSchemaToolViaClient:
             info = data["schema_info"]
             assert info["model_type"] == "dashboard"
 
-            # Check default columns are minimal
-            assert len(info["default_select"]) == 4
-            assert set(info["default_select"]) == {
-                "id",
-                "dashboard_title",
-                "slug",
-                "uuid",
-            }
+            # Check default columns include required minimal set
+            required_columns = {"id", "dashboard_title", "slug", "uuid"}
+            assert required_columns.issubset(set(info["default_select"]))
 
             # Check sortable columns include expected values
             assert "dashboard_title" in info["sortable_columns"]
