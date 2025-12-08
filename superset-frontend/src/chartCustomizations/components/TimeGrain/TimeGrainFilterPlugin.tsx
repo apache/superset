@@ -23,13 +23,15 @@ import {
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FormItem,
   type FormItemProps,
+  LabeledValue,
   Select,
   type SelectValue,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
@@ -120,6 +122,20 @@ export default function PluginFilterTimegrain(
     },
   );
 
+  const sortComparator = useCallback(
+    (a: LabeledValue, b: LabeledValue) => {
+      if (formData.sortAscending === undefined) {
+        return 0;
+      }
+      const labelComparator = propertyComparator('label');
+      if (formData.sortAscending) {
+        return labelComparator(a, b);
+      }
+      return labelComparator(b, a);
+    },
+    [formData.sortAscending],
+  );
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
@@ -135,7 +151,7 @@ export default function PluginFilterTimegrain(
             ref={inputRef}
             options={options}
             onOpenChange={setFilterActive}
-            sortComparator={() => 0}
+            sortComparator={sortComparator}
           />
         </div>
       </FormItem>
