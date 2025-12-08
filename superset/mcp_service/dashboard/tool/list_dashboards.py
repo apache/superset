@@ -23,7 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -65,7 +65,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
 @parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
-) -> dict[str, Any]:
+) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
     including title, slug, and charts.
 
@@ -113,10 +113,13 @@ async def list_dashboards(
     )
 
     # Apply field filtering via serialization context
-    # Use requested columns or defaults - always filter to reduce token usage
-    columns_to_filter = request.select_columns or DEFAULT_DASHBOARD_COLUMNS
+    # Use columns_requested from result (already resolved by ModelListCore)
+    columns_to_filter = result.columns_requested
     await ctx.debug(
         "Applying field filtering via serialization context: select_columns=%s"
         % (columns_to_filter,)
     )
-    return result.model_dump(mode="json", context={"select_columns": columns_to_filter})
+    filtered = result.model_dump(
+        mode="json", context={"select_columns": columns_to_filter}
+    )
+    return DashboardList.model_validate(filtered)

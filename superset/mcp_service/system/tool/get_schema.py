@@ -128,8 +128,15 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
 
-    # Get the appropriate core instance and run it
-    core = _SCHEMA_CORES[request.model_type]
+    # Get the appropriate core instance with defensive lookup
+    core = _SCHEMA_CORES.get(request.model_type)
+    if core is None:
+        await ctx.error(f"Unsupported model_type: {request.model_type}")
+        raise ValueError(
+            f"Unsupported model_type: {request.model_type}. "
+            f"Valid types are: {', '.join(_SCHEMA_CORES.keys())}"
+        )
+
     schema_info = core.run_tool()
 
     await ctx.debug(

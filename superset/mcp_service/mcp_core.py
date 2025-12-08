@@ -106,21 +106,31 @@ class ModelListCore(BaseCore, Generic[L]):
         search_columns: List[str],
         list_field_name: str,
         output_list_schema: Type[L],
+        logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
-        logger: logging.Logger | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.item_serializer = item_serializer
         self.filter_type = filter_type
-        self.default_columns = default_columns
-        self.search_columns = search_columns
+        self.default_columns = list(default_columns)  # Copy to prevent mutation
+        self.search_columns = list(search_columns)  # Copy to prevent mutation
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
-        self.all_columns = all_columns or default_columns
-        self.sortable_columns = sortable_columns or []
+        self._all_columns = list(all_columns) if all_columns else list(default_columns)
+        self._sortable_columns = list(sortable_columns) if sortable_columns else []
+
+    @property
+    def all_columns(self) -> List[str]:
+        """Return a copy of all_columns to prevent external mutation."""
+        return list(self._all_columns)
+
+    @property
+    def sortable_columns(self) -> List[str]:
+        """Return a copy of sortable_columns to prevent external mutation."""
+        return list(self._sortable_columns)
 
     def run_tool(
         self,

@@ -30,6 +30,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     ListDashboardsRequest,
 )
+from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -103,7 +104,8 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         result = await client.call_tool(
             "list_dashboards", {"request": request.model_dump()}
         )
-        dashboards = result.data["dashboards"]
+        data = json.loads(result.content[0].text)
+        dashboards = data["dashboards"]
         assert len(dashboards) == 1
         assert dashboards[0]["dashboard_title"] == "Test Dashboard"
         assert dashboards[0]["uuid"] == "test-dashboard-uuid-1"
@@ -111,10 +113,10 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         # Note: published is not in minimal default columns (id, dashboard_title,
         # slug, uuid) - use select_columns to include it if needed
 
-        assert "uuid" in result.data["columns_requested"]
-        assert "slug" in result.data["columns_requested"]
-        assert "uuid" in result.data["columns_loaded"]
-        assert "slug" in result.data["columns_loaded"]
+        assert "uuid" in data["columns_requested"]
+        assert "slug" in data["columns_requested"]
+        assert "uuid" in data["columns_loaded"]
+        assert "slug" in data["columns_loaded"]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -180,8 +182,9 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
         result = await client.call_tool(
             "list_dashboards", {"request": request.model_dump()}
         )
-        assert result.data["count"] == 1
-        assert result.data["dashboards"][0]["dashboard_title"] == "Filtered Dashboard"
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 1
+        assert data["dashboards"][0]["dashboard_title"] == "Filtered Dashboard"
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -262,8 +265,9 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
         result = await client.call_tool(
             "list_dashboards", {"request": request.model_dump()}
         )
-        assert result.data["count"] == 1
-        assert result.data["dashboards"][0]["dashboard_title"] == "search_dashboard"
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 1
+        assert data["dashboards"][0]["dashboard_title"] == "search_dashboard"
         args, kwargs = mock_list.call_args
         assert kwargs["search"] == "search_dashboard"
         assert "dashboard_title" in kwargs["search_columns"]
@@ -283,7 +287,8 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
         result = await client.call_tool(
             "list_dashboards", {"request": request.model_dump()}
         )
-        assert "count" in result.data
+        data = json.loads(result.content[0].text)
+        assert "count" in data
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -503,15 +508,16 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
         result = await client.call_tool(
             "list_dashboards", {"request": request.model_dump()}
         )
-        dashboards = result.data["dashboards"]
+        data = json.loads(result.content[0].text)
+        dashboards = data["dashboards"]
         assert len(dashboards) == 1
         assert dashboards[0]["uuid"] == "test-custom-uuid-123"
         assert dashboards[0]["slug"] == "custom-dashboard"
 
-        assert "uuid" in result.data["columns_requested"]
-        assert "slug" in result.data["columns_requested"]
-        assert "uuid" in result.data["columns_loaded"]
-        assert "slug" in result.data["columns_loaded"]
+        assert "uuid" in data["columns_requested"]
+        assert "slug" in data["columns_requested"]
+        assert "uuid" in data["columns_loaded"]
+        assert "slug" in data["columns_loaded"]
 
 
 class TestDashboardDefaultColumnFiltering:
@@ -592,16 +598,17 @@ class TestDashboardDefaultColumnFiltering:
             result = await client.call_tool(
                 "list_dashboards", {"request": request.model_dump()}
             )
+            data = json.loads(result.content[0].text)
 
             # Verify columns_requested uses minimal defaults
-            assert "id" in result.data["columns_requested"]
-            assert "dashboard_title" in result.data["columns_requested"]
-            assert "slug" in result.data["columns_requested"]
-            assert "uuid" in result.data["columns_requested"]
+            assert "id" in data["columns_requested"]
+            assert "dashboard_title" in data["columns_requested"]
+            assert "slug" in data["columns_requested"]
+            assert "uuid" in data["columns_requested"]
 
             # Verify heavy columns are NOT in columns_loaded by default
-            assert "json_metadata" not in result.data["columns_loaded"]
-            assert "position_json" not in result.data["columns_loaded"]
+            assert "json_metadata" not in data["columns_loaded"]
+            assert "position_json" not in data["columns_loaded"]
 
 
 class TestDashboardSortableColumns:
@@ -647,8 +654,9 @@ class TestDashboardSortableColumns:
             assert call_args["order_column"] == "dashboard_title"
             assert call_args["order_direction"] == "desc"
 
-            assert result.data["count"] == 0
-            assert result.data["dashboards"] == []
+            data = json.loads(result.content[0].text)
+            assert data["count"] == 0
+            assert data["dashboards"] == []
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""

@@ -134,15 +134,16 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         )
 
         # Apply field filtering via serialization context
-        # Use requested columns or defaults - always filter to reduce token usage
-        columns_to_filter = request.select_columns or DEFAULT_CHART_COLUMNS
+        # Use columns_requested from result (already resolved by ModelListCore)
+        columns_to_filter = result.columns_requested
         await ctx.debug(
             "Applying field filtering via serialization context: select_columns=%s"
             % (columns_to_filter,)
         )
-        return result.model_dump(
+        filtered = result.model_dump(
             mode="json", context={"select_columns": columns_to_filter}
         )
+        return ChartList.model_validate(filtered)
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise
