@@ -204,8 +204,9 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomization;
   hidePopover: () => void;
-}> = ({ customizationItem }) => {
-  const { description, name } = customizationItem;
+  datasetName?: string;
+}> = ({ customizationItem, datasetName }) => {
+  const { name } = customizationItem;
   const dataset = customizationItem.targets?.[0]?.datasetId;
   const [titleRef, , titleTruncated] = useTruncation();
   const displayName = name?.trim() || t('Dynamic group by');
@@ -214,8 +215,11 @@ const GroupByFilterCardContent: FC<{
     if (!dataset) {
       return t('Not set');
     }
-    return `Dataset ${dataset}`;
-  }, [dataset]);
+    if (datasetName) {
+      return datasetName;
+    }
+    return t('None');
+  }, [dataset, datasetName]);
 
   const aggregationDisplay = useMemo(() => {
     const sortMetric = customizationItem.controlValues?.sortMetric;
@@ -263,16 +267,6 @@ const GroupByFilterCardContent: FC<{
         <RowLabel>{t('Aggregation')}</RowLabel>
         <RowValue>{aggregationDisplay}</RowValue>
       </Row>
-
-      {description && (
-        <Row
-          css={theme => css`
-            margin-top: ${theme.sizeUnit * 2}px;
-          `}
-        >
-          <DescriptionTooltip description={description} />
-        </Row>
-      )}
     </div>
   );
 };
@@ -292,6 +286,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const [columnOptions, setColumnOptions] = useState<
     { label: string; value: string }[]
   >([]);
+  const [datasetName, setDatasetName] = useState<string | undefined>();
 
   const dispatch = useDispatch();
 
@@ -458,7 +453,11 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         const endpoint = `/api/v1/dataset/${datasetId}`;
         const { json } = await cachedSupersetGet({ endpoint });
 
-        if (json?.result?.columns) {
+        if (json?.result) {
+          if (json.result.table_name) {
+            setDatasetName(json.result.table_name);
+          }
+          if (json.result.columns) {
           const options = json.result.columns
             .filter((col: ColumnApiResponse) => col.filterable !== false)
             .map((col: ColumnApiResponse) => ({
@@ -466,6 +465,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               value: col.column_name || col.name || '',
             }));
           setColumnOptions(options);
+          }
         }
       } catch (error) {
         setColumnOptions([]);
@@ -494,6 +494,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             <GroupByFilterCardContent
               customizationItem={customizationItem}
               hidePopover={hideHoverCard}
+              datasetName={datasetName}
             />
           }
           mouseEnterDelay={0.2}
@@ -536,6 +537,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 <GroupByFilterCardContent
                   customizationItem={customizationItem}
                   hidePopover={hideHoverCard}
+                  datasetName={datasetName}
                 />
               }
               mouseEnterDelay={0.2}
