@@ -1,6 +1,11 @@
 # azure-pipelines-build.yml
 # Build & Push Superset Image (Buildx Compatible)
 
+parameters:
+  - name: buildPool
+    type: string
+    default: 'ubuntu-latest'
+
 trigger:
   branches:
     include:
@@ -19,7 +24,7 @@ stages:
       - job: BuildAndPush
         displayName: "Build and Push"
         pool:
-          name: 'Linux-Hosted'
+          vmImage: ${{ parameters.buildPool }}
 
         steps:
 
