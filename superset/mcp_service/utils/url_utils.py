@@ -79,11 +79,14 @@ def get_mcp_service_url() -> str:
             return mcp_service_url
 
         # In production, MCP service is accessed via main URL with /mcp prefix
-        # SUPERSET_WEBSERVER_ADDRESS is dynamically set per workspace
-        webserver_address = config.get("SUPERSET_WEBSERVER_ADDRESS")
-        if webserver_address and webserver_address != "http://localhost:9001":
-            # Production/staging - use main URL with /mcp prefix
-            return f"{webserver_address}/mcp"
+        # WEBDRIVER_BASEURL_USER_FRIENDLY is the user-facing URL for the instance
+        user_friendly_url = config.get("WEBDRIVER_BASEURL_USER_FRIENDLY")
+        if user_friendly_url:
+            # Remove trailing slash if present and add /mcp prefix
+            base_url = user_friendly_url.rstrip("/")
+            # Skip localhost URLs (development)
+            if "localhost" not in base_url:
+                return f"{base_url}/mcp"
 
     except Exception as e:
         import logging
