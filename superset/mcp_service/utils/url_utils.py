@@ -19,7 +19,21 @@
 URL utilities for MCP service
 """
 
+from urllib.parse import urlparse
+
 from flask import current_app
+
+# Hostnames that indicate a development/local environment
+LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0"}
+
+
+def _is_local_url(url: str) -> bool:
+    """Check if a URL points to a local/development host."""
+    try:
+        parsed = urlparse(url)
+        return parsed.hostname in LOCAL_HOSTNAMES if parsed.hostname else True
+    except Exception:
+        return True
 
 
 def get_superset_base_url() -> str:
@@ -80,13 +94,11 @@ def get_mcp_service_url() -> str:
 
         # In production, MCP service is accessed via main URL with /mcp prefix
         # WEBDRIVER_BASEURL_USER_FRIENDLY is the user-facing URL for the instance
-        user_friendly_url = config.get("WEBDRIVER_BASEURL_USER_FRIENDLY")
-        if user_friendly_url:
-            # Remove trailing slash if present and add /mcp prefix
+        user_friendly_url = config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+        if user_friendly_url and not _is_local_url(user_friendly_url):
+            # Production/staging - use main URL with /mcp prefix
             base_url = user_friendly_url.rstrip("/")
-            # Skip localhost URLs (development)
-            if "localhost" not in base_url:
-                return f"{base_url}/mcp"
+            return f"{base_url}/mcp"
 
     except Exception as e:
         import logging
