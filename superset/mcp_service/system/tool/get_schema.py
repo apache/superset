@@ -28,18 +28,18 @@ from typing import Literal
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.dataset import DatasetDAO
 from superset.mcp_service.common.schema_discovery import (
-    CHART_ALL_COLUMNS,
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
     CHART_SELECT_COLUMNS,
     CHART_SORTABLE_COLUMNS,
-    DASHBOARD_ALL_COLUMNS,
     DASHBOARD_DEFAULT_COLUMNS,
     DASHBOARD_SEARCH_COLUMNS,
     DASHBOARD_SELECT_COLUMNS,
     DASHBOARD_SORTABLE_COLUMNS,
-    DATASET_ALL_COLUMNS,
     DATASET_DEFAULT_COLUMNS,
     DATASET_SEARCH_COLUMNS,
     DATASET_SELECT_COLUMNS,
@@ -48,72 +48,59 @@ from superset.mcp_service.common.schema_discovery import (
     GetSchemaResponse,
     ModelSchemaInfo,
 )
+from superset.mcp_service.mcp_core import ModelGetSchemaCore
 from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
+# Create core instances for each model type
+_chart_schema_core = ModelGetSchemaCore(
+    model_type="chart",
+    dao_class=ChartDAO,
+    output_schema=ModelSchemaInfo,
+    select_columns=CHART_SELECT_COLUMNS,
+    sortable_columns=CHART_SORTABLE_COLUMNS,
+    default_columns=CHART_DEFAULT_COLUMNS,
+    search_columns=CHART_SEARCH_COLUMNS,
+    default_sort="changed_on",
+    default_sort_direction="desc",
+    logger=logger,
+)
 
-def _get_filter_columns(model_type: str) -> dict[str, list[str]]:
-    """Get filterable columns for a model type from the DAO."""
-    try:
-        if model_type == "chart":
-            from superset.daos.chart import ChartDAO
+_dataset_schema_core = ModelGetSchemaCore(
+    model_type="dataset",
+    dao_class=DatasetDAO,
+    output_schema=ModelSchemaInfo,
+    select_columns=DATASET_SELECT_COLUMNS,
+    sortable_columns=DATASET_SORTABLE_COLUMNS,
+    default_columns=DATASET_DEFAULT_COLUMNS,
+    search_columns=DATASET_SEARCH_COLUMNS,
+    default_sort="changed_on",
+    default_sort_direction="desc",
+    logger=logger,
+)
 
-            return dict(ChartDAO.get_filterable_columns_and_operators())
-        elif model_type == "dataset":
-            from superset.daos.dataset import DatasetDAO
+_dashboard_schema_core = ModelGetSchemaCore(
+    model_type="dashboard",
+    dao_class=DashboardDAO,
+    output_schema=ModelSchemaInfo,
+    select_columns=DASHBOARD_SELECT_COLUMNS,
+    sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
+    default_columns=DASHBOARD_DEFAULT_COLUMNS,
+    search_columns=DASHBOARD_SEARCH_COLUMNS,
+    default_sort="changed_on",
+    default_sort_direction="desc",
+    logger=logger,
+)
 
-            return dict(DatasetDAO.get_filterable_columns_and_operators())
-        elif model_type == "dashboard":
-            from superset.daos.dashboard import DashboardDAO
-
-            return dict(DashboardDAO.get_filterable_columns_and_operators())
-    except Exception as e:
-        logger.warning("Failed to get filter columns for %s: %s", model_type, e)
-    return {}
-
-
-def _build_schema_info(
-    model_type: Literal["chart", "dataset", "dashboard"],
-) -> ModelSchemaInfo:
-    """Build schema info for a model type."""
-    schemas = {
-        "chart": {
-            "select_columns": CHART_SELECT_COLUMNS,
-            "all_columns": CHART_ALL_COLUMNS,
-            "default_columns": CHART_DEFAULT_COLUMNS,
-            "sortable_columns": CHART_SORTABLE_COLUMNS,
-            "search_columns": CHART_SEARCH_COLUMNS,
-        },
-        "dataset": {
-            "select_columns": DATASET_SELECT_COLUMNS,
-            "all_columns": DATASET_ALL_COLUMNS,
-            "default_columns": DATASET_DEFAULT_COLUMNS,
-            "sortable_columns": DATASET_SORTABLE_COLUMNS,
-            "search_columns": DATASET_SEARCH_COLUMNS,
-        },
-        "dashboard": {
-            "select_columns": DASHBOARD_SELECT_COLUMNS,
-            "all_columns": DASHBOARD_ALL_COLUMNS,
-            "default_columns": DASHBOARD_DEFAULT_COLUMNS,
-            "sortable_columns": DASHBOARD_SORTABLE_COLUMNS,
-            "search_columns": DASHBOARD_SEARCH_COLUMNS,
-        },
-    }
-
-    schema = schemas[model_type]
-    filter_columns = _get_filter_columns(model_type)
-
-    return ModelSchemaInfo(
-        model_type=model_type,
-        select_columns=schema["select_columns"],
-        filter_columns=filter_columns,
-        sortable_columns=schema["sortable_columns"],
-        default_select=schema["default_columns"],
-        default_sort="changed_on",
-        default_sort_direction="desc",
-        search_columns=schema["search_columns"],
-    )
+# Map model types to their core instances
+_SCHEMA_CORES: dict[
+    Literal["chart", "dataset", "dashboard"], ModelGetSchemaCore[ModelSchemaInfo]
+] = {
+    "chart": _chart_schema_core,
+    "dataset": _dataset_schema_core,
+    "dashboard": _dashboard_schema_core,
+}
 
 
 @tool(tags=["discovery"])
@@ -141,7 +128,9 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
 
-    schema_info = _build_schema_info(request.model_type)
+    # Get the appropriate core instance and run it
+    core = _SCHEMA_CORES[request.model_type]
+    schema_info = core.run_tool()
 
     await ctx.debug(
         f"Schema for {request.model_type}: "

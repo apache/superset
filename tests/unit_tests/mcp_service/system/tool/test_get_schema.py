@@ -293,6 +293,52 @@ class TestGetSchemaToolViaClient:
             assert desc_col["is_default"] is False
 
 
+class TestGetSchemaEdgeCases:
+    """Test edge cases for get_schema tool."""
+
+    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dao_exception_returns_empty_filters(
+        self, mock_filters, mcp_server
+    ):
+        """Test DAO exception results in empty filter_columns (graceful degradation)."""
+        mock_filters.side_effect = Exception("Database error")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+
+            assert result.content is not None
+            data = json.loads(result.content[0].text)
+            info = data["schema_info"]
+
+            # Should succeed with empty filter_columns
+            assert info["model_type"] == "chart"
+            assert info["filter_columns"] == {}
+            # Other fields should still be populated
+            assert len(info["select_columns"]) > 0
+            assert len(info["sortable_columns"]) > 0
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_default_sort_values(self, mock_filters, mcp_server):
+        """Test that default sort values are returned correctly."""
+        mock_filters.return_value = {}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+            data = json.loads(result.content[0].text)
+            info = data["schema_info"]
+
+            # Verify default sort configuration
+            assert info["default_sort"] == "changed_on"
+            assert info["default_sort_direction"] == "desc"
+
+
 class TestSchemaDiscoveryConstants:
     """Test schema discovery constant definitions."""
 

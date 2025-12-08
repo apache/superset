@@ -43,43 +43,6 @@ from superset.mcp_service.system.schemas import (
 from superset.utils import json
 
 
-class GetDatasetAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dataset_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class DatasetAvailableFilters(BaseModel):
-    column_operators: Dict[str, List[str]] = Field(
-        ...,
-        description="Available filter operators for each column: mapping from column "
-        "name to list of supported operators",
-    )
-    select_columns: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    default_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns returned when select_columns is not specified",
-    )
-    search_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns searched when using the search parameter",
-    )
-
-
 class DatasetFilter(ColumnOperator):
     """
     Filter object for dataset listing.

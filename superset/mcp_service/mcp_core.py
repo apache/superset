@@ -479,51 +479,96 @@ class InstanceInfoCore(BaseCore):
             raise
 
 
-class ModelGetAvailableFiltersCore(BaseCore, Generic[S]):
+class ModelGetSchemaCore(BaseCore, Generic[S]):
     """
-    Generic tool for retrieving available filterable columns and operators for a
-    model. Used for get_dataset_available_filters, get_chart_available_filters,
-    get_dashboard_available_filters, etc.
+    Generic tool for retrieving comprehensive schema metadata for a model type.
 
-    Also returns column discovery metadata (select_columns, sortable_columns,
-    default_columns, search_columns) when provided.
+    Provides unified schema discovery for list tools:
+    - select_columns: All columns available for selection
+    - filter_columns: Filterable columns with their operators
+    - sortable_columns: Columns valid for order_column
+    - default_columns: Columns returned when select_columns not specified
+    - search_columns: Columns searched by the search parameter
+    - default_sort: Default column for sorting
+    - default_sort_direction: Default sort direction ("asc" or "desc")
+
+    Replaces the individual get_*_available_filters tools with a unified approach.
     """
 
     def __init__(
         self,
+        model_type: Literal["chart", "dataset", "dashboard"],
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
-        select_columns: List[str] | None = None,
-        sortable_columns: List[str] | None = None,
-        default_columns: List[str] | None = None,
-        search_columns: List[str] | None = None,
+        select_columns: List[Any],
+        sortable_columns: List[str],
+        default_columns: List[str],
+        search_columns: List[str],
+        default_sort: str = "changed_on",
+        default_sort_direction: Literal["asc", "desc"] = "desc",
         logger: logging.Logger | None = None,
     ) -> None:
+        """
+        Initialize the schema discovery core.
+
+        Args:
+            model_type: The type of model (chart, dataset, dashboard)
+            dao_class: The DAO class to query for filter columns
+            output_schema: Pydantic schema for the response (e.g., ModelSchemaInfo)
+            select_columns: Column metadata (List[ColumnMetadata] or similar)
+            sortable_columns: Column names that support sorting
+            default_columns: Column names returned by default
+            search_columns: Column names used for text search
+            default_sort: Default sort column
+            default_sort_direction: Default sort direction
+            logger: Optional logger instance
+        """
         super().__init__(logger)
+        self.model_type = model_type
         self.dao_class = dao_class
         self.output_schema = output_schema
-        self.select_columns = select_columns or []
-        self.sortable_columns = sortable_columns or []
-        self.default_columns = default_columns or []
-        self.search_columns = search_columns or []
+        self.select_columns = select_columns
+        self.sortable_columns = sortable_columns
+        self.default_columns = default_columns
+        self.search_columns = search_columns
+        self.default_sort = default_sort
+        self.default_sort_direction = default_sort_direction
 
-    def run_tool(self) -> S:
+    def _get_filter_columns(self) -> Dict[str, List[str]]:
+        """Get filterable columns and operators from the DAO."""
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
-            # Ensure column_operators is a plain dict, not a custom type
-            column_operators = dict(filterable)
+            return dict(filterable)
+        except Exception as e:
+            self._log_warning(
+                f"Failed to get filter columns for {self.model_type}: {e}"
+            )
+            return {}
+
+    def run_tool(self) -> S:
+        """Execute schema discovery and return comprehensive schema info."""
+        try:
+            filter_columns = self._get_filter_columns()
+
             response = self.output_schema(
-                column_operators=column_operators,
+                model_type=self.model_type,
                 select_columns=self.select_columns,
+                filter_columns=filter_columns,
                 sortable_columns=self.sortable_columns,
-                default_columns=self.default_columns,
+                default_select=self.default_columns,
+                default_sort=self.default_sort,
+                default_sort_direction=self.default_sort_direction,
                 search_columns=self.search_columns,
             )
+
+            select_count = len(self.select_columns) if self.select_columns else 0
             self._log_info(
-                f"Successfully retrieved available filters for "
-                f"{self.dao_class.__class__.__name__}"
+                f"Successfully retrieved schema for {self.model_type}: "
+                f"{select_count} select columns, "
+                f"{len(filter_columns)} filter columns, "
+                f"{len(self.sortable_columns)} sortable columns"
             )
             return response
         except Exception as e:
-            self._log_error(e)
+            self._log_error(e, f"getting schema for {self.model_type}")
             raise
