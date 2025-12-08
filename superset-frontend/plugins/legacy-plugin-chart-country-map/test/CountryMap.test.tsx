@@ -18,7 +18,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import d3 from 'd3';
 import ReactCountryMap from '../src/ReactCountryMap';
 
@@ -144,7 +144,7 @@ describe('CountryMap (legacy d3)', () => {
       />,
     );
 
-    const region = await document.querySelector('path.region');
+    const region = document.querySelector('path.region');
     expect(region).not.toBeNull();
 
     const popup = document.querySelector('.hover-popup');
