@@ -193,7 +193,7 @@ export const computeGeoJsonTextOptionsFromFormData = (
   return {
     getText: (f: JsonObject) => f?.properties?.[fd.label_property_name],
     getTextColor: [lc.r, lc.g, lc.b, 255 * lc.a],
-    getTextSize: fd.label_size,
+    getTextSize: parseInt(fd.label_size, 10),
     textSizeUnits: fd.label_size_unit,
   };
 };
@@ -243,7 +243,7 @@ export const computeGeoJsonIconOptionsFromFormData = (
         height: 128,
       })
     : undefined,
-  getIconSize: fd.icon_size,
+  getIconSize: parseInt(fd.icon_size, 10),
   iconSizeUnits: fd.icon_size_unit,
 });
 
