@@ -11,7 +11,6 @@ variables:
   acrDomain: 'intellisuite.azurecr.io'
   imageRepository: 'superset'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  vmImageName: 'ubuntu-latest'
 
 stages:
   - stage: Build
@@ -22,7 +21,7 @@ stages:
         pool:
           name: 'Linux-Hosted'
           demands:
-            - Agent.Name -equals agent_localhost
+            - Agent.Name=agent_localhost  # Fixed syntax
 
         steps:
 
@@ -37,6 +36,8 @@ stages:
             inputs:
               targetType: inline
               script: |
+                set -e  # Exit on error
+                
                 BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
                 SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
                 SEMANTIC_TAG="$(Build.BuildId)-$SHORT_SHA"
@@ -61,26 +62,37 @@ stages:
             inputs:
               targetType: inline
               script: |
+                set -e  # Exit on error
+                
+                # Clean up any existing builder
+                echo "Cleaning up old builder if exists..."
+                docker buildx rm pipelinebuilder 2>/dev/null || true
+                
                 echo "Initializing buildx..."
-                docker buildx create --use --name pipelinebuilder
+                docker buildx create --use --name pipelinebuilder --driver docker-container
                 docker buildx inspect --bootstrap
 
                 echo "Building image with Buildx..."
                 docker buildx build \
                   --builder pipelinebuilder \
+                  --platform linux/amd64 \
                   -f "$(dockerfilePath)" \
-                  --build-arg BUILD_ID=$(Build.BuildId) \
-                  --build-arg COMMIT_SHA=$(Build.SourceVersion) \
-                  --build-arg BUILD_DATE=$(BUILD_DATE) \
-                  --label org.opencontainers.image.source=$(Build.Repository.Uri) \
-                  --label org.opencontainers.image.revision=$(Build.SourceVersion) \
-                  --label org.opencontainers.image.created=$(BUILD_DATE) \
-                  -t $(acrDomain)/$(imageRepository):$(semanticTag) \
-                  -t $(acrDomain)/$(imageRepository):latest \
+                  --build-arg BUILD_ID="$(Build.BuildId)" \
+                  --build-arg COMMIT_SHA="$(Build.SourceVersion)" \
+                  --build-arg BUILD_DATE="$(BUILD_DATE)" \
+                  --label org.opencontainers.image.source="$(Build.Repository.Uri)" \
+                  --label org.opencontainers.image.revision="$(Build.SourceVersion)" \
+                  --label org.opencontainers.image.created="$(BUILD_DATE)" \
+                  -t "$(acrDomain)/$(imageRepository):$(semanticTag)" \
+                  -t "$(acrDomain)/$(imageRepository):latest" \
                   --push \
-                  .
+                  "$(Build.SourcesDirectory)"
 
                 echo "Buildx image build & push completed."
+                
+                # Cleanup builder
+                echo "Cleaning up builder..."
+                docker buildx rm pipelinebuilder || true
 
           # Publish deployment metadata
           - task: Bash@3
@@ -88,7 +100,12 @@ stages:
             inputs:
               targetType: inline
               script: |
-                cat > "$(Build.ArtifactStagingDirectory)/deployment-metadata.json" << EOF
+                set -e  # Exit on error
+                
+                # Ensure staging directory exists
+                mkdir -p "$(Build.ArtifactStagingDirectory)"
+                
+                cat > "$(Build.ArtifactStagingDirectory)/deployment-metadata.json" << 'EOF'
                 {
                   "imageTag": "$(semanticTag)",
                   "buildId": "$(Build.BuildId)",
@@ -102,7 +119,7 @@ stages:
                 }
                 EOF
 
-                cat > "$(Build.ArtifactStagingDirectory)/deployment.env" << EOF
+                cat > "$(Build.ArtifactStagingDirectory)/deployment.env" << 'EOF'
                 IMAGE_TAG=$(semanticTag)
                 BUILD_ID=$(Build.BuildId)
                 COMMIT_SHA=$(Build.SourceVersion)
@@ -111,7 +128,8 @@ stages:
                 BUILD_DATE=$(BUILD_DATE)
                 EOF
 
-                echo "Metadata written."
+                echo "Metadata files created:"
+                ls -la "$(Build.ArtifactStagingDirectory)"
 
           - task: PublishPipelineArtifact@1
             displayName: "Publish Deployment Artifacts"
