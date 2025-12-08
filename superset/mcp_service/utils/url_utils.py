@@ -46,33 +46,14 @@ def get_superset_base_url() -> str:
     Returns:
         Base URL for Superset web server (e.g., "http://localhost:9001")
     """
-    # Default fallback to localhost:9001
     default_url = "http://localhost:9001"
 
     try:
-        # Try to get from configuration
         config = current_app.config
-
-        # Check for SUPERSET_WEBSERVER_ADDRESS first
-        webserver_address = config.get("SUPERSET_WEBSERVER_ADDRESS")
-        if webserver_address:
-            return webserver_address
-
-        # Fallback to other potential config keys
-        public_role_like_gamma = config.get("PUBLIC_ROLE_LIKE_GAMMA", False)
-        if public_role_like_gamma:
-            # If public access is enabled, might be on a different host
-            webserver_protocol = config.get("ENABLE_PROXY_FIX", False)
-            protocol = "https" if webserver_protocol else "http"
-            host = config.get("WEBSERVER_HOST", "localhost")
-            port = config.get("WEBSERVER_PORT", 9001)
-            return f"{protocol}://{host}:{port}"
-
+        if user_friendly_url := config["WEBDRIVER_BASEURL_USER_FRIENDLY"]:
+            return user_friendly_url.rstrip("/")
         return default_url
-
     except Exception:
-        # If we can't access Flask config (e.g., outside app context),
-        # return default
         return default_url
 
 
