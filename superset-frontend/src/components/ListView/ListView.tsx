@@ -483,7 +483,7 @@ export function ListView<T extends object = any>({
                   size="large"
                   image="filter-results.svg"
                   buttonAction={() => handleClearFilterControls()}
-                  buttonText={t('clear all filters')}
+                  buttonText={t('Clear all filters')}
                 />
               ) : (
                 <EmptyState
