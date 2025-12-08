@@ -16,20 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-
-import { Icons } from '@superset-ui/core/components';
-import { ROW_TYPE } from '../../../util/componentTypes';
-import { NEW_ROW_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
-
-export default function DraggableNewRow() {
-  return (
-    <DraggableNewComponent
-      id={NEW_ROW_ID}
-      type={ROW_TYPE}
-      label={t('Row')}
-      IconComponent={Icons.ColumnHeightOutlined}
-    />
-  );
-}
+export { default } from './Row';

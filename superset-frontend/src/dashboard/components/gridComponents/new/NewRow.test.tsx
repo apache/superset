@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, RenderResult } from 'spec/helpers/testing-library';
 
 import NewRow from 'src/dashboard/components/gridComponents/new/NewRow';
 
@@ -26,12 +26,12 @@ import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
 jest.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
-    ({ type, id }) => (
+    ({ type, id }: { type: string; id: string }) => (
       <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>
     ),
 );
 
-function setup() {
+function setup(): RenderResult {
   return render(<NewRow />);
 }
 
