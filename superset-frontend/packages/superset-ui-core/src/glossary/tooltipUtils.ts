@@ -45,4 +45,4 @@ export const resolveGlossaryString = (glossaryString: string): [string | undefin
 };
 
 const buildGlossaryUrl = (topic: string, title: string): string =>
-  `${GLOSSARY_BASE_URL}/glossary#${encodeURIComponent(topic + '__' + title)}`;
+  `${GLOSSARY_BASE_URL}/glossary#${encodeURIComponent(`${topic}__${title}`)}`;
