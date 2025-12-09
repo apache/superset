@@ -499,7 +499,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # datasource or database do not exist
             pass
 
-        cache_key = hash_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
+        cache_key = hash_from_dict(
+            cache_dict, default=json_int_dttm_ser, ignore_nan=True
+        )
         # Log QueryObject cache key generation for debugging
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
