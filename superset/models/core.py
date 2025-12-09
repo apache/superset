@@ -197,6 +197,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "configuration_method",
     ]
     extra_import_fields = [
         "password",
@@ -205,6 +206,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         "encrypted_extra",
         "impersonate_user",
         "ssh_tunnel",
+        "configuration_method",
     ]
     export_children = ["tables"]
 

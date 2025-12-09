@@ -888,6 +888,7 @@ class ImportV1DatabaseSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    configuration_method = fields.Enum(ConfigurationMethod, by_value=True, required=False, allow_none=True)
 
     @validates_schema
     def validate_password(self, data: dict[str, Any], **kwargs: Any) -> None:
