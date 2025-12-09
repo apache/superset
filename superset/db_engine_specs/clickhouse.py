@@ -41,7 +41,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
 from superset.utils.core import GenericDataType
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -417,7 +417,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return f"{label}_{hash_from_str(label)[:6]}"
 
     @classmethod
     def adjust_engine_params(
