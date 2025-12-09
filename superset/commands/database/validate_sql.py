@@ -63,7 +63,7 @@ class ValidateSQLCommand(BaseCommand):
         sql = self._properties["sql"]
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
-        template_params = self._properties.get("template_params", {})
+        template_params = self._properties.get("template_params") or {}
 
         # Render Jinja templates to handle template syntax before validation
         template_processor = get_template_processor(self._model)
