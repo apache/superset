@@ -77,26 +77,6 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'id_column',
-            config: {
-              type: 'SelectControl',
-              label: t('ID Column'),
-              renderTrigger: false,
-              description: t(
-                'The name of the ID column. It must be unique and cannot be the geometry column.',
-              ),
-              mapStateToProps: state => ({
-                choices: state.datasource?.columns.map(c => [
-                  c.column_name,
-                  c.column_name,
-                ]),
-              }),
-              validators: [validateNonEmpty],
-            },
-          },
-        ],
-        [
-          {
             name: 'geom_column',
             config: {
               type: 'SelectControl',
@@ -130,6 +110,26 @@ const config: ControlPanelConfig = {
                 [GeometryFormat.WKT, t('EWKT')],
               ],
               clearable: false,
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
+        [
+          {
+            name: 'id_column',
+            config: {
+              type: 'SelectControl',
+              label: t('Cross-filter column'),
+              renderTrigger: false,
+              description: t(
+                'Select a column to be used as the id for this row. It will be used to identify the row in other charts when performing cross-filtering.',
+              ),
+              mapStateToProps: state => ({
+                choices: state.datasource?.columns.map(c => [
+                  c.column_name,
+                  c.column_name,
+                ]),
+              }),
               validators: [validateNonEmpty],
             },
           },
