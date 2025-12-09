@@ -297,6 +297,7 @@ extra:
   metadata_cache_timeout: {{}}
   schemas_allowed_for_file_upload: []
 impersonate_user: false
+configuration_method: sqlalchemy_form
 uuid: {database.uuid}
 version: 1.0.0
 """,
