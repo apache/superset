@@ -146,6 +146,31 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [32432](https://github.com/apache/superset/pull/31260) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
 - [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
 
+### Breaking Changes
+
+#### CUSTOM_FONT_URLS removed
+
+The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
+
+**Before (5.x):**
+```python
+CUSTOM_FONT_URLS = [
+    "https://fonts.example.com/myfont.css",
+]
+```
+
+**After (6.0):**
+```python
+THEME_DEFAULT = {
+    "token": {
+        "fontUrls": [
+            "https://fonts.example.com/myfont.css",
+        ],
+        # ... other tokens
+    }
+}
+```
+
 ## 5.0.0
 
 - [31976](https://github.com/apache/superset/pull/31976) Removed the `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag. The previous value of the feature flag was `True` and now the feature is permanently removed.

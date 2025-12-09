@@ -370,6 +370,31 @@ const bigint = {
   ],
 };
 
+const nameAndBoolean: TableChartProps = {
+  ...new ChartProps(basicChartProps),
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['name', 'is_adult'],
+      coltypes: [GenericDataType.String, GenericDataType.Boolean],
+      data: [
+        {
+          name: 'Alice',
+          is_adult: true,
+        },
+        {
+          name: 'Bob',
+          is_adult: false,
+        },
+        {
+          name: 'Carl',
+          is_adult: null,
+        },
+      ],
+    },
+  ],
+};
+
 export default {
   basic,
   advanced,
@@ -379,4 +404,5 @@ export default {
   empty,
   raw,
   bigint,
+  nameAndBoolean,
 };

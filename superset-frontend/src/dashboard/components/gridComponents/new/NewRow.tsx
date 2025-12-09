@@ -16,46 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
 
-.superset-legacy-chart-country-map svg {
-  background-color: #feffff;
-}
+import { Icons } from '@superset-ui/core/components';
+import { ROW_TYPE } from '../../../util/componentTypes';
+import { NEW_ROW_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+import { FC } from 'react';
 
-.superset-legacy-chart-country-map {
-  position: relative;
-}
+type DraggableNewRowProps = {};
 
-.superset-legacy-chart-country-map .background {
-  fill: rgba(255, 255, 255, 0);
-  pointer-events: all;
-}
+const DraggableNewRow: FC<DraggableNewRowProps> = () => (
+  <DraggableNewComponent
+    id={NEW_ROW_ID}
+    type={ROW_TYPE}
+    label={t('Row')}
+    IconComponent={Icons.ColumnHeightOutlined}
+  />
+);
 
-.superset-legacy-chart-country-map .map-layer {
-  fill: #fff;
-  stroke: #aaa;
-}
-
-.superset-legacy-chart-country-map .effect-layer {
-  pointer-events: none;
-}
-
-.superset-legacy-chart-country-map .text-layer {
-  color: #333333;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-.superset-legacy-chart-country-map text.result-text {
-  font-weight: 300;
-  font-size: 24px;
-}
-
-.superset-legacy-chart-country-map text.big-text {
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.superset-legacy-chart-country-map path.region {
-  cursor: pointer;
-  stroke: #eee;
-}
+export default DraggableNewRow;

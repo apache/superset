@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Row from './Row';
-
-export default Row;
+export enum ViewContribution {
+  RightSidebar = 'sqllab.rightSidebar',
+  SouthPanels = 'sqllab.panels',
+}

@@ -766,6 +766,7 @@ THEME_DEFAULT: Theme = {
         "colorSuccess": "#5ac189",
         "colorInfo": "#66bcfe",
         # Fonts
+        "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
@@ -797,14 +798,17 @@ THEME_DARK: Optional[Theme] = {
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
-# Custom font configuration
-# Load external fonts at runtime without rebuilding the application
-# Example:
-# CUSTOM_FONT_URLS = [
-#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
-# ]
-CUSTOM_FONT_URLS: list[str] = []
+# Maximum number of font URLs allowed per theme.
+THEME_FONTS_MAX_URLS: int = 15
+
+# Domains allowed for loading fonts via theme fontUrls token.
+# Only HTTPS URLs from these domains will be accepted.
+THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
+    "fonts.googleapis.com",  # Google Fonts API (serves CSS)
+    "fonts.gstatic.com",  # Google Fonts CDN (serves font files)
+    "use.typekit.net",  # Adobe Fonts (serves both CSS and fonts)
+    "use.typekit.com",  # Adobe Fonts alternate (serves both CSS and fonts)
+]
 
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
@@ -1215,7 +1219,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_logs": {
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
-        #     "kwargs": {"retention_period_days": 180},
+        #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
@@ -1920,6 +1924,11 @@ TALISMAN_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
@@ -1955,6 +1964,11 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
+        ],
+        "font-src": [
+            "'self'",
+            *[f"https://{d}" for d in THEME_FONT_URL_ALLOWED_DOMAINS],
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },

@@ -47,7 +47,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["mutate"])
 @parse_request(UpdateChartRequest)
 async def update_chart(
     request: UpdateChartRequest, ctx: Context

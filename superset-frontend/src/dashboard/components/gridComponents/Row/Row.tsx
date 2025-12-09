@@ -24,13 +24,17 @@ import {
   useEffect,
   useMemo,
   memo,
+  RefObject,
 } from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  JsonObject,
+} from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons, Constants } from '@superset-ui/core/components';
-
 import {
   Draggable,
   Droppable,
@@ -42,7 +46,6 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import IconButton from 'src/dashboard/components/IconButton';
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -50,31 +53,36 @@ import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { useDebouncedEffect } from '../../../../explore/exploreUtils';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  parentId: PropTypes.string.isRequired,
-  component: componentShape.isRequired,
-  parentComponent: componentShape.isRequired,
-  index: PropTypes.number.isRequired,
-  depth: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
+export type RowProps = {
+  id: string;
+  parentId: string;
+  component: JsonObject;
+  parentComponent: JsonObject;
+  index: number;
+  depth: number;
+  editMode: boolean;
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  occupiedColumnCount: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
-  maxChildrenHeight: PropTypes.number.isRequired,
+  availableColumnCount: number;
+  columnWidth: number;
+  occupiedColumnCount: number;
+  maxChildrenHeight: number;
+
+  onResizeStart: (e: unknown, direction: unknown) => void;
+  onResize: (e: unknown, direction: unknown, ref: HTMLElement) => void;
+  onResizeStop: (e: unknown, direction: unknown, ref: HTMLElement) => void;
 
   // dnd
-  handleComponentDrop: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
+  handleComponentDrop: (dropResult: unknown) => void;
+  deleteComponent: (id: string, parentId: string) => void;
+  updateComponents: (updates: Record<string, JsonObject>) => void;
+
+  // visibility
+  isComponentVisible: boolean;
+  onChangeTab: (tabId: string) => void;
 };
 
-const GridRow = styled.div`
+const GridRow = styled.div<{ editMode: boolean }>`
   ${({ theme, editMode }) => css`
     position: relative;
     display: flex;
@@ -119,7 +127,7 @@ const GridRow = styled.div`
   `}
 `;
 
-const emptyRowContentStyles = theme => css`
+const emptyRowContentStyles = (theme: SupersetTheme) => css`
   position: absolute;
   width: 100%;
   height: 100%;
@@ -129,7 +137,7 @@ const emptyRowContentStyles = theme => css`
   color: ${theme.colorTextLabel};
 `;
 
-const Row = props => {
+const Row = memo((props: RowProps) => {
   const {
     component: rowComponent,
     parentComponent,
@@ -153,8 +161,8 @@ const Row = props => {
   const [isFocused, setIsFocused] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
-  const [containerHeight, setContainerHeight] = useState(null);
-  const containerRef = useRef();
+  const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const isComponentVisibleRef = useRef(isComponentVisible);
 
   useEffect(() => {
@@ -164,8 +172,8 @@ const Row = props => {
   // if chart not rendered - render it if it's less than 1 view height away from current viewport
   // if chart rendered - remove it if it's more than 4 view heights away from current viewport
   useEffect(() => {
-    let observerEnabler;
-    let observerDisabler;
+    let observerEnabler: IntersectionObserver | undefined;
+    let observerDisabler: IntersectionObserver | undefined;
 
     if (
       isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
@@ -219,23 +227,23 @@ const Row = props => {
         containerRef.current &&
         updatedHeight !== containerHeight
       ) {
-        setContainerHeight(updatedHeight);
+        setContainerHeight(updatedHeight ?? null);
       }
     },
     Constants.FAST_DEBOUNCE,
     [editMode, containerHeight],
   );
 
-  const handleChangeFocus = useCallback(nextFocus => {
+  const handleChangeFocus = useCallback((nextFocus: boolean) => {
     setIsFocused(Boolean(nextFocus));
   }, []);
 
   const handleChangeBackground = useCallback(
-    nextValue => {
+    (nextValue: string) => {
       const metaKey = 'background';
-      if (nextValue && rowComponent.meta[metaKey] !== nextValue) {
+      if (nextValue && rowComponent.meta?.[metaKey] !== nextValue) {
         updateComponents({
-          [rowComponent.id]: {
+          [rowComponent.id as string]: {
             ...rowComponent,
             meta: {
               ...rowComponent.meta,
@@ -249,26 +257,30 @@ const Row = props => {
   );
 
   const handleDeleteComponent = useCallback(() => {
-    deleteComponent(rowComponent.id, parentId);
+    deleteComponent(rowComponent.id as string, parentId);
   }, [deleteComponent, rowComponent, parentId]);
 
-  const handleMenuHover = useCallback(hovered => {
-    const { isHovered } = hovered;
-    setHoverMenuHovered(isHovered);
+  const handleMenuHover = useCallback((hover: { isHovered: boolean }) => {
+    setHoverMenuHovered(hover.isHovered);
   }, []);
 
-  const rowItems = useMemo(
-    () => rowComponent.children || [],
+  const rowItems: string[] = useMemo(
+    () =>
+      Array.isArray(rowComponent.children)
+        ? (rowComponent.children as string[])
+        : [],
     [rowComponent.children],
   );
 
-  const backgroundStyle = backgroundStyleOptions.find(
-    opt =>
-      opt.value === (rowComponent.meta.background || BACKGROUND_TRANSPARENT),
-  );
+  const backgroundStyle =
+    backgroundStyleOptions.find(
+      opt =>
+        opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
+    ) ?? backgroundStyleOptions[0];
+
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
   const renderChild = useCallback(
-    ({ dragSourceRef }) => (
+    ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement> }) => (
       <WithPopoverMenu
         isFocused={isFocused}
         onChangeFocus={handleChangeFocus}
@@ -291,7 +303,7 @@ const Row = props => {
             <DragHandle position="left" />
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
-              onClick={handleChangeFocus}
+              onClick={() => handleChangeFocus(true)}
               icon={<Icons.SettingOutlined iconSize="l" />}
             />
           </HoverMenu>
@@ -334,13 +346,13 @@ const Row = props => {
                 ...(rowItems.length > 0 && { width: 16 }),
               }}
             >
-              {({ dropIndicatorProps }) =>
+              {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
                 dropIndicatorProps && <div {...dropIndicatorProps} />
               }
             </Droppable>
           )}
           {rowItems.length === 0 && (
-            <div css={emptyRowContentStyles}>{t('Empty row')}</div>
+            <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
           )}
           {rowItems.length > 0 &&
             rowItems.map((componentId, itemIndex) => (
@@ -348,7 +360,7 @@ const Row = props => {
                 <DashboardComponent
                   key={componentId}
                   id={componentId}
-                  parentId={rowComponent.id}
+                  parentId={rowComponent.id as string}
                   depth={depth + 1}
                   index={itemIndex}
                   availableColumnCount={remainColumnCount}
@@ -382,9 +394,11 @@ const Row = props => {
                         itemIndex === rowItems.length - 1 && { width: 16 }),
                     }}
                   >
-                    {({ dropIndicatorProps }) =>
-                      dropIndicatorProps && <div {...dropIndicatorProps} />
-                    }
+                    {({
+                      dropIndicatorProps,
+                    }: {
+                      dropIndicatorProps: JsonObject;
+                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
                   </Droppable>
                 )}
               </Fragment>
@@ -431,8 +445,6 @@ const Row = props => {
       {renderChild}
     </Draggable>
   );
-};
+});
 
-Row.propTypes = propTypes;
-
-export default memo(Row);
+export default Row;
