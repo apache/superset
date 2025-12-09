@@ -29,7 +29,6 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
-    AlertQueryInfoException,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
@@ -823,16 +822,16 @@ class ReportNotTriggeredErrorState(BaseReportState):
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except AlertQueryInfoException as info_ex:
-            self.update_report_schedule_and_log(
-                ReportState.NOOP, error_message=str(info_ex)
-            )
-            return
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -955,14 +954,14 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
-            except AlertQueryInfoException as info_ex:
-                self.update_report_schedule_and_log(
-                    ReportState.NOOP, error_message=str(info_ex)
-                )
-                return
             except Exception as ex:
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"

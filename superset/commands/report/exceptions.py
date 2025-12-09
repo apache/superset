@@ -253,18 +253,6 @@ class AlertQueryTimeout(CommandException):
     message = _("A timeout occurred while executing the query.")
 
 
-class AlertQueryInfoException(CommandException):
-    """
-    Informational exception for alert query results that don't trigger alerts.
-    """
-
-    status = 200
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
-
-
 class ReportScheduleScreenshotTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while taking a screenshot.")

@@ -23,20 +23,17 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.report.alert import AlertCommand
-from superset.commands.report.exceptions import (
-    AlertQueryInfoException,
-    AlertValidatorConfigError,
-)
+from superset.commands.report.exceptions import AlertValidatorConfigError
 from superset.reports.models import ReportScheduleValidatorType, ReportState
 
 
-def test_empty_query_result_with_operator_validator_raises_info_exception(
+def test_empty_query_result_with_operator_validator_returns_false_with_message(
     mocker: MockerFixture,
 ) -> None:
-    """Test that empty results with operator validator raises info exception"""
+    """Test that empty results with operator validator returns (False, message)"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -54,11 +51,11 @@ def test_empty_query_result_with_operator_validator_raises_info_exception(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryInfoException) as exc_info:
-        command.validate()
+    triggered, message = command.run()
 
+    assert triggered is False
     assert command._result is None
-    assert str(exc_info.value) == "Query returned no rows (empty result set)"
+    assert message == "Query returned no rows (empty result set)"
 
 
 @pytest.mark.parametrize(
@@ -77,10 +74,10 @@ def test_empty_result_prevents_false_alerts_for_all_operators(
     operator: str,
     threshold: float,
 ) -> None:
-    """Test that empty results raise info exception for any operator type"""
+    """Test that empty results return (False, message) for any operator type"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -99,12 +96,12 @@ def test_empty_result_prevents_false_alerts_for_all_operators(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryInfoException) as exc_info:
-        command.run()
+    triggered, message = command.run()
 
-    assert str(exc_info.value) == "Query returned no rows (empty result set)", (
-        f"Alert with operator '{operator}' should raise info exception on empty results"
+    assert triggered is False, (
+        f"Alert with operator '{operator}' should not trigger on empty results"
     )
+    assert message == "Query returned no rows (empty result set)"
 
 
 def test_empty_result_flow_sets_noop_state(mocker: MockerFixture) -> None:
@@ -113,7 +110,7 @@ def test_empty_result_flow_sets_noop_state(mocker: MockerFixture) -> None:
 
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -150,7 +147,7 @@ def test_malformed_config_raises_error_with_valid_result(
     """Test that malformed config is detected when result is valid"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -171,13 +168,13 @@ def test_malformed_config_raises_error_with_valid_result(
         command.run()
 
 
-def test_query_returning_null_value_raises_info_exception(
+def test_query_returning_null_value_returns_false_with_message(
     mocker: MockerFixture,
 ) -> None:
-    """Test that query returning NULL value raises info exception"""
+    """Test that query returning NULL value returns (False, message)"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -194,11 +191,11 @@ def test_query_returning_null_value_raises_info_exception(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryInfoException) as exc_info:
-        command.validate()
+    triggered, message = command.run()
 
+    assert triggered is False
     assert command._result is None, "Query returning NULL should set result to None"
-    assert str(exc_info.value) == "Query returned NULL value"
+    assert message == "Query returned NULL value"
 
 
 def test_query_returning_zero_value_sets_result_to_zero(
@@ -207,7 +204,7 @@ def test_query_returning_zero_value_sets_result_to_zero(
     """Test that query returning 0 value sets result to 0.0 (not None)"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -224,21 +221,21 @@ def test_query_returning_zero_value_sets_result_to_zero(
         execution_id=uuid4(),
     )
 
-    command.validate()
-    assert command._result == 0.0, "Query returning 0 should set result to 0.0"
+    triggered, message = command.run()
 
-    triggered = command.run()
+    assert command._result == 0.0, "Query returning 0 should set result to 0.0"
     assert triggered is True, "0 < 0.75 should trigger alert"
+    assert message is None
     assert report_schedule_mock.last_value == 0.0
 
 
-def test_query_returning_nan_value_raises_info_exception(
+def test_query_returning_nan_value_returns_false_with_message(
     mocker: MockerFixture,
 ) -> None:
-    """Test that query returning NaN value raises info exception"""
+    """Test that query returning NaN value returns (False, message)"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -255,11 +252,11 @@ def test_query_returning_nan_value_raises_info_exception(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryInfoException) as exc_info:
-        command.validate()
+    triggered, message = command.run()
 
+    assert triggered is False
     assert command._result is None, "Query returning NaN should set result to None"
-    assert str(exc_info.value) == "Query returned NULL value"
+    assert message == "Query returned NULL value"
 
 
 @pytest.mark.parametrize(
@@ -282,7 +279,7 @@ def test_value_handling_with_valid_numbers(
     """Test proper handling of valid numeric values including 0"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -301,7 +298,7 @@ def test_value_handling_with_valid_numbers(
         execution_id=uuid4(),
     )
 
-    triggered = command.run()
+    triggered, message = command.run()
     assert command._result == expected_result, (
         f"Value {value} should result in {expected_result}, got {command._result}"
     )
@@ -310,6 +307,10 @@ def test_value_handling_with_valid_numbers(
         f"{'trigger' if should_trigger else 'not trigger'} alert"
     )
     assert report_schedule_mock.last_value == expected_result
+    if should_trigger:
+        assert message is None
+    else:
+        assert message is None  # Non-trigger due to threshold, not NULL
 
 
 @pytest.mark.parametrize(
@@ -324,10 +325,10 @@ def test_value_handling_with_null_and_nan(
     value: float | None,
     expected_message: str,
 ) -> None:
-    """Test that NULL and NaN values raise info exceptions"""
+    """Test that NULL and NaN values return (False, message)"""
     mocker.patch(
         "superset.commands.report.alert.retry_call",
-        side_effect=lambda func, **kwargs: func(),
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
     )
     mocker.patch(
         "superset.commands.report.alert.AlertCommand._execute_query",
@@ -344,8 +345,152 @@ def test_value_handling_with_null_and_nan(
         execution_id=uuid4(),
     )
 
-    with pytest.raises(AlertQueryInfoException) as exc_info:
-        command.run()
+    triggered, message = command.run()
 
-    assert str(exc_info.value) == expected_message
+    assert triggered is False
+    assert message == expected_message
+    assert command._result is None
+
+
+def test_not_null_validator_with_valid_value_triggers_alert(
+    mocker: MockerFixture,
+) -> None:
+    """Test NOT_NULL validator triggers with valid non-null value"""
+    mocker.patch(
+        "superset.commands.report.alert.retry_call",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.AlertCommand._execute_query",
+        return_value=pd.DataFrame({"value": [42]}),
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.validator_type = ReportScheduleValidatorType.NOT_NULL
+    report_schedule_mock.id = 1
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    triggered, message = command.run()
+
+    assert triggered is True, "NOT_NULL with valid value should trigger alert"
+    assert command._result == 42
+    assert message is None
+    assert report_schedule_mock.last_value_row_json == "42"
+
+
+def test_not_null_validator_with_null_value_does_not_trigger(
+    mocker: MockerFixture,
+) -> None:
+    """Test NOT_NULL validator normalizes NULL to None and doesn't trigger"""
+    mocker.patch(
+        "superset.commands.report.alert.retry_call",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.AlertCommand._execute_query",
+        return_value=pd.DataFrame({"value": [None]}),
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.validator_type = ReportScheduleValidatorType.NOT_NULL
+    report_schedule_mock.id = 1
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    triggered, message = command.run()
+
+    assert triggered is False, "NOT_NULL with NULL value should not trigger"
+    assert command._result is None
+    assert message == "Query returned NULL value"
+
+
+def test_not_null_validator_with_nan_value_does_not_trigger(
+    mocker: MockerFixture,
+) -> None:
+    """Test NOT_NULL validator normalizes NaN to None and doesn't trigger"""
+    mocker.patch(
+        "superset.commands.report.alert.retry_call",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.AlertCommand._execute_query",
+        return_value=pd.DataFrame({"value": [np.nan]}),
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.validator_type = ReportScheduleValidatorType.NOT_NULL
+    report_schedule_mock.id = 1
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    triggered, message = command.run()
+
+    assert triggered is False, "NOT_NULL with NaN value should not trigger"
+    assert command._result is None
+    assert message == "Query returned NULL value"
+
+
+def test_not_null_validator_with_zero_value_does_not_trigger(
+    mocker: MockerFixture,
+) -> None:
+    """Test NOT_NULL validator with 0 value does not trigger (0 is falsy)"""
+    mocker.patch(
+        "superset.commands.report.alert.retry_call",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.AlertCommand._execute_query",
+        return_value=pd.DataFrame({"value": [0]}),
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.validator_type = ReportScheduleValidatorType.NOT_NULL
+    report_schedule_mock.id = 1
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    triggered, message = command.run()
+
+    assert triggered is False, "NOT_NULL with 0 value should not trigger"
+    assert command._result == 0
+
+
+def test_not_null_validator_with_empty_result_does_not_trigger(
+    mocker: MockerFixture,
+) -> None:
+    """Test NOT_NULL validator with empty result does not trigger"""
+    mocker.patch(
+        "superset.commands.report.alert.retry_call",
+        side_effect=lambda func, *args, **kwargs: func(*args, **kwargs),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.AlertCommand._execute_query",
+        return_value=pd.DataFrame(),
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.validator_type = ReportScheduleValidatorType.NOT_NULL
+    report_schedule_mock.id = 1
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    triggered, message = command.run()
+
+    assert triggered is False, "NOT_NULL with empty result should not trigger"
     assert command._result is None
