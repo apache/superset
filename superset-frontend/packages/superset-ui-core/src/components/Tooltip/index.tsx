@@ -34,20 +34,19 @@ export const Tooltip = ({
   children,
   ...props
 }: TooltipProps) => {
-
   if (typeof title !== 'string') {
-      return (
-        <AntdTooltip
-          title={title}
-          styles={{
-            body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-            root: overlayStyle ?? {},
-          }}
-          {...props}
-        >
-          {children}
-        </AntdTooltip>
-      );
+    return (
+      <AntdTooltip
+        title={title}
+        styles={{
+          body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+          root: overlayStyle ?? {},
+        }}
+        {...props}
+      >
+        {children}
+      </AntdTooltip>
+    );
   }
 
   const [glossaryUrl, description] = resolveGlossaryString(title);

@@ -207,9 +207,7 @@ const config: ControlPanelConfig = {
                 ['156 weeks', t('156 weeks')],
                 ['3 years', t('3 years')],
               ],
-              description: t(
-                TIME_SHIFT_DESCRIPTION,
-              ),
+              description: t(TIME_SHIFT_DESCRIPTION),
             },
           },
           {

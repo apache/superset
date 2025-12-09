@@ -26,7 +26,9 @@ export const GLOSSARY_BASE_URL = 'https://superset.apache.org/docs';
 // Captures: topic and title for lookup in glossary
 const GLOSSARY_ENCODING_PATTERN = /^\[GLOSSARY\]\|([^|]+)\|([^|]+)$/;
 
-export const resolveGlossaryString = (glossaryString: string): [string | undefined, string] => {
+export const resolveGlossaryString = (
+  glossaryString: string,
+): [string | undefined, string] => {
   const encoded = glossaryString.trim();
   const match = encoded.match(GLOSSARY_ENCODING_PATTERN);
   if (!match) {
@@ -34,12 +36,12 @@ export const resolveGlossaryString = (glossaryString: string): [string | undefin
   }
   const topic = match[1];
   const title = match[2];
-  
+
   // Look up the term from the glossary to get the translated description
   const glossaryTopic = getGlossaryTopic(topic);
   const term = glossaryTopic?.getTerm(title);
   const description = term ? term.getShort(t) : encoded;
-  
+
   const glossaryUrl = buildGlossaryUrl(topic, title);
   return [glossaryUrl, description];
 };
