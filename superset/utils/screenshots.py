@@ -28,7 +28,7 @@ from flask import current_app as app
 from superset import feature_flag_manager, thumbnail_cache
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
@@ -227,7 +227,7 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
-        return md5_sha_from_dict(args)
+        return hash_from_dict(args)
 
     def get_from_cache(
         self,
@@ -396,4 +396,4 @@ class DashboardScreenshot(BaseScreenshot):
             "thumb_size": thumb_size,
             "permalink_key": permalink_key,
         }
-        return md5_sha_from_dict(args)
+        return hash_from_dict(args)

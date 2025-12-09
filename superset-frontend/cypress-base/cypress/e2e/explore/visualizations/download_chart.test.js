@@ -39,8 +39,12 @@ describe('Download Chart > Bar chart', () => {
     cy.get('.header-with-actions .ant-dropdown-trigger').click();
     cy.get(':nth-child(3) > .ant-dropdown-menu-submenu-title').click();
     cy.get(
+      '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(1) > .ant-dropdown-menu-submenu-title',
+    ).click();
+    cy.get(
       '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(3)',
     ).click();
+
     cy.verifyDownload('.jpg', {
       contains: true,
       timeout: 25000,

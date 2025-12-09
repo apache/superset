@@ -46,7 +46,7 @@ from superset.utils.core import (
     is_adhoc_metric,
     QueryObjectFilterClause,
 )
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
@@ -499,7 +499,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # datasource or database do not exist
             pass
 
-        cache_key = md5_sha_from_dict(
+        cache_key = hash_from_dict(
             cache_dict, default=json_int_dttm_ser, ignore_nan=True
         )
         # Log QueryObject cache key generation for debugging

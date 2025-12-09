@@ -199,6 +199,32 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+# ---------------------------------------------------------
+# FedRAMP Cryptographic Compliance
+# ---------------------------------------------------------
+
+# Hash algorithm used for non-cryptographic purposes (cache keys, thumbnails, etc.)
+# Options: 'md5' (legacy), 'sha256'
+#
+# IMPORTANT: Changing this value will invalidate all existing cached content.
+# Cache will re-warm naturally within 24-48 hours.
+#
+# For FedRAMP compliance, set to 'sha256'
+# For backward compatibility with existing deployments, keep as 'md5'
+HASH_ALGORITHM: Literal["md5", "sha256"] = "sha256"
+
+# Fallback hash algorithms for UUID lookup (backward compatibility)
+# When looking up entries by UUID, try these algorithms after the primary one fails.
+# This enables gradual migration from MD5 to SHA-256 without breaking existing entries.
+#
+# Example: When HASH_ALGORITHM='sha256', lookups will try:
+#   1. SHA-256 UUID (primary)
+#   2. MD5 UUID (fallback for legacy entries)
+#
+# Set to empty list to disable fallback (strict mode - only use HASH_ALGORITHM)
+HASH_ALGORITHM_FALLBACKS: list[Literal["md5", "sha256"]] = ["md5"]
+
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py
