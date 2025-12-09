@@ -31,7 +31,7 @@ from superset.utils.version import get_version_metadata
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["core"])
 async def health_check(ctx: Context) -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
@@ -48,8 +48,8 @@ async def health_check(ctx: Context) -> HealthCheckResponse:
         HealthCheckResponse: Health status and system information including:
             - status: "healthy" or "error"
             - timestamp: ISO format timestamp
-            - service: Service name from APP_NAME config (e.g., "Superset MCP Service")
-            - version: Superset version string
+            - service: Service name derived from APP_NAME config
+            - version: Application version string
             - python_version: Python version
             - platform: Operating system platform
 

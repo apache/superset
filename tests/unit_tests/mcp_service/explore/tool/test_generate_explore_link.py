@@ -56,6 +56,17 @@ def mock_auth():
         yield mock_get_user
 
 
+@pytest.fixture(autouse=True)
+def mock_webdriver_baseurl(app_context):
+    """Mock WEBDRIVER_BASEURL_USER_FRIENDLY for consistent test URLs."""
+    from flask import current_app
+
+    original_value = current_app.config.get("WEBDRIVER_BASEURL_USER_FRIENDLY")
+    current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = "http://localhost:9001/"
+    yield
+    current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = original_value
+
+
 def _mock_dataset(id: int = 1) -> Mock:
     """Create a mock dataset object."""
     dataset = Mock()

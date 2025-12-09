@@ -191,7 +191,125 @@ This registers your API with Superset when the extension loads.
 
 ## Step 5: Create Frontend Component
 
-The CLI generated boilerplate files. The webpack config and package.json are already properly configured with Module Federation.
+The CLI generates the frontend configuration files. Below are the key configurations that enable Module Federation integration with Superset.
+
+**`frontend/package.json`**
+
+The `@apache-superset/core` package must be listed in both `peerDependencies` (to declare runtime compatibility) and `devDependencies` (to provide TypeScript types during build):
+
+```json
+{
+  "name": "hello_world",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "webpack serve --mode development",
+    "build": "webpack --stats-error-details --mode production"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "^x.x.x",
+    "react": "^x.x.x",
+    "react-dom": "^x.x.x"
+  },
+  "devDependencies": {
+    "@apache-superset/core": "^x.x.x",
+    "@types/react": "^x.x.x",
+    "ts-loader": "^x.x.x",
+    "typescript": "^x.x.x",
+    "webpack": "^5.x.x",
+    "webpack-cli": "^x.x.x",
+    "webpack-dev-server": "^x.x.x"
+  }
+}
+```
+
+**`frontend/webpack.config.js`**
+
+The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and `externals` to map `@apache-superset/core` to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting:
+
+```javascript
+const path = require("path");
+const { ModuleFederationPlugin } = require("webpack").container;
+const packageConfig = require("./package.json");
+
+module.exports = (env, argv) => {
+  const isProd = argv.mode === "production";
+
+  return {
+    entry: isProd ? {} : "./src/index.tsx",
+    mode: isProd ? "production" : "development",
+    devServer: {
+      port: 3001,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+    },
+    output: {
+      filename: isProd ? undefined : "[name].[contenthash].js",
+      chunkFilename: "[name].[contenthash].js",
+      clean: true,
+      path: path.resolve(__dirname, "dist"),
+      publicPath: `/api/v1/extensions/${packageConfig.name}/`,
+    },
+    resolve: {
+      extensions: [".ts", ".tsx", ".js", ".jsx"],
+    },
+    // Map @apache-superset/core imports to window.superset at runtime
+    externalsType: "window",
+    externals: {
+      "@apache-superset/core": "superset",
+    },
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          use: "ts-loader",
+          exclude: /node_modules/,
+        },
+      ],
+    },
+    plugins: [
+      new ModuleFederationPlugin({
+        name: packageConfig.name,
+        filename: "remoteEntry.[contenthash].js",
+        exposes: {
+          "./index": "./src/index.tsx",
+        },
+        shared: {
+          react: {
+            singleton: true,
+            requiredVersion: packageConfig.peerDependencies.react,
+            import: false, // Use host's React, don't bundle
+          },
+          "react-dom": {
+            singleton: true,
+            requiredVersion: packageConfig.peerDependencies["react-dom"],
+            import: false,
+          },
+        },
+      }),
+    ],
+  };
+};
+```
+
+**`frontend/tsconfig.json`**
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "jsx": "react",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}
+```
 
 **Create `frontend/src/HelloWorldPanel.tsx`**
 
