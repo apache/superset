@@ -413,7 +413,7 @@ class DBEventLogger(AbstractEventLogger):
             logging.exception(ex)
             # Rollback to clean up the session state
             try:
-                db.session.rollback()
+                db.session.rollback()  # pylint: disable=consider-using-transaction
             except Exception:  # pylint: disable=broad-except
                 # If rollback also fails, just continue - don't let issues crash the app
                 logging.error(

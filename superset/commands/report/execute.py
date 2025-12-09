@@ -195,7 +195,7 @@ class BaseReportState:
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Report schedule (execution %s) was modified or deleted "
                 "during execution. This can occur when a report is deleted "
