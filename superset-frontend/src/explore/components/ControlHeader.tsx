@@ -95,9 +95,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         {description && (
           <span>
             <Tooltip title={description}>
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
-              />
+              <Icons.InfoCircleOutlined css={iconStyles} />
             </Tooltip>{' '}
           </span>
         )}

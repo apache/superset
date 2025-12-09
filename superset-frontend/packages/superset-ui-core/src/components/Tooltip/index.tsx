@@ -37,20 +37,19 @@ export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
   children,
   ...props
 }, ref) => {
-
   if (typeof title !== 'string') {
-      return (
-        <AntdTooltip
-          title={title}
-          styles={{
-            body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-            root: overlayStyle ?? {},
-          }}
-          {...props}
-        >
-          {children}
-        </AntdTooltip>
-      );
+    return (
+      <AntdTooltip
+        title={title}
+        styles={{
+          body: { overflow: 'hidden', textOverflow: 'ellipsis' },
+          root: overlayStyle ?? {},
+        }}
+        {...props}
+      >
+        {children}
+      </AntdTooltip>
+    );
   }
 
   const [glossaryUrl, description] = resolveGlossaryString(title);

@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { GlossaryMap, GlossaryTerm, type GlossaryTopic } from './glossaryModels';
+import {
+  GlossaryMap,
+  GlossaryTerm,
+  type GlossaryTopic,
+} from './glossaryModels';
 import { glossaryDefinition } from './glossary';
 
 /**
@@ -49,9 +53,11 @@ const glossary: Glossary = Object.fromEntries(
 
 const glossaryMap = new GlossaryMap(glossary);
 
-export const getAllGlossaryTopics = (): GlossaryTopic[] => glossaryMap.getAllTopics();
+export const getAllGlossaryTopics = (): GlossaryTopic[] =>
+  glossaryMap.getAllTopics();
 
-export const getGlossaryTopic = (topicName: string): GlossaryTopic | undefined =>
-  glossaryMap.getTopic(topicName);
+export const getGlossaryTopic = (
+  topicName: string,
+): GlossaryTopic | undefined => glossaryMap.getTopic(topicName);
 
 export default glossary;

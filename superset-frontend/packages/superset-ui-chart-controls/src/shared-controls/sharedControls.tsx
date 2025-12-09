@@ -239,9 +239,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t(
-    ROW_LIMIT_DESCRIPTION,
-  ),
+  description: t(ROW_LIMIT_DESCRIPTION),
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
