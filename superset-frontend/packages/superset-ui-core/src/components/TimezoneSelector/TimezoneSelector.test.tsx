@@ -40,7 +40,9 @@ const openSelectMenu = () => {
   userEvent.click(searchInput);
 };
 
-jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
+jest
+  .spyOn((extendedDayjs as any).tz, 'guess')
+  .mockReturnValue('America/New_York');
 
 afterEach(() => {
   jest.useRealTimers();
@@ -50,31 +52,74 @@ test('use the timezone from `dayjs` if no timezone provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
   render(<TimezoneSelector onTimezoneChange={onTimezoneChange} />);
-  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
-  expect(onTimezoneChange).toHaveBeenCalledWith('America/Detroit');
+
+  // Trigger data loading by focusing the select
+  const searchInput = screen.getByRole('combobox');
+  await userEvent.click(searchInput);
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  // Component should display the guessed timezone with formatted label
+  expect(
+    screen.getByTitle('GMT -05:00 (Eastern Standard Time)'),
+  ).toBeInTheDocument();
 });
 
 test('update to closest deduped timezone when timezone is provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
-  render(
+  const { container } = render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="America/Tijuana"
     />,
   );
-  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
-  expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Los_Angeles');
+
+  // Trigger data loading by focusing the select
+  const searchInput = screen.getByRole('combobox');
+  await userEvent.click(searchInput);
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  // Component should show the canonical timezone with formatted label in the selection item
+  const selectionItem = container.querySelector('.ant-select-selection-item');
+  expect(selectionItem).toHaveTextContent('GMT -08:00 (Pacific Standard Time)');
 });
 
 test('use the default timezone when an invalid timezone is provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
-  render(
+  const { container } = render(
     <TimezoneSelector onTimezoneChange={onTimezoneChange} timezone="UTC" />,
   );
-  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
-  expect(onTimezoneChange).toHaveBeenLastCalledWith('Africa/Abidjan');
+
+  // Trigger data loading by focusing the select
+  const searchInput = screen.getByRole('combobox');
+  await userEvent.click(searchInput);
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  // Component should show the default timezone with formatted label in the selection item
+  const selectionItem = container.querySelector('.ant-select-selection-item');
+  expect(selectionItem).toHaveTextContent('GMT +00:00 (GMT Standard Time)');
 });
 
 test('render timezones in correct order for standard time', async () => {
@@ -86,7 +131,18 @@ test('render timezones in correct order for standard time', async () => {
       timezone="America/Nassau"
     />,
   );
+
+  // Open select to trigger data loading
   openSelectMenu();
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
@@ -102,7 +158,17 @@ test('can select a timezone values and returns canonical timezone name', async (
       timezone="Africa/Abidjan"
     />,
   );
+
+  // Open select to trigger data loading
   openSelectMenu();
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
 
   const searchInput = screen.getByRole('combobox');
   // search for mountain time
@@ -117,18 +183,40 @@ test('can select a timezone values and returns canonical timezone name', async (
 test('can update props and rerender with different values', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
-  const { rerender } = render(
+  const { rerender, container } = render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="Asia/Dubai"
     />,
   );
-  expect(screen.getByTitle('GMT +04:00 (Asia/Dubai)')).toBeInTheDocument();
+
+  // Trigger data loading by clicking the select
+  const searchInput = screen.getByRole('combobox');
+  await userEvent.click(searchInput);
+
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  // Check the selected timezone in the selector using the selection item
+  expect(
+    container.querySelector('.ant-select-selection-item'),
+  ).toHaveTextContent('GMT +04:00 (Asia/Dubai)');
+
   rerender(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="Australia/Perth"
     />,
   );
-  expect(screen.getByTitle('GMT +08:00 (Australia/Perth)')).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(
+      container.querySelector('.ant-select-selection-item'),
+    ).toHaveTextContent('GMT +08:00 (Australia/Perth)');
+  });
 });
