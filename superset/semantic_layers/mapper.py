@@ -38,20 +38,27 @@ from superset.models.helpers import QueryResult
 from superset.semantic_layers.types import (
     AdhocExpression,
     AdhocFilter,
-    DateGrain,
+    Day,
     Dimension,
     Filter,
     FilterValues,
+    Grain,
     GroupLimit,
+    Hour,
     Metric,
+    Minute,
+    Month,
     Operator,
     OrderDirection,
     OrderTuple,
     PredicateType,
+    Quarter,
+    Second,
     SemanticQuery,
     SemanticResult,
     SemanticViewFeature,
-    TimeGrain,
+    Week,
+    Year,
 )
 from superset.utils.core import (
     FilterOperator,
@@ -696,17 +703,25 @@ def _get_group_limit_filters(
     return filters if filters else None
 
 
-def _convert_time_grain(time_grain: str) -> TimeGrain | DateGrain | None:
+def _convert_time_grain(time_grain: str) -> Grain | None:
     """
-    Convert a time grain string from the query object to a TimeGrain or DateGrain enum.
+    Convert a time grain string from the query object to a Grain enum.
     """
-    if time_grain in TimeGrain.__members__:
-        return TimeGrain[time_grain]
+    mapping = {
+        grain.representation: grain
+        for grain in [
+            Second,
+            Minute,
+            Hour,
+            Day,
+            Week,
+            Month,
+            Quarter,
+            Year,
+        ]
+    }
 
-    if time_grain in DateGrain.__members__:
-        return DateGrain[time_grain]
-
-    return None
+    return mapping.get(time_grain)
 
 
 def validate_query_object(

@@ -20,6 +20,7 @@ from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
 from urllib import parse
+from uuid import UUID
 
 import msgpack
 import pyarrow as pa
@@ -272,8 +273,10 @@ def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
 
 
 def get_datasource_info(
-    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
-) -> tuple[int, Optional[str]]:
+    datasource_id: Optional[int],
+    datasource_type: Optional[str],
+    form_data: FormData,
+) -> tuple[int | UUID, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
 
@@ -300,7 +303,11 @@ def get_datasource_info(
             _("The dataset associated with this chart no longer exists")
         )
 
-    datasource_id = int(datasource_id)
+    if datasource_id.isdigit():
+        datasource_id = int(datasource_id)
+    else:
+        datasource_id = UUID(datasource_id)
+
     return datasource_id, datasource_type
 
 

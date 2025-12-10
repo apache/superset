@@ -117,7 +117,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     # Core fields
     name = Column(String(250), nullable=False)
     description = Column(Text, nullable=True)
-    type = Column(String(250), nullable=False)
+    type = Column(String(250), nullable=False)  # snowflake, etc
 
     configuration = Column(encrypted_field_factory.create(Text), default="{}")
     cache_timeout = Column(Integer, nullable=True)
@@ -172,6 +172,7 @@ class SemanticView(AuditMixinNullable, Model):
 
     # Core fields
     name = Column(String(250), nullable=False)
+    description = Column(Text, nullable=True)
 
     configuration = Column(encrypted_field_factory.create(Text), default="{}")
     cache_timeout = Column(Integer, nullable=True)
@@ -304,7 +305,7 @@ class SemanticView(AuditMixinNullable, Model):
             "sql": None,
             "select_star": None,
             "owners": [owner.id for owner in self.owners],
-            "description": None,
+            "description": self.description,
             "table_name": self.name,
             "column_types": [
                 get_column_type(dimension.type)

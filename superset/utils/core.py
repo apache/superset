@@ -200,6 +200,7 @@ class DatasourceType(StrEnum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+    SEMANTIC_VIEW = "semantic_view"
 
 
 class LoggerLevel(StrEnum):

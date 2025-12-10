@@ -233,4 +233,38 @@ class SnowflakeSemanticLayer(
                 SnowflakeSemanticView(row[0], configuration)
                 for row in cursor.execute(query)
             }
-            return views
+
+        return views
+
+    def get_semantic_view(
+        self,
+        name: str,
+        additional_configuration: dict[str, Any],
+    ) -> SnowflakeSemanticView:
+        """
+        Get a specific semantic view by name.
+        """
+        # Avoid circular import
+        from superset.semantic_layers.snowflake.semantic_view import (
+            SnowflakeSemanticView,
+        )
+
+        # create a new configuration with the additional parameters
+        configuration = self.configuration.model_copy(update=additional_configuration)
+
+        # check that the semantic view exists
+        connection_parameters = get_connection_parameters(configuration)
+        with connect(**connection_parameters) as connection:
+            cursor = connection.cursor()
+            query = dedent(
+                """
+                SHOW SEMANTIC VIEWS
+                    ->> SELECT "name" FROM $1 WHERE "name" = ?;
+                """
+            ).strip()
+            cursor.execute(query, (name,))
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f'Semantic view "{name}" does not exist.')
+
+        return SnowflakeSemanticView(name, configuration)

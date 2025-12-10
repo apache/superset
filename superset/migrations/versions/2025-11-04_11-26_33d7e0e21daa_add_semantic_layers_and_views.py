@@ -25,6 +25,7 @@ Create Date: 2025-11-04 11:26:00.000000
 import uuid
 
 import sqlalchemy as sa
+from sqlalchemy.types import JSON
 from sqlalchemy_utils import UUIDType
 
 from superset.extensions import encrypted_field_factory
@@ -51,7 +52,7 @@ def upgrade():
         sa.Column("type", sa.String(length=250), nullable=False),
         sa.Column(
             "configuration",
-            encrypted_field_factory.create(sa.Text),
+            encrypted_field_factory.create(JSON),
             nullable=True,
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
@@ -84,9 +85,10 @@ def upgrade():
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("name", sa.String(length=250), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
             "configuration",
-            encrypted_field_factory.create(sa.Text),
+            encrypted_field_factory.create(JSON),
             nullable=True,
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
