@@ -452,3 +452,5 @@ zstandard==0.23.0
 Pillow
 
 APScheduler
+hdbcli
+sqlalchemy-hana
