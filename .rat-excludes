@@ -35,9 +35,6 @@ apache_superset.egg-info
 .*csv
 # jinja templates often need to be as-is
 .*j2
-# Static images for doc
-docs/static/img/logos/*
-docs/static/img/logos/.*svg
 # Generated doc files
 env/*
 docs/.htaccess*
@@ -78,6 +75,10 @@ postgresql.svg
 snowflake.svg
 ydb.svg
 loading.svg
+
+# Static images for doc
+docs/static/img/logos/*.svg
+docs/static/img/logos/*
 
 # docs-related
 erd.puml
