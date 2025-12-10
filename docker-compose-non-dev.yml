@@ -25,7 +25,7 @@
 # - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-volumes:
-  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  &superset-volumes
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
@@ -42,12 +42,14 @@ services:
     restart: unless-stopped
     volumes:
       - redis:/data
+    networks:
+      - databricks-net
 
   db:
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     image: postgres:16
     container_name: superset_db
@@ -55,12 +57,14 @@ services:
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - databricks-net
 
   superset:
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     build:
       <<: *common-build
@@ -74,6 +78,8 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
+    networks:
+      - databricks-net
 
   superset-init:
     container_name: superset_init
@@ -81,9 +87,9 @@ services:
       <<: *common-build
     command: ["/app/docker/docker-init.sh"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     depends_on:
       db:
@@ -92,6 +98,8 @@ services:
         condition: service_started
     user: "root"
     volumes: *superset-volumes
+    networks:
+      - databricks-net
     healthcheck:
       disable: true
 
@@ -101,9 +109,9 @@ services:
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     restart: unless-stopped
     depends_on:
@@ -111,6 +119,8 @@ services:
         condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
+    networks:
+      - databricks-net
     healthcheck:
       test:
         [
@@ -124,9 +134,9 @@ services:
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     restart: unless-stopped
     depends_on:
@@ -134,6 +144,8 @@ services:
         condition: service_completed_successfully
     user: "root"
     volumes: *superset-volumes
+    networks:
+      - databricks-net
     healthcheck:
       disable: true
 
@@ -144,3 +156,8 @@ volumes:
     external: false
   redis:
     external: false
+
+networks:
+  databricks-net:
+    name: pipe-line_databricks-net
+    external: true
