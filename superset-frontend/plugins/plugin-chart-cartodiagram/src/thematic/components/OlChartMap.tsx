@@ -61,7 +61,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     data,
     emitCrossFilters,
     filterState,
-    idColumn,
+    crossFilterColumn,
     geomColumn,
     geomFormat,
     olMap,
@@ -624,7 +624,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         return;
       }
 
-      const val = clickedFeature.get(idColumn);
+      const val = clickedFeature.get(crossFilterColumn);
       if (val === undefined || val === null) {
         return;
       }
@@ -638,15 +638,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
             ? []
             : [
                 {
-                  col: idColumn,
+                  col: crossFilterColumn,
                   op: '==',
                   val,
                 },
               ],
         },
         filterState: {
-          label: resetFilter ? null : idColumn,
-          value: resetFilter ? null : idColumn,
+          label: resetFilter ? null : crossFilterColumn,
+          value: resetFilter ? null : crossFilterColumn,
           selectedValues: resetFilter ? null : val,
         },
       });
@@ -659,7 +659,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     olMap,
     currentDataLayers,
     setDataMask,
-    idColumn,
+    crossFilterColumn,
     emitCrossFilters,
     filterState,
   ]);
