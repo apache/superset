@@ -115,7 +115,7 @@ const fetchWithData = () => {
 };
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.hardReset();
   supersetGetCache.clear();
 });
 

@@ -90,7 +90,7 @@ describe('ResultsPaneOnDashboard', () => {
   const setForceQuery = jest.fn();
 
   afterAll(() => {
-    fetchMock.reset();
+    fetchMock.hardReset();
     jest.resetAllMocks();
   });
 

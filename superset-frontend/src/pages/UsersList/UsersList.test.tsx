@@ -107,7 +107,7 @@ describe('UsersList', () => {
     return mounted;
   }
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {

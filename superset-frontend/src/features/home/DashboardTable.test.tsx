@@ -129,13 +129,10 @@ describe('DashboardTable', () => {
       }),
     );
 
-    fetchMock.get(
-      'glob:*/api/v1/dashboard/*',
-      {
-        result: mockDashboards[0],
-      },
-      { overwriteRoutes: true },
-    ); // Add overwriteRoutes option
+    fetchMock.get('glob:*/api/v1/dashboard/*', {
+      result: mockDashboards[0],
+    }); // Add overwriteRoutes option
+
 
     // Mock loading state for first render
     jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({

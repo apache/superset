@@ -133,7 +133,7 @@ getChartMetadataRegistry().registerValue(
 
 afterEach(() => {
   supersetGetCache.clear();
-  fetchMock.restore();
+  fetchMock.hardReset();
 });
 
 test('render disabled menu item for unsupported chart', async () => {

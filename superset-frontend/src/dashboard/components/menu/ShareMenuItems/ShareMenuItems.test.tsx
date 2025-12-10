@@ -52,10 +52,7 @@ beforeAll((): void => {
   delete window.location;
   fetchMock.post(
     `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
-    {
-      sendAsJson: true,
-    },
+    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' }
   );
 });
 
@@ -190,8 +187,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 test('Click on "Share dashboard by email" and fail', async () => {
   fetchMock.post(
     `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { status: 404 },
-    { overwriteRoutes: true },
+    { status: 404 }
   );
   const props = createProps();
   render(

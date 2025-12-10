@@ -33,7 +33,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const createProps = () =>
-  ({
+  (({
     slice: {
       cache_timeout: null,
       certified_by: 'John Doe',
@@ -43,6 +43,7 @@ const createProps = () =>
       slice_name: 'Age distribution of respondents',
       is_managed_externally: false,
     },
+
     show: true,
     onHide: jest.fn(),
     onSave: jest.fn(),
@@ -115,8 +116,7 @@ fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
         value: 1,
       },
     ],
-  },
-  sendAsJson: true,
+  }
 });
 
 fetchMock.put('glob:*/api/v1/chart/318', {
@@ -130,12 +130,12 @@ fetchMock.put('glob:*/api/v1/chart/318', {
       owners: [],
       slice_name: 'Age distribution of respondents',
     },
-  },
-  sendAsJson: true,
+  }
 });
 
 afterAll(() => {
-  fetchMock.resetBehavior();
+  fetchMock.removeRoutes();
+  fetchMock.unmockGlobal();
 });
 
 const renderModal = (props: PropertiesModalProps) =>

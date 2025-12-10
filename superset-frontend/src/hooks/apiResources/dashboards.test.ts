@@ -53,7 +53,7 @@ describe('useDashboardDatasets', () => {
   ];
 
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.hardReset();
   });
 
   test('adds currencyFormats to datasets', async () => {

@@ -94,7 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.hardReset();
 });
 
 // Helper function to get common elements
@@ -436,6 +436,7 @@ describe('UploadDataModal - Form Validation', () => {
     });
   });
 });
+
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UploadDataModal - Form Submission', () => {

@@ -84,9 +84,8 @@ test('creates email anchor', async () => {
 });
 
 test('renders error message on short url error', async () => {
-  fetchMock.mock(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500, {
-    overwriteRoutes: true,
-  });
+  fetchMock.route(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, 500);
+
 
   render(
     <>

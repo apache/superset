@@ -68,7 +68,7 @@ const createProps = (extraProps: JsonObject = {}) => ({
 });
 
 afterAll(() => {
-  fetchMock.restore();
+  fetchMock.hardReset();
 });
 
 test('Should render', async () => {

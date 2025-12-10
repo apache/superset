@@ -122,7 +122,7 @@ describe('RolesList', () => {
     return mounted;
   }
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {

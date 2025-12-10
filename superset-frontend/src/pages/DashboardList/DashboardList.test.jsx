@@ -82,7 +82,9 @@ fetchMock.get(dashboardEndpoint, {
 });
 
 global.URL.createObjectURL = jest.fn();
-fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
+fetchMock.get('/thumbnail', {
+  body: new Blob()
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardList', () => {
@@ -100,7 +102,7 @@ describe('DashboardList', () => {
     isFeatureEnabled.mockImplementation(
       feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   afterEach(() => {
@@ -126,6 +128,7 @@ describe('DashboardList', () => {
       expect(calls).toHaveLength(1);
     });
   });
+
 
   test('fetches data', async () => {
     renderDashboardList();

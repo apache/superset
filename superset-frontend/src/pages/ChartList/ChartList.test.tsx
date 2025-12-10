@@ -74,8 +74,8 @@ describe('ChartList', () => {
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
+    fetchMock.hardReset();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -128,13 +128,10 @@ describe('ChartList', () => {
 
   test('shows loading state during initial data fetch', async () => {
     // Delay the chart data response to test loading state
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
-      ),
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(API_ENDPOINTS.CHARTS, new Promise(resolve =>
+      setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
+    ));
+
 
     renderChartList(mockUser);
 
@@ -153,6 +150,7 @@ describe('ChartList', () => {
   test('makes correct API calls on initial load', async () => {
     renderChartList(mockUser);
 
+
     await waitFor(() => {
       const infoCalls = fetchMock.calls(/chart\/_info/);
       const dataCalls = fetchMock.calls(/chart\/\?q/);
@@ -167,29 +165,24 @@ describe('ChartList', () => {
 
   test('shows loading state while API calls are in progress', async () => {
     // Mock delayed API responses
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS_INFO,
-      new Promise(resolve =>
-        setTimeout(
-          () => resolve({ permissions: ['can_read', 'can_write'] }),
-          100,
-        ),
+    fetchMock.get(API_ENDPOINTS.CHARTS_INFO, new Promise(resolve =>
+      setTimeout(
+        () => resolve({ permissions: ['can_read', 'can_write'] }),
+        100,
       ),
-      { overwriteRoutes: true },
-    );
+    ));
 
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
-      ),
-      { overwriteRoutes: true },
-    );
+
+    fetchMock.get(API_ENDPOINTS.CHARTS, new Promise(resolve =>
+      setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
+    ));
+
 
     renderChartList(mockUser);
 
     // Main container should render immediately
     expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+
 
     // Eventually data should load
     await waitFor(
@@ -206,13 +199,10 @@ describe('ChartList', () => {
 
   test('maintains component structure during loading', async () => {
     // Only delay data loading, not permissions
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
-      ),
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(API_ENDPOINTS.CHARTS, new Promise(resolve =>
+      setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
+    ));
+
 
     renderChartList(mockUser);
 
@@ -247,11 +237,8 @@ describe('ChartList', () => {
 
   test('handles API errors gracefully', async () => {
     // Mock API failure
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS_INFO,
-      { throws: new Error('API Error') },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(API_ENDPOINTS.CHARTS_INFO, { throws: new Error('API Error') });
+
 
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
@@ -262,11 +249,8 @@ describe('ChartList', () => {
 
   test('handles empty results', async () => {
     // Mock empty chart data (not permissions)
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      { result: [], chart_count: 0 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(API_ENDPOINTS.CHARTS, { result: [], chart_count: 0 });
+
 
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
@@ -292,8 +276,8 @@ describe('ChartList - Global Filter Interactions', () => {
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
+    fetchMock.hardReset();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>

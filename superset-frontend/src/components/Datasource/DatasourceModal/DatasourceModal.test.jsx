@@ -64,7 +64,7 @@ async function renderAndWait(props = mockedProps) {
 }
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.hardReset();
   cleanup();
   renderAndWait();
   fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);

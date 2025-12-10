@@ -43,15 +43,16 @@ const createProps = (props = {}) => ({
 });
 
 const getTableMockFunction = () =>
-  ({
+  (({
     count: 4,
+
     result: [
       { label: 'table_a', value: 'table_a' },
       { label: 'table_b', value: 'table_b' },
       { label: 'table_c', value: 'table_c' },
       { label: 'table_d', value: 'table_d' },
-    ],
-  }) as any;
+    ]
+  }) as any);
 
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
 const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
@@ -77,7 +78,7 @@ afterEach(async () => {
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
-  fetchMock.reset();
+  fetchMock.hardReset();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
 });

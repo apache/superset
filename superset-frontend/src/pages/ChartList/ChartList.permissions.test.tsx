@@ -126,13 +126,9 @@ const renderChartList = (
 
 // Setup API permissions mock
 const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.CHARTS_INFO,
-    {
-      permissions,
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(API_ENDPOINTS.CHARTS_INFO, {
+    permissions,
+  });
 };
 
 // Render with permissions and wait for load
@@ -180,8 +176,8 @@ describe('ChartList - Permission-based UI Tests', () => {
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
+    fetchMock.hardReset();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();

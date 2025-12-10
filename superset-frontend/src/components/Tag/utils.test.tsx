@@ -42,12 +42,13 @@ describe('tagToSelectOption', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('loadTags', () => {
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.hardReset();
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
+
 
   test('constructs correct API query with custom tag filter', async () => {
     const mockTags = [
@@ -110,6 +111,7 @@ describe('loadTags', () => {
     });
   });
 
+
   test('handles search parameter correctly', async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
@@ -133,6 +135,7 @@ describe('loadTags', () => {
     });
   });
 
+
   test('handles pagination parameters correctly', async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
       result: [],
@@ -151,6 +154,7 @@ describe('loadTags', () => {
     expect(decodedQuery.page).toBe(2);
     expect(decodedQuery.page_size).toBe(10);
   });
+
 
   test('always includes custom tag filter regardless of other parameters', async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {
@@ -181,6 +185,7 @@ describe('loadTags', () => {
       });
     });
   });
+
 
   test('maintains correct order specification', async () => {
     fetchMock.get('glob:*/api/v1/tag/*', {

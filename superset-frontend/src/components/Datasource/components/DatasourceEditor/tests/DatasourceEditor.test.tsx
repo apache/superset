@@ -82,7 +82,7 @@ describe('DatasourceEditor', () => {
     jest.clearAllMocks();
   });
   beforeEach(async () => {
-    fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+    fetchMock.get(DATASOURCE_ENDPOINT, []);
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
@@ -90,8 +90,7 @@ describe('DatasourceEditor', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
-    // jest.clearAllMocks();
+    fetchMock.hardReset();
   });
 
   test('renders Tabs', () => {
@@ -107,14 +106,10 @@ describe('DatasourceEditor', () => {
 
     // Use a Promise to track when fetchMock is called
     const fetchPromise = new Promise<string>(resolve => {
-      fetchMock.get(
-        DATASOURCE_ENDPOINT,
-        (url: string) => {
-          resolve(url);
-          return [];
-        },
-        { overwriteRoutes: true },
-      );
+      fetchMock.get(DATASOURCE_ENDPOINT, (url: string) => {
+        resolve(url);
+        return [];
+      });
     });
 
     await userEvent.click(syncButton);
@@ -233,7 +228,7 @@ describe('DatasourceEditor Source Tab', () => {
   });
 
   beforeEach(async () => {
-    fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+    fetchMock.get(DATASOURCE_ENDPOINT, []);
     await asyncRender({
       ...props,
       datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
@@ -241,7 +236,7 @@ describe('DatasourceEditor Source Tab', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
 
   afterAll(() => {

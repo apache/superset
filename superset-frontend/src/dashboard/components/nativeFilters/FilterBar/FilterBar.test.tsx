@@ -127,35 +127,24 @@ describe('FilterBar', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27No%20filter%27',
-      {
-        result: { since: '', until: '', timeRange: 'No filter' },
+    fetchMock.get('glob:*/api/v1/time_range/?q=%27No%20filter%27', {
+      result: { since: '', until: '', timeRange: 'No filter' },
+    });
+    fetchMock.get('glob:*/api/v1/time_range/?q=%27Last%20day%27', {
+      result: {
+        since: '2021-04-13T00:00:00',
+        until: '2021-04-14T00:00:00',
+        timeRange: 'Last day',
       },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20day%27',
-      {
-        result: {
-          since: '2021-04-13T00:00:00',
-          until: '2021-04-14T00:00:00',
-          timeRange: 'Last day',
-        },
+    });
+    fetchMock.get('glob:*/api/v1/time_range/?q=%27Last%20week%27', {
+      result: {
+        since: '2021-04-07T00:00:00',
+        until: '2021-04-14T00:00:00',
+        timeRange: 'Last week',
       },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20week%27',
-      {
-        result: {
-          since: '2021-04-07T00:00:00',
-          until: '2021-04-14T00:00:00',
-          timeRange: 'Last week',
-        },
-      },
-      { overwriteRoutes: true },
-    );
+    });
+
 
     mockedMakeApi.mockReturnValue(mockApi);
   });

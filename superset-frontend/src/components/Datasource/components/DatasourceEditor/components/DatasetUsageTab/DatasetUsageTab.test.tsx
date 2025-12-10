@@ -119,14 +119,14 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.hardReset();
   jest.clearAllMocks();
   // Mock scrollTo for all tests
   Element.prototype.scrollTo = jest.fn();
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.hardReset();
   // Restore original scrollTo implementation after each test
   Element.prototype.scrollTo = originalScrollTo;
 });

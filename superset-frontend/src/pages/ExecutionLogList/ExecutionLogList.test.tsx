@@ -71,6 +71,7 @@ describe('ExecutionLog', () => {
     expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
   });
 
+
   test('fetches report/alert', () => {
     const callsQ = fetchMock.calls(/report\/1/);
     expect(callsQ).toHaveLength(2);
@@ -78,6 +79,7 @@ describe('ExecutionLog', () => {
       `"http://localhost/api/v1/report/1"`,
     );
   });
+
 
   test('fetches execution logs', () => {
     const callsQ = fetchMock.calls(/report\/1\/log/);

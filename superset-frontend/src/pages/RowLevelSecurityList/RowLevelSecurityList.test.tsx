@@ -121,32 +121,25 @@ describe('RuleList RTL', () => {
     expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
   });
 
+
   test('fetched data', async () => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     await renderAndWait();
     const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
     expect(apiCalls).toHaveLength(1);
     expect(apiCalls[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders add rule button on empty state', async () => {
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(ruleListEndpoint, { result: [], count: 0 });
     await renderAndWait();
 
     const emptyAddRuleButton = await screen.findByTestId('add-rule-empty');
     expect(emptyAddRuleButton).toBeInTheDocument();
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: mockRules, count: 2 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(ruleListEndpoint, { result: mockRules, count: 2 });
   });
 
   test('renders a "Rule" button to add a rule in bulk action', async () => {
@@ -200,11 +193,8 @@ describe('RuleList RTL', () => {
   });
 
   test('should not renders correct action buttons without write permission', async () => {
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read'] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(ruleInfoEndpoint, { permissions: ['can_read'] });
+
 
     await renderAndWait();
 
@@ -214,11 +204,7 @@ describe('RuleList RTL', () => {
     const editActionIcon = screen.queryByTestId('edit-alt');
     expect(editActionIcon).not.toBeInTheDocument();
 
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read', 'can_write'] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.get(ruleInfoEndpoint, { permissions: ['can_read', 'can_write'] });
   });
 
   test('renders popover on new clicking rule button', async () => {

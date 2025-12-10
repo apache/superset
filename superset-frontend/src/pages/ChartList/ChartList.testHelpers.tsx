@@ -279,7 +279,7 @@ export const API_ENDPOINTS = {
 };
 
 export const setupMocks = () => {
-  fetchMock.reset();
+  fetchMock.hardReset();
 
   fetchMock.get(API_ENDPOINTS.CHARTS_INFO, {
     permissions: ['can_read', 'can_write', 'can_export'],
@@ -304,8 +304,7 @@ export const setupMocks = () => {
   });
 
   fetchMock.get(API_ENDPOINTS.CHART_THUMBNAILS, {
-    body: new Blob(),
-    sendAsJson: false,
+    body: new Blob()
   });
 
   fetchMock.get(API_ENDPOINTS.DATASETS, {

@@ -113,7 +113,7 @@ describe('DataTablesPane', () => {
     const value = await copyToClipboardSpy.mock.calls[0][0]();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
 
   test('Should not allow copy data table content when canDownload=false', async () => {
@@ -141,7 +141,7 @@ describe('DataTablesPane', () => {
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
     expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
 
   test('Search table', async () => {
@@ -177,7 +177,7 @@ describe('DataTablesPane', () => {
     await waitForElementToBeRemoved(() => screen.queryByText('Action'));
     expect(screen.getByText('Horror')).toBeVisible();
     expect(screen.queryByText('Action')).not.toBeInTheDocument();
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
 
   test('Displaying the data pane is under featureflag', () => {

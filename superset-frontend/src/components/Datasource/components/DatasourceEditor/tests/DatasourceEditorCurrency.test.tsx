@@ -36,11 +36,11 @@ const fastRender = (renderProps: typeof props) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourceEditor Currency Tests', () => {
   beforeEach(() => {
-    fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+    fetchMock.get(DATASOURCE_ENDPOINT, []);
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.hardReset();
   });
 
   // The problematic test, now optimized

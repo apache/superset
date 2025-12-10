@@ -236,6 +236,7 @@ test('preserves unknown parameters', async () => {
   replaceState.mockRestore();
 });
 
+
 test('retains query mode requirements when query_mode is enabled', async () => {
   const customState = {
     ...reduxState,
@@ -274,6 +275,7 @@ test('retains query mode requirements when query_mode is enabled', async () => {
   });
   expect(formData.optional_key1).toBeUndefined();
 });
+
 
 test('does omit hiddenFormData when query_mode is not enabled', async () => {
   const customState = {
