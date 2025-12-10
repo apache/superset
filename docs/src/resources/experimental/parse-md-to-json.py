@@ -90,11 +90,11 @@ def to_json(line: str) -> dict[str, str]:
             logo = result[2]
 
     return {
-      "name": name,
-      "url": url,
-      "logo": logo,
-      "contributors": contributors,
-}
+        "name": name,
+        "url": url,
+        "logo": logo,
+        "contributors": contributors,
+    }
 
 
 if __name__ == "__main__":
