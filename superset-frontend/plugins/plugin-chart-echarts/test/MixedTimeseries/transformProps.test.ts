@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, VizType } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
+import {
+  ChartProps,
+  TimeFormatter,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import {
   LegendOrientation,
   LegendType,
@@ -28,6 +33,7 @@ import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
+import { GenericDataType } from '@apache-superset/core/api/core';
 
 const formData: EchartsMixedTimeseriesFormData = {
   annotationLayers: [],
@@ -321,4 +327,155 @@ test('legend margin: right orientation sets grid.right correctly', () => {
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
+
+describe('should add the correct time formatter for the xAxis', () => {
+  const getXAxisFormatter = (timeGrainSqla: TimeGranularity) => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...chartPropsConfig.formData,
+        time_grain_sqla: timeGrainSqla,
+        xAxisTimeFormat: '%Y-%m-%d',
+      },
+      queriesData: [
+        {
+          data: chartPropsConfig.queriesData[0].data,
+          label_map: chartPropsConfig.queriesData[0].label_map,
+          colnames: ['Boy', 'Girl', 'ds'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.String,
+            GenericDataType.Temporal,
+          ],
+        },
+        {
+          data: chartPropsConfig.queriesData[1].data,
+          label_map: chartPropsConfig.queriesData[1].label_map,
+          colnames: ['Boy', 'Girl', 'ds'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.String,
+            GenericDataType.Temporal,
+          ],
+        },
+      ],
+    };
+    const { echartOptions } = transformProps(
+      new ChartProps(updatedChartPropsConfig) as EchartsMixedTimeseriesProps,
+    );
+    const xAxis = echartOptions.xAxis as {
+      axisLabel: { formatter: TimeFormatter };
+    };
+    return xAxis.axisLabel.formatter;
+  };
+
+  it('should work for days', () => {
+    const formatter = getXAxisFormatter(TimeGranularity.DAY);
+    expect(formatter(1610000000000)).toEqual(
+      expect.stringMatching('2021-01-07'),
+    );
+  });
+
+  it('should work for weeks', () => {
+    const formatter = getXAxisFormatter(TimeGranularity.WEEK);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(
+      expect.stringMatching('2021-01-07 — 2021-01-13'),
+    );
+  });
+
+  it('should work for months', () => {
+    const formatter = getXAxisFormatter(TimeGranularity.MONTH);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('Jan'));
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+  });
+
+  it('should work for quarters', () => {
+    const formatter = getXAxisFormatter(TimeGranularity.QUARTER);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('Q1'));
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+  });
+
+  it('should work for years', () => {
+    const formatter = getXAxisFormatter(TimeGranularity.YEAR);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual('2021');
+  });
+});
+
+describe('should add the correct time formatter for the tooltip', () => {
+  const getTooltipFormatter = (timeGrainSqla: TimeGranularity) => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...chartPropsConfig.formData,
+        time_grain_sqla: timeGrainSqla,
+        tooltipTimeFormat: '%Y-%m-%d',
+      },
+      queriesData: [
+        {
+          data: chartPropsConfig.queriesData[0].data,
+          label_map: chartPropsConfig.queriesData[0].label_map,
+          colnames: ['Boy', 'Girl', 'ds'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.String,
+            GenericDataType.Temporal,
+          ],
+        },
+        {
+          data: chartPropsConfig.queriesData[1].data,
+          label_map: chartPropsConfig.queriesData[1].label_map,
+          colnames: ['Boy', 'Girl', 'ds'],
+          coltypes: [
+            GenericDataType.String,
+            GenericDataType.String,
+            GenericDataType.Temporal,
+          ],
+        },
+      ],
+    };
+
+    return transformProps(
+      new ChartProps(updatedChartPropsConfig) as EchartsMixedTimeseriesProps,
+    ).xValueFormatter;
+  };
+
+  it('should work for days', () => {
+    const formatter = getTooltipFormatter(TimeGranularity.DAY);
+    expect(formatter(1610000000000)).toEqual(
+      expect.stringMatching('2021-01-07'),
+    );
+  });
+
+  it('should work for weeks', () => {
+    const formatter = getTooltipFormatter(TimeGranularity.WEEK);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(
+      expect.stringMatching('2021-01-07 — 2021-01-13'),
+    );
+  });
+
+  it('should work for months', () => {
+    const formatter = getTooltipFormatter(TimeGranularity.MONTH);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('Jan'));
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+  });
+
+  it('should work for quarters', () => {
+    const formatter = getTooltipFormatter(TimeGranularity.QUARTER);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('Q1'));
+    expect(formatter(1610000000000)).toEqual(expect.stringContaining('2021'));
+  });
+
+  it('should work for years', () => {
+    const formatter = getTooltipFormatter(TimeGranularity.YEAR);
+    expect(formatter).toBeDefined();
+    expect(formatter(1610000000000)).toEqual('2021');
+  });
 });
