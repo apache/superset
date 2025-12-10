@@ -77,7 +77,7 @@ export default function transformProps(chartProps: ChartProps) {
     tooltipTemplate,
   } = formData;
 
-  const { setControlValue = () => { }, setDataMask = () => { } } = hooks;
+  const { setControlValue = () => {}, setDataMask = () => {} } = hooks;
 
   const { data } = queriesData[0];
 
