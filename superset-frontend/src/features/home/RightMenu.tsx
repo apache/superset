@@ -343,6 +343,7 @@ const RightMenu = ({
 
   const handleLogout = () => {
     localStorage.removeItem('redux');
+    sessionStorage.removeItem('login_attempted');
   };
 
   // Use the theme menu hook
