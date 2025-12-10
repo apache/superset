@@ -73,6 +73,33 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
+# MCP Store Configuration - shared infrastructure for all MCP storage needs
+# (caching, auth, events, etc.)
+MCP_STORE_CONFIG: Dict[str, Any] = {
+    "enabled": False,  # Disabled by default in OSS
+    "CACHE_REDIS_URL": None,  # Must be configured to enable
+    "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
+}
+
+# MCP Response Caching Configuration - feature-specific settings
+MCP_CACHE_CONFIG: Dict[str, Any] = {
+    "enabled": False,  # Disabled by default in OSS
+    "CACHE_KEY_PREFIX": "mcp_cache_v1_",  # Static prefix for OSS
+    "list_tools_ttl": 60 * 5,  # 5 minutes
+    "list_resources_ttl": 60 * 5,  # 5 minutes
+    "list_prompts_ttl": 60 * 5,  # 5 minutes
+    "read_resource_ttl": 60 * 60,  # 1 hour
+    "get_prompt_ttl": 60 * 60,  # 1 hour
+    "call_tool_ttl": 60 * 60,  # 1 hour
+    "max_item_size": 1024 * 1024,  # 1MB
+    "excluded_tools": [
+        "execute_sql",
+        "generate_dashboard",
+        "generate_chart",
+        "update_chart",
+    ],
+}
+
 
 def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     """Default MCP auth factory using app.config values."""
