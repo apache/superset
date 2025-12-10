@@ -259,6 +259,8 @@ def mcp_auth_hook(tool_func: F) -> F:
     new_wrapper.__module__ = wrapper.__module__
     new_wrapper.__qualname__ = wrapper.__qualname__
     new_wrapper.__annotations__ = wrapper.__annotations__
+    # Copy docstring from original function (not wrapper, which may have lost it)
+    new_wrapper.__doc__ = tool_func.__doc__
 
     # Set __signature__ from the original function, but:
     # 1. Remove ctx parameter - FastMCP tools don't expose it to clients

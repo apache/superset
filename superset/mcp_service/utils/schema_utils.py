@@ -479,6 +479,8 @@ def parse_request(
         )
         new_wrapper.__module__ = wrapper.__module__
         new_wrapper.__qualname__ = wrapper.__qualname__
+        # Copy docstring from original function (not wrapper, which has no docstring)
+        new_wrapper.__doc__ = func.__doc__
 
         # Copy annotations from original function and modify request type
         # Also remove ctx annotation - FastMCP strips it, and having it in
