@@ -215,6 +215,7 @@ export default function EchartsMixedTimeseries({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

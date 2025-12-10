@@ -43,6 +43,7 @@ classifiers = [
 ]
 dependencies = [
     "flask-appbuilder>=5.0.2,<6",
+    "pydantic>=2.8.0",
     "sqlalchemy>=1.4.0,<2.0",
     "sqlalchemy-utils>=0.38.0",
     "sqlglot>=27.15.2, <28",

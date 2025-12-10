@@ -31,6 +31,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
@@ -79,8 +80,8 @@ class ChartLike(Protocol):
 class ChartInfo(BaseModel):
     """Full chart model with all possible attributes."""
 
-    id: int = Field(..., description="Chart ID")
-    slice_name: str = Field(..., description="Chart name")
+    id: int | None = Field(None, description="Chart ID")
+    slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
@@ -108,6 +109,26 @@ class ChartInfo(BaseModel):
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = serializer(self)
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in select_columns}
+
+        # No filtering - return all fields
+        return data
 
 
 class GetChartAvailableFiltersRequest(BaseModel):
@@ -589,7 +610,9 @@ class FilterConfig(BaseModel):
 
 # Actual chart types
 class TableChartConfig(BaseModel):
-    chart_type: Literal["table"] = Field("table", description="Chart type")
+    chart_type: Literal["table"] = Field(
+        ..., description="Chart type (REQUIRED: must be 'table')"
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -632,7 +655,15 @@ class TableChartConfig(BaseModel):
 
 
 class XYChartConfig(BaseModel):
-    chart_type: Literal["xy"] = Field("xy", description="Chart type")
+    chart_type: Literal["xy"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'xy' for XY charts "
+            "(line, bar, area, scatter). "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
+    )
     x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
@@ -734,6 +765,33 @@ class ListChartsRequest(MetadataCacheControl):
             "specified.",
         ),
     ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[ChartFilter]:
+        """
+        Parse filters from JSON string or list.
+
+        Handles Claude Code bug where objects are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
+
+        return parse_json_or_model_list(v, ChartFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_select_columns(cls, v: Any) -> List[str]:
+        """
+        Parse select_columns from JSON string, list, or CSV string.
+
+        Handles Claude Code bug where arrays are double-serialized as strings.
+        See: https://github.com/anthropics/claude-code/issues/5504
+        """
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        return parse_json_or_list(v, "select_columns")
+
     search: Annotated[
         str | None,
         Field(

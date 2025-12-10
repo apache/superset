@@ -56,6 +56,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   embeddedMode: PropTypes.bool,
+  onTabTitleEditingChange: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -81,6 +82,7 @@ const defaultProps = {
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
+  onTabTitleEditingChange() {},
 };
 
 const TabTitleContainer = styled.div`
@@ -357,6 +359,7 @@ const Tab = props => {
         isHighlighted,
         dashboardId,
         embeddedMode,
+        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -372,6 +375,7 @@ const Tab = props => {
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}
+            onEditingChange={onTabTitleEditingChange}
           />
           {!editMode && !embeddedMode && (
             <AnchorLink
@@ -397,6 +401,7 @@ const Tab = props => {
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
+      props.onTabTitleEditingChange,
       handleChangeText,
     ],
   );

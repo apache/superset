@@ -23,8 +23,10 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
+from superset.models.helpers import ExploreMixin
 
-query_context_processor = QueryContextProcessor(
+# Create processor and bind ExploreMixin methods to datasource
+processor = QueryContextProcessor(
     QueryContext(
         datasource=BaseDatasource(),
         queries=[],
@@ -35,6 +37,28 @@ query_context_processor = QueryContextProcessor(
         cache_values={},
     )
 )
+
+# Bind ExploreMixin methods to datasource for testing
+# Type annotation needed because _qc_datasource is typed as Explorable in protocol
+_datasource: BaseDatasource = processor._qc_datasource  # type: ignore
+_datasource.add_offset_join_column = ExploreMixin.add_offset_join_column.__get__(
+    _datasource
+)
+_datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(_datasource)
+_datasource.is_valid_date_range = ExploreMixin.is_valid_date_range.__get__(_datasource)
+_datasource._determine_join_keys = ExploreMixin._determine_join_keys.__get__(
+    _datasource
+)
+_datasource._perform_join = ExploreMixin._perform_join.__get__(_datasource)
+_datasource._apply_cleanup_logic = ExploreMixin._apply_cleanup_logic.__get__(
+    _datasource
+)
+# Static methods don't need binding - assign directly
+_datasource.generate_join_column = ExploreMixin.generate_join_column
+_datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
+
+# Convenience reference for backward compatibility in tests
+query_context_processor = _datasource
 
 
 @fixture

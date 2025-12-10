@@ -24,7 +24,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive

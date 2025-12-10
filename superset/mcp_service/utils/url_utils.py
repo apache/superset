@@ -19,7 +19,24 @@
 URL utilities for MCP service
 """
 
+import logging
+from urllib.parse import urlparse
+
 from flask import current_app
+
+logger = logging.getLogger(__name__)
+
+# Hostnames that indicate a development/local environment
+LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0"}  # noqa: S104
+
+
+def _is_local_url(url: str) -> bool:
+    """Check if a URL points to a local/development host."""
+    try:
+        parsed = urlparse(url)
+        return parsed.hostname in LOCAL_HOSTNAMES if parsed.hostname else True
+    except Exception:
+        return True
 
 
 def get_superset_base_url() -> str:
@@ -29,33 +46,14 @@ def get_superset_base_url() -> str:
     Returns:
         Base URL for Superset web server (e.g., "http://localhost:9001")
     """
-    # Default fallback to localhost:9001
     default_url = "http://localhost:9001"
 
     try:
-        # Try to get from configuration
         config = current_app.config
-
-        # Check for SUPERSET_WEBSERVER_ADDRESS first
-        webserver_address = config.get("SUPERSET_WEBSERVER_ADDRESS")
-        if webserver_address:
-            return webserver_address
-
-        # Fallback to other potential config keys
-        public_role_like_gamma = config.get("PUBLIC_ROLE_LIKE_GAMMA", False)
-        if public_role_like_gamma:
-            # If public access is enabled, might be on a different host
-            webserver_protocol = config.get("ENABLE_PROXY_FIX", False)
-            protocol = "https" if webserver_protocol else "http"
-            host = config.get("WEBSERVER_HOST", "localhost")
-            port = config.get("WEBSERVER_PORT", 9001)
-            return f"{protocol}://{host}:{port}"
-
+        if user_friendly_url := config["WEBDRIVER_BASEURL_USER_FRIENDLY"]:
+            return user_friendly_url.rstrip("/")
         return default_url
-
     except Exception:
-        # If we can't access Flask config (e.g., outside app context),
-        # return default
         return default_url
 
 
@@ -63,40 +61,33 @@ def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
 
-    The MCP service auto-detects its own host and port since it's running
-    this code. Falls back to explicit configuration or default port.
+    In production, the MCP service is typically accessed via the main
+    Superset URL with /mcp prefix. In development,
+    it's accessed directly on port 5008.
 
     Returns:
-        Base URL for MCP service (always independent of Superset URL)
+        Base URL for MCP service endpoints
     """
     try:
-        # Try to auto-detect from Flask request context
-        from flask import request
-
-        if request:
-            # Get the host and port from the current request
-            scheme = request.scheme  # http or https
-            host = request.host  # includes port if non-standard
-            return f"{scheme}://{host}"
-
-    except (RuntimeError, AttributeError):
-        # Not in request context or Flask not available
-        pass
-
-    try:
-        # Check for explicit MCP_SERVICE_URL in config
         config = current_app.config
+
+        # Check for explicit MCP_SERVICE_URL first (allows override)
         mcp_service_url = config.get("MCP_SERVICE_URL")
         if mcp_service_url:
             return mcp_service_url
 
+        # In production, MCP service is accessed via main URL with /mcp prefix
+        # WEBDRIVER_BASEURL_USER_FRIENDLY is the user-facing URL for the instance
+        if (
+            user_friendly_url := config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+        ) and not _is_local_url(user_friendly_url):
+            base_url = user_friendly_url.rstrip("/")
+            return f"{base_url}/mcp"
+
     except Exception as e:
-        # Log and fall back if config access fails
-        import logging
+        logger.debug("Config access failed: %s", e)
 
-        logging.getLogger(__name__).debug("Config access failed: %s", e)
-
-    # Always fallback to MCP service default port (never use Superset URL)
+    # Development fallback - direct access to MCP service on port 5008
     return "http://localhost:5008"
 
 

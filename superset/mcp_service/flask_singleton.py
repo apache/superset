@@ -40,16 +40,27 @@ try:
     # "Working outside of application context" errors.
     _temp_app = create_app()
 
-    # Push an application context for any initialization code that needs it
+    # Push an application context and initialize core dependencies and extensions
     with _temp_app.app_context():
         # Apply MCP configuration - reads from app.config first, falls back to defaults
         mcp_config = get_mcp_config(_temp_app.config)
         _temp_app.config.update(mcp_config)
+        try:
+            from superset.initialization import SupersetAppInitializer
+
+            # Create initializer and run only dependency injection
+            # NOT the full init_app_in_ctx which includes web views
+            initializer = SupersetAppInitializer(_temp_app)
+            initializer.init_all_dependencies_and_extensions()
+
+            logger.info("Core dependencies and extensions initialized for MCP service")
+        except Exception as e:
+            logger.warning("Failed to initialize dependencies for MCP service: %s", e)
 
     # Store the app instance for later use
     app = _temp_app
 
-    logger.info("Flask app instance created successfully")
+    logger.info("Minimal Flask app instance created successfully for MCP service")
 
 except Exception as e:
     logger.error("Failed to create Flask app: %s", e)

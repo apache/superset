@@ -67,8 +67,32 @@ export default function EchartsTimeseries({
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
-    const updatedHeight = extraControlRef.current?.offsetHeight || 0;
-    setExtraControlHeight(updatedHeight);
+    const element = extraControlRef.current;
+    if (!element) {
+      setExtraControlHeight(0);
+      return;
+    }
+
+    const updateHeight = () => {
+      setExtraControlHeight(element.offsetHeight || 0);
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === 'function') {
+      const resizeObserver = new ResizeObserver(() => {
+        updateHeight();
+      });
+      resizeObserver.observe(element);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+    };
   }, [formData.showExtraControls]);
 
   const hasDimensions = ensureIsArray(groupby).length > 0;

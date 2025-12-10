@@ -50,6 +50,11 @@ const NUMBER_FILTER_OPERATORS: Record<string, string> = {
   greaterThanOrEqual: '>=',
 };
 
+/** Escapes single quotes in SQL strings: O'Hara → O''Hara */
+function escapeStringValue(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 function getTextComparator(type: string, value: string): string {
   if (type === 'contains' || type === 'notContains') {
     return `%${value}%`;
@@ -134,10 +139,12 @@ function convertFilterToSQL(
 
   if (filter.filterType === 'text' && filter.filter && filter.type) {
     const op = TEXT_FILTER_OPERATORS[filter.type];
-    const val = getTextComparator(filter.type, String(filter.filter));
+    const escapedFilter = escapeStringValue(String(filter.filter));
+    const val = getTextComparator(filter.type, escapedFilter);
+
     return op === 'ILIKE' || op === 'NOT ILIKE'
       ? `${colId} ${op} '${val}'`
-      : `${colId} ${op} '${filter.filter}'`;
+      : `${colId} ${op} '${escapedFilter}'`;
   }
 
   if (
@@ -151,7 +158,8 @@ function convertFilterToSQL(
 
   if (filter.filterType === 'date' && filter.dateFrom && filter.type) {
     const op = NUMBER_FILTER_OPERATORS[filter.type];
-    return `${colId} ${op} '${filter.dateFrom}'`;
+    const escapedDate = escapeStringValue(filter.dateFrom);
+    return `${colId} ${op} '${escapedDate}'`;
   }
 
   if (
@@ -159,7 +167,9 @@ function convertFilterToSQL(
     Array.isArray(filter.values) &&
     filter.values.length > 0
   ) {
-    const values = filter.values.map((v: string) => `'${v}'`).join(', ');
+    const values = filter.values
+      .map((v: string) => `'${escapeStringValue(v)}'`)
+      .join(', ');
     return `${colId} IN (${values})`;
   }
 

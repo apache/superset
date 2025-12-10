@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Default MCP service configuration for Apache Superset"""
+"""Default MCP service configuration"""
 
 import logging
 import secrets
@@ -143,7 +143,7 @@ def default_user_resolver(app: Any, access_token: Any) -> Optional[str]:
 
 
 def generate_secret_key() -> str:
-    """Generate a secure random secret key for Superset"""
+    """Generate a secure random secret key."""
     return secrets.token_urlsafe(42)
 
 

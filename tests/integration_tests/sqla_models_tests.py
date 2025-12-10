@@ -520,7 +520,8 @@ class TestDatabaseModel(SupersetTestCase):
         sqlaq = table.get_sqla_query(**query_obj)
         assert sqlaq.labels_expected == ["user", "COUNT_DISTINCT(user)"]
         sql = table.database.compile_sqla_query(sqlaq.sqla_query)
-        assert "COUNT_DISTINCT_user__00db1" in sql
+        # SHA-256 hash of "COUNT_DISTINCT(user)" starts with "01c94"
+        assert "COUNT_DISTINCT_user__01c94" in sql
         db.session.delete(table)
         db.session.delete(database)
         db.session.commit()

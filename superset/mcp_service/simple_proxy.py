@@ -57,9 +57,7 @@ def main() -> None:
         logger.info("Starting MCP proxy server...")
 
         # Create a proxy to the remote FastMCP server
-        proxy = FastMCP.as_proxy(
-            "http://localhost:5008/mcp/", name="Superset MCP Proxy"
-        )
+        proxy = FastMCP.as_proxy("http://localhost:5008/mcp/", name="MCP Proxy")
 
         logger.info("Proxy created successfully, starting...")
 

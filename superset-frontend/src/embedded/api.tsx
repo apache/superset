@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId } from '@superset-ui/core';
+import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
+import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
 
 const bootstrapData = getBootstrapData();
 
@@ -36,6 +37,9 @@ type EmbeddedSupersetApi = {
   getActiveTabs: () => string[];
   getDataMask: () => DataMaskStateWithId;
   getChartStates: () => DashboardChartStates;
+  getChartDataPayloads: (params?: {
+    chartId?: number;
+  }) => Promise<Record<string, JsonObject>>;
 };
 
 const getScrollSize = (): Size => ({
@@ -80,10 +84,20 @@ const getDataMask = () => store?.getState()?.dataMask || {};
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
+const getChartDataPayloads = async (params?: {
+  chartId?: number;
+}): Promise<Record<string, JsonObject>> => {
+  const state = store?.getState();
+  if (!state) return {};
+
+  return getChartDataPayloadsUtil(state, params);
+};
+
 export const embeddedApi: EmbeddedSupersetApi = {
   getScrollSize,
   getDashboardPermalink,
   getActiveTabs,
   getDataMask,
   getChartStates,
+  getChartDataPayloads,
 };

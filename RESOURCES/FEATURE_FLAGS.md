@@ -68,7 +68,7 @@ These features flags are **safe for production**. They have been tested and will
 
 ### Flags retained for runtime configuration
 
-Currently some of our feature flags act as dynamic configurations that can changed
+Currently some of our feature flags act as dynamic configurations that can change
 on the fly. This acts in contradiction with the typical ephemeral feature flag use case,
 where the flag is used to mature a feature, and eventually deprecated once the feature is
 solid. Eventually we'll likely refactor these under a more formal "dynamic configurations" managed

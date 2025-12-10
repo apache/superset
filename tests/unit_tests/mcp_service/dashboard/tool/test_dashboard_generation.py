@@ -112,12 +112,17 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is None
-            assert result.data.dashboard is not None
-            assert result.data.dashboard.id == 10
-            assert result.data.dashboard.dashboard_title == "Analytics Dashboard"
-            assert result.data.dashboard.chart_count == 2
-            assert "/superset/dashboard/10/" in result.data.dashboard_url
+            assert result.structured_content["error"] is None
+            assert result.structured_content["dashboard"] is not None
+            assert result.structured_content["dashboard"]["id"] == 10
+            assert (
+                result.structured_content["dashboard"]["dashboard_title"]
+                == "Analytics Dashboard"
+            )
+            assert result.structured_content["dashboard"]["chart_count"] == 2
+            assert (
+                "/superset/dashboard/10/" in result.structured_content["dashboard_url"]
+            )
 
     @patch("superset.db.session")
     @pytest.mark.asyncio
@@ -138,10 +143,10 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is not None
-            assert "Charts not found: [2]" in result.data.error
-            assert result.data.dashboard is None
-            assert result.data.dashboard_url is None
+            assert result.structured_content["error"] is not None
+            assert "Charts not found: [2]" in result.structured_content["error"]
+            assert result.structured_content["dashboard"] is None
+            assert result.structured_content["dashboard_url"] is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
     @patch("superset.db.session")
@@ -169,9 +174,9 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is None
-            assert result.data.dashboard.chart_count == 1
-            assert result.data.dashboard.published is True  # From mock
+            assert result.structured_content["error"] is None
+            assert result.structured_content["dashboard"]["chart_count"] == 1
+            assert result.structured_content["dashboard"]["published"] is True
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
     @patch("superset.db.session")
@@ -198,8 +203,8 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is None
-            assert result.data.dashboard.chart_count == 6
+            assert result.structured_content["error"] is None
+            assert result.structured_content["dashboard"]["chart_count"] == 6
 
             # Verify CreateDashboardCommand was called with proper layout
             mock_create_command.assert_called_once()
@@ -257,9 +262,9 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is not None
-            assert "Failed to create dashboard" in result.data.error
-            assert result.data.dashboard is None
+            assert result.structured_content["error"] is not None
+            assert "Failed to create dashboard" in result.structured_content["error"]
+            assert result.structured_content["dashboard"] is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
     @patch("superset.db.session")
@@ -287,8 +292,11 @@ class TestGenerateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
-            assert result.data.error is None
-            assert result.data.dashboard.dashboard_title == "Minimal Dashboard"
+            assert result.structured_content["error"] is None
+            assert (
+                result.structured_content["dashboard"]["dashboard_title"]
+                == "Minimal Dashboard"
+            )
 
             # Check that description was not included in call
             call_args = mock_create_command.call_args[0][0]
@@ -343,13 +351,15 @@ class TestAddChartToExistingDashboard:
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-            assert result.data.error is None
-            assert result.data.dashboard is not None
-            assert result.data.dashboard.chart_count == 3
-            assert result.data.position is not None
-            assert "row" in result.data.position  # Should have row info
-            assert "chart_key" in result.data.position
-            assert "/superset/dashboard/1/" in result.data.dashboard_url
+            assert result.structured_content["error"] is None
+            assert result.structured_content["dashboard"] is not None
+            assert result.structured_content["dashboard"]["chart_count"] == 3
+            assert result.structured_content["position"] is not None
+            assert "row" in result.structured_content["position"]
+            assert "chart_key" in result.structured_content["position"]
+            assert (
+                "/superset/dashboard/1/" in result.structured_content["dashboard_url"]
+            )
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @pytest.mark.asyncio
@@ -364,8 +374,10 @@ class TestAddChartToExistingDashboard:
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-            assert result.data.error is not None
-            assert "Dashboard with ID 999 not found" in result.data.error
+            assert result.structured_content["error"] is not None
+            assert (
+                "Dashboard with ID 999 not found" in result.structured_content["error"]
+            )
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -384,8 +396,8 @@ class TestAddChartToExistingDashboard:
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-            assert result.data.error is not None
-            assert "Chart with ID 999 not found" in result.data.error
+            assert result.structured_content["error"] is not None
+            assert "Chart with ID 999 not found" in result.structured_content["error"]
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -407,8 +419,11 @@ class TestAddChartToExistingDashboard:
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-            assert result.data.error is not None
-            assert "Chart 5 is already in dashboard 1" in result.data.error
+            assert result.structured_content["error"] is not None
+            assert (
+                "Chart 5 is already in dashboard 1"
+                in result.structured_content["error"]
+            )
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -437,9 +452,9 @@ class TestAddChartToExistingDashboard:
                 "add_chart_to_existing_dashboard", {"request": request}
             )
 
-            assert result.data.error is None
-            assert "row" in result.data.position  # Should have row info
-            assert result.data.position.get("row") == 0  # First row
+            assert result.structured_content["error"] is None
+            assert "row" in result.structured_content["position"]
+            assert result.structured_content["position"].get("row") == 0
 
             # Verify update was called with proper layout structure
             call_args = mock_update_command.call_args[0][1]
