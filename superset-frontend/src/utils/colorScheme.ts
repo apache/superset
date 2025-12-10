@@ -103,8 +103,26 @@ export const getFreshLabelsColorMapEntries = (
   Object.keys(customLabelsColor).forEach(label => {
     delete allEntries[label];
   });
+// Ensure no duplicate colors
+const usedColors = new Set<string>();
+const updatedEntries: Record<string, string> = {};
 
-  return allEntries;
+Object.entries(allEntries).forEach(([label, color]) => {
+  let finalColor = color;
+
+  // If this color is already used, pick the next available color
+  if (usedColors.has(color)) {
+    const availableColors = Object.values(labelsColorMapInstance.getColorMap());
+
+    finalColor = availableColors.find(c => !usedColors.has(c)) || color;
+  }
+
+  usedColors.add(finalColor);
+  updatedEntries[label] = finalColor;
+});
+
+return updatedEntries;
+
 };
 
 /**
