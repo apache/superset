@@ -30,6 +30,7 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
+from sqlalchemy_utils.types.json import JSONType
 
 from superset.common.query_object import QueryObject
 from superset.explorables.base import TimeGrainDict
@@ -119,7 +120,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     description = Column(Text, nullable=True)
     type = Column(String(250), nullable=False)  # snowflake, etc
 
-    configuration = Column(encrypted_field_factory.create(Text), default="{}")
+    configuration = Column(encrypted_field_factory.create(JSONType), default=dict)
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic views relationship
@@ -156,7 +157,7 @@ class SemanticLayer(AuditMixinNullable, Model):
                 "must be a subclass of SemanticLayerImplementation"
             )
 
-        return implementation_class.from_configuration(self.configuration)
+        return implementation_class.from_configuration(json.loads(self.configuration))
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -174,7 +175,7 @@ class SemanticView(AuditMixinNullable, Model):
     name = Column(String(250), nullable=False)
     description = Column(Text, nullable=True)
 
-    configuration = Column(encrypted_field_factory.create(Text), default="{}")
+    configuration = Column(encrypted_field_factory.create(JSONType), default=dict)
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic layer relationship
@@ -199,7 +200,7 @@ class SemanticView(AuditMixinNullable, Model):
         """
         return self.semantic_layer.implementation.get_semantic_view(
             self.name,
-            self.configuration,
+            json.loads(self.configuration),
         )
 
     # =========================================================================
@@ -268,7 +269,7 @@ class SemanticView(AuditMixinNullable, Model):
                     "filterable": True,
                     "groupby": True,
                     "id": None,
-                    "uuid": dimension.uuid.hex,
+                    "uuid": None,
                     "is_certified": False,
                     "is_dttm": dimension.type in {DATE, TIME, DATETIME},
                     "python_date_format": None,
@@ -287,7 +288,7 @@ class SemanticView(AuditMixinNullable, Model):
                     "description": metric.description,
                     "expression": metric.definition,
                     "id": None,
-                    "uuid": metric.uuid.hex,
+                    "uuid": None,
                     "is_certified": False,
                     "metric_name": metric.name,
                     "warning_markdown": None,
@@ -304,16 +305,16 @@ class SemanticView(AuditMixinNullable, Model):
             "filter_select_enabled": True,
             "sql": None,
             "select_star": None,
-            "owners": [owner.id for owner in self.owners],
+            "owners": [],
             "description": self.description,
             "table_name": self.name,
             "column_types": [
                 get_column_type(dimension.type)
                 for dimension in self.implementation.dimensions
             ],
-            "column_names": {
+            "column_names": [
                 dimension.name for dimension in self.implementation.dimensions
-            },
+            ],
             # rare
             "column_formats": {},
             "datasource_name": self.name,
@@ -334,6 +335,7 @@ class SemanticView(AuditMixinNullable, Model):
             "always_filter_main_dttm": False,
             "normalize_columns": False,
             # TODO XXX
+            # "owners": [owner.id for owner in self.owners],
             "edit_url": "",
             "default_endpoint": None,
             "folders": [],

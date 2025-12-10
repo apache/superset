@@ -18,20 +18,18 @@
 from __future__ import annotations
 
 from textwrap import dedent
-from typing import Any, Literal, TYPE_CHECKING
+from typing import Any, Literal
 
 from pydantic import create_model, Field
 from snowflake.connector import connect
 from snowflake.connector.connection import SnowflakeConnection
 
 from superset.semantic_layers.snowflake.schemas import SnowflakeConfiguration
+from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
 from superset.semantic_layers.snowflake.utils import get_connection_parameters
 from superset.semantic_layers.types import (
     SemanticLayerImplementation,
 )
-
-if TYPE_CHECKING:
-    from superset.semantic_layers.snowflake.semantic_view import SnowflakeSemanticView
 
 
 class SnowflakeSemanticLayer(
@@ -251,9 +249,12 @@ class SnowflakeSemanticLayer(
 
         # create a new configuration with the additional parameters
         configuration = self.configuration.model_copy(update=additional_configuration)
+        return SnowflakeSemanticView(name, configuration)
 
         # check that the semantic view exists
         connection_parameters = get_connection_parameters(configuration)
+        print("PARAMS")
+        print(connection_parameters)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor()
             query = dedent(
@@ -262,9 +263,12 @@ class SnowflakeSemanticLayer(
                     ->> SELECT "name" FROM $1 WHERE "name" = ?;
                 """
             ).strip()
+            print("BETO Q")
+            print(repr(query))
+            print(repr(name))
             cursor.execute(query, (name,))
-            row = cursor.fetchone()
-            if not row:
+            rows = cursor.fetchall()
+            if not rows:
                 raise ValueError(f'Semantic view "{name}" does not exist.')
 
         return SnowflakeSemanticView(name, configuration)
