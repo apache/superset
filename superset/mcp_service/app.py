@@ -23,9 +23,11 @@ mcp from here and use @mcp.tool decorators.
 """
 
 import logging
+from collections.abc import Sequence
 from typing import Any, Callable, Dict, List, Set
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware.middleware import Middleware
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +145,7 @@ def _build_mcp_kwargs(
     instructions: str,
     auth: Any | None,
     lifespan: Callable[..., Any] | None,
+    middleware: Sequence[Middleware] | None,
     tools: List[Any] | None,
     include_tags: Set[str] | None,
     exclude_tags: Set[str] | None,
@@ -159,6 +162,8 @@ def _build_mcp_kwargs(
         mcp_kwargs["auth"] = auth
     if lifespan is not None:
         mcp_kwargs["lifespan"] = lifespan
+    if middleware is not None:
+        mcp_kwargs["middleware"] = middleware
     if tools is not None:
         mcp_kwargs["tools"] = tools
     if include_tags is not None:
@@ -202,6 +207,7 @@ def create_mcp_app(
     branding: str | None = None,
     auth: Any | None = None,
     lifespan: Callable[..., Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     tools: List[Any] | None = None,
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
@@ -221,6 +227,7 @@ def create_mcp_app(
         branding: Product name for instructions (e.g., "ACME Analytics")
         auth: Authentication provider for securing HTTP transports
         lifespan: Async context manager for startup/shutdown logic
+        middleware: List of middleware instances (FastMCP 2.13+)
         tools: List of tools or functions to add to the server
         include_tags: Set of tags to include (whitelist)
         exclude_tags: Set of tags to exclude (blacklist)
@@ -244,7 +251,15 @@ def create_mcp_app(
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
-        name, instructions, auth, lifespan, tools, include_tags, exclude_tags, **kwargs
+        name,
+        instructions,
+        auth,
+        lifespan,
+        middleware,
+        tools,
+        include_tags,
+        exclude_tags,
+        **kwargs,
     )
 
     # Create the FastMCP instance
@@ -260,7 +275,10 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-mcp = create_mcp_app(stateless_http=True)
+# Tool modules can import this and use @mcp.tool decorators
+# Note: stateless_http is deprecated in FastMCP 2.13+, removed in favor of
+# server-level lifespan management and middleware-based caching
+mcp = create_mcp_app()
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
