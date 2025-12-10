@@ -122,7 +122,7 @@ const config: ControlPanelConfig = {
               label: t('Cross-filter column'),
               renderTrigger: false,
               description: t(
-                'Select a column to be used as the id for this row. It will be used to identify the row in other charts when performing cross-filtering.',
+                'The attribute being used when performing cross-filtering.',
               ),
               mapStateToProps: state => ({
                 choices: state.datasource?.columns.map(c => [
