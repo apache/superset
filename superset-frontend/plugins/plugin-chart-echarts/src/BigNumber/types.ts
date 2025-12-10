@@ -49,8 +49,7 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
   compareLag?: string | number;
 };
 
-export interface BigNumberTotalChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface BigNumberTotalChartDataResponseResult extends ChartDataResponseResult {
   data: BigNumberDatum[];
 }
 

@@ -23,11 +23,8 @@ import Component from './CountryMap';
 const ReactComponent = reactify(Component);
 
 const CountryMap = ({ className, ...otherProps }) => (
-  <div className={className} >
-    <ReactComponent
-      {...otherProps}
-    />
-     
+  <div className={className}>
+    <ReactComponent {...otherProps} />
   </div>
 );
 
@@ -76,6 +73,11 @@ export default styled(CountryMap)`
     .superset-legacy-chart-country-map path.region {
       cursor: pointer;
       stroke: ${theme.colorSplit};
+    }
+
+    g.text-layer text, g.text-layer text.big-text, g.text-layer text.result-text {
+      text-shadow: 1px 1px 1px white;
+      filter: drop-shadow(0px 0px 0.1px #FFFFFF);
     }
   `}
 `;

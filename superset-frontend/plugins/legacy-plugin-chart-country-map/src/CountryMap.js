@@ -87,7 +87,7 @@ function rgbaToHex(rgba) {
   if (r === undefined || g === undefined || b === undefined) return null;
   const toHex = n => {
     const hex = Math.round(n).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
+    return hex.length === 1 ? `0${hex}` : hex;
   };
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
@@ -225,7 +225,12 @@ function CountryMap(element, props) {
         .domain(domainPerc)
         .range(rangeColors)
         .clamp(true)
-        .interpolate(d3.interpolateRgb);
+        // Remove interpolation to avoid blending between steps - always return lower boundary
+        .interpolate(function (a, b) {
+          return function () {
+            return a;
+          };
+        });
     }
   }
 
@@ -251,7 +256,7 @@ function CountryMap(element, props) {
   }
 
   /** -------------------------
-   * 4) Gradient fallback (minColor → maxColor) avec HEX
+   * 4) Gradient fallback (minColor → maxColor) with HEX
    * ------------------------- */
   let gradientColorScale;
   if (minValue === maxValue) {
@@ -304,35 +309,23 @@ function CountryMap(element, props) {
           // continue regardless of error
         }
       }
-    }
-
-    if (linearPaletteScale) {
+    } else if (linearPaletteScale) {
       try {
         colorMap[iso] = linearPaletteScale(value);
         return;
       } catch {
         // continue regardless of error
       }
-    }
-
-    try {
-      colorMap[iso] = gradientColorScale(value);
-    } catch {
-      colorMap[iso] = '#ccc';
+    } else {
+      try {
+        colorMap[iso] = gradientColorScale(value);
+      } catch {
+        colorMap[iso] = '#ccc';
+      }
     }
   });
   const fallbackCategorical = CategoricalColorNamespace.getScale(colorScheme);
-  const colorFn = d => {
-    const iso = d && d.properties && d.properties.ISO;
-    if (!iso) return 'none';
-    const c = colorMap[iso];
-    if (c && c !== 'none') return c;
-    try {
-      return fallbackCategorical(iso, sliceId);
-    } catch {
-      return '#ccc';
-    }
-  };
+  const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
   const div = d3.select(container);

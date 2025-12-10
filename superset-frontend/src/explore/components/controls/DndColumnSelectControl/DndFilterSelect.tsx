@@ -66,8 +66,9 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
-export interface DndFilterSelectProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface DndFilterSelectProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];

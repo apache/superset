@@ -76,19 +76,19 @@ const config: ControlPanelConfig = {
               type: 'TextAreaControl',
               label: t('Custom Color Scale (by %)'),
               description: t(
-                "Custom configuration that overrides the linear color scheme color codes and thresholds. Thresholds are defined in percentage, and color codes accept any valid CSS value. Copy-paste and edit following sample configuration to define your own thresholds and colors :\n\n" +
-          "[\n" +
-          "  { \"percent\": 0, \"color\": \"white\" },\n" +
-          "  { \"percent\": 0.01, \"color\": \"#A00000\" },\n" +
-          "  { \"percent\": 20, \"color\": \"#E52B50\" },\n" +
-          "  { \"percent\": 35, \"color\": \"#FFA500\" },\n" +
-          "  { \"percent\": 50, \"color\": \"#FFFF99\" },\n" +
-          "  { \"percent\": 65, \"color\": \"#9ACD32\" },\n" +
-          "  { \"percent\": 80, \"color\": \"#3CB371\" },\n" +
-          "  { \"percent\": 99.99, \"color\": \"#228B22\" },\n" +
-          "  { \"percent\": 100, \"color\": \"black\" }\n" +
-          "]"
-              ),       
+                'Custom configuration that overrides the linear color scheme color codes and thresholds. Thresholds are defined in percentage, and color codes accept any valid CSS value. Copy-paste and edit following sample configuration to define your own thresholds and colors :\n\n' +
+                  '[\n' +
+                  '  { "percent": 0, "color": "white" },\n' +
+                  '  { "percent": 0.01, "color": "#A00000" },\n' +
+                  '  { "percent": 20, "color": "#E52B50" },\n' +
+                  '  { "percent": 35, "color": "#FFA500" },\n' +
+                  '  { "percent": 50, "color": "#FFFF99" },\n' +
+                  '  { "percent": 65, "color": "#9ACD32" },\n' +
+                  '  { "percent": 80, "color": "#3CB371" },\n' +
+                  '  { "percent": 99.99, "color": "#228B22" },\n' +
+                  '  { "percent": 100, "color": "black" }\n' +
+                  ']',
+              ),
               default: `[
   { "percent": 0, "color": "white" },
   { "percent": 0.01, "color": "#A00000" },
@@ -103,6 +103,21 @@ const config: ControlPanelConfig = {
               language: 'json',
               rows: 10,
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'pickColor',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Color selector'),
+              renderTrigger: false,
+              dontRefreshOnChange: false,
+              default: '#000000',
+              description: t(
+                'Pick a custom color and get its HEX code for use into the Custom Color Scale configuration.',
+              ),
             },
           },
         ],

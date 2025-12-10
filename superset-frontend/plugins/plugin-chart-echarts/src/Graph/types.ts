@@ -84,8 +84,7 @@ export type tooltipFormatParams = {
   data: { [name: string]: string };
 };
 
-export interface EchartsGraphChartProps
-  extends BaseChartProps<EchartsGraphFormData> {
+export interface EchartsGraphChartProps extends BaseChartProps<EchartsGraphFormData> {
   formData: EchartsGraphFormData;
 }
 
