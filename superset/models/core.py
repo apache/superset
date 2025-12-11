@@ -1302,7 +1302,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         :param sql: SQL query to execute
         :param options: QueryOptions with execution settings
-        :returns: AsyncQueryResult with handle for tracking
+        :returns: AsyncQueryHandle for tracking the query
         """
         from superset.sql.execution import SQLExecutor
 

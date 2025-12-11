@@ -75,7 +75,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset_core.api.types import (
-        AsyncQueryResult,
+        AsyncQueryHandle,
         QueryOptions,
         QueryResult,
     )
@@ -293,12 +293,12 @@ class SQLExecutor:
         self,
         sql: str,
         options: QueryOptions | None = None,
-    ) -> AsyncQueryResult:
+    ) -> AsyncQueryHandle:
         """
         Execute SQL asynchronously via Celery.
 
         If options.dry_run=True, returns the transformed SQL as a completed
-        AsyncQueryResult without submitting to Celery.
+        AsyncQueryHandle without submitting to Celery.
 
         See superset_core.api.models.Database.execute_async() for full documentation.
         """
@@ -313,7 +313,7 @@ class SQLExecutor:
         # 1. Prepare SQL (always runs - includes all transformations)
         final_sql, script, catalog, schema = self._prepare_sql(sql, opts)
 
-        # DRY RUN: Return transformed SQL as completed async result
+        # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
             dry_run_result = QueryResultType(
                 status=QueryStatus.SUCCESS,
@@ -324,11 +324,11 @@ class SQLExecutor:
                 execution_time_ms=0,
                 is_cached=False,
             )
-            return self._create_cached_async_result(dry_run_result)
+            return self._create_cached_handle(dry_run_result)
 
         # 2. Check cache
         if cached_result := self._try_get_cached_result(script, final_sql, opts):
-            return self._create_cached_async_result(cached_result)
+            return self._create_cached_handle(cached_result)
 
         # 3. Create Query model for audit
         query = self._create_query_record(
@@ -339,7 +339,7 @@ class SQLExecutor:
         self._submit_query_to_celery(query, final_sql, opts)
 
         # 5. Create and return handle with bound methods
-        return self._create_async_query_handle(query.id)
+        return self._create_async_handle(query.id)
 
     def _prepare_sql(
         self,
@@ -754,22 +754,21 @@ class SQLExecutor:
             db.session.commit()
             raise
 
-    def _create_async_query_handle(self, query_id: int) -> AsyncQueryResult:
+    def _create_async_handle(self, query_id: int) -> AsyncQueryHandle:
         """
-        Create AsyncQueryResult with handle containing bound methods.
+        Create AsyncQueryHandle with bound methods for tracking the query.
 
         :param query_id: ID of the Query model
-        :returns: AsyncQueryResult with configured handle
+        :returns: AsyncQueryHandle with configured methods
         """
         from superset_core.api.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
-            AsyncQueryResult as AsyncQueryResultType,
             QueryResult as QueryResultType,
             QueryStatus,
         )
 
         handle = AsyncQueryHandleType(
-            query_id=str(query_id),
+            query_uuid=str(query_id),
             status=QueryStatus.PENDING,
             started_at=datetime.now(),
         )
@@ -789,33 +788,28 @@ class SQLExecutor:
         object.__setattr__(handle, "get_result", get_result_impl)
         object.__setattr__(handle, "cancel", cancel_impl)
 
-        return AsyncQueryResultType(
-            handle=handle,
-            status=QueryStatus.PENDING,
-            query_id=query_id,
-        )
+        return handle
 
-    def _create_cached_async_result(
+    def _create_cached_handle(
         self, cached_result: QueryResult
-    ) -> AsyncQueryResult:
+    ) -> AsyncQueryHandle:
         """
-        Wrap a cached QueryResult as an AsyncQueryResult.
+        Create AsyncQueryHandle for a cached result.
 
-        When cache hits occur for async queries, we return an AsyncQueryResult
+        When cache hits occur for async queries, we return an AsyncQueryHandle
         that immediately provides the cached data without submitting to Celery.
 
         :param cached_result: The cached QueryResult
-        :returns: AsyncQueryResult with handle that returns the cached data
+        :returns: AsyncQueryHandle that returns the cached data
         """
         from superset_core.api.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
-            AsyncQueryResult as AsyncQueryResultType,
             QueryResult as QueryResultType,
             QueryStatus,
         )
 
         handle = AsyncQueryHandleType(
-            query_id="cached",
+            query_uuid="cached",
             status=QueryStatus.SUCCESS,
             started_at=datetime.now(),
         )
@@ -834,11 +828,7 @@ class SQLExecutor:
         object.__setattr__(handle, "get_result", get_result_impl)
         object.__setattr__(handle, "cancel", cancel_impl)
 
-        return AsyncQueryResultType(
-            handle=handle,
-            status=QueryStatus.SUCCESS,
-            query_id=None,
-        )
+        return handle
 
     @staticmethod
     def _get_async_query_status(query_id: int) -> Any:

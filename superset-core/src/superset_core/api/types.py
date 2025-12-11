@@ -122,9 +122,11 @@ class AsyncQueryHandle:
 
     Provides methods to check status, retrieve results, and cancel the query.
     The methods are bound to concrete implementations at runtime.
+
+    This is the return type of Database.execute_async().
     """
 
-    query_id: str
+    query_uuid: str
     status: QueryStatus = field(default=QueryStatus.PENDING)
     started_at: datetime | None = None
 
@@ -153,24 +155,10 @@ class AsyncQueryHandle:
         raise NotImplementedError("Method will be replaced during initialization")
 
 
-@dataclass
-class AsyncQueryResult:
-    """
-    Result of initiating an asynchronous query.
-
-    Contains the handle for tracking the query and initial status.
-    """
-
-    handle: AsyncQueryHandle
-    status: QueryStatus = field(default=QueryStatus.PENDING)
-    query_id: int | None = None  # Query model ID for reference
-
-
 __all__ = [
     "QueryStatus",
     "QueryOptions",
     "QueryResult",
     "AsyncQueryHandle",
-    "AsyncQueryResult",
     "CacheOptions",
 ]

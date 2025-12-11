@@ -310,15 +310,14 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-_soft_time_limit = app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
-_hard_time_limit = _soft_time_limit + 60
+def _get_time_limits() -> tuple[int, int]:
+    """Get time limits from config with lazy evaluation."""
+    soft_limit = app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
+    hard_limit = soft_limit + 60
+    return soft_limit, hard_limit
 
 
-@celery_app.task(
-    name="query_execution.execute_sql",
-    time_limit=_hard_time_limit,
-    soft_time_limit=_soft_time_limit,
-)
+@celery_app.task(name="query_execution.execute_sql")
 def execute_sql_task(
     query_id: int,
     rendered_query: str,
