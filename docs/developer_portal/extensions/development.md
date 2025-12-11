@@ -237,3 +237,86 @@ superset-extensions dev
 ✅ Manifest updated
 👀 Watching for changes in: /dataset_references/frontend, /dataset_references/backend
 ```
+
+## Contributing Extension-Compatible Components
+
+If you're contributing to Superset core and want to make a UI component available to extension developers, you can mark it as **extension-compatible**. This will automatically generate documentation in the Developer Portal.
+
+### Requirements
+
+1. **Location**: The component must be in `superset-frontend/packages/superset-core/src/ui/components/`
+2. **Exported**: The component must be exported from the package's `index.ts`
+3. **Tagged Story**: The component must have a Storybook story with the `extension-compatible` tag
+
+### Creating an Extension-Compatible Story
+
+Add the `extension-compatible` tag and `extensionMeta` parameters to your story:
+
+```typescript
+// MyComponent.stories.tsx
+import { MyComponent } from '.';
+
+export default {
+  title: 'Extension Components/MyComponent',
+  component: MyComponent,
+  tags: ['extension-compatible'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'A brief description of what this component does.',
+      },
+    },
+    extensionMeta: {
+      package: '@apache-superset/core',
+      importPath: "import { MyComponent } from '@apache-superset/core';",
+    },
+  },
+};
+
+// Define an interactive story with args
+export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+
+InteractiveMyComponent.args = {
+  variant: 'primary',
+  disabled: false,
+};
+
+InteractiveMyComponent.argTypes = {
+  variant: {
+    control: { type: 'select' },
+    options: ['primary', 'secondary', 'danger'],
+  },
+  disabled: {
+    control: { type: 'boolean' },
+  },
+};
+```
+
+### Metadata Fields
+
+| Field | Description |
+|-------|-------------|
+| `tags: ['extension-compatible']` | **Required**. Marks the component for inclusion in extension docs. |
+| `parameters.docs.description.component` | Description shown at the top of the generated doc page. |
+| `parameters.extensionMeta.package` | The npm package name (usually `@apache-superset/core`). |
+| `parameters.extensionMeta.importPath` | The import statement extension developers should use. |
+
+### How Documentation is Generated
+
+When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
+
+1. The `generate-extension-components` script scans for stories with the `extension-compatible` tag
+2. For each tagged story, it generates an MDX page with:
+   - Component description
+   - **Live interactive example** with controls extracted from `argTypes`
+   - Props table from story `args`
+   - Usage code snippet
+   - Links to source files
+3. Pages appear automatically in **Developer Portal → Extensions → Components**
+
+### Best Practices
+
+- **Use descriptive titles**: The title path determines the component's location in docs (e.g., `Extension Components/Alert`)
+- **Define argTypes**: These become interactive controls in the documentation
+- **Provide default args**: These populate the initial state of the live example
+- **Write clear descriptions**: Help extension developers understand when to use each component
