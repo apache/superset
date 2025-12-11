@@ -330,7 +330,21 @@ ${description || `The ${componentName} component from the Superset extension API
 
 This component is available in the \`${packageName}\` package, which is automatically available to Superset extensions.
 
-## Usage
+## Try It
+
+Edit the code below to experiment with the component:
+
+\`\`\`tsx live
+function Demo() {
+  return (
+    <${componentName} type="info">
+      Edit me! Try changing the type to "success", "warning", or "error".
+    </${componentName}>
+  );
+}
+\`\`\`
+
+## Usage in Extensions
 
 \`\`\`tsx
 ${importPath}
