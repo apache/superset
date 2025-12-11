@@ -340,6 +340,15 @@ function Demo() {
 }
 \`\`\`
 
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+${Object.entries(args).map(([key, value]) => {
+  const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'string' ? 'string' : 'any';
+  return `| \`${key}\` | \`${type}\` | \`${JSON.stringify(value)}\` | ${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} |`;
+}).join('\n')}
+
 ## Usage in Extensions
 
 This component is available in the \`${packageName}\` package, which is automatically available to Superset extensions.
@@ -355,15 +364,6 @@ function MyExtension() {
   );
 }
 \`\`\`
-
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-${Object.entries(args).map(([key, value]) => {
-  const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'string' ? 'string' : 'any';
-  return `| \`${key}\` | \`${type}\` | \`${JSON.stringify(value)}\` | ${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} |`;
-}).join('\n')}
 
 ## Source
 

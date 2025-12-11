@@ -89,6 +89,16 @@ function Demo() {
 }
 ```
 
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `closable` | `boolean` | `true` | Closable |
+| `type` | `string` | `"info"` | Type |
+| `message` | `string` | `"This is a sample alert message."` | Message |
+| `description` | `string` | `"Sample description for additional context."` | Description |
+| `showIcon` | `boolean` | `true` | Show Icon |
+
 ## Usage in Extensions
 
 This component is available in the `@apache-superset/core` package, which is automatically available to Superset extensions.
@@ -104,16 +114,6 @@ function MyExtension() {
   );
 }
 ```
-
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `closable` | `boolean` | `true` | Closable |
-| `type` | `string` | `"info"` | Type |
-| `message` | `string` | `"This is a sample alert message."` | Message |
-| `description` | `string` | `"Sample description for additional context."` | Description |
-| `showIcon` | `boolean` | `true` | Show Icon |
 
 ## Source
 
