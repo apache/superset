@@ -261,9 +261,6 @@ function generateMDX(component, storyContent) {
     .replace(/"(\w+)":/g, '$1:')
     .replace(/"/g, "'");
 
-  // Build the relative import path from developer_portal/extensions/components to superset-frontend
-  const componentImportPath = `../../../../superset-frontend/packages/superset-core/src/ui/components/${componentName}`;
-
   return `---
 title: ${componentName}
 sidebar_label: ${componentName}
@@ -289,7 +286,7 @@ sidebar_label: ${componentName}
 -->
 
 import { StoryWithControls } from '../../../src/components/StorybookWrapper';
-import { ${componentName} } from '${componentImportPath}';
+import { ${componentName} } from '../../../src/components/ExtensionComponents';
 
 # ${componentName}
 

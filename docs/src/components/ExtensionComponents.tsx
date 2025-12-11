@@ -17,17 +17,25 @@
  * under the License.
  */
 
+/**
+ * Extension component wrappers for documentation.
+ *
+ * These components mirror the @apache-superset/core API so that
+ * documentation examples work correctly. When new components are
+ * added to @apache-superset/core, corresponding wrappers should
+ * be added here.
+ */
+
 import React from 'react';
-import { Alert as AntdAlert, Button, Card, Input, Space, Tag, Tooltip } from 'antd';
+import { Alert as AntdAlert } from 'antd';
 import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
 
 /**
  * Alert component wrapper matching the @apache-superset/core API.
- * This is a simplified version for documentation demos.
  */
 type AlertProps = React.PropsWithChildren<Omit<AntdAlertProps, 'children'>>;
 
-const Alert = (props: AlertProps) => {
+export const Alert = (props: AlertProps) => {
   const {
     type = 'info',
     description,
@@ -49,30 +57,3 @@ const Alert = (props: AlertProps) => {
     />
   );
 };
-
-/**
- * ReactLiveScope provides the scope for live code blocks.
- * Any component added here will be available in ```tsx live blocks.
- *
- * To add more components:
- * 1. Import the component above
- * 2. Add it to the scope object below
- */
-const ReactLiveScope = {
-  // React core
-  React,
-  ...React,
-
-  // Extension-compatible components (mirrors @apache-superset/core API)
-  Alert,
-
-  // Common Ant Design components (for demos)
-  Button,
-  Card,
-  Input,
-  Space,
-  Tag,
-  Tooltip,
-};
-
-export default ReactLiveScope;
