@@ -27,6 +27,30 @@ import { intersection, omit, pick } from 'lodash';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 const EMPTY_ARRAY: string[] = [];
+const dashboardColorRegistry = {
+  usedColors: new Set<string>(),
+  labelColorMap: {} as Record<string, string>,
+};
+
+export function getDashboardColor(label: string, palette: string[]): string {
+  if (dashboardColorRegistry.labelColorMap[label]) {
+    return dashboardColorRegistry.labelColorMap[label];
+  }
+
+  for (const color of palette) {
+    if (!dashboardColorRegistry.usedColors.has(color)) {
+      dashboardColorRegistry.usedColors.add(color);
+      dashboardColorRegistry.labelColorMap[label] = color;
+      return color;
+    }
+  }
+
+  const fallback =
+    palette[dashboardColorRegistry.usedColors.size % palette.length];
+  dashboardColorRegistry.labelColorMap[label] = fallback;
+  return fallback;
+}
+
 
 /**
  * Force falsy namespace values to undefined to default to GLOBAL

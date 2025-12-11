@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0color
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -43,7 +43,8 @@ export function colorFromBounds(
     ) {
       const colorScale = scaleLinear<string>()
         .domain([min, (max + min) / 2, max])
-        .range([minColor, 'grey', maxColor]);
+        .range([minColor, '#B3B3B3', maxColor]); 
+
 
       return colorScale(value || 0) || null;
     }
