@@ -365,7 +365,7 @@ function MyExtension() {
 }
 \`\`\`
 
-## Source
+## Source Links
 
 - [Story file](https://github.com/apache/superset/blob/master/${relativePath})
 - [Component source](https://github.com/apache/superset/blob/master/${relativePath.replace(/\/[^/]+\.stories\.tsx$/, '/index.tsx')})
