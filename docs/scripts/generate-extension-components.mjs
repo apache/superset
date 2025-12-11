@@ -36,10 +36,8 @@ const OUTPUT_DIR = path.join(
   DOCS_DIR,
   'developer_portal/extensions/components'
 );
-const TYPES_OUTPUT_PATH = path.join(
-  DOCS_DIR,
-  'src/types/apache-superset-core.d.ts'
-);
+const TYPES_OUTPUT_DIR = path.join(DOCS_DIR, 'src/types/apache-superset-core');
+const TYPES_OUTPUT_PATH = path.join(TYPES_OUTPUT_DIR, 'index.d.ts');
 const SUPERSET_CORE_DIR = path.join(
   ROOT_DIR,
   'superset-frontend/packages/superset-core'
@@ -534,6 +532,10 @@ function generateTypeDeclarations(componentInfos) {
     }
   }
 
+  // Remove 'export' prefix for direct exports (not in declare module)
+  const cleanedTypes = typeDeclarations.map(t => t.replace(/^ {2}export /, 'export '));
+  const cleanedComponents = componentDeclarations.map(c => c.replace(/^ {2}export /, 'export '));
+
   return `/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -561,11 +563,9 @@ function generateTypeDeclarations(componentInfos) {
  */
 ${Array.from(imports).join('\n')}
 
-declare module '@apache-superset/core' {
-${typeDeclarations.join('\n')}
+${cleanedTypes.join('\n')}
 
-${componentDeclarations.join('\n')}
-}
+${cleanedComponents.join('\n')}
 `;
 }
 
@@ -625,6 +625,9 @@ async function main() {
   console.log(`  Generated: ${path.relative(DOCS_DIR, indexPath)}`);
 
   // Generate type declarations
+  if (!fs.existsSync(TYPES_OUTPUT_DIR)) {
+    fs.mkdirSync(TYPES_OUTPUT_DIR, { recursive: true });
+  }
   const typesContent = generateTypeDeclarations(components);
   fs.writeFileSync(TYPES_OUTPUT_PATH, typesContent);
   console.log(`  Generated: ${path.relative(DOCS_DIR, TYPES_OUTPUT_PATH)}`);

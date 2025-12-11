@@ -26,8 +26,6 @@
 import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
 import type { PropsWithChildren, FC } from 'react';
 
-declare module '@apache-superset/core' {
-  export type AlertProps = PropsWithChildren<Omit<AntdAlertProps, 'children'>>;
+export type AlertProps = PropsWithChildren<Omit<AntdAlertProps, 'children'>>;
 
-  export const Alert: FC<AlertProps>;
-}
+export const Alert: FC<AlertProps>;
