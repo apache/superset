@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -22,7 +23,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.api import rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
-from flask_appbuilder.security.sqla.models import RegisterUser, Role
+from flask_appbuilder.security.sqla.models import RegisterUser, Role, User
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
@@ -40,6 +41,9 @@ from superset.views.base_api import (
     BaseSupersetModelRestApi,
     statsd_metrics,
 )
+from superset.models.sql_lab import SavedQuery
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +103,191 @@ class RolesResponseSchema(PermissiveSchema):
 
 
 guest_token_create_schema = GuestTokenCreateSchema()
+
+ASSETS = {
+    'dashboards': {
+        'model': Dashboard,
+        'is_single_owner': False,
+        'name_field': 'dashboard_title',
+        'list': [],
+    },
+    'charts': {
+        'model': Slice,
+        'is_single_owner': False,
+        'name_field': 'slice_name',
+        'list': [],
+    },
+    'saved_queries': {
+        'model': SavedQuery,
+        'is_single_owner': True,
+        'name_field': 'label',
+        'list': [],
+    },
+}
+
+class ReassignmentRestAPI(BaseSupersetApi):
+    """
+    APIs for reassigning user-owned objects to another user
+    """
+
+    resource_name = "security/reassignment"
+    allow_browser_login = True
+
+    @expose("/users/<int:user_id>/assets/summary", methods=["GET"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("get")
+    def asset_summary(self, user_id: int) -> Response:
+        """
+        Returns a summary of the assets (dashboards, charts, saved queries) owned by 
+        the user with ID user_id that must be reassigned before user deletion.
+
+        ---
+        get:
+          summary: Get a summary of the user's reassignable assets
+          parameters:
+            - in: path
+              name: user_id
+              schema:
+                type: integer
+              required: true
+              description: ID of the user who may own reassignable assets
+          responses:
+            200:
+              description: Names of user's assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        description: The number of assets
+                        type: integer
+                      dashboards:
+                        description: >-
+                          A list of names of dashboards owned by the user
+                        type: array
+                        items:
+                          type: string
+                      charts:
+                        description: >-
+                          A list of names of charts owned by the user
+                        type: array
+                        items:
+                          type: string
+                      saved_queries:
+                        description: >-
+                          A list of names of saved queries owned by the user
+                        type: array
+                        items:
+                          type: string
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            count = 0
+            for a in ASSETS.values():
+                a['list'] = []
+                assets = None
+                if a['is_single_owner']:
+                    assets = db.session.query(a['model']).filter(a['model'].user_id == user_id).all()
+                else:
+                    assets = db.session.query(a['model']).filter(a['model'].owners.any(User.id == user_id)).all()
+                for asset in assets:
+                    count += 1
+                    a['list'].append(getattr(asset, a['name_field']))
+
+            return self.response(
+                200,
+                count=count,
+                dashboards=ASSETS['dashboards']['list'],
+                charts=ASSETS['charts']['list'],
+                saved_queries=ASSETS['saved_queries']['list'],
+            )
+        except ForbiddenError as e:
+            return self.response_403(message=str(e))
+        except Exception as e:
+            return self.response_500(message=str(e))
+
+    @expose("/users/<int:user_id>/reassign/", methods=["POST", "GET"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("post")
+    def reassign_owned_objects(self, user_id: int) -> Response:
+        """
+        Reassign all objects (dashboards, charts, saved queries) owned by the
+        user with ID user_id to the user specified by the request payload.
+
+        ---
+        post:
+          summary: Reassign user-owned objects
+          parameters:
+            - in: path
+              name: user_id
+              schema:
+                type: integer
+              required: true
+              description: ID of the user whose objects are to be reassigned
+          requestBody:
+            description: Target user ID for reassignment
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    target_user_id:
+                      type: integer
+          responses:
+            200:
+              description: Successfully reassigned user-owned objects
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            target_user_id = request.json["target_user_id"]  # outside a method
+            if not target_user_id:
+                return self.response_400(message="Missing target_user_id")
+            
+            new_owner = db.session.query(User).get(target_user_id)
+
+            for a in ASSETS.values():
+                if a['is_single_owner']:
+                    assets = db.session.query(a['model']).filter(a['model'].user_id == user_id).all()
+                    for asset in assets:
+                        asset.user = new_owner
+                        asset.created_by = new_owner
+                else:
+                    assets = db.session.query(a['model']).filter(a['model'].owners.any(User.id == user_id)).all()
+                    for asset in assets:
+                        asset.owners = [o for o in asset.owners if o.id != user_id]
+                        if new_owner.id not in {o.id for o in asset.owners}:
+                            asset.owners.append(new_owner)
+            db.session.commit()
+
+            return self.response(
+                200,
+                message=f"User-owned objects successfully reassigned from {user_id} to {target_user_id}"
+            )
+        except ForbiddenError as e:
+            return self.response_403(message=str(e))
+        except Exception as e:
+            return self.response_500(message=str(e))
 
 
 class SecurityRestApi(BaseSupersetApi):
@@ -360,3 +549,24 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "registration_date",
         "registration_hash",
     ]
+
+class UserSoftDeletionAPI(BaseSupersetApi):
+    resource_name = "users"
+    @expose("/soft_delete/<pk>", methods=["POST"])
+    @safe
+    def soft_delete(self, pk):
+        from superset.models.user import SupersetUser  # local import to avoid circular dependency
+        from superset import db
+
+        user = db.session.get(SupersetUser, pk)
+        if not user:
+            return self.response_404()
+        if user.is_deleted:
+            return self.response(204)
+
+        user.is_deleted = True
+        user.active = False
+        user.deleted_on = datetime.utcnow()
+        db.session.commit()
+
+        return self.response(200)

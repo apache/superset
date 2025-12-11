@@ -25,7 +25,6 @@ import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
 import {
   Tooltip,
   Icons,
-  DeleteModal,
   ConfirmStatusChange,
 } from '@superset-ui/core/components';
 import {
@@ -38,11 +37,22 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
   UserListAddModal,
   UserListEditModal,
+  UserListDeleteModal,
 } from 'src/features/users/UserListModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { deleteUser } from 'src/features/users/utils';
+import {
+  deleteUser,
+  getUserAssetsSummary,
+  reassignUserAssets,
+  softDeleteUser,
+} from 'src/features/users/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import type { UsersListProps, Group, Role, UserObject } from './types';
+import type {
+  UsersListProps,
+  Group,
+  Role,
+  UserObject,
+ } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -89,8 +99,11 @@ function UsersList({ user }: UsersListProps) {
     setModalState(prev => ({ ...prev, [type]: false }));
 
   const [currentUser, setCurrentUser] = useState<UserObject | null>(null);
-  const [userCurrentlyDeleting, setUserCurrentlyDeleting] =
-    useState<UserObject | null>(null);
+  const [deleteModalState, setDeleteModalState] = useState({
+    open: false,
+    userToDelete: null as UserObject | null,
+    assets: null as any,
+  });
   const [loadingState, setLoadingState] = useState({
     roles: true,
     groups: true,
@@ -148,14 +161,43 @@ function UsersList({ user }: UsersListProps) {
     fetchGroups();
   }, [fetchGroups]);
 
-  const handleUserDelete = async ({ id, username }: UserObject) => {
+  const handleUserDelete = async (newOwnerId: number | null, softDelete: boolean) => {
+    const user = deleteModalState.userToDelete;
+    setDeleteModalState({ open: false, userToDelete: null, assets: null });
+    if (!user) {
+      addDangerToast(t('There was an issue deleting the user'));
+      return;
+    }
+
+    if (newOwnerId) {
+      const newOwner = users.find((u) => {return u.id == newOwnerId});
+      try {
+        await reassignUserAssets(user.id, newOwnerId);
+        refreshData();
+        addSuccessToast(
+          t('Assets successfully reassigned from %s to %s',
+            user.username,
+            newOwner?.username)
+        );
+      } catch (error) {
+        addDangerToast(
+          t('There was an issue reassigning assets from %s to %s',
+          user.username,
+          newOwner?.username)
+        );
+      }
+    }
+
     try {
-      await deleteUser(id);
+      if (softDelete) {
+        await softDeleteUser(user.id);
+      } else {
+        await deleteUser(user.id);
+      }
       refreshData();
-      setUserCurrentlyDeleting(null);
-      addSuccessToast(t('Deleted user: %s', username));
+      addSuccessToast(t('Deleted user: %s', user.username));
     } catch (error) {
-      addDangerToast(t('There was an issue deleting %s', username));
+      addDangerToast(t('There was an issue deleting %s', user.username));
     }
   };
 
@@ -182,6 +224,19 @@ function UsersList({ user }: UsersListProps) {
         refreshData();
       });
   };
+
+  const handleDeleteClick = async (user: UserObject) => {
+    try {
+      const summary = await getUserAssetsSummary(user.id)
+      setDeleteModalState({
+        open: true,
+        userToDelete: user,
+        assets: summary.json,
+      });
+    } catch (error) {
+      addDangerToast(t('Error fetching user assets: %s'));
+    }
+  }
 
   const initialSort = [{ id: 'username', desc: true }];
   const columns = useMemo(
@@ -335,7 +390,9 @@ function UsersList({ user }: UsersListProps) {
             setCurrentUser(original);
             openModal(ModalType.EDIT);
           };
-          const handleDelete = () => setUserCurrentlyDeleting(original);
+          const handleDelete = () => {
+            handleDeleteClick(original)
+          };
           const actions = isAdmin
             ? [
                 {
@@ -551,17 +608,20 @@ function UsersList({ user }: UsersListProps) {
         />
       )}
 
-      {userCurrentlyDeleting && (
-        <DeleteModal
-          description={t('This action will permanently delete the user.')}
-          onConfirm={() => {
-            if (userCurrentlyDeleting) {
-              handleUserDelete(userCurrentlyDeleting);
-            }
+      {deleteModalState.open && deleteModalState.userToDelete && (
+        <UserListDeleteModal
+          userToDelete={deleteModalState.userToDelete}
+          availableUsers={users.filter(
+            u => u.id !== deleteModalState.userToDelete?.id,
+          )}
+          assets={deleteModalState.assets}
+          onConfirm={({ newOwnerId, softDelete }) => {
+            handleUserDelete(newOwnerId, softDelete);
+            setDeleteModalState({ open: false, userToDelete: null, assets: null });
           }}
-          onHide={() => setUserCurrentlyDeleting(null)}
-          open
-          title={t('Delete User?')}
+          onCancel={() =>
+            setDeleteModalState({ open: false, userToDelete: null, assets: null })
+          }
         />
       )}
       <ConfirmStatusChange
