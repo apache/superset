@@ -335,9 +335,12 @@ def safe_insert_dashboard_chart_relationships(
     if not dashboard_chart_ids:
         return
 
-    # Get all existing relationships
+    # Get existing relationships only for dashboards being updated
+    dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
     existing_relationships = db.session.execute(
-        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
+        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id]).where(
+            dashboard_slices.c.dashboard_id.in_(dashboard_ids)
+        )
     ).fetchall()
     existing_relationships_set = {(row[0], row[1]) for row in existing_relationships}
 
@@ -348,20 +351,16 @@ def safe_insert_dashboard_chart_relationships(
         if (dashboard_id, chart_id) not in existing_relationships_set
     ]
 
-    # Insert new relationships one by one to handle any edge cases
-    for dashboard_id, chart_id in new_relationships:
-        # Double-check that the relationship doesn't exist
-        exists = db.session.execute(
-            select([dashboard_slices.c.dashboard_id])
-            .where(dashboard_slices.c.dashboard_id == dashboard_id)
-            .where(dashboard_slices.c.slice_id == chart_id)
-        ).fetchone()
+    # Insert new relationships in bulk, deduplicating to avoid unique constraint issues
 
-        if not exists:
-            db.session.execute(
-                dashboard_slices.insert(),
-                {"dashboard_id": dashboard_id, "slice_id": chart_id},
-            )
+    if unique_new_relationships := set(new_relationships):
+        db.session.execute(
+            dashboard_slices.insert(),
+            [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for dashboard_id, chart_id in unique_new_relationships
+            ],
+        )
 
 
 def get_resource_mappings_batched(

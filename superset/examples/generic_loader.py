@@ -94,8 +94,8 @@ def load_duckdb_table(  # noqa: C901
         # Read from DuckDB
         pdf = read_example_data(f"examples://{duckdb_file}")
 
-        # Sample if requested
-        if sample_rows:
+        # Sample if requested (handle sample_rows=0 correctly)
+        if sample_rows is not None:
             pdf = pdf.head(sample_rows)
 
         # Check for columns with complex types (numpy arrays, nested structures)

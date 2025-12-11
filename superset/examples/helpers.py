@@ -117,8 +117,15 @@ def normalize_example_data_url(url: str) -> str:
     if not path.endswith(".duckdb"):
         path = f"{path}.duckdb"
 
-    # Build the full file path
-    full_path = os.path.join(get_examples_folder(), "data", path)
+    # Build the full file path with security validation
+    examples_data_dir = os.path.join(get_examples_folder(), "data")
+    full_path = os.path.join(examples_data_dir, path)
+
+    # Security: Ensure the path doesn't traverse outside examples/data
+    full_path = os.path.abspath(full_path)
+    examples_data_dir = os.path.abspath(examples_data_dir)
+    if not full_path.startswith(examples_data_dir + os.sep):
+        raise ValueError(f"Invalid path: {path} attempts directory traversal")
 
     # Convert to file:// URL for schema validation
     # This will pass URL validation and still work with our loader
@@ -172,6 +179,13 @@ def read_example_data(
     # Connect and read from DuckDB
     conn = duckdb.connect(local_path, read_only=True)
     try:
+        # Security: Use parameterized query to prevent SQL injection
+        # Note: DuckDB doesn't support parameterized table names, but we validate
+        # table_name comes from trusted sources (filename or override mapping)
+        import re
+
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", table_name):
+            raise ValueError(f"Invalid table name: {table_name}")
         df = conn.execute(f"SELECT * FROM {table_name}").df()  # noqa: S608
         return df
     finally:
