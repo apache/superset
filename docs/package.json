@@ -32,7 +32,7 @@
     "@docusaurus/plugin-client-redirects": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
-    "@emotion/core": "^10.0.27",
+    "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.14.1",
     "@mdx-js/react": "^3.1.1",
