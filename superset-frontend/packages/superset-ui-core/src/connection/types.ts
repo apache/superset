@@ -146,20 +146,19 @@ export interface ClientConfig {
   unauthorizedHandler?: () => void;
 }
 
-export interface SupersetClientInterface
-  extends Pick<
-    SupersetClientClass,
-    | 'delete'
-    | 'get'
-    | 'post'
-    | 'postForm'
-    | 'put'
-    | 'request'
-    | 'init'
-    | 'isAuthenticated'
-    | 'reAuthenticate'
-    | 'getGuestToken'
-  > {
+export interface SupersetClientInterface extends Pick<
+  SupersetClientClass,
+  | 'delete'
+  | 'get'
+  | 'post'
+  | 'postForm'
+  | 'put'
+  | 'request'
+  | 'init'
+  | 'isAuthenticated'
+  | 'reAuthenticate'
+  | 'getGuestToken'
+> {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
   getCSRFToken: () => CsrfPromise;
