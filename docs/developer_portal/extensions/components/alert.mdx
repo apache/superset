@@ -22,9 +22,58 @@ sidebar_label: Alert
     under the License.
 -->
 
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+import { Alert } from '../../../../superset-frontend/packages/superset-core/src/ui/components/Alert';
+
 # Alert
 
 Alert component for displaying important messages to users. Wraps Ant Design Alert with sensible defaults and improved accessibility.
+
+## Live Example
+
+<StoryWithControls
+  component={({ closable, type, message, description, showIcon }) => (
+    <Alert
+      closable={closable}
+      type={type}
+      message={message}
+      description={description}
+      showIcon={showIcon}
+    >
+      Sample alert message
+    </Alert>
+  )}
+  props={{
+  closable: true,
+  type: 'info',
+  message: 'This is a sample alert message.',
+  description: 'Sample description for additional context.',
+  showIcon: true
+}}
+  controls={[
+  {
+    name: 'type',
+    label: 'Type',
+    type: 'select',
+    options: [
+      'info',
+      'error',
+      'warning',
+      'success'
+    ]
+  },
+  {
+    name: 'closable',
+    label: 'Closable',
+    type: 'boolean'
+  },
+  {
+    name: 'showIcon',
+    label: 'Show Icon',
+    type: 'boolean'
+  }
+]}
+/>
 
 ## Installation
 
@@ -37,26 +86,27 @@ import { Alert } from '@apache-superset/core';
 
 function MyExtension() {
   return (
-    <Alert>
-      {/* Your content here */}
+    <Alert type="info">
+      Your message here
     </Alert>
   );
 }
 ```
 
-## Storybook
+## Props
 
-View the interactive Storybook documentation for this component:
-
-- [View in Storybook](/storybook/?path=/docs/extension-components-alert--docs)
-
-:::tip
-The Storybook contains interactive examples with controls to experiment with different prop combinations.
-:::
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `closable` | `boolean` | `true` | Closable |
+| `type` | `string` | `"info"` | Type |
+| `message` | `string` | `"This is a sample alert message."` | Message |
+| `description` | `string` | `"Sample description for additional context."` | Description |
+| `showIcon` | `boolean` | `true` | Show Icon |
 
 ## Source
 
 - [Story file](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-core/src/ui/components/Alert/Alert.stories.tsx)
+- [Component source](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-core/src/ui/components/Alert/index.tsx)
 
 ---
 
