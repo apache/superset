@@ -37,21 +37,21 @@ FORM_DATA_KEY = "form_data_key"
 FORM_DATA = {"test": "test value"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def chart_id(load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
     with app.app_context():  # noqa: F841
         chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
         return chart.id
 
 
-@pytest.fixture
+@pytest.fixture()
 def admin_id() -> int:
     with app.app_context():  # noqa: F841
         admin = db.session.query(User).filter_by(username="admin").one()
         return admin.id
 
 
-@pytest.fixture
+@pytest.fixture()
 def dataset() -> int:
     with app.app_context():  # noqa: F841
         dataset = (

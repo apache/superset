@@ -38,7 +38,7 @@ from superset.commands.database.utils import (
 from tests.conftest import with_config
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_engine(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock]:
     mock_connection = mocker.MagicMock()
     mock_engine = mocker.MagicMock()
@@ -96,7 +96,7 @@ def test_ping_runtime_exception(mocker: MockerFixture, mock_engine: MockerFixtur
     mock_dialect.do_ping.assert_called_once_with(mock_engine)
 
 
-@pytest.fixture
+@pytest.fixture()
 def db_session(mocker: MockerFixture) -> Session:
     return mocker.MagicMock(spec=Session)
 

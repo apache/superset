@@ -75,7 +75,7 @@ class TestQueryApi(SupersetTestCase):
         db.session.commit()
         return query
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_queries(self):
         with self.create_app().app_context():
             queries = []

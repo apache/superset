@@ -34,7 +34,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalidate(test_client, login_as_admin):
     def _invalidate(params: dict[str, Any]):
         return post_assert_metric(

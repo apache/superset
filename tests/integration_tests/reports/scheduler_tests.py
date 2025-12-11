@@ -30,7 +30,7 @@ from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
 
-@pytest.fixture
+@pytest.fixture()
 def owners(get_user) -> list[User]:
     return [get_user("admin")]
 

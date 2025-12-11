@@ -43,19 +43,19 @@ CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
 
 
-@pytest.fixture
+@pytest.fixture()
 def app_context():
     with app.app_context() as ctx:
         yield ctx
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_client(app_context: AppContext):
     with app.test_client() as client:
         yield client
 
 
-@pytest.fixture
+@pytest.fixture()
 def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
@@ -67,12 +67,12 @@ def login_as(test_client: FlaskClient[Any]):
     # function level fixtures anyway
 
 
-@pytest.fixture
+@pytest.fixture()
 def login_as_admin(login_as: Callable[..., None]):
     return login_as("admin")
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_user(app_context: AppContext):
     def _create_user(username: str, role: str = "Admin", password: str = "general"):  # noqa: S107
         security_manager.add_user(
@@ -88,7 +88,7 @@ def create_user(app_context: AppContext):
     return _create_user
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_user(app_context: AppContext):
     def _get_user(username: str) -> ab_models.User:
         return (
@@ -100,7 +100,7 @@ def get_user(app_context: AppContext):
     return _get_user
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_or_create_user(get_user, create_user) -> ab_models.User:
     @contextlib.contextmanager
     def _get_user(username: str) -> ab_models.User:
@@ -256,7 +256,7 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
-@pytest.fixture
+@pytest.fixture()
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
@@ -305,7 +305,7 @@ def virtual_dataset():
     db.session.commit()
 
 
-@pytest.fixture
+@pytest.fixture()
 def virtual_dataset_with_comments():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
@@ -345,7 +345,7 @@ def virtual_dataset_with_comments():
     db.session.commit()
 
 
-@pytest.fixture
+@pytest.fixture()
 def physical_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.connectors.sqla.utils import get_identifier_quoter
@@ -417,7 +417,7 @@ def physical_dataset():
     db.session.commit()
 
 
-@pytest.fixture
+@pytest.fixture()
 def virtual_dataset_comma_in_column_value():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 

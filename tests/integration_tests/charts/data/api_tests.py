@@ -164,7 +164,7 @@ class BaseTestChartDataApi(SupersetTestCase):
                 db.session.commit()
 
 
-@pytest.mark.chart_data_flow
+@pytest.mark.chart_data_flow()
 class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test__map_form_data_datasource_to_dataset_id(self):
@@ -1112,7 +1112,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             assert rv.status_code == 403
 
 
-@pytest.mark.chart_data_flow
+@pytest.mark.chart_data_flow()
 class TestGetChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_data_when_query_context_is_null(self):
@@ -1529,7 +1529,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         assert result["data"] == [{"test": "PT5M"}]
 
 
-@pytest.fixture
+@pytest.fixture()
 def physical_query_context(physical_dataset) -> dict[str, Any]:
     return {
         "datasource": {

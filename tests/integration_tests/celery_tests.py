@@ -564,15 +564,15 @@ def test_in_app_context():
     # Expect True within an app context
     with app.app_context():
         result = my_task.apply().get()
-        assert result is True, (
-            "Task should have access to current_app within app context"
-        )
+        assert (
+            result is True
+        ), "Task should have access to current_app within app context"
 
     # Expect True outside of an app context
     result = my_task.apply().get()
-    assert result is True, (
-        "Task should have access to current_app outside of app context"
-    )
+    assert (
+        result is True
+    ), "Task should have access to current_app outside of app context"
 
 
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):

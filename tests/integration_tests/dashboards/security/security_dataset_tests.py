@@ -37,7 +37,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 
 
 class TestDashboardDatasetSecurity(DashboardTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def load_dashboard(self):
         with current_app.app_context():
             table = (

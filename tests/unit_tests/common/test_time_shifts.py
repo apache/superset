@@ -61,7 +61,7 @@ _datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
 query_context_processor = _datasource
 
 
-@fixture
+@fixture()
 def make_join_column_producer():
     def join_column_producer(row: Series, column_index: int) -> str:
         return "CUSTOM_FORMAT"

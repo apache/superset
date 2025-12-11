@@ -73,7 +73,7 @@ def create_mock_dataset(
     return dataset
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -92,7 +92,7 @@ def mock_auth():
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_basic(mock_list, mcp_server):
     """Test basic dataset listing functionality.
 
@@ -207,7 +207,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     """Test that custom column selection includes UUID when explicitly requested."""
     dataset = MagicMock()
@@ -286,7 +286,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -387,7 +387,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 3
@@ -451,7 +451,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:
@@ -462,7 +462,7 @@ async def test_list_datasets_api_error(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -555,7 +555,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -648,7 +648,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -745,7 +745,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -842,7 +842,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_simple_api_error(mock_list, mcp_server):
     mock_list.side_effect = Exception("API request failed")
     filters = [
@@ -857,7 +857,7 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -922,7 +922,7 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dataset_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
@@ -935,7 +935,7 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
 # TODO (Phase 3+): Add tests for get_dataset_available_filters tool
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_invalid_filter_column_raises(mcp_server):
     async with fastmcp.Client(mcp_server) as client:  # noqa: F841
         with pytest.raises(ValueError, match="Input should be"):
@@ -946,7 +946,7 @@ async def test_invalid_filter_column_raises(mcp_server):
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_server):
     dataset = MagicMock()
     dataset.id = 10
@@ -1029,7 +1029,7 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 11
@@ -1099,7 +1099,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dataset info using UUID identifier."""
     dataset = MagicMock()
@@ -1166,7 +1166,7 @@ class TestDatasetSortableColumns:
         assert "uuid" not in SORTABLE_DATASET_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_list_datasets_with_valid_order_column(
         self, mock_dataset_list, mcp_server
     ):
@@ -1207,7 +1207,7 @@ class TestDatasetSortableColumns:
             assert col in list_datasets.__doc__
 
     @patch("superset.daos.dataset.DatasetDAO.list")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_default_ordering(self, mock_dataset_list, mcp_server):
         """Test default ordering behavior for datasets."""
         mock_dataset_list.return_value = ([], 0)

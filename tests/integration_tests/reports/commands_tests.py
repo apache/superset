@@ -182,7 +182,7 @@ def create_test_table_context(database: Database):
         engine.execute("DROP TABLE test_table")
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -193,7 +193,7 @@ def create_report_email_chart():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_with_cc_and_bcc():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -207,7 +207,7 @@ def create_report_email_chart_with_cc_and_bcc():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_alpha_owner(get_user):
     owners = [get_user("alpha")]
     chart = db.session.query(Slice).first()
@@ -219,7 +219,7 @@ def create_report_email_chart_alpha_owner(get_user):
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_force_screenshot():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -230,7 +230,7 @@ def create_report_email_chart_force_screenshot():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_with_csv():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -243,7 +243,7 @@ def create_report_email_chart_with_csv():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_with_text():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -256,7 +256,7 @@ def create_report_email_chart_with_text():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_chart_with_csv_no_query_context():
     chart = db.session.query(Slice).first()
     chart.query_context = None
@@ -270,7 +270,7 @@ def create_report_email_chart_with_csv_no_query_context():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_dashboard():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
@@ -281,7 +281,7 @@ def create_report_email_dashboard():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_email_dashboard_force_screenshot():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
@@ -292,7 +292,7 @@ def create_report_email_dashboard_force_screenshot():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_slack_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -303,7 +303,7 @@ def create_report_slack_chart():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_slack_chartv2():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -317,7 +317,7 @@ def create_report_slack_chartv2():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_slack_chart_with_csv():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -331,7 +331,7 @@ def create_report_slack_chart_with_csv():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_slack_chart_with_text():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -345,7 +345,7 @@ def create_report_slack_chart_with_text():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_report_slack_chart_working():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -374,7 +374,7 @@ def create_report_slack_chart_working():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_alert_slack_chart_success():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(

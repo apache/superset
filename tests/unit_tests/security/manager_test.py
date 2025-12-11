@@ -45,7 +45,7 @@ def test_security_manager(app_context: None) -> None:
     assert sm
 
 
-@pytest.fixture
+@pytest.fixture()
 def stored_metrics() -> list[AdhocMetric]:
     """
     Return a list of metrics.
@@ -61,7 +61,7 @@ def stored_metrics() -> list[AdhocMetric]:
     ]
 
 
-@pytest.fixture
+@pytest.fixture()
 def stored_columns() -> list[AdhocColumn]:
     """
     Return a list of columns.

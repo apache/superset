@@ -30,7 +30,7 @@ from superset.models.core import Database
 from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_database(mocker: MockerFixture) -> MagicMock:
     database = mocker.MagicMock(spec=Database)
     database.get_oauth2_config.return_value = {
@@ -45,7 +45,7 @@ def mock_database(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_state() -> str:
     return encode_oauth2_state(
         {
@@ -57,7 +57,7 @@ def mock_state() -> str:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_parameters(mock_state: str) -> dict[str, Any]:
     return {"code": "test_code", "state": mock_state}
 

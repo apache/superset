@@ -70,9 +70,9 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
 
         # Critical checks for MySQL compatibility
         assert isinstance(tag.name, str), "Tag name should be a plain string"
-        assert not isinstance(tag.name, Markup), (
-            "Tag name should NOT be a Markup object"
-        )
+        assert not isinstance(
+            tag.name, Markup
+        ), "Tag name should NOT be a Markup object"
         assert tag.name.__class__ is str, "Tag name should be exactly str type"
         assert tag.name == tag_name, f"Tag name should be '{tag_name}'"
 
@@ -82,15 +82,15 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         # Retrieve the tag from database to ensure it was stored correctly
         retrieved_tag = db.session.query(Tag).filter_by(name=tag_name).first()
         assert retrieved_tag is not None, "Tag should be retrievable from database"
-        assert isinstance(retrieved_tag.name, str), (
-            "Retrieved tag name should be a string"
-        )
-        assert not isinstance(retrieved_tag.name, Markup), (
-            "Retrieved tag name should NOT be Markup"
-        )
-        assert retrieved_tag.name == tag_name, (
-            "Retrieved tag name should match original"
-        )
+        assert isinstance(
+            retrieved_tag.name, str
+        ), "Retrieved tag name should be a string"
+        assert not isinstance(
+            retrieved_tag.name, Markup
+        ), "Retrieved tag name should NOT be Markup"
+        assert (
+            retrieved_tag.name == tag_name
+        ), "Retrieved tag name should match original"
 
     def test_create_multiple_tags_no_sql_error(self) -> None:
         """
@@ -110,12 +110,12 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                 tag = get_tag(tag_name, db.session, TagType.custom)
                 created_tags.append(tag)
 
-                assert isinstance(tag.name, str), (
-                    f"Tag '{tag_name}' name should be a string"
-                )
-                assert not isinstance(tag.name, Markup), (
-                    f"Tag '{tag_name}' should NOT be Markup"
-                )
+                assert isinstance(
+                    tag.name, str
+                ), f"Tag '{tag_name}' name should be a string"
+                assert not isinstance(
+                    tag.name, Markup
+                ), f"Tag '{tag_name}' should NOT be Markup"
         except ProgrammingError as e:
             pytest.fail(
                 f"ProgrammingError should not occur when creating tags: {e}",
@@ -129,9 +129,9 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         for tag_name in tag_names:
             tag = db.session.query(Tag).filter_by(name=tag_name).first()
             assert tag is not None, f"Tag '{tag_name}' should exist in database"
-            assert isinstance(tag.name, str), (
-                f"Tag '{tag_name}' should have string name"
-            )
+            assert isinstance(
+                tag.name, str
+            ), f"Tag '{tag_name}' should have string name"
 
     def test_create_tag_with_special_characters(self) -> None:
         """
@@ -152,23 +152,23 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
                 tag = get_tag(tag_name, db.session, TagType.custom)
 
                 assert isinstance(tag.name, str), f"Tag '{tag_name}' should be a string"
-                assert not isinstance(tag.name, Markup), (
-                    f"Tag '{tag_name}' should NOT be Markup"
-                )
-                assert tag.name == tag_name, (
-                    f"Tag name should match input: '{tag_name}'"
-                )
+                assert not isinstance(
+                    tag.name, Markup
+                ), f"Tag '{tag_name}' should NOT be Markup"
+                assert (
+                    tag.name == tag_name
+                ), f"Tag name should match input: '{tag_name}'"
 
                 db.session.commit()
 
                 # Verify database persistence
                 retrieved_tag = db.session.query(Tag).filter_by(name=tag_name).first()
-                assert retrieved_tag is not None, (
-                    f"Tag '{tag_name}' should be in database"
-                )
-                assert retrieved_tag.name == tag_name, (
-                    f"Retrieved tag name should match: '{tag_name}'"
-                )
+                assert (
+                    retrieved_tag is not None
+                ), f"Tag '{tag_name}' should be in database"
+                assert (
+                    retrieved_tag.name == tag_name
+                ), f"Retrieved tag name should match: '{tag_name}'"
 
             except ProgrammingError as e:
                 pytest.fail(
@@ -187,12 +187,12 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         retrieved_tag = get_tag(tag_name, db.session, TagType.custom)
 
         assert retrieved_tag.id == original_tag.id, "Should retrieve the same tag"
-        assert isinstance(retrieved_tag.name, str), (
-            "Retrieved tag name should be a string"
-        )
-        assert not isinstance(retrieved_tag.name, Markup), (
-            "Retrieved tag name should NOT be Markup"
-        )
+        assert isinstance(
+            retrieved_tag.name, str
+        ), "Retrieved tag name should be a string"
+        assert not isinstance(
+            retrieved_tag.name, Markup
+        ), "Retrieved tag name should NOT be Markup"
 
     def test_tag_with_whitespace_handling(self) -> None:
         """Test that tags with leading/trailing whitespace are handled correctly."""
@@ -224,12 +224,12 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
             try:
                 tag = get_tag(tag_name, db.session, tag_type)
 
-                assert isinstance(tag.name, str), (
-                    f"Tag name for {tag_type} should be a string"
-                )
-                assert not isinstance(tag.name, Markup), (
-                    f"Tag name for {tag_type} should NOT be Markup"
-                )
+                assert isinstance(
+                    tag.name, str
+                ), f"Tag name for {tag_type} should be a string"
+                assert not isinstance(
+                    tag.name, Markup
+                ), f"Tag name for {tag_type} should NOT be Markup"
                 assert tag.type == tag_type, f"Tag type should be {tag_type}"
 
                 db.session.commit()
@@ -254,9 +254,9 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
             # Verify the tag exists in the database
             retrieved_tag = db.session.query(Tag).filter_by(name=tag_name).first()
             assert retrieved_tag is not None, "Tag should exist after commit"
-            assert isinstance(retrieved_tag.name, str), (
-                "Retrieved tag should have string name"
-            )
+            assert isinstance(
+                retrieved_tag.name, str
+            ), "Retrieved tag should have string name"
 
         except ProgrammingError as e:
             pytest.fail(f"ProgrammingError should not occur during commit: {e}")
@@ -274,12 +274,12 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         tag = get_tag(tag_name, db.session, TagType.custom)
 
         # Check that it's exactly a str, not a subclass
-        assert tag.name.__class__ is str, (
-            f"Tag name type should be exactly 'str', got {type(tag.name)}"
-        )
-        assert not isinstance(tag.name, Markup), (
-            "Tag name should not be a Markup instance"
-        )
+        assert (
+            tag.name.__class__ is str
+        ), f"Tag name type should be exactly 'str', got {type(tag.name)}"
+        assert not isinstance(
+            tag.name, Markup
+        ), "Tag name should not be a Markup instance"
 
         # Markup is a subclass of str, so this additional check is important
         assert tag.name.__class__.__name__ == "str", "Tag name class should be 'str'"
