@@ -326,10 +326,6 @@ ${description || `The ${componentName} component from the Superset extension API
   controls={${controlsJson}}
 />
 
-## Installation
-
-This component is available in the \`${packageName}\` package, which is automatically available to Superset extensions.
-
 ## Try It
 
 Edit the code below to experiment with the component:
@@ -345,6 +341,8 @@ function Demo() {
 \`\`\`
 
 ## Usage in Extensions
+
+This component is available in the \`${packageName}\` package, which is automatically available to Superset extensions.
 
 \`\`\`tsx
 ${importPath}
