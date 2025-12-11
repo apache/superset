@@ -16,16 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AlteredSliceTag } from '.';
-import { defaultProps, expectedDiffs } from './AlteredSliceTagMocks';
 
-export default {
-  title: 'Components/AlteredSliceTag',
+import React from 'react';
+import { Button, Card, Input, Space, Tag, Tooltip } from 'antd';
+
+// Import extension components from @apache-superset/core
+// These are resolved via webpack alias to superset-frontend/packages/superset-core/src
+import { Alert } from '@apache-superset/core';
+
+/**
+ * ReactLiveScope provides the scope for live code blocks.
+ * Any component added here will be available in ```tsx live blocks.
+ *
+ * To add more components:
+ * 1. Import the component from @apache-superset/core above
+ * 2. Add it to the scope object below
+ */
+const ReactLiveScope = {
+  // React core
+  React,
+  ...React,
+
+  // Extension components from @apache-superset/core
+  Alert,
+
+  // Common Ant Design components (for demos)
+  Button,
+  Card,
+  Input,
+  Space,
+  Tag,
+  Tooltip,
 };
 
-export const InteractiveSliceTag = (args: any) => <AlteredSliceTag {...args} />;
-
-InteractiveSliceTag.args = {
-  origFormData: defaultProps.origFormData,
-  diffs: expectedDiffs,
-};
+export default ReactLiveScope;

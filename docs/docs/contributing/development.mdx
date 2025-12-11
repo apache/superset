@@ -934,6 +934,20 @@ npm run storybook
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
 
+#### Testing Stories
+
+Superset uses [@storybook/test-runner](https://storybook.js.org/docs/writing-tests/test-runner) to validate that all stories compile and render without errors. This helps catch broken stories before they're merged.
+
+```bash
+# Run against a running Storybook server (start with `npm run storybook` first)
+npm run test-storybook
+
+# Build static Storybook and test (CI-friendly, no server needed)
+npm run test-storybook:ci
+```
+
+The `test-storybook` job runs automatically in CI on every pull request, ensuring stories remain functional.
+
 ## Tips
 
 ### Adding a new datasource
