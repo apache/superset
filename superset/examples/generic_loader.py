@@ -17,8 +17,9 @@
 """Generic DuckDB example data loader."""
 
 import logging
-from typing import Optional
+from typing import Any, Callable, Optional
 
+import numpy as np
 from sqlalchemy import inspect
 
 from superset import db
@@ -26,12 +27,27 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.examples.helpers import read_example_data
 from superset.models.core import Database
 from superset.sql.parse import Table
+from superset.utils import json
 from superset.utils.database import get_example_database
 
 logger = logging.getLogger(__name__)
 
 
-def load_duckdb_table(
+def serialize_numpy_arrays(obj: Any) -> Any:  # noqa: C901
+    """Convert numpy arrays to JSON-serializable format."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.generic):
+        # Handle numpy scalar types
+        return obj.item()
+    elif isinstance(obj, (list, tuple)):
+        return [serialize_numpy_arrays(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: serialize_numpy_arrays(val) for key, val in obj.items()}
+    return obj
+
+
+def load_duckdb_table(  # noqa: C901
     duckdb_file: str,
     table_name: str,
     database: Optional[Database] = None,
@@ -81,6 +97,43 @@ def load_duckdb_table(
         if sample_rows:
             pdf = pdf.head(sample_rows)
 
+        # Check for columns with complex types (numpy arrays, nested structures)
+        for col in pdf.columns:
+            # Check if any value in the column is a numpy array or nested structure
+            if pdf[col].dtype == object:
+                try:
+                    # Check if the first non-null value is complex
+                    sample_val = (
+                        pdf[col].dropna().iloc[0]
+                        if not pdf[col].dropna().empty
+                        else None
+                    )
+                    if sample_val is not None and isinstance(
+                        sample_val, (np.ndarray, list, dict)
+                    ):
+                        logger.info("Converting complex column %s to JSON string", col)
+
+                        # Convert to JSON string for database storage
+                        def safe_serialize(
+                            x: Any, column_name: str = col
+                        ) -> Optional[str]:
+                            if x is None:
+                                return None
+                            try:
+                                return json.dumps(serialize_numpy_arrays(x))
+                            except (TypeError, ValueError) as e:
+                                logger.warning(
+                                    "Failed to serialize value in column %s: %s",
+                                    column_name,
+                                    e,
+                                )
+                                # Convert to string representation as fallback
+                                return str(x)
+
+                        pdf[col] = pdf[col].apply(lambda x, c=col: safe_serialize(x, c))
+                except Exception as e:
+                    logger.warning("Could not process column %s: %s", col, e)
+
         # Write to target database
         with database.get_sqla_engine() as engine:
             pdf.to_sql(
@@ -124,7 +177,7 @@ def create_generic_loader(
     table_name: Optional[str] = None,
     description: Optional[str] = None,
     sample_rows: Optional[int] = None,
-) -> callable:
+) -> Callable[[Database, SqlaTable], None]:
     """Create a loader function for a specific DuckDB file.
 
     This factory function creates loaders that match the existing pattern

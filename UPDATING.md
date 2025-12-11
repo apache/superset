@@ -24,6 +24,28 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Example Data Loading Improvements
+
+#### Simplified DuckDB-based Loading
+- All example datasets now stored as self-contained DuckDB files in `superset/examples/data/`
+- Auto-discovery of datasets - just drop a `.duckdb` file to add a new example
+- Removed Python-based data generation from individual example files
+- Fixed birth_names dataset loading issue (was incorrectly skipped)
+
+#### Test Data Reorganization
+- Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
+- Fixed inverted logic for `--load-test-data` flag (now correctly includes .test.yaml files when flag is set)
+- Clarified CLI flags:
+  - `--force` / `-f`: Force reload even if tables exist
+  - `--only-metadata` / `-m`: Create table metadata without loading data
+  - `--load-test-data` / `-t`: Include test dashboards and .test.yaml configs
+  - `--load-big-data` / `-b`: Generate synthetic stress-test data
+
+#### Bug Fixes
+- Fixed numpy array serialization for PostgreSQL (converts complex types to JSON strings)
+- Fixed KeyError for `allow_csv_upload` field in database configs (now optional with default)
+- Fixed test data loading logic that was incorrectly filtering files
+
 ### MCP Service
 
 The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.

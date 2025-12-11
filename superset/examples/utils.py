@@ -43,7 +43,12 @@ def load_examples_from_configs(
 
 
 def load_contents(load_test_data: bool = False) -> dict[str, Any]:
-    """Traverse configs directory and load contents"""
+    """Traverse configs directory and load contents.
+
+    Args:
+        load_test_data: If True, includes test data files (*.test.yaml).
+                       If False, excludes test data files.
+    """
     root = files("superset") / "examples/configs"
     resource_names = (files("superset") / str(root)).iterdir()
     queue = [root / str(resource_name) for resource_name in resource_names]
@@ -51,7 +56,7 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
     contents: dict[Path, str] = {}
     while queue:
         path_name = queue.pop()
-        test_re = re.compile(r"\.test\.|metadata\.yaml$")
+        test_re = re.compile(r"\.test\.")
 
         if (files("superset") / str(path_name)).is_dir():
             queue.extend(
@@ -59,8 +64,10 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
                 for child_name in (files("superset") / str(path_name)).iterdir()
             )
         elif Path(str(path_name)).suffix.lower() in YAML_EXTENSIONS:
-            if load_test_data and test_re.search(str(path_name)) is None:
+            # Skip test files if load_test_data is False
+            if not load_test_data and test_re.search(str(path_name)):
                 continue
+            # Always include all other YAML files (including metadata.yaml)
             contents[Path(str(path_name))] = (
                 files("superset") / str(path_name)
             ).read_text("utf-8")

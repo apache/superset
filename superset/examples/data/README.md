@@ -13,6 +13,15 @@ To add a new example dataset:
    superset load-examples
    ```
 
+## CLI Loading Options
+
+The `superset load-examples` command supports several flags for different use cases:
+
+- **`--force` / `-f`**: Force reload data even if tables already exist
+- **`--only-metadata` / `-m`**: Only create table metadata without loading actual data (fast setup)
+- **`--load-test-data` / `-t`**: Include test-specific dashboards and datasets (*.test.yaml files)
+- **`--load-big-data` / `-b`**: Generate synthetic stress-test data (wide tables, many tables)
+
 ## DuckDB File Structure
 
 Each `.duckdb` file should contain a single table with the same name as the file:
@@ -68,7 +77,10 @@ DATASET_DESCRIPTIONS = {
 
 ## Custom Loaders
 
-For datasets requiring special processing (like creating dashboards or slices), create a custom loader in `superset/examples/your_dataset.py`. See `birth_names.py` for an example.
+For datasets requiring special processing (like creating dashboards or slices), create a custom loader. Custom loaders are used for:
+- Creating example dashboards (`supported_charts_dashboard.py`, `tabbed_dashboard.py`)
+- Loading CSS templates (`css_templates.py`)
+- Generating synthetic test data (moved to `superset/cli/test_loaders.py`)
 
 ## Testing Your Dataset
 

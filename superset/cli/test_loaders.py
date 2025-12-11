@@ -14,6 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Test data loaders for stress testing and development.
+
+This module contains specialized data loaders that generate synthetic data
+for testing Superset's capabilities with edge cases:
+- Wide tables (many columns)
+- Many tables (testing catalog performance)
+- Long table names (UI edge cases)
+
+These loaders are invoked via CLI flags and are not part of the standard
+example datasets.
+"""
+
 import logging
 import random
 import string

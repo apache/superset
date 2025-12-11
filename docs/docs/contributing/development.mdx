@@ -350,6 +350,12 @@ superset init
 # Note: you MUST have previously created an admin user with the username `admin` for this command to work.
 superset load-examples
 
+# The load-examples command supports various options:
+# --force / -f          Force reload data even if tables exist
+# --only-metadata / -m  Only create table metadata without loading data (fast setup)
+# --load-test-data / -t Load additional test dashboards and datasets
+# --load-big-data / -b  Generate synthetic data for stress testing (wide tables, many tables)
+
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
 # See instructions below on how to build the front-end assets.
@@ -689,6 +695,43 @@ not have in your possession. In those cases you may have to rely on remote CI or
 job further to target a different environment/sandbox or your own alongside the related
 secrets.
 :::
+
+---
+
+## Example Data and Test Loaders
+
+### Example Datasets
+
+Superset includes example datasets stored as DuckDB files in `superset/examples/data/`. These are automatically discovered and loaded when running `superset load-examples`. To add a new example dataset:
+
+1. Create a DuckDB file with your data
+2. Place it in `superset/examples/data/`
+3. The dataset will be auto-discovered on the next load
+
+### Test Data Generation
+
+For stress testing and development, Superset includes special test data generators that create synthetic data:
+
+#### Big Data Loader (`--load-big-data`)
+
+Located in `superset/cli/test_loaders.py`, this generates:
+
+- **Wide Table** (`wide_table`): 100 columns of mixed types, 1000 rows
+- **Many Small Tables** (`small_table_0` through `small_table_999`): 1000 tables for testing catalog performance
+- **Long Name Table**: Table with 60-character random name for testing UI edge cases
+
+This is primarily used for:
+- Performance testing with extreme data shapes
+- UI edge case validation
+- Database catalog stress testing
+- CI/CD pipeline validation
+
+#### Test Dashboards (`--load-test-data`)
+
+Loads additional test-specific content:
+- Tabbed dashboard example
+- Supported charts dashboard
+- Test configuration files (*.test.yaml)
 
 ---
 

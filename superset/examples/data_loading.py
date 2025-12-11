@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Callable, Dict
 
 # Import loaders that have custom logic (dashboards, CSS, etc.)
+from superset.cli.test_loaders import load_big_data
+
 from .css_templates import load_css_templates
 
 # Import generic loader for DuckDB datasets
@@ -30,10 +32,8 @@ from .utils import load_examples_from_configs
 
 # Map of DuckDB files to their table names (if different from file name)
 TABLE_NAME_OVERRIDES = {
-    "birth_france_by_region": "country_map",
     "fcc_2018_survey": "FCC 2018 Survey",
     "sf_population": "sf_population_polygons",
-    "wb_health_population": "wb_health_population",
 }
 
 # Dataset descriptions for documentation
@@ -89,10 +89,6 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
     for duckdb_file in sorted(data_dir.glob("*.duckdb")):
         dataset_name = duckdb_file.stem
 
-        # Skip birth_names as it has custom loader
-        if dataset_name == "birth_names":
-            continue
-
         # Determine table name
         table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
 
@@ -121,6 +117,7 @@ globals().update(_auto_loaders)
 # Build __all__ list dynamically
 __all__ = [
     # Custom loaders (always included)
+    "load_big_data",
     "load_css_templates",
     "load_supported_charts_dashboard",
     "load_tabbed_dashboard",

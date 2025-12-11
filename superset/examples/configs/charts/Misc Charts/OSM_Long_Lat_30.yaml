@@ -2,7 +2,7 @@ slice_name: OSM Long/Lat
 description: null
 certified_by: null
 certification_details: null
-viz_type: osm
+viz_type: mapbox
 params:
   all_columns:
   - occupancy
