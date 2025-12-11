@@ -328,6 +328,7 @@ export const StyledInputContainer = styled.div`
 
       .filters-container {
         display: flex;
+        align-items: flex-start;
         margin: ${theme.sizeUnit * 2}px 0;
       }
 
@@ -356,16 +357,16 @@ export const StyledInputContainer = styled.div`
         display: flex;
         flex-direction: column;
         flex: 1;
+        min-width: 200px;
       }
 
       .filters-delete {
         display: flex;
-        margin-top: ${theme.sizeUnit * 8}px;
+        margin-top: ${theme.sizeUnit * 10}px;
         margin-left: ${theme.sizeUnit * 4}px;
       }
 
       .filters-trashcan {
-        width: ${theme.sizeUnit * 10}px;
         display: 'flex';
         color: ${theme.colorIcon};
       }
@@ -756,11 +757,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
-  const filterNativeFilterOptions = () =>
+  const filterNativeFilterOptions = (currentIdx?: number) =>
     nativeFilterOptions.filter(
       option =>
         !nativeFilterData.some(
-          filter => filter.nativeFilterId === option.value,
+          (filter, idx) =>
+            filter.nativeFilterId === option.value && idx !== currentIdx,
         ),
     );
 
@@ -2387,8 +2389,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                       }
                                       ariaLabel={t('Select Filter')}
                                       placeholder={t('Select Filter')}
-                                      value={nativeFilterData[idx]?.filterName}
-                                      options={filterNativeFilterOptions()}
+                                      value={
+                                        nativeFilterData[idx]?.nativeFilterId
+                                      }
+                                      options={filterNativeFilterOptions(idx)}
                                       onChange={value =>
                                         onChangeDashboardFilter(
                                           idx,
@@ -2396,10 +2400,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                         )
                                       }
                                       onClear={() => {
-                                        // reset filter values on filter clear
-                                        nativeFilterData[idx].columnName = '';
-                                        nativeFilterData[idx].filterName = '';
-                                        nativeFilterData[idx].filterValues = [];
+                                        const updatedFilters = [
+                                          ...nativeFilterData,
+                                        ];
+                                        updatedFilters[idx] = {
+                                          nativeFilterId: null,
+                                          columnLabel: '',
+                                          columnName: '',
+                                          filterName: '',
+                                          filterValues: [],
+                                        };
+                                        setNativeFilterData(updatedFilters);
                                       }}
                                       css={css`
                                         flex: 1;
