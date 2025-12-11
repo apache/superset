@@ -28,7 +28,7 @@
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^5.2.6 || ^6.0.0",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "lodash": "^4.17.11",

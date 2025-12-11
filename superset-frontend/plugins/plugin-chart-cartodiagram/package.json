@@ -34,7 +34,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^5.2.6 || ^6.0.0",
     "@reduxjs/toolkit": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
