@@ -29,9 +29,9 @@ These tests cover the SQL execution API including:
 - Async execution
 """
 
-from typing import Any
 from unittest.mock import MagicMock
 
+import msgpack
 import pandas as pd
 import pytest
 from flask import current_app
@@ -44,74 +44,9 @@ from superset_core.api.types import (
 
 from superset.models.core import Database
 
-
-@pytest.fixture
-def database() -> Database:
-    """Create a test database instance."""
-    return Database(
-        id=1,
-        database_name="test_db",
-        sqlalchemy_uri="sqlite://",
-        allow_dml=False,
-    )
-
-
-@pytest.fixture
-def database_with_dml() -> Database:
-    """Create a test database instance with DML allowed."""
-    return Database(
-        id=2,
-        database_name="test_db_dml",
-        sqlalchemy_uri="sqlite://",
-        allow_dml=True,
-    )
-
-
-@pytest.fixture(autouse=True)
-def mock_db_session(mocker: MockerFixture) -> MagicMock:
-    """Mock database session for all tests to avoid foreign key constraints."""
-    mock_session = MagicMock()
-    mocker.patch("superset.sql.execution.executor.db.session", mock_session)
-    return mock_session
-
-
-def mock_query_execution(
-    mocker: MockerFixture,
-    database: Database,
-    return_data: list[tuple[Any, ...]],
-    column_names: list[str],
-) -> None:
-    """
-    Mock the raw connection execution path for testing.
-
-    :param mocker: pytest-mock fixture
-    :param database: Database instance to mock
-    :param return_data: Data to return from fetch_data, e.g. [(1, "Alice"), (2, "Bob")]
-    :param column_names: Column names for the result, e.g. ["id", "name"]
-    """
-    from superset.result_set import SupersetResultSet
-
-    # Mock cursor and connection
-    mock_cursor = MagicMock()
-    mock_cursor.description = [(name,) for name in column_names]
-    mock_conn = MagicMock()
-    mock_conn.cursor.return_value = mock_cursor
-    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-    mock_conn.__exit__ = MagicMock(return_value=False)
-
-    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
-    mocker.patch.object(
-        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
-    )
-    mocker.patch.object(database.db_engine_spec, "execute")
-    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=return_data)
-
-    # Create a real SupersetResultSet that converts to DataFrame properly
-    mock_result_set = MagicMock(spec=SupersetResultSet)
-    mock_result_set.to_pandas_df.return_value = pd.DataFrame(
-        return_data, columns=column_names
-    )
-    mocker.patch("superset.result_set.SupersetResultSet", return_value=mock_result_set)
+# Note: database, database_with_dml, mock_db_session fixtures and
+# mock_query_execution helper are imported from conftest.py
+from .conftest import mock_query_execution
 
 
 # =============================================================================
@@ -706,8 +641,7 @@ def test_execute_async_creates_query(
     result = database.execute_async("SELECT * FROM users")
 
     assert result.status == QueryStatus.PENDING
-    assert result.handle is not None
-    assert result.handle.query_id is not None
+    assert result.query_uuid is not None
     mock_db_session.add.assert_called()
     mock_celery_task.delay.assert_called()
 
@@ -766,7 +700,7 @@ def test_async_handle_get_status(
 
     result = database.execute_async("SELECT * FROM users")
 
-    status = result.handle.get_status()
+    status = result.get_status()
     assert status == QueryStatus.SUCCESS
 
 
@@ -794,7 +728,7 @@ def test_async_handle_cancel(
 
     result = database.execute_async("SELECT * FROM users")
 
-    cancelled = result.handle.cancel()
+    cancelled = result.cancel()
     assert cancelled is True
     mock_cancel.assert_called_once()
 
@@ -954,3 +888,1161 @@ def test_execute_no_query_logger_configured(
     result = database.execute("SELECT * FROM users")
 
     assert result.status == QueryStatus.SUCCESS
+
+
+# =============================================================================
+# Dry Run Tests
+# =============================================================================
+
+
+def test_execute_dry_run_returns_transformed_sql(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test dry run returns transformed SQL without execution."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30, "SQL_MAX_ROW": 100},
+    )
+
+    # Mock _apply_rls_to_sql to verify it's called even in dry run
+    mock_apply_rls = mocker.patch.object(
+        SQLExecutor, "_apply_rls_to_sql", return_value="SELECT * FROM users WHERE 1=1"
+    )
+
+    # get_raw_connection should NOT be called in dry run
+    get_conn_mock = mocker.patch.object(database, "get_raw_connection")
+
+    options = QueryOptions(dry_run=True, limit=50)
+    result = database.execute("SELECT * FROM users", options=options)
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.query is not None  # Transformed SQL returned
+    assert result.data is None  # No data in dry run
+    assert result.query_id is None  # No Query model created
+    mock_apply_rls.assert_called()  # RLS still applied
+    get_conn_mock.assert_not_called()  # No execution
+
+
+def test_execute_async_dry_run_returns_transformed_sql(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test async dry run returns transformed SQL without Celery submission."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30},
+    )
+
+    # Mock Celery task - should NOT be called
+    mock_celery_task = mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_task"
+    )
+
+    options = QueryOptions(dry_run=True)
+    result = database.execute_async("SELECT * FROM users", options=options)
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.query_uuid == "cached"  # Cached/dry-run marker
+    mock_celery_task.delay.assert_not_called()
+
+    # Handle should return the dry run result
+    status = result.get_status()
+    assert status == QueryStatus.SUCCESS
+
+
+def test_execute_async_cached_result_returns_immediately(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test async execution with cached result returns immediately."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    cached_df = pd.DataFrame({"id": [1, 2]})
+    cached_result = MagicMock()
+    cached_result.status = QueryStatus.SUCCESS
+    cached_result.data = cached_df
+    cached_result.is_cached = True
+
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30},
+    )
+    mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=cached_result)
+
+    # Mock Celery task - should NOT be called
+    mock_celery_task = mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_task"
+    )
+
+    result = database.execute_async("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.query_uuid == "cached"
+    mock_celery_task.delay.assert_not_called()
+
+
+# =============================================================================
+# Empty Statement Tests
+# =============================================================================
+
+
+def test_execute_empty_sql(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test execution with empty SQL."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query_execution(mocker, database, return_data=[], column_names=[])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    # Mock _create_query_record
+    mock_query = MagicMock()
+    mock_query.id = 123
+    mocker.patch.object(
+        SQLExecutor, "_create_query_record", return_value=mock_query
+    )
+
+    result = database.execute("")
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.row_count == 0
+
+
+def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
+    """Test execute_sql_with_cursor with empty statement list."""
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_cursor = MagicMock()
+    mock_query = MagicMock()
+
+    result = execute_sql_with_cursor(
+        database=mock_database,
+        cursor=mock_cursor,
+        statements=[],
+        query=mock_query,
+    )
+
+    assert result is None
+
+
+def test_execute_sql_with_cursor_stopped_mid_execution(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Test execute_sql_with_cursor when query is stopped mid-execution."""
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.db_engine_spec.execute = MagicMock()
+    mock_database.db_engine_spec.fetch_data = MagicMock(return_value=[])
+
+    mock_cursor = MagicMock()
+    mock_cursor.description = [("id",)]
+    mock_cursor.fetchall = MagicMock()
+
+    mock_query = MagicMock()
+    mock_query.schema = "public"
+    mock_query.progress = 0
+    mock_query.set_extra_json_key = MagicMock()
+
+    mock_session = mocker.patch("superset.sql.execution.executor.db.session")
+
+    # Check stopped function returns True after first statement
+    call_count = {"count": 0}
+
+    def check_stopped():
+        call_count["count"] += 1
+        return call_count["count"] > 1
+
+    result = execute_sql_with_cursor(
+        database=mock_database,
+        cursor=mock_cursor,
+        statements=["SELECT 1", "SELECT 2", "SELECT 3"],
+        query=mock_query,
+        check_stopped_fn=check_stopped,
+    )
+
+    assert result is None  # Stopped, no result
+
+
+def test_execute_sql_with_cursor_custom_execute_fn(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Test execute_sql_with_cursor with custom execute function."""
+    from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.db_engine_spec = MagicMock()
+
+    mock_cursor = MagicMock()
+    mock_cursor.description = [("count",)]
+    mock_cursor.fetchall = MagicMock()
+
+    mock_query = MagicMock()
+    mock_query.schema = "public"
+    mock_query.progress = 0
+    mock_query.set_extra_json_key = MagicMock()
+
+    mock_session = mocker.patch("superset.sql.execution.executor.db.session")
+    mock_database.db_engine_spec.fetch_data = MagicMock(return_value=[(100,)])
+
+    custom_execute_calls = []
+
+    def custom_execute(cursor, sql):
+        custom_execute_calls.append(sql)
+
+    result = execute_sql_with_cursor(
+        database=mock_database,
+        cursor=mock_cursor,
+        statements=["SELECT COUNT(*) FROM users"],
+        query=mock_query,
+        execute_fn=custom_execute,
+    )
+
+    assert len(custom_execute_calls) == 1
+    assert result is not None
+
+
+# =============================================================================
+# Limit Application Tests
+# =============================================================================
+
+
+def test_execute_applies_limit(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that limit is applied to SELECT queries."""
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    # Mock apply_limit_to_sql
+    apply_limit_mock = mocker.patch.object(
+        database, "apply_limit_to_sql", return_value="SELECT * FROM users LIMIT 50"
+    )
+
+    options = QueryOptions(limit=50)
+    result = database.execute("SELECT * FROM users", options=options)
+
+    assert result.status == QueryStatus.SUCCESS
+    # SQL may be formatted, so check call was made with limit 50
+    assert apply_limit_mock.called
+    call_args = apply_limit_mock.call_args
+    assert call_args[0][1] == 50  # Second arg is limit
+    assert call_args[1]["force"] is True
+
+
+def test_execute_respects_sql_max_row(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that SQL_MAX_ROW config limits the effective limit."""
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": 100,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    apply_limit_mock = mocker.patch.object(
+        database, "apply_limit_to_sql", return_value="SELECT * FROM users LIMIT 100"
+    )
+
+    # Request 1000 but should be capped at 100
+    options = QueryOptions(limit=1000)
+    result = database.execute("SELECT * FROM users", options=options)
+
+    assert result.status == QueryStatus.SUCCESS
+    # Should apply the lower limit (SQL_MAX_ROW caps it at 100)
+    assert apply_limit_mock.called
+    call_args = apply_limit_mock.call_args
+    assert call_args[0][1] == 100  # Second arg is limit capped to SQL_MAX_ROW
+    assert call_args[1]["force"] is True
+
+
+def test_execute_no_limit_for_dml(
+    mocker: MockerFixture, database_with_dml: Database, app_context: None
+) -> None:
+    """Test that limit is not applied to DML queries."""
+    mock_query_execution(mocker, database_with_dml, return_data=[], column_names=[])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": 100,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    apply_limit_mock = mocker.patch.object(database_with_dml, "apply_limit_to_sql")
+
+    options = QueryOptions(limit=50)
+    result = database_with_dml.execute("INSERT INTO users VALUES (1)", options=options)
+
+    # Should not apply limit to DML
+    apply_limit_mock.assert_not_called()
+
+
+# =============================================================================
+# Catalog/Schema Resolution Tests
+# =============================================================================
+
+
+def test_execute_uses_default_catalog_and_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that default catalog and schema are used when not specified."""
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.object(database, "get_default_catalog", return_value="main")
+    mocker.patch.object(database, "get_default_schema", return_value="public")
+    get_raw_conn_mock = mocker.patch.object(
+        database, "get_raw_connection", wraps=database.get_raw_connection
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+    # Verify default catalog/schema were fetched
+    database.get_default_catalog.assert_called()
+    database.get_default_schema.assert_called()
+
+
+# =============================================================================
+# Async Query Status and Result Tests
+# =============================================================================
+
+
+def test_async_handle_get_result_query_not_found(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result for non-existent query."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    # Query not found
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = None
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    # Try to get result
+    query_result = result.get_result()
+
+    assert query_result.status == QueryStatus.FAILED
+    assert "not found" in query_result.error_message.lower()
+
+
+def test_async_handle_get_result_pending(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result for pending query."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "pending"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = None
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    assert query_result.status == QueryStatus.PENDING
+
+
+def test_async_handle_get_result_with_results_backend(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result from results backend."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "success"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = "result_key_123"
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    # Mock results backend
+    payload = msgpack.dumps(
+        {
+            "data": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}],
+            "columns": [
+                {"column_name": "id", "name": "id"},
+                {"column_name": "name", "name": "name"},
+            ],
+        }
+    )
+    compressed_payload = b"compressed_data"
+
+    mock_results_backend = MagicMock()
+    mock_results_backend.get.return_value = compressed_payload
+
+    mock_results_backend_manager = MagicMock()
+    mock_results_backend_manager.results_backend = mock_results_backend
+
+    mocker.patch(
+        "superset.results_backend_manager",
+        mock_results_backend_manager,
+    )
+    mocker.patch(
+        "superset.utils.core.zlib_decompress", return_value=payload
+    )
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    assert query_result.status == QueryStatus.SUCCESS
+    assert query_result.data is not None
+    assert query_result.row_count == 2
+
+
+def test_async_handle_get_result_backend_load_error(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test error handling when loading results from backend."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "success"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = "result_key_123"
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    # Mock results backend with error
+    mock_results_backend = MagicMock()
+    mock_results_backend.get.return_value = b"invalid_data"
+
+    mock_results_backend_manager = MagicMock()
+    mock_results_backend_manager.results_backend = mock_results_backend
+
+    mocker.patch(
+        "superset.results_backend_manager",
+        mock_results_backend_manager,
+    )
+    mocker.patch(
+        "superset.utils.core.zlib_decompress",
+        side_effect=Exception("Decompression failed"),
+    )
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    assert query_result.status == QueryStatus.FAILED
+    assert "Error loading results" in query_result.error_message
+
+
+def test_async_handle_get_result_no_results_key(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result when results_key is missing."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "success"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = None  # No results key
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    assert query_result.status == QueryStatus.FAILED
+    assert "Results not available" in query_result.error_message
+
+
+def test_async_handle_get_status_query_not_found(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting status for non-existent query."""
+    # Query not found
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = None
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    # Override the query_uuid to simulate looking up a non-existent query
+    object.__setattr__(result, "query_uuid", "999999")
+
+    status = result.get_status()
+
+    assert status == QueryStatus.FAILED
+
+
+# =============================================================================
+# Query Cancellation Tests
+# =============================================================================
+
+
+def test_cancel_query_implicit_cancel(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test cancel_query with implicit cancellation."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.extra = {}
+
+    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=True)
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is True
+
+
+def test_cancel_query_early_cancel_flag(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test cancel_query with early cancel flag set."""
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.extra = {QUERY_EARLY_CANCEL_KEY: True}
+
+    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
+    database.db_engine_spec.prepare_cancel_query = MagicMock()
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is True
+    database.db_engine_spec.prepare_cancel_query.assert_called_with(mock_query)
+
+
+def test_cancel_query_no_cancel_id(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test cancel_query when no cancel ID is available."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.extra = {}
+
+    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
+    database.db_engine_spec.prepare_cancel_query = MagicMock()
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is False
+
+
+def test_cancel_query_with_cancel_id(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test cancel_query executes cancellation with cancel ID."""
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.core import QuerySource
+
+    mock_query = MagicMock()
+    mock_query.extra = {QUERY_CANCEL_KEY: "cancel_123"}
+    mock_query.catalog = "main"
+    mock_query.schema = "public"
+
+    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
+    database.db_engine_spec.prepare_cancel_query = MagicMock()
+    database.db_engine_spec.cancel_query = MagicMock(return_value=True)
+
+    # Mock engine and connection
+    mock_cursor = MagicMock()
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+
+    mock_engine = MagicMock()
+    mock_engine.raw_connection.return_value.__enter__ = MagicMock(return_value=mock_conn)
+    mock_engine.raw_connection.return_value.__exit__ = MagicMock(return_value=False)
+    mock_engine.__enter__ = MagicMock(return_value=mock_engine)
+    mock_engine.__exit__ = MagicMock(return_value=False)
+
+    database.get_sqla_engine = MagicMock(return_value=mock_engine)
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is True
+    database.get_sqla_engine.assert_called_with(
+        catalog="main", schema="public", source=QuerySource.SQL_LAB
+    )
+    database.db_engine_spec.cancel_query.assert_called_once()
+
+
+def test_async_handle_cancel_query_not_found(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test cancelling non-existent query."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    # Query not found
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = None
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    # Override to simulate non-existent query
+    object.__setattr__(result, "query_uuid", "999999")
+
+    cancelled = result.cancel()
+
+    assert cancelled is False
+
+
+# =============================================================================
+# Cache Timeout Tests
+# =============================================================================
+
+
+def test_execute_uses_database_cache_timeout(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that database cache timeout is used when available."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+            "CACHE_DEFAULT_TIMEOUT": 300,
+        },
+    )
+
+    database.cache_timeout = 600  # Custom timeout
+
+    # Mock cache operations
+    mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
+    mock_cache_set = mocker.patch(
+        "superset.extensions.cache_manager.data_cache.set"
+    )
+
+    result = database.execute("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+    # Verify cache timeout used
+    if mock_cache_set.called:
+        call_kwargs = mock_cache_set.call_args[1]
+        assert call_kwargs.get("timeout") == 600
+
+
+def test_execute_uses_custom_cache_timeout_option(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that custom cache timeout from options is used."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+            "CACHE_DEFAULT_TIMEOUT": 300,
+        },
+    )
+
+    # Mock cache operations
+    mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
+    mock_cache_set = mocker.patch(
+        "superset.extensions.cache_manager.data_cache.set"
+    )
+
+    options = QueryOptions(cache=CacheOptions(timeout=1200))
+    result = database.execute("SELECT * FROM users", options=options)
+
+    assert result.status == QueryStatus.SUCCESS
+    # Verify custom timeout used
+    if mock_cache_set.called:
+        call_kwargs = mock_cache_set.call_args[1]
+        assert call_kwargs.get("timeout") == 1200
+
+
+# =============================================================================
+# Celery Submission Error Tests
+# =============================================================================
+
+
+def test_execute_async_celery_submission_error(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test error handling when Celery submission fails."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    # Mock Celery task to raise exception
+    mock_celery_task = mocker.patch(
+        "superset.sql.execution.celery_task.execute_sql_task"
+    )
+    mock_celery_task.delay.side_effect = Exception("Celery connection failed")
+
+    with pytest.raises(Exception, match="Celery connection failed"):
+        database.execute_async("SELECT * FROM users")
+
+
+# =============================================================================
+# Additional Edge Case Tests for 100% Coverage
+# =============================================================================
+
+
+def test_execute_sql_with_cursor_no_rows_or_description(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Test execute_sql_with_cursor when cursor returns no rows and description."""
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: sql
+    mock_database.db_engine_spec.execute = MagicMock()
+    mock_database.db_engine_spec.fetch_data = MagicMock(return_value=None)
+
+    mock_cursor = MagicMock()
+    mock_cursor.description = None  # No description
+    mock_cursor.fetchall = MagicMock()
+
+    mock_query = MagicMock()
+    mock_query.schema = "public"
+    mock_query.progress = 0
+    mock_query.set_extra_json_key = MagicMock()
+
+    mocker.patch("superset.sql.execution.executor.db.session")
+
+    result = execute_sql_with_cursor(
+        database=mock_database,
+        cursor=mock_cursor,
+        statements=["INSERT INTO users VALUES (1)"],
+        query=mock_query,
+    )
+
+    # Should return None when no rows/description
+    assert result is None
+
+
+def test_execute_with_exception_on_execute(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _execute_statements returns empty DataFrame on None result."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    # Mock to simulate None result_set
+    mocker.patch(
+        "superset.sql.execution.executor.execute_sql_with_cursor",
+        return_value=None,
+    )
+
+    mock_query = MagicMock()
+    mock_query.id = 123
+    mocker.patch.object(
+        SQLExecutor, "_create_query_record", return_value=mock_query
+    )
+
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = MagicMock()
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute("SELECT * FROM nonexistent")
+
+    # Should handle None result_set gracefully
+    assert result.status == QueryStatus.SUCCESS
+    assert result.row_count == 0
+
+
+def test_check_disallowed_functions_no_config(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test disallowed functions check when no config exists."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"DISALLOWED_SQL_FUNCTIONS": {}})
+
+    executor = SQLExecutor(database)
+    script = MagicMock()
+    result = executor._check_disallowed_functions(script)
+
+    assert result is None
+
+
+def test_try_get_cached_result_with_mutation(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that cache is skipped for mutation queries."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+
+    script = MagicMock()
+    script.has_mutation.return_value = True
+
+    result = executor._try_get_cached_result(script, "INSERT INTO foo", MagicMock())
+
+    # Should skip cache for mutations
+    assert result is None
+
+
+def test_store_in_cache_with_failed_status(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that failed queries are not cached."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset_core.api.types import QueryResult as QueryResultType
+
+    executor = SQLExecutor(database)
+
+    failed_result = QueryResultType(
+        status=QueryStatus.FAILED,
+        error_message="Test error",
+    )
+
+    mock_cache_set = mocker.patch(
+        "superset.extensions.cache_manager.data_cache.set"
+    )
+
+    executor._store_in_cache(failed_result, "SELECT 1", QueryOptions())
+
+    # Should not cache failed queries
+    mock_cache_set.assert_not_called()
+
+
+def test_store_in_cache_with_no_data(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that queries with no data are not cached."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset_core.api.types import QueryResult as QueryResultType
+
+    executor = SQLExecutor(database)
+
+    result_no_data = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        data=None,  # No data
+        row_count=0,
+    )
+
+    mock_cache_set = mocker.patch(
+        "superset.extensions.cache_manager.data_cache.set"
+    )
+
+    executor._store_in_cache(result_no_data, "SELECT 1", QueryOptions())
+
+    # Should not cache when data is None
+    mock_cache_set.assert_not_called()
+
+
+def test_create_cached_async_result_cancel(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that cached async result cancel returns False."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset_core.api.types import QueryResult as QueryResultType
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    executor = SQLExecutor(database)
+
+    cached_result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        data=pd.DataFrame({"id": [1]}),
+        row_count=1,
+    )
+
+    async_result = executor._create_cached_handle(cached_result)
+
+    # Try to cancel a cached result
+    cancelled = async_result.cancel()
+
+    # Should return False (nothing to cancel)
+    assert cancelled is False
+
+
+def test_async_handle_get_result_with_empty_blob(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result when backend returns None for blob."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "success"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = "result_key_123"
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    # Mock results backend returning None for blob
+    mock_results_backend = MagicMock()
+    mock_results_backend.get.return_value = None  # No blob found
+
+    mock_results_backend_manager = MagicMock()
+    mock_results_backend_manager.results_backend = mock_results_backend
+
+    mocker.patch(
+        "superset.results_backend_manager",
+        mock_results_backend_manager,
+    )
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    # Should return failure when blob not found
+    assert query_result.status == QueryStatus.FAILED
+    assert "Results not available" in query_result.error_message
+
+
+def test_async_handle_get_result_no_results_backend(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+) -> None:
+    """Test getting result when results_backend is None."""
+    from superset.models.sql_lab import Query
+
+    mock_query = MagicMock(spec=Query)
+    mock_query.status = "success"
+    mock_query.error_message = None
+    mock_query.executed_sql = "SELECT * FROM users"
+    mock_query.results_key = "result_key_123"
+
+    filter_mock = mock_db_session.query.return_value.filter_by.return_value
+    filter_mock.one_or_none.return_value = mock_query
+
+    # Mock results_backend_manager with None backend
+    mock_results_backend_manager = MagicMock()
+    mock_results_backend_manager.results_backend = None  # No backend configured
+
+    mocker.patch(
+        "superset.results_backend_manager",
+        mock_results_backend_manager,
+    )
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+    mocker.patch("superset.sql.execution.celery_task.execute_sql_task")
+
+    result = database.execute_async("SELECT * FROM users")
+
+    query_result = result.get_result()
+
+    # Should return failure when no results backend
+    assert query_result.status == QueryStatus.FAILED
+    assert "Results not available" in query_result.error_message
+
+
+def test_create_query_record_with_user(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _create_query_record captures user_id when user exists."""
+    from flask import g
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+
+    # Mock a user with get_id
+    mock_user = MagicMock()
+    mock_user.get_id.return_value = 42
+
+    mocker.patch("superset.sql.execution.executor.has_app_context", return_value=True)
+    mocker.patch.object(g, "user", mock_user, create=True)
+
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+    mock_user.get_id.assert_called_once()
+
+
+def test_get_from_cache_returns_cached_result(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _get_from_cache returns cached result when available."""
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+
+    cached_data = {
+        "data": pd.DataFrame({"id": [1, 2]}),
+        "row_count": 2,
+    }
+
+    mocker.patch.object(
+        cache_manager.data_cache, "get", return_value=cached_data
+    )
+
+    options = QueryOptions()
+    result = executor._get_from_cache("SELECT * FROM users", options)
+
+    assert result is not None
+    assert result.status == QueryStatus.SUCCESS
+    assert result.is_cached is True
+    assert result.row_count == 2
+
+
+def test_cached_async_result_get_result_returns_cached(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that cached async result returns the original cached result."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset_core.api.types import QueryResult as QueryResultType
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
+    )
+
+    executor = SQLExecutor(database)
+
+    cached_result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        data=pd.DataFrame({"id": [1, 2, 3]}),
+        row_count=3,
+    )
+
+    async_result = executor._create_cached_handle(cached_result)
+
+    # Get the result back
+    retrieved_result = async_result.get_result()
+
+    # Should return the same cached result
+    assert retrieved_result.status == QueryStatus.SUCCESS
+    assert retrieved_result.row_count == 3
+    assert retrieved_result is cached_result

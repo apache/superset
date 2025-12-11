@@ -41,7 +41,7 @@ from sqlalchemy.orm import scoped_session
 
 if TYPE_CHECKING:
     from superset_core.api.types import (
-        AsyncQueryResult,
+        AsyncQueryHandle,
         QueryOptions,
         QueryResult,
     )
@@ -132,7 +132,7 @@ class Database(CoreModel):
         self,
         sql: str,
         options: QueryOptions | None = None,
-    ) -> AsyncQueryResult:
+    ) -> AsyncQueryHandle:
         """
         Execute SQL asynchronously.
 
@@ -142,22 +142,22 @@ class Database(CoreModel):
         :param sql: SQL query to execute
         :param options: Optional QueryOptions for catalog, schema, limit,
                        template_params, cache settings, timeout, dry_run
-        :returns: AsyncQueryResult with handle for tracking the query
+        :returns: AsyncQueryHandle for tracking the query
 
         Example:
-            result = db.execute_async(
+            handle = db.execute_async(
                 "SELECT * FROM large_table",
                 options=QueryOptions(schema="analytics")
             )
 
             # Check status and get results
-            status = result.handle.get_status()
+            status = handle.get_status()
             if status == QueryStatus.SUCCESS:
-                query_result = result.handle.get_result()
+                query_result = handle.get_result()
                 df = query_result.data
 
             # Cancel if needed
-            result.handle.cancel()
+            handle.cancel()
         """
         raise NotImplementedError("Method will be replaced during initialization")
 
