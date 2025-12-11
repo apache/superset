@@ -19,7 +19,8 @@
 Unit tests for MCP RBAC permission enforcement.
 
 These tests verify that MCP tools respect the same RBAC permission model
-as Superset's REST API endpoints.
+as Superset's REST API endpoints, using the attribute-based permission pattern
+that mirrors Flask-AppBuilder's @protect() decorator.
 """
 
 import sys
@@ -30,9 +31,11 @@ from flask import g
 
 from superset.mcp_service.auth import (
     check_tool_permission,
+    CLASS_PERMISSION_ATTR,
     mcp_auth_hook,
-    MCP_TOOL_PERMISSIONS,
     MCPPermissionDeniedError,
+    METHOD_PERMISSION_ATTR,
+    PERMISSION_PREFIX,
     require_tool_permission,
 )
 
@@ -53,55 +56,38 @@ def mock_user():
     return user
 
 
-class TestMCPToolPermissions:
-    """Tests for the permission registry mapping."""
+def create_tool_function_with_permissions(
+    name: str,
+    class_permission: str | None = None,
+    method_permission: str | None = None,
+):
+    """Helper to create a mock tool function with permission attributes."""
 
-    def test_execute_sql_requires_sqllab_permission(self):
-        """Verify execute_sql tool requires SQLLab permission."""
-        assert "execute_sql" in MCP_TOOL_PERMISSIONS
-        permission, view = MCP_TOOL_PERMISSIONS["execute_sql"]
-        assert permission == "can_execute_sql"
-        assert view == "SQLLab"
+    def tool_func():
+        return "success"
 
-    def test_chart_tools_require_chart_permissions(self):
-        """Verify chart tools require Chart permissions."""
-        chart_tools = [
-            "list_charts",
-            "get_chart_info",
-            "get_chart_preview",
-            "get_chart_data",
-            "generate_chart",
-            "update_chart",
-        ]
-        for tool_name in chart_tools:
-            assert tool_name in MCP_TOOL_PERMISSIONS
-            permission, view = MCP_TOOL_PERMISSIONS[tool_name]
-            assert view == "Chart"
+    tool_func.__name__ = name
+    if class_permission:
+        setattr(tool_func, CLASS_PERMISSION_ATTR, class_permission)
+    if method_permission:
+        setattr(tool_func, METHOD_PERMISSION_ATTR, method_permission)
+    return tool_func
 
-    def test_dashboard_tools_require_dashboard_permissions(self):
-        """Verify dashboard tools require Dashboard permissions."""
-        dashboard_tools = [
-            "list_dashboards",
-            "get_dashboard_info",
-            "generate_dashboard",
-        ]
-        for tool_name in dashboard_tools:
-            assert tool_name in MCP_TOOL_PERMISSIONS
-            permission, view = MCP_TOOL_PERMISSIONS[tool_name]
-            assert view == "Dashboard"
 
-    def test_read_vs_write_permissions(self):
-        """Verify read ops require can_read, write ops require can_write."""
-        read_tools = ["list_charts", "get_chart_info", "list_dashboards"]
-        write_tools = ["generate_chart", "update_chart", "generate_dashboard"]
+class TestPermissionConstants:
+    """Tests for permission-related constants."""
 
-        for tool_name in read_tools:
-            permission, _ = MCP_TOOL_PERMISSIONS[tool_name]
-            assert permission == "can_read", f"{tool_name} should require can_read"
+    def test_permission_prefix(self):
+        """Verify permission prefix matches FAB convention."""
+        assert PERMISSION_PREFIX == "can_"
 
-        for tool_name in write_tools:
-            permission, _ = MCP_TOOL_PERMISSIONS[tool_name]
-            assert permission == "can_write", f"{tool_name} should require can_write"
+    def test_class_permission_attr(self):
+        """Verify class permission attribute name."""
+        assert CLASS_PERMISSION_ATTR == "_class_permission_name"
+
+    def test_method_permission_attr(self):
+        """Verify method permission attribute name."""
+        assert METHOD_PERMISSION_ATTR == "_method_permission_name"
 
 
 class TestCheckToolPermission:
@@ -112,12 +98,18 @@ class TestCheckToolPermission:
         mock_user.username = "admin"
         mock_security_manager.can_access.return_value = True
 
-        # Patch the superset module's security_manager
+        # Create a tool function with permission attributes
+        tool_func = create_tool_function_with_permissions(
+            "execute_sql",
+            class_permission="SQLLab",
+            method_permission="execute_sql",
+        )
+
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
-                result = check_tool_permission("execute_sql")
+                result = check_tool_permission(tool_func)
 
                 assert result is True
                 mock_security_manager.can_access.assert_called_once_with(
@@ -129,56 +121,74 @@ class TestCheckToolPermission:
         mock_user.username = "limited_user"
         mock_security_manager.can_access.return_value = False
 
+        tool_func = create_tool_function_with_permissions(
+            "generate_chart",
+            class_permission="Chart",
+            method_permission="write",
+        )
+
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
-                result = check_tool_permission("execute_sql")
+                result = check_tool_permission(tool_func)
 
                 assert result is False
 
     def test_no_user_context_denied(self):
         """Test that permission is denied when no user context exists."""
+        tool_func = create_tool_function_with_permissions(
+            "list_charts",
+            class_permission="Chart",
+            method_permission="read",
+        )
+
         # Create a fresh g object without user
         mock_g = MagicMock(spec=[])  # No 'user' attribute
         with patch("superset.mcp_service.auth.g", mock_g):
-            result = check_tool_permission("execute_sql")
+            result = check_tool_permission(tool_func)
             assert result is False
 
-    def test_unregistered_tool_allowed_by_default(
+    def test_no_class_permission_allowed_by_default(
         self, mock_security_manager, mock_user
     ):
-        """Test that tools not in registry are allowed (backward compatibility)."""
+        """Test that tools without class_permission are allowed (backward compat)."""
         mock_user.username = "admin"
+
+        # Tool without permission attributes
+        tool_func = create_tool_function_with_permissions("legacy_tool")
 
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
-                result = check_tool_permission("unregistered_custom_tool")
+                result = check_tool_permission(tool_func)
 
                 assert result is True
                 # security_manager.can_access should not be called
                 mock_security_manager.can_access.assert_not_called()
 
-    def test_explicit_permission_override(self, mock_security_manager, mock_user):
-        """Test explicit permission/view parameters override registry."""
+    def test_default_method_permission_is_read(self, mock_security_manager, mock_user):
+        """Test that method_permission defaults to 'read' when not specified."""
         mock_user.username = "admin"
         mock_security_manager.can_access.return_value = True
+
+        # Tool with class_permission but no method_permission
+        tool_func = create_tool_function_with_permissions(
+            "list_charts",
+            class_permission="Chart",
+            # method_permission not set - should default to "read"
+        )
 
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
-                result = check_tool_permission(
-                    "execute_sql",
-                    permission_name="custom_permission",
-                    view_name="CustomView",
-                )
+                result = check_tool_permission(tool_func)
 
                 assert result is True
                 mock_security_manager.can_access.assert_called_once_with(
-                    "custom_permission", "CustomView"
+                    "can_read", "Chart"
                 )
 
 
@@ -190,24 +200,36 @@ class TestRequireToolPermission:
         mock_user.username = "admin"
         mock_security_manager.can_access.return_value = True
 
+        tool_func = create_tool_function_with_permissions(
+            "list_charts",
+            class_permission="Chart",
+            method_permission="read",
+        )
+
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
                 # Should not raise
-                require_tool_permission("list_charts")
+                require_tool_permission(tool_func)
 
     def test_permission_denied_raises_exception(self, mock_security_manager, mock_user):
         """Test MCPPermissionDeniedError when permission is denied."""
         mock_user.username = "limited_user"
         mock_security_manager.can_access.return_value = False
 
+        tool_func = create_tool_function_with_permissions(
+            "execute_sql",
+            class_permission="SQLLab",
+            method_permission="execute_sql",
+        )
+
         with patch.dict(
             sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
         ):
             with patch.object(g, "user", mock_user, create=True):
                 with pytest.raises(MCPPermissionDeniedError) as exc_info:
-                    require_tool_permission("execute_sql")
+                    require_tool_permission(tool_func)
 
                 assert exc_info.value.permission_name == "can_execute_sql"
                 assert exc_info.value.view_name == "SQLLab"
@@ -247,26 +269,44 @@ class TestMCPPermissionDeniedError:
 
 
 class TestMCPAuthHookWithPermissions:
-    """Tests for mcp_auth_hook decorator with permission checking."""
+    """Tests for mcp_auth_hook decorator with permission checking.
+
+    NOTE: The mcp_auth_hook decorator imports fastmcp.Context which has
+    beartype circular import issues in unit tests. These tests mock the
+    fastmcp import to avoid the issue while still testing the permission
+    checking logic.
+    """
 
     def test_sync_function_permission_check(self, mock_security_manager, mock_user):
         """Test permission check for synchronous tool function."""
         mock_user.username = "admin"
         mock_security_manager.can_access.return_value = True
 
+        # Create the function with permission attributes BEFORE decorating
+        def execute_sql():
+            return "success"
+
+        setattr(execute_sql, CLASS_PERMISSION_ATTR, "SQLLab")
+        setattr(execute_sql, METHOD_PERMISSION_ATTR, "execute_sql")
+
+        # Mock fastmcp to avoid beartype circular import issues
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
+
         with patch.dict(
-            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+            sys.modules,
+            {
+                "superset": MagicMock(security_manager=mock_security_manager),
+                "fastmcp": mock_fastmcp,
+            },
         ):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-
-                @mcp_auth_hook
-                def execute_sql():
-                    return "success"
-
-                result = execute_sql()
+                # Now apply the decorator
+                decorated = mcp_auth_hook(execute_sql)
+                result = decorated()
 
                 assert result == "success"
                 mock_security_manager.can_access.assert_called_once_with(
@@ -278,20 +318,30 @@ class TestMCPAuthHookWithPermissions:
         mock_user.username = "limited_user"
         mock_security_manager.can_access.return_value = False
 
+        def execute_sql():
+            return "should not reach here"
+
+        setattr(execute_sql, CLASS_PERMISSION_ATTR, "SQLLab")
+        setattr(execute_sql, METHOD_PERMISSION_ATTR, "execute_sql")
+
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
+
         with patch.dict(
-            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+            sys.modules,
+            {
+                "superset": MagicMock(security_manager=mock_security_manager),
+                "fastmcp": mock_fastmcp,
+            },
         ):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-
-                @mcp_auth_hook
-                def execute_sql():
-                    return "should not reach here"
+                decorated = mcp_auth_hook(execute_sql)
 
                 with pytest.raises(MCPPermissionDeniedError):
-                    execute_sql()
+                    decorated()
 
     @pytest.mark.asyncio
     async def test_async_function_permission_check(
@@ -301,19 +351,28 @@ class TestMCPAuthHookWithPermissions:
         mock_user.username = "admin"
         mock_security_manager.can_access.return_value = True
 
+        async def list_charts():
+            return "charts"
+
+        setattr(list_charts, CLASS_PERMISSION_ATTR, "Chart")
+        setattr(list_charts, METHOD_PERMISSION_ATTR, "read")
+
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
+
         with patch.dict(
-            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+            sys.modules,
+            {
+                "superset": MagicMock(security_manager=mock_security_manager),
+                "fastmcp": mock_fastmcp,
+            },
         ):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-
-                @mcp_auth_hook
-                async def list_charts():
-                    return "charts"
-
-                result = await list_charts()
+                decorated = mcp_auth_hook(list_charts)
+                result = await decorated()
 
                 assert result == "charts"
                 mock_security_manager.can_access.assert_called_once_with(
@@ -328,72 +387,152 @@ class TestMCPAuthHookWithPermissions:
         mock_user.username = "limited_user"
         mock_security_manager.can_access.return_value = False
 
+        async def generate_chart():
+            return "should not reach here"
+
+        setattr(generate_chart, CLASS_PERMISSION_ATTR, "Chart")
+        setattr(generate_chart, METHOD_PERMISSION_ATTR, "write")
+
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
+
         with patch.dict(
-            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+            sys.modules,
+            {
+                "superset": MagicMock(security_manager=mock_security_manager),
+                "fastmcp": mock_fastmcp,
+            },
         ):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-
-                @mcp_auth_hook
-                async def generate_chart():
-                    return "should not reach here"
+                decorated = mcp_auth_hook(generate_chart)
 
                 with pytest.raises(MCPPermissionDeniedError):
-                    await generate_chart()
+                    await decorated()
 
     def test_skip_permission_check(self, mock_user):
         """Test skipping permission check with check_permissions=False."""
         mock_user.username = "any_user"
 
-        with patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            return_value=mock_user,
-        ):
+        def my_public_tool():
+            return "public"
 
-            @mcp_auth_hook(check_permissions=False)
-            def my_public_tool():
-                return "public"
+        # Even with permissions set, check_permissions=False should skip
+        setattr(my_public_tool, CLASS_PERMISSION_ATTR, "RestrictedView")
+        setattr(my_public_tool, METHOD_PERMISSION_ATTR, "write")
 
-            # Should succeed without permission check
-            result = my_public_tool()
-            assert result == "public"
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
 
-
-class TestIntegrationWithToolDecorator:
-    """Integration tests for permission checking with the full tool decorator chain."""
-
-    def test_tool_respects_rbac(self, mock_security_manager, mock_user):
-        """Test that decorated tools properly enforce RBAC."""
-        mock_user.username = "limited_user"
-
-        with patch.dict(
-            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
-        ):
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-                # First call - permission granted
-                mock_security_manager.can_access.return_value = True
+                decorated = mcp_auth_hook(check_permissions=False)(my_public_tool)
 
-                @mcp_auth_hook
-                def list_dashboards():
-                    return ["dashboard1", "dashboard2"]
+                # Should succeed without permission check
+                result = decorated()
+                assert result == "public"
 
-                result = list_dashboards()
-                assert result == ["dashboard1", "dashboard2"]
 
-                # Second call - permission denied
-                mock_security_manager.can_access.return_value = False
+class TestPermissionAttributeCopying:
+    """Tests to verify permission attributes are copied to wrapped function."""
 
-                @mcp_auth_hook
-                def generate_dashboard():
-                    return "new_dashboard"
+    def test_attributes_copied_to_wrapper(self, mock_user):
+        """Test that permission attributes are preserved on wrapped function."""
 
-                with pytest.raises(MCPPermissionDeniedError) as exc_info:
-                    generate_dashboard()
+        def my_tool():
+            return "result"
 
-                assert "can_write" in str(exc_info.value)
-                assert "Dashboard" in str(exc_info.value)
+        setattr(my_tool, CLASS_PERMISSION_ATTR, "TestView")
+        setattr(my_tool, METHOD_PERMISSION_ATTR, "test_action")
+
+        mock_fastmcp = MagicMock()
+        mock_fastmcp.Context = MagicMock()
+
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
+            with patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ):
+                # Apply the decorator
+                decorated = mcp_auth_hook(check_permissions=False)(my_tool)
+
+                # Verify attributes are copied
+                assert hasattr(decorated, CLASS_PERMISSION_ATTR)
+                assert hasattr(decorated, METHOD_PERMISSION_ATTR)
+                assert getattr(decorated, CLASS_PERMISSION_ATTR) == "TestView"
+                assert getattr(decorated, METHOD_PERMISSION_ATTR) == "test_action"
+
+
+class TestFABPermissionPatternAlignment:
+    """Tests to verify alignment with Flask-AppBuilder permission patterns."""
+
+    def test_read_permission_pattern(self, mock_security_manager, mock_user):
+        """Test can_read permission pattern (like FAB GET endpoints)."""
+        mock_user.username = "reader"
+        mock_security_manager.can_access.return_value = True
+
+        tool_func = create_tool_function_with_permissions(
+            "list_dashboards",
+            class_permission="Dashboard",
+            method_permission="read",
+        )
+
+        with patch.dict(
+            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+        ):
+            with patch.object(g, "user", mock_user, create=True):
+                result = check_tool_permission(tool_func)
+
+                assert result is True
+                mock_security_manager.can_access.assert_called_once_with(
+                    "can_read", "Dashboard"
+                )
+
+    def test_write_permission_pattern(self, mock_security_manager, mock_user):
+        """Test can_write permission pattern (like FAB POST/PUT endpoints)."""
+        mock_user.username = "writer"
+        mock_security_manager.can_access.return_value = True
+
+        tool_func = create_tool_function_with_permissions(
+            "generate_dashboard",
+            class_permission="Dashboard",
+            method_permission="write",
+        )
+
+        with patch.dict(
+            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+        ):
+            with patch.object(g, "user", mock_user, create=True):
+                result = check_tool_permission(tool_func)
+
+                assert result is True
+                mock_security_manager.can_access.assert_called_once_with(
+                    "can_write", "Dashboard"
+                )
+
+    def test_custom_permission_pattern(self, mock_security_manager, mock_user):
+        """Test custom permission pattern (like SQLLab's can_execute_sql)."""
+        mock_user.username = "sql_user"
+        mock_security_manager.can_access.return_value = True
+
+        tool_func = create_tool_function_with_permissions(
+            "execute_sql",
+            class_permission="SQLLab",
+            method_permission="execute_sql",  # Custom permission like FAB
+        )
+
+        with patch.dict(
+            sys.modules, {"superset": MagicMock(security_manager=mock_security_manager)}
+        ):
+            with patch.object(g, "user", mock_user, create=True):
+                result = check_tool_permission(tool_func)
+
+                assert result is True
+                mock_security_manager.can_access.assert_called_once_with(
+                    "can_execute_sql", "SQLLab"
+                )
