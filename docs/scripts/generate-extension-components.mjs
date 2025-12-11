@@ -45,7 +45,6 @@ const SUPERSET_CORE_DIR = path.join(
  * Find all story files in the superset-core package
  */
 async function findStoryFiles() {
-  const pattern = path.join(SUPERSET_CORE_DIR, 'src/**/*.stories.tsx');
   const files = [];
 
   // Use fs to recursively find files since glob might not be available
@@ -122,21 +121,10 @@ function parseStoryFile(filePath) {
   const componentFile = path.join(storyDir, 'index.tsx');
   const hasComponentFile = fs.existsSync(componentFile);
 
-  // Try to extract props interface from component file
-  let propsInterface = null;
+  // Try to extract props interface from component file (for future use)
   if (hasComponentFile) {
-    const componentContent = fs.readFileSync(componentFile, 'utf-8');
-    // Look for exported type/interface with Props in the name
-    const propsMatch = componentContent.match(
-      /export\s+(?:type|interface)\s+(\w*Props\w*)\s*=?\s*{([^}]+)}/s
-    );
-    if (propsMatch) {
-      propsInterface = {
-        name: propsMatch[1],
-        // Parse props (simplified)
-        raw: propsMatch[0],
-      };
-    }
+    // Read component file - props extraction reserved for future enhancement
+    // const componentContent = fs.readFileSync(componentFile, 'utf-8');
   }
 
   // Extract story exports (named exports that aren't the default)
@@ -259,8 +247,6 @@ function extractArgsAndControls(content, componentName, storyContent) {
 function generateMDX(component, storyContent) {
   const { componentName, description, importPath, packageName, relativePath } =
     component;
-
-  const slug = componentName.toLowerCase();
 
   // Extract args and controls from the story
   const { args, controls } = extractArgsAndControls(storyContent, componentName, storyContent);
