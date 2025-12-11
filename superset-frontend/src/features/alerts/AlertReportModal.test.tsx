@@ -21,6 +21,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
@@ -677,4 +678,97 @@ test('renders dashboard filter dropdowns', async () => {
     name: /select filter/i,
   });
   expect(filterOptionDropdown).toBeInTheDocument();
+});
+
+test('filter reappears in dropdown after clearing with X icon', async () => {
+  const tabsWithFiltersEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
+  const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+  fetchMock.get(
+    tabsWithFiltersEndpoint,
+    {
+      result: {
+        all_tabs: { tab1: 'Tab 1' },
+        tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+        native_filters: {
+          all: [
+            {
+              id: 'NATIVE_FILTER-test1',
+              name: 'Test Filter 1',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'test_column_1' } }],
+              adhoc_filters: [],
+            },
+          ],
+          tab1: [
+            {
+              id: 'NATIVE_FILTER-test2',
+              name: 'Test Filter 2',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'test_column_2' } }],
+              adhoc_filters: [],
+            },
+          ],
+        },
+      },
+    },
+    { overwriteRoutes: true },
+  );
+
+  fetchMock.post(
+    chartDataEndpoint,
+    { result: [{ data: [] }] },
+    { overwriteRoutes: true },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  const filterDropdown = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  expect(filterDropdown).toBeInTheDocument();
+
+  userEvent.click(filterDropdown);
+
+  const filterOption = await waitFor(() => {
+    const virtualList = document.querySelector('.rc-virtual-list');
+    return within(virtualList as HTMLElement).getByText('Test Filter 1');
+  });
+
+  userEvent.click(filterOption);
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="Test Filter 1"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+
+  const selectContainer = filterDropdown.closest('.ant-select');
+
+  const clearIcon = selectContainer?.querySelector(
+    '.ant-select-clear [aria-label="close-circle"]',
+  );
+  expect(clearIcon).toBeInTheDocument();
+  userEvent.click(clearIcon as Element);
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="Test Filter 1"]',
+    );
+    expect(selectionItem).not.toBeInTheDocument();
+  });
+
+  userEvent.click(filterDropdown);
+  await waitFor(() => {
+    const virtualList = document.querySelector('.rc-virtual-list');
+    expect(
+      within(virtualList as HTMLElement).getByText('Test Filter 1'),
+    ).toBeInTheDocument();
+  });
 });
