@@ -93,7 +93,7 @@ function SearchFilter(
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
-        autoComplete={autoComplete || 'off'}
+        autoComplete={autoComplete}
         name={name}
         value={value}
         onChange={handleChange}
