@@ -389,6 +389,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Database"),
     }
 
+    # Permissions for the Public role - minimal read-only access for viewing
+    # dashboards without authentication. This is more restrictive than Gamma.
+    # Users can set PUBLIC_ROLE_LIKE = "Public" to use these sensible defaults.
+    PUBLIC_ROLE_PERMISSIONS = {
+        # Core dashboard viewing
+        ("can_read", "Dashboard"),
+        ("can_read", "Chart"),
+        ("can_dashboard", "Superset"),
+        ("can_slice", "Superset"),
+        ("can_explore_json", "Superset"),
+        ("can_dashboard_permalink", "Superset"),
+        ("can_read", "DashboardPermalinkRestApi"),
+        # Dashboard filter interactions
+        ("can_read", "DashboardFilterStateRestApi"),
+        ("can_write", "DashboardFilterStateRestApi"),
+        # API access for chart rendering
+        ("can_time_range", "Api"),
+        ("can_query_form_data", "Api"),
+        ("can_query", "Api"),
+        # CSS for dashboard styling
+        ("can_read", "CssTemplate"),
+        # Embedded dashboard support
+        ("can_read", "EmbeddedDashboard"),
+        # Datasource metadata for chart rendering
+        ("can_get", "Datasource"),
+        ("can_external_metadata", "Datasource"),
+        ("can_external_metadata_by_name", "Datasource"),
+        # Security API for CSRF tokens
+        ("can_read", "SecurityRestApi"),
+        # Menu and OpenAPI access
+        ("can_get", "OpenApi"),
+        ("can_get", "MenuApi"),
+    }
+
+    # View menus that Public role should NOT have access to
+    PUBLIC_EXCLUDED_VIEW_MENUS = {
+        "SQL Lab",
+        "SQL Editor",
+        "Saved Queries",
+        "Query Search",
+        "Queries",
+        "Security",
+        "List Users",
+        "List Roles",
+        "Row Level Security",
+        "Row Level Security Filters",
+        "Access Requests",
+        "Action Log",
+        "Manage",
+        "Import dashboards",
+        "Annotation Layers",
+        "CSS Templates",
+        "Alerts & Report",
+    }
+
     data_access_permissions = (
         "database_access",
         "schema_access",
@@ -1202,9 +1257,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Admin", self._is_admin_pvm, pvms)
         self.set_role("Alpha", self._is_alpha_pvm, pvms)
         self.set_role("Gamma", self._is_gamma_pvm, pvms)
+        self.set_role("Public", self._is_public_pvm, pvms)
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
-        # Configure public role
+        # Configure public role - allows copying permissions from any role
+        # (including the new "Public" role) to the actual public/anonymous role
         if get_conf()["PUBLIC_ROLE_LIKE"]:
             self.copy_role(
                 get_conf()["PUBLIC_ROLE_LIKE"],
@@ -1426,6 +1483,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or (pvm.permission.name, pvm.view_menu.name)
             in self.SQLLAB_EXTRA_PERMISSION_VIEWS
         )
+
+    def _is_public_pvm(self, pvm: PermissionView) -> bool:
+        """
+        Return True if the FAB permission/view is appropriate for the Public role,
+        False otherwise.
+
+        The Public role is designed for anonymous/unauthenticated users who need
+        to view dashboards. It provides minimal read-only access - more restrictive
+        than Gamma - suitable for public-facing dashboard deployments.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is appropriate for Public role
+        """
+        # Explicitly allow permissions in the PUBLIC_ROLE_PERMISSIONS set
+        if (pvm.permission.name, pvm.view_menu.name) in self.PUBLIC_ROLE_PERMISSIONS:
+            return True
+
+        # Exclude any view menus in the excluded list
+        if pvm.view_menu.name in self.PUBLIC_EXCLUDED_VIEW_MENUS:
+            return False
+
+        # Exclude user-defined permissions (datasource_access, schema_access, etc.)
+        # These must be explicitly granted to the Public role
+        if self._is_user_defined_permission(pvm):
+            return False
+
+        # Exclude all other permissions not explicitly allowed
+        return False
 
     def database_after_insert(
         self,

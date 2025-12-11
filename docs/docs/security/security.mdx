@@ -46,12 +46,34 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 ### Public
 
-To allow logged-out users to access some Superset features, you can use the `PUBLIC_ROLE_LIKE` config setting and assign it to another role whose permissions you want passed to this role.
+The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated
+users who need to view dashboards. It provides minimal read-only access for:
 
-For example, by setting `PUBLIC_ROLE_LIKE = "Gamma"` in your `superset_config.py` file, you grant
-public role the same set of permissions as for the **Gamma** role. This is useful if one
-wants to enable anonymous users to view dashboards. Explicit grant on specific datasets is
-still required, meaning that you need to edit the **Public** role and add the public data sources to the role manually.
+- Viewing dashboards and charts
+- Using interactive dashboard filters
+- Accessing dashboard permalinks
+- Reading embedded dashboards
+
+The Public role explicitly excludes:
+- Any write permissions on dashboards, charts, or datasets
+- SQL Lab access
+- Share functionality
+- User profile or admin features
+- Menu access to most Superset features
+
+To allow logged-out users to access Superset features, use the `PUBLIC_ROLE_LIKE` config setting
+to copy permissions from any built-in role to the actual public/anonymous role:
+
+```python
+# Recommended: Use the new Public role for minimal, secure public access
+PUBLIC_ROLE_LIKE = "Public"
+
+# Alternative: Use Gamma for broader access (includes create/edit permissions)
+# PUBLIC_ROLE_LIKE = "Gamma"
+```
+
+**Important:** Explicit grants on specific datasets are still required. You need to edit the
+public role in the Superset UI and add the public data sources to the role manually.
 
 ### Managing Data Source Access for Gamma Roles
 
