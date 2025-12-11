@@ -41,7 +41,7 @@
     "d3-scale": "^4.0.2",
     "d3-time": "^3.1.0",
     "d3-time-format": "^4.1.0",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.3.1",
     "fetch-retry": "^6.0.0",
     "handlebars": "^4.7.8",
     "jed": "^1.1.1",
