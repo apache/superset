@@ -435,7 +435,7 @@ tzdata==2025.2
     #   pandas
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   -r requirements/base.in
     #   requests
