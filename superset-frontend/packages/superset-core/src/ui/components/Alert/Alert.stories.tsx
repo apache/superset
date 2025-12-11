@@ -30,8 +30,22 @@ const bigText =
   'purus convallis placerat in at nunc. Nulla nec viverra augue.';
 
 export default {
-  title: 'Components/Alert',
+  title: 'Extension Components/Alert',
   component: Alert,
+  tags: ['extension-compatible'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Alert component for displaying important messages to users. ' +
+          'Wraps Ant Design Alert with sensible defaults and improved accessibility.',
+      },
+    },
+    extensionMeta: {
+      package: '@apache-superset/core',
+      importPath: "import { Alert } from '@apache-superset/core';",
+    },
+  },
 };
 
 export const AlertGallery = () => (

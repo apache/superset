@@ -16,6 +16,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
+    "generate:extension-components": "node scripts/generate-extension-components.mjs",
     "eslint": "eslint .",
     "version:add": "node scripts/manage-versions.mjs add",
     "version:remove": "node scripts/manage-versions.mjs remove",
