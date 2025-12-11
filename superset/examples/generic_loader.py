@@ -17,6 +17,7 @@
 """Generic DuckDB example data loader."""
 
 import logging
+from functools import partial
 from typing import Any, Callable, Optional
 
 import numpy as np
@@ -114,9 +115,7 @@ def load_duckdb_table(  # noqa: C901
                         logger.info("Converting complex column %s to JSON string", col)
 
                         # Convert to JSON string for database storage
-                        def safe_serialize(
-                            x: Any, column_name: str = col
-                        ) -> Optional[str]:
+                        def safe_serialize(x: Any, column_name: str) -> Optional[str]:
                             if x is None:
                                 return None
                             try:
@@ -130,7 +129,9 @@ def load_duckdb_table(  # noqa: C901
                                 # Convert to string representation as fallback
                                 return str(x)
 
-                        pdf[col] = pdf[col].apply(lambda x, c=col: safe_serialize(x, c))
+                        # Avoid loop variable binding issues with partial
+                        serialize_col = partial(safe_serialize, column_name=col)
+                        pdf[col] = pdf[col].apply(serialize_col)
                 except Exception as e:
                     logger.warning("Could not process column %s: %s", col, e)
 
