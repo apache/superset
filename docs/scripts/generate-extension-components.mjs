@@ -286,7 +286,7 @@ sidebar_label: ${componentName}
 -->
 
 import { StoryWithControls } from '../../../src/components/StorybookWrapper';
-import { ${componentName} } from '../../../src/components/ExtensionComponents';
+import { ${componentName} } from '@apache-superset/core';
 
 # ${componentName}
 

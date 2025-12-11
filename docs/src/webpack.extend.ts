@@ -51,6 +51,11 @@ export default function webpackExtendPlugin(): Plugin<void> {
               __dirname,
               '../../superset-frontend/packages/superset-ui-core/src/components',
             ),
+            // Extension API package - allows docs to import from @apache-superset/core
+            '@apache-superset/core': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src',
+            ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(
               __dirname,

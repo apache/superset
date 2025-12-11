@@ -18,44 +18,18 @@
  */
 
 import React from 'react';
-import { Alert as AntdAlert, Button, Card, Input, Space, Tag, Tooltip } from 'antd';
-import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
+import { Button, Card, Input, Space, Tag, Tooltip } from 'antd';
 
-/**
- * Alert component wrapper matching the @apache-superset/core API.
- * This is a simplified version for documentation demos.
- */
-type AlertProps = React.PropsWithChildren<Omit<AntdAlertProps, 'children'>>;
-
-const Alert = (props: AlertProps) => {
-  const {
-    type = 'info',
-    description,
-    showIcon = true,
-    closable = true,
-    children,
-    ...rest
-  } = props;
-  return (
-    <AntdAlert
-      role="alert"
-      aria-live={type === 'error' ? 'assertive' : 'polite'}
-      type={type}
-      showIcon={showIcon}
-      closable={closable}
-      message={children || 'Default message'}
-      description={description}
-      {...rest}
-    />
-  );
-};
+// Import extension components from @apache-superset/core
+// These are resolved via webpack alias to superset-frontend/packages/superset-core/src
+import { Alert } from '@apache-superset/core';
 
 /**
  * ReactLiveScope provides the scope for live code blocks.
  * Any component added here will be available in ```tsx live blocks.
  *
  * To add more components:
- * 1. Import the component above
+ * 1. Import the component from @apache-superset/core above
  * 2. Add it to the scope object below
  */
 const ReactLiveScope = {
@@ -63,7 +37,7 @@ const ReactLiveScope = {
   React,
   ...React,
 
-  // Extension-compatible components (mirrors @apache-superset/core API)
+  // Extension components from @apache-superset/core
   Alert,
 
   // Common Ant Design components (for demos)
