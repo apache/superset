@@ -376,6 +376,18 @@ export const EditHeaderSubtitle = styled.div`
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
+export const CredentialInfoFormTextArea = (theme: SupersetTheme) => css`
+  height: 100px;
+  width: 100%;
+  border: 1px solid ${theme.colorBorder};
+  border-radius: ${theme.borderRadius}px;
+  resize: vertical;
+  padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
+  &::placeholder {
+    color: ${theme.colorTextPlaceholder};
+  }
+`;
+
 export const CredentialInfoForm = styled.div`
   .catalog-type-select {
     margin: 0 0 20px;
@@ -397,19 +409,6 @@ export const CredentialInfoForm = styled.div`
     margin: ${({ theme }) => theme.sizeUnit * 4}px 0;
     display: flex;
     flex-direction: column;
-}
-  }
-  .input-form {
-    height: 100px;
-    width: 100%;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    resize: vertical;
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
-    &::placeholder {
-      color: ${({ theme }) => theme.colorTextPlaceholder};
-    }
   }
 
   .input-container {
