@@ -46,6 +46,12 @@ module.exports = {
     resolve: {
       ...config.resolve,
       ...customConfig.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        ...customConfig.resolve?.alias,
+        // Fix for Storybook 8.6.x with React 17 - resolve ESM module paths
+        'react-dom/test-utils': require.resolve('react-dom/test-utils'),
+      },
     },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
