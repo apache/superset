@@ -305,6 +305,7 @@ class SnowflakeSemanticView(SemanticViewImplementation):
         """
         Execute a query and return the results as a Pandas DataFrame.
         """
+        print("AM HERE")
         if not metrics and not dimensions:
             return DataFrame()
 
@@ -320,6 +321,17 @@ class SnowflakeSemanticView(SemanticViewImplementation):
         connection_parameters = get_connection_parameters(self.configuration)
         with connect(**connection_parameters) as connection:
             df = connection.cursor().execute(query, parameters).fetch_pandas_all()
+
+        # map column names to dimension/metric names instead of IDs
+        mapping = {
+            **{dimension.id: dimension.name for dimension in dimensions},
+            **{metric.id: metric.name for metric in metrics},
+        }
+        print("BETO")
+        print(df.columns)
+        print(mapping)
+        df.rename(columns=mapping, inplace=True)
+        print(df.columns)
 
         return SemanticResult(
             requests=[
