@@ -30,7 +30,10 @@ describe('extractUrlParams', () => {
   });
 
   afterAll(() => {
-    window.location = originalWindowLocation;
+    Object.defineProperty(window, 'location', {
+      value: originalWindowLocation,
+      writable: true,
+    });
   });
 
   test('returns all urlParams', () => {
