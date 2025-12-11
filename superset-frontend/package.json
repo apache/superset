@@ -253,7 +253,7 @@
     "@storybook/react": "8.1.11",
     "@storybook/react-webpack5": "8.1.11",
     "@svgr/webpack": "^8.1.0",
-    "@swc/core": "^1.14.0",
+    "@swc/core": "^1.15.3",
     "@swc/plugin-emotion": "^12.0.0",
     "@swc/plugin-transform-imports": "^10.0.0",
     "@testing-library/dom": "^8.20.1",
