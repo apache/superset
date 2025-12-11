@@ -144,12 +144,14 @@ export const getSlicePayload = async (
     ...adhocFilters,
     dashboards,
   };
-  let datasourceId = 0;
+  let datasourceId: number | string = 0;
   let datasourceType: DatasourceType = DatasourceType.Table;
 
   if (formData.datasource) {
     const [id, typeString] = formData.datasource.split('__');
-    datasourceId = parseInt(id, 10);
+    // Try to parse as integer, fall back to string (UUID) if NaN
+    const parsedId = parseInt(id, 10);
+    datasourceId = Number.isNaN(parsedId) ? id : parsedId;
 
     const formattedTypeString =
       typeString.charAt(0).toUpperCase() + typeString.slice(1);

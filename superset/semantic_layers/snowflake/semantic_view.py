@@ -396,9 +396,8 @@ class SnowflakeSemanticView(SemanticViewImplementation):
 
         filters = filters or set()
         where_clause, where_parameters = self._build_predicates(
-            sorted(
-                filter_ for filter_ in filters if filter_.type == PredicateType.WHERE
-            )
+            # XXX sort to ensure deterministic order for parameters
+            [filter_ for filter_ in filters if filter_.type == PredicateType.WHERE]
         )
         # having clauses are not supported, since there's no GROUP BY
         if any(filter_.type == PredicateType.HAVING for filter_ in filters):

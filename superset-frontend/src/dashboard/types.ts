@@ -272,7 +272,7 @@ export type Slice = {
   changed_on: number;
   changed_on_humanized: string;
   modified: string;
-  datasource_id: number;
+  datasource_id: number | string;
   datasource_type: DatasourceType;
   datasource_url: string;
   datasource_name: string;

@@ -90,11 +90,16 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  const [datasource_id, datasource_type] = formData.datasource.split('__');
+  const [datasourceIdStr, datasource_type] = formData.datasource.split('__');
+  // Try to parse as integer, fall back to string (UUID) if NaN
+  const parsedDatasourceId = parseInt(datasourceIdStr, 10);
+  const datasource_id = Number.isNaN(parsedDatasourceId)
+    ? datasourceIdStr
+    : parsedDatasourceId;
   useEffect(() => {
     // short circuit if the user is embedded as explore is not available
     if (isEmbedded()) return;
-    postFormData(Number(datasource_id), datasource_type, formData, 0)
+    postFormData(datasource_id, datasource_type, formData, 0)
       .then(key => {
         setUrl(
           `/explore/?form_data_key=${key}&dashboard_page_id=${dashboardPageId}`,

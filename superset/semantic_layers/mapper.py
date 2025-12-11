@@ -877,7 +877,7 @@ def _validate_orderby(query_object: ValidatedQueryObject) -> None:
             "Adhoc expressions in order by are not supported in this Semantic View."
         )
 
-    elements = set(query_object.orderby)
+    elements = {orderby[0] for orderby in query_object.orderby}
     metric_names = {metric.name for metric in semantic_view.metrics}
     dimension_names = {dimension.name for dimension in semantic_view.dimensions}
     if not elements <= metric_names | dimension_names:

@@ -253,8 +253,6 @@ class SnowflakeSemanticLayer(
 
         # check that the semantic view exists
         connection_parameters = get_connection_parameters(configuration)
-        print("PARAMS")
-        print(connection_parameters)
         with connect(**connection_parameters) as connection:
             cursor = connection.cursor()
             query = dedent(
@@ -263,9 +261,6 @@ class SnowflakeSemanticLayer(
                     ->> SELECT "name" FROM $1 WHERE "name" = ?;
                 """
             ).strip()
-            print("BETO Q")
-            print(repr(query))
-            print(repr(name))
             cursor.execute(query, (name,))
             rows = cursor.fetchall()
             if not rows:

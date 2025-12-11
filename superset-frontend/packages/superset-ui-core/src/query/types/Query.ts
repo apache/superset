@@ -156,7 +156,7 @@ export interface QueryObject
 
 export interface QueryContext {
   datasource: {
-    id: number;
+    id: number | string;
     type: DatasourceType;
   };
   /** Force refresh of all queries */

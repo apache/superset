@@ -20,7 +20,7 @@ import { SupersetClient, JsonObject, JsonResponse } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/utils/sanitizeFormData';
 
 type Payload = {
-  datasource_id: number;
+  datasource_id: number | string;
   datasource_type: string;
   form_data: string;
   chart_id?: number;
@@ -36,7 +36,7 @@ const assembleEndpoint = (key?: string, tabId?: string) => {
 };
 
 const assemblePayload = (
-  datasourceId: number,
+  datasourceId: number | string,
   datasourceType: string,
   formData: JsonObject,
   chartId?: number,
@@ -53,7 +53,7 @@ const assemblePayload = (
 };
 
 export const postFormData = (
-  datasourceId: number,
+  datasourceId: number | string,
   datasourceType: string,
   formData: JsonObject,
   chartId?: number,
@@ -70,7 +70,7 @@ export const postFormData = (
   }).then((r: JsonResponse) => r.json.key);
 
 export const putFormData = (
-  datasourceId: number,
+  datasourceId: number | string,
   datasourceType: string,
   key: string,
   formData: JsonObject,
