@@ -1276,6 +1276,38 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             DatabaseUserOAuth2Tokens.id == self.id
         ).delete()
 
+    def execute(
+        self,
+        sql: str,
+        options: Any | None = None,
+    ) -> Any:
+        """
+        Execute SQL synchronously.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: QueryResult with status, data, and metadata
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute(sql, options)
+
+    def execute_async(
+        self,
+        sql: str,
+        options: Any | None = None,
+    ) -> Any:
+        """
+        Execute SQL asynchronously via Celery.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: AsyncQueryResult with handle for tracking
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute_async(sql, options)
+
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)
