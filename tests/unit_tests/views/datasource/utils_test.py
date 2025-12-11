@@ -24,14 +24,16 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
 
-@patch("superset.views.datasource.utils.app")
-def test_get_samples_raises_security_exception_when_access_denied(mock_app: MagicMock):
+@patch("superset.views.datasource.utils.get_limit_clause")
+def test_get_samples_raises_security_exception_when_access_denied(
+    mock_get_limit_clause: MagicMock,
+):
     """
     Test that get_samples() enforces access control by calling raise_for_access().
     This verifies the fix for issue #31944 where users with "can samples on Datasource"
     permission could read samples from datasets they don't have access to.
     """
-    mock_app.config.get.return_value = 1000
+    mock_get_limit_clause.return_value = {"row_offset": 0, "row_limit": 100}
 
     mock_datasource = MagicMock()
     mock_datasource.type = "table"
@@ -83,13 +85,15 @@ def test_get_samples_raises_security_exception_when_access_denied(mock_app: Magi
         mock_samples_context.raise_for_access.assert_called_once()
 
 
-@patch("superset.views.datasource.utils.app")
-def test_get_samples_calls_raise_for_access_on_both_contexts(mock_app: MagicMock):
+@patch("superset.views.datasource.utils.get_limit_clause")
+def test_get_samples_calls_raise_for_access_on_both_contexts(
+    mock_get_limit_clause: MagicMock,
+):
     """
     Test that get_samples() calls raise_for_access() on both the samples
     and count_star query contexts before fetching data.
     """
-    mock_app.config.get.return_value = 1000
+    mock_get_limit_clause.return_value = {"row_offset": 0, "row_limit": 100}
 
     mock_datasource = MagicMock()
     mock_datasource.type = "table"
@@ -151,13 +155,13 @@ def test_get_samples_calls_raise_for_access_on_both_contexts(mock_app: MagicMock
         assert result["total_count"] == 100
 
 
-@patch("superset.views.datasource.utils.app")
-def test_get_samples_count_star_access_denied(mock_app: MagicMock):
+@patch("superset.views.datasource.utils.get_limit_clause")
+def test_get_samples_count_star_access_denied(mock_get_limit_clause: MagicMock):
     """
     Test that get_samples() raises security exception when access to count_star
     query context is denied.
     """
-    mock_app.config.get.return_value = 1000
+    mock_get_limit_clause.return_value = {"row_offset": 0, "row_limit": 100}
 
     mock_datasource = MagicMock()
     mock_datasource.type = "table"
