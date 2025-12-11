@@ -1003,7 +1003,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   -c requirements/base-constraint.txt
     #   docker
