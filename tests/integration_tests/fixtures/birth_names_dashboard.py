@@ -19,6 +19,7 @@ from typing import Callable, Optional
 import pytest
 
 from superset import db
+from superset.cli.examples import load_examples_run
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -37,13 +38,14 @@ BIRTH_NAMES_TBL_NAME = "birth_names"
 def load_birth_names_data(
     birth_names_table_factory: Callable[[], Table], data_loader: DataLoader
 ):
-    birth_names_table: Table = birth_names_table_factory()
-    data_loader.load_table(birth_names_table)
+    """
+    Legacy fixture for backward compatibility.
+    The new DuckDB-based system loads data via load_examples_run().
+    """
     yield
-    data_loader.remove_table(birth_names_table.table_name)
 
 
-@pytest.fixture
+@pytest.fixture()
 def load_birth_names_dashboard_with_slices(load_birth_names_data):
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
@@ -68,61 +70,54 @@ def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):
 
 
 def _create_dashboards():
-    try:
-        from superset.examples.birth_names import create_dashboard, create_slices
-    except ModuleNotFoundError:
-        pytest.skip(
-            "TODO: Fix fixture to work with DuckDB example data format. "
-            "Birth names example module conflicts with new example data structure."
-        )
-
-    table = _create_table(
-        table_name=BIRTH_NAMES_TBL_NAME,
-        database=get_example_database(),
-        fetch_values_predicate="123 = 123",
+    """Load the birth_names dashboard using the new DuckDB-based system."""
+    
+    # Load all examples including birth_names
+    # This uses the new DuckDB files and YAML configs
+    load_examples_run(
+        load_test_data=False,
+        load_big_data=False,
+        only_metadata=False,
+        force=True
     )
-
-    slices, _ = create_slices(table)
-    dash = create_dashboard(slices)
-    slices_ids_to_delete = [slice.id for slice in slices]
+    
+    # Find the created dashboard
+    dash = db.session.query(Dashboard).filter_by(
+        dashboard_title="USA Births Names"
+    ).first()
+    
+    if not dash:
+        # If dashboard wasn't created, skip the test
+        pytest.skip(
+            "USA Births Names dashboard not found. "
+            "The new DuckDB-based examples may not be fully loaded."
+        )
+    
+    # Get slice IDs from the dashboard
+    slices_ids_to_delete = [slice.id for slice in dash.slices]
     dash_id_to_delete = dash.id
+    
     return dash_id_to_delete, slices_ids_to_delete
-
-
-def _create_table(
-    table_name: str,
-    database: "Database",
-    fetch_values_predicate: Optional[str] = None,
-):
-    try:
-        from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
-    except ModuleNotFoundError:
-        pytest.skip(
-            "TODO: Fix fixture to work with DuckDB example data format. "
-            "Birth names example module conflicts with new example data structure."
-        )
-
-    table = create_table_metadata(
-        table_name=table_name,
-        database=database,
-        fetch_values_predicate=fetch_values_predicate,
-    )
-    _set_table_metadata(table, database)
-    _add_table_metrics(table)
-    db.session.commit()
-    return table
 
 
 def _cleanup(dash_id: int, slice_ids: list[int]) -> None:
     schema = get_example_default_schema()
+    
+    # Clean up datasource
     for datasource in db.session.query(SqlaTable).filter_by(
-        table_name="birth_names", schema=schema
+        table_name=BIRTH_NAMES_TBL_NAME, schema=schema
     ):
         for col in datasource.columns + datasource.metrics:
             db.session.delete(col)
+        db.session.delete(datasource)
 
-    for dash in db.session.query(Dashboard).filter_by(id=dash_id):
-        db.session.delete(dash)
-    for slc in db.session.query(Slice).filter(Slice.id.in_(slice_ids)):
-        db.session.delete(slc)
+    # Clean up dashboard and slices
+    if dash_id:
+        for dash in db.session.query(Dashboard).filter_by(id=dash_id):
+            db.session.delete(dash)
+    
+    if slice_ids:
+        for slc in db.session.query(Slice).filter(Slice.id.in_(slice_ids)):
+            db.session.delete(slc)
+    
     db.session.commit()
