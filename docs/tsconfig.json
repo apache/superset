@@ -14,8 +14,6 @@
   "paths": {
     "@superset-ui/core": ["../superset-frontend/packages/superset-ui-core/src"],
     "@superset-ui/core/*": ["../superset-frontend/packages/superset-ui-core/src/*"],
-    "@apache-superset/core": ["../superset-frontend/packages/superset-core/src"],
-    "@apache-superset/core/*": ["../superset-frontend/packages/superset-core/src/*"],
     "*": ["src/*", "node_modules/*"]
   },
   "include": [
