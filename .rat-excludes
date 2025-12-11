@@ -76,6 +76,10 @@ snowflake.svg
 ydb.svg
 loading.svg
 
+# Static images for doc
+docs/static/img/logos/*.svg
+docs/static/img/logos/*
+
 # docs-related
 erd.puml
 erd.svg
