@@ -277,6 +277,8 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     This function maps the `QueryObject` into query objects that focus less on
     visualization and more on semantics.
     """
+    print("BETO")
+    print(query_object)
     semantic_view = query_object.datasource.implementation
 
     all_metrics = {metric.name: metric for metric in semantic_view.metrics}
@@ -321,6 +323,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             time_offset,
             all_dimensions,
         )
+        print(">>", filters)
 
         queries.append(
             SemanticQuery(
@@ -373,9 +376,15 @@ def _get_filters_from_query_object(
 
     # 4. Add all other filters from query_object.filter
     for filter_ in query_object.filter:
-        converted_filter = _convert_query_object_filter(filter_, all_dimensions)
-        if converted_filter:
-            filters.add(converted_filter)
+        # Skip temporal range filters - we're using inner bounds instead
+        if (
+            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
+            and query_object.granularity
+        ):
+            continue
+
+        if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
+            filters.update(converted_filters)
 
     return filters
 
@@ -503,16 +512,11 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
-) -> Filter | AdhocFilter | None:
+) -> set[Filter] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter or AdhocFilter.
     """
     operator_str = filter_["op"]
-
-    # Handle TEMPORAL_RANGE filters (these are already handled by _get_time_filter)
-    if operator_str == FilterOperator.TEMPORAL_RANGE.value:
-        # Skip - already handled in _get_time_filter
-        return None
 
     # Handle simple column filters
     col = filter_.get("col")
@@ -529,6 +533,25 @@ def _convert_query_object_filter(
         value = set(val_str)
     else:
         value = val_str
+
+    # Special case for temporal range
+    if operator_str == FilterOperator.TEMPORAL_RANGE.value:
+        # XXX
+        start, end = value.split(" : ")
+        return {
+            Filter(
+                type=PredicateType.WHERE,
+                column=dimension,
+                operator=Operator.GREATER_THAN_OR_EQUAL,
+                value=start,
+            ),
+            Filter(
+                type=PredicateType.WHERE,
+                column=dimension,
+                operator=Operator.LESS_THAN,
+                value=end,
+            ),
+        }
 
     # Map QueryObject operators to semantic layer operators
     operator_mapping = {
@@ -551,12 +574,14 @@ def _convert_query_object_filter(
         # Unknown operator - create adhoc filter
         return None
 
-    return Filter(
-        type=PredicateType.WHERE,
-        column=dimension,
-        operator=operator,
-        value=value,
-    )
+    return {
+        Filter(
+            type=PredicateType.WHERE,
+            column=dimension,
+            operator=operator,
+            value=value,
+        )
+    }
 
 
 def _get_order_from_query_object(
@@ -693,12 +718,14 @@ def _get_group_limit_filters(
     # Add all other non-temporal filters from query_object.filter
     for filter_ in query_object.filter:
         # Skip temporal range filters - we're using inner bounds instead
-        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value:
+        if (
+            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
+            and query_object.granularity
+        ):
             continue
 
-        converted_filter = _convert_query_object_filter(filter_, all_dimensions)
-        if converted_filter:
-            filters.add(converted_filter)
+        if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
+            filters.update(converted_filters)
 
     return filters if filters else None
 
