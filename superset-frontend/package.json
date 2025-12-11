@@ -80,7 +80,7 @@
     "prune": "rm -rf ./{packages,plugins}/*/{node_modules,lib,esm,tsconfig.tsbuildinfo,package-lock.json} ./.temp_cache",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006",
     "test-storybook": "test-storybook",
-    "test-storybook:ci": "concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test-storybook\"",
+    "test-storybook:ci": "concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:127.0.0.1:6006 && npm run test-storybook -- --maxWorkers=2\"",
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --watch",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
