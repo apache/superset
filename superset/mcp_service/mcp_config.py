@@ -73,18 +73,73 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
-# MCP Store Configuration - shared infrastructure for all MCP storage needs
-# (caching, auth, events, etc.)
+# =============================================================================
+# MCP Storage and Caching Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# MCP caching uses FastMCP's ResponseCachingMiddleware to cache tool responses.
+# By default, caching is DISABLED. When enabled, it can use either:
+#   1. In-memory store (default) - no additional configuration needed
+#   2. Redis store - requires MCP_STORE_CONFIG to be enabled
+#
+# Configuration Flow:
+# -------------------
+# - MCP_CACHE_CONFIG controls whether caching is enabled and its TTL settings
+# - MCP_STORE_CONFIG controls the Redis store (optional)
+#
+# Scenarios:
+# ----------
+# 1. Caching disabled (default):
+#    MCP_CACHE_CONFIG["enabled"] = False
+#    → No caching, MCP_STORE_CONFIG is ignored
+#
+# 2. Caching with in-memory store:
+#    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["enabled"] = False (or not configured)
+#    → Caching uses FastMCP's default in-memory store, no Prefix wrapper used
+#
+# 3. Caching with Redis store:
+#    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["enabled"] = True
+#    MCP_STORE_CONFIG["CACHE_REDIS_URL"] = "redis://..."
+#    → Caching uses Redis with PrefixKeysWrapper
+#
+# Redis Store Details:
+# --------------------
+# When MCP_STORE_CONFIG is enabled, it creates a RedisStore wrapped with
+# PrefixKeysWrapper (configurable via WRAPPER_TYPE). The wrapper prepends a
+# prefix to all keys, allowing multiple features to share the same Redis
+# instance with isolated key namespaces. The prefix comes from the consumer
+# (e.g., MCP_CACHE_CONFIG["CACHE_KEY_PREFIX"] for caching).
+#
+# Advanced Usage:
+# ---------------
+# The store factory (get_mcp_store) can be used independently for custom
+# purposes like auth token storage or event logging. Import and call:
+#
+#   from superset.mcp_service.storage import get_mcp_store
+#   my_store = get_mcp_store(prefix="my_feature_v1_")
+#
+# Currently, the store is only used by the caching layer when enabled.
+# =============================================================================
+
+# MCP Store Configuration - shared Redis infrastructure for all MCP storage needs
+# (caching, auth, events, etc.). Only used when a consumer explicitly requests it.
 MCP_STORE_CONFIG: Dict[str, Any] = {
-    "enabled": False,  # Disabled by default in OSS
-    "CACHE_REDIS_URL": None,  # Must be configured to enable
+    "enabled": False,  # Disabled by default - caching uses in-memory store
+    "CACHE_REDIS_URL": None,  # Redis URL, e.g., "redis://localhost:6379/0"
+    # Wrapper class that prefixes all keys. Each consumer provides their own prefix.
     "WRAPPER_TYPE": "key_value.aio.wrappers.prefix_keys.PrefixKeysWrapper",
 }
 
-# MCP Response Caching Configuration - feature-specific settings
+# MCP Response Caching Configuration - controls caching behavior and TTLs
+# When enabled without MCP_STORE_CONFIG, uses in-memory store.
+# When enabled with MCP_STORE_CONFIG, uses Redis store.
 MCP_CACHE_CONFIG: Dict[str, Any] = {
-    "enabled": False,  # Disabled by default in OSS
-    "CACHE_KEY_PREFIX": "mcp_cache_v1_",  # Static prefix for OSS
+    "enabled": False,  # Disabled by default
+    "CACHE_KEY_PREFIX": None,  # Only needed when using the store
     "list_tools_ttl": 60 * 5,  # 5 minutes
     "list_resources_ttl": 60 * 5,  # 5 minutes
     "list_prompts_ttl": 60 * 5,  # 5 minutes
@@ -92,7 +147,7 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
     "get_prompt_ttl": 60 * 60,  # 1 hour
     "call_tool_ttl": 60 * 60,  # 1 hour
     "max_item_size": 1024 * 1024,  # 1MB
-    "excluded_tools": [
+    "excluded_tools": [  # Tools that should never be cached (side effects, dynamic)
         "execute_sql",
         "generate_dashboard",
         "generate_chart",
