@@ -91,6 +91,13 @@ const stringOperatorOptions = [
   { value: Comparator.NotContaining, label: t('not containing') },
 ];
 
+const booleanOperatorOptions = [
+  { value: Comparator.IsNull, label: t('is null') },
+  { value: Comparator.IsTrue, label: t('is true') },
+  { value: Comparator.IsFalse, label: t('is false') },
+  { value: Comparator.IsNotNull, label: t('is not null') },
+];
+
 const targetValueValidator =
   (
     compare: (targetValue: number, compareValue: number) => boolean,
@@ -157,10 +164,17 @@ const renderOperator = ({
   showOnlyNone,
   columnType,
 }: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
-  const options =
-    columnType === GenericDataType.String
-      ? stringOperatorOptions
-      : operatorOptions;
+  let options;
+  switch (columnType) {
+    case GenericDataType.String:
+      options = stringOperatorOptions;
+      break;
+    case GenericDataType.Boolean:
+      options = booleanOperatorOptions;
+      break;
+    default:
+      options = operatorOptions;
+  }
 
   return (
     <FormItem
@@ -182,8 +196,25 @@ const renderOperatorFields = (
   columnType?: GenericDataType,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
-  const operatorColSpan = columnTypeString ? 8 : 6;
+  const columnTypeBoolean = columnType === GenericDataType.Boolean;
+  const operatorColSpan = columnTypeString || columnTypeBoolean ? 8 : 6;
   const valueColSpan = columnTypeString ? 16 : 18;
+
+  if (columnTypeBoolean) {
+    return (
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={valueColSpan}>
+          <FormItem
+            name="targetValue"
+            label={t('Target value')}
+            initialValue={''}
+            hidden
+          />
+        </Col>
+      </Row>
+    );
+  }
 
   return isOperatorNone(getFieldValue('operator')) ? (
     <Row gutter={12}>
@@ -261,6 +292,9 @@ export const FormattingPopoverContent = ({
   const [toTextColor, setToTextColor] = useState(() =>
     Boolean(config?.toTextColor),
   );
+  const [useGradient, setUseGradient] = useState(() =>
+    config?.useGradient !== undefined ? config.useGradient : true,
+  );
 
   const useConditionalFormattingFlag = (
     flagKey: 'toAllRowCheck' | 'toColorTextCheck',
@@ -304,10 +338,20 @@ export const FormattingPopoverContent = ({
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
     if (newColumnType !== previousColumnType) {
-      const defaultOperator =
-        newColumnType === GenericDataType.String
-          ? stringOperatorOptions[0].value
-          : operatorOptions[0].value;
+      let defaultOperator: Comparator;
+
+      switch (newColumnType) {
+        case GenericDataType.String:
+          defaultOperator = stringOperatorOptions[0].value;
+          break;
+
+        case GenericDataType.Boolean:
+          defaultOperator = booleanOperatorOptions[0].value;
+          break;
+
+        default:
+          defaultOperator = operatorOptions[0].value;
+      }
 
       form.setFieldsValue({
         operator: defaultOperator,
@@ -363,6 +407,23 @@ export const FormattingPopoverContent = ({
               options={[...colorScheme, ...extraColorChoices]}
             />
           </FormItem>
+        </Col>
+      </Row>
+      <Row gutter={20}>
+        <Col span={1}>
+          <FormItem
+            name="useGradient"
+            valuePropName="checked"
+            initialValue={useGradient}
+          >
+            <Checkbox
+              onChange={event => setUseGradient(event.target.checked)}
+              checked={useGradient}
+            />
+          </FormItem>
+        </Col>
+        <Col>
+          <FormItem required>{t('Use gradient')}</FormItem>
         </Col>
       </Row>
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>

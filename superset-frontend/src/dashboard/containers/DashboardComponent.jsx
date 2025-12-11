@@ -49,6 +49,12 @@ const propTypes = {
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
   isComponentVisible: PropTypes.bool,
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
+  isInView: PropTypes.bool,
 };
 
 const DashboardComponent = props => {

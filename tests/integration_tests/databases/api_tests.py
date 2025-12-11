@@ -289,23 +289,21 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_ssh_tunnel(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
     ):
         """
         Database API: Test create with SSH Tunnel
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -337,23 +335,21 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_ssh_tunnel_no_port(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
     ):
         """
         Database API: Test create with SSH Tunnel
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -390,23 +386,21 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.skip("buggy")
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_create_database_with_ssh_tunnel_no_port_no_default(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
     ):
         """
         Database API: Test that missing port raises SSHTunnelDatabaseError
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(username="admin")
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -435,30 +429,25 @@ class TestDatabaseApi(SupersetTestCase):
             == "A database port is required when connecting via SSH Tunnel."
         )
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_database_with_ssh_tunnel(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_update_is_feature_enabled,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
         mock_sync_perms_command,
     ):
         """
         Database API: Test update Database with SSH Tunnel
         """
-        mock_create_is_feature_enabled.return_value = True
-        mock_update_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -500,30 +489,25 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_database_with_ssh_tunnel_no_port(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_update_is_feature_enabled,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
         mock_sync_perms_cmmd_run,
     ):
         """
         Database API: Test update Database with SSH Tunnel
         """
-        mock_create_is_feature_enabled.return_value = True
-        mock_update_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -568,26 +552,21 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_database_no_port_no_default(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_update_is_feature_enabled,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
     ):
         """
         Database API: Test that missing port raises SSHTunnelDatabaseError
         """
-        mock_create_is_feature_enabled.return_value = True
-        mock_update_is_feature_enabled.return_value = True
         self.login(username="admin")
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -632,33 +611,25 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch("superset.commands.database.update.is_feature_enabled")
-    @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_delete_ssh_tunnel(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_delete_is_feature_enabled,
-        mock_update_is_feature_enabled,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
         mock_sync_perms_command,
     ):
         """
         Database API: Test deleting a SSH tunnel via Database update
         """
-        mock_create_is_feature_enabled.return_value = True
-        mock_update_is_feature_enabled.return_value = True
-        mock_delete_is_feature_enabled.return_value = True
         self.login(username="admin")
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -720,30 +691,25 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
-    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_update_ssh_tunnel_via_database_api(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_update_is_feature_enabled,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
         mock_sync_perms_command,
     ):
         """
         Database API: Test update SSH Tunnel via Database API
         """
-        mock_create_is_feature_enabled.return_value = True
-        mock_update_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
@@ -802,15 +768,14 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
-        mock_create_is_feature_enabled,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
         mock_test_connection_database_command_run,
@@ -818,7 +783,6 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: SSH Tunnel gets deleted if Database gets deleted
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -837,6 +801,7 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
+        print(rv.text)
         assert rv.status_code == 201
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -855,10 +820,10 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert model_ssh_tunnel is None
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     @mock.patch("superset.extensions.db.session.rollback")
@@ -866,14 +831,12 @@ class TestDatabaseApi(SupersetTestCase):
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
         mock_rollback,
     ):
         """
         Database API: Test rollback is called if SSH Tunnel creation fails
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -897,7 +860,11 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": ssh_tunnel_properties,
         }
-        fail_message = {"message": "SSH Tunnel parameters are invalid."}
+        fail_message = {
+            "message": {
+                "ssh_tunnel": {"password": "Either password or private_key is required"}
+            }
+        }
 
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
@@ -912,9 +879,6 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel is None
         assert response == fail_message
 
-        # Check that rollback was called
-        mock_rollback.assert_called()
-
         # Clean up any database that might have been created
         created_db = (
             db.session.query(Database)
@@ -925,23 +889,21 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(created_db)
             db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_get_database_returns_related_ssh_tunnel(
         self,
         mock_get_all_schema_names,
         mock_get_all_catalog_names,
-        mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
     ):
         """
         Database API: Test GET Database returns its related SSH Tunnel
         """
-        mock_create_is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
@@ -1091,7 +1053,7 @@ class TestDatabaseApi(SupersetTestCase):
                 ]
             }
         }
-        assert rv.status_code == 400
+        assert rv.status_code == 422
 
     def test_create_database_no_configuration_method(self):
         """
@@ -1146,7 +1108,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": {"server_cert": ["Invalid certificate"]}}
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         assert response == expected_response
 
     def test_create_database_json_validate(self):
@@ -1181,7 +1143,7 @@ class TestDatabaseApi(SupersetTestCase):
                 ],
             }
         }
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         assert response == expected_response
 
     def test_create_database_extra_metadata_validate(self):
@@ -1217,7 +1179,7 @@ class TestDatabaseApi(SupersetTestCase):
                 ]
             }
         }
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         assert response == expected_response
 
     def test_create_database_unique_validate(self):
@@ -1260,7 +1222,7 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         assert "Invalid connection string" in response["message"]["sqlalchemy_uri"][0]
 
     @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": True})
@@ -1287,7 +1249,7 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         assert response_data == expected_response
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_create_database_conn_fail(self):
         """
@@ -2343,7 +2305,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver: BaseEngineSpec",
+                    "message": "Could not load database driver for: broken",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
@@ -2372,7 +2334,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver: MssqlEngineSpec",
+                    "message": "Could not load database driver for: mssql",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
@@ -2991,16 +2953,27 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "Must provide credentials for the SSH Tunnel",
+                    "message": (
+                        "Error importing database: databases/database_1.yaml: "
+                        "{'ssh_tunnel': {'password': 'Either password or private_key "
+                        "is required'}}"
+                    ),
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
+                        "databases/database_1.yaml": {
+                            "ssh_tunnel": {
+                                "password": (
+                                    "Either password or private_key is required"
+                                ),
+                            }
+                        },
                         "issue_codes": [
                             {
                                 "code": 1010,
                                 "message": (
-                                    "Issue 1010 - Superset encountered an "
-                                    "error while running a command."
+                                    "Issue 1010 - Superset encountered an error while "
+                                    "running a command."
                                 ),
                             }
                         ],
@@ -3373,7 +3346,9 @@ class TestDatabaseApi(SupersetTestCase):
                     "parameters": {
                         "properties": {
                             "credentials_info": {
-                                "description": "Contents of BigQuery JSON credentials.",
+                                "description": (
+                                    "Contents of BigQuery JSON credentials."
+                                ),
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },
@@ -3463,7 +3438,8 @@ class TestDatabaseApi(SupersetTestCase):
                                     "scope": (
                                         "https://www.googleapis.com/auth/"
                                         "drive.readonly "
-                                        "https://www.googleapis.com/auth/spreadsheets "
+                                        "https://www.googleapis.com/auth/"
+                                        "spreadsheets "
                                         "https://spreadsheets.google.com/feeds"
                                     ),
                                     "token_request_uri": "https://oauth2.googleapis.com/token",
@@ -3474,7 +3450,9 @@ class TestDatabaseApi(SupersetTestCase):
                                 "x-encrypted-extra": True,
                             },
                             "service_account_info": {
-                                "description": "Contents of GSheets JSON credentials.",
+                                "description": (
+                                    "Contents of GSheets JSON credentials."
+                                ),
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },

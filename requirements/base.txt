@@ -298,7 +298,9 @@ pyasn1-modules==0.4.2
 pycparser==2.22
     # via cffi
 pydantic==2.11.7
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pydantic-core==2.33.2
     # via pydantic
 pygments==2.19.1

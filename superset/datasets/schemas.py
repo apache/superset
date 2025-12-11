@@ -86,6 +86,9 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 

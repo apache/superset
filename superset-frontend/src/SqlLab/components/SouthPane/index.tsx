@@ -41,6 +41,7 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
+import { ViewContribution } from 'src/SqlLab/contributions';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -99,7 +100,9 @@ const SouthPane = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const contributions =
-    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+    ExtensionsManager.getInstance().getViewContributions(
+      ViewContribution.SouthPanels,
+    ) || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
