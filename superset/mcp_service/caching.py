@@ -79,10 +79,11 @@ def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
 
 def create_response_caching_middleware() -> Any | None:
     """
-    Create ResponseCachingMiddleware with RedisStore backend.
+    Create ResponseCachingMiddleware with optional RedisStore backend.
 
-    Uses MCP_CACHE_CONFIG for caching settings and prefix.
-    Uses get_mcp_store() factory for store creation.
+    Uses MCP_CACHE_CONFIG for caching settings.
+    When MCP_STORE_CONFIG is enabled, uses Redis store with prefix.
+    Otherwise, uses FastMCP's default in-memory store (no prefix needed).
 
     Returns:
         ResponseCachingMiddleware instance or None if not configured/disabled
@@ -95,20 +96,10 @@ def create_response_caching_middleware() -> Any | None:
 
     def _create_middleware() -> Any | None:
         cache_config = flask_app.config.get("MCP_CACHE_CONFIG", {})
+        store_config = flask_app.config.get("MCP_STORE_CONFIG", {})
 
         if not cache_config.get("enabled", False):
             logger.debug("MCP response caching disabled")
-            return None
-
-        # Get cache-specific prefix from MCP_CACHE_CONFIG
-        cache_prefix = cache_config.get("CACHE_KEY_PREFIX")
-        if not cache_prefix:
-            logger.warning("MCP caching enabled but no CACHE_KEY_PREFIX configured")
-            return None
-
-        # Create store with cache-specific prefix
-        store = get_mcp_store(prefix=cache_prefix)
-        if store is None:
             return None
 
         try:
@@ -119,9 +110,23 @@ def create_response_caching_middleware() -> Any | None:
             )
             return None
 
+        # Determine which store to use
+        store = None
+        if store_config.get("enabled", False):
+            # Redis store requires a prefix
+            cache_prefix = cache_config.get("CACHE_KEY_PREFIX")
+            if not cache_prefix:
+                logger.warning(
+                    "MCP_STORE_CONFIG enabled but no CACHE_KEY_PREFIX configured - "
+                    "falling back to in-memory store"
+                )
+            else:
+                store = get_mcp_store(prefix=cache_prefix)
+
         # Build per-operation settings from config
         settings = _build_caching_settings(cache_config)
 
+        # Create middleware (store=None uses FastMCP's default in-memory store)
         middleware = ResponseCachingMiddleware(
             cache_storage=store,
             **settings,
