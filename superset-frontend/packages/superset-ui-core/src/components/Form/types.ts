@@ -31,5 +31,7 @@ export interface LabeledErrorBoundInputProps {
   classname?: string;
   visibilityToggle?: boolean;
   isValidating?: boolean;
+  renderAsTextArea?: boolean;
+  textAreaCss?: any;
   [x: string]: any;
 }
