@@ -69,7 +69,11 @@ services:
     build:
       <<: *common-build
     container_name: superset_app
-    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    command: >
+      sh -c "
+      pip install pyhive thrift thrift-sasl &&
+      /app/docker/docker-bootstrap.sh app-gunicorn
+      "
     user: "root"
     restart: unless-stopped
     ports:
@@ -85,7 +89,11 @@ services:
     container_name: superset_init
     build:
       <<: *common-build
-    command: ["/app/docker/docker-init.sh"]
+    command: >
+      sh -c "
+      pip install pyhive thrift thrift-sasl &&
+      /app/docker/docker-init.sh
+      "
     env_file:
       - path: docker/.env
         required: true
@@ -107,7 +115,11 @@ services:
     build:
       <<: *common-build
     container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    command: >
+      sh -c "
+      pip install pyhive thrift thrift-sasl &&
+      /app/docker/docker-bootstrap.sh worker
+      "
     env_file:
       - path: docker/.env
         required: true
@@ -159,5 +171,5 @@ volumes:
 
 networks:
   databricks-net:
-    name: pipe-line_databricks-net
+    name: databricks-net
     external: true
