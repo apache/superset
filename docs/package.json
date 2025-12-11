@@ -34,7 +34,7 @@
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@emotion/core": "^10.0.27",
     "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^10.0.27",
+    "@emotion/styled": "^11.14.1",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^8.6.11",
@@ -49,7 +49,7 @@
     "@storybook/preview-api": "^8.6.11",
     "@storybook/theming": "^8.6.11",
     "@superset-ui/core": "^0.20.4",
-    "antd": "^5.29.1",
+    "antd": "^6.1.0",
     "caniuse-lite": "^1.0.30001760",
     "docusaurus-plugin-less": "^2.0.2",
     "json-bigint": "^1.0.0",
@@ -81,7 +81,7 @@
     "globals": "^16.5.0",
     "prettier": "^3.7.4",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.1",
+    "typescript-eslint": "^8.49.0",
     "webpack": "^5.103.0"
   },
   "browserslist": {

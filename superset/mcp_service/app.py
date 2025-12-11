@@ -23,9 +23,10 @@ mcp from here and use @mcp.tool decorators.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Set
+from typing import Any, Callable, Dict, List, Sequence, Set
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,7 @@ def _build_mcp_kwargs(
     tools: List[Any] | None,
     include_tags: Set[str] | None,
     exclude_tags: Set[str] | None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Build FastMCP constructor arguments."""
@@ -165,6 +167,8 @@ def _build_mcp_kwargs(
         mcp_kwargs["include_tags"] = include_tags
     if exclude_tags is not None:
         mcp_kwargs["exclude_tags"] = exclude_tags
+    if middleware is not None:
+        mcp_kwargs["middleware"] = middleware
 
     # Add any additional kwargs
     mcp_kwargs.update(kwargs)
@@ -206,6 +210,7 @@ def create_mcp_app(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -225,6 +230,7 @@ def create_mcp_app(
         include_tags: Set of tags to include (whitelist)
         exclude_tags: Set of tags to exclude (blacklist)
         config: Additional configuration dictionary
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP constructor arguments
 
     Returns:
@@ -244,7 +250,15 @@ def create_mcp_app(
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
-        name, instructions, auth, lifespan, tools, include_tags, exclude_tags, **kwargs
+        name,
+        instructions,
+        auth,
+        lifespan,
+        tools,
+        include_tags,
+        exclude_tags,
+        middleware,
+        **kwargs,
     )
 
     # Create the FastMCP instance
@@ -321,6 +335,7 @@ def init_fastmcp_server(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -334,6 +349,7 @@ def init_fastmcp_server(
         name: Server name (defaults to "{APP_NAME} MCP Server")
         instructions: Custom instructions (defaults to branded with APP_NAME)
         auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP configuration
 
     Returns:
@@ -364,6 +380,7 @@ def init_fastmcp_server(
             include_tags is not None,
             exclude_tags is not None,
             config is not None,
+            middleware is not None,
             kwargs,
         ]
     )
@@ -379,6 +396,7 @@ def init_fastmcp_server(
             include_tags=include_tags,
             exclude_tags=exclude_tags,
             config=config,
+            middleware=middleware,
             **kwargs,
         )
     else:
