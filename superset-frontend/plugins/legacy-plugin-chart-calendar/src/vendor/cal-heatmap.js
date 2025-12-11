@@ -2722,7 +2722,9 @@ CalHeatMap.prototype = {
     var start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
     var stopExclusive;
     if (range instanceof Date) {
-      stopExclusive = new Date(Date.UTC(range.getUTCFullYear(), range.getUTCMonth(), 1));
+      stopExclusive = new Date(
+        Date.UTC(range.getUTCFullYear(), range.getUTCMonth(), 1),
+      );
     } else {
       stopExclusive = new Date(start);
       stopExclusive.setUTCMonth(stopExclusive.getUTCMonth() + range);
