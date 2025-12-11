@@ -43,7 +43,6 @@
     "d3-array": "^1.2.4",
     "d3-color": "^1.4.1",
     "d3-scale": "^3.0.0",
-    "dayjs": "^1.11.18",
     "handlebars": "^4.7.8",
     "lodash": "^4.17.21",
     "mousetrap": "^1.6.5",
@@ -60,9 +59,10 @@
     "@types/urijs": "^1.19.25"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
+    "dayjs": "^1.11.18",
     "mapbox-gl": "*",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
