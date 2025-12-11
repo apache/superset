@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@apache-superset/core": "*",
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^6.1.0",
     "@babel/runtime": "^7.28.4",
     "@types/json-bigint": "^1.0.4",
     "ace-builds": "^1.43.4",
