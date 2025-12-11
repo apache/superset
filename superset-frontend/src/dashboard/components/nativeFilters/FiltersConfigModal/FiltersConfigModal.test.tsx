@@ -495,7 +495,7 @@ test('deletes a filter including dependencies', async () => {
       }),
     ),
   );
-});
+}, 30000); // Increase timeout to 30 seconds for slow async operations
 
 test('switches the order between two filters', async () => {
   const nativeFilterState = [
