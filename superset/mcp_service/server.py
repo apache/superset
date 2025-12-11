@@ -84,6 +84,7 @@ def run_server(
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
+        from superset.mcp_service.caching import create_response_caching_middleware
         from superset.mcp_service.flask_singleton import get_flask_app
 
         flask_app = get_flask_app()
@@ -101,7 +102,16 @@ def run_server(
             except Exception as e:
                 logging.error("Failed to create auth provider: %s", e)
 
-        mcp_instance = init_fastmcp_server(auth=auth_provider)
+        # Build middleware list
+        middleware_list = []
+        caching_middleware = create_response_caching_middleware()
+        if caching_middleware:
+            middleware_list.append(caching_middleware)
+
+        mcp_instance = init_fastmcp_server(
+            auth=auth_provider,
+            middleware=middleware_list or None,
+        )
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
