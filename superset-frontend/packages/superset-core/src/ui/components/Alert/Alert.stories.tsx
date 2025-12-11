@@ -32,7 +32,6 @@ const bigText =
 export default {
   title: 'Extension Components/Alert',
   component: Alert,
-  tags: ['extension-compatible'],
   parameters: {
     docs: {
       description: {
@@ -40,10 +39,6 @@ export default {
           'Alert component for displaying important messages to users. ' +
           'Wraps Ant Design Alert with sensible defaults and improved accessibility.',
       },
-    },
-    extensionMeta: {
-      package: '@apache-superset/core',
-      importPath: "import { Alert } from '@apache-superset/core';",
     },
   },
 };

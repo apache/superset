@@ -68,15 +68,12 @@ async function findStoryFiles() {
 
 /**
  * Parse a story file and extract metadata
+ *
+ * All stories in superset-core are considered extension-compatible
+ * by virtue of their location - no tag needed.
  */
 function parseStoryFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8');
-
-  // Check if this story has the extension-compatible tag
-  const hasExtensionTag = content.includes("'extension-compatible'");
-  if (!hasExtensionTag) {
-    return null;
-  }
 
   // Extract component name from title
   const titleMatch = content.match(/title:\s*['"]([^'"]+)['"]/);
@@ -435,27 +432,44 @@ export function MyExtensionPanel() {
 
 ## Adding New Components
 
-If you're contributing to Superset and want to make a component available to extension developers:
+Components in \`@apache-superset/core\` are automatically documented here. To add a new extension component:
 
 1. Add the component to \`superset-frontend/packages/superset-core/src/ui/components/\`
 2. Export it from \`superset-frontend/packages/superset-core/src/ui/components/index.ts\`
-3. Create a Storybook story with the \`extension-compatible\` tag:
+3. Create a Storybook story with an \`Interactive\` export:
 
 \`\`\`tsx
 export default {
   title: 'Extension Components/MyComponent',
   component: MyComponent,
-  tags: ['extension-compatible'],
   parameters: {
-    extensionMeta: {
-      package: '@apache-superset/core',
-      importPath: "import { MyComponent } from '@apache-superset/core';",
+    docs: {
+      description: {
+        component: 'Description of the component...',
+      },
     },
+  },
+};
+
+export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+
+InteractiveMyComponent.args = {
+  variant: 'primary',
+  disabled: false,
+};
+
+InteractiveMyComponent.argTypes = {
+  variant: {
+    control: { type: 'select' },
+    options: ['primary', 'secondary'],
+  },
+  disabled: {
+    control: { type: 'boolean' },
   },
 };
 \`\`\`
 
-4. Run \`npm run generate:extension-components\` in the \`docs\` directory to regenerate documentation.
+4. Run \`yarn start\` in \`docs/\` - the page generates automatically!
 
 ## Interactive Documentation
 

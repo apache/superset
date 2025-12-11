@@ -240,17 +240,17 @@ superset-extensions dev
 
 ## Contributing Extension-Compatible Components
 
-If you're contributing to Superset core and want to make a UI component available to extension developers, you can mark it as **extension-compatible**. This will automatically generate documentation in the Developer Portal.
+Components in `@apache-superset/core` are automatically documented in the Developer Portal. Simply add a component to the package and it will appear in the extension documentation.
 
 ### Requirements
 
 1. **Location**: The component must be in `superset-frontend/packages/superset-core/src/ui/components/`
 2. **Exported**: The component must be exported from the package's `index.ts`
-3. **Tagged Story**: The component must have a Storybook story with the `extension-compatible` tag
+3. **Story**: The component must have a Storybook story
 
-### Creating an Extension-Compatible Story
+### Creating a Story for Your Component
 
-Add the `extension-compatible` tag and `extensionMeta` parameters to your story:
+Create a story file with an `Interactive` export that defines args and argTypes:
 
 ```typescript
 // MyComponent.stories.tsx
@@ -259,16 +259,11 @@ import { MyComponent } from '.';
 export default {
   title: 'Extension Components/MyComponent',
   component: MyComponent,
-  tags: ['extension-compatible'],
   parameters: {
     docs: {
       description: {
         component: 'A brief description of what this component does.',
       },
-    },
-    extensionMeta: {
-      package: '@apache-superset/core',
-      importPath: "import { MyComponent } from '@apache-superset/core';",
     },
   },
 };
@@ -292,23 +287,15 @@ InteractiveMyComponent.argTypes = {
 };
 ```
 
-### Metadata Fields
-
-| Field | Description |
-|-------|-------------|
-| `tags: ['extension-compatible']` | **Required**. Marks the component for inclusion in extension docs. |
-| `parameters.docs.description.component` | Description shown at the top of the generated doc page. |
-| `parameters.extensionMeta.package` | The npm package name (usually `@apache-superset/core`). |
-| `parameters.extensionMeta.importPath` | The import statement extension developers should use. |
-
 ### How Documentation is Generated
 
 When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
 
-1. The `generate-extension-components` script scans for stories with the `extension-compatible` tag
-2. For each tagged story, it generates an MDX page with:
+1. The `generate-extension-components` script scans all stories in `superset-core`
+2. For each story, it generates an MDX page with:
    - Component description
    - **Live interactive example** with controls extracted from `argTypes`
+   - **Editable code playground** for experimentation
    - Props table from story `args`
    - Usage code snippet
    - Links to source files
