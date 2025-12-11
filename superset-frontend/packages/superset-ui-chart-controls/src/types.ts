@@ -484,6 +484,7 @@ export type ConditionalFormattingConfig = {
   colorScheme?: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  toCellBar?: boolean;
   useGradient?: boolean;
 };
 
@@ -491,6 +492,7 @@ export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  toCellBar?: boolean;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;
