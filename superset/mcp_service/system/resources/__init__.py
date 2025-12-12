@@ -18,4 +18,7 @@
 """System resources for Superset MCP service"""
 
 # Import to register resources when module is imported
-from . import instance_metadata  # noqa: F401
+from . import (
+    instance_metadata,  # noqa: F401
+    schema_discovery,  # noqa: F401
+)
