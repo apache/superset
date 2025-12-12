@@ -17,6 +17,7 @@
 import logging
 import textwrap
 from dataclasses import dataclass
+from weasyprint import HTML, CSS
 from datetime import datetime
 from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
@@ -133,19 +134,124 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             attributes=ALLOWED_ATTRIBUTES,
         )
 
-        # Strip malicious HTML from embedded data, allowing only table elements
-        if self._content.embedded_data is not None:
+        pdf_data = None
+        html_table = ""
+
+        # Check if the report format is PDF and embedded data is available
+        # Assuming self._content.report_format exists and holds the report format string
+        if hasattr(self._content, 'report_format') and \
+           self._content.report_format == "PDF" and \
+           self._content.embedded_data is not None:
             df = self._content.embedded_data
-            # pylint: disable=no-member
-            html_table = nh3.clean(
-                df.to_html(na_rep="", index=True, escape=True),
-                # pandas will escape the HTML in cells already, so passing
-                # more allowed tags here will not work
-                tags=TABLE_TAGS,
-                attributes=ALLOWED_TABLE_ATTRIBUTES,
-            )
-        else:
+            report_name_val = self._name # Renamed to avoid clash with CSS variable name
+            generation_date_val = self.now.strftime('%Y-%m-%d %H:%M:%S UTC')
+
+            # Retrieve PDF export configurations
+            pdf_headers_footers_enabled = app.config.get("PDF_EXPORT_HEADERS_FOOTERS_ENABLED", True)
+            pdf_header_template = app.config.get("PDF_EXPORT_HEADER_TEMPLATE", "Report: {report_name} - Page {page_number} of {total_pages}")
+            pdf_footer_template = app.config.get("PDF_EXPORT_FOOTER_TEMPLATE", "Generated: {generation_date}")
+            pdf_page_size = app.config.get("PDF_EXPORT_PAGE_SIZE", "A4")
+            pdf_orientation = app.config.get("PDF_EXPORT_ORIENTATION", "portrait")
+
+            # Prepare header and footer content based on templates and config
+            header_content_str = ""
+            footer_content_str = ""
+
+            if pdf_headers_footers_enabled:
+                # Sanitize report_name_val for CSS content (simple escaping for quotes)
+                css_report_name = report_name_val.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\A")
+                css_generation_date = generation_date_val.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\A")
+
+                # For header: replace {report_name}, keep {page_number} and {total_pages} for CSS counters
+                header_content_str = pdf_header_template.replace("{report_name}", css_report_name)
+                header_content_str = header_content_str.replace("{page_number}", "counter(page)")
+                header_content_str = header_content_str.replace("{total_pages}", "counter(pages)")
+
+                # For footer: replace {generation_date} and {report_name}
+                footer_content_str = pdf_footer_template.replace("{generation_date}", css_generation_date)
+                footer_content_str = footer_content_str.replace("{report_name}", css_report_name)
+
+
+            pdf_html_content = f"""
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    :root {{
+                        /* Keeping these for potential use in body styles if needed */
+                        --report-name-var: "{report_name_val.replace('"', '&quot;').replace("'", "&apos;")}";
+                        --generation-date-var: "{generation_date_val}";
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="report-description">{description}</div>
+                <br>
+                {df.to_html(na_rep="", index=True, escape=True)}
+            </body>
+            </html>
+            """
+
+            # Construct @page CSS string
+            page_css_parts = [f"@page {{ size: {pdf_page_size} {pdf_orientation}; margin: 2.5cm 1.5cm 2cm 1.5cm; }}"]
+            if pdf_headers_footers_enabled:
+                # Assuming header template is for @top-center and footer for @bottom-center
+                # A more complex mapping from template to specific corners would require more logic
+                page_css_parts.append(f"@page @top-center {{ content: \"{header_content_str}\"; font-size: 9pt; color: #333; }}")
+                page_css_parts.append(f"@page @bottom-center {{ content: \"{footer_content_str}\"; font-size: 9pt; color: #333; }}")
+            else:
+                # Ensure no headers/footers if disabled
+                page_css_parts.append("@page @top-left { content: \"\"; }")
+                page_css_parts.append("@page @top-center { content: \"\"; }")
+                page_css_parts.append("@page @top-right { content: \"\"; }")
+                page_css_parts.append("@page @bottom-left { content: \"\"; }")
+                page_css_parts.append("@page @bottom-center { content: \"\"; }")
+                page_css_parts.append("@page @bottom-right { content: \"\"; }")
+
+
+            pdf_css_string = f'''
+                {" ".join(page_css_parts)}
+
+                body {{ font-family: sans-serif; }}
+                table {{
+                    border-collapse: collapse;
+                    width: 100%;
+                    page-break-inside: auto;
+                }}
+                tr {{
+                    page-break-inside: avoid;
+                    page-break-after: auto;
+                }}
+                th, td {{
+                    border: 1px solid black;
+                    padding: 4px;
+                    text-align: left;
+                    font-size: 8pt;
+                }}
+                th {{ background-color: #f0f0f0; }}
+                .report-description {{ margin-bottom: 1em; font-size: 10pt; }}
+            '''
+            pdf_css = CSS(string=pdf_css_string)
+            pdf_bytes = HTML(string=pdf_html_content).write_pdf(stylesheets=[pdf_css])
+            pdf_data = {__("%(name)s.pdf", name=report_name_val): pdf_bytes}
+            # Set html_table to empty as the table is in the PDF
             html_table = ""
+        else:
+            # Existing logic for HTML email
+            if self._content.embedded_data is not None:
+                df = self._content.embedded_data
+                # pylint: disable=no-member
+                html_table = nh3.clean(
+                    df.to_html(na_rep="", index=True, escape=True),
+                    # pandas will escape the HTML in cells already, so passing
+                    # more allowed tags here will not work
+                    tags=TABLE_TAGS,
+                    attributes=ALLOWED_TABLE_ATTRIBUTES,
+                )
+            # Fallback for existing PDF data if not generated by WeasyPrint
+            if self._content.pdf:
+                pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
+
 
         img_tags = []
         for msgid in images.keys():
@@ -188,14 +294,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
 
-        pdf_data = None
-        if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
+        # pdf_data is already defined above
+        # if self._content.pdf and not pdf_data: # if pdf_data was not set by WeasyPrint
+        #     pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
 
         return EmailContent(
             body=body,
             images=images,
-            pdf=pdf_data,
+            pdf=pdf_data, # Use the pdf_data populated by WeasyPrint or existing logic
             data=csv_data,
             header_data=self._content.header_data,
         )
