@@ -158,7 +158,7 @@ def execute_sql_with_cursor(
             "progress",
             f"Running statement {i + 1} of {total}",
         )
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     # Build result set
     if rows is not None and description is not None:
@@ -261,7 +261,7 @@ class SQLExecutor:
             query.status = "success"
             query.rows = len(df)
             query.progress = 100
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
             result = QueryResultType(
                 status=QueryStatus.SUCCESS,
@@ -657,7 +657,7 @@ class SQLExecutor:
             limit=opts.limit,
         )
         db.session.add(query)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return query
 
@@ -766,7 +766,7 @@ class SQLExecutor:
         except Exception as ex:
             query.status = "failed"
             query.error_message = str(ex)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
             raise
 
     def _create_async_handle(self, query_id: int) -> AsyncQueryHandle:

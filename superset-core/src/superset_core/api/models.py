@@ -93,8 +93,8 @@ class Database(CoreModel):
         Execute SQL synchronously.
 
         :param sql: SQL query to execute
-        :param options: Optional QueryOptions for catalog, schema, limit,
-                       template_params, cache settings, timeout, dry_run
+        :param options: Query execution options (see `QueryOptions`).
+            If not provided, defaults are used.
         :returns: QueryResult with status, data (DataFrame), and metadata
 
         Example:
@@ -140,8 +140,8 @@ class Database(CoreModel):
         results from the background worker.
 
         :param sql: SQL query to execute
-        :param options: Optional QueryOptions for catalog, schema, limit,
-                       template_params, cache settings, timeout, dry_run
+        :param options: Query execution options (see `QueryOptions`).
+            If not provided, defaults are used.
         :returns: AsyncQueryHandle for tracking the query
 
         Example:
