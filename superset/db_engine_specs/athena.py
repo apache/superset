@@ -21,6 +21,7 @@ from typing import Any, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy import types
+from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -38,6 +39,7 @@ class AthenaEngineSpec(BaseEngineSpec):
     disable_ssh_tunneling = True
     # Athena doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
+    supports_dynamic_schema = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -92,3 +94,41 @@ class AthenaEngineSpec(BaseEngineSpec):
         :return: Conditionally mutated label
         """
         return label.lower()
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Adjust the SQLAlchemy URI for Athena with a provided catalog and schema.
+
+        For AWS Athena the SQLAlchemy URI looks like this:
+
+            awsathena+rest://athena.{region_name}.amazonaws.com:443/{schema_name}?catalog_name={catalog_name}&s3_staging_dir={s3_staging_dir}
+        """
+        if catalog:
+            uri = uri.update_query_dict({"catalog_name": catalog})
+
+        if schema:
+            uri = uri.set(database=schema)
+
+        return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Return the configured schema.
+
+        For AWS Athena the SQLAlchemy URI looks like this:
+
+            awsathena+rest://athena.{region_name}.amazonaws.com:443/{schema_name}?catalog_name={catalog_name}&s3_staging_dir={s3_staging_dir}
+        """
+        return sqlalchemy_uri.database
