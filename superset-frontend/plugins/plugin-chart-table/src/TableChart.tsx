@@ -853,8 +853,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
       const valueRange =
-        !hasBasicColorFormatters &&
-        !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
@@ -969,7 +967,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
-                background-color: ${cellBackground({
+                background-color: ${backgroundColor || cellBackground({
                   value: value as number,
                   colorPositiveNegative,
                   theme,
