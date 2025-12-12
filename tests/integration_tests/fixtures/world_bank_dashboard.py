@@ -70,7 +70,7 @@ def load_world_bank_data():
             engine.execute("DROP TABLE IF EXISTS wb_health_population")
 
 
-@pytest.fixture
+@pytest.fixture()
 def load_world_bank_dashboard_with_slices(load_world_bank_data):
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()

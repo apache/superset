@@ -45,7 +45,7 @@ SECOND_KEY = "baz"
 SECOND_VALUE = "qwerty"
 
 
-@pytest.fixture
+@pytest.fixture()
 def cache() -> SupersetMetastoreCache:
     return SupersetMetastoreCache(
         namespace=NAMESPACE,

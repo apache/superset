@@ -36,13 +36,13 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.test_app import app  # noqa: F401
 
 
-@pytest.fixture
+@pytest.fixture()
 def chart(app_context, load_world_bank_dashboard_with_slices) -> Slice:  # noqa: F811
     chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
     return chart
 
 
-@pytest.fixture
+@pytest.fixture()
 def form_data(chart) -> dict[str, Any]:
     datasource = f"{chart.datasource.id}__{chart.datasource.type}"
     return {
@@ -51,7 +51,7 @@ def form_data(chart) -> dict[str, Any]:
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def permalink_salt() -> Iterator[str]:
     from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
     from superset.key_value.types import SharedKey

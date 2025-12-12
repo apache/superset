@@ -76,7 +76,7 @@ def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> No
             dbcol.expression = dttm_column_defaults["expression"]
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_table(session: Session) -> "SqlaTable":
     """
     Fixture that generates an in-memory table.

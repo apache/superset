@@ -876,6 +876,6 @@ def test_pinot_function_names_preserved(function_name: str, sample_args: str) ->
     generated = parsed.sql(dialect=Pinot)
 
     # The function name should be preserved (case-insensitive check)
-    assert function_name.upper() in generated.upper(), (
-        f"Function {function_name} not preserved in output: {generated}"
-    )
+    assert (
+        function_name.upper() in generated.upper()
+    ), f"Function {function_name} not preserved in output: {generated}"

@@ -24,7 +24,7 @@ from superset.utils.core import shortid
 from tests.integration_tests.dashboards.superset_factory_util import create_dashboard
 
 
-@pytest.fixture
+@pytest.fixture()
 def tabbed_dashboard(app_context):
     position_json = {
         "DASHBOARD_VERSION_KEY": "v2",

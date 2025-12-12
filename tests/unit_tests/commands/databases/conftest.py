@@ -35,7 +35,7 @@ oauth2_client_info = {
 }
 
 
-@pytest.fixture
+@pytest.fixture()
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
@@ -54,7 +54,7 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture
+@pytest.fixture()
 def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs.
@@ -70,7 +70,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture
+@pytest.fixture()
 def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs that needs OAuth2.

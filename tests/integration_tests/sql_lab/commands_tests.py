@@ -87,10 +87,15 @@ class TestQueryEstimationCommand(SupersetTestCase):
             assert (
                 ex_info.value.error.error_type == SupersetErrorType.SQLLAB_TIMEOUT_ERROR
             )
-            assert ex_info.value.error.message == __(
-                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
-                "be too complex, or the database might be under heavy load.",
-                sqllab_timeout=current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
+            assert (
+                ex_info.value.error.message
+                == __(
+                    "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
+                    "be too complex, or the database might be under heavy load.",
+                    sqllab_timeout=current_app.config[
+                        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
+                    ],
+                )
             )
 
     def test_run_success(self) -> None:
@@ -113,7 +118,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -247,7 +252,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()

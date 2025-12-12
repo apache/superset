@@ -1425,9 +1425,9 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
     assert count == 6, f"Expected 6 dashboards, but count was {count}"
 
     # Should return only 3 due to page_size
-    assert len(results) == 3, (
-        f"Expected 3 results due to pagination, got {len(results)}"
-    )
+    assert (
+        len(results) == 3
+    ), f"Expected 3 results due to pagination, got {len(results)}"
 
     # Each should have 3 owners as we set up
     for dashboard in results:

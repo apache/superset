@@ -35,7 +35,7 @@ from superset.mcp_service.chart.schemas import (
 class TestUpdateChartPreview:
     """Tests for update_chart_preview MCP tool."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_request_structure(self):
         """Test that chart preview update request structures are properly formed."""
         # Table chart preview update
@@ -77,7 +77,7 @@ class TestUpdateChartPreview:
         assert xy_request.config.x.name == "date"
         assert xy_request.config.kind == "line"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_dataset_id_types(self):
         """Test that dataset_id can be int or string (UUID)."""
         config = TableChartConfig(
@@ -108,7 +108,7 @@ class TestUpdateChartPreview:
         assert request3.dataset_id == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         assert isinstance(request3.dataset_id, str)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_generation_options(self):
         """Test preview generation options in update preview request."""
         config = TableChartConfig(
@@ -143,7 +143,7 @@ class TestUpdateChartPreview:
         )
         assert request3.generate_preview is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_config_variations(self):
         """Test various chart configuration options in preview updates."""
         # Test all XY chart types
@@ -190,7 +190,7 @@ class TestUpdateChartPreview:
         )
         assert len(request.config.filters) == 6
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_response_structure(self):
         """Test the expected response structure for chart preview updates."""
         # The response should contain these fields
@@ -230,7 +230,7 @@ class TestUpdateChartPreview:
         assert expected_response["chart"]["id"] is None
         assert expected_response["chart"]["uuid"] is None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_axis_configurations(self):
         """Test axis configuration updates in preview."""
         config = XYChartConfig(
@@ -256,7 +256,7 @@ class TestUpdateChartPreview:
         assert request.config.y_axis.title == "Sales Amount"
         assert request.config.y_axis.format == "$,.2f"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_legend_configurations(self):
         """Test legend configuration updates in preview."""
         positions = ["top", "bottom", "left", "right"]
@@ -285,7 +285,7 @@ class TestUpdateChartPreview:
         )
         assert request.config.legend.show is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_aggregation_functions(self):
         """Test all supported aggregation functions in preview updates."""
         aggs = ["SUM", "AVG", "COUNT", "MIN", "MAX", "COUNT_DISTINCT"]
@@ -299,7 +299,7 @@ class TestUpdateChartPreview:
             )
             assert request.config.columns[0].aggregate == agg
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_error_responses(self):
         """Test expected error response structures for preview updates."""
         # General update error
@@ -325,7 +325,7 @@ class TestUpdateChartPreview:
         assert dataset_error["success"] is False
         assert "dataset" in dataset_error["error"].lower()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_with_filters(self):
         """Test updating preview with various filter configurations."""
         filters = [
@@ -352,7 +352,7 @@ class TestUpdateChartPreview:
         assert request.config.filters[1].op == ">="
         assert request.config.filters[2].value == "2024-01-01"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_form_data_key_handling(self):
         """Test form_data_key handling in preview updates."""
         config = TableChartConfig(
@@ -374,7 +374,7 @@ class TestUpdateChartPreview:
             )
             assert request.form_data_key == key
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_cache_control(self):
         """Test cache control parameters in update preview request."""
         config = TableChartConfig(
@@ -403,7 +403,7 @@ class TestUpdateChartPreview:
         assert request2.force_refresh is True
         assert request2.cache_form_data is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_no_save_behavior(self):
         """Test that preview updates don't create permanent charts."""
         config = TableChartConfig(
@@ -429,7 +429,7 @@ class TestUpdateChartPreview:
         assert expected_unsaved_fields["uuid"] is None
         assert expected_unsaved_fields["saved"] is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_multiple_y_columns(self):
         """Test preview updates with multiple Y-axis columns."""
         config = XYChartConfig(
@@ -454,7 +454,7 @@ class TestUpdateChartPreview:
         assert request.config.y[3].name == "orders"
         assert request.config.y[3].aggregate == "COUNT"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_chart_preview_table_sorting(self):
         """Test table chart sorting in preview updates."""
         config = TableChartConfig(

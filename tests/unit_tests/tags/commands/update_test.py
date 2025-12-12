@@ -22,7 +22,7 @@ from superset import db
 from superset.utils.core import DatasourceType
 
 
-@pytest.fixture
+@pytest.fixture()
 def session_with_data(session: Session):
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database

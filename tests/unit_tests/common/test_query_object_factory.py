@@ -33,12 +33,12 @@ def create_app_config() -> dict[str, Any]:
     }
 
 
-@fixture
+@fixture()
 def app_config() -> dict[str, Any]:
     return create_app_config().copy()
 
 
-@fixture
+@fixture()
 def connector_registry() -> Mock:
     mock = Mock(spec=["get_datasource"])
     mock.get_datasource().verbose_map = {"sum__num": "SUM", "unused": "UNUSED"}
@@ -59,7 +59,7 @@ def apply_max_row_limit(
     return max_limit
 
 
-@fixture
+@fixture()
 def query_object_factory(
     app_config: dict[str, Any], connector_registry: Mock
 ) -> QueryObjectFactory:
@@ -69,12 +69,12 @@ def query_object_factory(
     return QueryObjectFactory(app_config, connector_registry)
 
 
-@fixture
+@fixture()
 def raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names")
 
 
-@fixture
+@fixture()
 def metric_label_raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names:metric_labels")
 

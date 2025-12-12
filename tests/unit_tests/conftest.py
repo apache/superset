@@ -38,7 +38,7 @@ from superset.extensions import appbuilder, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
-@pytest.fixture
+@pytest.fixture()
 def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
@@ -68,7 +68,7 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     return get_session
 
 
-@pytest.fixture
+@pytest.fixture()
 def session(get_session) -> Iterator[Session]:
     return get_session()
 
@@ -125,7 +125,7 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     return app
 
 
-@pytest.fixture
+@pytest.fixture()
 def client(app: SupersetApp) -> Any:
     with app.test_client() as client:
         yield client
@@ -140,7 +140,7 @@ def app_context(app: SupersetApp) -> Iterator[None]:
         yield
 
 
-@pytest.fixture
+@pytest.fixture()
 def full_api_access(mocker: MockerFixture) -> Union[Iterator[None], None]:
     """
     Allow full access to the API.
@@ -159,7 +159,7 @@ def full_api_access(mocker: MockerFixture) -> Union[Iterator[None], None]:
     return None
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_query_object(request, app_context):
     query_obj_marker = request.node.get_closest_marker("query_object")
     result_type_marker = request.node.get_closest_marker("result_type")

@@ -41,13 +41,13 @@ INITIAL_VALUE = json.dumps({"test": "initial value"})
 UPDATED_VALUE = json.dumps({"test": "updated value"})
 
 
-@pytest.fixture
+@pytest.fixture()
 def dashboard_id(app_context: AppContext, load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
     dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
     return dashboard.id
 
 
-@pytest.fixture
+@pytest.fixture()
 def admin_id(app_context: AppContext) -> int:
     admin = db.session.query(User).filter_by(username="admin").one_or_none()
     return admin.id
