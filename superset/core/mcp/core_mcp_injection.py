@@ -38,6 +38,7 @@ def create_tool_decorator(
     description: Optional[str] = None,
     tags: Optional[list[str]] = None,
     protect: bool = True,
+    task: bool = False,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -54,6 +55,9 @@ def create_tool_decorator(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
         protect: Whether to apply Superset authentication (defaults to True)
+        task: Whether to enable background task execution (defaults to False).
+              When True, the tool can run asynchronously with progress reporting.
+              Requires an async function. Uses FastMCP's task protocol (SEP-1686).
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -85,11 +89,21 @@ def create_tool_decorator(
                 name=tool_name,
                 description=tool_description,
                 tags=tool_tags,
+                task=task,
             )
             mcp.add_tool(tool)
 
+            # Use the actual effective task state from the registered tool,
+            # not the requested `task` flag, in case of compatibility fallback
+            effective_task = getattr(tool, "task", task)
+            task_status = "background-task" if effective_task else "sync"
             protected_status = "protected" if protect else "public"
-            logger.info("Registered MCP tool: %s (%s)", tool_name, protected_status)
+            logger.info(
+                "Registered MCP tool: %s (%s, %s)",
+                tool_name,
+                protected_status,
+                task_status,
+            )
             return wrapped_func
 
         except Exception as e:
