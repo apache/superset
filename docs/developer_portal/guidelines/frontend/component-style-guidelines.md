@@ -1,6 +1,6 @@
 ---
 title: Component Style Guidelines and Best Practices
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 <!--
@@ -35,7 +35,7 @@ This guide is intended primarily for reusable components. Whenever possible, all
 - All components should be made to be reusable whenever possible
 - All components should follow the structure and best practices as detailed below
 
-## Directory and component structure
+### Directory and component structure
 
 ```
 superset-frontend/src/components
@@ -51,208 +51,142 @@ superset-frontend/src/components
 
 **Component directory name:** Use `PascalCase` for the component directory name
 
-**Storybook:** Components should come with a storybook file whenever applicable, with the following naming convention `{ComponentName}.stories.tsx`. More details about Storybook below
+**Storybook:** Components should come with a storybook file whenever applicable, with the following naming convention `\{ComponentName\}.stories.tsx`. More details about Storybook below
 
-**Unit and end-to-end tests:** All components should come with unit tests using Jest and React Testing Library. The file name should follow this naming convention `{ComponentName}.test.tsx.` Read the [Testing Guidelines and Best Practices](./testing-guidelines) for more details about tests
+**Unit and end-to-end tests:** All components should come with unit tests using Jest and React Testing Library. The file name should follow this naming convention `\{ComponentName\}.test.tsx`. Read the [Testing Guidelines and Best Practices](../../testing/testing-guidelines) for more details
 
-## Component Development Best Practices
+**Reference naming:** Use `PascalCase` for React components and `camelCase` for component instances
 
-### Use TypeScript
+**BAD:**
+```jsx
+import mainNav from './MainNav';
+```
 
-All new components should be written in TypeScript. This helps catch errors early and provides better development experience with IDE support.
+**GOOD:**
+```jsx
+import MainNav from './MainNav';
+```
+
+**BAD:**
+```jsx
+const NavItem = <MainNav />;
+```
+
+**GOOD:**
+```jsx
+const navItem = <MainNav />;
+```
+
+**Component naming:** Use the file name as the component name
+
+**BAD:**
+```jsx
+import MainNav from './MainNav/index';
+```
+
+**GOOD:**
+```jsx
+import MainNav from './MainNav';
+```
+
+**Props naming:** Do not use DOM related props for different purposes
+
+**BAD:**
+```jsx
+<MainNav style="big" />
+```
+
+**GOOD:**
+```jsx
+<MainNav variant="big" />
+```
+
+**Importing dependencies:** Only import what you need
+
+**BAD:**
+```jsx
+import * as React from "react";
+```
+
+**GOOD:**
+```jsx
+import React, { useState } from "react";
+```
+
+**Default VS named exports:** As recommended by [TypeScript](https://www.typescriptlang.org/docs/handbook/modules.html), "If a module's primary purpose is to house one specific export, then you should consider exporting it as a default export. This makes both importing and actually using the import a little easier". If you're exporting multiple objects, use named exports instead.
+
+_As a default export_
+```jsx
+import MainNav from './MainNav';
+```
+
+_As a named export_
+```jsx
+import { MainNav, SecondaryNav } from './Navbars';
+```
+
+**ARIA roles:** Always make sure you are writing accessible components by using the official [ARIA roles](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/ARIA_Techniques)
+
+## Use TypeScript
+
+All components should be written in TypeScript and their extensions should be `.ts` or `.tsx`
+
+### type vs interface
+
+Validate all props with the correct types. This replaces the need for a run-time validation as provided by the prop-types library.
 
 ```tsx
-interface ComponentProps {
-  title: string;
-  isVisible?: boolean;
-  onClose?: () => void;
+type HeadingProps = {
+  param: string;
 }
 
-export const MyComponent: React.FC<ComponentProps> = ({
-  title,
-  isVisible = true,
-  onClose
-}) => {
-  // Component implementation
-};
-```
-
-### Prefer Functional Components
-
-Use functional components with hooks instead of class components:
-
-```tsx
-// ✅ Good - Functional component with hooks
-export const MyComponent: React.FC<Props> = ({ data }) => {
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Effect logic
-  }, []);
-
-  return <div>{/* Component JSX */}</div>;
-};
-
-// ❌ Avoid - Class component
-class MyComponent extends React.Component {
-  // Class implementation
+export default function Heading({ children }: HeadingProps) {
+  return <h2>{children}</h2>
 }
 ```
 
-### Follow Ant Design Patterns
+Use `type` for your component props and state. Use `interface` when you want to enable _declaration merging_.
 
-Extend Ant Design components rather than building from scratch:
+### Define default values for non-required props
 
-```tsx
-import { Button } from 'antd';
-import styled from '@emotion/styled';
-
-const StyledButton = styled(Button)`
-  // Custom styling using emotion
-`;
-```
-
-### Reusability and Props Design
-
-Design components with reusability in mind:
+In order to improve the readability of your code and reduce assumptions, always add default values for non required props, when applicable, for example:
 
 ```tsx
-interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'tertiary';
-  size?: 'small' | 'medium' | 'large';
-  loading?: boolean;
-  disabled?: boolean;
-  children: React.ReactNode;
-  onClick?: () => void;
-}
-
-export const CustomButton: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'medium',
-  ...props
-}) => {
-  // Implementation
-};
+const applyDiscount = (price: number, discount = 0.05) => price * (1 - discount);
 ```
 
-## Testing Components
+## Functional components and Hooks
 
-Every component should include comprehensive tests:
+We prefer functional components and the usage of hooks over class components.
+
+### useState
+
+Always explicitly declare the type unless the type can easily be assumed by the declaration.
 
 ```tsx
-// MyComponent.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MyComponent } from './MyComponent';
-
-test('renders component with title', () => {
-  render(<MyComponent title="Test Title" />);
-  expect(screen.getByText('Test Title')).toBeInTheDocument();
-});
-
-test('calls onClose when close button is clicked', () => {
-  const mockOnClose = jest.fn();
-  render(<MyComponent title="Test" onClose={mockOnClose} />);
-
-  fireEvent.click(screen.getByRole('button', { name: /close/i }));
-  expect(mockOnClose).toHaveBeenCalledTimes(1);
-});
+const [customer, setCustomer] = useState<ICustomer | null>(null);
 ```
 
-## Storybook Stories
+### useReducer
 
-Create stories for visual testing and documentation:
+Always prefer `useReducer` over `useState` when your state has complex logics.
 
-```tsx
-// MyComponent.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
-import { MyComponent } from './MyComponent';
+### useMemo and useCallback
 
-const meta: Meta<typeof MyComponent> = {
-  title: 'Components/MyComponent',
-  component: MyComponent,
-  parameters: {
-    layout: 'centered',
-  },
-  tags: ['autodocs'],
-};
+Always memoize when your components take functions or complex objects as props to avoid unnecessary rerenders.
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+### Custom hooks
 
-export const Default: Story = {
-  args: {
-    title: 'Default Component',
-    isVisible: true,
-  },
-};
+All custom hooks should be located in the directory `/src/hooks`. Before creating a new custom hook, make sure that is not available in the existing custom hooks.
 
-export const Hidden: Story = {
-  args: {
-    title: 'Hidden Component',
-    isVisible: false,
-  },
-};
-```
+## Storybook
 
-## Performance Considerations
+Each component should come with its dedicated storybook file.
 
-### Use React.memo for Expensive Components
+**One component per story:** Each storybook file should only contain one component unless substantially different variants are required
 
-```tsx
-import React, { memo } from 'react';
+**Component variants:** If the component behavior is substantially different when certain props are used, it is best to separate the story into different types. See the `superset-frontend/src/components/Select/Select.stories.tsx` as an example.
 
-export const ExpensiveComponent = memo<Props>(({ data }) => {
-  // Expensive rendering logic
-  return <div>{/* Component content */}</div>;
-});
-```
+**Isolated state:** The storybook should show how the component works in an isolated state and with as few dependencies as possible
 
-### Optimize Re-renders
-
-Use `useCallback` and `useMemo` appropriately:
-
-```tsx
-export const OptimizedComponent: React.FC<Props> = ({ items, onSelect }) => {
-  const expensiveValue = useMemo(() => {
-    return items.reduce((acc, item) => acc + item.value, 0);
-  }, [items]);
-
-  const handleSelect = useCallback((id: string) => {
-    onSelect(id);
-  }, [onSelect]);
-
-  return <div>{/* Component content */}</div>;
-};
-```
-
-## Accessibility
-
-Ensure components are accessible:
-
-```tsx
-export const AccessibleButton: React.FC<Props> = ({ children, onClick }) => {
-  return (
-    <button
-      type="button"
-      aria-label="Descriptive label"
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-};
-```
-
-## Error Boundaries
-
-For components that might fail, consider error boundaries:
-
-```tsx
-export const SafeComponent: React.FC<Props> = ({ children }) => {
-  return (
-    <ErrorBoundary fallback={<div>Something went wrong</div>}>
-      {children}
-    </ErrorBoundary>
-  );
-};
-```
+**Use args:** It should be possible to test the component with every variant of the available props. We recommend using [args](https://storybook.js.org/docs/react/writing-stories/args)
