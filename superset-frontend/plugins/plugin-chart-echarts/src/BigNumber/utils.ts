@@ -49,7 +49,7 @@ export const getDateFormatter = (
 ) =>
   timeFormat === SMART_DATE_ID
     ? getTimeFormatterForGranularity(granularity)
-    : getTimeFormatter(timeFormat ?? fallbackFormat);
+    : getTimeFormatter(timeFormat ?? fallbackFormat, granularity);
 
 export function getOriginalLabel(
   metric: QueryFormMetric,
