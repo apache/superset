@@ -179,7 +179,7 @@ function CountryMap(element, props) {
     return '';
   };
 
-  // Mouse enter handler with tooltip (merged from both versions)
+  // Mouse enter handler with tooltip
   const mouseenter = function mouseenter(d) {
     // Darken color
     let c = colorFn(d);
@@ -208,7 +208,7 @@ function CountryMap(element, props) {
       .style('left', `${position[0]}px`);
   };
 
-  // Mouse out handler (merged from both versions)
+  // Mouse out handler
   const mouseout = function mouseout() {
     d3.select(this).style('fill', d => colorFn(d));
     hoverPopup.style('display', 'none');
