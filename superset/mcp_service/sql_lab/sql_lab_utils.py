@@ -157,9 +157,11 @@ def _apply_parameters(sql: str, parameters: dict[str, Any] | None) -> str:
 
 
 def _apply_limit(sql: str, limit: int) -> str:
-    """Apply limit to SELECT queries if not already present."""
+    """Apply limit to SELECT queries (including CTEs) if not already present."""
     sql_lower = sql.lower().strip()
-    if sql_lower.startswith("select") and "limit" not in sql_lower:
+    # Apply LIMIT to SELECT queries and CTE queries (which start with WITH)
+    is_select_like = sql_lower.startswith("select") or sql_lower.startswith("with")
+    if is_select_like and "limit" not in sql_lower:
         return f"{sql.rstrip().rstrip(';')} LIMIT {limit}"
     return sql
 
@@ -206,8 +208,11 @@ def _execute_query(
 
 
 def _is_select_query(sql: str) -> bool:
-    """Check if SQL is a SELECT query."""
-    return sql.lower().strip().startswith("select")
+    """Check if SQL is a SELECT query (including CTEs that start with WITH)."""
+    sql_lower = sql.lower().strip()
+    # SELECT queries start with SELECT
+    # CTE queries start with WITH and contain SELECT
+    return sql_lower.startswith("select") or sql_lower.startswith("with")
 
 
 def _process_select_results(cursor: Any, results: dict[str, Any], limit: int) -> None:
