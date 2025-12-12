@@ -210,8 +210,15 @@ class SQLExecutor:
         start_time = time.time()
 
         try:
-            # 1. Prepare SQL (always runs - includes all transformations)
-            final_sql, script, catalog, schema = self._prepare_sql(sql, opts)
+            # 1. Prepare SQL (assembly only, no security checks)
+            script, catalog, schema = self._prepare_sql(sql, opts)
+
+            # 2. Security checks
+            self._check_security(script)
+
+            # 3. Get mutation status and format SQL
+            has_mutation = script.has_mutation()
+            final_sql = script.format()
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
@@ -226,24 +233,23 @@ class SQLExecutor:
                     is_cached=False,
                 )
 
-            # 2. Check cache
-            cached_result = self._try_get_cached_result(script, final_sql, opts)
+            # 4. Check cache
+            cached_result = self._try_get_cached_result(has_mutation, final_sql, opts)
             if cached_result:
                 return cached_result
 
-            # 3. Create Query model for audit
+            # 5. Create Query model for audit
             query = self._create_query_record(
                 final_sql, opts, catalog, schema, status="running"
             )
 
-            # 4. Execute with timeout
+            # 6. Execute with timeout
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
 
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 df = self._execute_statements(
                     final_sql,
-                    script,
                     catalog,
                     schema,
                     query,
@@ -267,7 +273,7 @@ class SQLExecutor:
             )
 
             # 6. Store in cache (if SELECT and caching enabled)
-            if not script.has_mutation():
+            if not has_mutation:
                 self._store_in_cache(result, final_sql, opts)
 
             return result
@@ -310,8 +316,15 @@ class SQLExecutor:
 
         opts: QueryOptionsType = options or QueryOptionsType()
 
-        # 1. Prepare SQL (always runs - includes all transformations)
-        final_sql, script, catalog, schema = self._prepare_sql(sql, opts)
+        # 1. Prepare SQL (assembly only, no security checks)
+        script, catalog, schema = self._prepare_sql(sql, opts)
+
+        # 2. Security checks
+        self._check_security(script)
+
+        # 3. Get mutation status and format SQL
+        has_mutation = script.has_mutation()
+        final_sql = script.format()
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
@@ -326,45 +339,42 @@ class SQLExecutor:
             )
             return self._create_cached_handle(dry_run_result)
 
-        # 2. Check cache
-        if cached_result := self._try_get_cached_result(script, final_sql, opts):
+        # 4. Check cache
+        if cached_result := self._try_get_cached_result(has_mutation, final_sql, opts):
             return self._create_cached_handle(cached_result)
 
-        # 3. Create Query model for audit
+        # 5. Create Query model for audit
         query = self._create_query_record(
             final_sql, opts, catalog, schema, status="pending"
         )
 
-        # 4. Submit to Celery
+        # 6. Submit to Celery
         self._submit_query_to_celery(query, final_sql, opts)
 
-        # 5. Create and return handle with bound methods
+        # 7. Create and return handle with bound methods
         return self._create_async_handle(query.id)
 
     def _prepare_sql(
         self,
         sql: str,
         opts: QueryOptions,
-    ) -> tuple[str, SQLScript, str | None, str | None]:
+    ) -> tuple[SQLScript, str | None, str | None]:
         """
-        Prepare SQL for execution (no side effects).
+        Prepare SQL for execution (no side effects, no security checks).
 
-        This method performs SQL preprocessing steps without creating any
-        database records. It can be used to prepare SQL for cache checks
-        before deciding to execute.
-
-        Steps performed:
+        This method performs SQL preprocessing:
         1. Template rendering
         2. SQL parsing
-        3. Security checks (DML, disallowed functions)
-        4. Catalog/schema resolution
-        5. RLS application
-        6. Limit application
+        3. Catalog/schema resolution
+        4. RLS application
+        5. Limit application (if not mutation)
+
+        Security checks (disallowed functions, DML permission) are performed
+        by the caller after receiving the prepared script.
 
         :param sql: Original SQL query
         :param opts: Query options
-        :returns: Tuple of (final_sql, script, catalog, schema)
-        :raises SupersetSecurityException: If DML not allowed or disallowed functions
+        :returns: Tuple of (prepared SQLScript, catalog, schema)
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
@@ -372,17 +382,27 @@ class SQLExecutor:
         # 2. Parse SQL with SQLScript
         script = SQLScript(rendered_sql, self.database.db_engine_spec.engine)
 
-        # 3. Check DML permission
-        if script.has_mutation() and not self.database.allow_dml:
-            raise SupersetSecurityException(
-                SupersetError(
-                    message="DML queries are not allowed on this database",
-                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
+        # 3. Get catalog and schema
+        catalog = opts.catalog or self.database.get_default_catalog()
+        schema = opts.schema or self.database.get_default_schema(catalog)
 
-        # 4. Check disallowed functions
+        # 4. Apply RLS directly to script statements
+        self._apply_rls_to_script(script, catalog, schema)
+
+        # 5. Apply limit only if not a mutation
+        if not script.has_mutation():
+            self._apply_limit_to_script(script, opts)
+
+        return script, catalog, schema
+
+    def _check_security(self, script: SQLScript) -> None:
+        """
+        Perform security checks on prepared SQL script.
+
+        :param script: Prepared SQLScript
+        :raises SupersetSecurityException: If security checks fail
+        """
+        # Check disallowed functions
         if disallowed := self._check_disallowed_functions(script):
             raise SupersetSecurityException(
                 SupersetError(
@@ -392,22 +412,19 @@ class SQLExecutor:
                 )
             )
 
-        # 5. Get catalog and schema
-        catalog = opts.catalog or self.database.get_default_catalog()
-        schema = opts.schema or self.database.get_default_schema(catalog)
-
-        # 6. Apply RLS
-        rendered_sql = self._apply_rls_to_sql(rendered_sql, catalog, schema)
-
-        # 7. Apply limit
-        final_sql = self._apply_query_limit(rendered_sql, script, opts)
-
-        return final_sql, script, catalog, schema
+        # Check DML permission
+        if script.has_mutation() and not self.database.allow_dml:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="DML queries are not allowed on this database",
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
     def _execute_statements(
         self,
         sql: str,
-        script: SQLScript,
         catalog: str | None,
         schema: str | None,
         query: Any,
@@ -418,8 +435,7 @@ class SQLExecutor:
         Progress is tracked via Query.progress field, matching SQL Lab behavior.
         Uses the same execution path for both single and multi-statement queries.
 
-        :param sql: Final SQL to execute
-        :param script: Parsed SQL script
+        :param sql: Final SQL to execute (with RLS and all transformations applied)
         :param catalog: Catalog name
         :param schema: Schema name
         :param query: Query model for progress tracking
@@ -427,6 +443,8 @@ class SQLExecutor:
         """
         import pandas as pd
 
+        # Parse the final SQL (with RLS applied) to get statements
+        script = SQLScript(sql, self.database.db_engine_spec.engine)
         statements = script.statements
 
         # Handle empty script
@@ -515,42 +533,44 @@ class SQLExecutor:
         tp = get_template_processor(database=self.database)
         return tp.process_template(sql, **template_params)
 
-    def _apply_query_limit(
-        self, sql: str, script: SQLScript, opts: QueryOptions
-    ) -> str:
+    def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
-        Apply limit to SQL query if applicable.
+        Apply limit to the last statement in the script in place.
 
-        :param sql: SQL query
-        :param script: Parsed SQL script
+        :param script: SQLScript object to modify
         :param opts: Query options
-        :returns: SQL with limit applied (or original SQL if no limit needed)
         """
-        if not opts.limit or script.has_mutation():
-            return sql
+        # Skip if no limit requested
+        if not opts.limit:
+            return
 
         sql_max_row = app.config.get("SQL_MAX_ROW")
         effective_limit = opts.limit
         if sql_max_row and opts.limit > sql_max_row:
             effective_limit = sql_max_row
 
-        return self.database.apply_limit_to_sql(sql, effective_limit, force=True)
+        # Apply limit to last statement only
+        if script.statements:
+            script.statements[-1].set_limit_value(
+                effective_limit,
+                self.database.db_engine_spec.limit_method,
+            )
 
     def _try_get_cached_result(
         self,
-        script: SQLScript,
+        has_mutation: bool,
         sql: str,
         opts: QueryOptions,
     ) -> QueryResult | None:
         """
         Try to get a cached result if conditions allow.
 
-        :param script: Parsed SQL script
+        :param has_mutation: Whether the query contains mutations (DML)
         :param sql: SQL query
         :param opts: Query options
         :returns: Cached QueryResult or None
         """
-        if script.has_mutation() or (opts.cache and opts.cache.force_refresh):
+        if has_mutation or (opts.cache and opts.cache.force_refresh):
             return None
 
         return self._get_from_cache(sql, opts)
@@ -581,26 +601,21 @@ class SQLExecutor:
 
         return found if found else None
 
-    def _apply_rls_to_sql(
-        self, sql: str, catalog: str | None, schema: str | None
-    ) -> str:
+    def _apply_rls_to_script(
+        self, script: SQLScript, catalog: str | None, schema: str | None
+    ) -> None:
         """
-        Apply Row-Level Security to SQL.
+        Apply Row-Level Security to SQLScript statements in place.
 
-        :param sql: Original SQL
+        :param script: SQLScript object to modify
         :param catalog: Catalog name
         :param schema: Schema name
-        :returns: SQL with RLS applied
         """
         from superset.utils.rls import apply_rls
 
-        # Apply RLS to the SQL
-        # Note: apply_rls modifies statements in place
-        script = SQLScript(sql, self.database.db_engine_spec.engine)
+        # Apply RLS to each statement in the script
         for statement in script.statements:
             apply_rls(self.database, catalog, schema or "", statement)
-
-        return script.format()
 
     def _create_query_record(
         self,
@@ -790,9 +805,7 @@ class SQLExecutor:
 
         return handle
 
-    def _create_cached_handle(
-        self, cached_result: QueryResult
-    ) -> AsyncQueryHandle:
+    def _create_cached_handle(self, cached_result: QueryResult) -> AsyncQueryHandle:
         """
         Create AsyncQueryHandle for a cached result.
 
