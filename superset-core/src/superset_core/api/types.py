@@ -36,8 +36,6 @@ if TYPE_CHECKING:
 class QueryStatus(Enum):
     """
     Status of query execution.
-
-    Aligned with frontend QueryState values but using Python conventions.
     """
 
     PENDING = "pending"

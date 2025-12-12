@@ -28,9 +28,8 @@ import logging
 import sys
 import uuid
 from sys import getsizeof
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
-import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
@@ -39,12 +38,10 @@ from flask_babel import gettext as __
 from superset import (
     db,
     results_backend,
-    results_backend_use_msgpack,
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY
-from superset.dataframe import df_to_records
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -69,34 +66,8 @@ logger = logging.getLogger(__name__)
 BYTES_IN_MB = 1024 * 1024
 
 
-def _get_query_backoff_handler(details: dict[Any, Any]) -> None:
-    """Handler for backoff retry logging."""
-    stats_logger = app.config["STATS_LOGGER"]
-    query_id = details["kwargs"]["query_id"]
-    stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
-    logger.warning(
-        "Query with id `%s` could not be retrieved, retrying...",
-        str(query_id),
-        exc_info=True,
-    )
-
-
-def _get_query_giveup_handler(_: Any) -> None:
-    """Handler for backoff giveup logging."""
-    stats_logger = app.config["STATS_LOGGER"]
-    stats_logger.incr("error_failed_at_getting_orm_query")
-
-
-@backoff.on_exception(
-    backoff.constant,
-    Exception,
-    interval=1,
-    on_backoff=_get_query_backoff_handler,
-    on_giveup=_get_query_giveup_handler,
-    max_tries=5,
-)
 def _get_query(query_id: int) -> Query:
-    """Attempt to get the query with retry logic."""
+    """Get the query by ID."""
     return db.session.query(Query).filter_by(id=query_id).one()
 
 
@@ -130,19 +101,18 @@ def _handle_query_error(
     if errors:
         query.set_extra_json_key("errors", errors_payload)
 
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
 
-def _serialize_payload(
-    payload: dict[Any, Any], use_msgpack: bool | None = False
-) -> bytes | str:
-    """Serialize payload for storage."""
-    logger.debug("Serializing to msgpack: %r", use_msgpack)
-    if use_msgpack:
+def _serialize_payload(payload: dict[Any, Any]) -> bytes | str:
+    """Serialize payload for storage based on RESULTS_BACKEND_USE_MSGPACK config."""
+    from superset import results_backend_use_msgpack
+
+    if results_backend_use_msgpack:
         return msgpack.dumps(payload, default=json.json_iso_dttm_ser, use_bin_type=True)
     return json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True)
 
@@ -174,7 +144,6 @@ def _prepare_statement_blocks(
 def _finalize_successful_query(
     query: Query,
     result_set: SupersetResultSet,
-    db_engine_spec: Any,
     payload: dict[str, Any],
 ) -> None:
     """Update query metadata and payload after successful execution."""
@@ -184,18 +153,13 @@ def _finalize_successful_query(
     query.set_extra_json_key("columns", result_set.columns)
     query.end_time = now_as_float()
 
-    use_arrow_data = cast(bool, results_backend_use_msgpack)
-    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        result_set, db_engine_spec, use_arrow_data
-    )
+    data, columns = _serialize_result_set(result_set)
 
     payload.update(
         {
             "status": QueryStatus.SUCCESS,
             "data": data,
-            "columns": all_columns,
-            "selected_columns": selected_columns,
-            "expanded_columns": expanded_columns,
+            "columns": columns,
             "query": query.to_dict(),
         }
     )
@@ -220,9 +184,7 @@ def _store_results_in_backend(
         with stats_timing(
             "sqllab.query.results_backend_write_serialization", stats_logger
         ):
-            serialized_payload = _serialize_payload(
-                payload, cast(bool, results_backend_use_msgpack)
-            )
+            serialized_payload = _serialize_payload(payload)
 
             # Check payload size limit
             if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
@@ -266,7 +228,7 @@ def _store_results_in_backend(
                 "Failed to store query results in the results backend. "
                 "Please try again or contact your administrator."
             )
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
             raise SupersetErrorException(
                 SupersetError(
                     message=__("Failed to store query results. Please try again."),
@@ -283,38 +245,37 @@ def _store_results_in_backend(
             )
 
 
-def _serialize_and_expand_data(
+def _serialize_result_set(
     result_set: SupersetResultSet,
-    db_engine_spec: Any,
-    use_msgpack: bool | None = False,
-) -> tuple[bytes | str, list[Any], list[Any], list[Any]]:
-    """Serialize result data for storage in results backend."""
-    selected_columns = result_set.columns
-    expanded_columns: list[Any] = []
+) -> tuple[bytes | list[Any], list[Any]]:
+    """
+    Serialize result set based on RESULTS_BACKEND_USE_MSGPACK config.
 
-    if use_msgpack:
+    When msgpack is enabled, uses Apache Arrow IPC format for efficiency.
+    Otherwise, falls back to JSON-serializable records.
+
+    :param result_set: Query result set to serialize
+    :returns: Tuple of (serialized_data, columns)
+    """
+    from superset import results_backend_use_msgpack
+    from superset.dataframe import df_to_records
+
+    if results_backend_use_msgpack:
         if has_app_context():
             stats_logger = app.config["STATS_LOGGER"]
             with stats_timing(
                 "sqllab.query.results_backend_pa_serialization", stats_logger
             ):
-                data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+                data: bytes | list[Any] = write_ipc_buffer(
+                    result_set.pa_table
+                ).to_pybytes()
         else:
             data = write_ipc_buffer(result_set.pa_table).to_pybytes()
-        all_columns = selected_columns
     else:
         df = result_set.to_pandas_df()
         data = df_to_records(df) or []
-        all_columns = selected_columns
 
-    return (data, selected_columns, all_columns, expanded_columns)
-
-
-def _get_time_limits() -> tuple[int, int]:
-    """Get time limits from config with lazy evaluation."""
-    soft_limit = app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
-    hard_limit = soft_limit + 60
-    return soft_limit, hard_limit
+    return (data, result_set.columns)
 
 
 @celery_app.task(name="query_execution.execute_sql")
@@ -410,7 +371,7 @@ def _execute_sql_statements(
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     parsed_script, blocks = _prepare_statement_blocks(rendered_query, db_engine_spec)
 
@@ -423,7 +384,7 @@ def _execute_sql_statements(
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         try:
             result_set = execute_sql_with_cursor(
@@ -459,15 +420,15 @@ def _execute_sql_statements(
 
         # Commit for mutations
         if parsed_script.has_mutation() or query.select_as_cta:
-            conn.commit()
+            conn.commit()  # pylint: disable=consider-using-transaction
 
-    _finalize_successful_query(query, result_set, db_engine_spec, payload)
+    _finalize_successful_query(query, result_set, payload)
 
     if results_backend:
         _store_results_in_backend(query, payload, database)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     return None

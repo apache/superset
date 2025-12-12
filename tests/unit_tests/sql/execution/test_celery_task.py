@@ -18,7 +18,7 @@
 """Tests for celery_task.py - async SQL execution via Celery."""
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import msgpack
 import pytest
@@ -32,31 +32,6 @@ from superset.exceptions import SupersetErrorException, SupersetErrorsException
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
 # fixtures are imported from conftest.py
-
-
-# =============================================================================
-# Backoff Handler Tests
-# =============================================================================
-
-
-def test_get_query_backoff_handler(app_context: None) -> None:
-    """Test backoff retry logging handler."""
-    from superset.sql.execution.celery_task import _get_query_backoff_handler
-
-    details = {"kwargs": {"query_id": 123}, "tries": 2}
-
-    with patch.object(current_app.config["STATS_LOGGER"], "incr") as mock_incr:
-        _get_query_backoff_handler(details)
-        mock_incr.assert_called_once_with("error_attempting_orm_query_1")
-
-
-def test_get_query_giveup_handler(app_context: None) -> None:
-    """Test backoff giveup logging handler."""
-    from superset.sql.execution.celery_task import _get_query_giveup_handler
-
-    with patch.object(current_app.config["STATS_LOGGER"], "incr") as mock_incr:
-        _get_query_giveup_handler({})
-        mock_incr.assert_called_once_with("error_failed_at_getting_orm_query")
 
 
 # =============================================================================
@@ -208,25 +183,27 @@ def test_handle_query_error_with_troubleshooting_link(
 # =============================================================================
 
 
-def test_serialize_payload_json(app_context: None) -> None:
-    """Test JSON serialization."""
+def test_serialize_payload_json(mocker: MockerFixture, app_context: None) -> None:
+    """Test JSON serialization when msgpack config is False."""
     from superset.sql.execution.celery_task import _serialize_payload
 
+    mocker.patch("superset.results_backend_use_msgpack", False)
     payload = {"status": "success", "data": [1, 2, 3]}
 
-    result = _serialize_payload(payload, use_msgpack=False)
+    result = _serialize_payload(payload)
 
     assert isinstance(result, str)
     assert "success" in result
 
 
-def test_serialize_payload_msgpack(app_context: None) -> None:
-    """Test msgpack serialization."""
+def test_serialize_payload_msgpack(mocker: MockerFixture, app_context: None) -> None:
+    """Test msgpack serialization when msgpack config is True."""
     from superset.sql.execution.celery_task import _serialize_payload
 
+    mocker.patch("superset.results_backend_use_msgpack", True)
     payload = {"status": "success", "data": [1, 2, 3]}
 
-    result = _serialize_payload(payload, use_msgpack=True)
+    result = _serialize_payload(payload)
 
     assert isinstance(result, bytes)
     unpacked = msgpack.loads(result)
@@ -293,17 +270,11 @@ def test_finalize_successful_query(
     """Test successful query finalization."""
     from superset.sql.execution.celery_task import _finalize_successful_query
 
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
-    mocker.patch(
-        "superset.sql.execution.celery_task.df_to_records", return_value=[{"id": 1}]
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
+    mocker.patch("superset.dataframe.df_to_records", return_value=[{"id": 1}])
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(
-        mock_query, mock_result_set, mock_database.db_engine_spec, payload
-    )
+    _finalize_successful_query(mock_query, mock_result_set, payload)
 
     assert mock_query.rows == 2
     assert mock_query.progress == 100
@@ -320,7 +291,7 @@ def test_finalize_successful_query_with_msgpack(
     """Test successful query finalization with Arrow/msgpack."""
     from superset.sql.execution.celery_task import _finalize_successful_query
 
-    mocker.patch("superset.sql.execution.celery_task.results_backend_use_msgpack", True)
+    mocker.patch("superset.results_backend_use_msgpack", True)
     mock_buffer = MagicMock()
     mock_buffer.to_pybytes.return_value = b"arrow_data"
     mocker.patch(
@@ -333,9 +304,7 @@ def test_finalize_successful_query_with_msgpack(
 
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(
-        mock_query, mock_result_set, mock_database.db_engine_spec, payload
-    )
+    _finalize_successful_query(mock_query, mock_result_set, payload)
 
     assert payload["data"] == b"arrow_data"
 
@@ -350,7 +319,7 @@ def test_finalize_successful_query_msgpack_no_stats(
     """Test finalization with msgpack when has_app_context() is False."""
     from superset.sql.execution.celery_task import _finalize_successful_query
 
-    mocker.patch("superset.sql.execution.celery_task.results_backend_use_msgpack", True)
+    mocker.patch("superset.results_backend_use_msgpack", True)
     mocker.patch(
         "superset.sql.execution.celery_task.has_app_context", return_value=False
     )
@@ -362,9 +331,7 @@ def test_finalize_successful_query_msgpack_no_stats(
 
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(
-        mock_query, mock_result_set, mock_database.db_engine_spec, payload
-    )
+    _finalize_successful_query(mock_query, mock_result_set, payload)
 
     assert payload["data"] == b"arrow_data"
 
@@ -388,9 +355,7 @@ def test_store_results_in_backend_success(
     mocker.patch(
         "superset.sql.execution.celery_task.results_backend", mock_results_backend
     )
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task.zlib_compress", return_value=b"compressed"
     )
@@ -417,9 +382,7 @@ def test_store_results_in_backend_with_size_check(
     mocker.patch(
         "superset.sql.execution.celery_task.results_backend", mock_results_backend
     )
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task.zlib_compress", return_value=b"compressed"
     )
@@ -443,9 +406,7 @@ def test_store_results_in_backend_payload_too_large(
     """Test results storage with payload exceeding size limit."""
     from superset.sql.execution.celery_task import _store_results_in_backend
 
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     # Set very low limit
     mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 0.000001})
 
@@ -471,9 +432,7 @@ def test_store_results_in_backend_default_cache_timeout(
     mocker.patch(
         "superset.sql.execution.celery_task.results_backend", mock_results_backend
     )
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task.zlib_compress", return_value=b"compressed"
     )
@@ -502,9 +461,7 @@ def test_store_results_in_backend_write_failure(
     mocker.patch(
         "superset.sql.execution.celery_task.results_backend", mock_results_backend
     )
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task.zlib_compress", return_value=b"compressed"
     )
@@ -523,12 +480,13 @@ def test_store_results_in_backend_write_failure(
 # =============================================================================
 
 
-def test_serialize_and_expand_data_msgpack(
+def test_serialize_result_set_msgpack(
     mocker: MockerFixture, app_context: None, mock_result_set: MagicMock
 ) -> None:
-    """Test data serialization with msgpack/Arrow."""
-    from superset.sql.execution.celery_task import _serialize_and_expand_data
+    """Test result set serialization with msgpack/Arrow when config is True."""
+    from superset.sql.execution.celery_task import _serialize_result_set
 
+    mocker.patch("superset.results_backend_use_msgpack", True)
     mock_buffer = MagicMock()
     mock_buffer.to_pybytes.return_value = b"arrow_data"
     mocker.patch(
@@ -536,31 +494,28 @@ def test_serialize_and_expand_data_msgpack(
     )
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
-    data, selected_cols, all_cols, expanded_cols = _serialize_and_expand_data(
-        mock_result_set, MagicMock(), use_msgpack=True
-    )
+    data, columns = _serialize_result_set(mock_result_set)
 
     assert data == b"arrow_data"
+    assert columns == mock_result_set.columns
 
 
-def test_serialize_and_expand_data_json(
+def test_serialize_result_set_json(
     mocker: MockerFixture, app_context: None, mock_result_set: MagicMock
 ) -> None:
-    """Test data serialization with JSON."""
-    from superset.sql.execution.celery_task import _serialize_and_expand_data
+    """Test result set serialization with JSON when msgpack config is False."""
+    from superset.sql.execution.celery_task import _serialize_result_set
 
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
-        "superset.sql.execution.celery_task.df_to_records",
-        return_value=[
-            {"id": 1, "name": "Alice"},
-        ],
+        "superset.dataframe.df_to_records",
+        return_value=[{"id": 1, "name": "Alice"}],
     )
 
-    data, selected_cols, all_cols, expanded_cols = _serialize_and_expand_data(
-        mock_result_set, MagicMock(), use_msgpack=False
-    )
+    data, columns = _serialize_result_set(mock_result_set)
 
-    assert len(data) == 1
+    assert data == [{"id": 1, "name": "Alice"}]
+    assert columns == mock_result_set.columns
 
 
 # =============================================================================
@@ -643,18 +598,6 @@ def test_make_log_query_fn(
     # If no logger, the function should complete without error
 
 
-def test_get_time_limits(app_context: None, mocker: MockerFixture) -> None:
-    """Test _get_time_limits helper function."""
-    from superset.sql.execution.celery_task import _get_time_limits
-
-    mocker.patch.dict(current_app.config, {"SQLLAB_ASYNC_TIME_LIMIT_SEC": 300})
-
-    soft_limit, hard_limit = _get_time_limits()
-
-    assert soft_limit == 300
-    assert hard_limit == 360
-
-
 # =============================================================================
 # Main Task Execution Tests
 # =============================================================================
@@ -683,11 +626,9 @@ def test_execute_sql_task_success(
         return_value=mock_result_set,
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -721,11 +662,9 @@ def test_execute_sql_task_with_start_time(
         return_value=mock_result_set,
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -761,11 +700,9 @@ def test_execute_sql_task_with_cancel_query_id(
         return_value=mock_result_set,
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -833,7 +770,7 @@ def test_execute_sql_task_with_mutation(
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -871,14 +808,12 @@ def test_execute_sql_task_with_results_backend(
     mocker.patch(
         "superset.sql.execution.celery_task.results_backend", mock_results_backend
     )
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task.zlib_compress", return_value=b"data"
     )
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -972,11 +907,9 @@ def test_execute_sql_task_success_final_commit(
         return_value=mock_result_set,
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mock_session = mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
@@ -1016,15 +949,13 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
         query.status = QueryStatusEnum.FAILED
 
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
-    mocker.patch(
-        "superset.sql.execution.celery_task.results_backend_use_msgpack", False
-    )
+    mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch(
         "superset.sql.execution.celery_task._store_results_in_backend",
         side_effect=mock_store_results,
     )
     mocker.patch("superset.sql.execution.celery_task.db.session")
-    mocker.patch("superset.sql.execution.celery_task.df_to_records", return_value=[])
+    mocker.patch("superset.dataframe.df_to_records", return_value=[])
     mocker.patch("superset.sql.execution.celery_task.security_manager")
     mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
 
