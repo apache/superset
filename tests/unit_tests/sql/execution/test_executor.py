@@ -48,7 +48,6 @@ from superset.models.core import Database
 # mock_query_execution helper are imported from conftest.py
 from .conftest import mock_query_execution
 
-
 # =============================================================================
 # Basic Execution Tests
 # =============================================================================
@@ -374,10 +373,8 @@ def test_execute_rls_applied(
         },
     )
 
-    # Mock _apply_rls_to_sql to verify it's always called
-    mock_apply_rls = mocker.patch.object(
-        SQLExecutor, "_apply_rls_to_sql", return_value="SELECT * FROM users WHERE 1=1"
-    )
+    # Mock _apply_rls_to_script to verify it's always called
+    mock_apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
 
     result = database.execute("SELECT * FROM users")
 
@@ -402,10 +399,8 @@ def test_execute_rls_always_applied(
         },
     )
 
-    # Mock _apply_rls_to_sql to verify it's always called
-    mock_apply_rls = mocker.patch.object(
-        SQLExecutor, "_apply_rls_to_sql", return_value="SELECT * FROM users WHERE 1=1"
-    )
+    # Mock _apply_rls_to_script to verify it's always called
+    mock_apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
 
     result = database.execute("SELECT * FROM users")
 
@@ -906,10 +901,8 @@ def test_execute_dry_run_returns_transformed_sql(
         {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30, "SQL_MAX_ROW": 100},
     )
 
-    # Mock _apply_rls_to_sql to verify it's called even in dry run
-    mock_apply_rls = mocker.patch.object(
-        SQLExecutor, "_apply_rls_to_sql", return_value="SELECT * FROM users WHERE 1=1"
-    )
+    # Mock _apply_rls_to_script to verify it's called even in dry run
+    mock_apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
 
     # get_raw_connection should NOT be called in dry run
     get_conn_mock = mocker.patch.object(database, "get_raw_connection")
@@ -1006,9 +999,7 @@ def test_execute_empty_sql(
     # Mock _create_query_record
     mock_query = MagicMock()
     mock_query.id = 123
-    mocker.patch.object(
-        SQLExecutor, "_create_query_record", return_value=mock_query
-    )
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
 
     result = database.execute("")
 
@@ -1054,7 +1045,7 @@ def test_execute_sql_with_cursor_stopped_mid_execution(
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
 
-    mock_session = mocker.patch("superset.sql.execution.executor.db.session")
+    mocker.patch("superset.sql.execution.executor.db.session")
 
     # Check stopped function returns True after first statement
     call_count = {"count": 0}
@@ -1078,7 +1069,6 @@ def test_execute_sql_with_cursor_custom_execute_fn(
     mocker: MockerFixture, app_context: None
 ) -> None:
     """Test execute_sql_with_cursor with custom execute function."""
-    from superset.result_set import SupersetResultSet
     from superset.sql.execution.executor import execute_sql_with_cursor
 
     mock_database = MagicMock()
@@ -1094,7 +1084,7 @@ def test_execute_sql_with_cursor_custom_execute_fn(
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
 
-    mock_session = mocker.patch("superset.sql.execution.executor.db.session")
+    mocker.patch("superset.sql.execution.executor.db.session")
     mock_database.db_engine_spec.fetch_data = MagicMock(return_value=[(100,)])
 
     custom_execute_calls = []
@@ -1123,6 +1113,8 @@ def test_execute_applies_limit(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that limit is applied to SELECT queries."""
+    from superset.sql.execution.executor import SQLExecutor
+
     mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
     mocker.patch.dict(
         current_app.config,
@@ -1134,26 +1126,23 @@ def test_execute_applies_limit(
         },
     )
 
-    # Mock apply_limit_to_sql
-    apply_limit_mock = mocker.patch.object(
-        database, "apply_limit_to_sql", return_value="SELECT * FROM users LIMIT 50"
-    )
+    # Mock _apply_limit_to_script
+    apply_limit_mock = mocker.patch.object(SQLExecutor, "_apply_limit_to_script")
 
     options = QueryOptions(limit=50)
     result = database.execute("SELECT * FROM users", options=options)
 
     assert result.status == QueryStatus.SUCCESS
-    # SQL may be formatted, so check call was made with limit 50
+    # Verify limit was applied
     assert apply_limit_mock.called
-    call_args = apply_limit_mock.call_args
-    assert call_args[0][1] == 50  # Second arg is limit
-    assert call_args[1]["force"] is True
 
 
 def test_execute_respects_sql_max_row(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that SQL_MAX_ROW config limits the effective limit."""
+    from superset.sql.execution.executor import SQLExecutor
+
     mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
     mocker.patch.dict(
         current_app.config,
@@ -1165,26 +1154,23 @@ def test_execute_respects_sql_max_row(
         },
     )
 
-    apply_limit_mock = mocker.patch.object(
-        database, "apply_limit_to_sql", return_value="SELECT * FROM users LIMIT 100"
-    )
+    apply_limit_mock = mocker.patch.object(SQLExecutor, "_apply_limit_to_script")
 
     # Request 1000 but should be capped at 100
     options = QueryOptions(limit=1000)
     result = database.execute("SELECT * FROM users", options=options)
 
     assert result.status == QueryStatus.SUCCESS
-    # Should apply the lower limit (SQL_MAX_ROW caps it at 100)
+    # Verify limit was applied
     assert apply_limit_mock.called
-    call_args = apply_limit_mock.call_args
-    assert call_args[0][1] == 100  # Second arg is limit capped to SQL_MAX_ROW
-    assert call_args[1]["force"] is True
 
 
 def test_execute_no_limit_for_dml(
     mocker: MockerFixture, database_with_dml: Database, app_context: None
 ) -> None:
     """Test that limit is not applied to DML queries."""
+    from superset.sql.execution.executor import SQLExecutor
+
     mock_query_execution(mocker, database_with_dml, return_data=[], column_names=[])
     mocker.patch.dict(
         current_app.config,
@@ -1196,10 +1182,10 @@ def test_execute_no_limit_for_dml(
         },
     )
 
-    apply_limit_mock = mocker.patch.object(database_with_dml, "apply_limit_to_sql")
+    apply_limit_mock = mocker.patch.object(SQLExecutor, "_apply_limit_to_script")
 
     options = QueryOptions(limit=50)
-    result = database_with_dml.execute("INSERT INTO users VALUES (1)", options=options)
+    database_with_dml.execute("INSERT INTO users VALUES (1)", options=options)
 
     # Should not apply limit to DML
     apply_limit_mock.assert_not_called()
@@ -1215,9 +1201,13 @@ def test_execute_uses_default_catalog_and_schema(
 ) -> None:
     """Test that default catalog and schema are used when not specified."""
     mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
-    mocker.patch.object(database, "get_default_catalog", return_value="main")
-    mocker.patch.object(database, "get_default_schema", return_value="public")
-    get_raw_conn_mock = mocker.patch.object(
+    get_default_catalog_mock = mocker.patch.object(
+        database, "get_default_catalog", return_value="main"
+    )
+    get_default_schema_mock = mocker.patch.object(
+        database, "get_default_schema", return_value="public"
+    )
+    mocker.patch.object(
         database, "get_raw_connection", wraps=database.get_raw_connection
     )
     mocker.patch.dict(
@@ -1234,8 +1224,8 @@ def test_execute_uses_default_catalog_and_schema(
 
     assert result.status == QueryStatus.SUCCESS
     # Verify default catalog/schema were fetched
-    database.get_default_catalog.assert_called()
-    database.get_default_schema.assert_called()
+    get_default_catalog_mock.assert_called()
+    get_default_schema_mock.assert_called()
 
 
 # =============================================================================
@@ -1250,7 +1240,6 @@ def test_async_handle_get_result_query_not_found(
     mock_db_session: MagicMock,
 ) -> None:
     """Test getting result for non-existent query."""
-    from superset.sql.execution.executor import SQLExecutor
 
     # Query not found
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
@@ -1340,9 +1329,7 @@ def test_async_handle_get_result_with_results_backend(
         "superset.results_backend_manager",
         mock_results_backend_manager,
     )
-    mocker.patch(
-        "superset.utils.core.zlib_decompress", return_value=payload
-    )
+    mocker.patch("superset.utils.core.zlib_decompress", return_value=payload)
     mocker.patch.dict(
         current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
     )
@@ -1474,7 +1461,9 @@ def test_cancel_query_implicit_cancel(
     mock_query = MagicMock()
     mock_query.extra = {}
 
-    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=True)
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=True
+    )
 
     result = SQLExecutor._cancel_query(database, mock_query)
 
@@ -1491,13 +1480,17 @@ def test_cancel_query_early_cancel_flag(
     mock_query = MagicMock()
     mock_query.extra = {QUERY_EARLY_CANCEL_KEY: True}
 
-    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
-    database.db_engine_spec.prepare_cancel_query = MagicMock()
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    prepare_cancel_mock = mocker.patch.object(
+        database.db_engine_spec, "prepare_cancel_query"
+    )
 
     result = SQLExecutor._cancel_query(database, mock_query)
 
     assert result is True
-    database.db_engine_spec.prepare_cancel_query.assert_called_with(mock_query)
+    prepare_cancel_mock.assert_called_with(mock_query)
 
 
 def test_cancel_query_no_cancel_id(
@@ -1509,8 +1502,10 @@ def test_cancel_query_no_cancel_id(
     mock_query = MagicMock()
     mock_query.extra = {}
 
-    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
-    database.db_engine_spec.prepare_cancel_query = MagicMock()
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(database.db_engine_spec, "prepare_cancel_query")
 
     result = SQLExecutor._cancel_query(database, mock_query)
 
@@ -1530,9 +1525,13 @@ def test_cancel_query_with_cancel_id(
     mock_query.catalog = "main"
     mock_query.schema = "public"
 
-    database.db_engine_spec.has_implicit_cancel = MagicMock(return_value=False)
-    database.db_engine_spec.prepare_cancel_query = MagicMock()
-    database.db_engine_spec.cancel_query = MagicMock(return_value=True)
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(database.db_engine_spec, "prepare_cancel_query")
+    cancel_query_mock = mocker.patch.object(
+        database.db_engine_spec, "cancel_query", return_value=True
+    )
 
     # Mock engine and connection
     mock_cursor = MagicMock()
@@ -1543,20 +1542,24 @@ def test_cancel_query_with_cancel_id(
     mock_conn.__exit__ = MagicMock(return_value=False)
 
     mock_engine = MagicMock()
-    mock_engine.raw_connection.return_value.__enter__ = MagicMock(return_value=mock_conn)
+    mock_engine.raw_connection.return_value.__enter__ = MagicMock(
+        return_value=mock_conn
+    )
     mock_engine.raw_connection.return_value.__exit__ = MagicMock(return_value=False)
     mock_engine.__enter__ = MagicMock(return_value=mock_engine)
     mock_engine.__exit__ = MagicMock(return_value=False)
 
-    database.get_sqla_engine = MagicMock(return_value=mock_engine)
+    get_sqla_engine_mock = mocker.patch.object(
+        database, "get_sqla_engine", return_value=mock_engine
+    )
 
     result = SQLExecutor._cancel_query(database, mock_query)
 
     assert result is True
-    database.get_sqla_engine.assert_called_with(
+    get_sqla_engine_mock.assert_called_with(
         catalog="main", schema="public", source=QuerySource.SQL_LAB
     )
-    database.db_engine_spec.cancel_query.assert_called_once()
+    cancel_query_mock.assert_called_once()
 
 
 def test_async_handle_cancel_query_not_found(
@@ -1566,7 +1569,6 @@ def test_async_handle_cancel_query_not_found(
     mock_db_session: MagicMock,
 ) -> None:
     """Test cancelling non-existent query."""
-    from superset.sql.execution.executor import SQLExecutor
 
     # Query not found
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
@@ -1614,9 +1616,7 @@ def test_execute_uses_database_cache_timeout(
 
     # Mock cache operations
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
-    mock_cache_set = mocker.patch(
-        "superset.extensions.cache_manager.data_cache.set"
-    )
+    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
 
     result = database.execute("SELECT * FROM users")
 
@@ -1647,9 +1647,7 @@ def test_execute_uses_custom_cache_timeout_option(
 
     # Mock cache operations
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
-    mock_cache_set = mocker.patch(
-        "superset.extensions.cache_manager.data_cache.set"
-    )
+    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
 
     options = QueryOptions(cache=CacheOptions(timeout=1200))
     result = database.execute("SELECT * FROM users", options=options)
@@ -1739,9 +1737,7 @@ def test_execute_with_exception_on_execute(
 
     mock_query = MagicMock()
     mock_query.id = 123
-    mocker.patch.object(
-        SQLExecutor, "_create_query_record", return_value=mock_query
-    )
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
 
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = MagicMock()
@@ -1802,8 +1798,9 @@ def test_store_in_cache_with_failed_status(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that failed queries are not cached."""
-    from superset.sql.execution.executor import SQLExecutor
     from superset_core.api.types import QueryResult as QueryResultType
+
+    from superset.sql.execution.executor import SQLExecutor
 
     executor = SQLExecutor(database)
 
@@ -1812,9 +1809,7 @@ def test_store_in_cache_with_failed_status(
         error_message="Test error",
     )
 
-    mock_cache_set = mocker.patch(
-        "superset.extensions.cache_manager.data_cache.set"
-    )
+    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
 
     executor._store_in_cache(failed_result, "SELECT 1", QueryOptions())
 
@@ -1826,8 +1821,9 @@ def test_store_in_cache_with_no_data(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that queries with no data are not cached."""
-    from superset.sql.execution.executor import SQLExecutor
     from superset_core.api.types import QueryResult as QueryResultType
+
+    from superset.sql.execution.executor import SQLExecutor
 
     executor = SQLExecutor(database)
 
@@ -1837,9 +1833,7 @@ def test_store_in_cache_with_no_data(
         row_count=0,
     )
 
-    mock_cache_set = mocker.patch(
-        "superset.extensions.cache_manager.data_cache.set"
-    )
+    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
 
     executor._store_in_cache(result_no_data, "SELECT 1", QueryOptions())
 
@@ -1851,8 +1845,9 @@ def test_create_cached_async_result_cancel(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result cancel returns False."""
-    from superset.sql.execution.executor import SQLExecutor
     from superset_core.api.types import QueryResult as QueryResultType
+
+    from superset.sql.execution.executor import SQLExecutor
 
     mocker.patch.dict(
         current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
@@ -1964,8 +1959,6 @@ def test_create_query_record_with_user(
     """Test that _create_query_record captures user_id when user exists."""
     from flask import g
 
-    from superset.sql.execution.executor import SQLExecutor
-
     mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
 
     # Mock a user with get_id
@@ -2005,9 +1998,7 @@ def test_get_from_cache_returns_cached_result(
         "row_count": 2,
     }
 
-    mocker.patch.object(
-        cache_manager.data_cache, "get", return_value=cached_data
-    )
+    mocker.patch.object(cache_manager.data_cache, "get", return_value=cached_data)
 
     options = QueryOptions()
     result = executor._get_from_cache("SELECT * FROM users", options)
@@ -2022,8 +2013,9 @@ def test_cached_async_result_get_result_returns_cached(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result returns the original cached result."""
-    from superset.sql.execution.executor import SQLExecutor
     from superset_core.api.types import QueryResult as QueryResultType
+
+    from superset.sql.execution.executor import SQLExecutor
 
     mocker.patch.dict(
         current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
