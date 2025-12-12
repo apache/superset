@@ -54,6 +54,22 @@ Restart Superset for this configuration change to take effect.
 1. Add the `'DASHBOARD_RBAC': True` [Feature Flag](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md) to `superset_config.py`
 2. Add the `Public` role to your dashboard as described [here](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/#manage-access-to-dashboards)
 
+For security purposes, you will want to limit what public users can do on your superset instance.
+The minimal set of permissions to enable viewing dashboards with the public user is as follows:
+
+- can read on Chart
+- can read on Dashboard
+- can read on DashboardPermalinkRestApi
+- can dashboard permalink on Superset
+- can slice on Superset
+- can explore json on Superset
+- can dashboard on Superset
+
+Optionally if you want users to be able to download your chart data:
+
+- can export on Chart
+- can csv on Superset
+
 #### Embedding a Public Dashboard
 
 Now anybody can directly access the dashboard's URL. You can embed it in an iframe like so:
