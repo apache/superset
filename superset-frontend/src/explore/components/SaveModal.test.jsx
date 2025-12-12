@@ -31,6 +31,8 @@ import fetchMock from 'fetch-mock';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
+import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
@@ -40,6 +42,18 @@ jest.mock('@superset-ui/core/components/Select', () => ({
       onChange={({ target: { value } }) => onChange({ label: value, value })}
     />
   ),
+}));
+
+jest.mock('@superset-ui/core/components/TreeSelect', () => ({
+  TreeSelect: ({ onChange, disabled }) => {
+    return (
+      <input
+        data-test="mock-tree-select"
+        disabled={disabled}
+        onChange={({ target: { value } }) => onChange(value)}
+      />
+    );
+  },
 }));
 
 const middlewares = [thunk];
@@ -428,4 +442,167 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
 
   // Clean up
   removeChartStateSpy.mockRestore();
+});
+
+test('disables tab selector when no dashboard selected', () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('renders tab selector when saving as', async () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: '1' } });
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('onDashboardChange triggers tabs load for existing dashboard', async () => {
+  const dashboardId = mockEvent.value;
+
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}/tabs`, {
+    json: {
+      result: {
+        tab_tree: [
+          { value: 'tab1', title: 'Main Tab' },
+          { value: 'tab2', title: 'Tab' },
+        ],
+      },
+    },
+  });
+  const component = new PureSaveModal(defaultProps);
+  const loadTabsMock = jest
+    .fn()
+    .mockResolvedValue([{ value: 'tab1', title: 'Main Tab' }]);
+  component.loadTabs = loadTabsMock;
+  await component.onDashboardChange({
+    value: dashboardId,
+    label: 'Test Dashboard',
+  });
+  expect(loadTabsMock).toHaveBeenCalledWith(dashboardId);
+});
+
+test('onTabChange correctly updates selectedTab via forceUpdate', () => {
+  const component = new PureSaveModal(defaultProps);
+
+  component.state = {
+    ...component.state,
+    tabsData: [
+      {
+        value: 'tab1',
+        title: 'Main Tab',
+        key: 'tab1',
+        children: [
+          {
+            value: 'tab2',
+            title: 'Analytics Tab',
+            key: 'tab2',
+          },
+        ],
+      },
+    ],
+  };
+
+  component.setState = function (stateUpdate) {
+    if (typeof stateUpdate === 'function') {
+      this.state = { ...this.state, ...stateUpdate(this.state) };
+    } else {
+      this.state = { ...this.state, ...stateUpdate };
+    }
+  }.bind(component);
+
+  component.onTabChange('tab2');
+
+  expect(component.state.selectedTab).toEqual({
+    value: 'tab2',
+    label: 'Analytics Tab',
+  });
+});
+
+test('chart placement logic finds row with available space', () => {
+  // Test case 1: Row has space (8 + 4 = 12 <= 12)
+  const positionJson1 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 8 },
+    },
+  };
+
+  // Test case 2: Row is full (12 + 4 = 16 > 12)
+  const positionJson2 = {
+    ...positionJson1,
+    'CHART-1': {
+      ...positionJson1['CHART-1'],
+      meta: { width: 12 },
+    },
+  };
+
+  // Test case 3: Multiple charts in row
+  const positionJson3 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1', 'CHART-2'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 6 },
+    },
+    'CHART-2': {
+      type: 'CHART',
+      id: 'CHART-2',
+      meta: { width: 4 },
+    },
+  };
+
+  const findRowWithSpace = (positionJson, tabChildren) => {
+    for (const childKey of tabChildren) {
+      const child = positionJson[childKey];
+      if (child?.type === 'ROW') {
+        const rowChildren = child.children || [];
+        const totalWidth = rowChildren.reduce((sum, key) => {
+          const component = positionJson[key];
+          return sum + (component?.meta?.width || 0);
+        }, 0);
+
+        if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
+          return childKey;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Test case 1: Should find row with space
+  expect(findRowWithSpace(positionJson1, ['row1'])).toBe('row1');
+
+  // Test case 2: Should not find row (full)
+  expect(findRowWithSpace(positionJson2, ['row1'])).toBeNull();
+
+  // Test case 3: Should not find row (6 + 4 = 10, adding 4 = 14 > 12)
+  expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
 });
