@@ -684,12 +684,19 @@ def cancel_query(query: Query) -> bool:
         return True
 
     # Some databases may need to make preparations for query cancellation
-    query.database.db_engine_spec.prepare_cancel_query(query)
+    try:
+        query.database.db_engine_spec.prepare_cancel_query(query)
+    except Exception:
+        logger.warning("prepare_cancel_query failed", exc_info=True)
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.
         # This can happen if the query cancellation key can only be acquired after the
         # query has been executed
+        logger.debug(
+            "Query marked early-cancel (QUERY_EARLY_CANCEL_KEY) for id=%s",
+            getattr(query, "id", None),
+        )
         return True
 
     cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
@@ -703,6 +710,11 @@ def cancel_query(query: Query) -> bool:
     ) as engine:
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
-                return query.database.db_engine_spec.cancel_query(
-                    cursor, query, cancel_query_id
-                )
+                try:
+                    result = query.database.db_engine_spec.cancel_query(
+                        cursor, query, cancel_query_id
+                    )
+                    return result
+                except Exception:
+                    logger.warning("cancel_query failed", exc_info=True)
+                    return False

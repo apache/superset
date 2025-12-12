@@ -28,6 +28,7 @@ import {
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  SupersetClient,
 } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
@@ -398,8 +399,21 @@ function ExploreViewContainer(props) {
   );
 
   function onStop() {
-    if (props.chart && props.chart.queryController) {
+    // Method 1: Abort the in-flight HTTP request using AbortController
+    if (props.chart?.queryController) {
       props.chart.queryController.abort();
+    }
+
+    // Method 2: Send stop request to backend if we have a query ID
+    const queryId = props.chart?.latestQueryId;
+    if (queryId) {
+      SupersetClient.post({
+        endpoint: '/api/v1/query/stop',
+        body: JSON.stringify({ client_id: queryId }),
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(error => {
+        props.addDangerToast(t('Failed to stop query.'));
+      });
     }
   }
 
