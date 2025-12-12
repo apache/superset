@@ -489,7 +489,7 @@ const ExtraOptions = ({
                 </div>
               </StyledInputContainer>
               <StyledInputContainer
-                css={isFileUploadSupportedByEngine ? no_margin_bottom : {}}
+                css={!!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
               >
                 <div className="input-container">
                   <Checkbox
@@ -516,7 +516,7 @@ const ExtraOptions = ({
               </StyledInputContainer>
               {isFileUploadSupportedByEngine && (
                 <StyledInputContainer
-                  css={db?.allow_file_upload ? no_margin_bottom : {}}
+                  css={!!db?.allow_file_upload ? no_margin_bottom : {}}
                 >
                   <div className="input-container">
                     <Checkbox
