@@ -1191,6 +1191,62 @@ def test_execute_no_limit_for_dml(
     apply_limit_mock.assert_not_called()
 
 
+def test_apply_limit_to_script_respects_sql_max_row(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _apply_limit_to_script caps limit at SQL_MAX_ROW."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_MAX_ROW": 100,
+        },
+    )
+
+    executor = SQLExecutor(database)
+
+    # Create a script with a statement
+    script = SQLScript("SELECT * FROM users", database.db_engine_spec.engine)
+
+    # Mock set_limit_value on the first statement
+    set_limit_mock = mocker.patch.object(script.statements[0], "set_limit_value")
+
+    options = QueryOptions(limit=1000)  # Request 1000 but should be capped at 100
+    executor._apply_limit_to_script(script, options)
+
+    # Verify limit was capped at SQL_MAX_ROW (100)
+    set_limit_mock.assert_called_once_with(100, database.db_engine_spec.limit_method)
+
+
+def test_apply_limit_to_script_with_empty_statements(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that _apply_limit_to_script handles empty script.statements."""
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_MAX_ROW": 100,
+        },
+    )
+
+    executor = SQLExecutor(database)
+
+    # Create a script with no statements (empty string)
+    script = SQLScript("", database.db_engine_spec.engine)
+
+    options = QueryOptions(limit=50)
+    # Should not raise any errors when statements is empty
+    executor._apply_limit_to_script(script, options)
+
+    # Verify no error occurred and statements is still empty
+    assert script.statements == []
+
+
 # =============================================================================
 # Catalog/Schema Resolution Tests
 # =============================================================================
