@@ -117,9 +117,9 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], task=True)
 @parse_request(GenerateDashboardRequest)
-def generate_dashboard(
+async def generate_dashboard(
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
     """Create dashboard from chart IDs.
@@ -132,11 +132,17 @@ def generate_dashboard(
     - Dashboard ID and URL
     """
     try:
+        await ctx.info(
+            "Starting dashboard generation: title=%s, chart_count=%s"
+            % (request.dashboard_title, len(request.chart_ids))
+        )
+
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db
         from superset.commands.dashboard.create import CreateDashboardCommand
         from superset.models.slice import Slice
 
+        await ctx.report_progress(1, 4, "Validating charts")
         chart_objects = (
             db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
         )
@@ -145,12 +151,14 @@ def generate_dashboard(
         # Check if all requested charts were found
         missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
         if missing_chart_ids:
+            await ctx.error("Charts not found: %s" % (list(missing_chart_ids),))
             return GenerateDashboardResponse(
                 dashboard=None,
                 dashboard_url=None,
                 error=f"Charts not found: {list(missing_chart_ids)}",
             )
 
+        await ctx.report_progress(2, 4, "Creating dashboard layout")
         # Create dashboard layout with chart objects
         layout = _create_dashboard_layout(chart_objects)
 
@@ -185,6 +193,7 @@ def generate_dashboard(
         if request.description:
             dashboard_data["description"] = request.description
 
+        await ctx.report_progress(3, 4, "Saving dashboard to database")
         # Create the dashboard using Superset's command pattern
         command = CreateDashboardCommand(dashboard_data)
         dashboard = command.run()
@@ -224,6 +233,11 @@ def generate_dashboard(
 
         dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
 
+        await ctx.report_progress(4, 4, "Dashboard creation completed")
+        await ctx.info(
+            "Created dashboard %s with %s charts"
+            % (dashboard.id, len(request.chart_ids))
+        )
         logger.info(
             "Created dashboard %s with %s charts", dashboard.id, len(request.chart_ids)
         )
@@ -233,7 +247,13 @@ def generate_dashboard(
         )
 
     except Exception as e:
+        # Log locally first to ensure error is captured even if ctx.error fails
         logger.error("Error creating dashboard: %s", e)
+        try:
+            await ctx.error("Error creating dashboard: %s" % (str(e),))
+        except Exception:
+            # Swallow context-reporting errors to avoid masking original exception
+            logger.exception("Failed to report error to context")
         return GenerateDashboardResponse(
             dashboard=None,
             dashboard_url=None,
