@@ -393,6 +393,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 logger.exception(
                     "Encountered an unexpected error when requesting url %s", url
                 )
+            finally:
+                browser.close()
             return img
 
 
