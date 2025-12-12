@@ -92,9 +92,7 @@ export type ResidualQueryObjectData = {
  * and `transformProps`.
  */
 export interface QueryObject
-  extends QueryFields,
-    TimeRange,
-    ResidualQueryObjectData {
+  extends QueryFields, TimeRange, ResidualQueryObjectData {
   /**
    * Definition for annotation layers.
    */

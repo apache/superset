@@ -23,6 +23,7 @@ chart configuration.
 """
 
 from typing import Any, Dict
+from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from superset_core.mcp import tool
@@ -106,14 +107,26 @@ async def generate_explore_link(
         # Generate explore link using shared utilities
         explore_url = generate_url(dataset_id=request.dataset_id, form_data=form_data)
 
+        # Extract form_data_key from the explore URL using proper URL parsing
+        form_data_key = None
+        if explore_url:
+            parsed = urlparse(explore_url)
+            query_params = parse_qs(parsed.query)
+            form_data_key_list = query_params.get("form_data_key", [])
+            if form_data_key_list:
+                form_data_key = form_data_key_list[0]
+
         await ctx.report_progress(3, 3, "URL generation complete")
         await ctx.info(
-            "Explore link generated successfully: url_length=%s, dataset_id=%s"
-            % (len(explore_url), request.dataset_id)
+            "Explore link generated successfully: url_length=%s, dataset_id=%s, "
+            "form_data_key=%s"
+            % (len(explore_url or ""), request.dataset_id, form_data_key)
         )
 
         return {
             "url": explore_url,
+            "form_data": form_data,
+            "form_data_key": form_data_key,
             "error": None,
         }
 
@@ -124,5 +137,7 @@ async def generate_explore_link(
         )
         return {
             "url": "",
+            "form_data": {},
+            "form_data_key": None,
             "error": f"Failed to generate explore link: {str(e)}",
         }

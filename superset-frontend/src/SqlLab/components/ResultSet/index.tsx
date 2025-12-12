@@ -773,7 +773,6 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
-                  padding-left: ${theme.sizeUnit * 4}px;
                 `}
               >
                 <AutoSizer disableWidth>
@@ -783,27 +782,6 @@ const ResultSet = ({
                 </AutoSizer>
               </div>
             )}
-            <div
-              css={css`
-                flex: 1 1 auto;
-              `}
-            >
-              <AutoSizer disableWidth>
-                {({ height }) => (
-                  <ResultTable
-                    data={data}
-                    queryId={query.id}
-                    orderedColumnKeys={results.columns.map(
-                      col => col.column_name,
-                    )}
-                    height={height}
-                    filterText={searchText}
-                    expandedColumns={expandedColumns}
-                    allowHTML={allowHTML}
-                  />
-                )}
-              </AutoSizer>
-            </div>
           </ResultContainer>
           <StreamingExportModal
             visible={showStreamingModal}
