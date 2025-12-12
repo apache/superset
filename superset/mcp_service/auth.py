@@ -270,6 +270,83 @@ def _cleanup_session_finally() -> None:
         logger.warning("Error in finally block: %s", e)
 
 
+def _copy_permission_attributes(source: Callable[..., Any], target: Any) -> None:
+    """Copy RBAC permission attributes from source function to target wrapper."""
+    if hasattr(source, CLASS_PERMISSION_ATTR):
+        setattr(target, CLASS_PERMISSION_ATTR, getattr(source, CLASS_PERMISSION_ATTR))
+    if hasattr(source, METHOD_PERMISSION_ATTR):
+        setattr(target, METHOD_PERMISSION_ATTR, getattr(source, METHOD_PERMISSION_ATTR))
+
+
+def _update_wrapper_signature(
+    wrapper: Any, func: Callable[..., Any], tool_sig: Any
+) -> None:
+    """Update wrapper signature, removing ctx parameter for FastMCP tools."""
+    import inspect
+
+    from fastmcp import Context as FMContext
+
+    has_var_positional = any(
+        p.kind == inspect.Parameter.VAR_POSITIONAL for p in tool_sig.parameters.values()
+    )
+
+    if not has_var_positional:
+        # For functions without *args, preserve signature but remove ctx
+        new_params = []
+        for _name, param in tool_sig.parameters.items():
+            # Skip ctx parameter - FastMCP tools don't expose it to clients
+            if param.annotation is FMContext or (
+                hasattr(param.annotation, "__name__")
+                and param.annotation.__name__ == "Context"
+            ):
+                continue
+            new_params.append(param)
+        wrapper.__signature__ = tool_sig.replace(parameters=new_params)
+
+        # Also remove ctx from annotations to match signature
+        if "ctx" in wrapper.__annotations__:
+            del wrapper.__annotations__["ctx"]
+
+
+def _create_new_wrapper(
+    wrapper: Callable[..., Any], func: Callable[..., Any]
+) -> Callable[..., Any]:
+    """Create a new wrapper function with merged globals and copied attributes."""
+    import inspect
+    import types
+
+    # Merge original function's __globals__ into wrapper's __globals__
+    # This allows get_type_hints() to resolve type annotations from the
+    # original module (e.g., Context from fastmcp)
+    merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+    new_wrapper = types.FunctionType(
+        wrapper.__code__,  # type: ignore[attr-defined]
+        merged_globals,
+        wrapper.__name__,
+        wrapper.__defaults__,  # type: ignore[attr-defined]
+        wrapper.__closure__,  # type: ignore[attr-defined]
+    )
+
+    # Copy __dict__ but exclude __wrapped__
+    # NOTE: We intentionally do NOT preserve __wrapped__ here.
+    new_wrapper.__dict__.update(
+        {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
+    )
+    new_wrapper.__module__ = wrapper.__module__
+    new_wrapper.__qualname__ = wrapper.__qualname__
+    new_wrapper.__annotations__ = wrapper.__annotations__
+    new_wrapper.__doc__ = func.__doc__
+
+    # Copy permission attributes
+    _copy_permission_attributes(func, new_wrapper)
+
+    # Update signature
+    tool_sig = inspect.signature(func)
+    _update_wrapper_signature(new_wrapper, func, tool_sig)
+
+    return new_wrapper
+
+
 def mcp_auth_hook(
     tool_func: F | None = None,
     *,
@@ -310,7 +387,6 @@ def mcp_auth_hook(
     """
     import functools
     import inspect
-    import types
 
     def decorator(func: F) -> F:
         is_async = inspect.iscoroutinefunction(func)
@@ -332,8 +408,7 @@ def mcp_auth_hook(
                     if check_permissions:
                         require_tool_permission(func)
 
-                    result = await func(*args, **kwargs)
-                    return result
+                    return await func(*args, **kwargs)
                 except Exception:
                     _cleanup_session_on_error()
                     raise
@@ -359,8 +434,7 @@ def mcp_auth_hook(
                     if check_permissions:
                         require_tool_permission(func)
 
-                    result = func(*args, **kwargs)
-                    return result
+                    return func(*args, **kwargs)
                 except Exception:
                     _cleanup_session_on_error()
                     raise
@@ -369,80 +443,8 @@ def mcp_auth_hook(
 
             wrapper = sync_wrapper
 
-        # Merge original function's __globals__ into wrapper's __globals__
-        # This allows get_type_hints() to resolve type annotations from the
-        # original module (e.g., Context from fastmcp)
-        # FastMCP 2.13.2+ uses get_type_hints() which needs access to these types
-        merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
-        new_wrapper = types.FunctionType(
-            wrapper.__code__,  # type: ignore[attr-defined]
-            merged_globals,
-            wrapper.__name__,
-            wrapper.__defaults__,  # type: ignore[attr-defined]
-            wrapper.__closure__,  # type: ignore[attr-defined]
-        )
-        # Copy __dict__ but exclude __wrapped__
-        # NOTE: We intentionally do NOT preserve __wrapped__ here.
-        # Setting __wrapped__ causes inspect.signature() to follow the chain
-        # and find 'ctx' in the original function's signature, even after
-        # FastMCP's create_function_without_params removes it from annotations.
-        # This breaks Pydantic's TypeAdapter which expects signature params
-        # to match type_hints.
-        new_wrapper.__dict__.update(
-            {k: v for k, v in wrapper.__dict__.items() if k != "__wrapped__"}
-        )
-        new_wrapper.__module__ = wrapper.__module__
-        new_wrapper.__qualname__ = wrapper.__qualname__
-        new_wrapper.__annotations__ = wrapper.__annotations__
-        # Copy docstring from original function (not wrapper, which may have lost it)
-        new_wrapper.__doc__ = func.__doc__
-
-        # IMPORTANT: Copy permission attributes from original function
-        # These are set by the @tool decorator and read by require_tool_permission
-        if hasattr(func, CLASS_PERMISSION_ATTR):
-            setattr(
-                new_wrapper, CLASS_PERMISSION_ATTR, getattr(func, CLASS_PERMISSION_ATTR)
-            )
-        if hasattr(func, METHOD_PERMISSION_ATTR):
-            setattr(
-                new_wrapper,
-                METHOD_PERMISSION_ATTR,
-                getattr(func, METHOD_PERMISSION_ATTR),
-            )
-
-        # Set __signature__ from the original function, but:
-        # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
-        # 2. Skip if original has *args (parse_request output has its own handling)
-        from fastmcp import Context as FMContext
-
-        tool_sig = inspect.signature(func)
-        has_var_positional = any(
-            p.kind == inspect.Parameter.VAR_POSITIONAL
-            for p in tool_sig.parameters.values()
-        )
-
-        if not has_var_positional:
-            # For functions without *args, preserve signature but remove ctx
-            new_params = []
-            for _name, param in tool_sig.parameters.items():
-                # Skip ctx parameter - FastMCP tools don't expose it to clients
-                if param.annotation is FMContext or (
-                    hasattr(param.annotation, "__name__")
-                    and param.annotation.__name__ == "Context"
-                ):
-                    continue
-                new_params.append(param)
-            new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
-                parameters=new_params
-            )
-
-            # Also remove ctx from annotations to match signature
-            if "ctx" in new_wrapper.__annotations__:
-                del new_wrapper.__annotations__["ctx"]
-        # For functions with *args (parse_request output), the signature
-        # is already set by parse_request without ctx.
-
-        return new_wrapper  # type: ignore[return-value]
+        # Create final wrapper with merged globals, attributes, and signature
+        return _create_new_wrapper(wrapper, func)  # type: ignore[return-value]
 
     # Support both @mcp_auth_hook and @mcp_auth_hook() syntax
     if tool_func is not None:
