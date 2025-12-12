@@ -23,7 +23,7 @@ that replaces the abstract functions in superset-core during initialization.
 """
 
 import logging
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import Any, Callable, cast, Optional, TypeVar
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
