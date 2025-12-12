@@ -683,3 +683,5 @@ class TestGenerateExploreLink:
             assert isinstance(result.data["form_data"], dict)
             assert result.data["form_data"].get("viz_type") == "echarts_timeseries_line"
             assert result.data["form_data"].get("x_axis") == "date"
+            # Verify datasource field format: "{dataset_id}__table"
+            assert result.data["form_data"].get("datasource") == "1__table"
