@@ -129,6 +129,7 @@ const FlexRowContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    min-width: 0;
   }
 
   svg {

@@ -288,7 +288,7 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, description, slug, certifiedBy, certificationDetails } =
+    const { title, description = '', slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentJsonMetadata = jsonMetadata;
 
