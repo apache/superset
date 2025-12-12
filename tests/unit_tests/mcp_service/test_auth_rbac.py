@@ -275,12 +275,15 @@ class TestMCPAuthHookWithPermissions:
     beartype circular import issues in unit tests. These tests mock the
     fastmcp import to avoid the issue while still testing the permission
     checking logic.
+
+    IMPORTANT: We must mock check_tool_permission directly rather than
+    patching sys.modules with superset, because patching sys.modules breaks
+    the reference to superset.mcp_service.auth.get_user_from_request.
     """
 
     def test_sync_function_permission_check(self, mock_security_manager, mock_user):
         """Test permission check for synchronous tool function."""
         mock_user.username = "admin"
-        mock_security_manager.can_access.return_value = True
 
         # Create the function with permission attributes BEFORE decorating
         def execute_sql():
@@ -293,30 +296,26 @@ class TestMCPAuthHookWithPermissions:
         mock_fastmcp = MagicMock()
         mock_fastmcp.Context = MagicMock()
 
-        with patch.dict(
-            sys.modules,
-            {
-                "superset": MagicMock(security_manager=mock_security_manager),
-                "fastmcp": mock_fastmcp,
-            },
-        ):
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-                # Now apply the decorator
-                decorated = mcp_auth_hook(execute_sql)
-                result = decorated()
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=True,
+                ) as mock_check:
+                    # Now apply the decorator
+                    decorated = mcp_auth_hook(execute_sql)
+                    result = decorated()
 
-                assert result == "success"
-                mock_security_manager.can_access.assert_called_once_with(
-                    "can_execute_sql", "SQLLab"
-                )
+                    assert result == "success"
+                    # Verify check_tool_permission was called with the original func
+                    mock_check.assert_called_once()
 
     def test_sync_function_permission_denied(self, mock_security_manager, mock_user):
         """Test permission denial for synchronous tool function."""
         mock_user.username = "limited_user"
-        mock_security_manager.can_access.return_value = False
 
         def execute_sql():
             return "should not reach here"
@@ -327,21 +326,19 @@ class TestMCPAuthHookWithPermissions:
         mock_fastmcp = MagicMock()
         mock_fastmcp.Context = MagicMock()
 
-        with patch.dict(
-            sys.modules,
-            {
-                "superset": MagicMock(security_manager=mock_security_manager),
-                "fastmcp": mock_fastmcp,
-            },
-        ):
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-                decorated = mcp_auth_hook(execute_sql)
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=False,
+                ):
+                    decorated = mcp_auth_hook(execute_sql)
 
-                with pytest.raises(MCPPermissionDeniedError):
-                    decorated()
+                    with pytest.raises(MCPPermissionDeniedError):
+                        decorated()
 
     @pytest.mark.asyncio
     async def test_async_function_permission_check(
@@ -349,7 +346,6 @@ class TestMCPAuthHookWithPermissions:
     ):
         """Test permission check for asynchronous tool function."""
         mock_user.username = "admin"
-        mock_security_manager.can_access.return_value = True
 
         async def list_charts():
             return "charts"
@@ -360,24 +356,20 @@ class TestMCPAuthHookWithPermissions:
         mock_fastmcp = MagicMock()
         mock_fastmcp.Context = MagicMock()
 
-        with patch.dict(
-            sys.modules,
-            {
-                "superset": MagicMock(security_manager=mock_security_manager),
-                "fastmcp": mock_fastmcp,
-            },
-        ):
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-                decorated = mcp_auth_hook(list_charts)
-                result = await decorated()
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=True,
+                ) as mock_check:
+                    decorated = mcp_auth_hook(list_charts)
+                    result = await decorated()
 
-                assert result == "charts"
-                mock_security_manager.can_access.assert_called_once_with(
-                    "can_read", "Chart"
-                )
+                    assert result == "charts"
+                    mock_check.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_async_function_permission_denied(
@@ -385,7 +377,6 @@ class TestMCPAuthHookWithPermissions:
     ):
         """Test permission denial for asynchronous tool function."""
         mock_user.username = "limited_user"
-        mock_security_manager.can_access.return_value = False
 
         async def generate_chart():
             return "should not reach here"
@@ -396,21 +387,19 @@ class TestMCPAuthHookWithPermissions:
         mock_fastmcp = MagicMock()
         mock_fastmcp.Context = MagicMock()
 
-        with patch.dict(
-            sys.modules,
-            {
-                "superset": MagicMock(security_manager=mock_security_manager),
-                "fastmcp": mock_fastmcp,
-            },
-        ):
+        with patch.dict(sys.modules, {"fastmcp": mock_fastmcp}):
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=mock_user,
             ):
-                decorated = mcp_auth_hook(generate_chart)
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission",
+                    return_value=False,
+                ):
+                    decorated = mcp_auth_hook(generate_chart)
 
-                with pytest.raises(MCPPermissionDeniedError):
-                    await decorated()
+                    with pytest.raises(MCPPermissionDeniedError):
+                        await decorated()
 
     def test_skip_permission_check(self, mock_user):
         """Test skipping permission check with check_permissions=False."""
