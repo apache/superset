@@ -67,7 +67,10 @@ beforeEach(() => {
 });
 
 afterAll((): void => {
-  window.location = location;
+  Object.defineProperty(window, 'location', {
+    value: location,
+    writable: true,
+  });
 });
 
 const MenuWrapper = (

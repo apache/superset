@@ -40,7 +40,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  window.location = originalLocation;
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
   fetchMock.reset();
   fetchMock.restore();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place

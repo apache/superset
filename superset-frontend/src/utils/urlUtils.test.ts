@@ -120,7 +120,10 @@ test('getDashboardUrlParams should exclude edit parameter by default', () => {
   expect(paramNames).toContain('expand_filters');
 
   // Restore original location
-  window.location = originalLocation;
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
 });
 
 test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
@@ -143,5 +146,8 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
   expect(paramNames).toContain('test');
 
   // Restore original location
-  window.location = originalLocation;
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+  });
 });

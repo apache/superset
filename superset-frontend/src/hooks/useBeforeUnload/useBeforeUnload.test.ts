@@ -39,7 +39,7 @@ beforeEach(() => {
 
   addEventListenerSpy = jest
     .spyOn(window, 'addEventListener')
-    .mockImplementation((type, handler) => {
+    .mockImplementation((type: string, handler: EventListenerOrEventListenerObject | null) => {
       if (type === 'beforeunload') {
         handlers.push(handler as (e: BeforeUnloadEvent) => void);
       }

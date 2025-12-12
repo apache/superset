@@ -28,7 +28,10 @@ describe('AnchorLink', () => {
 
   const globalLocation = window.location;
   afterEach(() => {
-    window.location = globalLocation;
+    Object.defineProperty(window, 'location', {
+      value: globalLocation,
+      writable: true,
+    });
   });
 
   test('should scroll the AnchorLink into view upon mount if id matches hash', async () => {
