@@ -34,7 +34,6 @@ from pytest_mock import MockerFixture
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.models.core import Database
 
-
 # =============================================================================
 # Core Fixtures
 # =============================================================================
