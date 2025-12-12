@@ -441,7 +441,8 @@ export const CredentialInfoForm = styled.div`
       width: fit-content;
     }
 
-    .credentials-uploaded-btn, .credentials-uploaded-remove {
+    .credentials-uploaded-btn,
+    .credentials-uploaded-remove {
       flex: 0 0 auto;
     }
 
@@ -449,7 +450,8 @@ export const CredentialInfoForm = styled.div`
     .input-upload {
       display: none !important;
     }
-  }`;
+  }
+`;
 
 export const SelectDatabaseStyles = styled.div`
   .preferred {
