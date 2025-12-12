@@ -23,7 +23,7 @@ that replaces the abstract functions in superset-core during initialization.
 """
 
 import logging
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar, cast
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -159,12 +159,12 @@ def create_tool_decorator(
 
             protected_status = "protected" if protect else "public"
             logger.info("Registered MCP tool: %s (%s)", tool_name, protected_status)
-            return wrapped_func
+            return cast(F, wrapped_func)
 
         except Exception as e:
             logger.error("Failed to register MCP tool %s: %s", name or func.__name__, e)
             # Return the original function so extension doesn't break
-            return func
+            return cast(F, func)
 
     # If called as @tool (without parentheses)
     if callable(func_or_name):
@@ -245,14 +245,14 @@ def create_prompt_decorator(
 
             protected_status = "protected" if protect else "public"
             logger.info("Registered MCP prompt: %s (%s)", prompt_name, protected_status)
-            return wrapped_func
+            return cast(F, wrapped_func)
 
         except Exception as e:
             logger.error(
                 "Failed to register MCP prompt %s: %s", name or func.__name__, e
             )
             # Return the original function so extension doesn't break
-            return func
+            return cast(F, func)
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):

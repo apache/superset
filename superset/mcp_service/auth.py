@@ -318,13 +318,13 @@ def _create_new_wrapper(
     # Merge original function's __globals__ into wrapper's __globals__
     # This allows get_type_hints() to resolve type annotations from the
     # original module (e.g., Context from fastmcp)
-    merged_globals = {**wrapper.__globals__, **func.__globals__}  # type: ignore[attr-defined]
+    merged_globals = {**wrapper.__globals__, **func.__globals__}
     new_wrapper = types.FunctionType(
-        wrapper.__code__,  # type: ignore[attr-defined]
+        wrapper.__code__,
         merged_globals,
         wrapper.__name__,
-        wrapper.__defaults__,  # type: ignore[attr-defined]
-        wrapper.__closure__,  # type: ignore[attr-defined]
+        wrapper.__defaults__,
+        wrapper.__closure__,
     )
 
     # Copy __dict__ but exclude __wrapped__
