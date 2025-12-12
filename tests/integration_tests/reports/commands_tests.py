@@ -186,7 +186,7 @@ def create_test_table_context(database: Database):
 def create_report_email_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart
+        email_target="target@email.com", chart=chart, name="report_email_chart"
     )
     yield report_schedule
 
@@ -201,6 +201,7 @@ def create_report_email_chart_with_cc_and_bcc():
         ccTarget="cc@email.com",
         bccTarget="bcc@email.com",
         chart=chart,
+        name="report_email_chart_with_cc_and_bcc",
     )
     yield report_schedule
 
@@ -212,7 +213,10 @@ def create_report_email_chart_alpha_owner(get_user):
     owners = [get_user("alpha")]
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart, owners=owners
+        email_target="target@email.com",
+        chart=chart,
+        owners=owners,
+        name="report_email_chart_alpha_owner",
     )
     yield report_schedule
 
@@ -223,7 +227,10 @@ def create_report_email_chart_alpha_owner(get_user):
 def create_report_email_chart_force_screenshot():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", chart=chart, force_screenshot=True
+        email_target="target@email.com",
+        chart=chart,
+        force_screenshot=True,
+        name="report_email_chart_force_screenshot",
     )
     yield report_schedule
 
@@ -238,6 +245,7 @@ def create_report_email_chart_with_csv():
         email_target="target@email.com",
         chart=chart,
         report_format=ReportDataFormat.CSV,
+        name="report_email_chart_with_csv",
     )
     yield report_schedule
     cleanup_report_schedule(report_schedule)
@@ -251,6 +259,7 @@ def create_report_email_chart_with_text():
         email_target="target@email.com",
         chart=chart,
         report_format=ReportDataFormat.TEXT,
+        name="report_email_chart_with_text",
     )
     yield report_schedule
     cleanup_report_schedule(report_schedule)
@@ -274,7 +283,9 @@ def create_report_email_chart_with_csv_no_query_context():
 def create_report_email_dashboard():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", dashboard=dashboard
+        email_target="target@email.com",
+        dashboard=dashboard,
+        name="report_email_dashboard",
     )
     yield report_schedule
 
@@ -285,7 +296,10 @@ def create_report_email_dashboard():
 def create_report_email_dashboard_force_screenshot():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
-        email_target="target@email.com", dashboard=dashboard, force_screenshot=True
+        email_target="target@email.com",
+        dashboard=dashboard,
+        force_screenshot=True,
+        name="report_email_dashboard_force_screenshot",
     )
     yield report_schedule
 
@@ -296,7 +310,7 @@ def create_report_email_dashboard_force_screenshot():
 def create_report_slack_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="slack_channel", chart=chart
+        slack_channel="slack_channel", chart=chart, name="report_slack_chart"
     )
     yield report_schedule
 
@@ -325,6 +339,7 @@ def create_report_slack_chart_with_csv():
         slack_channel="slack_channel",
         chart=chart,
         report_format=ReportDataFormat.CSV,
+        name="report_slack_chart_with_csv",
     )
     yield report_schedule
 
@@ -339,6 +354,7 @@ def create_report_slack_chart_with_text():
         slack_channel="slack_channel",
         chart=chart,
         report_format=ReportDataFormat.TEXT,
+        name="report_slack_chart_with_text",
     )
     yield report_schedule
 
@@ -349,7 +365,7 @@ def create_report_slack_chart_with_text():
 def create_report_slack_chart_working():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="slack_channel", chart=chart
+        slack_channel="slack_channel", chart=chart, name="report_slack_chart_working"
     )
     report_schedule.last_state = ReportState.WORKING
     report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
@@ -381,6 +397,7 @@ def create_alert_slack_chart_success():
         slack_channel="slack_channel",
         chart=chart,
         report_type=ReportScheduleType.ALERT,
+        name="alert_slack_chart_success",
     )
     report_schedule.last_state = ReportState.SUCCESS
     report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
@@ -423,6 +440,7 @@ def create_alert_slack_chart_grace(request):
             sql=param_config[request.param]["sql"],
             validator_type=param_config[request.param]["validator_type"],
             validator_config_json=param_config[request.param]["validator_config_json"],
+            name=f"alert_slack_chart_grace_{request.param}",
         )
         report_schedule.last_state = ReportState.GRACE
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
@@ -508,6 +526,7 @@ def create_alert_email_chart(request):
             validator_type=param_config[request.param]["validator_type"],
             validator_config_json=param_config[request.param]["validator_config_json"],
             force_screenshot=True,
+            name=f"alert_email_chart_{request.param}",
         )
         yield report_schedule
 
@@ -586,6 +605,7 @@ def create_no_alert_email_chart(request):
             sql=param_config[request.param]["sql"],
             validator_type=param_config[request.param]["validator_type"],
             validator_config_json=param_config[request.param]["validator_config_json"],
+            name=f"no_alert_email_chart_{request.param}",
         )
         yield report_schedule
 
@@ -617,6 +637,7 @@ def create_mul_alert_email_chart(request):
             sql=param_config[request.param]["sql"],
             validator_type=param_config[request.param]["validator_type"],
             validator_config_json=param_config[request.param]["validator_config_json"],
+            name=f"mul_alert_email_chart_{request.param}",
         )
         yield report_schedule
 
@@ -649,6 +670,7 @@ def create_invalid_sql_alert_email_chart(request, app_context: AppContext):
             validator_type=param_config[request.param]["validator_type"],
             validator_config_json=param_config[request.param]["validator_config_json"],
             grace_period=60 * 60,
+            name=f"invalid_sql_alert_email_chart_{request.param}",
         )
         yield report_schedule
 
@@ -1213,6 +1235,7 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
                         "urlParams": [["native_filters", "()"]],
                     }
                 },
+                name="dashboard_report_with_tab_anchor",
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
@@ -1269,6 +1292,7 @@ def test_email_dashboard_report_schedule_disabled_tabs(
                         "urlParams": [["native_filters", "()"]],
                     }
                 },
+                name="dashboard_report_disabled_tabs",
             )
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
@@ -1341,14 +1365,18 @@ def test_slack_chart_report_schedule_converts_to_v2(
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
     channel_id = "slack_channel_id"
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
+    get_channels_with_search_mock.return_value = {
+        "result": [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        "next_cursor": None,
+        "has_more": False,
+    }
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1404,16 +1432,22 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="#slack_channel", chart=chart
+        slack_channel="#slack_channel",
+        chart=chart,
+        name="slack_converts_to_v2_with_hash",
     )
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
+    get_channels_with_search_mock.return_value = {
+        "result": [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        "next_cursor": None,
+        "has_more": False,
+    }
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1467,16 +1501,22 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="#slack_channel,my_member_ID", chart=chart
+        slack_channel="#slack_channel,my_member_ID",
+        chart=chart,
+        name="slack_fails_to_convert_to_v2",
     )
-    get_channels_with_search_mock.return_value = [
-        {
-            "id": channel_id,
-            "name": "slack_channel",
-            "is_member": True,
-            "is_private": False,
-        },
-    ]
+    get_channels_with_search_mock.return_value = {
+        "result": [
+            {
+                "id": channel_id,
+                "name": "slack_channel",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+        "next_cursor": None,
+        "has_more": False,
+    }
 
     with pytest.raises(ReportScheduleSystemErrorsException):
         AsyncExecuteReportScheduleCommand(
