@@ -22,7 +22,6 @@ from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
-from sqlalchemy.sql import select
 
 from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
@@ -37,7 +36,10 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag
+from superset.commands.importers.v1.utils import (
+    import_tag,
+    safe_insert_dashboard_chart_relationships,
+)
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
@@ -46,7 +48,7 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
-from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.dashboard import Dashboard
 from superset.themes.schemas import ImportV1ThemeSchema
 
 logger = logging.getLogger(__name__)
@@ -156,11 +158,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
                             target_tag_names, contents, chart.id, "chart", db.session
                         )
 
-        # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
-
         # import dashboards
         dashboards: list[Dashboard] = []
         dashboard_chart_ids: list[tuple[int, int]] = []
@@ -181,8 +178,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     if uuid not in chart_ids:
                         break
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
-                        dashboard_chart_ids.append((dashboard.id, chart_id))
+                    dashboard_chart_ids.append((dashboard.id, chart_id))
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -197,11 +193,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         )
 
         # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
+        safe_insert_dashboard_chart_relationships(dashboard_chart_ids)
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:

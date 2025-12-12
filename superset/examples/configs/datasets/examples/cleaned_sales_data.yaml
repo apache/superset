@@ -344,4 +344,3 @@ columns:
   extra: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: examples://datasets/examples/sales.csv

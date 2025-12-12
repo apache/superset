@@ -1860,7 +1860,7 @@ class SqlaTable(
         #
         #   table.column IN (SELECT 1 FROM (SELECT 1) WHERE 1!=1)
         filters = [
-            method.in_(perms)  # type: ignore[union-attr]
+            method.in_(perms)
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
