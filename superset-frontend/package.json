@@ -241,7 +241,7 @@
     "@hot-loader/react-dom": "^17.0.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
-    "@playwright/test": "^1.56.0",
+    "@playwright/test": "^1.57.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
     "@storybook/addon-actions": "8.1.11",
     "@storybook/addon-controls": "8.1.11",
