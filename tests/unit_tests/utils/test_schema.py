@@ -231,7 +231,7 @@ def test_validate_query_context_metadata_number_value() -> None:
 
 def test_validate_query_context_metadata_boolean_value() -> None:
     """Test validate_query_context_metadata with boolean instead of JSON object."""
-    bool_value = json.dumps(obj=True)
+    bool_value = json.dumps(True)
     with pytest.raises(ValidationError) as exc_info:
         validate_query_context_metadata(bool_value)
     assert "Query context must be a valid JSON object" in str(exc_info.value)
