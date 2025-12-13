@@ -295,6 +295,7 @@ export function saveDashboardRequest(data, id, saveType) {
       owners,
       roles,
       slug,
+      description,
       tags,
     } = data;
 
@@ -317,6 +318,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
+      description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
         : ensureIsArray(tags || []).map(r => (hasId(r) ? r.id : r)),
@@ -453,6 +455,7 @@ export function saveDashboardRequest(data, id, saveType) {
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
+              description: cleanedData.description,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],
