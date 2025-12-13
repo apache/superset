@@ -33,7 +33,7 @@ import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import GroupByBadge from 'src/dashboard/components/GroupByBadge';
+import CustomizationsBadge from 'src/dashboard/components/CustomizationsBadge';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -294,7 +294,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 </Tooltip>
               )}
               {!uiConfig.hideChartControls && (
-                <GroupByBadge chartId={slice.slice_id} />
+                <CustomizationsBadge chartId={slice.slice_id} />
               )}
 
               {!uiConfig.hideChartControls && (
