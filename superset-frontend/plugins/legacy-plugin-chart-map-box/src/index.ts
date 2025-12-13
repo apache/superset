@@ -24,14 +24,15 @@ import example1Dark from './images/MapBox-dark.jpg';
 import example2 from './images/MapBox2.jpg';
 import example2Dark from './images/MapBox2-dark.jpg';
 import controlPanel from './controlPanel';
+import transformProps from './transformProps';
 
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://www.mapbox.com/mapbox-gl-js/api/'],
   description: '',
   exampleGallery: [
-    { url: example1, urlDark: example1Dark, description: t('Light mode') },
-    { url: example2, urlDark: example2Dark, description: t('Dark mode') },
+    { url: example1, urlDark: example1Dark },
+    { url: example2, urlDark: example2Dark },
   ],
   name: t('MapBox'),
   tags: [
@@ -51,7 +52,7 @@ export default class MapBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./MapBox'),
-      loadTransformProps: () => import('./transformProps'),
+      transformProps,
       metadata,
       controlPanel,
     });

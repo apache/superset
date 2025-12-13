@@ -16,12 +16,80 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ChartProps } from '@superset-ui/core';
 import Supercluster from 'supercluster';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
 const NOOP = () => {};
 
-export default function transformProps(chartProps) {
+export interface FormData {
+  clusteringRadius: number;
+  globalOpacity: number;
+  mapboxColor: string;
+  mapboxStyle: string;
+  pandasAggfunc: string;
+  pointRadius: number | string;
+  pointRadiusUnit: string;
+  renderWhileDragging: boolean;
+}
+
+interface ViewportChangeParams {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+}
+
+interface ClusterOptions {
+  maxZoom: number;
+  radius: number;
+  initial?: () => {
+    sum: number;
+    squaredSum: number;
+    min: number;
+    max: number;
+  };
+  map?: (prop: { metric: number }) => {
+    sum: number;
+    squaredSum: number;
+    min: number;
+    max: number;
+  };
+  reduce?: (
+    accu: {
+      sum: number;
+      squaredSum: number;
+      min: number;
+      max: number;
+    },
+    prop: {
+      sum: number;
+      squaredSum: number;
+      min: number;
+      max: number;
+    },
+  ) => void;
+}
+
+interface TransformedProps {
+  width?: number;
+  height?: number;
+  aggregatorName?: string;
+  bounds?: [[number, number], [number, number]];
+  clusterer?: Supercluster;
+  globalOpacity?: number;
+  hasCustomMetric?: boolean;
+  mapboxApiKey?: string;
+  mapStyle?: string;
+  onViewportChange?: (params: ViewportChangeParams) => void;
+  pointRadius?: number;
+  pointRadiusUnit?: string;
+  renderWhileDragging?: boolean;
+  rgb?: RegExpExecArray | null;
+}
+
+export default function transformProps(
+  chartProps: ChartProps<FormData>,
+): TransformedProps {
   const { width, height, formData, hooks, queriesData } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
   const { bounds, geoJSON, hasCustomMetric, mapboxApiKey } =
@@ -45,7 +113,7 @@ export default function transformProps(chartProps) {
     return {};
   }
 
-  const opts = {
+  const opts: ClusterOptions = {
     maxZoom: DEFAULT_MAX_ZOOM,
     radius: clusteringRadius,
   };
@@ -56,13 +124,26 @@ export default function transformProps(chartProps) {
       min: Infinity,
       max: -Infinity,
     });
-    opts.map = prop => ({
+    opts.map = (prop: { metric: number }) => ({
       sum: prop.metric,
       squaredSum: prop.metric ** 2,
       min: prop.metric,
       max: prop.metric,
     });
-    opts.reduce = (accu, prop) => {
+    opts.reduce = (
+      accu: {
+        sum: number;
+        squaredSum: number;
+        min: number;
+        max: number;
+      },
+      prop: {
+        sum: number;
+        squaredSum: number;
+        min: number;
+        max: number;
+      },
+    ) => {
       // Temporarily disable param-reassignment linting to work with supercluster's api
       /* eslint-disable no-param-reassign */
       accu.sum += prop.sum;
@@ -85,12 +166,13 @@ export default function transformProps(chartProps) {
     hasCustomMetric,
     mapboxApiKey,
     mapStyle: mapboxStyle,
-    onViewportChange({ latitude, longitude, zoom }) {
+    onViewportChange({ latitude, longitude, zoom }: ViewportChangeParams) {
       setControlValue('viewport_longitude', longitude);
       setControlValue('viewport_latitude', latitude);
       setControlValue('viewport_zoom', zoom);
     },
-    pointRadius: pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : pointRadius,
+    pointRadius:
+      pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : Number(pointRadius),
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
