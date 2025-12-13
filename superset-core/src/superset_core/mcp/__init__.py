@@ -48,11 +48,14 @@ def tool(
     description: str | None = None,
     tags: list[str] | None = None,
     protect: bool = True,
+    class_permission_name: str | None = None,
+    method_permission_name: str | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
-    Decorator to register an MCP tool with optional authentication.
+    Decorator to register an MCP tool with optional authentication and RBAC.
 
-    This decorator combines FastMCP tool registration with optional authentication.
+    This decorator combines FastMCP tool registration with optional authentication
+    and RBAC (Role-Based Access Control) permission checking.
 
     Can be used as:
         @tool
@@ -62,6 +65,16 @@ def tool(
         @tool(name="custom_name", protect=False)
         def my_tool(): ...
 
+    Or with RBAC permissions (mirrors Flask-AppBuilder pattern):
+        @tool(class_permission_name="Chart")
+        def list_charts(): ...  # Requires can_read on Chart
+
+        @tool(tags=["mutate"], class_permission_name="Chart")
+        def generate_chart(): ...  # Requires can_write on Chart (auto from mutate tag)
+
+        @tool(class_permission_name="SQLLab", method_permission_name="execute_sql")
+        def execute_sql(): ...  # Requires can_execute_sql on SQLLab
+
     Args:
         func_or_name: When used as @tool, this will be the function.
                      When used as @tool("name"), this will be the name.
@@ -69,6 +82,10 @@ def tool(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
         protect: Whether to require Superset authentication (defaults to True)
+        class_permission_name: The view/resource name for RBAC
+                              (e.g., "Chart", "Dashboard"). If set, RBAC is enabled.
+        method_permission_name: The action for RBAC (e.g., "read", "write").
+                               Defaults to "write" if tags has "mutate", else "read".
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
@@ -90,6 +107,11 @@ def tool(
         def public_tool() -> str:
             '''Public tool accessible without auth'''
             return "Hello world"
+
+        @tool(class_permission_name="Chart")  # RBAC: can_read on Chart
+        def list_charts() -> list:
+            '''List available charts'''
+            return []
     """
     raise NotImplementedError(
         "MCP tool decorator not initialized. "

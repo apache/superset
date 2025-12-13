@@ -45,7 +45,7 @@ from superset.mcp_service.utils.url_utils import get_mcp_service_url
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
+@tool(tags=["mutate"], class_permission_name="Chart")
 @parse_request(UpdateChartPreviewRequest)
 def update_chart_preview(
     request: UpdateChartPreviewRequest, ctx: Context
