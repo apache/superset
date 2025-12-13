@@ -795,6 +795,8 @@ THEME_DEFAULT: Theme = {
         "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        # Direction
+        "direction": "ltr",
         # Extra tokens
         "transitionTiming": 0.3,
         "brandIconMaxWidth": 37,

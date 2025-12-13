@@ -62,6 +62,7 @@ const mockedProps = {
       url: '/lang/it',
     },
   },
+  setDirection: () => {},
 };
 
 const Template = (args: any) => <LanguagePicker {...args} />;
