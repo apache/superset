@@ -17,42 +17,31 @@
 
 """Unit tests for MCP SQL Lab utility functions."""
 
+from superset.mcp_service.sql_lab.sql_lab_utils import _apply_limit
+from superset.sql.parse import SQLScript
 
-from superset.mcp_service.sql_lab.sql_lab_utils import _apply_limit, _is_select_query
 
+class TestSQLScriptMutationDetection:
+    """Tests for SQLScript.has_mutation() used in query type detection."""
 
-class TestIsSelectQuery:
-    """Tests for _is_select_query function."""
+    def test_simple_select_no_mutation(self):
+        """Test simple SELECT query is not a mutation."""
+        script = SQLScript("SELECT * FROM table1", "sqlite")
+        assert script.has_mutation() is False
 
-    def test_simple_select(self):
-        """Test simple SELECT query is recognized."""
-        assert _is_select_query("SELECT * FROM table1") is True
-
-    def test_select_lowercase(self):
-        """Test lowercase SELECT query is recognized."""
-        assert _is_select_query("select * from table1") is True
-
-    def test_select_with_whitespace(self):
-        """Test SELECT query with leading whitespace is recognized."""
-        assert _is_select_query("   SELECT * FROM table1") is True
-
-    def test_cte_query(self):
-        """Test CTE (WITH clause) query is recognized as SELECT."""
+    def test_cte_query_no_mutation(self):
+        """Test CTE (WITH clause) query is not a mutation."""
         cte_sql = """
         WITH cte_name AS (
             SELECT * FROM table1
         )
         SELECT * FROM cte_name
         """
-        assert _is_select_query(cte_sql) is True
+        script = SQLScript(cte_sql, "sqlite")
+        assert script.has_mutation() is False
 
-    def test_cte_lowercase(self):
-        """Test lowercase CTE query is recognized."""
-        cte_sql = "with simple as (select 'test' as val) select val from simple"
-        assert _is_select_query(cte_sql) is True
-
-    def test_recursive_cte(self):
-        """Test recursive CTE is recognized as SELECT."""
+    def test_recursive_cte_no_mutation(self):
+        """Test recursive CTE is not a mutation."""
         recursive_cte = """
         WITH RECURSIVE cte AS (
             SELECT 1 AS n
@@ -61,33 +50,39 @@ class TestIsSelectQuery:
         )
         SELECT n FROM cte
         """
-        assert _is_select_query(recursive_cte) is True
+        script = SQLScript(recursive_cte, "sqlite")
+        assert script.has_mutation() is False
 
-    def test_multiple_ctes(self):
-        """Test query with multiple CTEs is recognized."""
+    def test_multiple_ctes_no_mutation(self):
+        """Test query with multiple CTEs is not a mutation."""
         multiple_ctes = """
         WITH
             cte1 AS (SELECT 1 as a),
             cte2 AS (SELECT 2 as b)
         SELECT * FROM cte1, cte2
         """
-        assert _is_select_query(multiple_ctes) is True
+        script = SQLScript(multiple_ctes, "sqlite")
+        assert script.has_mutation() is False
 
-    def test_insert_not_select(self):
-        """Test INSERT query is not recognized as SELECT."""
-        assert _is_select_query("INSERT INTO table1 VALUES (1)") is False
+    def test_insert_is_mutation(self):
+        """Test INSERT query is a mutation."""
+        script = SQLScript("INSERT INTO table1 VALUES (1)", "sqlite")
+        assert script.has_mutation() is True
 
-    def test_update_not_select(self):
-        """Test UPDATE query is not recognized as SELECT."""
-        assert _is_select_query("UPDATE table1 SET col = 1") is False
+    def test_update_is_mutation(self):
+        """Test UPDATE query is a mutation."""
+        script = SQLScript("UPDATE table1 SET col = 1", "sqlite")
+        assert script.has_mutation() is True
 
-    def test_delete_not_select(self):
-        """Test DELETE query is not recognized as SELECT."""
-        assert _is_select_query("DELETE FROM table1") is False
+    def test_delete_is_mutation(self):
+        """Test DELETE query is a mutation."""
+        script = SQLScript("DELETE FROM table1", "sqlite")
+        assert script.has_mutation() is True
 
-    def test_create_not_select(self):
-        """Test CREATE query is not recognized as SELECT."""
-        assert _is_select_query("CREATE TABLE table1 (id INT)") is False
+    def test_create_is_mutation(self):
+        """Test CREATE query is a mutation."""
+        script = SQLScript("CREATE TABLE table1 (id INT)", "sqlite")
+        assert script.has_mutation() is True
 
 
 class TestApplyLimit:

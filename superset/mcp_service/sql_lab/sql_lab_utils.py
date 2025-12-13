@@ -174,6 +174,7 @@ def _execute_query(
 ) -> dict[str, Any]:
     """Execute the query and process results."""
     # Import inside function to avoid initialization issues
+    from superset.sql.parse import SQLScript
     from superset.utils.core import QuerySource
 
     results = {
@@ -194,25 +195,18 @@ def _execute_query(
             cursor = conn.cursor()
             cursor.execute(sql)
 
-            # Process results based on query type
-            if _is_select_query(sql):
-                _process_select_results(cursor, results, limit)
-            else:
+            # Use SQLScript for proper SQL parsing to determine query type
+            script = SQLScript(sql, database.db_engine_spec.engine)
+            if script.has_mutation():
                 _process_dml_results(cursor, conn, results)
+            else:
+                _process_select_results(cursor, results, limit)
 
     except Exception as e:
         logger.error("Error executing SQL: %s", e)
         raise
 
     return results
-
-
-def _is_select_query(sql: str) -> bool:
-    """Check if SQL is a SELECT query (including CTEs that start with WITH)."""
-    sql_lower = sql.lower().strip()
-    # SELECT queries start with SELECT
-    # CTE queries start with WITH and contain SELECT
-    return sql_lower.startswith("select") or sql_lower.startswith("with")
 
 
 def _process_select_results(cursor: Any, results: dict[str, Any], limit: int) -> None:
