@@ -70,26 +70,22 @@ def validate_sql_query(sql: str, database: Any) -> None:
         SupersetDisallowedSQLFunctionException,
         SupersetDMLNotAllowedException,
     )
+    from superset.sql.parse import SQLScript
 
-    # Simplified validation without complex parsing
-    sql_upper = sql.upper().strip()
+    # Use SQLScript for proper SQL parsing
+    script = SQLScript(sql, database.db_engine_spec.engine)
 
     # Check for DML operations if not allowed
-    dml_keywords = ["INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE"]
-    if any(sql_upper.startswith(keyword) for keyword in dml_keywords):
-        if not database.allow_dml:
-            raise SupersetDMLNotAllowedException()
+    if script.has_mutation() and not database.allow_dml:
+        raise SupersetDMLNotAllowedException()
 
     # Check for disallowed functions from config
     disallowed_functions = app.config.get("DISALLOWED_SQL_FUNCTIONS", {}).get(
-        "sqlite",
-        set(),  # Default to sqlite for now
+        database.db_engine_spec.engine,
+        set(),
     )
-    if disallowed_functions:
-        sql_lower = sql.lower()
-        for func in disallowed_functions:
-            if f"{func.lower()}(" in sql_lower:
-                raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+    if disallowed_functions and script.check_functions_present(disallowed_functions):
+        raise SupersetDisallowedSQLFunctionException(disallowed_functions)
 
 
 def execute_sql_query(
@@ -110,8 +106,8 @@ def execute_sql_query(
     sql = _apply_parameters(sql, parameters)
     validate_sql_query(sql, database)
 
-    # Apply limit for SELECT queries
-    rendered_sql = _apply_limit(sql, limit)
+    # Apply limit for SELECT queries using SQLScript
+    rendered_sql = _apply_limit(sql, limit, database)
 
     # Execute and get results
     results = _execute_query(database, rendered_sql, schema, limit)
@@ -156,14 +152,23 @@ def _apply_parameters(sql: str, parameters: dict[str, Any] | None) -> str:
     return sql
 
 
-def _apply_limit(sql: str, limit: int) -> str:
-    """Apply limit to SELECT queries (including CTEs) if not already present."""
-    sql_lower = sql.lower().strip()
-    # Apply LIMIT to SELECT queries and CTE queries (which start with WITH)
-    is_select_like = sql_lower.startswith("select") or sql_lower.startswith("with")
-    if is_select_like and "limit" not in sql_lower:
-        return f"{sql.rstrip().rstrip(';')} LIMIT {limit}"
-    return sql
+def _apply_limit(sql: str, limit: int, database: Any) -> str:
+    """Apply limit to SELECT queries using SQLScript for proper parsing."""
+    from superset.sql.parse import LimitMethod, SQLScript
+
+    script = SQLScript(sql, database.db_engine_spec.engine)
+
+    # Only apply limit to non-mutating (SELECT-like) queries
+    if script.has_mutation():
+        return sql
+
+    # Apply limit to each statement in the script
+    for statement in script.statements:
+        # Only set limit if not already present
+        if statement.get_limit_value() is None:
+            statement.set_limit_value(limit, LimitMethod.FORCE_LIMIT)
+
+    return script.format()
 
 
 def _execute_query(

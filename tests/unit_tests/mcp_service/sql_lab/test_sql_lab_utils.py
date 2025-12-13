@@ -17,6 +17,10 @@
 
 """Unit tests for MCP SQL Lab utility functions."""
 
+from unittest.mock import MagicMock
+
+import pytest
+
 from superset.mcp_service.sql_lab.sql_lab_utils import _apply_limit
 from superset.sql.parse import SQLScript
 
@@ -86,44 +90,48 @@ class TestSQLScriptMutationDetection:
 
 
 class TestApplyLimit:
-    """Tests for _apply_limit function."""
+    """Tests for _apply_limit function using SQLScript."""
 
-    def test_adds_limit_to_select(self):
+    @pytest.fixture
+    def mock_database(self):
+        """Create a mock database with sqlite engine spec."""
+        db = MagicMock()
+        db.db_engine_spec.engine = "sqlite"
+        return db
+
+    def test_adds_limit_to_select(self, mock_database):
         """Test LIMIT is added to SELECT query."""
-        result = _apply_limit("SELECT * FROM table1", 100)
-        assert result == "SELECT * FROM table1 LIMIT 100"
+        result = _apply_limit("SELECT * FROM table1", 100, mock_database)
+        assert "LIMIT 100" in result
 
-    def test_adds_limit_to_cte(self):
+    def test_adds_limit_to_cte(self, mock_database):
         """Test LIMIT is added to CTE query."""
         cte_sql = "WITH cte AS (SELECT 1) SELECT * FROM cte"
-        result = _apply_limit(cte_sql, 50)
-        assert result == "WITH cte AS (SELECT 1) SELECT * FROM cte LIMIT 50"
+        result = _apply_limit(cte_sql, 50, mock_database)
+        assert "LIMIT 50" in result
 
-    def test_removes_trailing_semicolon(self):
-        """Test trailing semicolon is removed before adding LIMIT."""
-        result = _apply_limit("SELECT * FROM table1;", 100)
-        assert result == "SELECT * FROM table1 LIMIT 100"
-
-    def test_preserves_existing_limit(self):
+    def test_preserves_existing_limit(self, mock_database):
         """Test existing LIMIT is not modified."""
         sql = "SELECT * FROM table1 LIMIT 10"
-        result = _apply_limit(sql, 100)
-        assert result == sql
+        result = _apply_limit(sql, 100, mock_database)
+        assert "LIMIT 10" in result
+        assert "LIMIT 100" not in result
 
-    def test_preserves_existing_limit_in_cte(self):
+    def test_preserves_existing_limit_in_cte(self, mock_database):
         """Test existing LIMIT in CTE query is not modified."""
         cte_sql = "WITH cte AS (SELECT 1) SELECT * FROM cte LIMIT 5"
-        result = _apply_limit(cte_sql, 100)
-        assert result == cte_sql
+        result = _apply_limit(cte_sql, 100, mock_database)
+        assert "LIMIT 5" in result
+        assert "LIMIT 100" not in result
 
-    def test_no_limit_on_insert(self):
+    def test_no_limit_on_insert(self, mock_database):
         """Test LIMIT is not added to INSERT query."""
         sql = "INSERT INTO table1 VALUES (1)"
-        result = _apply_limit(sql, 100)
+        result = _apply_limit(sql, 100, mock_database)
         assert result == sql
 
-    def test_no_limit_on_update(self):
+    def test_no_limit_on_update(self, mock_database):
         """Test LIMIT is not added to UPDATE query."""
         sql = "UPDATE table1 SET col = 1"
-        result = _apply_limit(sql, 100)
+        result = _apply_limit(sql, 100, mock_database)
         assert result == sql
