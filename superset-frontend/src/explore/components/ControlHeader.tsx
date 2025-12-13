@@ -42,9 +42,15 @@ export type ControlHeaderProps = {
 const iconStyles = css`
   &.anticon {
     font-size: unset;
+    overflow: visible;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    padding-bottom: 0.1em;
     .anticon {
       line-height: unset;
       vertical-align: unset;
+      overflow: visible;
     }
   }
 `;
@@ -121,6 +127,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             margin-bottom: ${theme.sizeUnit * 0.5}px;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
+            overflow: visible;
+            padding-bottom: 0.1em;
           `}
           htmlFor={name}
         >
