@@ -37,25 +37,55 @@ afterEach(() => {
 });
 
 test('render timezones in correct order for daylight saving time', async () => {
+  // Set system time BEFORE loading component to ensure cache uses correct date
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2022-07-01'));
+
   const TimezoneSelector = await loadComponent('2022-07-01');
   const onTimezoneChange = jest.fn();
-  render(
+  const { container } = render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="America/Nassau"
     />,
   );
 
+  // Trigger data loading by clicking the select
   const searchInput = screen.getByRole('combobox');
   await userEvent.click(searchInput);
 
+  // Run timers to execute queueMicrotask/setTimeout callback
+  jest.runAllTimers();
+
+  // Wait for timezone data to load
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  // Verify the selected timezone is displayed correctly (in DST)
+  const selectionItem = container.querySelector('.ant-select-selection-item');
+  expect(selectionItem).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
+
+  // Verify options are sorted by UTC offset (lowest/most negative first)
   const options = await waitFor(() =>
     document.querySelectorAll('.ant-select-item-option-content'),
   );
 
-  // first option is always current timezone
-  expect(options[0]).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
-  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
-  expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Niue)');
-  expect(options[3]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
+  // Options should be sorted by offset: -11:00 comes before -04:00
+  expect(options[0]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
+  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Niue)');
+  expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
+
+  // Find the Eastern Daylight Time option
+  // Virtual list only renders visible items, so we search the DOM for the option element
+  // by its aria-label attribute which should be available even if not rendered
+  const edtOption = await waitFor(() => {
+    const option = document.querySelector(
+      '[aria-label="GMT -04:00 (Eastern Daylight Time)"]',
+    );
+    expect(option).toBeTruthy();
+    return option;
+  });
+
+  expect(edtOption).toBeInTheDocument();
 });
