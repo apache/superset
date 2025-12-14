@@ -175,7 +175,7 @@ def test_chart_post_schema_query_context_validation(app_context: None) -> None:
         "query_context": valid_query_context,
     }
     result = schema.load(valid_data)
-    assert result["query_context"] == valid_query_context
+    assert json.loads(result["query_context"]) == json.loads(valid_query_context)
 
     # None query_context should be allowed (allow_none=True)
     none_data = {
@@ -258,7 +258,7 @@ def test_chart_put_schema_query_context_validation(app_context: None) -> None:
         "query_context": valid_query_context,
     }
     result = schema.load(valid_data)
-    assert result["query_context"] == valid_query_context
+    assert json.loads(result["query_context"]) == json.loads(valid_query_context)
 
     # None query_context should be allowed (allow_none=True)
     none_data = {
