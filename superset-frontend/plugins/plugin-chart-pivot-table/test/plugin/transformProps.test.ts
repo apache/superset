@@ -96,4 +96,193 @@ describe('PivotTableChart transformProps', () => {
       currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
     });
   });
+
+  describe('Per-cell currency detection (AUTO mode passes through)', () => {
+    it('should pass AUTO mode through for per-cell detection (single currency data)', () => {
+      const autoFormData = {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      };
+      const autoChartProps = new ChartProps<QueryFormData>({
+        formData: autoFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [
+              { country: 'USA', currency: 'USD', revenue: 100 },
+              { country: 'Canada', currency: 'USD', revenue: 200 },
+              { country: 'Mexico', currency: 'usd', revenue: 150 },
+            ],
+            colnames: ['country', 'currency', 'revenue'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: {
+          verboseMap: {},
+          columnFormats: {},
+          currencyCodeColumn: 'currency',
+        },
+        theme: supersetTheme,
+      });
+
+      const result = transformProps(autoChartProps);
+      // AUTO mode should be preserved for per-cell detection in PivotTableChart
+      expect(result.currencyFormat).toEqual({
+        symbol: 'AUTO',
+        symbolPosition: 'prefix',
+      });
+      // currencyCodeColumn should be passed through for per-cell detection
+      expect(result.currencyCodeColumn).toBe('currency');
+    });
+
+    it('should pass AUTO mode through for per-cell detection (mixed currency data)', () => {
+      const autoFormData = {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      };
+      const autoChartProps = new ChartProps<QueryFormData>({
+        formData: autoFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [
+              { country: 'USA', currency: 'USD', revenue: 100 },
+              { country: 'UK', currency: 'GBP', revenue: 200 },
+              { country: 'France', currency: 'EUR', revenue: 150 },
+            ],
+            colnames: ['country', 'currency', 'revenue'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: {
+          verboseMap: {},
+          columnFormats: {},
+          currencyCodeColumn: 'currency',
+        },
+        theme: supersetTheme,
+      });
+
+      const result = transformProps(autoChartProps);
+      // AUTO mode should be preserved - per-cell detection happens in PivotTableChart
+      expect(result.currencyFormat).toEqual({
+        symbol: 'AUTO',
+        symbolPosition: 'prefix',
+      });
+      expect(result.currencyCodeColumn).toBe('currency');
+    });
+
+    it('should pass AUTO mode through when no currency column is defined', () => {
+      const autoFormData = {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      };
+      const autoChartProps = new ChartProps<QueryFormData>({
+        formData: autoFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [
+              { country: 'USA', revenue: 100 },
+              { country: 'UK', revenue: 200 },
+            ],
+            colnames: ['country', 'revenue'],
+            coltypes: [1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: {
+          verboseMap: {},
+          columnFormats: {},
+          // No currencyCodeColumn defined
+        },
+        theme: supersetTheme,
+      });
+
+      const result = transformProps(autoChartProps);
+      expect(result.currencyFormat).toEqual({
+        symbol: 'AUTO',
+        symbolPosition: 'prefix',
+      });
+      // currencyCodeColumn should be undefined when not configured
+      expect(result.currencyCodeColumn).toBeUndefined();
+    });
+
+    it('should handle empty data gracefully in AUTO mode', () => {
+      const autoFormData = {
+        ...formData,
+        currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
+      };
+      const autoChartProps = new ChartProps<QueryFormData>({
+        formData: autoFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [],
+            colnames: ['country', 'currency', 'revenue'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: {
+          verboseMap: {},
+          columnFormats: {},
+          currencyCodeColumn: 'currency',
+        },
+        theme: supersetTheme,
+      });
+
+      const result = transformProps(autoChartProps);
+      expect(result.currencyFormat).toEqual({
+        symbol: 'AUTO',
+        symbolPosition: 'prefix',
+      });
+      expect(result.currencyCodeColumn).toBe('currency');
+    });
+
+    it('should preserve static currency format when not using AUTO mode', () => {
+      const staticFormData = {
+        ...formData,
+        currencyFormat: { symbol: 'EUR', symbolPosition: 'suffix' },
+      };
+      const staticChartProps = new ChartProps<QueryFormData>({
+        formData: staticFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [
+              { country: 'USA', currency: 'USD', revenue: 100 },
+              { country: 'UK', currency: 'GBP', revenue: 200 },
+            ],
+            colnames: ['country', 'currency', 'revenue'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: {
+          verboseMap: {},
+          columnFormats: {},
+          currencyCodeColumn: 'currency',
+        },
+        theme: supersetTheme,
+      });
+
+      const result = transformProps(staticChartProps);
+      expect(result.currencyFormat).toEqual({
+        symbol: 'EUR',
+        symbolPosition: 'suffix',
+      });
+    });
+  });
 });

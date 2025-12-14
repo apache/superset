@@ -189,4 +189,91 @@ describe('DatasourceEditor Currency Tests', () => {
       { timeout: 5000 },
     );
   }, 60000);
+
+  test('currency code column dropdown shows only string columns', async () => {
+    // Import GenericDataType for type checking
+    const { GenericDataType } = await import('@apache-superset/core/api/core');
+
+    // Setup props with columns of different types
+    const propsWithTypedColumns = {
+      ...props,
+      datasource: {
+        ...props.datasource,
+        columns: [
+          {
+            id: 100,
+            type: 'VARCHAR(255)',
+            type_generic: GenericDataType.String,
+            filterable: true,
+            is_dttm: false,
+            is_active: true,
+            expression: '',
+            groupby: true,
+            column_name: 'currency_code',
+          },
+          {
+            id: 101,
+            type: 'DECIMAL',
+            type_generic: GenericDataType.Numeric,
+            filterable: false,
+            is_dttm: false,
+            is_active: true,
+            expression: '',
+            groupby: false,
+            column_name: 'amount',
+          },
+          ...props.datasource.columns,
+        ],
+      },
+      onChange: jest.fn(),
+    };
+
+    // Render with typed columns
+    fastRender(propsWithTypedColumns);
+
+    // Navigate to columns tab
+    const columnsTab = screen.getByTestId('collection-tab-Columns');
+    await userEvent.click(columnsTab);
+
+    // Find the Default Column Settings section
+    const defaultColumnSettings = await screen.findByTestId(
+      'default-column-settings',
+      {},
+      { timeout: 5000 },
+    );
+    expect(defaultColumnSettings).toBeInTheDocument();
+
+    // Find the currency code column dropdown
+    const currencyCodeDropdown = await screen.findByRole(
+      'combobox',
+      { name: 'Currency code column' },
+      { timeout: 5000 },
+    );
+    expect(currencyCodeDropdown).toBeInTheDocument();
+
+    // Open the dropdown
+    await userEvent.click(currencyCodeDropdown);
+
+    // Check that the STRING column (currency_code) is available in the dropdown
+    const currencyCodeOption = await waitFor(
+      () => {
+        const options = document.querySelectorAll('.ant-select-item-option');
+        const opt = Array.from(options).find(o =>
+          o.textContent?.includes('currency_code'),
+        );
+        if (!opt) throw new Error('currency_code option not found');
+        return opt;
+      },
+      { timeout: 5000 },
+    );
+    expect(currencyCodeOption).toBeInTheDocument();
+
+    // Check that the NUMERIC column (amount) is NOT available in the dropdown
+    // (since only string columns should appear)
+    const options = document.querySelectorAll('.ant-select-item-option');
+    const amountOption = Array.from(options).find(o =>
+      o.textContent?.includes('amount'),
+    );
+    expect(amountOption).toBeUndefined();
+  }, 60000);
 });

@@ -22,6 +22,7 @@ from .css_templates import load_css_templates
 from .deck import load_deck_dash
 from .energy import load_energy
 from .flights import load_flights
+from .international_sales import load_international_sales
 from .long_lat import load_long_lat_data
 from .misc_dashboard import load_misc_dashboard
 from .multiformat_time_series import load_multiformat_time_series
@@ -39,6 +40,7 @@ __all__ = [
     "load_birth_names",
     "load_country_map_data",
     "load_css_templates",
+    "load_international_sales",
     "load_deck_dash",
     "load_energy",
     "load_flights",
