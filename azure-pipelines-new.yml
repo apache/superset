@@ -1,0 +1,343 @@
+trigger: none
+pr: none
+
+parameters:
+  - name: targetEnvironment
+    type: string
+    displayName: Target Environment
+    default: blue-dev
+
+  - name: dockerPool
+    type: object
+    displayName: Docker Agent Pool
+    default: 'Linux-Hosted'
+
+  - name: dockerNetwork
+    type: string
+    displayName: Docker Network Name
+    default: superset-network
+
+  - name: port
+    type: number
+    displayName: Application Port
+    default: 8088
+
+variables:
+  appName: superset
+  containerRegistry: 'IntelliSuite Container Registry'
+  acrDomain: 'intellisuite.azurecr.io'
+  imageRepository: 'superset'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  artifactName: superset-deployment
+  vmImageName: 'ubuntu-latest'
+
+stages:
+  # ========================================
+  # BUILD STAGE
+  # ========================================
+  - stage: Build
+    displayName: Build Superset Docker Image
+    jobs:
+      - job: BuildDocker
+        displayName: Build and Push Docker Image
+        pool: ${{ parameters.dockerPool }}
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 1
+
+          - task: Bash@3
+            displayName: Set Build Variables
+            inputs:
+              targetType: inline
+              script: |
+                BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                SHORT_SHA=$(echo "$(Build.SourceVersion)" | cut -c1-7)
+                SEMANTIC_TAG="$(Build.BuildId)-$SHORT_SHA"
+
+                echo "##vso[task.setvariable variable=BUILD_DATE]$BUILD_DATE"
+                echo "##vso[task.setvariable variable=shortCommitSha]$SHORT_SHA"
+                echo "##vso[task.setvariable variable=semanticTag]$SEMANTIC_TAG"
+
+                echo "Semantic Tag: $SEMANTIC_TAG"
+                echo "Build Date: $BUILD_DATE"
+
+          - task: Docker@2
+            displayName: Login to Azure Container Registry
+            inputs:
+              command: login
+              containerRegistry: $(containerRegistry)
+
+          - task: Docker@2
+            displayName: Build Docker Image
+            inputs:
+              command: build
+              containerRegistry: $(containerRegistry)
+              repository: '$(imageRepository)'
+              Dockerfile: '$(dockerfilePath)'
+              buildContext: '$(Build.SourcesDirectory)'
+              arguments: |
+                --build-arg BUILD_ID=$(Build.BuildId)
+                --build-arg COMMIT_SHA=$(Build.SourceVersion)
+                --build-arg BUILD_DATE=$(BUILD_DATE)
+                --label org.opencontainers.image.source=$(Build.Repository.Uri)
+                --label org.opencontainers.image.revision=$(Build.SourceVersion)
+                --label org.opencontainers.image.created=$(BUILD_DATE)
+              tags: |
+                $(semanticTag)
+                latest
+
+          - task: Docker@2
+            displayName: Push Docker Image
+            inputs:
+              command: push
+              containerRegistry: $(containerRegistry)
+              repository: '$(imageRepository)'
+              tags: |
+                $(semanticTag)
+                latest
+
+          - task: Bash@3
+            displayName: Create Deployment Metadata
+            inputs:
+              targetType: inline
+              script: |
+                mkdir -p "$(Build.ArtifactStagingDirectory)"
+
+                cat > "$(Build.ArtifactStagingDirectory)/deployment-metadata.json" << EOF
+                {
+                  "imageTag": "$(semanticTag)",
+                  "buildId": "$(Build.BuildId)",
+                  "commitSha": "$(Build.SourceVersion)",
+                  "shortCommitSha": "$(shortCommitSha)",
+                  "branchName": "$(Build.SourceBranchName)",
+                  "repository": "$(acrDomain)/$(imageRepository)",
+                  "fullImageName": "$(acrDomain)/$(imageRepository):$(semanticTag)",
+                  "buildDate": "$(BUILD_DATE)",
+                  "triggeredBy": "$(Build.RequestedFor)",
+                  "appName": "$(appName)",
+                  "port": "${{ parameters.port }}"
+                }
+                EOF
+
+                cat > "$(Build.ArtifactStagingDirectory)/deployment.env" << EOF
+                IMAGE_TAG=$(semanticTag)
+                BUILD_ID=$(Build.BuildId)
+                COMMIT_SHA=$(Build.SourceVersion)
+                SHORT_COMMIT_SHA=$(shortCommitSha)
+                FULL_IMAGE_NAME=$(acrDomain)/$(imageRepository):$(semanticTag)
+                BUILD_DATE=$(BUILD_DATE)
+                APP_NAME=$(appName)
+                APP_PORT=${{ parameters.port }}
+                EOF
+
+                echo "Deployment metadata created."
+                cat "$(Build.ArtifactStagingDirectory)/deployment-metadata.json"
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Deployment Artifacts
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)"
+              artifact: "$(artifactName)"
+              publishLocation: "pipeline"
+
+          - task: Bash@3
+            displayName: Build Summary
+            inputs:
+              targetType: inline
+              script: |
+                echo "=========================================="
+                echo "Build Complete"
+                echo "Image: $(acrDomain)/$(imageRepository):$(semanticTag)"
+                echo "Build ID: $(Build.BuildId)"
+                echo "Commit: $(shortCommitSha)"
+                echo "Branch: $(Build.SourceBranchName)"
+                echo "=========================================="
+
+  # ========================================
+  # DEPLOY STAGE
+  # ========================================
+  - stage: Deploy
+    displayName: Deploy Superset with Docker Compose
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: DeploySupersetCompose
+        displayName: Deploy Superset Stack (Docker Compose)
+        variables:
+          - group: ${{ format('{0}-Secret', parameters.targetEnvironment) }}
+        environment:
+          name: ${{ parameters.targetEnvironment }}
+          resourceType: VirtualMachine
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: false
+
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download Deployment Artifacts
+                  inputs:
+                    artifact: $(artifactName)
+                    path: $(Agent.TempDirectory)/deployment
+
+                - task: Bash@3
+                  displayName: Load Deployment Variables
+                  inputs:
+                    targetType: inline
+                    script: |
+                      echo "Loading deployment environment variables..."
+
+                      # Load variables from deployment.env
+                      if [ -f "$(Agent.TempDirectory)/deployment/deployment.env" ]; then
+                        while IFS='=' read -r key value; do
+                          echo "##vso[task.setvariable variable=$key]$value"
+                          echo "Loaded: $key"
+                        done < "$(Agent.TempDirectory)/deployment/deployment.env"
+                      fi
+
+                      # Display metadata
+                      echo "Deployment Metadata:"
+                      cat "$(Agent.TempDirectory)/deployment/deployment-metadata.json"
+
+                - task: Docker@2
+                  displayName: Login to Azure Container Registry
+                  inputs:
+                    command: login
+                    containerRegistry: '$(containerRegistry)'
+
+                - task: Bash@3
+                  displayName: Create Deployment Environment File
+                  inputs:
+                    targetType: inline
+                    script: |
+                      set -e
+
+                      echo "Creating .env file for docker-compose..."
+
+                      cat > "$(Build.SourcesDirectory)/.env.deploy" << EOF
+                      # Deployment Environment Variables
+                      SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
+                      SUPERSET_PORT=${{ parameters.port }}
+                      DOCKER_NETWORK=${{ parameters.dockerNetwork }}
+
+                      # Superset Configuration
+                      SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+
+                      # Database Configuration
+                      POSTGRES_DB=${POSTGRES_DB:-superset}
+                      POSTGRES_USER=${POSTGRES_USER:-superset}
+                      POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
+                      DATABASE_DIALECT=postgresql
+                      DATABASE_HOST=db
+                      DATABASE_PORT=5432
+                      DATABASE_DB=${POSTGRES_DB:-superset}
+                      DATABASE_USER=${POSTGRES_USER:-superset}
+                      DATABASE_PASSWORD=${POSTGRES_PASSWORD:-superset}
+
+                      # Redis Configuration
+                      REDIS_HOST=redis
+                      REDIS_PORT=6379
+                      EOF
+
+                      echo "Environment file created:"
+                      cat "$(Build.SourcesDirectory)/.env.deploy"
+
+                - task: Bash@3
+                  displayName: Pull Docker Images
+                  inputs:
+                    targetType: inline
+                    script: |
+                      set -e
+
+                      echo "Pulling images for docker-compose..."
+
+                      # Pull Superset image
+                      echo "Pulling Superset image: $(FULL_IMAGE_NAME)"
+                      docker pull "$(FULL_IMAGE_NAME)"
+
+                      # Pull Redis
+                      echo "Pulling Redis image..."
+                      docker pull redis:7
+
+                      # Pull Postgres
+                      echo "Pulling Postgres image..."
+                      docker pull postgres:17.4
+
+                      echo "All images pulled successfully."
+
+                - task: Bash@3
+                  displayName: Deploy with Docker Compose
+                  inputs:
+                    targetType: inline
+                    script: |
+                      set -e
+
+                      echo "Deploying Superset stack with docker-compose..."
+
+                      cd "$(Build.SourcesDirectory)"
+
+                      # Deploy the stack
+                      docker-compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
+
+                      echo "Docker Compose stack deployed successfully."
+                      echo ""
+                      echo "Running services:"
+                      docker-compose -f docker-compose-deploy.yml ps
+
+                - task: Bash@3
+                  displayName: Verify Stack Health
+                  inputs:
+                    targetType: inline
+                    script: |
+                      set -e
+
+                      PORT="${{ parameters.port }}"
+                      MAX_RETRIES=60
+                      DELAY_SEC=10
+                      HEALTHY=false
+
+                      echo "Waiting for Superset to become healthy..."
+                      echo "This may take a few minutes as the database initializes..."
+
+                      for i in $(seq 1 $MAX_RETRIES); do
+                        echo "Health check attempt $i/$MAX_RETRIES"
+
+                        # Check if superset_app container is running
+                        if ! docker ps | grep -q "superset_app"; then
+                          echo "Superset app container is not running!"
+                          docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs superset || true
+                          exit 1
+                        fi
+
+                        # Try HTTP health check
+                        HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/health" || echo "000")
+                        echo "HTTP response code: $HTTP_CODE"
+
+                        if [ "$HTTP_CODE" = "200" ]; then
+                          echo "Health check passed!"
+                          HEALTHY=true
+                          break
+                        fi
+
+                        echo "Waiting ${DELAY_SEC}s before retry..."
+                        sleep $DELAY_SEC
+                      done
+
+                      if [ "$HEALTHY" = false ]; then
+                        echo "Superset failed to become healthy after $((MAX_RETRIES * DELAY_SEC))s"
+                        echo ""
+                        echo "==== Docker Compose Status ===="
+                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
+                        echo ""
+                        echo "==== Superset App Logs ===="
+                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset
+                        echo ""
+                        echo "==== Superset Init Logs ===="
+                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset-init
+                        exit 1
+                      fi
+
+                      echo "Superset stack is healthy and ready!"
+                      docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
