@@ -43,6 +43,16 @@ from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
+# Apply marshmallow 4.x compatibility patch for Flask-AppBuilder
+try:
+    from superset.marshmallow_compatibility import (
+        patch_marshmallow_for_flask_appbuilder,
+    )
+
+    patch_marshmallow_for_flask_appbuilder()
+except ImportError:
+    logger.debug("marshmallow_compatibility module not found, skipping patch")
+
 
 def create_app(
     superset_config_module: Optional[str] = None,
