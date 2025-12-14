@@ -260,6 +260,14 @@ def test_chart_put_schema_query_context_validation(app_context: None) -> None:
     result = schema.load(valid_data)
     assert result["query_context"] == valid_query_context
 
+    # None query_context should be allowed (allow_none=True)
+    none_data = {
+        "slice_name": "Updated Chart",
+        "query_context": None,
+    }
+    result = schema.load(none_data)
+    assert result["query_context"] is None
+
     # Query context missing required fields should fail
     missing_datasource = json.dumps(
         {"queries": [{"metrics": ["count"], "columns": []}]}
@@ -272,3 +280,36 @@ def test_chart_put_schema_query_context_validation(app_context: None) -> None:
         schema.load(invalid_data)
     assert "query_context" in exc_info.value.messages
     assert "datasource" in str(exc_info.value.messages["query_context"])
+
+    # Query context missing 'queries' field should fail
+    missing_queries = json.dumps({"datasource": {"type": "table", "id": 1}})
+    invalid_data_2 = {
+        "slice_name": "Updated Chart",
+        "query_context": missing_queries,
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(invalid_data_2)
+    assert "query_context" in exc_info.value.messages
+    assert "queries" in str(exc_info.value.messages["query_context"])
+
+    # Query context missing both 'datasource' and 'queries' should fail
+    empty_query_context = json.dumps({})
+    invalid_data_3 = {
+        "slice_name": "Updated Chart",
+        "query_context": empty_query_context,
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(invalid_data_3)
+    assert "query_context" in exc_info.value.messages
+    assert "datasource" in str(exc_info.value.messages["query_context"])
+    assert "queries" in str(exc_info.value.messages["query_context"])
+
+    # Invalid JSON should fail
+    invalid_json = "not valid json"
+    invalid_data_4 = {
+        "slice_name": "Updated Chart",
+        "query_context": invalid_json,
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(invalid_data_4)
+    assert "query_context" in exc_info.value.messages
