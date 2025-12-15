@@ -1257,14 +1257,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("Admin", self._is_admin_pvm, pvms)
         self.set_role("Alpha", self._is_alpha_pvm, pvms)
         self.set_role("Gamma", self._is_gamma_pvm, pvms)
-        self.set_role("Public", self._is_public_pvm, pvms)
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
-        # Configure public role - allows copying permissions from any role
-        # (including the new "Public" role) to the actual public/anonymous role
-        if get_conf()["PUBLIC_ROLE_LIKE"]:
+        # Configure public role
+        # If PUBLIC_ROLE_LIKE is not set or is "Public", use the built-in Public role
+        # Otherwise, copy permissions from the specified role (legacy behavior)
+        public_role_like = get_conf()["PUBLIC_ROLE_LIKE"]
+        if not public_role_like or public_role_like == "Public":
+            # Use the built-in Public role with minimal read-only permissions
+            self.set_role("Public", self._is_public_pvm, pvms)
+        elif public_role_like:
+            # Copy permissions from another role (e.g., "Gamma") to Public
             self.copy_role(
-                get_conf()["PUBLIC_ROLE_LIKE"],
+                public_role_like,
                 self.auth_role_public,
                 merge=True,
             )

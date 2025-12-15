@@ -52,6 +52,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
+    public_role_builtin,  # noqa: F401
     public_role_like_gamma,  # noqa: F401
     public_role_like_test_role,  # noqa: F401
 )
@@ -1469,10 +1470,9 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
+    @pytest.mark.usefixtures("public_role_builtin")
     def test_public_role_permissions(self):
         """Test that Public role has the expected minimal permissions."""
-        # Ensure Public role is created and populated with permissions
-        security_manager.sync_role_definitions()
         public_perm_set = get_perm_tuples("Public")
 
         # Core dashboard viewing - should be present
@@ -1510,10 +1510,9 @@ class TestRolePermission(SupersetTestCase):
         # Should NOT have user management access
         assert ("can_userinfo", "UserDBModelView") not in public_perm_set
 
+    @pytest.mark.usefixtures("public_role_builtin")
     def test_public_role_more_restrictive_than_gamma(self):
         """Test that Public role is more restrictive than Gamma."""
-        # Ensure Public role is created and populated with permissions
-        security_manager.sync_role_definitions()
         public_perm_set = get_perm_tuples("Public")
         gamma_perm_set = get_perm_tuples("Gamma")
 
