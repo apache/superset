@@ -241,7 +241,10 @@ if (!isDevMode) {
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode
-  ? [path.join(APP_DIR, '/src/theme.ts'), path.join(APP_DIR, '/src/preamble.ts')]
+  ? [
+      path.join(APP_DIR, '/src/theme.ts'),
+      path.join(APP_DIR, '/src/preamble.ts'),
+    ]
   : [path.join(APP_DIR, '/src/preamble.ts')];
 
 function addPreamble(entry) {
@@ -318,11 +321,21 @@ const config = {
     'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
-    type: 'filesystem', // Enable filesystem caching
+    type: 'filesystem',
     cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    // Separate cache for dev vs prod builds
+    name: `${isDevMode ? 'development' : 'production'}-cache`,
+    // Invalidate cache when these files change
     buildDependencies: {
-      config: [__filename],
+      config: [
+        __filename,
+        path.resolve(__dirname, 'package-lock.json'),
+        path.resolve(__dirname, 'babel.config.js'),
+        path.resolve(__dirname, 'tsconfig.json'),
+      ],
     },
+    // Compress cache for smaller disk usage (slight CPU tradeoff)
+    compression: isDevMode ? false : 'gzip',
   },
   output,
   stats: 'minimal',
@@ -679,7 +692,6 @@ if (isDevMode) {
       directory: path.join(process.cwd(), '../static/assets'),
     },
   };
-
 }
 
 // To
