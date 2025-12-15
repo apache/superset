@@ -77,8 +77,7 @@ ydb.svg
 loading.svg
 
 # Static images for doc
-docs/static/img/logos/*.svg
-docs/static/img/logos/*
+docs/static/img/logos/**/*.svg # Explicit recursion
 
 # docs-related
 erd.puml
