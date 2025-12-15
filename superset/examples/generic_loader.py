@@ -202,7 +202,7 @@ def create_generic_loader(
         sample: bool = False,
     ) -> None:
         """Load the dataset."""
-        rows = sample_rows if sample and sample_rows else None
+        rows = sample_rows if sample and sample_rows is not None else None
 
         tbl = load_duckdb_table(
             duckdb_file=duckdb_file,
