@@ -76,8 +76,8 @@ snowflake.svg
 ydb.svg
 loading.svg
 
-# Static images for doc
-docs/static/img/logos/**/*.svg # Explicit recursion
+# docs third-party logos, i.e. docs/static/img/logos/*
+logos/*
 
 # docs-related
 erd.puml
