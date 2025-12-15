@@ -29,6 +29,7 @@ These tests cover the SQL execution API including:
 - Async execution
 """
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import msgpack
@@ -604,6 +605,13 @@ def test_execute_async_creates_query(
         current_app.config, {"SQL_QUERY_MUTATOR": None, "SQLLAB_TIMEOUT": 30}
     )
 
+    # Mock db.session.add to set query.id (simulating database auto-increment)
+    def set_query_id(query: Any) -> None:
+        if not hasattr(query, "id") or query.id is None:
+            query.id = 123
+
+    mock_db_session.add.side_effect = set_query_id
+
     mock_celery_task = mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_task"
     )
@@ -611,7 +619,8 @@ def test_execute_async_creates_query(
     result = database.execute_async("SELECT * FROM users")
 
     assert result.status == QueryStatus.PENDING
-    assert result.query_uuid is not None
+    assert result.query_id is not None
+    assert result.query_id == 123
     mock_db_session.add.assert_called()
     mock_celery_task.delay.assert_called()
 
@@ -912,7 +921,7 @@ def test_execute_async_dry_run_returns_transformed_sql(
     result = database.execute_async("SELECT * FROM users", options=options)
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.query_uuid == "cached"  # Cached/dry-run marker
+    assert result.query_id is None  # None for cached/dry-run results
     mock_celery_task.delay.assert_not_called()
 
     # Handle should return the dry run result
@@ -946,7 +955,7 @@ def test_execute_async_cached_result_returns_immediately(
     result = database.execute_async("SELECT * FROM users")
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.query_uuid == "cached"
+    assert result.query_id is None
     mock_celery_task.delay.assert_not_called()
 
 
@@ -1481,8 +1490,8 @@ def test_async_handle_get_status_query_not_found(
 
     result = database.execute_async("SELECT * FROM users")
 
-    # Override the query_uuid to simulate looking up a non-existent query
-    object.__setattr__(result, "query_uuid", "999999")
+    # Override the query_id to simulate looking up a non-existent query
+    object.__setattr__(result, "query_id", 999999)
 
     status = result.get_status()
 
@@ -1624,7 +1633,7 @@ def test_async_handle_cancel_query_not_found(
     result = database.execute_async("SELECT * FROM users")
 
     # Override to simulate non-existent query
-    object.__setattr__(result, "query_uuid", "999999")
+    object.__setattr__(result, "query_id", 999999)
 
     cancelled = result.cancel()
 

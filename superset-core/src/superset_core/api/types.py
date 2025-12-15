@@ -135,7 +135,7 @@ class AsyncQueryHandle:
     This is the return type of Database.execute_async().
     """
 
-    query_uuid: str
+    query_id: int | None  # None for cached results
     status: QueryStatus = field(default=QueryStatus.PENDING)
     started_at: datetime | None = None
 

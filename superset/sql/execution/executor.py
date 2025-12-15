@@ -857,7 +857,7 @@ class SQLExecutor:
         )
 
         handle = AsyncQueryHandleType(
-            query_uuid=str(query_id),
+            query_id=query_id,
             status=QueryStatus.PENDING,
             started_at=datetime.now(),
         )
@@ -896,7 +896,7 @@ class SQLExecutor:
         )
 
         handle = AsyncQueryHandleType(
-            query_uuid="cached",
+            query_id=None,
             status=QueryStatus.SUCCESS,
             started_at=datetime.now(),
         )
