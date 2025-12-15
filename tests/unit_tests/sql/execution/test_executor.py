@@ -1292,7 +1292,7 @@ def test_async_handle_get_result_query_not_found(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "not found" in query_result.error_message.lower()
+    assert "not found" in query_result.error_message.lower()  # type: ignore[union-attr]
 
 
 def test_async_handle_get_result_pending(
@@ -1432,7 +1432,7 @@ def test_async_handle_get_result_backend_load_error(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "Error loading results" in query_result.error_message
+    assert "Error loading results" in query_result.error_message  # type: ignore[operator]
 
 
 def test_async_handle_get_result_no_results_key(
@@ -1463,7 +1463,7 @@ def test_async_handle_get_result_no_results_key(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message
+    assert "Results not available" in query_result.error_message  # type: ignore[operator]
 
 
 def test_async_handle_get_status_query_not_found(
@@ -1962,7 +1962,7 @@ def test_async_handle_get_result_with_empty_blob(
 
     # Should return failure when blob not found
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message
+    assert "Results not available" in query_result.error_message  # type: ignore[operator]
 
 
 def test_async_handle_get_result_no_results_backend(
@@ -2002,7 +2002,7 @@ def test_async_handle_get_result_no_results_backend(
 
     # Should return failure when no results backend
     assert query_result.status == QueryStatus.FAILED
-    assert "Results not available" in query_result.error_message
+    assert "Results not available" in query_result.error_message  # type: ignore[operator]
 
 
 def test_create_query_record_with_user(
