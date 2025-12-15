@@ -173,6 +173,7 @@ def create_mock_connection(mock_cursor: MagicMock | None = None) -> MagicMock:
 
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
+    mock_conn.close = MagicMock()
     mock_conn.__enter__ = MagicMock(return_value=mock_conn)
     mock_conn.__exit__ = MagicMock(return_value=False)
     return mock_conn
@@ -196,7 +197,12 @@ def setup_mock_raw_connection(
         mock_connection = create_mock_connection()
 
     @contextmanager
-    def _raw_connection(**kwargs):
+    def _raw_connection(
+        catalog: str | None = None,
+        schema: str | None = None,
+        nullpool: bool = True,
+        source: Any | None = None,
+    ):
         yield mock_connection
 
     mock_database.get_raw_connection = _raw_connection

@@ -85,32 +85,43 @@ class QueryOptions:
 
 
 @dataclass
+class StatementResult:
+    """
+    Result of a single SQL statement execution.
+
+    For SELECT queries: data contains DataFrame, row_count is len(data)
+    For DML queries: data is None, row_count contains affected rows
+    """
+
+    statement: str  # The SQL statement after transformations
+    data: pd.DataFrame | None = None
+    row_count: int = 0
+    execution_time_ms: float | None = None
+
+
+@dataclass
 class QueryResult:
     """
-    Result of a query execution.
+    Result of a multi-statement query execution.
 
-    Aligned with frontend ChartDataResponseResult structure.
-    For column information, use df.columns and df.dtypes on the data DataFrame.
+    On success: statements contains all executed statements
+    On failure: statements contains successful statements before failure
 
     Fields:
-        status: Query execution status
-        data: Result DataFrame (None if dry_run=True or error)
-        row_count: Number of rows in result
-        error_message: Error message if failed
-        query: SQL after all transformations (RLS, templates, limits)
-        query_id: Query model ID for audit trail (None if dry_run=True)
-        execution_time_ms: Query execution time in milliseconds
+        status: Overall query status (SUCCESS or FAILED)
+        statements: Results from each executed statement
+        query_id: Query model ID for entire execution (None if dry_run=True)
+        total_execution_time_ms: Total execution time across all statements
         is_cached: Whether result came from cache
+        error_message: Query-level error (e.g., "Statement 2 of 3: error")
     """
 
     status: QueryStatus
-    data: pd.DataFrame | None = None
-    row_count: int = 0
-    error_message: str | None = None
-    query: str | None = None  # SQL after all transformations (RLS, templates, limits)
-    query_id: int | None = None  # Query model ID for audit/tracking
-    execution_time_ms: float | None = None
+    statements: list[StatementResult] = field(default_factory=list)
+    query_id: int | None = None
+    total_execution_time_ms: float | None = None
     is_cached: bool = False
+    error_message: str | None = None
 
 
 @dataclass
@@ -157,6 +168,7 @@ __all__ = [
     "QueryStatus",
     "QueryOptions",
     "QueryResult",
+    "StatementResult",
     "AsyncQueryHandle",
     "CacheOptions",
 ]

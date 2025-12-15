@@ -192,8 +192,9 @@ def test_serialize_payload_json(mocker: MockerFixture, app_context: None) -> Non
 
     result = _serialize_payload(payload)
 
-    assert isinstance(result, str)
-    assert "success" in result
+    # Now always returns bytes (encoded UTF-8)
+    assert isinstance(result, bytes)
+    assert b"success" in result
 
 
 def test_serialize_payload_msgpack(mocker: MockerFixture, app_context: None) -> None:
@@ -274,11 +275,15 @@ def test_finalize_successful_query(
     mocker.patch("superset.dataframe.df_to_records", return_value=[{"id": 1}])
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(mock_query, mock_result_set, payload)
+    # New signature: (query, execution_results, payload, total_execution_time_ms)
+    # execution_results: list[tuple[str, SupersetResultSet | None, float, int]]
+    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
+    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
 
     assert mock_query.rows == 2
     assert mock_query.progress == 100
     assert payload["status"] == QueryStatusEnum.SUCCESS
+    assert "statements" in payload
 
 
 def test_finalize_successful_query_with_msgpack(
@@ -304,9 +309,10 @@ def test_finalize_successful_query_with_msgpack(
 
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(mock_query, mock_result_set, payload)
+    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
+    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
 
-    assert payload["data"] == b"arrow_data"
+    assert payload["statements"][0]["data"] == b"arrow_data"
 
 
 def test_finalize_successful_query_msgpack_no_stats(
@@ -331,9 +337,34 @@ def test_finalize_successful_query_msgpack_no_stats(
 
     payload: dict[str, Any] = {}
 
-    _finalize_successful_query(mock_query, mock_result_set, payload)
+    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
+    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
 
-    assert payload["data"] == b"arrow_data"
+    assert payload["statements"][0]["data"] == b"arrow_data"
+
+
+def test_finalize_successful_query_with_dml(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+) -> None:
+    """Test successful query finalization with DML statement (no result_set)."""
+    from superset.sql.execution.celery_task import _finalize_successful_query
+
+    payload: dict[str, Any] = {}
+
+    # DML statement: result_set is None, rowcount indicates affected rows
+    execution_results: list[tuple[str, None, float, int]] = [
+        ("INSERT INTO users VALUES (1)", None, 5.0, 1)
+    ]
+    _finalize_successful_query(mock_query, execution_results, payload, 5.0)  # type: ignore[arg-type]
+
+    assert mock_query.rows == 0  # No rows returned for DML
+    assert mock_query.progress == 100
+    assert payload["status"] == QueryStatusEnum.SUCCESS
+    assert payload["statements"][0]["data"] is None
+    assert payload["statements"][0]["row_count"] == 1
+    assert payload["statements"][0]["columns"] == []
 
 
 # =============================================================================
@@ -636,7 +667,8 @@ def test_execute_sql_task_success(
 
     result = execute_sql_task(123, "SELECT * FROM users", username="admin")
 
-    assert result is None  # Success returns None
+    assert result is not None  # Success returns payload
+    assert result["status"] == QueryStatusEnum.SUCCESS
     assert mock_query.status == QueryStatusEnum.SUCCESS
 
 
@@ -676,7 +708,8 @@ def test_execute_sql_task_with_start_time(
     result = execute_sql_task(123, "SELECT * FROM users", start_time=start_time)
 
     # Verify task completes successfully with start_time
-    assert result is None
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.SUCCESS
 
 
 def test_execute_sql_task_with_cancel_query_id(
@@ -824,7 +857,8 @@ def test_execute_sql_task_with_results_backend(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     mock_results_backend.set.assert_called_once()
-    assert result is None
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.SUCCESS
 
 
 def test_execute_sql_task_timeout(
@@ -919,7 +953,8 @@ def test_execute_sql_task_success_final_commit(
 
     result = execute_sql_task(123, "SELECT * FROM users")
 
-    assert result is None
+    assert result is not None
+    assert result["status"] == QueryStatusEnum.SUCCESS
     assert mock_query.status == QueryStatusEnum.SUCCESS
     mock_session.commit.assert_called()
 
@@ -966,5 +1001,5 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     # Verify query status remains FAILED and is not changed to SUCCESS
-    assert result is None
+    assert result is not None
     assert mock_query.status == QueryStatusEnum.FAILED

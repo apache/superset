@@ -76,8 +76,9 @@ def test_execute_select_success(
     result = database.execute("SELECT id, name FROM users")
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.data is not None
-    assert result.row_count == 2
+    assert len(result.statements) == 1
+    assert result.statements[0].data is not None
+    assert result.statements[0].row_count == 2
     assert result.error_message is None
 
 
@@ -129,8 +130,8 @@ def test_execute_records_execution_time(
     result = database.execute("SELECT id FROM users")
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.execution_time_ms is not None
-    assert result.execution_time_ms >= 0
+    assert result.total_execution_time_ms is not None
+    assert result.total_execution_time_ms >= 0
 
 
 def test_execute_creates_query_record(
@@ -382,32 +383,6 @@ def test_execute_rls_applied(
     mock_apply_rls.assert_called()
 
 
-def test_execute_rls_always_applied(
-    mocker: MockerFixture, database: Database, app_context: None
-) -> None:
-    """Test that RLS is always applied."""
-    from superset.sql.execution.executor import SQLExecutor
-
-    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
-    mocker.patch.dict(
-        current_app.config,
-        {
-            "SQL_QUERY_MUTATOR": None,
-            "SQLLAB_TIMEOUT": 30,
-            "SQL_MAX_ROW": None,
-            "QUERY_LOGGER": None,
-        },
-    )
-
-    # Mock _apply_rls_to_script to verify it's always called
-    mock_apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
-
-    result = database.execute("SELECT * FROM users")
-
-    assert result.status == QueryStatus.SUCCESS
-    mock_apply_rls.assert_called()
-
-
 # =============================================================================
 # Result Caching Tests
 # =============================================================================
@@ -473,7 +448,7 @@ def test_execute_force_cache_refresh(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is False
-    assert result.row_count == 1  # Fresh result
+    assert sum(s.row_count for s in result.statements) == 1  # Fresh result
     mock_get_cache.assert_not_called()
 
 
@@ -911,8 +886,9 @@ def test_execute_dry_run_returns_transformed_sql(
     result = database.execute("SELECT * FROM users", options=options)
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.query is not None  # Transformed SQL returned
-    assert result.data is None  # No data in dry run
+    assert len(result.statements) > 0  # Transformed SQL returned in statements
+    assert result.statements[0].statement is not None  # Has transformed SQL
+    assert result.statements[0].data is None  # No data in dry run
     assert result.query_id is None  # No Query model created
     mock_apply_rls.assert_called()  # RLS still applied
     get_conn_mock.assert_not_called()  # No execution
@@ -1004,7 +980,7 @@ def test_execute_empty_sql(
     result = database.execute("")
 
     assert result.status == QueryStatus.SUCCESS
-    assert result.row_count == 0
+    assert sum(s.row_count for s in result.statements) == 0
 
 
 def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
@@ -1022,7 +998,7 @@ def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
         query=mock_query,
     )
 
-    assert result is None
+    assert result == []  # Returns empty list for empty statements
 
 
 def test_execute_sql_with_cursor_stopped_mid_execution(
@@ -1062,7 +1038,8 @@ def test_execute_sql_with_cursor_stopped_mid_execution(
         check_stopped_fn=check_stopped,
     )
 
-    assert result is None  # Stopped, no result
+    # Returns results collected before stopped (first statement completed)
+    assert len(result) == 1  # Only first statement completed before stop
 
 
 def test_execute_sql_with_cursor_custom_execute_fn(
@@ -1363,14 +1340,22 @@ def test_async_handle_get_result_with_results_backend(
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
     filter_mock.one_or_none.return_value = mock_query
 
-    # Mock results backend
+    # Mock results backend with new multi-statement format
     payload = msgpack.dumps(
         {
-            "data": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}],
-            "columns": [
-                {"column_name": "id", "name": "id"},
-                {"column_name": "name", "name": "name"},
+            "statements": [
+                {
+                    "statement": "SELECT * FROM users",
+                    "data": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}],
+                    "columns": [
+                        {"column_name": "id", "name": "id"},
+                        {"column_name": "name", "name": "name"},
+                    ],
+                    "row_count": 2,
+                    "execution_time_ms": 10.0,
+                }
             ],
+            "total_execution_time_ms": 10.0,
         }
     )
     compressed_payload = b"compressed_data"
@@ -1396,8 +1381,9 @@ def test_async_handle_get_result_with_results_backend(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.SUCCESS
-    assert query_result.data is not None
-    assert query_result.row_count == 2
+    assert len(query_result.statements) > 0
+    assert query_result.statements[0].data is not None
+    assert sum(s.row_count for s in query_result.statements) == 2
 
 
 def test_async_handle_get_result_backend_load_error(
@@ -1775,8 +1761,9 @@ def test_execute_sql_with_cursor_no_rows_or_description(
         query=mock_query,
     )
 
-    # Should return None when no rows/description
-    assert result is None
+    # DML statement returns result with result_set=None
+    assert len(result) == 1
+    assert result[0][1] is None  # result_set is None for DML
 
 
 def test_execute_with_exception_on_execute(
@@ -1788,7 +1775,7 @@ def test_execute_with_exception_on_execute(
     # Mock to simulate None result_set
     mocker.patch(
         "superset.sql.execution.executor.execute_sql_with_cursor",
-        return_value=None,
+        return_value=[],  # Empty list for no results
     )
 
     mock_query = MagicMock()
@@ -1815,7 +1802,7 @@ def test_execute_with_exception_on_execute(
 
     # Should handle None result_set gracefully
     assert result.status == QueryStatus.SUCCESS
-    assert result.row_count == 0
+    assert sum(s.row_count for s in result.statements) == 0
 
 
 def test_check_disallowed_functions_no_config(
@@ -1876,8 +1863,8 @@ def test_store_in_cache_with_failed_status(
 def test_store_in_cache_with_no_data(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
-    """Test that queries with no data are not cached."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    """Test that DML queries (with no data) are cached."""
+    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1885,23 +1872,26 @@ def test_store_in_cache_with_no_data(
 
     result_no_data = QueryResultType(
         status=QueryStatus.SUCCESS,
-        data=None,  # No data
-        row_count=0,
+        statements=[
+            StatementResult(
+                statement="INSERT INTO t VALUES (1)", data=None, row_count=1
+            )
+        ],
     )
 
     mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
 
-    executor._store_in_cache(result_no_data, "SELECT 1", QueryOptions())
+    executor._store_in_cache(result_no_data, "INSERT INTO t VALUES (1)", QueryOptions())
 
-    # Should not cache when data is None
-    mock_cache_set.assert_not_called()
+    # DML queries are cached too
+    mock_cache_set.assert_called_once()
 
 
 def test_create_cached_async_result_cancel(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result cancel returns False."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1913,8 +1903,11 @@ def test_create_cached_async_result_cancel(
 
     cached_result = QueryResultType(
         status=QueryStatus.SUCCESS,
-        data=pd.DataFrame({"id": [1]}),
-        row_count=1,
+        statements=[
+            StatementResult(
+                statement="SELECT 1", data=pd.DataFrame({"id": [1]}), row_count=1
+            )
+        ],
     )
 
     async_result = executor._create_cached_handle(cached_result)
@@ -2050,8 +2043,15 @@ def test_get_from_cache_returns_cached_result(
     executor = SQLExecutor(database)
 
     cached_data = {
-        "data": pd.DataFrame({"id": [1, 2]}),
-        "row_count": 2,
+        "statements": [
+            {
+                "statement": "SELECT * FROM users",
+                "data": pd.DataFrame({"id": [1, 2]}),
+                "row_count": 2,
+                "execution_time_ms": 10.0,
+            }
+        ],
+        "total_execution_time_ms": 10.0,
     }
 
     mocker.patch.object(cache_manager.data_cache, "get", return_value=cached_data)
@@ -2062,14 +2062,14 @@ def test_get_from_cache_returns_cached_result(
     assert result is not None
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
-    assert result.row_count == 2
+    assert sum(s.row_count for s in result.statements) == 2
 
 
 def test_cached_async_result_get_result_returns_cached(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result returns the original cached result."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -2081,8 +2081,13 @@ def test_cached_async_result_get_result_returns_cached(
 
     cached_result = QueryResultType(
         status=QueryStatus.SUCCESS,
-        data=pd.DataFrame({"id": [1, 2, 3]}),
-        row_count=3,
+        statements=[
+            StatementResult(
+                statement="SELECT 1",
+                data=pd.DataFrame({"id": [1, 2, 3]}),
+                row_count=3,
+            )
+        ],
     )
 
     async_result = executor._create_cached_handle(cached_result)
@@ -2092,5 +2097,5 @@ def test_cached_async_result_get_result_returns_cached(
 
     # Should return the same cached result
     assert retrieved_result.status == QueryStatus.SUCCESS
-    assert retrieved_result.row_count == 3
+    assert sum(s.row_count for s in retrieved_result.statements) == 3
     assert retrieved_result is cached_result

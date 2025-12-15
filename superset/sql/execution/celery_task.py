@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import sys
 import uuid
 from sys import getsizeof
 from typing import Any, TYPE_CHECKING
@@ -103,18 +102,20 @@ def _handle_query_error(
 
     db.session.commit()  # pylint: disable=consider-using-transaction
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
+    if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
 
 
-def _serialize_payload(payload: dict[Any, Any]) -> bytes | str:
+def _serialize_payload(payload: dict[Any, Any]) -> bytes:
     """Serialize payload for storage based on RESULTS_BACKEND_USE_MSGPACK config."""
     from superset import results_backend_use_msgpack
 
     if results_backend_use_msgpack:
         return msgpack.dumps(payload, default=json.json_iso_dttm_ser, use_bin_type=True)
-    return json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True)
+    return json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True).encode(
+        "utf-8"
+    )
 
 
 def _prepare_statement_blocks(
@@ -143,23 +144,54 @@ def _prepare_statement_blocks(
 
 def _finalize_successful_query(
     query: Query,
-    result_set: SupersetResultSet,
+    execution_results: list[tuple[str, SupersetResultSet | None, float, int]],
     payload: dict[str, Any],
+    total_execution_time_ms: float,
 ) -> None:
     """Update query metadata and payload after successful execution."""
-    query.rows = result_set.size
+    # Calculate total rows across all statements
+    total_rows = 0
+    statements_data: list[dict[str, Any]] = []
+
+    for stmt_sql, result_set, exec_time, rowcount in execution_results:
+        if result_set is not None:
+            # SELECT statement
+            total_rows += result_set.size
+            data, columns = _serialize_result_set(result_set)
+            statements_data.append(
+                {
+                    "statement": stmt_sql,
+                    "data": data,
+                    "columns": columns,
+                    "row_count": result_set.size,
+                    "execution_time_ms": exec_time,
+                }
+            )
+        else:
+            # DML statement - no data, just row count
+            statements_data.append(
+                {
+                    "statement": stmt_sql,
+                    "data": None,
+                    "columns": [],
+                    "row_count": rowcount,
+                    "execution_time_ms": exec_time,
+                }
+            )
+
+    query.rows = total_rows
     query.progress = 100
     query.set_extra_json_key("progress", None)
-    query.set_extra_json_key("columns", result_set.columns)
+    # Store columns from last statement (for compatibility)
+    if execution_results and execution_results[-1][1] is not None:
+        query.set_extra_json_key("columns", execution_results[-1][1].columns)
     query.end_time = now_as_float()
-
-    data, columns = _serialize_result_set(result_set)
 
     payload.update(
         {
             "status": QueryStatus.SUCCESS,
-            "data": data,
-            "columns": columns,
+            "statements": statements_data,
+            "total_execution_time_ms": total_execution_time_ms,
             "query": query.to_dict(),
         }
     )
@@ -188,7 +220,7 @@ def _store_results_in_backend(
 
             # Check payload size limit
             if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
-                serialized_payload_size = sys.getsizeof(serialized_payload)
+                serialized_payload_size = len(serialized_payload)
                 max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
                 if serialized_payload_size > max_bytes:
@@ -371,6 +403,7 @@ def _execute_sql_statements(
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
+    execution_start_time = now_as_float()
     db.session.commit()  # pylint: disable=consider-using-transaction
 
     parsed_script, blocks = _prepare_statement_blocks(rendered_query, db_engine_spec)
@@ -387,7 +420,7 @@ def _execute_sql_statements(
             db.session.commit()  # pylint: disable=consider-using-transaction
 
         try:
-            result_set = execute_sql_with_cursor(
+            execution_results = execute_sql_with_cursor(
                 database=database,
                 cursor=cursor,
                 statements=blocks,
@@ -414,7 +447,7 @@ def _execute_sql_statements(
             ) from ex
 
         # Check if stopped
-        if result_set is None:
+        if not execution_results:
             payload.update({"status": QueryStatus.STOPPED})
             return payload
 
@@ -422,7 +455,10 @@ def _execute_sql_statements(
         if parsed_script.has_mutation() or query.select_as_cta:
             conn.commit()  # pylint: disable=consider-using-transaction
 
-    _finalize_successful_query(query, result_set, payload)
+    total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
+    _finalize_successful_query(
+        query, execution_results, payload, total_execution_time_ms
+    )
 
     if results_backend:
         _store_results_in_backend(query, payload, database)
@@ -431,4 +467,4 @@ def _execute_sql_statements(
         query.status = QueryStatus.SUCCESS
     db.session.commit()  # pylint: disable=consider-using-transaction
 
-    return None
+    return payload

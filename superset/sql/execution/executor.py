@@ -94,9 +94,9 @@ def execute_sql_with_cursor(
     log_query_fn: Any | None = None,
     check_stopped_fn: Any | None = None,
     execute_fn: Any | None = None,
-) -> SupersetResultSet | None:
+) -> list[tuple[str, SupersetResultSet | None, float, int]]:
     """
-    Execute SQL statements with a cursor and return result set.
+    Execute SQL statements with a cursor and return all result sets.
 
     This is the shared execution logic used by both sync (SQLExecutor) and
     async (celery_task) execution paths. It handles multi-statement execution
@@ -112,21 +112,23 @@ def execute_sql_with_cursor(
     :param execute_fn: Optional custom execute function. If not provided, uses
         database.db_engine_spec.execute(cursor, sql, database). Custom function
         should accept (cursor, sql) and handle execution.
-    :returns: SupersetResultSet from last statement, or None if stopped
+    :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
+        Returns empty list if stopped. Raises exception on error (fail-fast).
     """
     from superset.result_set import SupersetResultSet
 
     total = len(statements)
     if total == 0:
-        return None
+        return []
 
-    rows = None
-    description = None
+    results: list[tuple[str, SupersetResultSet | None, float, int]] = []
 
     for i, statement in enumerate(statements):
         # Check if query was stopped (async cancellation)
         if check_stopped_fn and check_stopped_fn():
-            return None
+            return results
+
+        stmt_start_time = time.time()
 
         # Apply SQL mutation
         stmt_sql = database.mutate_sql_based_on_config(
@@ -144,12 +146,25 @@ def execute_sql_with_cursor(
         else:
             database.db_engine_spec.execute(cursor, stmt_sql, database)
 
-        # Fetch results from last statement only
-        if i == total - 1:
-            description = cursor.description
+        stmt_execution_time = (time.time() - stmt_start_time) * 1000
+
+        # Fetch results from ALL statements
+        description = cursor.description
+        if description:
             rows = database.db_engine_spec.fetch_data(cursor)
+            result_set = SupersetResultSet(
+                rows,
+                description,
+                database.db_engine_spec,
+            )
         else:
-            cursor.fetchall()
+            # DML statement - no result set
+            result_set = None
+
+        # Get row count for DML statements
+        rowcount = cursor.rowcount if hasattr(cursor, "rowcount") else 0
+
+        results.append((stmt_sql, result_set, stmt_execution_time, rowcount))
 
         # Update progress on Query model
         progress_pct = int(((i + 1) / total) * 100)
@@ -160,15 +175,7 @@ def execute_sql_with_cursor(
         )
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-    # Build result set
-    if rows is not None and description is not None:
-        return SupersetResultSet(
-            rows,
-            description,
-            database.db_engine_spec,
-        )
-
-    return None
+    return results
 
 
 class SQLExecutor:
@@ -204,6 +211,7 @@ class SQLExecutor:
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
+            StatementResult,
         )
 
         opts: QueryOptionsType = options or QueryOptionsType()
@@ -222,14 +230,22 @@ class SQLExecutor:
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
-                execution_time_ms = (time.time() - start_time) * 1000
+                total_execution_time_ms = (time.time() - start_time) * 1000
+                # Create a StatementResult for each statement in dry-run mode
+                dry_run_statements = [
+                    StatementResult(
+                        statement=stmt.format(),
+                        data=None,
+                        row_count=0,
+                        execution_time_ms=0,
+                    )
+                    for stmt in script.statements
+                ]
                 return QueryResultType(
                     status=QueryStatus.SUCCESS,
-                    data=None,
-                    row_count=0,
-                    query=final_sql,  # Transformed SQL (after RLS, templates, limits)
-                    query_id=None,  # No Query model created
-                    execution_time_ms=execution_time_ms,
+                    statements=dry_run_statements,
+                    query_id=None,
+                    total_execution_time_ms=total_execution_time_ms,
                     is_cached=False,
                 )
 
@@ -248,31 +264,32 @@ class SQLExecutor:
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
 
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
-                df = self._execute_statements(
+                statement_results = self._execute_statements(
                     final_sql,
                     catalog,
                     schema,
                     query,
                 )
 
-            execution_time_ms = (time.time() - start_time) * 1000
+            total_execution_time_ms = (time.time() - start_time) * 1000
 
-            # 5. Update query record
+            # Calculate total row count for Query model
+            total_rows = sum(stmt.row_count for stmt in statement_results)
+
+            # Update query record
             query.status = "success"
-            query.rows = len(df)
+            query.rows = total_rows
             query.progress = 100
             db.session.commit()  # pylint: disable=consider-using-transaction
 
             result = QueryResultType(
                 status=QueryStatus.SUCCESS,
-                data=df,
-                row_count=len(df),
-                query=final_sql,  # Transformed SQL (after RLS, templates, limits)
+                statements=statement_results,
                 query_id=query.id,
-                execution_time_ms=execution_time_ms,
+                total_execution_time_ms=total_execution_time_ms,
             )
 
-            # 6. Store in cache (if SELECT and caching enabled)
+            # Store in cache (if SELECT and caching enabled)
             if not has_mutation:
                 self._store_in_cache(result, final_sql, opts)
 
@@ -328,13 +345,22 @@ class SQLExecutor:
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
+            from superset_core.api.types import StatementResult
+
+            dry_run_statements = [
+                StatementResult(
+                    statement=stmt.format(),
+                    data=None,
+                    row_count=0,
+                    execution_time_ms=0,
+                )
+                for stmt in script.statements
+            ]
             dry_run_result = QueryResultType(
                 status=QueryStatus.SUCCESS,
-                data=None,
-                row_count=0,
-                query=final_sql,  # Transformed SQL (after RLS, templates, limits)
+                statements=dry_run_statements,
                 query_id=None,
-                execution_time_ms=0,
+                total_execution_time_ms=0,
                 is_cached=False,
             )
             return self._create_cached_handle(dry_run_result)
@@ -428,20 +454,20 @@ class SQLExecutor:
         catalog: str | None,
         schema: str | None,
         query: Any,
-    ) -> Any:
+    ) -> list[Any]:
         """
-        Execute SQL statements with progress tracking.
+        Execute SQL statements and return per-statement results.
 
-        Progress is tracked via Query.progress field, matching SQL Lab behavior.
+        Progress is tracked via Query.progress field.
         Uses the same execution path for both single and multi-statement queries.
 
         :param sql: Final SQL to execute (with RLS and all transformations applied)
         :param catalog: Catalog name
         :param schema: Schema name
         :param query: Query model for progress tracking
-        :returns: DataFrame with results from last statement
+        :returns: List of StatementResult objects
         """
-        import pandas as pd
+        from superset_core.api.types import StatementResult
 
         # Parse the final SQL (with RLS applied) to get statements
         script = SQLScript(sql, self.database.db_engine_spec.engine)
@@ -449,12 +475,15 @@ class SQLExecutor:
 
         # Handle empty script
         if not statements:
-            return pd.DataFrame()
+            return []
+
+        results_list = []
 
         # Use consistent execution path for all queries
         with self.database.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
-            result_set = execute_sql_with_cursor(
+
+            execution_results = execute_sql_with_cursor(
                 database=self.database,
                 cursor=cursor,
                 statements=[stmt.format() for stmt in statements],
@@ -462,10 +491,29 @@ class SQLExecutor:
                 log_query_fn=self._log_query,
             )
 
-            if result_set is not None:
-                return result_set.to_pandas_df()
+            # Build StatementResult for each executed statement
+            for stmt_sql, result_set, exec_time, rowcount in execution_results:
+                if result_set is not None:
+                    # SELECT statement
+                    df = result_set.to_pandas_df()
+                    stmt_result = StatementResult(
+                        statement=stmt_sql,
+                        data=df,
+                        row_count=len(df),
+                        execution_time_ms=exec_time,
+                    )
+                else:
+                    # DML statement - no data, just row count
+                    stmt_result = StatementResult(
+                        statement=stmt_sql,
+                        data=None,
+                        row_count=rowcount,
+                        execution_time_ms=exec_time,
+                    )
 
-        return pd.DataFrame()
+                results_list.append(stmt_result)
+
+        return results_list
 
     def _log_query(
         self,
@@ -496,6 +544,7 @@ class SQLExecutor:
         error_message: str,
         sql: str,
         start_time: float,
+        partial_results: list[Any] | None = None,
     ) -> QueryResult:
         """
         Create a QueryResult for error cases.
@@ -504,15 +553,17 @@ class SQLExecutor:
         :param error_message: Error message to include
         :param sql: SQL query (original if error occurred before transformation)
         :param start_time: Start time for calculating execution duration
+        :param partial_results: Optional list of StatementResult from successful
+            statements before the failure
         :returns: QueryResult with error status
         """
         from superset_core.api.types import QueryResult as QueryResultType
 
         return QueryResultType(
             status=status,
+            statements=partial_results or [],
             error_message=error_message,
-            query=sql,
-            execution_time_ms=(time.time() - start_time) * 1000,
+            total_execution_time_ms=(time.time() - start_time) * 1000,
         )
 
     def _render_sql_template(
@@ -525,7 +576,7 @@ class SQLExecutor:
         :param template_params: Parameters to pass to the template
         :returns: Rendered SQL string
         """
-        if not template_params:
+        if template_params is None:
             return sql
 
         from superset.jinja_context import get_template_processor
@@ -541,7 +592,7 @@ class SQLExecutor:
         :param opts: Query options
         """
         # Skip if no limit requested
-        if not opts.limit:
+        if opts.limit is None:
             return
 
         sql_max_row = app.config.get("SQL_MAX_ROW")
@@ -672,18 +723,27 @@ class SQLExecutor:
         from superset_core.api.types import (
             QueryResult as QueryResultType,
             QueryStatus,
+            StatementResult,
         )
 
         cache_key = self._generate_cache_key(sql, opts)
 
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+            # Reconstruct statement results from cached data
+            statements = [
+                StatementResult(
+                    statement=stmt_data["statement"],
+                    data=stmt_data["data"],
+                    row_count=stmt_data["row_count"],
+                    execution_time_ms=stmt_data["execution_time_ms"],
+                )
+                for stmt_data in cached.get("statements", [])
+            ]
             return QueryResultType(
                 status=QueryStatus.SUCCESS,
-                data=cached.get("data"),
-                row_count=cached.get("row_count", 0),
-                query=sql,
+                statements=statements,
                 is_cached=True,
-                execution_time_ms=0,
+                total_execution_time_ms=cached.get("total_execution_time_ms", 0),
             )
 
         return None
@@ -700,7 +760,7 @@ class SQLExecutor:
         """
         from superset_core.api.types import QueryStatus
 
-        if result.status != QueryStatus.SUCCESS or result.data is None:
+        if result.status != QueryStatus.SUCCESS:
             return
 
         cache_key = self._generate_cache_key(sql, opts)
@@ -710,9 +770,23 @@ class SQLExecutor:
             or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
         )
 
+        # Serialize statement results for caching
+        cached_data = {
+            "statements": [
+                {
+                    "statement": stmt.statement,
+                    "data": stmt.data,
+                    "row_count": stmt.row_count,
+                    "execution_time_ms": stmt.execution_time_ms,
+                }
+                for stmt in result.statements
+            ],
+            "total_execution_time_ms": result.total_execution_time_ms,
+        }
+
         cache_manager.data_cache.set(
             cache_key,
-            {"data": result.data, "row_count": result.row_count},
+            cached_data,
             timeout=timeout,
         )
 
@@ -732,7 +806,7 @@ class SQLExecutor:
             sql,
             opts.catalog or "",
             opts.schema or "",
-            str(opts.limit or ""),
+            str(opts.limit) if opts.limit is not None else "",
         ]
         key_string = "|".join(key_parts)
         return hashlib.sha256(key_string.encode()).hexdigest()
@@ -871,6 +945,7 @@ class SQLExecutor:
         from superset_core.api.types import (
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
+            StatementResult,
         )
 
         from superset.models.sql_lab import Query as QueryModel
@@ -887,7 +962,6 @@ class SQLExecutor:
             return QueryResultType(
                 status=status,
                 error_message=query.error_message,
-                query=query.executed_sql,
                 query_id=query_id,
             )
 
@@ -905,24 +979,33 @@ class SQLExecutor:
                         from superset.utils.core import zlib_decompress
 
                         payload = msgpack.loads(zlib_decompress(blob))
-                        data = payload.get("data", [])
-                        columns = [
-                            col.get("column_name", col.get("name", ""))
-                            for col in payload.get("columns", [])
+
+                        statements = [
+                            StatementResult(
+                                statement=stmt_data.get("statement", ""),
+                                data=(
+                                    pd.DataFrame(
+                                        stmt_data.get("data", []),
+                                        columns=[
+                                            c.get("column_name", c.get("name", ""))
+                                            for c in stmt_data.get("columns", [])
+                                        ],
+                                    )
+                                    if stmt_data.get("data")
+                                    else None
+                                ),
+                                row_count=stmt_data.get("row_count", 0),
+                                execution_time_ms=stmt_data.get("execution_time_ms"),
+                            )
+                            for stmt_data in payload.get("statements", [])
                         ]
-
-                        df = (
-                            pd.DataFrame(data, columns=columns)
-                            if data
-                            else pd.DataFrame()
-                        )
-
                         return QueryResultType(
                             status=QueryStatusType.SUCCESS,
-                            data=df,
-                            row_count=len(df),
-                            query=query.executed_sql,
+                            statements=statements,
                             query_id=query_id,
+                            total_execution_time_ms=payload.get(
+                                "total_execution_time_ms"
+                            ),
                             is_cached=True,
                         )
                     except Exception as ex:
@@ -930,14 +1013,12 @@ class SQLExecutor:
                         return QueryResultType(
                             status=QueryStatusType.FAILED,
                             error_message=f"Error loading results: {str(ex)}",
-                            query=query.executed_sql,
                             query_id=query_id,
                         )
 
         return QueryResultType(
             status=QueryStatusType.FAILED,
             error_message="Results not available",
-            query=query.executed_sql,
             query_id=query_id,
         )
 
