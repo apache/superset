@@ -491,7 +491,15 @@ export class TableRenderer extends Component {
               true,
             )}
           >
-            {t('Subtotal')}
+            {allowRenderHtml
+              ? safeHtmlSpan(
+                  t('Aggregate (%(aggregatorName)s)', {
+                    aggregatorName: t(this.props.aggregatorName),
+                  }),
+                )
+              : t('Aggregate (%(aggregatorName)s)', {
+                  aggregatorName: t(this.props.aggregatorName),
+                })}
           </th>,
         );
       }
@@ -704,7 +712,15 @@ export class TableRenderer extends Component {
             true,
           )}
         >
-          {t('Subtotal')}
+          {allowRenderHtml
+            ? safeHtmlSpan(
+                t('Aggregate (%(aggregatorName)s)', {
+                  aggregatorName: t(this.props.aggregatorName),
+                }),
+              )
+            : t('Aggregate (%(aggregatorName)s)', {
+                aggregatorName: t(this.props.aggregatorName),
+              })}
         </th>
       ) : null;
 
