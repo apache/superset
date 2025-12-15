@@ -78,11 +78,7 @@ export function useDragHandlers({
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
-          setProjectedParentId(prev =>
-            prev === pendingParentIdRef.current
-              ? prev
-              : pendingParentIdRef.current,
-          );
+          setProjectedParentId(pendingParentIdRef.current);
         });
       }
     },
