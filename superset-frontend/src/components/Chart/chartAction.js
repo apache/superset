@@ -476,7 +476,17 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
+        // Ignore abort errors - they're expected when filters change quickly
+        if (
+          response?.name === 'AbortError' ||
+          response?.message === 'Request aborted'
+        ) {
+          // Abort is expected: filters changed, chart unmounted, etc.
+          return dispatch(chartUpdateStopped(key));
+        }
+
         if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+          // In async mode we just pass the raw error response through
           return dispatch(chartUpdateFailed([response], key));
         }
 
@@ -494,10 +504,7 @@ export function exploreJSON(
             }),
           );
         };
-        if (response.name === 'AbortError') {
-          appendErrorLog('abort');
-          return dispatch(chartUpdateStopped(key));
-        }
+
         return getClientErrorObject(response).then(parsedResponse => {
           if (response.statusText === 'timeout') {
             appendErrorLog('timeout');
