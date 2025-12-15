@@ -17,3 +17,9 @@
  * under the License.
  */
 import 'src/public-path';
+
+// Accept HMR updates for this entry point
+// @ts-ignore - module.hot is injected by webpack
+if (module.hot) {
+  module.hot.accept();
+}
