@@ -226,7 +226,7 @@ def test_extension_json_content_is_correct(
     frontend = content["frontend"]
     assert "contributions" in frontend
     assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {"commands": [], "views": [], "menus": []}
+    assert frontend["contributions"] == {"commands": [], "views": {}, "menus": {}}
     assert frontend["moduleFederation"] == {"exposes": ["./index"]}
 
     # Verify backend section exists and has correct structure
