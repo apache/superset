@@ -57,8 +57,10 @@ superset_core.api.models for the public API contract.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import logging
 import time
+import uuid
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
@@ -79,6 +81,8 @@ if TYPE_CHECKING:
         AsyncQueryHandle,
         QueryOptions,
         QueryResult,
+        QueryStatus,
+        StatementResult,
     )
 
     from superset.models.core import Database
@@ -220,27 +224,36 @@ class SQLExecutor:
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
-            script, catalog, schema = self._prepare_sql(sql, opts)
+            original_script, transformed_script, catalog, schema = self._prepare_sql(
+                sql, opts
+            )
 
-            # 2. Security checks
-            self._check_security(script)
+            # 2. Security checks on transformed script
+            self._check_security(transformed_script)
 
             # 3. Get mutation status and format SQL
-            has_mutation = script.has_mutation()
-            final_sql = script.format()
+            has_mutation = transformed_script.has_mutation()
+            final_sql = transformed_script.format()
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
                 total_execution_time_ms = (time.time() - start_time) * 1000
                 # Create a StatementResult for each statement in dry-run mode
+                original_sqls = [stmt.format() for stmt in original_script.statements]
+                transformed_sqls = [
+                    stmt.format() for stmt in transformed_script.statements
+                ]
                 dry_run_statements = [
                     StatementResult(
-                        statement=stmt.format(),
+                        original_sql=orig_sql,
+                        executed_sql=trans_sql,
                         data=None,
                         row_count=0,
                         execution_time_ms=0,
                     )
-                    for stmt in script.statements
+                    for orig_sql, trans_sql in zip(
+                        original_sqls, transformed_sqls, strict=True
+                    )
                 ]
                 return QueryResultType(
                     status=QueryStatus.SUCCESS,
@@ -257,7 +270,7 @@ class SQLExecutor:
 
             # 5. Create Query model for audit
             query = self._create_query_record(
-                final_sql, opts, catalog, schema, status="running"
+                final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
             )
 
             # 6. Execute with timeout
@@ -266,7 +279,8 @@ class SQLExecutor:
 
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 statement_results = self._execute_statements(
-                    final_sql,
+                    original_script,
+                    transformed_script,
                     catalog,
                     schema,
                     query,
@@ -300,18 +314,13 @@ class SQLExecutor:
             return self._create_error_result(
                 QueryStatus.TIMED_OUT,
                 "Query exceeded the timeout limit",
-                sql,
                 start_time,
             )
         except SupersetSecurityException as ex:
-            return self._create_error_result(
-                QueryStatus.FAILED, str(ex), sql, start_time
-            )
+            return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
-            return self._create_error_result(
-                QueryStatus.FAILED, error_msg, sql, start_time
-            )
+            return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
 
     def execute_async(
         self,
@@ -335,27 +344,34 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
 
         # 1. Prepare SQL (assembly only, no security checks)
-        script, catalog, schema = self._prepare_sql(sql, opts)
+        original_script, transformed_script, catalog, schema = self._prepare_sql(
+            sql, opts
+        )
 
-        # 2. Security checks
-        self._check_security(script)
+        # 2. Security checks on transformed script
+        self._check_security(transformed_script)
 
         # 3. Get mutation status and format SQL
-        has_mutation = script.has_mutation()
-        final_sql = script.format()
+        has_mutation = transformed_script.has_mutation()
+        final_sql = transformed_script.format()
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
             from superset_core.api.types import StatementResult
 
+            original_sqls = [stmt.format() for stmt in original_script.statements]
+            transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
             dry_run_statements = [
                 StatementResult(
-                    statement=stmt.format(),
+                    original_sql=orig_sql,
+                    executed_sql=trans_sql,
                     data=None,
                     row_count=0,
                     execution_time_ms=0,
                 )
-                for stmt in script.statements
+                for orig_sql, trans_sql in zip(
+                    original_sqls, transformed_sqls, strict=True
+                )
             ]
             dry_run_result = QueryResultType(
                 status=QueryStatus.SUCCESS,
@@ -372,11 +388,11 @@ class SQLExecutor:
 
         # 5. Create Query model for audit
         query = self._create_query_record(
-            final_sql, opts, catalog, schema, status="pending"
+            final_sql, opts, catalog, schema, status=QueryStatus.PENDING
         )
 
         # 6. Submit to Celery
-        self._submit_query_to_celery(query, final_sql, opts)
+        self._submit_query_to_celery(query, final_sql)
 
         # 7. Create and return handle with bound methods
         return self._create_async_handle(query.id)
@@ -385,7 +401,7 @@ class SQLExecutor:
         self,
         sql: str,
         opts: QueryOptions,
-    ) -> tuple[SQLScript, str | None, str | None]:
+    ) -> tuple[SQLScript, SQLScript, str | None, str | None]:
         """
         Prepare SQL for execution (no side effects, no security checks).
 
@@ -397,30 +413,35 @@ class SQLExecutor:
         5. Limit application (if not mutation)
 
         Security checks (disallowed functions, DML permission) are performed
-        by the caller after receiving the prepared script.
+        by the caller after receiving the prepared scripts.
 
         :param sql: Original SQL query
         :param opts: Query options
-        :returns: Tuple of (prepared SQLScript, catalog, schema)
+        :returns: Tuple of (original_script, transformed_script, catalog, schema)
         """
         # 1. Render Jinja2 templates
         rendered_sql = self._render_sql_template(sql, opts.template_params)
 
-        # 2. Parse SQL with SQLScript
-        script = SQLScript(rendered_sql, self.database.db_engine_spec.engine)
+        # 2. Parse SQL with SQLScript - this is the ORIGINAL script
+        original_script = SQLScript(rendered_sql, self.database.db_engine_spec.engine)
 
-        # 3. Get catalog and schema
+        # 3. Create a copy for transformation
+        transformed_script = SQLScript(
+            rendered_sql, self.database.db_engine_spec.engine
+        )
+
+        # 4. Get catalog and schema
         catalog = opts.catalog or self.database.get_default_catalog()
         schema = opts.schema or self.database.get_default_schema(catalog)
 
-        # 4. Apply RLS directly to script statements
-        self._apply_rls_to_script(script, catalog, schema)
+        # 5. Apply RLS to transformed script only
+        self._apply_rls_to_script(transformed_script, catalog, schema)
 
-        # 5. Apply limit only if not a mutation
-        if not script.has_mutation():
-            self._apply_limit_to_script(script, opts)
+        # 6. Apply limit only if not a mutation
+        if not transformed_script.has_mutation():
+            self._apply_limit_to_script(transformed_script, opts)
 
-        return script, catalog, schema
+        return original_script, transformed_script, catalog, schema
 
     def _check_security(self, script: SQLScript) -> None:
         """
@@ -451,18 +472,21 @@ class SQLExecutor:
 
     def _execute_statements(
         self,
-        sql: str,
+        original_script: SQLScript,
+        transformed_script: SQLScript,
         catalog: str | None,
         schema: str | None,
         query: Any,
-    ) -> list[Any]:
+    ) -> list[StatementResult]:
         """
         Execute SQL statements and return per-statement results.
 
         Progress is tracked via Query.progress field.
         Uses the same execution path for both single and multi-statement queries.
 
-        :param sql: Final SQL to execute (with RLS and all transformations applied)
+        :param original_script: SQLScript with original SQL (before transformations)
+        :param transformed_script: SQLScript with transformed SQL
+            (after RLS, limits, etc.)
         :param catalog: Catalog name
         :param schema: Schema name
         :param query: Query model for progress tracking
@@ -470,12 +494,11 @@ class SQLExecutor:
         """
         from superset_core.api.types import StatementResult
 
-        # Parse the final SQL (with RLS applied) to get statements
-        script = SQLScript(sql, self.database.db_engine_spec.engine)
-        statements = script.statements
+        # Get original statement strings
+        original_sqls = [stmt.format() for stmt in original_script.statements]
 
         # Handle empty script
-        if not statements:
+        if not transformed_script.statements:
             return []
 
         results_list = []
@@ -486,18 +509,28 @@ class SQLExecutor:
                 execution_results = execute_sql_with_cursor(
                     database=self.database,
                     cursor=cursor,
-                    statements=[stmt.format() for stmt in statements],
+                    statements=[
+                        stmt.format() for stmt in transformed_script.statements
+                    ],
                     query=query,
                     log_query_fn=self._log_query,
                 )
 
+                # If execution was stopped or returned no results, return early
+                if not execution_results:
+                    return []
+
                 # Build StatementResult for each executed statement
-                for stmt_sql, result_set, exec_time, rowcount in execution_results:
+                # with both original and executed SQL
+                for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
+                    original_sqls, execution_results, strict=True
+                ):
                     if result_set is not None:
                         # SELECT statement
                         df = result_set.to_pandas_df()
                         stmt_result = StatementResult(
-                            statement=stmt_sql,
+                            original_sql=orig_sql,
+                            executed_sql=exec_sql,
                             data=df,
                             row_count=len(df),
                             execution_time_ms=exec_time,
@@ -505,7 +538,8 @@ class SQLExecutor:
                     else:
                         # DML statement - no data, just row count
                         stmt_result = StatementResult(
-                            statement=stmt_sql,
+                            original_sql=orig_sql,
+                            executed_sql=exec_sql,
                             data=None,
                             row_count=rowcount,
                             execution_time_ms=exec_time,
@@ -542,7 +576,6 @@ class SQLExecutor:
         self,
         status: Any,
         error_message: str,
-        sql: str,
         start_time: float,
         partial_results: list[Any] | None = None,
     ) -> QueryResult:
@@ -551,7 +584,6 @@ class SQLExecutor:
 
         :param status: QueryStatus enum value
         :param error_message: Error message to include
-        :param sql: SQL query (original if error occurred before transformation)
         :param start_time: Start time for calculating execution duration
         :param partial_results: Optional list of StatementResult from successful
             statements before the failure
@@ -674,7 +706,7 @@ class SQLExecutor:
         opts: QueryOptions,
         catalog: str | None,
         schema: str | None,
-        status: str = "running",
+        status: QueryStatus,
     ) -> Any:
         """
         Create Query model for audit/tracking.
@@ -683,11 +715,9 @@ class SQLExecutor:
         :param opts: Query options
         :param catalog: Catalog name
         :param schema: Schema name
-        :param status: Initial query status ("running" for sync, "pending" for async)
+        :param status: Initial QueryStatus (RUNNING for sync, PENDING for async)
         :returns: Query model instance
         """
-        import uuid
-
         from superset.models.sql_lab import Query as QueryModel
 
         user_id = None
@@ -704,7 +734,7 @@ class SQLExecutor:
             catalog=catalog,
             schema=schema,
             user_id=user_id,
-            status=status,
+            status=status.value,
             limit=opts.limit,
         )
         db.session.add(query)
@@ -732,7 +762,8 @@ class SQLExecutor:
             # Reconstruct statement results from cached data
             statements = [
                 StatementResult(
-                    statement=stmt_data["statement"],
+                    original_sql=stmt_data["original_sql"],
+                    executed_sql=stmt_data["executed_sql"],
                     data=stmt_data["data"],
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
@@ -775,7 +806,8 @@ class SQLExecutor:
         cached_data = {
             "statements": [
                 {
-                    "statement": stmt.statement,
+                    "original_sql": stmt.original_sql,
+                    "executed_sql": stmt.executed_sql,
                     "data": stmt.data,
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
@@ -799,8 +831,6 @@ class SQLExecutor:
         :param opts: Query options
         :returns: Cache key string
         """
-        import hashlib
-
         # Include relevant options in the cache key
         key_parts = [
             str(self.database.id),
@@ -816,14 +846,12 @@ class SQLExecutor:
         self,
         query: Any,
         rendered_sql: str,
-        opts: QueryOptions,
     ) -> None:
         """
         Submit query to Celery for async execution.
 
         :param query: Query model instance
         :param rendered_sql: Rendered SQL to execute
-        :param opts: Query options
         :raises: Re-raises any exception after marking query as failed
         """
         from superset.sql.execution.celery_task import execute_sql_task
@@ -983,7 +1011,8 @@ class SQLExecutor:
 
                         statements = [
                             StatementResult(
-                                statement=stmt_data.get("statement", ""),
+                                original_sql=stmt_data.get("original_sql", ""),
+                                executed_sql=stmt_data.get("executed_sql", ""),
                                 data=(
                                     pd.DataFrame(
                                         stmt_data.get("data", []),
@@ -1047,8 +1076,6 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
-        from contextlib import closing
-
         from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
         from superset.utils.core import QuerySource
 
@@ -1074,8 +1101,8 @@ class SQLExecutor:
             schema=query.schema,
             source=QuerySource.SQL_LAB,
         ) as engine:
-            with closing(engine.raw_connection()) as conn:
-                with closing(conn.cursor()) as cursor:
+            with contextlib.closing(engine.raw_connection()) as conn:
+                with contextlib.closing(conn.cursor()) as cursor:
                     return database.db_engine_spec.cancel_query(
                         cursor, query, cancel_query_id
                     )

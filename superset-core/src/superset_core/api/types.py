@@ -93,7 +93,10 @@ class StatementResult:
     For DML queries: data is None, row_count contains affected rows
     """
 
-    statement: str  # The SQL statement after transformations
+    original_sql: str  # The SQL statement as submitted by the user
+    executed_sql: (
+        str  # The SQL statement after transformations (RLS, mutations, limits)
+    )
     data: pd.DataFrame | None = None
     row_count: int = 0
     execution_time_ms: float | None = None

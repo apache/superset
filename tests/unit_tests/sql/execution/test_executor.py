@@ -893,7 +893,8 @@ def test_execute_dry_run_returns_transformed_sql(
 
     assert result.status == QueryStatus.SUCCESS
     assert len(result.statements) > 0  # Transformed SQL returned in statements
-    assert result.statements[0].statement is not None  # Has transformed SQL
+    assert result.statements[0].original_sql is not None  # Has original SQL
+    assert result.statements[0].executed_sql is not None  # Has transformed SQL
     assert result.statements[0].data is None  # No data in dry run
     assert result.query_id is None  # No Query model created
     mock_apply_rls.assert_called()  # RLS still applied
@@ -1348,7 +1349,8 @@ def test_async_handle_get_result_with_results_backend(
         {
             "statements": [
                 {
-                    "statement": "SELECT * FROM users",
+                    "original_sql": "SELECT * FROM users",
+                    "executed_sql": "SELECT * FROM users",
                     "data": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}],
                     "columns": [
                         {"column_name": "id", "name": "id"},
@@ -1877,7 +1879,10 @@ def test_store_in_cache_with_no_data(
         status=QueryStatus.SUCCESS,
         statements=[
             StatementResult(
-                statement="INSERT INTO t VALUES (1)", data=None, row_count=1
+                original_sql="INSERT INTO t VALUES (1)",
+                executed_sql="INSERT INTO t VALUES (1)",
+                data=None,
+                row_count=1,
             )
         ],
     )
@@ -1908,7 +1913,10 @@ def test_create_cached_async_result_cancel(
         status=QueryStatus.SUCCESS,
         statements=[
             StatementResult(
-                statement="SELECT 1", data=pd.DataFrame({"id": [1]}), row_count=1
+                original_sql="SELECT 1",
+                executed_sql="SELECT 1",
+                data=pd.DataFrame({"id": [1]}),
+                row_count=1,
             )
         ],
     )
@@ -2048,7 +2056,8 @@ def test_get_from_cache_returns_cached_result(
     cached_data = {
         "statements": [
             {
-                "statement": "SELECT * FROM users",
+                "original_sql": "SELECT * FROM users",
+                "executed_sql": "SELECT * FROM users",
                 "data": pd.DataFrame({"id": [1, 2]}),
                 "row_count": 2,
                 "execution_time_ms": 10.0,
@@ -2086,7 +2095,8 @@ def test_cached_async_result_get_result_returns_cached(
         status=QueryStatus.SUCCESS,
         statements=[
             StatementResult(
-                statement="SELECT 1",
+                original_sql="SELECT 1",
+                executed_sql="SELECT 1",
                 data=pd.DataFrame({"id": [1, 2, 3]}),
                 row_count=3,
             )

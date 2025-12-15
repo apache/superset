@@ -128,8 +128,9 @@ def _prepare_statement_blocks(
     """
     Parse SQL and build statement blocks for execution.
 
-    Note: RLS, security checks, and other preprocessing are handled by
-    SQLExecutor before the query reaches this task.
+    Some databases (like BigQuery and Kusto) do not persist state across multiple
+    statements if they're run separately (especially when using `NullPool`), so we run
+    the query as a single block when the database engine spec requires it.
     """
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
 
@@ -147,6 +148,7 @@ def _prepare_statement_blocks(
 
 def _finalize_successful_query(
     query: Query,
+    original_script: SQLScript,
     execution_results: list[tuple[str, SupersetResultSet | None, float, int]],
     payload: dict[str, Any],
     total_execution_time_ms: float,
@@ -156,14 +158,20 @@ def _finalize_successful_query(
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
 
-    for stmt_sql, result_set, exec_time, rowcount in execution_results:
+    # Get original statement strings
+    original_sqls = [stmt.format() for stmt in original_script.statements]
+
+    for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
+        original_sqls, execution_results, strict=True
+    ):
         if result_set is not None:
             # SELECT statement
             total_rows += result_set.size
             data, columns = _serialize_result_set(result_set)
             statements_data.append(
                 {
-                    "statement": stmt_sql,
+                    "original_sql": orig_sql,
+                    "executed_sql": exec_sql,
                     "data": data,
                     "columns": columns,
                     "row_count": result_set.size,
@@ -174,7 +182,8 @@ def _finalize_successful_query(
             # DML statement - no data, just row count
             statements_data.append(
                 {
-                    "statement": stmt_sql,
+                    "original_sql": orig_sql,
+                    "executed_sql": exec_sql,
                     "data": None,
                     "columns": [],
                     "row_count": rowcount,
@@ -409,6 +418,10 @@ def _execute_sql_statements(
     execution_start_time = now_as_float()
     db.session.commit()  # pylint: disable=consider-using-transaction
 
+    # Parse original SQL (from user) to preserve before transformations
+    original_script = SQLScript(query.sql, engine=db_engine_spec.engine)
+
+    # Parse transformed SQL (with RLS, limits, etc.)
     parsed_script, blocks = _prepare_statement_blocks(rendered_query, db_engine_spec)
 
     with database.get_raw_connection(
@@ -460,7 +473,7 @@ def _execute_sql_statements(
 
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
     _finalize_successful_query(
-        query, execution_results, payload, total_execution_time_ms
+        query, original_script, execution_results, payload, total_execution_time_ms
     )
 
     if results_backend:

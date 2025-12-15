@@ -270,20 +270,42 @@ def test_finalize_successful_query(
 ) -> None:
     """Test successful query finalization."""
     from superset.sql.execution.celery_task import _finalize_successful_query
+    from superset.sql.parse import SQLScript
 
     mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch("superset.dataframe.df_to_records", return_value=[{"id": 1}])
     payload: dict[str, Any] = {}
 
-    # New signature: (query, execution_results, payload, total_execution_time_ms)
-    # execution_results: list[tuple[str, SupersetResultSet | None, float, int]]
-    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
-    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
+    # Create original script
+    original_script = SQLScript(
+        "SELECT * FROM users", mock_database.db_engine_spec.engine
+    )
+
+    # New signature: (query, original_script, execution_results, payload,
+    # total_execution_time_ms). execution_results is a list of tuples:
+    # (executed_sql, result_set, exec_time, rowcount)
+    execution_results = [
+        ("SELECT * FROM users WHERE rls_filter", mock_result_set, 10.5, 2)
+    ]
+    _finalize_successful_query(
+        mock_query,
+        original_script,
+        execution_results,  # type: ignore[arg-type]
+        payload,
+        10.5,
+    )
 
     assert mock_query.rows == 2
     assert mock_query.progress == 100
     assert payload["status"] == QueryStatusEnum.SUCCESS
     assert "statements" in payload
+    # SQL is formatted by SQLScript, so we can't compare exact whitespace
+    assert "SELECT" in payload["statements"][0]["original_sql"]
+    assert "FROM users" in payload["statements"][0]["original_sql"]
+    assert (
+        payload["statements"][0]["executed_sql"]
+        == "SELECT * FROM users WHERE rls_filter"
+    )
 
 
 def test_finalize_successful_query_with_msgpack(
@@ -295,6 +317,7 @@ def test_finalize_successful_query_with_msgpack(
 ) -> None:
     """Test successful query finalization with Arrow/msgpack."""
     from superset.sql.execution.celery_task import _finalize_successful_query
+    from superset.sql.parse import SQLScript
 
     mocker.patch("superset.results_backend_use_msgpack", True)
     mock_buffer = MagicMock()
@@ -309,8 +332,21 @@ def test_finalize_successful_query_with_msgpack(
 
     payload: dict[str, Any] = {}
 
-    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
-    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
+    # Create original script
+    original_script = SQLScript(
+        "SELECT * FROM users", mock_database.db_engine_spec.engine
+    )
+
+    execution_results = [
+        ("SELECT * FROM users WHERE rls_filter", mock_result_set, 10.5, 2)
+    ]
+    _finalize_successful_query(
+        mock_query,
+        original_script,
+        execution_results,  # type: ignore[arg-type]
+        payload,
+        10.5,
+    )
 
     assert payload["statements"][0]["data"] == b"arrow_data"
 
@@ -324,6 +360,7 @@ def test_finalize_successful_query_msgpack_no_stats(
 ) -> None:
     """Test finalization with msgpack when has_app_context() is False."""
     from superset.sql.execution.celery_task import _finalize_successful_query
+    from superset.sql.parse import SQLScript
 
     mocker.patch("superset.results_backend_use_msgpack", True)
     mocker.patch(
@@ -337,8 +374,21 @@ def test_finalize_successful_query_msgpack_no_stats(
 
     payload: dict[str, Any] = {}
 
-    execution_results = [("SELECT * FROM users", mock_result_set, 10.5, 2)]
-    _finalize_successful_query(mock_query, execution_results, payload, 10.5)  # type: ignore[arg-type]
+    # Create original script
+    original_script = SQLScript(
+        "SELECT * FROM users", mock_database.db_engine_spec.engine
+    )
+
+    execution_results = [
+        ("SELECT * FROM users WHERE rls_filter", mock_result_set, 10.5, 2)
+    ]
+    _finalize_successful_query(
+        mock_query,
+        original_script,
+        execution_results,  # type: ignore[arg-type]
+        payload,
+        10.5,
+    )
 
     assert payload["statements"][0]["data"] == b"arrow_data"
 
@@ -347,17 +397,30 @@ def test_finalize_successful_query_with_dml(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
+    mock_database: MagicMock,
 ) -> None:
     """Test successful query finalization with DML statement (no result_set)."""
     from superset.sql.execution.celery_task import _finalize_successful_query
+    from superset.sql.parse import SQLScript
 
     payload: dict[str, Any] = {}
+
+    # Create original script
+    original_script = SQLScript(
+        "INSERT INTO users VALUES (1)", mock_database.db_engine_spec.engine
+    )
 
     # DML statement: result_set is None, rowcount indicates affected rows
     execution_results: list[tuple[str, None, float, int]] = [
         ("INSERT INTO users VALUES (1)", None, 5.0, 1)
     ]
-    _finalize_successful_query(mock_query, execution_results, payload, 5.0)  # type: ignore[arg-type]
+    _finalize_successful_query(
+        mock_query,
+        original_script,
+        execution_results,  # type: ignore[arg-type]
+        payload,
+        5.0,
+    )
 
     assert mock_query.rows == 0  # No rows returned for DML
     assert mock_query.progress == 100
@@ -652,9 +715,10 @@ def test_execute_sql_task_success(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.results_backend_use_msgpack", False)
@@ -689,9 +753,10 @@ def test_execute_sql_task_with_start_time(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.results_backend_use_msgpack", False)
@@ -728,9 +793,10 @@ def test_execute_sql_task_with_cancel_query_id(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.results_backend_use_msgpack", False)
@@ -764,9 +830,10 @@ def test_execute_sql_task_stopped(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # Empty list indicates stopped (check_stopped_fn returned True mid-execution)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=None,  # None indicates stopped
+        return_value=[],
     )
     mocker.patch("superset.sql.execution.celery_task.db.session")
     mocker.patch("superset.sql.execution.celery_task.security_manager")
@@ -797,9 +864,10 @@ def test_execute_sql_task_with_mutation(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("INSERT INTO users VALUES (1)", mock_result_set, 5.0, 1)],
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.sql.execution.celery_task.db.session")
@@ -831,9 +899,10 @@ def test_execute_sql_task_with_results_backend(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
 
     mock_results_backend = MagicMock()
@@ -937,9 +1006,10 @@ def test_execute_sql_task_success_final_commit(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
     mocker.patch("superset.sql.execution.celery_task.results_backend", None)
     mocker.patch("superset.results_backend_use_msgpack", False)
@@ -975,9 +1045,10 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     mocker.patch(
         "superset.sql.execution.celery_task._get_query", return_value=mock_query
     )
+    # execute_sql_with_cursor returns (exec_sql, result_set, time, rowcount)
     mocker.patch(
         "superset.sql.execution.celery_task.execute_sql_with_cursor",
-        return_value=mock_result_set,
+        return_value=[("SELECT * FROM users", mock_result_set, 10.5, 2)],
     )
 
     # Mock _store_results_in_backend to set status to FAILED without raising
