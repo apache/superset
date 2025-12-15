@@ -533,8 +533,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         fileListOverride.map(file => ({
           uid: file.name,
           name: file.name,
-          originFileObj: file,
-          status: 'done',
+          originFileObj: file as UploadFile['originFileObj'],
+          status: 'done' as const,
         })),
       );
       if (previewUploadedFile) {
