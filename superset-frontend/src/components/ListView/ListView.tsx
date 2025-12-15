@@ -18,13 +18,26 @@
  */
 import { t } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
+import type { ActionType } from '@ant-design/pro-components';
 import cx from 'classnames';
-import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
+
+import { ProTable, type ProColumns } from '@ant-design/pro-components';
+/* eslint-disable no-restricted-imports */
+import { ConfigProvider } from 'antd';
+import enUS from 'antd/locale/en_US';
+/* eslint-enable no-restricted-imports */
+
 import {
   Button,
-  Checkbox,
   Icons,
   EmptyState,
   Loading,
@@ -40,7 +53,8 @@ import {
   CardSortSelectOption,
   ViewModeType,
 } from './types';
-import { ListViewError, useListViewState } from './utils';
+import { ListViewError } from './utils';
+import { useProTableState } from './useProTableState';
 
 const ListViewStyles = styled.div`
   ${({ theme }) => `
@@ -138,19 +152,14 @@ const BulkSelectWrapper = styled(Alert)`
   `}
 `;
 
-const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
-  ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <Checkbox
-      {...getToggleAllRowsSelectedProps()}
-      id="header-toggle-all"
-      data-test="header-toggle-all"
-    />
-  ),
-  id: 'selection',
-  size: 'sm',
+// Column size mapping for ProTable
+const COLUMN_SIZE_MAP: Record<string, number> = {
+  xs: 25,
+  sm: 50,
+  md: 75,
+  lg: 100,
+  xl: 150,
+  xxl: 200,
 };
 
 const ViewModeContainer = styled.div`
@@ -284,36 +293,88 @@ export function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  // Pro Table action ref for programmatic control
+  const actionRef = useRef<ActionType>();
+
+  // Use the simplified Pro Table state hook (no react-table dependency)
   const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    pageCount = 1,
+    pageIndex,
+    pageSize,
+    pageCount,
     gotoPage,
-    applyFilterValue,
+    sortBy,
     setSortBy,
-    selectedFlatRows,
-    toggleAllRowsSelected,
+    internalFilters,
+    applyFilterValue,
+    viewMode,
     setViewMode,
-    state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
+    selectedRowKeys,
+    setSelectedRowKeys,
+    selectedRows,
+    toggleAllRowsSelected,
     query,
-  } = useListViewState({
-    bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
-    columns,
-    count,
-    data,
+  } = useProTableState({
     fetchData,
+    data,
+    count,
     initialPageSize,
     initialSort,
     initialFilters: filters,
     renderCard: Boolean(renderCard),
     defaultViewMode,
   });
+
   const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
+
+  // Convert columns directly to ProColumns format (no react-table mapping)
+  const proColumns = useMemo<ProColumns<T & { _rowKey: string }>[]>(() => {
+    const currentSort = sortBy[0];
+    return columns.map(col => {
+      const dataIndex = col.accessor || col.id;
+      return {
+        title: col.Header,
+        dataIndex: dataIndex?.includes('.') ? dataIndex.split('.') : dataIndex,
+        key: col.id,
+        hidden: col.hidden,
+        width: col.size ? COLUMN_SIZE_MAP[col.size] : undefined,
+        ellipsis: !columnsForWrapText?.includes(col.id),
+        sorter: !col.disableSortBy,
+        defaultSortOrder:
+          currentSort?.id === col.id
+            ? currentSort.desc
+              ? 'descend'
+              : 'ascend'
+            : undefined,
+        className: col.className,
+        render: col.Cell
+          ? (_: unknown, record: T & { _rowKey: string }) =>
+              col.Cell({
+                value: dataIndex
+                  ? (Array.isArray(dataIndex) ? dataIndex : dataIndex.split('.')).reduce(
+                      (obj: any, key: string) => obj?.[key],
+                      record,
+                    )
+                  : undefined,
+                row: { original: record, id: record._rowKey },
+              })
+          : undefined,
+      };
+    });
+  }, [columns, sortBy, columnsForWrapText]);
+
+  // Add row keys to data for selection and identification
+  // Use row.id if available for stable selection across pagination, fallback to index
+  const dataWithKeys = useMemo(
+    () =>
+      data.map((row, index) => ({
+        ...row,
+        _rowKey: String((row as { id?: number | string }).id ?? index),
+      })),
+    [data],
+  );
+
+  // Validate filter config
   if (filterable) {
     const columnAccessors = columns.reduce(
       (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
@@ -339,23 +400,99 @@ export function ListView<T extends object = any>({
   const cardViewEnabled = Boolean(renderCard);
   const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
 
-  useEffect(() => {
-    // discard selections if bulk select is disabled
-    if (!bulkSelectEnabled) toggleAllRowsSelected(false);
-  }, [bulkSelectEnabled, toggleAllRowsSelected]);
+  // Row selection config for Pro Table
+  const rowSelection = useMemo(
+    () =>
+      bulkSelectEnabled
+        ? {
+            selectedRowKeys,
+            onChange: (keys: React.Key[]) => {
+              setSelectedRowKeys(keys as string[]);
+            },
+          }
+        : undefined,
+    [bulkSelectEnabled, selectedRowKeys, setSelectedRowKeys],
+  );
 
+  // Pro Table pagination config
+  const paginationConfig = useMemo(() => {
+    if (count === 0) return false;
+    return {
+      current: pageIndex + 1,
+      pageSize,
+      total: count,
+      showSizeChanger: false,
+      showQuickJumper: false,
+      onChange: (page: number) => {
+        gotoPage(Math.max(0, page - 1));
+      },
+    };
+  }, [count, gotoPage, pageIndex, pageSize]);
+
+  // Handle Pro Table sorting
+  const handleTableChange = useCallback(
+    (_pagination: unknown, _filters: unknown, sorter: unknown) => {
+      const normalizedSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      const sorterObj = normalizedSorter as
+        | { field?: string | string[] | number; order?: string }
+        | undefined;
+      if (sorterObj?.field) {
+        const fieldId = Array.isArray(sorterObj.field)
+          ? sorterObj.field.join('.')
+          : String(sorterObj.field);
+        setSortBy([
+          {
+            id: fieldId,
+            desc: sorterObj.order === 'descend',
+          },
+        ]);
+      }
+    },
+    [setSortBy],
+  );
+
+  // Clear selections when bulk select is disabled
+  useEffect(() => {
+    if (!bulkSelectEnabled) {
+      setSelectedRowKeys([]);
+    }
+  }, [bulkSelectEnabled, setSelectedRowKeys]);
+
+  // Reset to first page if current page is invalid
   useEffect(() => {
     if (!loading && pageIndex > pageCount - 1 && pageCount > 0) {
       gotoPage(0);
     }
   }, [gotoPage, loading, pageCount, pageIndex]);
 
+  // For CardCollection compatibility - create row objects with selection methods
+  // Uses row._rowKey which is based on row.id when available
+  const cardRows = useMemo(
+    () =>
+      dataWithKeys.map(row => {
+        const rowKey = row._rowKey;
+        return {
+          id: rowKey,
+          original: row,
+          isSelected: selectedRowKeys.includes(rowKey),
+          toggleRowSelected: (value?: boolean) => {
+            const newKeys =
+              value ?? !selectedRowKeys.includes(rowKey)
+                ? [...selectedRowKeys, rowKey]
+                : selectedRowKeys.filter(k => k !== rowKey);
+            setSelectedRowKeys(newKeys);
+          },
+        };
+      }),
+    [dataWithKeys, selectedRowKeys, setSelectedRowKeys],
+  );
+
   return (
     <ListViewStyles>
       {allowBulkTagActions && (
         <BulkTagModal
           show={showBulkTagModal}
-          selected={selectedFlatRows}
+          selected={cardRows}
           refreshData={refreshData}
           resourceName={bulkTagResourceName}
           addSuccessToast={addSuccessToast}
@@ -386,7 +523,7 @@ export function ListView<T extends object = any>({
             )}
           </div>
         </div>
-        <div className={`body ${rows.length === 0 ? 'empty' : ''} `}>
+        <div className={`body ${dataWithKeys.length === 0 ? 'empty' : ''} `}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
               data-test="bulk-select-controls"
@@ -397,9 +534,9 @@ export function ListView<T extends object = any>({
               message={
                 <>
                   <div className="selectedCopy" data-test="bulk-select-copy">
-                    {renderBulkSelectCopy(selectedFlatRows)}
+                    {renderBulkSelectCopy(selectedRows)}
                   </div>
-                  {Boolean(selectedFlatRows.length) && (
+                  {Boolean(selectedRows.length) && (
                     <>
                       <span
                         data-test="bulk-select-deselect-all"
@@ -418,11 +555,7 @@ export function ListView<T extends object = any>({
                           key={action.key}
                           buttonStyle={action.type}
                           cta
-                          onClick={() =>
-                            action.onSelect(
-                              selectedFlatRows.map((r: any) => r.original),
-                            )
-                          }
+                          onClick={() => action.onSelect(selectedRows)}
                         >
                           {action.name}
                         </Button>
@@ -448,52 +581,61 @@ export function ListView<T extends object = any>({
           {viewMode === 'card' && (
             <CardCollection
               bulkSelectEnabled={bulkSelectEnabled}
-              prepareRow={prepareRow}
+              prepareRow={() => {}}
               renderCard={renderCard}
-              rows={rows}
+              rows={cardRows as never}
               loading={loading}
               showThumbnails={showThumbnails}
             />
           )}
           {viewMode === 'table' && (
             <>
-              {loading && rows.length === 0 ? (
+              {loading && dataWithKeys.length === 0 ? (
                 <FullPageLoadingWrapper>
                   <Loading />
                 </FullPageLoadingWrapper>
               ) : (
-                <TableCollection
-                  getTableProps={getTableProps}
-                  getTableBodyProps={getTableBodyProps}
-                  prepareRow={prepareRow}
-                  headerGroups={headerGroups}
-                  setSortBy={setSortBy}
-                  rows={rows}
-                  columns={columns}
-                  loading={loading && rows.length > 0}
-                  highlightRowId={highlightRowId}
-                  columnsForWrapText={columnsForWrapText}
-                  bulkSelectEnabled={bulkSelectEnabled}
-                  selectedFlatRows={selectedFlatRows}
-                  toggleRowSelected={(rowId, value) => {
-                    const row = rows.find((r: any) => r.id === rowId);
-                    if (row) {
-                      prepareRow(row);
-                      (row as any).toggleRowSelected(value);
+                <ConfigProvider locale={enUS}>
+                  <ProTable
+                    data-test="listview-table"
+                    actionRef={actionRef}
+                    columns={proColumns as ProColumns[]}
+                    dataSource={dataWithKeys}
+                    loading={loading && dataWithKeys.length > 0}
+                    search={false}
+                    options={false}
+                    rowKey="_rowKey"
+                    rowSelection={rowSelection}
+                    pagination={paginationConfig}
+                    locale={{ emptyText: null }}
+                    onChange={handleTableChange}
+                    tableAlertRender={false}
+                    toolBarRender={false}
+                    scroll={{ x: 'max-content' }}
+                    sortDirections={['ascend', 'descend']}
+                    rowClassName={record =>
+                      (record as T & { id?: number }).id === highlightRowId
+                        ? 'table-row-highlighted'
+                        : ''
                     }
-                  }}
-                  toggleAllRowsSelected={toggleAllRowsSelected}
-                  pageIndex={pageIndex}
-                  pageSize={pageSize}
-                  totalCount={count}
-                  onPageChange={newPageIndex => {
-                    gotoPage(newPageIndex);
-                  }}
-                />
+                    components={{
+                      header: {
+                        cell: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
+                          <th {...props} data-test="sort-header" role="columnheader" />
+                        ),
+                      },
+                      body: {
+                        row: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
+                          <tr {...props} data-test="table-row" />
+                        ),
+                      },
+                    }}
+                  />
+                </ConfigProvider>
               )}
             </>
           )}
-          {!loading && rows.length === 0 && (
+          {!loading && dataWithKeys.length === 0 && (
             <EmptyWrapper className={viewMode} data-test="empty-state">
               {query.filters ? (
                 <EmptyState
