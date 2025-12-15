@@ -19,7 +19,7 @@
 import 'src/public-path';
 
 // Accept HMR updates for this entry point
-// @ts-ignore - module.hot is injected by webpack
+declare const module: { hot?: { accept: () => void } };
 if (module.hot) {
   module.hot.accept();
 }
