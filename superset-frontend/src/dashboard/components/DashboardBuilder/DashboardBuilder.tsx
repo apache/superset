@@ -256,6 +256,11 @@ const DashboardContentWrapper = styled.div`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
+        pointer-events: none;
+
+        & > .drop-indicator {
+          pointer-events: auto;
+        }
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
