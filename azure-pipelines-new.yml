@@ -8,8 +8,8 @@ parameters:
     default: blue-dev
 
   - name: dockerPool
-    type: object
-    displayName: Docker Agent Pool
+    type: string
+    displayName: Docker Agent Pool 
     default: 'Linux-Hosted'
 
   - name: dockerNetwork
@@ -279,12 +279,12 @@ stages:
                       cd "$(Build.SourcesDirectory)"
 
                       # Deploy the stack
-                      docker-compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
+                      docker compose -f docker-compose-deploy.yml --env-file .env.deploy up -d
 
                       echo "Docker Compose stack deployed successfully."
                       echo ""
                       echo "Running services:"
-                      docker-compose -f docker-compose-deploy.yml ps
+                      docker compose -f docker-compose-deploy.yml ps
 
                 - task: Bash@3
                   displayName: Verify Stack Health
@@ -307,7 +307,7 @@ stages:
                         # Check if superset_app container is running
                         if ! docker ps | grep -q "superset_app"; then
                           echo "Superset app container is not running!"
-                          docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs superset || true
+                          docker compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs superset || true
                           exit 1
                         fi
 
@@ -329,15 +329,15 @@ stages:
                         echo "Superset failed to become healthy after $((MAX_RETRIES * DELAY_SEC))s"
                         echo ""
                         echo "==== Docker Compose Status ===="
-                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
+                        docker compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
                         echo ""
                         echo "==== Superset App Logs ===="
-                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset
+                        docker compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset
                         echo ""
                         echo "==== Superset Init Logs ===="
-                        docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset-init
+                        docker compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" logs --tail=100 superset-init
                         exit 1
                       fi
 
                       echo "Superset stack is healthy and ready!"
-                      docker-compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
+                      docker compose -f "$(Build.SourcesDirectory)/docker-compose-deploy.yml" ps
