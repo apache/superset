@@ -79,7 +79,7 @@
     "@types/jquery": "^3.5.33",
     "@types/lodash": "^4.17.21",
     "@types/math-expression-evaluator": "^2.0.0",
-    "@types/node": "^24.8.1",
+    "@types/node": "^25.0.2",
     "@types/prop-types": "^15.7.15",
     "@types/rison": "0.1.0",
     "@types/seedrandom": "^3.0.8",
