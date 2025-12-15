@@ -135,7 +135,6 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
-- [Value Ad](https://www.value-ad.com)[@stevensuting]
 - [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
