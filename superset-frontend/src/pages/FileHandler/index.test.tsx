@@ -33,15 +33,16 @@ type ToastInjectedProps = {
 // Mock the withToasts HOC
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default:
-    <P extends object>(Component: ComponentType<P & ToastInjectedProps>) =>
-    (props: P) => (
-      <Component
-        {...props}
-        addDangerToast={mockAddDangerToast}
-        addSuccessToast={mockAddSuccessToast}
-      />
-    ),
+  default: (Component: ComponentType<ToastInjectedProps>) =>
+    function MockedWithToasts(props: Record<string, unknown>) {
+      return (
+        <Component
+          {...props}
+          addDangerToast={mockAddDangerToast}
+          addSuccessToast={mockAddSuccessToast}
+        />
+      );
+    },
 }));
 
 interface UploadDataModalProps {
@@ -108,7 +109,7 @@ type LaunchQueue = {
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer: ((params: { files?: MockFileHandle[] }) => void) | null =
     null;
-  (window as Window & { launchQueue: LaunchQueue }).launchQueue = {
+  (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
@@ -303,10 +304,15 @@ test('handles errors during file processing', async () => {
   );
 
   // Trigger with a file handle that throws an error
-  const errorFileHandle = {
+  const errorFileHandle: MockFileHandle = {
+    kind: 'file',
+    name: 'error.csv',
     getFile: async () => {
       throw new Error('File access denied');
     },
+    isSameEntry: async () => false,
+    queryPermission: async () => 'granted',
+    requestPermission: async () => 'granted',
   };
 
   triggerConsumer({ files: [errorFileHandle] });
