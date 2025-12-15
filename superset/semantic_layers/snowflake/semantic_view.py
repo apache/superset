@@ -303,7 +303,7 @@ class SnowflakeSemanticView(SemanticViewImplementation):
         group_limit: GroupLimit | None = None,
     ) -> SemanticResult:
         """
-        Execute a query and return the results as a Pandas DataFrame.
+        Execute a query and return the results as a (wrapped) Pandas DataFrame.
         """
         if not metrics and not dimensions:
             return DataFrame()
