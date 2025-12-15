@@ -9,15 +9,49 @@
   "theme_color": "#20a7c9",
   "icons": [
     {
-      "src": "/static/assets/images/superset-logo-horiz.png",
-      "sizes": "any",
+      "src": "/static/assets/images/pwa/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/static/assets/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/assets/images/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/assets/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/assets/images/pwa/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Apache Superset Dashboard"
+    },
+    {
+      "src": "/static/assets/images/pwa/screenshot-narrow.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Apache Superset Mobile View"
     }
   ],
   "file_handlers": [
     {
-      "action": "/file-handler",
+      "action": "/superset/file-handler",
       "accept": {
         "text/csv": [".csv"],
         "application/vnd.ms-excel": [".xls"],

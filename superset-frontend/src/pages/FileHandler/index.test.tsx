@@ -134,8 +134,8 @@ beforeEach(() => {
 
 test('shows error when launchQueue is not supported', async () => {
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -154,8 +154,8 @@ test('redirects when no files are provided', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -175,8 +175,8 @@ test('handles CSV file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -196,8 +196,8 @@ test('handles Excel (.xls) file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -215,8 +215,8 @@ test('handles Excel (.xlsx) file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -234,8 +234,8 @@ test('handles Parquet file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -252,8 +252,8 @@ test('shows error for unsupported file type', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -277,8 +277,8 @@ test('handles file with uppercase extension', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -294,8 +294,8 @@ test('handles errors during file processing', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -324,8 +324,8 @@ test('modal close redirects to welcome page', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,
@@ -348,8 +348,8 @@ test('shows loading state while waiting for file', () => {
   setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/file-handler']}>
-      <Route path="/file-handler">
+    <MemoryRouter initialEntries={['/superset/file-handler']}>
+      <Route path="/superset/file-handler">
         <FileHandler />
       </Route>
     </MemoryRouter>,

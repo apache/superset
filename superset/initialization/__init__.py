@@ -637,7 +637,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def register_request_handlers(self) -> None:
         """Register app-level request handlers"""
-        from flask import Response
+        from flask import request, Response
 
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
@@ -653,6 +653,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for k, v in self.superset_app.config["DEFAULT_HTTP_HEADERS"].items():
                 if k not in response.headers:
                     response.headers[k] = v
+
+            # Allow service worker to control the root scope for PWA file handling
+            if request.path.endswith("service-worker.js"):
+                response.headers["Service-Worker-Allowed"] = "/"
+
             return response
 
         @self.superset_app.after_request
