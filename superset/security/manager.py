@@ -302,7 +302,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Annotation",
         "CSS Templates",
         "ColumnarToDatabaseView",
-        "CssTemplate",
         "ExcelToDatabaseView",
         "Import dashboards",
         "ImportExportRestApi",
