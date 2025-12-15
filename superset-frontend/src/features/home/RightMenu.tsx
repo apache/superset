@@ -335,8 +335,18 @@ const RightMenu = ({
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
   const handleLogout = () => {
-    localStorage.removeItem('redux');
-    sessionStorage.removeItem('login_attempted');
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.localStorage?.removeItem) {
+          window.localStorage.removeItem('redux');
+        }
+        if (window.sessionStorage?.removeItem) {
+          window.sessionStorage.removeItem('login_attempted');
+        }
+      }
+    } catch {
+      // Swallow storage errors to avoid crashing when storage is unavailable
+    }
   };
 
   // Use the theme menu hook
