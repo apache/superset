@@ -108,7 +108,7 @@ class Database(CoreModel):
             )
             if result.status == QueryStatus.SUCCESS:
                 df = result.data
-                print(f"Found {result.row_count} rows")
+                print(f"Found {sum(s.row_count for s in result.statements)} rows")
 
         Example with templates:
             result = db.execute(
@@ -124,7 +124,7 @@ class Database(CoreModel):
                 "SELECT * FROM users",
                 options=QueryOptions(schema="public", limit=100, dry_run=True)
             )
-            print(f"Would execute: {result.query}")
+            print(f"Would execute: {result.statements[0].statement}")
         """
         raise NotImplementedError("Method will be replaced during initialization")
 
@@ -154,7 +154,7 @@ class Database(CoreModel):
             status = handle.get_status()
             if status == QueryStatus.SUCCESS:
                 query_result = handle.get_result()
-                df = query_result.data
+                df = query_result.statements[0].data
 
             # Cancel if needed
             handle.cancel()
