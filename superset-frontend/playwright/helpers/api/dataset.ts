@@ -18,6 +18,7 @@
  */
 
 import { Page, APIResponse } from '@playwright/test';
+import rison from 'rison';
 import { apiGet, apiPost, apiDelete, ApiRequestOptions } from './requests';
 
 export const ENDPOINTS = {
@@ -85,7 +86,7 @@ export async function getDatasetByName(
       },
     ],
   };
-  const queryParam = encodeURIComponent(JSON.stringify(filter));
+  const queryParam = rison.encode(filter);
   const response = await apiGet(page, `${ENDPOINTS.DATASET}?q=${queryParam}`);
 
   if (!response.ok()) {
@@ -98,42 +99,6 @@ export async function getDatasetByName(
   }
 
   return null;
-}
-
-/**
- * Duplicates a dataset via API and returns the new dataset info
- * @param page - Playwright page instance (provides authentication context)
- * @param datasetId - ID of dataset to duplicate
- * @param newName - Name for the duplicated dataset
- * @returns Promise resolving to new dataset info
- */
-export async function duplicateDataset(
-  page: Page,
-  datasetId: number,
-  newName: string,
-): Promise<DatasetResult> {
-  const response = await apiPost(page, `${ENDPOINTS.DATASET}duplicate`, {
-    base_model_id: datasetId,
-    table_name: newName,
-  });
-
-  if (response.status() !== 201) {
-    throw new Error(
-      `Failed to duplicate dataset ${datasetId}: expected 201, got ${response.status()}`,
-    );
-  }
-
-  const data = await response.json();
-
-  return {
-    id: data.id,
-    table_name: data.result.table_name,
-    sql: data.result.sql,
-    schema: data.result.schema,
-    database: data.result.database,
-    owners: data.result.owners,
-    dataset_type: data.result.dataset_type,
-  };
 }
 
 /**

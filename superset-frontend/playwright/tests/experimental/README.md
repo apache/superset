@@ -46,7 +46,7 @@ INCLUDE_EXPERIMENTAL=true npm run playwright:test
   - Failures in `experimental/` do NOT fail the build
 
 - **Experimental CI jobs** (optional): Use `TEST_PATH=experimental/`
-  - `.github/workflows/bashlib.sh` sets `INCLUDE_EXPERIMENTAL=true` when `TEST_PATH` is provided
+  - Set `INCLUDE_EXPERIMENTAL=true` in the job environment to include experimental tests
   - These jobs can use `continue-on-error: true` for shadow mode
 
 ### Configuration
