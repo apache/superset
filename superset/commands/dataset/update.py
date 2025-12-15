@@ -212,26 +212,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             valid_uuids: set[UUID] = set()
             if metrics:
                 valid_uuids.update(
-                    (
-                        metric["uuid"]
-                        if isinstance(metric["uuid"], UUID)
-                        else UUID(metric["uuid"])
-                    )
-                    for metric in metrics
-                    if "uuid" in metric
+                    metric["uuid"] for metric in metrics if "uuid" in metric
                 )
             else:
                 valid_uuids.update(metric.uuid for metric in self._model.metrics)
 
             if columns:
                 valid_uuids.update(
-                    (
-                        column["uuid"]
-                        if isinstance(column["uuid"], UUID)
-                        else UUID(column["uuid"])
-                    )
-                    for column in columns
-                    if "uuid" in column
+                    column["uuid"] for column in columns if "uuid" in column
                 )
             else:
                 valid_uuids.update(column.uuid for column in self._model.columns)
