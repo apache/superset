@@ -3,7 +3,6 @@
 
 x-superset-volumes:
   &superset-volumes
-  - ./docker:/app/docker
   - superset_home:/app/superset_home
 
 services:
@@ -99,64 +98,7 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
-
-  superset-worker:
-    image: ${SUPERSET_IMAGE:-intellisuite.azurecr.io/superset:latest}
-    container_name: superset_worker
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    user: "root"
-    restart: unless-stopped
-    networks:
-      - superset-network
-    environment:
-      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=${DATABASE_DIALECT:-postgresql}
-      - DATABASE_HOST=${DATABASE_HOST:-db}
-      - DATABASE_PORT=${DATABASE_PORT:-5432}
-      - DATABASE_DB=${DATABASE_DB:-superset}
-      - DATABASE_USER=${DATABASE_USER:-superset}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-superset}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-    depends_on:
-      superset-init:
-        condition: service_completed_successfully
-    volumes: *superset-volumes
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  superset-worker-beat:
-    image: ${SUPERSET_IMAGE:-intellisuite.azurecr.io/superset:latest}
-    container_name: superset_worker_beat
-    command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    user: "root"
-    restart: unless-stopped
-    networks:
-      - superset-network
-    environment:
-      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-      - DATABASE_DIALECT=${DATABASE_DIALECT:-postgresql}
-      - DATABASE_HOST=${DATABASE_HOST:-db}
-      - DATABASE_PORT=${DATABASE_PORT:-5432}
-      - DATABASE_DB=${DATABASE_DB:-superset}
-      - DATABASE_USER=${DATABASE_USER:-superset}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-superset}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-    depends_on:
-      superset-init:
-        condition: service_completed_successfully
-    volumes: *superset-volumes
-    healthcheck:
-      disable: true
-
+      
 networks:
   superset-network:
     name: ${DOCKER_NETWORK:-superset-network}
