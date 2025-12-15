@@ -26,7 +26,6 @@ from __future__ import annotations
 import dataclasses
 import logging
 import uuid
-from sys import getsizeof
 from typing import Any, TYPE_CHECKING
 
 import msgpack
@@ -247,8 +246,8 @@ def _store_results_in_backend(
             cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
         compressed = zlib_compress(serialized_payload)
-        logger.debug("*** serialized payload size: %i", getsizeof(serialized_payload))
-        logger.debug("*** compressed payload size: %i", getsizeof(compressed))
+        logger.debug("*** serialized payload size: %i", len(serialized_payload))
+        logger.debug("*** compressed payload size: %i", len(compressed))
 
         write_success = results_backend.set(key, compressed, cache_timeout)
         if not write_success:
