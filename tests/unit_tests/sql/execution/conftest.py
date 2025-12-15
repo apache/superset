@@ -152,7 +152,9 @@ def create_mock_cursor(
         Configured MagicMock cursor
     """
     mock_cursor = MagicMock()
-    mock_cursor.description = [(name,) for name in column_names]
+    mock_cursor.description = [
+        (name, None, None, None, None, None, None) for name in column_names
+    ]
     if data is not None:
         mock_cursor.fetchall.return_value = data
     return mock_cursor
@@ -229,7 +231,7 @@ def mock_query_execution(
     database: Database,
     return_data: list[tuple[Any, ...]],
     column_names: list[str],
-) -> None:
+) -> MagicMock:
     """
     Mock the raw connection execution path for testing.
 
@@ -241,6 +243,9 @@ def mock_query_execution(
         database: Database instance to mock
         return_data: Data to return from fetch_data, e.g. [(1, "Alice"), (2, "Bob")]
         column_names: Column names for the result, e.g. ["id", "name"]
+
+    Returns:
+        The mock for get_raw_connection, so tests can make assertions on it
     """
     from superset.result_set import SupersetResultSet
 
@@ -248,7 +253,9 @@ def mock_query_execution(
     mock_cursor = create_mock_cursor(column_names, return_data)
     mock_conn = create_mock_connection(mock_cursor)
 
-    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    get_raw_conn_mock = mocker.patch.object(
+        database, "get_raw_connection", return_value=mock_conn
+    )
     mocker.patch.object(
         database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
     )
@@ -261,6 +268,8 @@ def mock_query_execution(
         return_data, columns=column_names
     )
     mocker.patch("superset.result_set.SupersetResultSet", return_value=mock_result_set)
+
+    return get_raw_conn_mock
 
 
 # =============================================================================

@@ -15,6 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.sql.execution.executor import SQLExecutor
+from .executor import SQLExecutor
 
 __all__ = ["SQLExecutor"]

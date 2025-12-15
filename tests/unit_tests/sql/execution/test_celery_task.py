@@ -892,7 +892,8 @@ def test_execute_sql_task_timeout(
 
     result = execute_sql_task(123, "SELECT * FROM users")
 
-    assert result["status"] == QueryStatusEnum.FAILED
+    # TIMED_OUT status is preserved (not overwritten to FAILED)
+    assert result["status"] == QueryStatusEnum.TIMED_OUT.value
 
 
 def test_execute_sql_task_unhandled_exception(

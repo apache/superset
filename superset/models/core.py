@@ -95,6 +95,8 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+
     from superset.models.sql_lab import Query
 
 
@@ -1279,8 +1281,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def execute(
         self,
         sql: str,
-        options: Any | None = None,
-    ) -> Any:
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
         """
         Execute SQL synchronously.
 
@@ -1295,8 +1297,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def execute_async(
         self,
         sql: str,
-        options: Any | None = None,
-    ) -> Any:
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
         """
         Execute SQL asynchronously via Celery.
 

@@ -87,11 +87,8 @@ def test_execute_with_options(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test query execution with custom options."""
-    mock_query_execution(mocker, database, return_data=[(100,)], column_names=["count"])
-    get_raw_conn_mock = mocker.patch.object(
-        database,
-        "get_raw_connection",
-        wraps=database.get_raw_connection,
+    get_raw_conn_mock = mock_query_execution(
+        mocker, database, return_data=[(100,)], column_names=["count"]
     )
     mocker.patch.dict(
         current_app.config,
@@ -1248,9 +1245,6 @@ def test_execute_uses_default_catalog_and_schema(
     )
     get_default_schema_mock = mocker.patch.object(
         database, "get_default_schema", return_value="public"
-    )
-    mocker.patch.object(
-        database, "get_raw_connection", wraps=database.get_raw_connection
     )
     mocker.patch.dict(
         current_app.config,

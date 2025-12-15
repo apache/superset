@@ -56,6 +56,7 @@ superset_core.api.models for the public API contract.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 from datetime import datetime
@@ -481,37 +482,36 @@ class SQLExecutor:
 
         # Use consistent execution path for all queries
         with self.database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            cursor = conn.cursor()
+            with contextlib.closing(conn.cursor()) as cursor:
+                execution_results = execute_sql_with_cursor(
+                    database=self.database,
+                    cursor=cursor,
+                    statements=[stmt.format() for stmt in statements],
+                    query=query,
+                    log_query_fn=self._log_query,
+                )
 
-            execution_results = execute_sql_with_cursor(
-                database=self.database,
-                cursor=cursor,
-                statements=[stmt.format() for stmt in statements],
-                query=query,
-                log_query_fn=self._log_query,
-            )
+                # Build StatementResult for each executed statement
+                for stmt_sql, result_set, exec_time, rowcount in execution_results:
+                    if result_set is not None:
+                        # SELECT statement
+                        df = result_set.to_pandas_df()
+                        stmt_result = StatementResult(
+                            statement=stmt_sql,
+                            data=df,
+                            row_count=len(df),
+                            execution_time_ms=exec_time,
+                        )
+                    else:
+                        # DML statement - no data, just row count
+                        stmt_result = StatementResult(
+                            statement=stmt_sql,
+                            data=None,
+                            row_count=rowcount,
+                            execution_time_ms=exec_time,
+                        )
 
-            # Build StatementResult for each executed statement
-            for stmt_sql, result_set, exec_time, rowcount in execution_results:
-                if result_set is not None:
-                    # SELECT statement
-                    df = result_set.to_pandas_df()
-                    stmt_result = StatementResult(
-                        statement=stmt_sql,
-                        data=df,
-                        row_count=len(df),
-                        execution_time_ms=exec_time,
-                    )
-                else:
-                    # DML statement - no data, just row count
-                    stmt_result = StatementResult(
-                        statement=stmt_sql,
-                        data=None,
-                        row_count=rowcount,
-                        execution_time_ms=exec_time,
-                    )
-
-                results_list.append(stmt_result)
+                    results_list.append(stmt_result)
 
         return results_list
 
@@ -742,6 +742,7 @@ class SQLExecutor:
             return QueryResultType(
                 status=QueryStatus.SUCCESS,
                 statements=statements,
+                query_id=None,
                 is_cached=True,
                 total_execution_time_ms=cached.get("total_execution_time_ms", 0),
             )

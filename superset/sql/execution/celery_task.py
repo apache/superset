@@ -81,7 +81,9 @@ def _handle_query_error(
     msg = f"{prefix_message} {str(ex)}".strip()
     query.error_message = msg
     query.tmp_table_name = None
-    query.status = QueryStatus.FAILED
+    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
+    if query.status != QueryStatus.TIMED_OUT:
+        query.status = QueryStatus.FAILED
 
     if not query.end_time:
         query.end_time = now_as_float()
@@ -101,7 +103,9 @@ def _handle_query_error(
         query.set_extra_json_key("errors", errors_payload)
 
     db.session.commit()  # pylint: disable=consider-using-transaction
-    payload.update({"status": query.status, "error": msg, "errors": errors_payload})
+    payload.update(
+        {"status": query.status.value, "error": msg, "errors": errors_payload}
+    )
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
@@ -189,13 +193,13 @@ def _finalize_successful_query(
 
     payload.update(
         {
-            "status": QueryStatus.SUCCESS,
+            "status": QueryStatus.SUCCESS.value,
             "statements": statements_data,
             "total_execution_time_ms": total_execution_time_ms,
             "query": query.to_dict(),
         }
     )
-    payload["query"]["state"] = QueryStatus.SUCCESS
+    payload["query"]["state"] = QueryStatus.SUCCESS.value
 
 
 def _store_results_in_backend(
@@ -448,7 +452,7 @@ def _execute_sql_statements(
 
         # Check if stopped
         if not execution_results:
-            payload.update({"status": QueryStatus.STOPPED})
+            payload.update({"status": QueryStatus.STOPPED.value})
             return payload
 
         # Commit for mutations
