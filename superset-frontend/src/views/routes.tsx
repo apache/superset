@@ -211,7 +211,7 @@ export const routes: Routes = [
     Component: Home,
   },
   {
-    path: '/file-handler',
+    path: '/superset/file-handler',
     Component: FileHandler,
   },
   {
