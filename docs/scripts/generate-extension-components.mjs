@@ -18,8 +18,9 @@
  */
 
 /**
- * This script scans for Storybook stories tagged with 'extension-compatible'
- * and generates MDX documentation pages for the developer portal.
+ * This script scans for Storybook stories in superset-core/src and generates
+ * MDX documentation pages for the developer portal. All components in
+ * superset-core are considered extension-compatible by virtue of their location.
  *
  * Usage: node scripts/generate-extension-components.mjs
  */
@@ -105,7 +106,7 @@ function parseStoryFile(filePath) {
 
   // Extract package info
   const packageMatch = content.match(/package:\s*['"]([^'"]+)['"]/);
-  const packageName = packageMatch ? packageMatch[1] : '@apache-superset/core';
+  const packageName = packageMatch ? packageMatch[1] : '@apache-superset/core/ui';
 
   // Extract import path - handle double-quoted strings containing single quotes
   // Match: importPath: "import { Alert } from '@apache-superset/core';"
@@ -157,30 +158,32 @@ function parseStoryFile(filePath) {
  * Extract argTypes/args from story content for generating controls
  */
 function extractArgsAndControls(content, componentName, storyContent) {
-  // Look for InteractiveX.args pattern
+  // Look for InteractiveX.args pattern - handle multi-line objects
   const argsMatch = content.match(
-    new RegExp(`Interactive${componentName}\\.args\\s*=\\s*{([^}]+)}`, 's')
+    new RegExp(`Interactive${componentName}\\.args\\s*=\\s*\\{([\\s\\S]*?)\\};`, 's')
   );
 
   // Look for argTypes
   const argTypesMatch = content.match(
-    new RegExp(`Interactive${componentName}\\.argTypes\\s*=\\s*{([\\s\\S]*?)};`, 's')
+    new RegExp(`Interactive${componentName}\\.argTypes\\s*=\\s*\\{([\\s\\S]*?)\\};`, 's')
   );
 
   const args = {};
   const controls = [];
+  const propDescriptions = {};
 
   if (argsMatch) {
-    // Parse simple args like: closable: true, type: 'info'
+    // Parse args - handle strings, booleans, numbers
     const argsContent = argsMatch[1];
-    const argLines = argsContent.matchAll(/(\w+):\s*(['"]([^'"]+)['"]|true|false|\d+)/g);
+    const argLines = argsContent.matchAll(/(\w+):\s*(['"]([^'"]*(?:\\.[^'"]*)*)['""]|true|false|\d+)/g);
     for (const match of argLines) {
       const key = match[1];
       let value = match[2];
       // Convert string booleans
       if (value === 'true') value = true;
       else if (value === 'false') value = false;
-      else if (match[3]) value = match[3]; // Use captured string content
+      else if (!isNaN(Number(value))) value = Number(value);
+      else if (match[3] !== undefined) value = match[3]; // Use captured string content
       args[key] = value;
     }
   }
@@ -197,8 +200,17 @@ function extractArgsAndControls(content, componentName, storyContent) {
       const name = propMatch[1];
       const propContent = propMatch[2];
 
+      // Extract description if present
+      const descMatch = propContent.match(/description:\s*['"]([^'"]+)['"]/);
+      if (descMatch) {
+        propDescriptions[name] = descMatch[1];
+      }
+
       // Skip if it's an action (not a control)
       if (propContent.includes('action:')) continue;
+
+      // Extract label for display
+      const label = name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1');
 
       // Check for select control
       if (propContent.includes("type: 'select'") || propContent.includes('type: "select"')) {
@@ -221,26 +233,29 @@ function extractArgsAndControls(content, componentName, storyContent) {
         }
 
         if (options.length > 0) {
-          controls.push({
-            name,
-            label: name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1'),
-            type: 'select',
-            options,
-          });
+          controls.push({ name, label, type: 'select', options });
         }
       }
       // Check for boolean control
       else if (propContent.includes("type: 'boolean'") || propContent.includes('type: "boolean"')) {
-        controls.push({
-          name,
-          label: name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1'),
-          type: 'boolean',
-        });
+        controls.push({ name, label, type: 'boolean' });
+      }
+      // Check for text/string control (default for props in args without explicit control)
+      else if (args[name] !== undefined && typeof args[name] === 'string') {
+        controls.push({ name, label, type: 'text' });
       }
     }
   }
 
-  return { args, controls };
+  // Add text controls for string args that don't have explicit argTypes
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === 'string' && !controls.find(c => c.name === key)) {
+      const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+      controls.push({ name: key, label, type: 'text' });
+    }
+  }
+
+  return { args, controls, propDescriptions };
 }
 
 /**
@@ -250,8 +265,8 @@ function generateMDX(component, storyContent) {
   const { componentName, description, importPath, packageName, relativePath } =
     component;
 
-  // Extract args and controls from the story
-  const { args, controls } = extractArgsAndControls(storyContent, componentName, storyContent);
+  // Extract args, controls, and descriptions from the story
+  const { args, controls, propDescriptions } = extractArgsAndControls(storyContent, componentName, storyContent);
 
   // Generate the controls array for StoryWithControls
   const controlsJson = JSON.stringify(controls, null, 2)
@@ -262,6 +277,33 @@ function generateMDX(component, storyContent) {
   const propsJson = JSON.stringify(args, null, 2)
     .replace(/"(\w+)":/g, '$1:')
     .replace(/"/g, "'");
+
+  // Generate a realistic live code example from the actual args
+  const liveExampleProps = Object.entries(args)
+    .map(([key, value]) => {
+      if (typeof value === 'string') return `${key}="${value}"`;
+      if (typeof value === 'boolean') return value ? key : null;
+      return `${key}={${JSON.stringify(value)}}`;
+    })
+    .filter(Boolean)
+    .join('\n      ');
+
+  // Generate props table with descriptions from argTypes
+  const propsTable = Object.entries(args).map(([key, value]) => {
+    const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'string' ? 'string' : 'any';
+    const desc = propDescriptions[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+    return `| \`${key}\` | \`${type}\` | \`${JSON.stringify(value)}\` | ${desc} |`;
+  }).join('\n');
+
+  // Generate usage example props (simplified for readability)
+  const usageExampleProps = Object.entries(args)
+    .slice(0, 3) // Show first 3 props for brevity
+    .map(([key, value]) => {
+      if (typeof value === 'string') return `${key}="${value}"`;
+      if (typeof value === 'boolean') return value ? key : `${key}={false}`;
+      return `${key}={${JSON.stringify(value)}}`;
+    })
+    .join('\n      ');
 
   return `---
 title: ${componentName}
@@ -288,7 +330,7 @@ sidebar_label: ${componentName}
 -->
 
 import { StoryWithControls } from '../../../src/components/StorybookWrapper';
-import { ${componentName} } from '@apache-superset/core';
+import { ${componentName} } from '@apache-superset/core/ui';
 
 # ${componentName}
 
@@ -297,13 +339,7 @@ ${description || `The ${componentName} component from the Superset extension API
 ## Live Example
 
 <StoryWithControls
-  component={({ ${Object.keys(args).join(', ')} }) => (
-    <${componentName}
-      ${Object.keys(args).map(k => `${k}={${k}}`).join('\n      ')}
-    >
-      Sample alert message
-    </${componentName}>
-  )}
+  component={${componentName}}
   props={${propsJson}}
   controls={${controlsJson}}
 />
@@ -315,9 +351,9 @@ Edit the code below to experiment with the component:
 \`\`\`tsx live
 function Demo() {
   return (
-    <${componentName} type="info">
-      Edit me! Try changing the type to "success", "warning", or "error".
-    </${componentName}>
+    <${componentName}
+      ${liveExampleProps}
+    />
   );
 }
 \`\`\`
@@ -326,10 +362,7 @@ function Demo() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-${Object.entries(args).map(([key, value]) => {
-  const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'string' ? 'string' : 'any';
-  return `| \`${key}\` | \`${type}\` | \`${JSON.stringify(value)}\` | ${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} |`;
-}).join('\n')}
+${propsTable}
 
 ## Usage in Extensions
 
@@ -340,9 +373,9 @@ ${importPath}
 
 function MyExtension() {
   return (
-    <${componentName} type="info">
-      Your message here
-    </${componentName}>
+    <${componentName}
+      ${usageExampleProps}
+    />
   );
 }
 \`\`\`
@@ -393,7 +426,7 @@ sidebar_position: 1
 
 # Extension Components
 
-These UI components are available to Superset extension developers through the \`@apache-superset/core\` package. They provide a consistent look and feel with the rest of Superset and are designed to be used in extension panels, views, and other UI elements.
+These UI components are available to Superset extension developers through the \`@apache-superset/core/ui\` package. They provide a consistent look and feel with the rest of Superset and are designed to be used in extension panels, views, and other UI elements.
 
 ## Available Components
 
@@ -401,10 +434,10 @@ ${componentList}
 
 ## Usage
 
-All components are exported from the \`@apache-superset/core\` package:
+All components are exported from the \`@apache-superset/core/ui\` package:
 
 \`\`\`tsx
-import { Alert } from '@apache-superset/core';
+import { Alert } from '@apache-superset/core/ui';
 
 export function MyExtensionPanel() {
   return (
@@ -417,7 +450,7 @@ export function MyExtensionPanel() {
 
 ## Adding New Components
 
-Components in \`@apache-superset/core\` are automatically documented here. To add a new extension component:
+Components in \`@apache-superset/core/ui\` are automatically documented here. To add a new extension component:
 
 1. Add the component to \`superset-frontend/packages/superset-core/src/ui/components/\`
 2. Export it from \`superset-frontend/packages/superset-core/src/ui/components/index.ts\`
@@ -556,7 +589,7 @@ function generateTypeDeclarations(componentInfos) {
  */
 
 /**
- * Type declarations for @apache-superset/core
+ * Type declarations for @apache-superset/core/ui
  *
  * AUTO-GENERATED by scripts/generate-extension-components.mjs
  * Do not edit manually - regenerate by running: yarn generate:extension-components

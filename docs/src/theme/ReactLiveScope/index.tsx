@@ -20,9 +20,10 @@
 import React from 'react';
 import { Button, Card, Input, Space, Tag, Tooltip } from 'antd';
 
-// Import extension components from @apache-superset/core
-// These are resolved via webpack alias to superset-frontend/packages/superset-core/src
-import { Alert } from '@apache-superset/core';
+// Import extension components from @apache-superset/core/ui
+// This matches the established pattern used throughout the Superset codebase
+// Resolved via webpack alias to superset-frontend/packages/superset-core/src/ui/components
+import { Alert } from '@apache-superset/core/ui';
 
 /**
  * ReactLiveScope provides the scope for live code blocks.
