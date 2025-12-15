@@ -54,8 +54,8 @@ celery --app=superset.tasks.celery_app:app beat
 
 To setup a result backend, you need to pass an instance of a derivative of `BaseCache` (`from
 flask_caching.backends.base import BaseCache`) to the RESULTS_BACKEND configuration key in your
-superset_config.py. You can use Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
-memory or the file system (in a single server-type setup or for testing), or to write your own
+superset_config.py. You can use Memcached, Redis, S3, MinIO, memory
+or the file system (in a single server-type setup or for testing), or to write your own
 caching interface. Your `superset_config.py` may look something like:
 
 ```python
@@ -88,6 +88,14 @@ issues arise. Please clear your existing results cache store when upgrading an e
 
 - SQL Lab will _only run your queries asynchronously if_ you enable **Asynchronous Query Execution**
   in your database settings (Sources > Databases > Edit record).
+
+- In order to use dedicated results backend, additional python libraries must be installed. These libraries can be installed using pip.
+  - [redis-py](https://pypi.org/project/redis/) for Redis.
+  - [pylibmc](https://pypi.org/project/pylibmc/) for memcached
+  - [s3werkzeugcache](https://pypi.python.org/pypi/s3werkzeugcache) for S3
+  - [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) for MinIO or other S3 compatible service
+
+
 
 ## Celery Flower
 
