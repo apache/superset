@@ -16,46 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-.superset-legacy-chart-country-map svg {
-  background-color: #feffff;
-}
-
-.superset-legacy-chart-country-map {
-  position: relative;
-}
-
-.superset-legacy-chart-country-map .background {
-  fill: rgba(255, 255, 255, 0);
-  pointer-events: all;
-}
-
-.superset-legacy-chart-country-map .map-layer {
-  fill: #fff;
-  stroke: #aaa;
-}
-
-.superset-legacy-chart-country-map .effect-layer {
-  pointer-events: none;
-}
-
-.superset-legacy-chart-country-map .text-layer {
-  color: #333333;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-.superset-legacy-chart-country-map text.result-text {
-  font-weight: 300;
-  font-size: 24px;
-}
-
-.superset-legacy-chart-country-map text.big-text {
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.superset-legacy-chart-country-map path.region {
-  cursor: pointer;
-  stroke: #eee;
+export enum ViewContribution {
+  RightSidebar = 'sqllab.rightSidebar',
+  SouthPanels = 'sqllab.panels',
 }

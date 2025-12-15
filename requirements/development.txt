@@ -132,6 +132,7 @@ click==8.2.1
     #   click-repl
     #   flask
     #   flask-appbuilder
+    #   typer
     #   uvicorn
 click-didyoumean==0.3.1
     # via
@@ -149,6 +150,8 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
+cloudpickle==3.1.2
+    # via pydocket
 cmdstanpy==1.1.0
     # via prophet
 colorama==0.4.6
@@ -228,7 +231,9 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp
-fastmcp==2.13.1
+fakeredis==2.32.1
+    # via pydocket
+fastmcp==2.14.0
     # via apache-superset
 filelock==3.12.2
     # via virtualenv
@@ -419,7 +424,9 @@ idna==3.10
     #   trio
     #   url-normalize
 importlib-metadata==8.7.0
-    # via keyring
+    # via
+    #   keyring
+    #   opentelemetry-api
 importlib-resources==6.5.2
     # via prophet
 iniconfig==2.0.0
@@ -471,7 +478,7 @@ jsonschema-specifications==2025.4.1
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   openapi-schema-validator
-keyring==25.6.0
+keyring==25.7.0
     # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
@@ -485,6 +492,8 @@ limits==5.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
+lupa==2.6
+    # via fakeredis
 mako==1.3.10
     # via
     #   -c requirements/base-constraint.txt
@@ -524,7 +533,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mcp==1.20.0
+mcp==1.24.0
     # via fastmcp
 mdurl==0.1.2
     # via
@@ -581,6 +590,18 @@ openpyxl==3.1.5
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
+opentelemetry-api==1.39.1
+    # via
+    #   opentelemetry-exporter-prometheus
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+    #   pydocket
+opentelemetry-exporter-prometheus==0.60b1
+    # via pydocket
+opentelemetry-sdk==1.39.1
+    # via opentelemetry-exporter-prometheus
+opentelemetry-semantic-conventions==0.60b1
+    # via opentelemetry-sdk
 ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -668,6 +689,10 @@ prison==0.2.1
     #   flask-appbuilder
 progress==1.6
     # via apache-superset
+prometheus-client==0.23.1
+    # via
+    #   opentelemetry-exporter-prometheus
+    #   pydocket
 prompt-toolkit==3.0.51
     # via
     #   -c requirements/base-constraint.txt
@@ -689,9 +714,11 @@ psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-py-key-value-aio==0.2.8
-    # via fastmcp
-py-key-value-shared==0.2.8
+py-key-value-aio==0.3.0
+    # via
+    #   fastmcp
+    #   pydocket
+py-key-value-shared==0.3.0
     # via py-key-value-aio
 pyarrow==16.1.0
     # via
@@ -731,6 +758,8 @@ pydantic-settings==2.10.1
     # via mcp
 pydata-google-auth==1.9.0
     # via pandas-gbq
+pydocket==0.15.4
+    # via fastmcp
 pydruid==0.6.9
     # via apache-superset
 pyfakefs==5.3.5
@@ -750,6 +779,7 @@ pyjwt==2.10.1
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
+    #   redis
 pylint==3.3.7
     # via apache-superset
 pynacl==1.5.0
@@ -813,6 +843,8 @@ python-geohash==0.8.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+python-json-logger==4.0.0
+    # via pydocket
 python-ldap==3.4.4
     # via apache-superset
 python-multipart==0.0.20
@@ -835,10 +867,13 @@ pyyaml==6.0.2
     #   apispec
     #   jsonschema-path
     #   pre-commit
-redis==4.6.0
+redis==5.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   fakeredis
+    #   py-key-value-aio
+    #   pydocket
 referencing==0.36.2
     # via
     #   -c requirements/base-constraint.txt
@@ -874,7 +909,9 @@ rich==13.9.4
     #   cyclopts
     #   fastmcp
     #   flask-limiter
+    #   pydocket
     #   rich-rst
+    #   typer
 rich-rst==1.3.1
     # via cyclopts
 rpds-py==0.25.0
@@ -888,7 +925,7 @@ rsa==4.9.1
     #   google-auth
 ruff==0.9.7
     # via apache-superset
-secretstorage==3.4.1
+secretstorage==3.5.0
     # via keyring
 selenium==4.32.0
     # via
@@ -904,6 +941,8 @@ setuptools==80.9.0
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
+shellingham==1.5.4
+    # via typer
 shillelagh==1.4.3
     # via
     #   -c requirements/base-constraint.txt
@@ -931,6 +970,7 @@ sniffio==1.3.1
 sortedcontainers==2.4.0
     # via
     #   -c requirements/base-constraint.txt
+    #   fakeredis
     #   trio
 sqlalchemy==1.4.54
     # via
@@ -991,6 +1031,8 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
+typer==0.20.0
+    # via pydocket
 typing-extensions==4.15.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1001,18 +1043,25 @@ typing-extensions==4.15.0
     #   cattrs
     #   exceptiongroup
     #   limits
+    #   mcp
+    #   opentelemetry-api
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   py-key-value-shared
     #   pydantic
     #   pydantic-core
+    #   pydocket
     #   pyopenssl
     #   referencing
     #   selenium
     #   shillelagh
     #   starlette
+    #   typer
     #   typing-inspection
 typing-inspection==0.4.1
     # via
     #   -c requirements/base-constraint.txt
+    #   mcp
     #   pydantic
     #   pydantic-settings
 tzdata==2025.2
@@ -1026,7 +1075,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   -c requirements/base-constraint.txt
     #   docker
