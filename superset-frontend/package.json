@@ -347,7 +347,7 @@
     "storybook": "8.1.11",
     "style-loader": "^4.0.0",
     "swc-loader": "^0.2.6",
-    "terser-webpack-plugin": "^5.3.14",
+    "terser-webpack-plugin": "^5.3.16",
     "thread-loader": "^4.0.4",
     "ts-jest": "^29.4.5",
     "ts-loader": "^9.5.1",
