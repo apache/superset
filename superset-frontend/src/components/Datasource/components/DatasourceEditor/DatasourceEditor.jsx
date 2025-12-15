@@ -2050,7 +2050,9 @@ class DatasourceEditor extends PureComponent {
       }
       return false;
     });
-    this.fetchUsageData();
+    this.fetchUsageData().catch(error => {
+      if (error?.name !== 'AbortError') throw error;
+    });
   }
 
   componentWillUnmount() {
