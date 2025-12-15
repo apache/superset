@@ -469,7 +469,7 @@ const ExtraOptions = ({
           ),
           children: (
             <>
-              <StyledInputContainer css={no_margin_bottom}>
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="per_user_caching"
@@ -488,9 +488,7 @@ const ExtraOptions = ({
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer
-                css={!!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
+              <StyledInputContainer>
                 <div className="input-container">
                   <Checkbox
                     id="impersonate_user"
@@ -515,9 +513,7 @@ const ExtraOptions = ({
                 </div>
               </StyledInputContainer>
               {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
+                <StyledInputContainer>
                   <div className="input-container">
                     <Checkbox
                       id="allow_file_upload"
