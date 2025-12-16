@@ -32,6 +32,7 @@ from .utils import load_examples_from_configs
 
 # Map of DuckDB files to their table names (if different from file name)
 TABLE_NAME_OVERRIDES = {
+    "energy": "energy_usage",  # Legacy table name expected by tests
     "fcc_2018_survey": "FCC 2018 Survey",
     "sf_population": "sf_population_polygons",
 }
@@ -49,7 +50,7 @@ DATASET_DESCRIPTIONS = {
     "cleaned_sales_data": "Cleaned sales data",
     "countries": "World Bank country statistics",
     "covid_vaccines": "COVID-19 vaccine development data",
-    "energy": "Energy flow data",
+    "energy": "Energy usage/flow data (loads as energy_usage table)",
     "exported_stats": "Exported statistics data",
     "fcc_2018_survey": "FCC 2018 Developer Survey",
     "flights": "Flight delays data",
