@@ -115,11 +115,16 @@ _auto_loaders = discover_datasets()
 # Add auto-discovered loaders to module namespace
 globals().update(_auto_loaders)
 
+# Override auto-discovered loaders with custom implementations that create charts/slices
+# Import after globals().update() to ensure custom loaders take precedence
+from .energy import load_energy  # noqa: E402
+
 # Build __all__ list dynamically
 __all__ = [
     # Custom loaders (always included)
     "load_big_data",
     "load_css_templates",
+    "load_energy",
     "load_supported_charts_dashboard",
     "load_tabbed_dashboard",
     "load_examples_from_configs",
