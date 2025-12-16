@@ -56,6 +56,7 @@ import {
   CLEAR_ALL_CHART_STATES,
   SET_WHAT_IF_MODIFICATIONS,
   CLEAR_WHAT_IF_MODIFICATIONS,
+  TOGGLE_WHAT_IF_PANEL,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -345,6 +346,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         whatIfModifications: [],
+      };
+    },
+    [TOGGLE_WHAT_IF_PANEL]() {
+      return {
+        ...state,
+        whatIfPanelOpen: action.isOpen,
       };
     },
   };

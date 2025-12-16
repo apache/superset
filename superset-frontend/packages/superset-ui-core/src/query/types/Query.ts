@@ -77,6 +77,14 @@ export type QueryObjectExtras = Partial<{
 
   /** If true, WHERE/HAVING clauses need transpilation to target dialect */
   transpile_to_dialect?: boolean;
+
+  /** What-if analysis: column value modifications */
+  what_if?: {
+    modifications: Array<{
+      column: string;
+      multiplier: number;
+    }>;
+  };
 }>;
 
 export type ResidualQueryObjectData = {

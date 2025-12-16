@@ -785,6 +785,11 @@ export function clearWhatIfModifications() {
   return { type: CLEAR_WHAT_IF_MODIFICATIONS };
 }
 
+export const TOGGLE_WHAT_IF_PANEL = 'TOGGLE_WHAT_IF_PANEL';
+export function toggleWhatIfPanel(isOpen) {
+  return { type: TOGGLE_WHAT_IF_PANEL, isOpen };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

@@ -43,7 +43,8 @@ type ExtractedExtra = ExtraFilterQueryField & {
 export default function extractExtras(formData: QueryFormData): ExtractedExtra {
   const applied_time_extras: AppliedTimeExtras = {};
   const filters: QueryObjectFilterClause[] = [];
-  const extras: QueryObjectExtras = {};
+  // Preserve existing extras from formData (e.g., what_if modifications)
+  const extras: QueryObjectExtras = { ...formData.extras };
   const extract: ExtractedExtra = {
     filters,
     extras,

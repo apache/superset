@@ -1029,6 +1029,16 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    what_if = fields.Dict(
+        metadata={
+            "description": (
+                "What-if analysis configuration. Contains modifications to apply "
+                "to column values for simulation purposes."
+            ),
+            "example": {"modifications": [{"column": "revenue", "multiplier": 1.1}]},
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):

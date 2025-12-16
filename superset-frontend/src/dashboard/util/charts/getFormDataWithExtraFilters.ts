@@ -162,6 +162,24 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
     }
   });
 
+  // Handle metric (singular) - used by pie charts and other single-metric charts
+  const singleMetric = chart.form_data?.metric;
+  if (singleMetric && typeof singleMetric === 'object') {
+    const metric = singleMetric as any;
+    if ('column' in metric) {
+      const metricColumn = metric.column;
+      if (typeof metricColumn === 'string') {
+        existingColumns.add(metricColumn);
+      } else if (
+        metricColumn &&
+        typeof metricColumn === 'object' &&
+        'column_name' in metricColumn
+      ) {
+        existingColumns.add(metricColumn.column_name);
+      }
+    }
+  }
+
   const seriesColumn = chart.form_data?.series;
   if (seriesColumn) existingColumns.add(seriesColumn);
 

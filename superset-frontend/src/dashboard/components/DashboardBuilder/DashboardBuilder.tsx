@@ -42,6 +42,7 @@ import {
 import {
   setDirectPathToChild,
   setEditMode,
+  toggleWhatIfPanel,
 } from 'src/dashboard/actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -55,6 +56,7 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import WhatIfPanel from 'src/dashboard/components/WhatIfDrawer';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
@@ -272,8 +274,9 @@ const DashboardContentWrapper = styled.div`
 const StyledDashboardContent = styled.div<{
   editMode: boolean;
   marginLeft: number;
+  marginRight: number;
 }>`
-  ${({ theme, editMode, marginLeft }) => css`
+  ${({ theme, editMode, marginLeft, marginRight }) => css`
     background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
@@ -293,6 +296,7 @@ const StyledDashboardContent = styled.div<{
       position: relative;
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
+      margin-right: ${marginRight}px;
 
       ${editMode &&
       `
@@ -385,6 +389,13 @@ const DashboardBuilder = () => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
+  const whatIfPanelOpen = useSelector<RootState, boolean>(
+    ({ dashboardState }) => dashboardState.whatIfPanelOpen ?? false,
+  );
+
+  const handleCloseWhatIfPanel = useCallback(() => {
+    dispatch(toggleWhatIfPanel(false));
+  }, [dispatch]);
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -563,6 +574,8 @@ const DashboardBuilder = () => {
     ? theme.sizeUnit * 4
     : theme.sizeUnit * 8;
 
+  const dashboardContentMarginRight = theme.sizeUnit * 4;
+
   const renderChild = useCallback(
     adjustedWidth => {
       const filterBarWidth = dashboardFiltersOpen
@@ -674,6 +687,7 @@ const DashboardBuilder = () => {
             className="dashboard-content"
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
+            marginRight={dashboardContentMarginRight}
           >
             {showDashboard ? (
               missingInitialFilters.length > 0 ? (
@@ -704,6 +718,12 @@ const DashboardBuilder = () => {
               )
             ) : (
               <Loading />
+            )}
+            {!editMode && whatIfPanelOpen && (
+              <WhatIfPanel
+                onClose={handleCloseWhatIfPanel}
+                topOffset={barTopOffset}
+              />
             )}
             {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
           </StyledDashboardContent>

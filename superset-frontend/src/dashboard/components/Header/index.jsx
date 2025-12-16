@@ -88,6 +88,7 @@ import {
   setMaxUndoHistoryExceeded,
   setRefreshFrequency,
   setUnsavedChanges,
+  toggleWhatIfPanel,
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
@@ -104,6 +105,26 @@ const headerContainerStyle = theme => css`
 
 const editButtonStyle = theme => css`
   color: ${theme.colorPrimary};
+`;
+
+const whatIfButtonStyle = theme => css`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${theme.sizeUnit * 8}px;
+  height: ${theme.sizeUnit * 8}px;
+  margin-right: ${theme.sizeUnit * 2}px;
+  border: 1px solid ${theme.colorBorder};
+  border-radius: ${theme.borderRadius}px;
+  background: ${theme.colorBgContainer};
+  color: ${theme.colorText};
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: ${theme.colorPrimary};
+    color: ${theme.colorPrimary};
+  }
 `;
 
 const actionButtonsStyle = theme => css`
@@ -715,6 +736,17 @@ const Header = () => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
+            <Tooltip title={t('What-if playground')}>
+              <button
+                type="button"
+                css={whatIfButtonStyle}
+                onClick={() => dispatch(toggleWhatIfPanel(true))}
+                data-test="what-if-button"
+                aria-label={t('What-if playground')}
+              >
+                <Icons.StarFilled iconSize="m" />
+              </button>
+            </Tooltip>
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"

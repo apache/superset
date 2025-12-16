@@ -74,6 +74,19 @@ export function extractColumnsFromChart(chart: ChartQueryPayload): Set<string> {
     }
   });
 
+  // Extract metric (singular) - used by pie charts and other single-metric charts
+  if (formData.metric && typeof formData.metric === 'object') {
+    const metric = formData.metric as any;
+    if ('column' in metric) {
+      const metricColumn = metric.column;
+      if (typeof metricColumn === 'string') {
+        columns.add(metricColumn);
+      } else if (metricColumn?.column_name) {
+        columns.add(metricColumn.column_name);
+      }
+    }
+  }
+
   // Extract series column (can be physical or adhoc)
   if (formData.series) {
     addColumn(formData.series);
