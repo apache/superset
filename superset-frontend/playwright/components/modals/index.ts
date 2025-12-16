@@ -17,9 +17,6 @@
  * under the License.
  */
 
-// Core Playwright Components for Superset
-export { Button } from './Button';
-export { Form } from './Form';
-export { Input } from './Input';
-export { Modal } from './Modal';
-export { Table } from './Table';
+// Specific modal implementations
+export { DeleteConfirmationModal } from './DeleteConfirmationModal';
+export { DuplicateDatasetModal } from './DuplicateDatasetModal';
