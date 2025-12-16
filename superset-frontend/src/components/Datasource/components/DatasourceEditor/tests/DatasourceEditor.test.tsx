@@ -507,3 +507,37 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
 
   consoleErrorSpy.mockRestore();
 });
+
+test('immediate unmount after mount does not cause unhandled rejection from initial fetchUsageData', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+  // Mock chart API to delay long enough for unmount to happen first
+  fetchMock.get(
+    'glob:*/api/v1/chart/*',
+    new Promise(() => {}), // Never resolves - will be aborted
+    { overwriteRoutes: true },
+  );
+
+  const props = createProps();
+
+  // Use fastRender to mount without waiting for async completion
+  // This triggers fetchUsageData() in componentDidMount
+  const { unmount } = fastRender(props);
+
+  // Immediately unmount while initial fetchUsageData is in-flight
+  // This calls AbortController.abort() via componentWillUnmount
+  unmount();
+
+  await cleanupAsyncOperations();
+
+  // CRITICAL: The .catch() handler in componentDidMount should swallow AbortError
+  // No unhandled rejection or React warnings should appear
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('Unhandled'),
+  );
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('unmounted component'),
+  );
+
+  consoleErrorSpy.mockRestore();
+});
