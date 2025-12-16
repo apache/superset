@@ -73,12 +73,16 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 return query_model.sql.strip().strip(";")
             raise
 
-    def _strip_sql_comments(self, sql: str) -> str:
-        import re
+    def _strip_sql_comments(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        sql: str,
+    ) -> str:
+        from superset.sql.parse import SQLScript
 
-        sql = re.sub(r"/\*.*?\*/", "", sql, flags=re.DOTALL)
-        sql = re.sub(r"--[^\n\r]*", "", sql)
-        return sql
+        engine = execution_context.query.database.db_engine_spec.engine
+        script = SQLScript(sql, engine)
+        return script.format(comments=False)
 
     def _validate(
         self,
@@ -87,7 +91,10 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            sql_for_validation = self._strip_sql_comments(rendered_query)
+            sql_for_validation = self._strip_sql_comments(
+                execution_context,
+                rendered_query,
+            )
             syntax_tree = sql_template_processor.env.parse(sql_for_validation)
             undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:

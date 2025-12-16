@@ -28,7 +28,7 @@ from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
+from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
@@ -704,8 +704,6 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        from jinja2 import UndefinedError
-
         try:
             template = self.env.from_string(sql)
         except (
