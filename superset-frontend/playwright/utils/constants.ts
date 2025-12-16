@@ -43,10 +43,4 @@ export const TIMEOUT = {
    * Form and UI element load timeouts
    */
   FORM_LOAD: 5000, // 5s for forms to become visible (login form, modals)
-
-  /**
-   * API polling intervals
-   */
-  API_POLL_INTERVAL: 100, // 100ms between API polling attempts
-  API_POLL_TIMEOUT: 5000, // 5s total timeout for API state changes
 } as const;
