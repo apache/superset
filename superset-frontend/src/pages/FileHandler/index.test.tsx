@@ -107,8 +107,9 @@ type LaunchQueue = {
 };
 
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
-  let savedConsumer: ((params: { files?: MockFileHandle[] }) => void) | null =
-    null;
+  let savedConsumer:
+    | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
+    | null = null;
   (window as unknown as Window & { launchQueue: LaunchQueue }).launchQueue = {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
@@ -122,8 +123,8 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     },
   };
   return {
-    triggerConsumer: (params: { files?: MockFileHandle[] }) => {
-      savedConsumer?.(params);
+    triggerConsumer: async (params: { files?: MockFileHandle[] }) => {
+      await savedConsumer?.(params);
     },
   };
 };
@@ -164,7 +165,7 @@ test('redirects when no files are provided', async () => {
   );
 
   // Trigger the consumer with no files
-  triggerConsumer({ files: [] });
+  await triggerConsumer({ files: [] });
 
   await waitFor(() => {
     expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
@@ -263,7 +264,7 @@ test('shows error for unsupported file type', async () => {
 
   // Trigger with unsupported file
   const fileHandle = createMockFileHandle('test.pdf');
-  triggerConsumer({ files: [fileHandle] });
+  await triggerConsumer({ files: [fileHandle] });
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -315,7 +316,7 @@ test('handles errors during file processing', async () => {
     requestPermission: async () => 'granted',
   };
 
-  triggerConsumer({ files: [errorFileHandle] });
+  await triggerConsumer({ files: [errorFileHandle] });
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(

@@ -655,7 +655,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     response.headers[k] = v
 
             # Allow service worker to control the root scope for PWA file handling
-            if request.path.endswith("service-worker.js"):
+            if (
+                request.path.endswith("service-worker.js")
+                and "Service-Worker-Allowed" not in response.headers
+            ):
                 response.headers["Service-Worker-Allowed"] = "/"
 
             return response
