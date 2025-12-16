@@ -174,8 +174,10 @@ function extractArgsAndControls(content, componentName, storyContent) {
 
   if (argsMatch) {
     // Parse args - handle strings, booleans, numbers
+    // Note: Using simple regex without escape handling for security (avoids ReDoS)
+    // This is sufficient for Storybook args which rarely contain escaped quotes
     const argsContent = argsMatch[1];
-    const argLines = argsContent.matchAll(/(\w+):\s*(['"]([^'"]*(?:\\.[^'"]*)*)['""]|true|false|\d+)/g);
+    const argLines = argsContent.matchAll(/(\w+):\s*(['"]([^'"]*)['"']|true|false|\d+)/g);
     for (const match of argLines) {
       const key = match[1];
       let value = match[2];
