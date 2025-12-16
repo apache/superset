@@ -1,5 +1,8 @@
 coverage/*
 cypress/screenshots
 cypress/videos
+playwright/.auth
+playwright-report/
+test-results/
 src/temp
 .temp_cache/

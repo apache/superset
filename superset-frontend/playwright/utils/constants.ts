@@ -17,9 +17,30 @@
  * under the License.
  */
 
-// Core Playwright Components for Superset
-export { Button } from './Button';
-export { Form } from './Form';
-export { Input } from './Input';
-export { Modal } from './Modal';
-export { Table } from './Table';
+/**
+ * Timeout constants for Playwright tests.
+ * Only define timeouts that differ from Playwright defaults or are semantically important.
+ *
+ * Default Playwright timeouts (from playwright.config.ts):
+ * - Test timeout: 30000ms (30s)
+ * - Expect timeout: 8000ms (8s)
+ *
+ * Use these constants instead of magic numbers for better maintainability.
+ */
+
+export const TIMEOUT = {
+  /**
+   * Global setup timeout (matches test timeout for cold CI starts)
+   */
+  GLOBAL_SETUP: 30000, // 30s for global setup auth
+
+  /**
+   * Page navigation and load timeouts
+   */
+  PAGE_LOAD: 10000, // 10s for page transitions (login → welcome, dataset → explore)
+
+  /**
+   * Form and UI element load timeouts
+   */
+  FORM_LOAD: 5000, // 5s for forms to become visible (login form, modals)
+} as const;
