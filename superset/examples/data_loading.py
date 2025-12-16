@@ -30,44 +30,20 @@ from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
 
-# Map of Parquet files to their table names (if different from file name)
+# Map of directory names to table names (when different from directory name)
 TABLE_NAME_OVERRIDES = {
-    "energy": "energy_usage",  # Legacy table name expected by tests
     "fcc_2018_survey": "FCC 2018 Survey",
-    "sf_population": "sf_population_polygons",
 }
 
-# Dataset descriptions for documentation
+# Dataset descriptions for documentation (auto-discovered datasets without YAML configs)
 DATASET_DESCRIPTIONS = {
     "airports": "Airport locations data",
-    "bart_lines": "BART transit lines",
-    "big_data": "Synthetic big data for testing",
     "birth_france": "France birth data",
-    "birth_france_by_region": "France birth data by region",
-    "birth_names": "US birth names over time",
-    "channel_members": "Slack channel membership data",
-    "channels": "Slack channels data",
-    "cleaned_sales_data": "Cleaned sales data",
     "countries": "World Bank country statistics",
-    "covid_vaccines": "COVID-19 vaccine development data",
-    "energy": "Energy usage/flow data (loads as energy_usage table)",
-    "exported_stats": "Exported statistics data",
-    "fcc_2018_survey": "FCC 2018 Developer Survey",
-    "flights": "Flight delays data",
-    "long_lat": "Random lat/long points",
-    "messages": "Slack messages data",
     "multiformat_time_series": "Time series data in multiple formats",
     "paris_iris": "Paris IRIS geographic data",
     "random_time_series": "Random time series data",
     "san_francisco": "San Francisco addresses",
-    "sf_population": "San Francisco population by area",
-    "sf_population_polygons": "San Francisco population polygons",
-    "threads": "Slack threads data",
-    "unicode_test": "Unicode test data",
-    "users": "Slack users data",
-    "users_channels": "Slack user-channel relationships",
-    "video_game_sales": "Video game sales data",
-    "wb_health_population": "World Bank health and population data",
 }
 
 
