@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database1(session: Session) -> Iterator["Database"]:
     from superset.models.core import Database
 
@@ -59,7 +59,7 @@ def database1(session: Session) -> Iterator["Database"]:
         os.unlink("database1.db")
 
 
-@pytest.fixture()
+@pytest.fixture
 def table1(session: Session, database1: "Database") -> Iterator[None]:
     with database1.get_sqla_engine() as engine:
         conn = engine.connect()
@@ -73,7 +73,7 @@ def table1(session: Session, database1: "Database") -> Iterator[None]:
         db.session.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def database2(session: Session) -> Iterator["Database"]:
     from superset.models.core import Database
 
@@ -93,7 +93,7 @@ def database2(session: Session) -> Iterator["Database"]:
         os.unlink("database2.db")
 
 
-@pytest.fixture()
+@pytest.fixture
 def table2(session: Session, database2: "Database") -> Iterator[None]:
     with database2.get_sqla_engine() as engine:
         conn = engine.connect()

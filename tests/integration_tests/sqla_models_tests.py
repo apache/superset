@@ -527,7 +527,7 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def text_column_table(app_context: AppContext):
     table = SqlaTable(
         table_name="text_column_table",
@@ -1264,9 +1264,9 @@ def test_column_ordering_without_chart_flag(login_as_admin):
             result = table.query(query_obj)
 
             expected_order = ["metric_y", "col_b", "metric_x", "col_a"]
-            assert (
-                list(result.df.columns) == expected_order
-            ), f"Expected {expected_order}, got {list(result.df.columns)}"
+            assert list(result.df.columns) == expected_order, (
+                f"Expected {expected_order}, got {list(result.df.columns)}"
+            )
     finally:
         db.session.delete(table)
         db.session.commit()

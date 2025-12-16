@@ -259,7 +259,7 @@ def load_birth_names_data(  # noqa: PT004
     return
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_birth_names_dashboard_with_slices(load_birth_names_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()

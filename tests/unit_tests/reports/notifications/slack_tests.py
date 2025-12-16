@@ -26,7 +26,7 @@ from superset.reports.notifications.slackv2 import SlackV2Notification
 from superset.utils.core import HeaderDataType
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_header_data() -> HeaderDataType:
     return {
         "notification_format": "PNG",

@@ -30,7 +30,7 @@ from werkzeug.datastructures import FileStorage
 from superset import db
 
 
-@pytest.fixture()
+@pytest.fixture
 def dttm() -> datetime:
     return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
@@ -78,7 +78,7 @@ def create_columnar_file(
     return FileStorage(stream=buffer, filename=filename)
 
 
-@pytest.fixture()
+@pytest.fixture
 def admin_user() -> User:
     role = db.session.query(Role).filter_by(name="Admin").one()
     user = User(
@@ -93,7 +93,7 @@ def admin_user() -> User:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def after_each() -> Generator[None, None, None]:
     yield
     db.session.rollback()

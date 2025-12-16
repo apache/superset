@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
@@ -86,7 +86,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_basic_select(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -120,7 +120,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_with_parameters(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -155,7 +155,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_database_not_found(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -181,7 +181,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_access_denied(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -211,7 +211,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_dml_not_allowed(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -237,7 +237,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_dml_allowed(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -275,7 +275,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_empty_results(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -309,7 +309,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_missing_parameter(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -337,7 +337,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_empty_parameters_with_placeholders(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -366,7 +366,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_with_schema(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -397,7 +397,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_limit_enforcement(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -427,7 +427,7 @@ class TestExecuteSql:
 
     @patch("superset.security_manager")
     @patch("superset.db")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_sql_injection_prevention(
         self, mock_db, mock_security_manager, mcp_server
     ):
@@ -458,7 +458,7 @@ class TestExecuteSql:
             assert "Syntax error" in result.data.error  # Contains actual error
             assert result.data.error_type == "EXECUTION_ERROR"
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_empty_query_validation(self, mcp_server):
         """Test validation of empty SQL query."""
         request = {
@@ -471,7 +471,7 @@ class TestExecuteSql:
             with pytest.raises(ToolError, match="SQL query cannot be empty"):
                 await client.call_tool("execute_sql", {"request": request})
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_execute_sql_invalid_limit(self, mcp_server):
         """Test validation of invalid limit values."""
         # Test limit too low

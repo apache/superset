@@ -21,7 +21,7 @@ import pytest
 from sqlalchemy.orm.session import Session
 
 
-@pytest.fixture()
+@pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
     from superset.models.dashboard import Dashboard
 

@@ -54,13 +54,13 @@ def setup_sample_data() -> None:
     pass
 
 
-@pytest.fixture()
+@pytest.fixture
 def app() -> Flask:
     """Get the Superset Flask application instance."""
     return superset_app
 
 
-@pytest.fixture()
+@pytest.fixture
 def app_context(app: Flask) -> Generator[Session, None, None]:
     """
     Create an in-memory SQLite database for each test.
@@ -115,7 +115,7 @@ def app_context(app: Flask) -> Generator[Session, None, None]:
                 engine.dispose()
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_with_data(app_context: Session) -> Session:
     """
     Create a test user in the database.

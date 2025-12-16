@@ -53,7 +53,7 @@ oauth2_client_info = {
 }
 
 
-@pytest.fixture()
+@pytest.fixture
 def query() -> Select:
     """
     A nested query fixture used to test query optimization.

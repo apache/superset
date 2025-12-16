@@ -37,7 +37,7 @@ from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import dashboard_config
 
 
-@pytest.fixture()
+@pytest.fixture
 def session_with_data(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
@@ -57,7 +57,7 @@ def session_with_data(session: Session) -> Generator[Session, None, None]:
     session.rollback()
 
 
-@pytest.fixture()
+@pytest.fixture
 def session_with_schema(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member

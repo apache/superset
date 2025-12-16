@@ -23,7 +23,7 @@ from superset.tags.models import Tag
 from tests.integration_tests.test_app import app
 
 
-@pytest.fixture()
+@pytest.fixture
 def with_tagging_system_feature():
     is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
     if not is_enabled:
@@ -34,7 +34,7 @@ def with_tagging_system_feature():
         clear_sqla_event_listeners()
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_custom_tags():
     with app.app_context():
         tags: list[Tag] = []

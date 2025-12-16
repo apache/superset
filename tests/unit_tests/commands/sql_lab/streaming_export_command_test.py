@@ -47,7 +47,7 @@ def _setup_sqllab_mocks(
     return mock_db_base, mock_session
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_query():
     """Create a mock SQL Lab query."""
     query = MagicMock()
@@ -62,7 +62,7 @@ def mock_query():
     return query
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_result_proxy():
     """Create a mock database result proxy."""
     result = MagicMock()

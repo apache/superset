@@ -166,7 +166,7 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_virtual_datasets(self):
         with self.create_app().app_context():
             datasets = []
@@ -188,7 +188,7 @@ class TestDatasetApi(SupersetTestCase):
                 db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
             datasets = []

@@ -35,7 +35,7 @@ from superset.mcp_service.chart.schemas import (
 class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):
         """Test that chart generation request structures are properly formed."""
         # Table chart request
@@ -74,7 +74,7 @@ class TestGenerateChart:
         assert xy_request.config.x_axis.title == "Date"
         assert xy_request.config.legend.show is True
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_chart_validation_error_handling(self):
         """Test that validation errors are properly structured."""
 
@@ -90,7 +90,7 @@ class TestGenerateChart:
         assert validation_error_entry["field"] == "x_axis"
         assert validation_error_entry["error_type"] == "column_not_found"
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_chart_config_variations(self):
         """Test various chart configuration options."""
         # Test all chart types
@@ -124,7 +124,7 @@ class TestGenerateChart:
         for i, f in enumerate(filters):
             assert f.op == operators[i]
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_generate_chart_response_structure(self):
         """Test the expected response structure for chart generation."""
         # The response should contain these fields
@@ -158,7 +158,7 @@ class TestGenerateChart:
         # This is just a structural test - actual integration tests would verify
         # the tool returns data matching this structure
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_dataset_id_flexibility(self):
         """Test that dataset_id can be string or int."""
         configs = [
@@ -179,7 +179,7 @@ class TestGenerateChart:
         for config in configs:
             assert isinstance(config.dataset_id, str)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_save_chart_flag(self):
         """Test save_chart flag behavior."""
         # Default should be False (preview only, not saved)
@@ -212,7 +212,7 @@ class TestGenerateChart:
                 generate_preview=False,
             )
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_preview_formats(self):
         """Test preview format options."""
         formats = ["url", "ascii", "table"]
@@ -227,7 +227,7 @@ class TestGenerateChart:
         assert request.generate_preview is True
         assert set(request.preview_formats) == set(formats)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_column_ref_features(self):
         """Test ColumnRef features like aggregation and labels."""
         # Simple column
@@ -248,7 +248,7 @@ class TestGenerateChart:
             col = ColumnRef(name="value", aggregate=agg)
             assert col.aggregate == agg
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_axis_config_options(self):
         """Test axis configuration options."""
         axis = AxisConfig(
@@ -266,7 +266,7 @@ class TestGenerateChart:
             axis = AxisConfig(format=fmt)
             assert axis.format == fmt
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_legend_config_options(self):
         """Test legend configuration options."""
         positions = ["top", "bottom", "left", "right"]

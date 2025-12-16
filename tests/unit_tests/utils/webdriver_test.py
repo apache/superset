@@ -29,7 +29,7 @@ from superset.utils.webdriver import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_app():
     """Mock Flask app with webdriver configuration."""
     app = MagicMock()

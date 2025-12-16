@@ -118,7 +118,7 @@ def test_sanitize_theme_tokens_no_spinner_tokens():
     assert result == theme_config
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_app_config():
     """Create a mock Flask app with default config values."""
     mock_app = MagicMock()

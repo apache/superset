@@ -25,7 +25,7 @@ from superset.sqllab.sqllab_execution_context import (
 from tests.unit_tests.conftest import with_feature_flags
 
 
-@pytest.fixture()
+@pytest.fixture
 def query_params():
     return {
         "database_id": 1,

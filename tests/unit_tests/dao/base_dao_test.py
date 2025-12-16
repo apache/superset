@@ -143,9 +143,9 @@ def test_column_operator_enum_apply_method() -> None:  # noqa: C901
     }
 
     # Ensure we've tested all operators
-    assert (
-        tested_operators == all_operators
-    ), f"Missing operators: {all_operators - tested_operators}"
+    assert tested_operators == all_operators, (
+        f"Missing operators: {all_operators - tested_operators}"
+    )
 
 
 def test_find_by_ids_sqlalchemy_error_with_model_cls():

@@ -56,7 +56,7 @@ def load_energy_table_data():
             engine.execute("DROP TABLE IF EXISTS energy_usage")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
         slices = _create_energy_table()

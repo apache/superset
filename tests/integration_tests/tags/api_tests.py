@@ -97,7 +97,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
@@ -861,9 +861,9 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         # Critical check: ensure the tag name is a plain string, not Markup
         assert isinstance(created_tag.name, str), "Tag name should be a plain string"
-        assert not isinstance(
-            created_tag.name, Markup
-        ), "Tag name should NOT be a Markup object"
+        assert not isinstance(created_tag.name, Markup), (
+            "Tag name should NOT be a Markup object"
+        )
         assert created_tag.name.__class__ is str, "Tag name should be exactly str type"
         assert created_tag.name == tag_name, "Tag name should match the input"
 

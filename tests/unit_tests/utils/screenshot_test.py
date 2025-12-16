@@ -49,7 +49,7 @@ class MockCache:
         return self._cache
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user():
     """Fixture to create a mock user."""
     mock_user = MagicMock()
@@ -57,7 +57,7 @@ def mock_user():
     return mock_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def screenshot_obj():
     """Fixture to create a BaseScreenshot object."""
     url = "http://example.com"

@@ -23,7 +23,7 @@ from sqlalchemy.orm.session import Session
 from superset.utils.core import DatasourceType
 
 
-@pytest.fixture()
+@pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
     from superset.models.slice import Slice
 

@@ -60,7 +60,7 @@ REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def gamma_user_with_alerts_role(self):
         with self.create_app().app_context():
             user = self.create_user(
@@ -91,7 +91,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(user)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_admin_report_schedule(self):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -115,7 +115,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             chart = db.session.query(Slice).first()
@@ -138,7 +138,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -163,7 +163,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_report_schedules(self):
         with self.create_app().app_context():
             report_schedules = []
@@ -211,7 +211,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_alpha_users(self):
         with self.create_app().app_context():
             users = [

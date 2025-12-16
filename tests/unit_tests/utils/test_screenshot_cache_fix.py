@@ -55,7 +55,7 @@ class MockCache:
         self._cache.clear()
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user():
     """Fixture to create a mock user."""
     user = MagicMock()
@@ -63,7 +63,7 @@ def mock_user():
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def screenshot_obj():
     """Fixture to create a BaseScreenshot object."""
     url = "http://example.com"
@@ -163,9 +163,9 @@ class TestCacheOnlyOnSuccess:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
             # Cache should be empty during screenshot generation
-            assert (
-                cached_value is None
-            ), "Cache should not be saved during COMPUTING state"
+            assert cached_value is None, (
+                "Cache should not be saved during COMPUTING state"
+            )
             return b"image_data"
 
         mocker.patch(

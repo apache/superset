@@ -92,7 +92,7 @@ class TestSavedQueryApi(SupersetTestCase):
             description="cool description",
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_saved_queries(self):
         with self.create_app().app_context():
             saved_queries = []
@@ -129,7 +129,7 @@ class TestSavedQueryApi(SupersetTestCase):
                 db.session.delete(fav_saved_query)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_saved_queries_some_with_tags(self, create_custom_tags):  # noqa: F811
         """
         Fixture that creates 4 saved queries:

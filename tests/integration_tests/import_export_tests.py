@@ -509,7 +509,7 @@ class TestImportExport(SupersetTestCase):
         assert imported_slc.changed_by == gamma_user
         assert imported_slc.owners == [gamma_user]
 
-    @pytest.mark.skip()
+    @pytest.mark.skip
     def test_import_override_dashboard_slice_reset_ownership(self):
         admin_user = security_manager.find_user(username="admin")
         assert admin_user

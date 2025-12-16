@@ -152,7 +152,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.delete(self.get_user("NoRlsRoleUser"))
         db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
@@ -341,12 +341,12 @@ class TestRowLevelSecurity(SupersetTestCase):
             # Gamma user should have the name filters (A%, B%, Q%) and gender filter
             # Note: SQL uses uppercase LIKE and %% escaping
             sql_lower = sql.lower()
-            assert (
-                "name like 'a%" in sql_lower or "name like 'q%" in sql_lower
-            ), f"RLS name filters not found in virtual dataset query: {sql}"
-            assert (
-                "gender = 'boy'" in sql_lower
-            ), f"RLS gender filter not found in virtual dataset query: {sql}"
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"RLS name filters not found in virtual dataset query: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"RLS gender filter not found in virtual dataset query: {sql}"
+            )
 
             # Test as admin user who has no RLS filters
             g.user = self.get_user(username="admin")
@@ -395,12 +395,12 @@ class TestRowLevelSecurity(SupersetTestCase):
             # Verify that RLS filters from both physical tables are applied
             # birth_names filters
             sql_lower = sql.lower()
-            assert (
-                "name like 'a%" in sql_lower or "name like 'q%" in sql_lower
-            ), f"birth_names RLS filters not found: {sql}"
-            assert (
-                "gender = 'boy'" in sql_lower
-            ), f"birth_names gender filter not found: {sql}"
+            assert "name like 'a%" in sql_lower or "name like 'q%" in sql_lower, (
+                f"birth_names RLS filters not found: {sql}"
+            )
+            assert "gender = 'boy'" in sql_lower, (
+                f"birth_names gender filter not found: {sql}"
+            )
 
             # energy_usage filter
             assert "value > 1" in sql_lower, f"energy_usage RLS filter not found: {sql}"

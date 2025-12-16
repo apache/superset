@@ -35,7 +35,7 @@ JWT_TOKEN_SECRET = "some_secret"  # noqa: S105
 JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"  # noqa: S105
 
 
-@fixture()
+@fixture
 def async_query_manager():
     query_manager = AsyncQueryManager()
     query_manager._jwt_secret = JWT_TOKEN_SECRET

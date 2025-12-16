@@ -34,7 +34,7 @@ from superset.migrations.shared.security_converge import (
 from superset.superset_typing import OAuth2ClientConfig
 
 
-@pytest.fixture()
+@pytest.fixture
 def oauth2_config() -> OAuth2ClientConfig:
     """
     Config for GSheets OAuth2.

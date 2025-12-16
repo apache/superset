@@ -39,7 +39,7 @@ def force_async_run(allow_run_async: bool):
     db.session.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def non_async_example_db(app_context):
     gen = force_async_run(False)
     yield next(gen)
@@ -47,7 +47,7 @@ def non_async_example_db(app_context):
         next(gen)
 
 
-@pytest.fixture()
+@pytest.fixture
 def async_example_db(app_context):
     gen = force_async_run(True)
     yield next(gen)
@@ -55,7 +55,7 @@ def async_example_db(app_context):
         next(gen)
 
 
-@pytest.fixture()
+@pytest.fixture
 def example_query(get_or_create_user: Callable[..., ContextManager[ab_models.User]]):
     with get_or_create_user("sqllab-test-user") as user:
         query = Query(

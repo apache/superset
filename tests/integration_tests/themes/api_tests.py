@@ -58,7 +58,7 @@ class TestThemeApi(SupersetTestCase):
         db.session.commit()
         return theme
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_themes(self):
         with self.create_app().app_context():
             themes = []

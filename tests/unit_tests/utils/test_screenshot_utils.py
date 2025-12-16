@@ -106,7 +106,7 @@ class TestCombineScreenshotTiles:
 
 
 class TestTakeTiledScreenshot:
-    @pytest.fixture()
+    @pytest.fixture
     def mock_page(self):
         """Create a mock Playwright page object."""
         page = MagicMock()
