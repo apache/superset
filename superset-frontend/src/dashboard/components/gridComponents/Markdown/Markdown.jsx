@@ -23,14 +23,15 @@ import cx from 'classnames';
 
 import { t, css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { EditorHost } from 'src/core/editors';
+import ComponentHeaderControls, {
+  ComponentMenuKeys,
+} from 'src/dashboard/components/menu/ComponentHeaderControls';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
@@ -85,6 +86,22 @@ Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
+const MarkdownControlsWrapper = styled.div`
+  ${({ theme }) => css`
+    position: absolute;
+    top: ${theme.sizeUnit}px;
+    right: ${theme.sizeUnit}px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+
+    .dashboard-markdown:hover &,
+    .dashboard-markdown:focus-within & {
+      opacity: 1;
+    }
+  `}
+`;
+
 const MarkdownStyles = styled.div`
   ${({ theme }) => css`
     &.dashboard-markdown {
@@ -138,6 +155,8 @@ class Markdown extends PureComponent {
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
     this.shouldFocusMarkdown = this.shouldFocusMarkdown.bind(this);
+    this.handleMenuClick = this.handleMenuClick.bind(this);
+    this.getMenuItems = this.getMenuItems.bind(this);
   }
 
   componentDidMount() {
@@ -278,6 +297,62 @@ class Markdown extends PureComponent {
     }
   }
 
+  handleMenuClick(key) {
+    switch (key) {
+      case ComponentMenuKeys.EditContent:
+        this.handleChangeEditorMode('edit');
+        break;
+      case ComponentMenuKeys.PreviewContent:
+        this.handleChangeEditorMode('preview');
+        break;
+      case ComponentMenuKeys.ApplyTheme:
+        // TODO: Open theme selector modal
+        break;
+      case ComponentMenuKeys.Delete:
+        this.handleDeleteComponent();
+        break;
+      default:
+        break;
+    }
+  }
+
+  getMenuItems() {
+    const { editorMode } = this.state;
+    const isEditing = editorMode === 'edit';
+
+    const items = [
+      // Edit/Preview toggle
+      {
+        key: isEditing
+          ? ComponentMenuKeys.PreviewContent
+          : ComponentMenuKeys.EditContent,
+        label: isEditing ? t('Preview') : t('Edit'),
+        icon: isEditing ? (
+          <Icons.EyeOutlined />
+        ) : (
+          <Icons.EditOutlined />
+        ),
+      },
+      { type: 'divider' },
+      // Theme selection
+      {
+        key: ComponentMenuKeys.ApplyTheme,
+        label: t('Apply theme'),
+        icon: <Icons.BgColorsOutlined />,
+      },
+      { type: 'divider' },
+      // Delete
+      {
+        key: ComponentMenuKeys.Delete,
+        label: t('Delete'),
+        icon: <Icons.DeleteOutlined />,
+        danger: true,
+      },
+    ];
+
+    return items;
+  }
+
   shouldFocusMarkdown(event, container, menuRef) {
     if (container?.contains(event.target)) return true;
     if (menuRef?.contains(event.target)) return true;
@@ -368,13 +443,7 @@ class Markdown extends PureComponent {
           <WithPopoverMenu
             onChangeFocus={this.handleChangeFocus}
             shouldFocus={this.shouldFocusMarkdown}
-            menuItems={[
-              <MarkdownModeDropdown
-                id={`${component.id}-mode`}
-                value={this.state.editorMode}
-                onChange={this.handleChangeEditorMode}
-              />,
-            ]}
+            menuItems={[]}
             editMode={editMode}
           >
             <MarkdownStyles
@@ -407,11 +476,14 @@ class Markdown extends PureComponent {
                   data-test="dashboard-component-chart-holder"
                 >
                   {editMode && (
-                    <HoverMenu position="top">
-                      <DeleteComponentButton
-                        onDelete={this.handleDeleteComponent}
+                    <MarkdownControlsWrapper>
+                      <ComponentHeaderControls
+                        componentId={component.id}
+                        menuItems={this.getMenuItems()}
+                        onMenuClick={this.handleMenuClick}
+                        editMode={editMode}
                       />
-                    </HoverMenu>
+                    </MarkdownControlsWrapper>
                   )}
                   {editMode && isEditing
                     ? this.renderEditMode()

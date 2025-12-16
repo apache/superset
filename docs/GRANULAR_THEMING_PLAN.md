@@ -359,7 +359,21 @@ _Ongoing notes as we implement..._
   - Shows "Change theme (name)" when theme applied
 
 **Next Steps:**
-1. Integrate ComponentHeaderControls into Markdown component
+1. ~~Integrate ComponentHeaderControls into Markdown component~~ DONE
 2. Test with simple Edit/Preview + Theme + Delete menu
-3. Remove old MarkdownModeDropdown
+3. ~~Remove old MarkdownModeDropdown~~ DONE
+
+### Session 1 - Markdown Integration
+- Integrated `ComponentHeaderControls` into Markdown component
+- Replaced old UI elements:
+  - Removed `HoverMenu` with `DeleteComponentButton`
+  - Removed `MarkdownModeDropdown` from `WithPopoverMenu.menuItems`
+- New menu includes: Edit/Preview toggle, Apply Theme, Delete
+- Added `MarkdownControlsWrapper` for top-right positioning
+- Menu shows on hover in edit mode
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/Markdown/Markdown.jsx`
+
+**Status:** Ready for visual testing in browser
 
