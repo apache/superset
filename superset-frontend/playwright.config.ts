@@ -33,6 +33,9 @@ export default defineConfig({
     ? undefined
     : '**/experimental/**',
 
+  // Global setup - authenticate once before all tests
+  globalSetup: './playwright/global-setup.ts',
+
   // Timeout settings
   timeout: 30000,
   expect: { timeout: 8000 },
@@ -77,10 +80,32 @@ export default defineConfig({
 
   projects: [
     {
+      // Default project - uses global authentication for speed
+      // E2E tests login once via global-setup.ts and reuse auth state
+      // Explicitly ignore auth tests (they run in chromium-unauth project)
+      // Also respect the global experimental testIgnore setting
       name: 'chromium',
+      testIgnore: [
+        '**/tests/auth/**/*.spec.ts',
+        ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
+      ],
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
+        // Reuse authentication state from global setup (fast E2E tests)
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      // Separate project for unauthenticated tests (login, signup, etc.)
+      // These tests use beforeEach for per-test navigation - no global auth
+      // This hybrid approach: simple auth tests, fast E2E tests
+      name: 'chromium-unauth',
+      testMatch: '**/tests/auth/**/*.spec.ts',
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        // No storageState = clean browser with no cached cookies
       },
     },
   ],
