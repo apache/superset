@@ -656,7 +656,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       csv_filename: currentAlert?.csv_filename || '',
-      email_from: currentAlert?.email_from || null,
+      extra: {
+        ...currentAlert?.extra,
+        email_from: currentAlert?.extra?.email_from || null,
+      },
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -907,7 +910,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } = event;
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
-    updateAlertState(name, parsedValue);
+    // Handle email_from specially - it goes in extra.email_from
+    if (name === 'email_from') {
+      setCurrentAlert(currentAlertData => ({
+        ...currentAlertData,
+        extra: {
+          ...currentAlertData?.extra,
+          email_from: value || undefined,
+        },
+      }));
+    } else {
+      updateAlertState(name, parsedValue);
+    }
 
     if (name === 'name') {
       updateEmailSubject();
@@ -1850,7 +1864,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 email_subject={currentAlert?.email_subject || ''}
                 defaultSubject={emailSubject || ''}
                 setErrorSubject={handleErrorUpdate}
-                email_from={currentAlert?.email_from || ''}
+                email_from={currentAlert?.extra?.email_from || ''}
                 setErrorEmailFrom={handleEmailFromErrorUpdate}
                 csv_filename={currentAlert?.csv_filename || ''}
                 defaultCsvFilename={csvFilename || ''}
