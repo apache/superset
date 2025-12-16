@@ -191,4 +191,22 @@ export class DatasetListPage {
   getBulkSelectControls(): Locator {
     return this.page.locator(DatasetListPage.SELECTORS.BULK_SELECT_CONTROLS);
   }
+
+  /**
+   * Gets the "+ Dataset" button for creating new datasets.
+   * Uses specific selector to avoid matching the "Datasets" nav link.
+   */
+  getAddDatasetButton(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: /^\+ Dataset$|^plus Dataset$/ }),
+    );
+  }
+
+  /**
+   * Clicks the "+ Dataset" button to navigate to create dataset page
+   */
+  async clickAddDataset(): Promise<void> {
+    await this.getAddDatasetButton().click();
+  }
 }

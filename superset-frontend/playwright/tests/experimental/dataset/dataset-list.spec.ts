@@ -321,7 +321,7 @@ test('should navigate the create dataset wizard', async ({ page }) => {
   const createDatasetPage = new CreateDatasetPage(page);
 
   // Click the "+ Dataset" button to navigate to create page
-  await page.getByRole('button', { name: 'Dataset' }).click();
+  await datasetListPage.clickAddDataset();
 
   // Wait for create dataset page to load
   await createDatasetPage.waitForPageLoad();
