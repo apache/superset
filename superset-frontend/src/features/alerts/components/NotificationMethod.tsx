@@ -549,7 +549,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_FROM_NAME}
                   </div>
                   <div
-                    className={`input-container ${emailFromError ? 'error' : ''}`}
+                    className={`input-container ${
+                      emailFromError ? 'error' : ''
+                    }`}
                   >
                     <input
                       type="text"
