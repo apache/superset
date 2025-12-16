@@ -118,7 +118,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
@@ -252,7 +252,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
 
 class TestSqlExecutionResultsCommand(SupersetTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()

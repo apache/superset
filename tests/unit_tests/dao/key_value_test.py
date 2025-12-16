@@ -53,7 +53,7 @@ PICKLE_CODEC = PickleKeyValueCodec()
 NEW_VALUE = {"foo": "baz"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def key_value_entry() -> KeyValueEntry:
     from superset.key_value.models import KeyValueEntry
 

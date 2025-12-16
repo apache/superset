@@ -25,7 +25,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.datasets.datetime_format_detector import DatetimeFormatDetector
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_dataset() -> MagicMock:
     """Create a mock dataset for testing."""
     dataset = MagicMock(spec=SqlaTable)
@@ -51,7 +51,7 @@ def mock_dataset() -> MagicMock:
     return dataset
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_column() -> MagicMock:
     """Create a mock datetime column for testing."""
     column = MagicMock(spec=TableColumn)

@@ -30,12 +30,12 @@ from superset.mcp_service.chart.schemas import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_chart():
     """Create a mock chart object."""
     chart = Mock()

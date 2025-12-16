@@ -527,7 +527,7 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.commit()
 
 
-@pytest.fixture
+@pytest.fixture()
 def text_column_table(app_context: AppContext):
     table = SqlaTable(
         table_name="text_column_table",

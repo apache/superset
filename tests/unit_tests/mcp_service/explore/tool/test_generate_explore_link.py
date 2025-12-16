@@ -40,7 +40,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -81,7 +81,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_table_explore_link_minimal(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -110,7 +110,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_table_explore_link_with_features(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -149,7 +149,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_line_chart_explore_link(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -188,7 +188,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_bar_chart_explore_link(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -222,7 +222,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_area_chart_explore_link(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -259,7 +259,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_scatter_chart_explore_link(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -293,7 +293,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_cache_failure_fallback(
         self, mock_create_form_data, mcp_server
     ):
@@ -320,7 +320,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_database_lock_fallback(
         self, mock_create_form_data, mcp_server
     ):
@@ -355,7 +355,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_with_many_columns(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -392,7 +392,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_with_many_filters(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -435,7 +435,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_explore_link_url_format_consistency(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -490,7 +490,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_dataset_id_types(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -521,7 +521,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_complex_configuration(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -565,7 +565,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_fallback_url_different_datasets(
         self, mock_create_form_data, mcp_server
     ):
@@ -590,7 +590,7 @@ class TestGenerateExploreLink:
                 assert result.data["error"] is None
                 assert result.data["url"] == expected_url
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_tool_exception_handling(self, mcp_server):
         """Test that tool-level exceptions are properly handled and return error."""
         import sys
@@ -631,7 +631,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_returns_form_data_key(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
@@ -657,7 +657,7 @@ class TestGenerateExploreLink:
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_generate_explore_link_returns_form_data(
         self, mock_create_form_data, mock_find_dataset, mcp_server
     ):

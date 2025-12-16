@@ -28,7 +28,7 @@ from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_query_context():
     with patch(
         "superset.common.query_context_processor.QueryContextProcessor"
@@ -36,7 +36,7 @@ def mock_query_context():
         yield mock_query_context_processor
 
 
-@pytest.fixture
+@pytest.fixture()
 def processor(mock_query_context):
     from superset.models.helpers import ExploreMixin
 

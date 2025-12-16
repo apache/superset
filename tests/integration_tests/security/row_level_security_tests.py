@@ -152,7 +152,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.delete(self.get_user("NoRlsRoleUser"))
         db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(database_id=1, schema=None, table_name="table1")

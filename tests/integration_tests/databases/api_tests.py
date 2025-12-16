@@ -120,7 +120,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
         return database
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_with_report(self):
         with self.create_app().app_context():
             example_db = get_example_database()
@@ -144,7 +144,7 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(database)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_database_with_dataset(self):
         with self.create_app().app_context():
             example_db = get_example_database()

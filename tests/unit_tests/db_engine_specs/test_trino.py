@@ -805,7 +805,7 @@ def test_where_latest_partition(
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def oauth2_config() -> OAuth2ClientConfig:
     """
     Config for Trino OAuth2.

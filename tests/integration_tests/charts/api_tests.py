@@ -87,7 +87,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             cache_manager.data_cache.clear()
             yield
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_charts(self):
         with self.create_app().app_context():
             charts = []
@@ -111,7 +111,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(fav_chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_charts_created_by_gamma(self):
         with self.create_app().app_context():
             charts = []
@@ -124,7 +124,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_certified_charts(self):
         with self.create_app().app_context():
             certified_charts = []
@@ -147,7 +147,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -167,7 +167,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def add_dashboard_to_chart(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -198,7 +198,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(self.chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_chart_with_tag(self, create_custom_tags):  # noqa: F811
         with self.create_app().app_context():
             alpha_user = self.get_user(ALPHA_USERNAME)
@@ -226,7 +226,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_charts_some_with_tags(self, create_custom_tags):  # noqa: F811
         """
         Fixture that creates 4 charts:
@@ -1277,7 +1277,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 5
 
-    @pytest.fixture
+    @pytest.fixture()
     def load_energy_charts(self):
         with app.app_context():
             admin = self.get_user("admin")

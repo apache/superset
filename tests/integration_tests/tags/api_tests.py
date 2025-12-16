@@ -97,7 +97,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table

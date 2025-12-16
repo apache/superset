@@ -100,7 +100,7 @@ class TestCore(SupersetTestCase):
         )
         return dashboard
 
-    @pytest.fixture
+    @pytest.fixture()
     def insert_dashboard_created_by_gamma(self):
         dashboard = self.insert_dashboard_created_by("gamma")
         yield dashboard

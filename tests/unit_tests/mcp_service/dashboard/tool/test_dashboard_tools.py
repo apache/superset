@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -53,7 +53,7 @@ def mock_auth():
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard = Mock()
     dashboard.id = 1
@@ -120,7 +120,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard = Mock()
     dashboard.id = 1
@@ -188,7 +188,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
     async with Client(mcp_server) as client:  # noqa: F841
@@ -203,7 +203,7 @@ async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:
@@ -214,7 +214,7 @@ async def test_list_dashboards_api_error(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard = Mock()
     dashboard.id = 1
@@ -275,7 +275,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
     async with Client(mcp_server) as client:
@@ -292,7 +292,7 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dashboard_info_success(mock_info, mcp_server):
     dashboard = Mock()
     dashboard.id = 1
@@ -346,7 +346,7 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dashboard_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
@@ -357,7 +357,7 @@ async def test_get_dashboard_info_not_found(mock_info, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
     mock_info.return_value = None  # Access denied returns None
     async with Client(mcp_server) as client:
@@ -371,7 +371,7 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dashboard info using UUID identifier."""
     dashboard = Mock()
@@ -411,7 +411,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     """Test getting dashboard info using slug identifier."""
     dashboard = Mock()
@@ -450,7 +450,7 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     """Test that custom column selection includes UUID and slug when explicitly
     requested."""
@@ -634,7 +634,7 @@ class TestDashboardSortableColumns:
         assert "uuid" not in SORTABLE_DASHBOARD_COLUMNS
 
     @patch("superset.daos.dashboard.DashboardDAO.list")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_list_dashboards_with_valid_order_column(self, mock_list, mcp_server):
         """Test list_dashboards with valid order column."""
         mock_list.return_value = ([], 0)

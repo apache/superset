@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
 
 
-@pytest.fixture
+@pytest.fixture()
 def columns_default() -> dict[str, Any]:
     """Default props for new columns"""
     return {
@@ -48,7 +48,7 @@ def columns_default() -> dict[str, Any]:
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_columns() -> dict["TableColumn", dict[str, Any]]:
     from superset.connectors.sqla.models import TableColumn
 
@@ -92,7 +92,7 @@ def sample_columns() -> dict["TableColumn", dict[str, Any]]:
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_metrics() -> dict["SqlMetric", dict[str, Any]]:
     from superset.connectors.sqla.models import SqlMetric
 

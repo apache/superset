@@ -96,7 +96,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "reordered": [],
     }
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_dashboards(self):
         with self.create_app().app_context():
             dashboards = []
@@ -138,7 +138,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 db.session.delete(fav_dashboard)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_created_by_gamma_dashboards(self):
         with self.create_app().app_context():
             dashboards = []
@@ -159,7 +159,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 db.session.delete(dashboard)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_dashboard_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -183,7 +183,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_dashboard_with_tag(self, create_custom_tags):  # noqa: F811
         with self.create_app().app_context():
             gamma = self.get_user("gamma")
@@ -210,7 +210,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    @pytest.fixture
+    @pytest.fixture()
     def create_dashboards_some_with_tags(self, create_custom_tags):  # noqa: F811
         """
         Fixture that creates 4 dashboards:

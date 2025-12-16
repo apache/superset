@@ -164,7 +164,7 @@ class BaseTestChartDataApi(SupersetTestCase):
                 db.session.commit()
 
 
-@pytest.mark.chart_data_flow
+@pytest.mark.chart_data_flow()
 @pytest.mark.skip(
     reason=(
         "TODO: Fix test class to work with DuckDB example data format. "
@@ -1118,7 +1118,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             assert rv.status_code == 403
 
 
-@pytest.mark.chart_data_flow
+@pytest.mark.chart_data_flow()
 @pytest.mark.skip(
     reason=(
         "TODO: Fix test class to work with DuckDB example data format. "
@@ -1541,7 +1541,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         assert result["data"] == [{"test": "PT5M"}]
 
 
-@pytest.fixture
+@pytest.fixture()
 def physical_query_context(physical_dataset) -> dict[str, Any]:
     return {
         "datasource": {

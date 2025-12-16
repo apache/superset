@@ -54,7 +54,7 @@ def cleanup(user, group):
     security_manager.session.commit()
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_gamma_user_group(app_context: AppContext):
     gamma_role = security_manager.find_role("Gamma")
     user, group = create_user_and_group("group1", "gamma_with_groups", [gamma_role])
@@ -62,7 +62,7 @@ def create_gamma_user_group(app_context: AppContext):
     cleanup(user, group)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_user_group_with_dar(app_context: AppContext):
     dar_role = create_role_with_permissions(
         "dar", [("datasource_access", "[examples].[birth_names](id:1)]")]
@@ -72,7 +72,7 @@ def create_user_group_with_dar(app_context: AppContext):
     cleanup(user, group)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_gamma_user_group_with_dar(app_context: AppContext):
     dar_role = create_role_with_permissions(
         "dar",
@@ -89,7 +89,7 @@ def create_gamma_user_group_with_dar(app_context: AppContext):
     cleanup(user, group)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_gamma_user_group_with_all_database(app_context: AppContext):
     dar_role = create_role_with_permissions(
         "dar", [("all_database_access", "all_database_access")]
@@ -102,7 +102,7 @@ def create_gamma_user_group_with_all_database(app_context: AppContext):
     cleanup(user, group)
 
 
-@pytest.fixture
+@pytest.fixture()
 def create_gamma_sqllab_no_data(app_context: AppContext):
     gamma_role = db.session.query(Role).filter(Role.name == "Gamma").one_or_none()
     sqllab_role = db.session.query(Role).filter(Role.name == "sql_lab").one_or_none()

@@ -34,7 +34,7 @@ class InvalidEngine:
     """
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_schema() -> "DatabaseParametersSchemaMixin":
     """
     Fixture providing a dummy schema.
@@ -47,7 +47,7 @@ def dummy_schema() -> "DatabaseParametersSchemaMixin":
     return DummySchema()
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_engine(mocker: MockerFixture) -> None:
     """
     Fixture proving a dummy DB engine spec.

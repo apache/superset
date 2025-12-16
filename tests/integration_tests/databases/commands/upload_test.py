@@ -88,12 +88,12 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-@pytest.fixture
+@pytest.fixture()
 def setup_csv_upload_with_context(app_context: AppContext):
     yield from _setup_csv_upload()
 
 
-@pytest.fixture
+@pytest.fixture()
 def setup_csv_upload_with_context_schema(app_context: AppContext):
     yield from _setup_csv_upload(["public"])
 

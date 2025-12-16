@@ -56,7 +56,7 @@ from .base_tests import DEFAULT_PASSWORD, SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
-    @pytest.fixture
+    @pytest.fixture()
     def load_dashboard(self):
         table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
         # get a slice from the allowed table

@@ -25,7 +25,7 @@ from superset.extensions import security_manager
 from superset.utils.core import DatasourceName
 
 
-@pytest.fixture
+@pytest.fixture()
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
@@ -50,7 +50,7 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture
+@pytest.fixture()
 def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs but with schemas.

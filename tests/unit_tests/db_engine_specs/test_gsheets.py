@@ -589,7 +589,7 @@ def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
     assert GSheetsEngineSpec.is_oauth2_enabled() is True
 
 
-@pytest.fixture
+@pytest.fixture()
 def oauth2_config() -> OAuth2ClientConfig:
     """
     Config for GSheets OAuth2.

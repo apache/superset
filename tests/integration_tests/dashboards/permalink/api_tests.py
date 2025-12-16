@@ -42,13 +42,13 @@ STATE = {
 }
 
 
-@pytest.fixture
+@pytest.fixture()
 def dashboard_id(load_world_bank_dashboard_with_slices) -> int:  # noqa: F811
     dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
     return dashboard.id
 
 
-@pytest.fixture
+@pytest.fixture()
 def permalink_salt() -> Iterator[str]:
     from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
     from superset.key_value.types import SharedKey
