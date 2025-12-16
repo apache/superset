@@ -37,7 +37,7 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag
+from superset.commands.importers.v1.utils import import_tag, load_yaml, METADATA_FILE_NAME
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
@@ -77,6 +77,24 @@ class ImportDashboardsCommand(ImportModelsCommand):
         contents: dict[str, Any] | None = None,
     ) -> None:
         contents = {} if contents is None else contents
+
+        # Extract template metadata from metadata.yaml if present
+        template_metadata: dict[str, Any] = {}
+        if METADATA_FILE_NAME in contents:
+            metadata = load_yaml(METADATA_FILE_NAME, contents[METADATA_FILE_NAME])
+            template_fields = [
+                "is_template",
+                "is_featured_template",
+                "template_category",
+                "template_thumbnail_url",
+                "template_description",
+                "template_tags",
+                "template_context",
+            ]
+            template_metadata = {
+                k: v for k, v in metadata.items() if k in template_fields and v
+            }
+
         # discover charts, datasets, and themes associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -175,6 +193,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     # Theme not found, set to None for graceful fallback
                     config["theme_id"] = None
                     del config["theme_uuid"]
+                # Merge template metadata into dashboard's metadata
+                if template_metadata:
+                    if "metadata" not in config:
+                        config["metadata"] = {}
+                    config["metadata"]["template_info"] = template_metadata
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
                 for uuid in find_chart_uuids(config["position"]):
