@@ -16,8 +16,10 @@
 # under the License.
 """Helpers for loading Superset example datasets.
 
-Example datasets are stored as Parquet files in the superset/examples/data/
-directory. Parquet is an Apache-friendly, compressed columnar format.
+Example datasets are stored as Parquet files organized by example name:
+    superset/examples/{example_name}/data.parquet
+
+Parquet is an Apache-friendly, compressed columnar format.
 """
 
 from __future__ import annotations
@@ -96,10 +98,10 @@ def normalize_example_data_url(url: str) -> str:
     isn't standard, we convert to file:// URLs pointing to the actual location.
 
     Args:
-        url: URL to normalize (e.g., "examples://birth_names" or "birth_names.duckdb")
+        url: URL to normalize (e.g., "examples://birth_names")
 
     Returns:
-        Normalized file:// URL pointing to the DuckDB file, or the original URL
+        Normalized file:// URL pointing to the Parquet file, or the original URL
         if it's a remote URL (http://, https://, etc.)
     """
     import os
@@ -107,30 +109,34 @@ def normalize_example_data_url(url: str) -> str:
     # Handle existing examples:// protocol
     if url.startswith(EXAMPLES_PROTOCOL):
         # Remove the protocol for processing
-        path = url[len(EXAMPLES_PROTOCOL) :]
+        example_name = url[len(EXAMPLES_PROTOCOL):]
     elif url.startswith(("file://", "http://", "https://", "s3://", "gs://")):
         # Already a valid URL protocol, return as-is
         return url
     else:
-        # Assume it's a local example filename
-        path = url
+        # Assume it's a local example name
+        example_name = url
 
-    # Ensure .duckdb extension
-    if not path.endswith(".duckdb"):
-        path = f"{path}.duckdb"
+    # Strip any extension
+    for ext in (".parquet", ".csv", ".gz"):
+        if example_name.endswith(ext):
+            example_name = example_name[: -len(ext)]
+            break
 
-    # Build the full file path with security validation
-    examples_data_dir = os.path.join(get_examples_folder(), "data")
-    full_path = os.path.join(examples_data_dir, path)
+    # Normalize name (lowercase, underscores)
+    example_name = example_name.lower().replace(" ", "_").replace("-", "_")
 
-    # Security: Ensure the path doesn't traverse outside examples/data
+    # Build the full file path: {examples_folder}/{example_name}/data.parquet
+    examples_folder = get_examples_folder()
+    full_path = os.path.join(examples_folder, example_name, "data.parquet")
+
+    # Security: Ensure the path doesn't traverse outside examples folder
     full_path = os.path.abspath(full_path)
-    examples_data_dir = os.path.abspath(examples_data_dir)
-    if not full_path.startswith(examples_data_dir + os.sep):
-        raise ValueError(f"Invalid path: {path} attempts directory traversal")
+    examples_folder = os.path.abspath(examples_folder)
+    if not full_path.startswith(examples_folder + os.sep):
+        raise ValueError(f"Invalid path: {example_name} attempts directory traversal")
 
     # Convert to file:// URL for schema validation
-    # This will pass URL validation and still work with our loader
     return f"file://{full_path}"
 
 
@@ -164,7 +170,7 @@ def read_example_data(
         example_name = filepath
 
     # Strip any extension
-    for ext in (".parquet", ".duckdb"):
+    for ext in (".parquet", ".csv", ".gz"):
         if example_name.endswith(ext):
             example_name = example_name[: -len(ext)]
             break
