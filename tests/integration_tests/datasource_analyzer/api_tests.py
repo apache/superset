@@ -16,9 +16,7 @@
 # under the License.
 """Integration tests for Datasource Analyzer API"""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase

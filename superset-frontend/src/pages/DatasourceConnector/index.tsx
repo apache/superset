@@ -124,9 +124,9 @@ export default function DatasourceConnector() {
     setCurrentStep(ConnectorStep.REVIEW_SCHEMA);
   }, [state, addDangerToast, addSuccessToast]);
 
-  const handleBackToConnect = useCallback(() => {
-    setCurrentStep(ConnectorStep.CONNECT_DATA_SOURCE);
-  }, []);
+  //const handleBackToConnect = useCallback(() => {
+  //   setCurrentStep(ConnectorStep.CONNECT_DATA_SOURCE);
+  //}, []);
 
   const handleContinueToGenerate = useCallback(() => {
     addSuccessToast(t('Moving to Generate Dashboard step'));
