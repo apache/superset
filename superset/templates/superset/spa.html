@@ -29,7 +29,7 @@
     </title>
 
     {% block head_meta %}
-      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json">
+      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json?v=4">
     {% endblock %}
 
     <style>
@@ -79,9 +79,7 @@
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', function() {
             navigator.serviceWorker
-              .register('{{ assets_prefix }}/static/service-worker.js', {
-                scope: '/',
-              })
+              .register('{{ assets_prefix }}/static/service-worker.js')
               .catch(function(err) {
                 console.error('Service Worker registration failed:', err);
               });

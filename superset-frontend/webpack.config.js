@@ -198,7 +198,13 @@ if (!process.env.CI) {
 
 // Add React Refresh plugin for development mode
 if (isDevMode) {
-  plugins.push(new ReactRefreshWebpackPlugin());
+  plugins.push(
+    new ReactRefreshWebpackPlugin({
+      // Exclude service worker from React Refresh - it runs in a worker context
+      // without DOM/window and doesn't need HMR
+      exclude: /service-worker/,
+    }),
+  );
 }
 
 if (!isDevMode) {
@@ -314,7 +320,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
-    'service-worker': path.join(APP_DIR, '/src/service-worker.ts'),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
     type: 'filesystem', // Enable filesystem caching
