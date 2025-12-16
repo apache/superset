@@ -31,6 +31,7 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
+import useWhatIfHighlightStyles from 'src/dashboard/util/useWhatIfHighlightStyles';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
@@ -107,6 +108,7 @@ const ChartHolder = ({
   const isFullSize = fullSizeChartId === chartId;
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId);
+  const whatIfHighlightStyles = useWhatIfHighlightStyles(chartId);
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -260,7 +262,7 @@ const ChartHolder = ({
           ref={dragSourceRef}
           data-test="dashboard-component-chart-holder"
           style={focusHighlightStyles}
-          css={isFullSize ? fullSizeStyle : undefined}
+          css={[isFullSize && fullSizeStyle, whatIfHighlightStyles]}
           className={cx(
             'dashboard-component',
             'dashboard-component-chart-holder',
@@ -325,6 +327,7 @@ const ChartHolder = ({
       onResizeStop,
       editMode,
       focusHighlightStyles,
+      whatIfHighlightStyles,
       isFullSize,
       fullSizeStyle,
       chartId,
