@@ -19,6 +19,7 @@
 
 // Core Playwright Components for Superset
 export { Button } from './Button';
+export { Checkbox } from './Checkbox';
 export { Form } from './Form';
 export { Input } from './Input';
 export { Modal } from './Modal';

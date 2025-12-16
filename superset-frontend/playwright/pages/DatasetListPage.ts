@@ -18,7 +18,7 @@
  */
 
 import { Page, Locator } from '@playwright/test';
-import { Table } from '../components/core';
+import { Button, Checkbox, Table } from '../components/core';
 import { URL } from '../utils/urls';
 
 /**
@@ -33,6 +33,8 @@ export class DatasetListPage {
     DELETE_ACTION: '.action-button svg[data-icon="delete"]',
     EXPORT_ACTION: '.action-button svg[data-icon="upload"]',
     DUPLICATE_ACTION: '.action-button svg[data-icon="copy"]',
+    BULK_SELECT_CONTROLS: '[data-test="bulk-select-controls"]',
+    BULK_SELECT_ACTION: '[data-test="bulk-select-action"]',
   } as const;
 
   constructor(page: Page) {
@@ -111,5 +113,70 @@ export class DatasetListPage {
       datasetName,
       DatasetListPage.SELECTORS.DUPLICATE_ACTION,
     );
+  }
+
+  /**
+   * Gets the "Bulk select" button
+   */
+  getBulkSelectButton(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: 'Bulk select' }),
+    );
+  }
+
+  /**
+   * Clicks the "Bulk select" button to enable bulk selection mode
+   */
+  async clickBulkSelectButton(): Promise<void> {
+    await this.getBulkSelectButton().click();
+  }
+
+  /**
+   * Gets the checkbox for a dataset row
+   * @param datasetName - The name of the dataset
+   */
+  getDatasetCheckbox(datasetName: string): Checkbox {
+    const row = this.table.getRow(datasetName);
+    return new Checkbox(row.getByRole('checkbox'));
+  }
+
+  /**
+   * Selects a dataset's checkbox in bulk select mode
+   * @param datasetName - The name of the dataset to select
+   */
+  async selectDatasetCheckbox(datasetName: string): Promise<void> {
+    await this.getDatasetCheckbox(datasetName).check();
+  }
+
+  /**
+   * Gets a bulk action button by name
+   * @param actionName - The name of the bulk action (e.g., "Export", "Delete")
+   */
+  getBulkActionButton(actionName: string): Button {
+    const bulkControls = this.page.locator(
+      DatasetListPage.SELECTORS.BULK_SELECT_CONTROLS,
+    );
+    return new Button(
+      this.page,
+      bulkControls.locator(DatasetListPage.SELECTORS.BULK_SELECT_ACTION, {
+        hasText: actionName,
+      }),
+    );
+  }
+
+  /**
+   * Clicks a bulk action button by name (e.g., "Export", "Delete")
+   * @param actionName - The name of the bulk action to click
+   */
+  async clickBulkAction(actionName: string): Promise<void> {
+    await this.getBulkActionButton(actionName).click();
+  }
+
+  /**
+   * Gets the bulk select controls locator (for assertions)
+   */
+  getBulkSelectControls(): Locator {
+    return this.page.locator(DatasetListPage.SELECTORS.BULK_SELECT_CONTROLS);
   }
 }

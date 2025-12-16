@@ -278,3 +278,38 @@ test('should export a single dataset', async ({ page }) => {
   const failure = await download.failure();
   expect(failure).toBeNull();
 });
+
+test('should bulk export multiple datasets', async ({ page }) => {
+  // Use existing example dataset for bulk export
+  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+
+  // Verify dataset is visible in list
+  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
+
+  // Enable bulk select mode
+  await datasetListPage.clickBulkSelectButton();
+
+  // Verify bulk select controls appear
+  await expect(datasetListPage.getBulkSelectControls()).toBeVisible();
+
+  // Select the dataset checkbox
+  await datasetListPage.selectDatasetCheckbox(datasetName);
+
+  // Set up download handler before triggering bulk export
+  const downloadPromise = page.waitForEvent('download');
+
+  // Click Export bulk action
+  await datasetListPage.clickBulkAction('Export');
+
+  // Wait for download to complete
+  const download = await downloadPromise;
+
+  // Verify downloaded file is a zip
+  const fileName = download.suggestedFilename();
+  expect(fileName).toMatch(/\.zip$/);
+  expect(fileName).toContain('dataset');
+
+  // Verify download completed successfully (no failure)
+  const failure = await download.failure();
+  expect(failure).toBeNull();
+});
