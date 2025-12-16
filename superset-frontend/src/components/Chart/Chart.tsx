@@ -170,6 +170,20 @@ const MessageSpan = styled.span`
   color: ${({ theme }) => theme.colorText};
 `;
 
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.colorBgMask};
+  z-index: 10;
+`;
+
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
@@ -314,6 +328,23 @@ class Chart extends PureComponent<ChartProps, {}> {
     );
   }
 
+  renderLoadingOverlay(databaseName: string | undefined) {
+    const message = databaseName
+      ? t('Waiting on %s', databaseName)
+      : t('Waiting on database...');
+
+    return (
+      <LoadingOverlay>
+        <Loading
+          position="inline-centered"
+          size={this.props.dashboardId ? 's' : 'm'}
+          muted={!!this.props.dashboardId}
+        />
+        <MessageSpan>{message}</MessageSpan>
+      </LoadingOverlay>
+    );
+  }
+
   render() {
     const {
       height,
@@ -373,6 +404,30 @@ class Chart extends PureComponent<ChartProps, {}> {
       );
     }
 
+    const hasExistingData =
+      ensureIsArray(queriesResponse).length > 0 &&
+      queriesResponse?.some(response => response?.data);
+    const isFirstLoad = isLoading && !hasExistingData;
+
+    if (isFirstLoad) {
+      return (
+        <ErrorBoundary
+          onError={this.handleRenderContainerFailure}
+          showMessage={false}
+        >
+          <Styles
+            data-ui-anchor="chart"
+            className="chart-container"
+            data-test="chart-container"
+            height={height}
+            width={width}
+          >
+            {this.renderSpinner(databaseName)}
+          </Styles>
+        </ErrorBoundary>
+      );
+    }
+
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
@@ -385,9 +440,8 @@ class Chart extends PureComponent<ChartProps, {}> {
           height={height}
           width={width}
         >
-          {isLoading
-            ? this.renderSpinner(databaseName)
-            : this.renderChartContainer()}
+          {this.renderChartContainer()}
+          {isLoading && this.renderLoadingOverlay(databaseName)}
         </Styles>
       </ErrorBoundary>
     );

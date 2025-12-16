@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { t, logging } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
+import { Loading } from '@superset-ui/core/components';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -103,6 +104,10 @@ const ChartOverlay = styled.div`
   top: 0;
   left: 0;
   z-index: 5;
+  background-color: ${({ theme }) => theme.colorBgMask};
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const SliceContainer = styled.div`
@@ -684,7 +689,9 @@ const Chart = props => {
               width,
               height: getChartHeight(),
             }}
-          />
+          >
+            <Loading size="s" muted />
+          </ChartOverlay>
         )}
 
         <ChartContainer

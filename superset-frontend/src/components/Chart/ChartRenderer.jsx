@@ -279,8 +279,14 @@ class ChartRenderer extends Component {
   render() {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
-    // Skip chart rendering
-    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+    // Skip chart rendering for errors
+    if (chartAlert) {
+      return null;
+    }
+
+    const hasData =
+      this.mutableQueriesResponse && this.mutableQueriesResponse.length > 0;
+    if (!hasData && (chartStatus === 'loading' || chartStatus === null)) {
       return null;
     }
 
