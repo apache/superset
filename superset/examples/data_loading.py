@@ -14,7 +14,7 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-"""Auto-discover and load example datasets from DuckDB files."""
+"""Auto-discover and load example datasets from Parquet files."""
 
 from pathlib import Path
 from typing import Callable, Dict
@@ -24,13 +24,13 @@ from superset.cli.test_loaders import load_big_data
 
 from .css_templates import load_css_templates
 
-# Import generic loader for DuckDB datasets
+# Import generic loader for Parquet datasets
 from .generic_loader import create_generic_loader
 from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
 
-# Map of DuckDB files to their table names (if different from file name)
+# Map of Parquet files to their table names (if different from file name)
 TABLE_NAME_OVERRIDES = {
     "energy": "energy_usage",  # Legacy table name expected by tests
     "fcc_2018_survey": "FCC 2018 Survey",
@@ -79,16 +79,16 @@ def get_data_directory() -> Path:
 
 
 def discover_datasets() -> Dict[str, Callable[..., None]]:
-    """Auto-discover all DuckDB files and create loaders for them."""
+    """Auto-discover all Parquet files and create loaders for them."""
     loaders: Dict[str, Callable[..., None]] = {}
     data_dir = get_data_directory()
 
     if not data_dir.exists():
         return loaders
 
-    # Discover all .duckdb files
-    for duckdb_file in sorted(data_dir.glob("*.duckdb")):
-        dataset_name = duckdb_file.stem
+    # Discover all .parquet files
+    for parquet_file in sorted(data_dir.glob("*.parquet")):
+        dataset_name = parquet_file.stem
 
         # Determine table name
         table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
@@ -123,6 +123,6 @@ __all__ = [
     "load_supported_charts_dashboard",
     "load_tabbed_dashboard",
     "load_examples_from_configs",
-    # Auto-discovered loaders (includes load_energy from energy.duckdb)
+    # Auto-discovered loaders (includes load_energy from energy.parquet)
     *sorted(_auto_loaders.keys()),
 ]

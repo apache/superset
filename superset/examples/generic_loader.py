@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Generic DuckDB example data loader."""
+"""Generic Parquet example data loader."""
 
 import logging
 from functools import partial
@@ -48,18 +48,18 @@ def serialize_numpy_arrays(obj: Any) -> Any:  # noqa: C901
     return obj
 
 
-def load_duckdb_table(  # noqa: C901
-    duckdb_file: str,
+def load_parquet_table(  # noqa: C901
+    parquet_file: str,
     table_name: str,
     database: Optional[Database] = None,
     only_metadata: bool = False,
     force: bool = False,
     sample_rows: Optional[int] = None,
 ) -> SqlaTable:
-    """Load a DuckDB table into the example database.
+    """Load a Parquet file into the example database.
 
     Args:
-        duckdb_file: Name of the DuckDB file (e.g., "birth_names")
+        parquet_file: Name of the Parquet file (e.g., "birth_names")
         table_name: Name for the table in the target database
         database: Target database (defaults to example database)
         only_metadata: If True, only create metadata without loading data
@@ -89,10 +89,10 @@ def load_duckdb_table(  # noqa: C901
 
     # Load data if not metadata only
     if not only_metadata:
-        logger.info("Loading data for %s from %s.duckdb", table_name, duckdb_file)
+        logger.info("Loading data for %s from %s.parquet", table_name, parquet_file)
 
-        # Read from DuckDB
-        pdf = read_example_data(f"examples://{duckdb_file}")
+        # Read from Parquet
+        pdf = read_example_data(f"examples://{parquet_file}")
 
         # Sample if requested (handle sample_rows=0 correctly)
         if sample_rows is not None:
@@ -174,19 +174,19 @@ def load_duckdb_table(  # noqa: C901
 
 
 def create_generic_loader(
-    duckdb_file: str,
+    parquet_file: str,
     table_name: Optional[str] = None,
     description: Optional[str] = None,
     sample_rows: Optional[int] = None,
 ) -> Callable[[Database, SqlaTable], None]:
-    """Create a loader function for a specific DuckDB file.
+    """Create a loader function for a specific Parquet file.
 
     This factory function creates loaders that match the existing pattern
     used by Superset examples.
 
     Args:
-        duckdb_file: Name of the DuckDB file (without .duckdb extension)
-        table_name: Table name (defaults to duckdb_file)
+        parquet_file: Name of the Parquet file (without .parquet extension)
+        table_name: Table name (defaults to parquet_file)
         description: Description for the dataset
         sample_rows: Default number of rows to sample
 
@@ -194,7 +194,7 @@ def create_generic_loader(
         A loader function with the standard signature
     """
     if table_name is None:
-        table_name = duckdb_file
+        table_name = parquet_file
 
     def loader(
         only_metadata: bool = False,
@@ -204,8 +204,8 @@ def create_generic_loader(
         """Load the dataset."""
         rows = sample_rows if sample and sample_rows is not None else None
 
-        tbl = load_duckdb_table(
-            duckdb_file=duckdb_file,
+        tbl = load_parquet_table(
+            parquet_file=parquet_file,
             table_name=table_name,
             only_metadata=only_metadata,
             force=force,
@@ -218,7 +218,7 @@ def create_generic_loader(
             db.session.commit()
 
     # Set function name and docstring
-    loader.__name__ = f"load_{duckdb_file}"
-    loader.__doc__ = description or f"Load {duckdb_file} dataset"
+    loader.__name__ = f"load_{parquet_file}"
+    loader.__doc__ = description or f"Load {parquet_file} dataset"
 
     return loader

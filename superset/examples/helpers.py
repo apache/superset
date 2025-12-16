@@ -16,8 +16,8 @@
 # under the License.
 """Helpers for loading Superset example datasets.
 
-Example datasets are stored as DuckDB files in the superset/examples/data/
-directory. Each dataset is a self-contained DuckDB file with schema and data.
+Example datasets are stored as Parquet files in the superset/examples/data/
+directory. Parquet is an Apache-friendly, compressed columnar format.
 """
 
 from __future__ import annotations
@@ -139,11 +139,12 @@ def read_example_data(
     table_name: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Load data from local DuckDB files.
+    """Load data from local Parquet files.
 
     Args:
-        filepath: Path to the DuckDB file (e.g., "examples://birth_names.duckdb" or "file:///path/to/file.duckdb")
-        table_name: Table to read from DuckDB (defaults to filename without extension)
+        filepath: Path to the Parquet file (e.g., "examples://birth_names" or
+            "examples://birth_names.parquet")
+        table_name: Ignored (kept for backward compatibility with DuckDB interface)
         **kwargs: Ignored (kept for backward compatibility)
 
     Returns:
@@ -151,14 +152,16 @@ def read_example_data(
     """
     import os
 
-    import duckdb
-
     # Handle different URL formats
     if filepath.startswith(EXAMPLES_PROTOCOL):
         # examples:// protocol
         relative_path = filepath[len(EXAMPLES_PROTOCOL) :]
-        if not relative_path.endswith(".duckdb"):
-            relative_path = f"{relative_path}.duckdb"
+        # Strip old extension if present and add .parquet
+        for ext in (".parquet", ".duckdb"):
+            if relative_path.endswith(ext):
+                relative_path = relative_path[: -len(ext)]
+                break
+        relative_path = f"{relative_path}.parquet"
         local_path = os.path.join(get_examples_folder(), "data", relative_path)
     elif filepath.startswith("file://"):
         # file:// protocol - extract the actual path
@@ -166,29 +169,15 @@ def read_example_data(
     else:
         # Assume it's a relative path
         relative_path = filepath
-        if not relative_path.endswith(".duckdb"):
-            relative_path = f"{relative_path}.duckdb"
+        for ext in (".parquet", ".duckdb"):
+            if relative_path.endswith(ext):
+                relative_path = relative_path[: -len(ext)]
+                break
+        relative_path = f"{relative_path}.parquet"
         local_path = os.path.join(get_examples_folder(), "data", relative_path)
 
     if not os.path.exists(local_path):
         raise FileNotFoundError(f"Example data file not found: {local_path}")
 
-    # Determine table name if not provided
-    if table_name is None:
-        base_name = os.path.basename(local_path)
-        table_name = os.path.splitext(base_name)[0]
-
-    # Connect and read from DuckDB
-    conn = duckdb.connect(local_path, read_only=True)
-    try:
-        # Security: Use parameterized query to prevent SQL injection
-        # Note: DuckDB doesn't support parameterized table names, but we validate
-        # table_name comes from trusted sources (filename or override mapping)
-        import re
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", table_name):
-            raise ValueError(f"Invalid table name: {table_name}")
-        df = conn.execute(f"SELECT * FROM {table_name}").df()  # noqa: S608
-        return df
-    finally:
-        conn.close()
+    # Read from Parquet (much simpler than DuckDB - no SQL needed)
+    return pd.read_parquet(local_path)

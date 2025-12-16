@@ -23,9 +23,8 @@ under the License.
 
 To add a new example dataset:
 
-1. **Add your DuckDB file** to this directory (`superset/examples/data/`)
-   - Name it descriptively: `your_dataset.duckdb`
-   - The table inside should match the filename (without .duckdb)
+1. **Add your Parquet file** to this directory (`superset/examples/data/`)
+   - Name it descriptively: `your_dataset.parquet`
 
 2. **That's it!** The dataset will be auto-discovered and loaded when running:
    ```bash
@@ -41,35 +40,29 @@ The `superset load-examples` command supports several flags for different use ca
 - **`--load-test-data` / `-t`**: Include test-specific dashboards and datasets (*.test.yaml files)
 - **`--load-big-data` / `-b`**: Generate synthetic stress-test data (wide tables, many tables)
 
-## DuckDB File Structure
+## Why Parquet?
 
-Each `.duckdb` file should contain a single table with the same name as the file:
-- File: `sales_data.duckdb`
-- Table inside: `sales_data`
+- **Apache-friendly**: Parquet is an Apache project, making it ideal for ASF projects
+- **Compressed**: Parquet uses efficient columnar compression (Snappy by default)
+- **Widely supported**: Compatible with pandas, pyarrow, DuckDB, Spark, and many other tools
+- **Self-describing**: Schema is embedded in the file
 
-## Creating a DuckDB File
+## Creating a Parquet File
 
 From a CSV:
 ```python
-import duckdb
 import pandas as pd
 
 # Read your data
 df = pd.read_csv("your_data.csv")
 
-# Create DuckDB file
-conn = duckdb.connect("your_dataset.duckdb")
-conn.execute("CREATE TABLE your_dataset AS SELECT * FROM df")
-conn.close()
+# Save as Parquet
+df.to_parquet("your_dataset.parquet", compression="snappy", index=False)
 ```
 
 From a DataFrame:
 ```python
-import duckdb
-
-conn = duckdb.connect("your_dataset.duckdb")
-conn.execute("CREATE TABLE your_dataset AS SELECT * FROM your_dataframe")
-conn.close()
+your_dataframe.to_parquet("your_dataset.parquet", compression="snappy", index=False)
 ```
 
 ## Custom Table Names
@@ -116,8 +109,8 @@ superset load-examples
 Keep datasets reasonably sized for demo purposes:
 - Aim for < 10MB per file
 - Use sampling for large datasets
-- Consider compression within DuckDB
+- Parquet compression helps reduce file sizes significantly
 
 ## Removing a Dataset
 
-Simply delete the `.duckdb` file from this directory. No other changes needed!
+Simply delete the `.parquet` file from this directory. No other changes needed!

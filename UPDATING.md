@@ -26,9 +26,10 @@ assists people when migrating to a new version.
 
 ### Example Data Loading Improvements
 
-#### Simplified DuckDB-based Loading
-- All example datasets now stored as self-contained DuckDB files in `superset/examples/data/`
-- Auto-discovery of datasets - just drop a `.duckdb` file to add a new example
+#### Simplified Parquet-based Loading
+- All example datasets now stored as compressed Parquet files in `superset/examples/data/`
+- Auto-discovery of datasets - just drop a `.parquet` file to add a new example
+- Parquet is an Apache project format: compressed, widely-supported, self-describing schema
 - Removed Python-based data generation from individual example files
 - Fixed birth_names dataset loading issue (was incorrectly skipped)
 
