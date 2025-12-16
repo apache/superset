@@ -96,6 +96,18 @@ const mockInitialState = {
         force_ctas_schema: null,
         id: 1,
       },
+      1992: {
+        allow_ctas: false,
+        allow_cvas: false,
+        allow_dml: false,
+        allow_file_upload: false,
+        allow_run_async: false,
+        backend: 'postgresql',
+        database_name: 'examples',
+        expose_in_sqllab: true,
+        force_ctas_schema: null,
+        id: 2,
+      },
     },
     unsavedQueryEditor: {
       id: defaultQueryEditor.id,
@@ -184,6 +196,44 @@ describe('SqlEditor', () => {
         'The database that was used to generate this query could not be found',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('should not renders db unavailable message because the only one available is selected', async () => {
+    store = createStore({
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [latestQuery.id]: { ...latestQuery, startDttm: new Date().getTime() },
+        },
+        databases: {
+          1991: {
+            allow_ctas: false,
+            allow_cvas: false,
+            allow_dml: false,
+            allow_file_upload: false,
+            allow_run_async: false,
+            backend: 'postgresql',
+            database_name: 'examples',
+            expose_in_sqllab: true,
+            force_ctas_schema: null,
+            id: 1,
+          },
+        },
+        unsavedQueryEditor: {
+          id: defaultQueryEditor.id,
+          dbId: 1991,
+          latestQueryId: latestQuery.id,
+        },
+      },
+    });
+    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const { queryByText } = setup({ ...mockedProps, queryEditor }, store);
+    expect(
+      queryByText(
+        'The database that was used to generate this query could not be found',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('render a SqlEditorLeftBar', async () => {

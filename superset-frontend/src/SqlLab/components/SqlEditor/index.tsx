@@ -286,6 +286,13 @@ const SqlEditor: FC<Props> = ({
           ? unsavedQueryEditor.hideLeftBar
           : hideLeftBar;
     }
+
+    const dbIds = Object.keys(databases);
+
+    if (dbIds.length === 1) {
+      dbId = parseInt(dbIds[0], 10);
+    }
+
     return {
       hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
       database: databases[dbId || ''],
@@ -298,7 +305,9 @@ const SqlEditor: FC<Props> = ({
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
   const [height, setHeight] = useState(0);
-  const [autorun, setAutorun] = useState(queryEditor.autorun);
+  // set autorun to false because we need to set the right database on sqllab
+  // but databases are loaded after autorun
+  const [autorun, setAutorun] = useState(false);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
     queryEditor.northPercent || INITIAL_NORTH_PERCENT,
