@@ -427,7 +427,9 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
-                    email_from=self._report_schedule.extra.get("email_from") if self._report_schedule.extra else None,
+                    email_from=self._report_schedule.extra.get("email_from")
+                    if self._report_schedule.extra
+                    else None,
                 )
 
         if (
@@ -461,7 +463,9 @@ class BaseReportState:
             header_data=header_data,
             csv_filename=self._report_schedule.csv_filename,
             email_subject=self._report_schedule.email_subject,
-            email_from=self._report_schedule.extra.get("email_from") if self._report_schedule.extra else None,
+            email_from=self._report_schedule.extra.get("email_from")
+            if self._report_schedule.extra
+            else None,
         )
 
     def _send(
@@ -549,7 +553,9 @@ class BaseReportState:
             text=message,
             header_data=header_data,
             url=url,
-            email_from=self._report_schedule.extra.get("email_from") if self._report_schedule.extra else None,
+            email_from=self._report_schedule.extra.get("email_from")
+            if self._report_schedule.extra
+            else None,
         )
 
         # filter recipients to recipients who are also owners
