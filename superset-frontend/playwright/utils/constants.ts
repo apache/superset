@@ -30,6 +30,11 @@
 
 export const TIMEOUT = {
   /**
+   * Global setup timeout (matches test timeout for cold CI starts)
+   */
+  GLOBAL_SETUP: 30000, // 30s for global setup auth
+
+  /**
    * Page navigation and load timeouts
    */
   PAGE_LOAD: 10000, // 10s for page transitions (login → welcome, dataset → explore)

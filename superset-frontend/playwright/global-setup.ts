@@ -26,6 +26,7 @@ import {
 import { mkdir } from 'fs/promises';
 import { dirname } from 'path';
 import { AuthPage } from './pages/AuthPage';
+import { TIMEOUT } from './utils/constants';
 
 /**
  * Global setup function that runs once before all tests.
@@ -66,7 +67,8 @@ async function globalSetup(config: FullConfig) {
     await authPage.goto();
     await authPage.waitForLoginForm();
     await authPage.loginWithCredentials(adminUsername, adminPassword);
-    await authPage.waitForLoginSuccess();
+    // Use longer timeout for global setup (cold CI starts may exceed PAGE_LOAD timeout)
+    await authPage.waitForLoginSuccess({ timeout: TIMEOUT.GLOBAL_SETUP });
 
     // Save authentication state for all tests to reuse
     const authStatePath = 'playwright/.auth/user.json';

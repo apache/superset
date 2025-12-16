@@ -63,7 +63,11 @@ export default defineConfig({
   // Global test setup
   use: {
     // Use environment variable for base URL in CI, default to localhost:8088 for local
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088',
+    // Normalize to always end with '/' to prevent URL resolution issues with APP_PREFIX
+    baseURL: (() => {
+      const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+      return url.endsWith('/') ? url : `${url}/`;
+    })(),
 
     // Browser settings
     headless: !!process.env.CI,
