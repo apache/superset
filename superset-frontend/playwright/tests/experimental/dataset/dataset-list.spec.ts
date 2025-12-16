@@ -366,8 +366,47 @@ test('should edit a dataset description', async ({ page }) => {
   const confirmDialog = new ConfirmDialog(page);
   const toast = new Toast(page);
 
-  // Use existing example dataset
-  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+  // Create throwaway copy for editing (hermetic - uses UI duplication)
+  const originalName = TEST_DATASETS.EXAMPLE_DATASET;
+  const datasetName = `test_edit_${Date.now()}`;
+
+  // Verify original dataset is visible in list
+  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+
+  // Set up response intercept to capture duplicate dataset ID
+  const duplicateResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
+      response.status() === 201,
+  );
+
+  // Click duplicate action button
+  await datasetListPage.clickDuplicateAction(originalName);
+
+  // Duplicate modal should appear and be ready for interaction
+  const duplicateModal = new DuplicateDatasetModal(page);
+  await duplicateModal.waitForReady();
+
+  // Fill in new dataset name
+  await duplicateModal.fillDatasetName(datasetName);
+
+  // Click the Duplicate button
+  await duplicateModal.clickDuplicate();
+
+  // Get the duplicate dataset ID from response and track immediately
+  const duplicateResponse = await duplicateResponsePromise;
+  const duplicateData = await duplicateResponse.json();
+  const duplicateId = duplicateData.id;
+
+  // Track duplicate for cleanup immediately (before any operations that could fail)
+  testResources = { datasetIds: [duplicateId] };
+
+  // Modal should close
+  await duplicateModal.waitForHidden();
+
+  // Refresh page to see new dataset
+  await datasetListPage.goto();
+  await datasetListPage.waitForTableLoad();
 
   // Verify dataset is visible in list
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();

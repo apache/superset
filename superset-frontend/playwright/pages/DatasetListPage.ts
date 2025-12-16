@@ -150,7 +150,7 @@ export class DatasetListPage {
    */
   getDatasetCheckbox(datasetName: string): Checkbox {
     const row = this.table.getRow(datasetName);
-    return new Checkbox(row.getByRole('checkbox'));
+    return new Checkbox(this.page, row.getByRole('checkbox'));
   }
 
   /**

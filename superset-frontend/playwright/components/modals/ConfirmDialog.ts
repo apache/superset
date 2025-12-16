@@ -26,7 +26,7 @@ import { Modal } from '../core/Modal';
  */
 export class ConfirmDialog extends Modal {
   constructor(page: Page) {
-    // Modal.confirm uses the same [role="dialog"] selector
+    // Uses the default Modal selector ([role="dialog"]) which works for Modal.confirm dialogs
     super(page);
   }
 

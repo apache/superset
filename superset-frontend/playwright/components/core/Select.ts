@@ -26,9 +26,15 @@ export class Select {
   readonly page: Page;
   private readonly locator: Locator;
 
-  constructor(page: Page, locator: Locator) {
+  constructor(page: Page, selector: string);
+  constructor(page: Page, locator: Locator);
+  constructor(page: Page, selectorOrLocator: string | Locator) {
     this.page = page;
-    this.locator = locator;
+    if (typeof selectorOrLocator === 'string') {
+      this.locator = page.locator(selectorOrLocator);
+    } else {
+      this.locator = selectorOrLocator;
+    }
   }
 
   /**

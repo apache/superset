@@ -17,15 +17,17 @@
  * under the License.
  */
 
-import { Locator } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 
 /**
  * Checkbox component for checkbox interactions.
  */
 export class Checkbox {
+  readonly page: Page;
   private readonly locator: Locator;
 
-  constructor(locator: Locator) {
+  constructor(page: Page, locator: Locator) {
+    this.page = page;
     this.locator = locator;
   }
 

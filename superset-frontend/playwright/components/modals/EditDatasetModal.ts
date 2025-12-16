@@ -28,7 +28,7 @@ export class EditDatasetModal extends Modal {
   private readonly tabs: Tabs;
 
   constructor(page: Page) {
-    super(page, 'Edit Dataset');
+    super(page);
     this.tabs = new Tabs(page);
   }
 
