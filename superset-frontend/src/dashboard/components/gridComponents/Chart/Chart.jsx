@@ -415,9 +415,13 @@ const Chart = props => {
 
   const ownState = useMemo(() => {
     const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
+    // Create a chartState-like object that includes state from chartState or formData fallbacks
+    const chartStateForConversion = {
+      state: getChartStateWithFallback(chartState, formData, slice.viz_type),
+    };
     return createOwnStateWithChartState(
       baseOwnState,
-      chartState,
+      chartStateForConversion,
       slice.viz_type,
     );
   }, [
@@ -425,6 +429,7 @@ const Chart = props => {
     props.id,
     slice.viz_type,
     chartState?.state,
+    formData,
   ]);
 
   const onExploreChart = useCallback(
@@ -698,17 +703,7 @@ const Chart = props => {
           formData={formData}
           labelsColor={labelsColor}
           labelsColorMap={labelsColorMap}
-          ownState={createOwnStateWithChartState(
-            dataMask[props.id]?.ownState || EMPTY_OBJECT,
-            {
-              state: getChartStateWithFallback(
-                chartState,
-                formData,
-                slice.viz_type,
-              ),
-            },
-            slice.viz_type,
-          )}
+          ownState={ownState}
           filterState={dataMask[props.id]?.filterState}
           queriesResponse={chart.queriesResponse}
           timeout={timeout}

@@ -24,6 +24,24 @@ export const arrayDiff = (a: string[], b: string[]) => [
   ...b.filter(x => !a.includes(x)),
 ];
 
+// Fields in ownState that don't require re-querying the chart when changed
+// clientView is used by TableChart to store filtered rows for export - it's a
+// derived/cached value that doesn't affect the query
+const IGNORED_OWN_STATE_FIELDS = ['clientView'];
+
+const getComparableOwnState = (
+  ownState: JsonObject | undefined,
+): JsonObject => {
+  if (!ownState) return {};
+  const result: JsonObject = {};
+  Object.keys(ownState).forEach(key => {
+    if (!IGNORED_OWN_STATE_FIELDS.includes(key)) {
+      result[key] = ownState[key];
+    }
+  });
+  return result;
+};
+
 export const getAffectedOwnDataCharts = (
   ownDataCharts: JsonObject,
   appliedOwnDataCharts: JsonObject,
@@ -35,9 +53,10 @@ export const getAffectedOwnDataCharts = (
   );
   const checkForUpdateIds = new Set<string>([...chartIds, ...appliedChartIds]);
   checkForUpdateIds.forEach(chartId => {
-    if (
-      !areObjectsEqual(ownDataCharts[chartId], appliedOwnDataCharts[chartId])
-    ) {
+    // Compare ownState excluding fields that don't require re-querying
+    const currentState = getComparableOwnState(ownDataCharts[chartId]);
+    const appliedState = getComparableOwnState(appliedOwnDataCharts[chartId]);
+    if (!areObjectsEqual(currentState, appliedState)) {
       affectedIds.push(chartId);
     }
   });
