@@ -50,6 +50,14 @@ class MetadataSchema(Schema):
     version = fields.String(required=True, validate=validate.Equal(IMPORT_VERSION))
     type = fields.String(required=False)
     timestamp = fields.DateTime()
+    # Template-related fields
+    is_template = fields.Boolean(required=False)
+    is_featured_template = fields.Boolean(required=False)
+    template_category = fields.String(required=False)
+    template_thumbnail_url = fields.String(required=False)
+    template_description = fields.String(required=False)
+    template_tags = fields.List(fields.String(), required=False)
+    template_context = fields.String(required=False)
 
 
 def load_yaml(file_name: str, content: str) -> dict[str, Any]:
