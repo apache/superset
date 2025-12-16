@@ -2016,7 +2016,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return self.db_engine_spec.get_text_clause(clause)
 
     def get_from_clause(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+        what_if: Optional[dict[str, Any]] = None,
     ) -> tuple[Union[TableClause, Alias], Optional[str]]:
         """
         Return where to select the columns and metrics from. Either a physical table
@@ -2059,6 +2061,96 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
         return from_clause, cte
+
+    def _collect_needed_columns(  # noqa: C901
+        self,
+        columns: Optional[list[Column]] = None,
+        groupby: Optional[list[Column]] = None,
+        metrics: Optional[list[Metric]] = None,
+        filter: Optional[list[utils.QueryObjectFilterClause]] = None,
+        orderby: Optional[list[OrderBy]] = None,
+        granularity: Optional[str] = None,
+    ) -> Optional[set[str]]:
+        """
+        Collect all column names needed by the query for what-if transformation.
+        This allows us to only select necessary columns instead of SELECT *.
+
+        :returns: Set of column names that are referenced by the query,
+                  or None if all columns should be included (e.g., for complex metrics)
+        """
+        needed: set[str] = set()
+
+        # Add granularity column (time column)
+        if granularity:
+            needed.add(granularity)
+
+        # Add columns from dimensions/columns list
+        for col in columns or []:
+            if isinstance(col, str):
+                needed.add(col)
+            elif isinstance(col, dict):
+                if col.get("sqlExpression"):
+                    # Adhoc column with SQL expression - can't determine columns
+                    return None
+                if col.get("column_name"):
+                    needed.add(col["column_name"])
+
+        # Add columns from groupby
+        for col in groupby or []:
+            if isinstance(col, str):
+                needed.add(col)
+            elif isinstance(col, dict):
+                if col.get("sqlExpression"):
+                    # Adhoc column with SQL expression - can't determine columns
+                    return None
+                if col.get("column_name"):
+                    needed.add(col["column_name"])
+
+        # Add columns from metrics (try to extract column references)
+        # For complex metrics (SQL expressions or saved metrics), we need all columns
+        # because we can't easily parse what columns they reference
+        for metric in metrics or []:
+            if isinstance(metric, str):
+                # Saved metric - can't determine columns, need all
+                return None  # Signal to use all columns
+            elif isinstance(metric, dict):
+                expression_type = metric.get("expressionType")
+                if expression_type == "SQL":
+                    # SQL expression - can't determine columns, need all
+                    return None  # Signal to use all columns
+                # SIMPLE adhoc metric - check for column reference
+                metric_column = metric.get("column")
+                if isinstance(metric_column, dict):
+                    col_name = metric_column.get("column_name")
+                    if isinstance(col_name, str):
+                        needed.add(col_name)
+
+        # Add columns from filters
+        for flt in filter or []:
+            col = flt.get("col")
+            if isinstance(col, str):
+                needed.add(col)
+            elif isinstance(col, dict):
+                if col.get("sqlExpression"):
+                    # Adhoc column filter - can't determine columns
+                    return None
+                if col.get("column_name"):
+                    needed.add(col["column_name"])
+
+        # Add columns from orderby
+        for order_item in orderby or []:
+            if isinstance(order_item, (list, tuple)) and len(order_item) >= 1:
+                col = order_item[0]
+                if isinstance(col, str):
+                    needed.add(col)
+                elif isinstance(col, dict):
+                    if col.get("sqlExpression"):
+                        # Adhoc column orderby - can't determine columns
+                        return None
+                    if col.get("column_name"):
+                        needed.add(col["column_name"])
+
+        return needed
 
     def adhoc_metric_to_sqla(
         self,
@@ -2879,7 +2971,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Process FROM clause early to populate removed_filters from virtual dataset
         # templates before we decide whether to add time filters
-        tbl, cte = self.get_from_clause(template_processor)
+        what_if = extras.get("what_if") if extras else None
+        if what_if:
+            # Collect columns needed by the query for efficient what-if transformation
+            what_if = dict(what_if)  # Copy to avoid mutating original
+            what_if["needed_columns"] = self._collect_needed_columns(
+                columns=columns,
+                groupby=groupby,
+                metrics=metrics,
+                filter=filter,
+                orderby=orderby,
+                granularity=granularity,
+            )
+        tbl, cte = self.get_from_clause(template_processor, what_if=what_if)
 
         if granularity:
             if granularity not in columns_by_name or not dttm_col:

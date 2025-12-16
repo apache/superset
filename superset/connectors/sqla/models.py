@@ -1516,11 +1516,79 @@ class SqlaTable(
     def get_from_clause(
         self,
         template_processor: BaseTemplateProcessor | None = None,
+        what_if: dict[str, Any] | None = None,
     ) -> tuple[TableClause | Alias, str | None]:
         if not self.is_virtual:
-            return self.get_sqla_table(), None
+            tbl = self.get_sqla_table()
+            if what_if:
+                tbl = self._apply_what_if_transform(tbl, what_if)
+            return tbl, None
 
-        return super().get_from_clause(template_processor)
+        from_clause, cte = super().get_from_clause(template_processor, what_if=None)
+        if what_if:
+            from_clause = self._apply_what_if_transform(from_clause, what_if)
+        return from_clause, cte
+
+    def _apply_what_if_transform(
+        self,
+        source: TableClause | Alias,
+        what_if: dict[str, Any],
+    ) -> Alias:
+        """
+        Wrap the source table/subquery with a subquery that applies
+        column transformations for what-if analysis.
+
+        :param source: Original table or subquery to transform
+        :param what_if: Dict containing 'modifications' list with column/multiplier
+            pairs and 'needed_columns' set with columns required by the query
+        :returns: Aliased subquery with transformations applied
+        """
+        modifications = what_if.get("modifications", [])
+        if not modifications:
+            return source  # type: ignore
+
+        # Build a dict of column -> multiplier
+        mod_map = {m["column"]: m["multiplier"] for m in modifications}
+
+        # Get columns needed by the query + modified columns
+        # None means we need all columns (e.g., for complex SQL metrics)
+        needed_columns: set[str] | None = what_if.get("needed_columns")
+        modified_column_names = set(mod_map.keys())
+
+        # Determine which columns to select
+        available_columns = {col.column_name for col in self.columns}
+        if needed_columns is None:
+            # Use all available columns
+            columns_to_select = available_columns
+        else:
+            # Use only needed columns + modified columns
+            columns_to_select = needed_columns | modified_column_names
+
+        # Build select list with only needed columns
+        select_columns = []
+
+        for col_name in columns_to_select:
+            # Skip columns that don't exist in the datasource
+            if col_name not in available_columns:
+                continue
+
+            if col_name in mod_map:
+                # Apply transformation: column * multiplier AS column
+                multiplier = mod_map[col_name]
+                transformed = (sa.column(col_name) * sa.literal(multiplier)).label(
+                    col_name
+                )
+                select_columns.append(transformed)
+            else:
+                select_columns.append(sa.column(col_name))
+
+        if not select_columns:
+            # Fallback: if no columns to select, return source unchanged
+            return source  # type: ignore
+
+        # Create subquery with transformations
+        subq = sa.select(*select_columns).select_from(source)
+        return subq.alias("__what_if")
 
     def adhoc_metric_to_sqla(
         self,
