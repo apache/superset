@@ -3278,271 +3278,274 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert response == {
-            "databases": [
-                {
-                    "available_drivers": ["psycopg2"],
-                    "default_driver": "psycopg2",
-                    "engine": "postgresql",
-                    "name": "PostgreSQL",
-                    "parameters": {
-                        "properties": {
-                            "database": {
-                                "description": "Database name",
-                                "type": "string",
-                            },
-                            "encryption": {
-                                "description": "Use an encrypted connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "host": {
-                                "description": "Hostname or IP address",
-                                "type": "string",
-                            },
-                            "password": {
-                                "description": "Password",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                            "port": {
-                                "description": "Database port",
-                                "maximum": 65536,
-                                "minimum": 0,
-                                "type": "integer",
-                            },
-                            "query": {
-                                "additionalProperties": {},
-                                "description": "Additional parameters",
-                                "type": "object",
-                            },
-                            "ssh": {
-                                "description": "Use an ssh tunnel connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "username": {
-                                "description": "Username",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                        },
-                        "required": ["database", "host", "port", "username"],
-                        "type": "object",
-                    },
-                    "preferred": True,
-                    "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": True,
-                        "disable_ssh_tunneling": False,
-                        "supports_oauth2": False,
-                    },
-                    "supports_oauth2": False,
-                },
-                {
-                    "available_drivers": ["bigquery"],
-                    "default_driver": "bigquery",
-                    "engine": "bigquery",
-                    "name": "Google BigQuery",
-                    "parameters": {
-                        "properties": {
-                            "credentials_info": {
-                                "description": (
-                                    "Contents of BigQuery JSON credentials."
-                                ),
-                                "type": "string",
-                                "x-encrypted-extra": True,
-                            },
-                            "query": {"type": "object"},
-                        },
-                        "type": "object",
-                    },
-                    "preferred": True,
-                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": True,
-                        "disable_ssh_tunneling": True,
-                        "supports_oauth2": False,
-                    },
-                    "supports_oauth2": False,
-                },
-                {
-                    "available_drivers": ["psycopg2"],
-                    "default_driver": "psycopg2",
-                    "engine": "redshift",
-                    "name": "Amazon Redshift",
-                    "parameters": {
-                        "properties": {
-                            "database": {
-                                "description": "Database name",
-                                "type": "string",
-                            },
-                            "encryption": {
-                                "description": "Use an encrypted connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "host": {
-                                "description": "Hostname or IP address",
-                                "type": "string",
-                            },
-                            "password": {
-                                "description": "Password",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                            "port": {
-                                "description": "Database port",
-                                "maximum": 65536,
-                                "minimum": 0,
-                                "type": "integer",
-                            },
-                            "query": {
-                                "additionalProperties": {},
-                                "description": "Additional parameters",
-                                "type": "object",
-                            },
-                            "ssh": {
-                                "description": "Use an ssh tunnel connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "username": {
-                                "description": "Username",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                        },
-                        "required": ["database", "host", "port", "username"],
-                        "type": "object",
-                    },
-                    "preferred": False,
-                    "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
-                        "disable_ssh_tunneling": False,
-                        "supports_oauth2": False,
-                    },
-                    "supports_oauth2": False,
-                },
-                {
-                    "available_drivers": ["apsw"],
-                    "default_driver": "apsw",
-                    "engine": "gsheets",
-                    "name": "Google Sheets",
-                    "parameters": {
-                        "properties": {
-                            "catalog": {"type": "object"},
-                            "oauth2_client_info": {
-                                "default": {
-                                    "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-                                    "scope": (
-                                        "https://www.googleapis.com/auth/"
-                                        "drive.readonly "
-                                        "https://www.googleapis.com/auth/"
-                                        "spreadsheets "
-                                        "https://spreadsheets.google.com/feeds"
-                                    ),
-                                    "token_request_uri": "https://oauth2.googleapis.com/token",
+        assert (
+            response
+            == {
+                "databases": [
+                    {
+                        "available_drivers": ["psycopg2"],
+                        "default_driver": "psycopg2",
+                        "engine": "postgresql",
+                        "name": "PostgreSQL",
+                        "parameters": {
+                            "properties": {
+                                "database": {
+                                    "description": "Database name",
+                                    "type": "string",
                                 },
-                                "description": "OAuth2 client information",
-                                "nullable": True,
-                                "type": "string",
-                                "x-encrypted-extra": True,
+                                "encryption": {
+                                    "description": "Use an encrypted connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "host": {
+                                    "description": "Hostname or IP address",
+                                    "type": "string",
+                                },
+                                "password": {
+                                    "description": "Password",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
+                                "port": {
+                                    "description": "Database port",
+                                    "maximum": 65536,
+                                    "minimum": 0,
+                                    "type": "integer",
+                                },
+                                "query": {
+                                    "additionalProperties": {},
+                                    "description": "Additional parameters",
+                                    "type": "object",
+                                },
+                                "ssh": {
+                                    "description": "Use an ssh tunnel connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "username": {
+                                    "description": "Username",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
                             },
-                            "service_account_info": {
-                                "description": (
-                                    "Contents of GSheets JSON credentials."
-                                ),
-                                "type": "string",
-                                "x-encrypted-extra": True,
-                            },
+                            "required": ["database", "host", "port", "username"],
+                            "type": "object",
                         },
-                        "type": "object",
+                        "preferred": True,
+                        "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": True,
+                            "disable_ssh_tunneling": False,
+                            "supports_oauth2": False,
+                        },
+                        "supports_oauth2": False,
                     },
-                    "preferred": False,
-                    "sqlalchemy_uri_placeholder": "gsheets://",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
-                        "disable_ssh_tunneling": True,
+                    {
+                        "available_drivers": ["bigquery"],
+                        "default_driver": "bigquery",
+                        "engine": "bigquery",
+                        "name": "Google BigQuery",
+                        "parameters": {
+                            "properties": {
+                                "credentials_info": {
+                                    "description": (
+                                        "Contents of BigQuery JSON credentials."
+                                    ),
+                                    "type": "string",
+                                    "x-encrypted-extra": True,
+                                },
+                                "query": {"type": "object"},
+                            },
+                            "type": "object",
+                        },
+                        "preferred": True,
+                        "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": True,
+                            "disable_ssh_tunneling": True,
+                            "supports_oauth2": False,
+                        },
+                        "supports_oauth2": False,
+                    },
+                    {
+                        "available_drivers": ["psycopg2"],
+                        "default_driver": "psycopg2",
+                        "engine": "redshift",
+                        "name": "Amazon Redshift",
+                        "parameters": {
+                            "properties": {
+                                "database": {
+                                    "description": "Database name",
+                                    "type": "string",
+                                },
+                                "encryption": {
+                                    "description": "Use an encrypted connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "host": {
+                                    "description": "Hostname or IP address",
+                                    "type": "string",
+                                },
+                                "password": {
+                                    "description": "Password",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
+                                "port": {
+                                    "description": "Database port",
+                                    "maximum": 65536,
+                                    "minimum": 0,
+                                    "type": "integer",
+                                },
+                                "query": {
+                                    "additionalProperties": {},
+                                    "description": "Additional parameters",
+                                    "type": "object",
+                                },
+                                "ssh": {
+                                    "description": "Use an ssh tunnel connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "username": {
+                                    "description": "Username",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
+                            },
+                            "required": ["database", "host", "port", "username"],
+                            "type": "object",
+                        },
+                        "preferred": False,
+                        "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": False,
+                            "disable_ssh_tunneling": False,
+                            "supports_oauth2": False,
+                        },
+                        "supports_oauth2": False,
+                    },
+                    {
+                        "available_drivers": ["apsw"],
+                        "default_driver": "apsw",
+                        "engine": "gsheets",
+                        "name": "Google Sheets",
+                        "parameters": {
+                            "properties": {
+                                "catalog": {"type": "object"},
+                                "oauth2_client_info": {
+                                    "default": {
+                                        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                                        "scope": (
+                                            "https://www.googleapis.com/auth/"
+                                            "drive.readonly "
+                                            "https://www.googleapis.com/auth/"
+                                            "spreadsheets "
+                                            "https://spreadsheets.google.com/feeds"
+                                        ),
+                                        "token_request_uri": "https://oauth2.googleapis.com/token",
+                                    },
+                                    "description": "OAuth2 client information",
+                                    "nullable": True,
+                                    "type": "string",
+                                    "x-encrypted-extra": True,
+                                },
+                                "service_account_info": {
+                                    "description": (
+                                        "Contents of GSheets JSON credentials."
+                                    ),
+                                    "type": "string",
+                                    "x-encrypted-extra": True,
+                                },
+                            },
+                            "type": "object",
+                        },
+                        "preferred": False,
+                        "sqlalchemy_uri_placeholder": "gsheets://",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": False,
+                            "disable_ssh_tunneling": True,
+                            "supports_oauth2": True,
+                        },
                         "supports_oauth2": True,
                     },
-                    "supports_oauth2": True,
-                },
-                {
-                    "available_drivers": ["mysqlconnector", "mysqldb"],
-                    "default_driver": "mysqldb",
-                    "engine": "mysql",
-                    "name": "MySQL",
-                    "parameters": {
-                        "properties": {
-                            "database": {
-                                "description": "Database name",
-                                "type": "string",
+                    {
+                        "available_drivers": ["mysqlconnector", "mysqldb"],
+                        "default_driver": "mysqldb",
+                        "engine": "mysql",
+                        "name": "MySQL",
+                        "parameters": {
+                            "properties": {
+                                "database": {
+                                    "description": "Database name",
+                                    "type": "string",
+                                },
+                                "encryption": {
+                                    "description": "Use an encrypted connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "host": {
+                                    "description": "Hostname or IP address",
+                                    "type": "string",
+                                },
+                                "password": {
+                                    "description": "Password",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
+                                "port": {
+                                    "description": "Database port",
+                                    "maximum": 65536,
+                                    "minimum": 0,
+                                    "type": "integer",
+                                },
+                                "query": {
+                                    "additionalProperties": {},
+                                    "description": "Additional parameters",
+                                    "type": "object",
+                                },
+                                "ssh": {
+                                    "description": "Use an ssh tunnel connection to the database",  # noqa: E501
+                                    "type": "boolean",
+                                },
+                                "username": {
+                                    "description": "Username",
+                                    "nullable": True,
+                                    "type": "string",
+                                },
                             },
-                            "encryption": {
-                                "description": "Use an encrypted connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "host": {
-                                "description": "Hostname or IP address",
-                                "type": "string",
-                            },
-                            "password": {
-                                "description": "Password",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                            "port": {
-                                "description": "Database port",
-                                "maximum": 65536,
-                                "minimum": 0,
-                                "type": "integer",
-                            },
-                            "query": {
-                                "additionalProperties": {},
-                                "description": "Additional parameters",
-                                "type": "object",
-                            },
-                            "ssh": {
-                                "description": "Use an ssh tunnel connection to the database",  # noqa: E501
-                                "type": "boolean",
-                            },
-                            "username": {
-                                "description": "Username",
-                                "nullable": True,
-                                "type": "string",
-                            },
+                            "required": ["database", "host", "port", "username"],
+                            "type": "object",
                         },
-                        "required": ["database", "host", "port", "username"],
-                        "type": "object",
-                    },
-                    "preferred": False,
-                    "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
-                        "disable_ssh_tunneling": False,
+                        "preferred": False,
+                        "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": False,
+                            "disable_ssh_tunneling": False,
+                            "supports_oauth2": False,
+                        },
                         "supports_oauth2": False,
                     },
-                    "supports_oauth2": False,
-                },
-                {
-                    "available_drivers": [""],
-                    "engine": "hana",
-                    "name": "SAP HANA",
-                    "preferred": False,
-                    "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
-                    "engine_information": {
-                        "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
-                        "disable_ssh_tunneling": False,
+                    {
+                        "available_drivers": [""],
+                        "engine": "hana",
+                        "name": "SAP HANA",
+                        "preferred": False,
+                        "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
+                        "engine_information": {
+                            "supports_file_upload": True,
+                            "supports_dynamic_catalog": False,
+                            "disable_ssh_tunneling": False,
+                            "supports_oauth2": False,
+                        },
                         "supports_oauth2": False,
                     },
-                    "supports_oauth2": False,
-                },
-            ]
-        }
+                ]
+            }
+        )
 
     @with_config({"PREFERRED_DATABASES": ["MySQL"]})
     @mock.patch("superset.databases.api.get_available_engine_specs")
