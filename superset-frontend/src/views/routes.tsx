@@ -77,6 +77,13 @@ const Dashboard = lazy(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
 );
 
+const DashboardTemplates = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardTemplates" */ 'src/pages/DashboardTemplates'
+    ),
+);
+
 const DatabaseList = lazy(
   () => import(/* webpackChunkName: "DatabaseList" */ 'src/pages/DatabaseList'),
 );
@@ -202,6 +209,10 @@ export const routes: Routes = [
   {
     path: '/dashboard/list/',
     Component: DashboardList,
+  },
+  {
+    path: '/dashboard/templates',
+    Component: DashboardTemplates,
   },
   {
     path: '/superset/dashboard/:idOrSlug/',

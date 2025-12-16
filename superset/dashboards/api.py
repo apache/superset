@@ -97,6 +97,7 @@ from superset.dashboards.schemas import (
     DashboardPostSchema,
     DashboardPutSchema,
     DashboardScreenshotPostSchema,
+    DashboardTemplateSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -643,6 +644,78 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
+
+    @expose("/templates", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.templates",
+        log_to_statsd=False,
+    )
+    @permission_name("read")
+    def templates(self) -> Response:
+        """Get dashboard templates.
+        ---
+        get:
+          summary: Get dashboard templates
+          description: >-
+            Returns a list of dashboard templates available for selection.
+            Templates are dashboards marked with is_template=true in their metadata.
+          responses:
+            200:
+              description: Dashboard templates list
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DashboardTemplateSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            templates = DashboardDAO.get_templates()
+            return self.response(
+                200,
+                result=[
+                    DashboardTemplateSchema().dump(
+                        self._enrich_template_with_metadata(template)
+                    )
+                    for template in templates
+                ],
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Error fetching dashboard templates")
+            return self.response_500(message=str(ex))
+
+    def _enrich_template_with_metadata(self, dashboard: Dashboard) -> dict[str, Any]:
+        """Extract template metadata from json_metadata into top-level fields."""
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        return {
+            "id": dashboard.id,
+            "uuid": str(dashboard.uuid),
+            "dashboard_title": dashboard.dashboard_title,
+            "slug": dashboard.slug,
+            "is_template": metadata.get("is_template", False),
+            "is_featured_template": metadata.get("is_featured_template", False),
+            "template_category": metadata.get("template_category"),
+            "template_description": metadata.get("template_description"),
+            "template_thumbnail_url": metadata.get("template_thumbnail_url"),
+            "template_tags": metadata.get("template_tags", []),
+            "template_context": metadata.get("template_context"),
+        }
 
     @expose("/", methods=("POST",))
     @protect()

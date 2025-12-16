@@ -106,6 +106,48 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
+    def get_templates() -> list[Dashboard]:
+        """
+        Get all dashboard templates accessible to current user.
+
+        Templates are dashboards with is_template=true in json_metadata.
+        Returns templates ordered by: featured first, then by title.
+
+        Returns:
+            list[Dashboard]: List of template dashboards with access control applied
+        """
+        from sqlalchemy.orm import joinedload
+
+        query = db.session.query(Dashboard).options(
+            joinedload(Dashboard.tags),
+            joinedload(Dashboard.owners),
+        )
+
+        # Apply access filter (existing pattern)
+        query = DashboardDAO.base_filter(
+            "id", SQLAInterface(Dashboard, db.session)
+        ).apply(query, None)
+
+        # Filter to only templates and order
+        dashboards = query.all()
+
+        # Filter in Python (metadata filtering)
+        templates = []
+        for dashboard in dashboards:
+            metadata = json.loads(dashboard.json_metadata or "{}")
+            if metadata.get("is_template", False):
+                # Add sorting metadata as attributes for sorting
+                dashboard._is_featured_template = metadata.get(
+                    "is_featured_template", False
+                )
+                templates.append(dashboard)
+
+        # Sort: featured first, then alphabetically by title
+        templates.sort(key=lambda d: (not d._is_featured_template, d.dashboard_title))
+
+        return templates
+
+    @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
         """
         Get latest changed datetime for a dashboard.
