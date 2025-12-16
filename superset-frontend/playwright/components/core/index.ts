@@ -23,4 +23,5 @@ export { Checkbox } from './Checkbox';
 export { Form } from './Form';
 export { Input } from './Input';
 export { Modal } from './Modal';
+export { Select } from './Select';
 export { Table } from './Table';

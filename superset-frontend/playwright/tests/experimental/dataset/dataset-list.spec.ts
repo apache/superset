@@ -20,6 +20,7 @@
 import { test, expect } from '@playwright/test';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
+import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
 import { Toast } from '../../../components/core/Toast';
@@ -52,12 +53,10 @@ const TEST_DATASETS = {
 
 // File-scope state (reset in beforeEach)
 let datasetListPage: DatasetListPage;
-let explorePage: ExplorePage;
 let testResources: { datasetIds: number[] } = { datasetIds: [] };
 
 test.beforeEach(async ({ page }) => {
   datasetListPage = new DatasetListPage(page);
-  explorePage = new ExplorePage(page);
   testResources = { datasetIds: [] }; // Reset for each test
 
   // Navigate to dataset list page
@@ -87,6 +86,8 @@ test.afterEach(async ({ page }) => {
 test('should navigate to Explore when dataset name is clicked', async ({
   page,
 }) => {
+  const explorePage = new ExplorePage(page);
+
   // Use existing example dataset (hermetic - loaded in CI via --load-examples)
   const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
   const dataset = await getDatasetByName(page, datasetName);
@@ -312,4 +313,48 @@ test('should bulk export multiple datasets', async ({ page }) => {
   // Verify download completed successfully (no failure)
   const failure = await download.failure();
   expect(failure).toBeNull();
+});
+
+test('should navigate the create dataset wizard', async ({ page }) => {
+  const createDatasetPage = new CreateDatasetPage(page);
+
+  // Click the "+ Dataset" button to navigate to create page
+  await page.getByRole('button', { name: 'Dataset' }).click();
+
+  // Wait for create dataset page to load
+  await createDatasetPage.waitForPageLoad();
+
+  // Verify we're on the create dataset page
+  await expect(page).toHaveURL(/dataset\/add/);
+
+  // Verify database select is visible and functional
+  const databaseSelect = createDatasetPage.getDatabaseSelect();
+  await expect(databaseSelect.element).toBeVisible();
+
+  // Select the examples database
+  await createDatasetPage.selectDatabase('examples');
+
+  // Verify schema select appears after database selection
+  const schemaSelect = createDatasetPage.getSchemaSelect();
+  await expect(schemaSelect.element).toBeVisible();
+
+  // Select the main schema
+  await createDatasetPage.selectSchema('main');
+
+  // Verify table select appears after schema selection
+  const tableSelect = createDatasetPage.getTableSelect();
+  await expect(tableSelect.element).toBeVisible();
+
+  // Open table dropdown and verify options are available
+  await tableSelect.open();
+  const tableOptions = page.locator('.ant-select-item-option');
+  await expect(tableOptions.first()).toBeVisible();
+
+  // Close dropdown
+  await tableSelect.close();
+
+  // Verify the create and explore button is visible
+  await expect(
+    createDatasetPage.getCreateAndExploreButton().element,
+  ).toBeVisible();
 });
