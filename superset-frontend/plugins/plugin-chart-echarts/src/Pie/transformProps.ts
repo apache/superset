@@ -135,8 +135,13 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { columnFormats = {}, currencyFormats = {} } = datasource;
-  const { data: rawData = [] } = queriesData[0];
+  const {
+    columnFormats = {},
+    currencyFormats = {},
+    currencyCodeColumn,
+  } = datasource;
+  const { data: rawData = [], detected_currency: detectedCurrency } =
+    queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -181,6 +186,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    rawData,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   let data = rawData;

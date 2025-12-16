@@ -30,7 +30,11 @@ interface CurrencyFormatterConfig {
 }
 
 interface CurrencyFormatter {
-  (value: number | null | undefined): string;
+  (
+    value: number | null | undefined,
+    rowData?: Record<string, any>,
+    currencyColumn?: string,
+  ): string;
 }
 
 export const getCurrencySymbol = (currency: Partial<Currency>) =>
@@ -41,6 +45,38 @@ export const getCurrencySymbol = (currency: Partial<Currency>) =>
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
 
+/** Normalize currency to ISO 4217 format (e.g., "USD"). Returns null if invalid. */
+export function normalizeCurrency(
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null;
+
+  const str = value.toString().trim();
+  if (!str) return null;
+
+  const upper = str.toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(upper)) return upper;
+
+  return null;
+}
+
+/** Check if array contains multiple distinct currencies (after normalization). */
+export function hasMixedCurrencies(
+  currencies: (string | null | undefined)[],
+): boolean {
+  // Filter out null/undefined and normalize
+  const normalized = currencies
+    .map(c => normalizeCurrency(c))
+    .filter((c): c is string => c !== null);
+
+  if (normalized.length === 0) return false;
+
+  // Check if all normalized currencies are the same
+  const first = normalized[0];
+  return !normalized.every(c => c === first);
+}
+
 class CurrencyFormatter extends ExtensibleFunction {
   d3Format: string;
 
@@ -49,7 +85,10 @@ class CurrencyFormatter extends ExtensibleFunction {
   currency: Currency;
 
   constructor(config: CurrencyFormatterConfig) {
-    super((value: number) => this.format(value));
+    super(
+      (value: number, rowData?: Record<string, any>, currencyColumn?: string) =>
+        this.format(value, rowData, currencyColumn),
+    );
     this.d3Format = config.d3Format || NumberFormats.SMART_NUMBER;
     this.currency = config.currency;
     this.locale = config.locale || 'en-US';
@@ -63,18 +102,51 @@ class CurrencyFormatter extends ExtensibleFunction {
     return this.d3Format.replace(/\$|%/g, '');
   }
 
-  format(value: number) {
+  format(
+    value: number,
+    rowData?: Record<string, any>,
+    currencyColumn?: string,
+  ): string {
     const formattedValue = getNumberFormatter(this.getNormalizedD3Format())(
       value,
     );
-    if (!this.hasValidCurrency()) {
+
+    const isAutoMode = this.currency?.symbol === 'AUTO';
+
+    if (!this.hasValidCurrency() && !isAutoMode) {
       return formattedValue as string;
     }
 
-    if (this.currency.symbolPosition === 'prefix') {
-      return `${getCurrencySymbol(this.currency)} ${formattedValue}`;
+    if (isAutoMode) {
+      if (rowData && currencyColumn && rowData[currencyColumn]) {
+        const rawCurrency = rowData[currencyColumn];
+        const normalizedCurrency = normalizeCurrency(rawCurrency);
+
+        if (normalizedCurrency) {
+          try {
+            const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
+            if (symbol) {
+              return this.currency.symbolPosition === 'prefix'
+                ? `${symbol} ${formattedValue}`
+                : `${formattedValue} ${symbol}`;
+            }
+          } catch {
+            // Invalid currency code - fall through to neutral format
+          }
+        }
+      }
+      return formattedValue as string;
     }
-    return `${formattedValue} ${getCurrencySymbol(this.currency)}`;
+
+    try {
+      const symbol = getCurrencySymbol(this.currency);
+      return this.currency.symbolPosition === 'prefix'
+        ? `${symbol} ${formattedValue}`
+        : `${formattedValue} ${symbol}`;
+    } catch {
+      // Invalid currency code - return value without currency symbol
+      return formattedValue as string;
+    }
   }
 }
 
