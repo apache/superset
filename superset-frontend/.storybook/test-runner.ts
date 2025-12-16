@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AlteredSliceTag } from '.';
-import { defaultProps, expectedDiffs } from './AlteredSliceTagMocks';
+import type { TestRunnerConfig } from '@storybook/test-runner';
 
-export default {
-  title: 'Components/AlteredSliceTag',
+/**
+ * Test runner configuration for Storybook smoke tests.
+ *
+ * The test-runner visits each story and verifies it renders without errors.
+ * These are basic smoke tests - they don't test interactions or assertions,
+ * just that stories can render successfully.
+ */
+const config: TestRunnerConfig = {
+  async preVisit(page) {
+    // Listen for page errors (JavaScript exceptions) and log them
+    // This helps identify stories that crash during rendering
+    page.on('pageerror', error => {
+      console.error(`[page error] ${error.message}`);
+    });
+  },
 };
 
-export const InteractiveSliceTag = (args: any) => <AlteredSliceTag {...args} />;
-
-InteractiveSliceTag.args = {
-  origFormData: defaultProps.origFormData,
-  diffs: expectedDiffs,
-};
+export default config;

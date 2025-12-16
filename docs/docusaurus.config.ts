@@ -164,7 +164,11 @@ const config: Config = {
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
   projectName: 'superset',
-  themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
+  themes: [
+    '@saucelabs/theme-github-codeblock',
+    '@docusaurus/theme-mermaid',
+    '@docusaurus/theme-live-codeblock',
+  ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
     [
@@ -473,6 +477,9 @@ const config: Config = {
       sidebar: {
         hideable: true,
       },
+    },
+    liveCodeBlock: {
+      playgroundPosition: 'bottom',
     },
   } satisfies ThemeConfig,
   scripts: [
