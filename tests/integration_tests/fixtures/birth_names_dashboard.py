@@ -247,7 +247,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
 
 
 @pytest.fixture(scope="session")
-def load_birth_names_data(
+def load_birth_names_data(  # noqa: PT004
     birth_names_table_factory: Callable[[], Table], data_loader: DataLoader
 ):
     """
@@ -260,7 +260,7 @@ def load_birth_names_data(
 
 
 @pytest.fixture()
-def load_birth_names_dashboard_with_slices(load_birth_names_data):
+def load_birth_names_dashboard_with_slices(load_birth_names_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
         yield
@@ -268,7 +268,7 @@ def load_birth_names_dashboard_with_slices(load_birth_names_data):
 
 
 @pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
+def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
         yield
@@ -276,7 +276,7 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
 
 
 @pytest.fixture(scope="class")
-def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):
+def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
         yield

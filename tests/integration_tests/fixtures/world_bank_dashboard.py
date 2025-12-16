@@ -167,7 +167,7 @@ dashboard_positions: dict[str, Any] = {
 
 
 @pytest.fixture(scope="session")
-def load_world_bank_data():
+def load_world_bank_data():  # noqa: PT004
     """
     Session-scoped fixture to ensure world_bank data is loaded.
     Uses the new DuckDB-based example loading system.
@@ -178,7 +178,7 @@ def load_world_bank_data():
 
 
 @pytest.fixture()
-def load_world_bank_dashboard_with_slices(load_world_bank_data):
+def load_world_bank_dashboard_with_slices(load_world_bank_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
         yield
@@ -186,7 +186,7 @@ def load_world_bank_dashboard_with_slices(load_world_bank_data):
 
 
 @pytest.fixture(scope="module")
-def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
+def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
         yield
@@ -195,7 +195,7 @@ def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
 
 
 @pytest.fixture(scope="class")
-def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
+def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):  # noqa: PT004
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
         yield
