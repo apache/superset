@@ -21,6 +21,7 @@ import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
+import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,7 +45,7 @@ if (!versionsConfig.components.disabled) {
       sidebarPath: require.resolve('./sidebarComponents.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
       lastVersion: versionsConfig.components.lastVersion,
@@ -68,7 +69,7 @@ if (!versionsConfig.developer_portal.disabled) {
       sidebarPath: require.resolve('./sidebarTutorials.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
       lastVersion: versionsConfig.developer_portal.lastVersion,
@@ -341,6 +342,7 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
           includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
           lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
           onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
