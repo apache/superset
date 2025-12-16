@@ -17,15 +17,21 @@
  * under the License.
  */
 
-/// <reference lib="webworker" />
+// Service Worker types (declared locally to avoid polluting global scope)
+declare const self: {
+  skipWaiting(): Promise<void>;
+  clients: { claim(): Promise<void> };
+  addEventListener(
+    type: 'install' | 'activate',
+    listener: (event: { waitUntil(promise: Promise<unknown>): void }) => void,
+  ): void;
+};
 
-declare const self: ServiceWorkerGlobalScope;
-
-self.addEventListener('install', (event: ExtendableEvent) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event: ExtendableEvent) => {
+self.addEventListener('activate', event => {
   event.waitUntil(self.clients.claim());
 });
 
