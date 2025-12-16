@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AlteredSliceTag } from '.';
-import { defaultProps, expectedDiffs } from './AlteredSliceTagMocks';
 
-export default {
-  title: 'Components/AlteredSliceTag',
-};
+/**
+ * Jest configuration for @storybook/test-runner
+ *
+ * This extends the default test-runner config with custom timeouts
+ * to handle slow story rendering in CI environments.
+ */
+const { getJestConfig } = require('@storybook/test-runner');
+const testRunnerConfig = getJestConfig();
 
-export const InteractiveSliceTag = (args: any) => <AlteredSliceTag {...args} />;
-
-InteractiveSliceTag.args = {
-  origFormData: defaultProps.origFormData,
-  diffs: expectedDiffs,
+module.exports = {
+  ...testRunnerConfig,
+  // Increase timeout from default 15s to 60s for CI environments
+  testTimeout: 60000,
 };
