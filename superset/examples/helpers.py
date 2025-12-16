@@ -99,7 +99,8 @@ def normalize_example_data_url(url: str) -> str:
         url: URL to normalize (e.g., "examples://birth_names" or "birth_names.duckdb")
 
     Returns:
-        Normalized file:// URL pointing to the DuckDB file
+        Normalized file:// URL pointing to the DuckDB file, or the original URL
+        if it's a remote URL (http://, https://, etc.)
     """
     import os
 
@@ -107,10 +108,11 @@ def normalize_example_data_url(url: str) -> str:
     if url.startswith(EXAMPLES_PROTOCOL):
         # Remove the protocol for processing
         path = url[len(EXAMPLES_PROTOCOL) :]
-    elif url.startswith("file://"):
-        # Already a file URL, just return it
+    elif url.startswith(("file://", "http://", "https://", "s3://", "gs://")):
+        # Already a valid URL protocol, return as-is
         return url
     else:
+        # Assume it's a local example filename
         path = url
 
     # Ensure .duckdb extension
