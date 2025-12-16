@@ -666,6 +666,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       delete data.recipients;
     }
 
+    // Remove email_from from top level - it should only be in extra
+    delete data.email_from;
+
     data.context_markdown = 'string';
 
     if (isEditMode) {
