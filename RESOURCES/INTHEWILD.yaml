@@ -20,12 +20,10 @@ categories:
 
     - name: Faasos
       url: https://faasos.com/
-      logo: faasos.svg
       contributors: ["@shashanksingh"]
 
     - name: Free2Move
       url: https://www.free2move.com/
-      logo: free2move.svg
       contributors: ["@PaoloTerzi"]
 
     - name: Hostnfly
@@ -41,21 +39,17 @@ categories:
 
     - name: Ontruck
       url: https://www.ontruck.com/
-      logo: ontruck.png
 
   Financial Services:
     - name: Aktia Bank plc
       url: https://www.aktia.com
-      logo: aktia.svg
 
     - name: American Express
       url: https://www.americanexpress.com
-      logo: americanExpress.svg
       contributors: ["@TheLastSultan"]
 
     - name: bumper
       url: https://www.bumper.co/
-      logo: bumper.svg
       contributors: ["@vasu-ram", "@JamiePercival"]
 
     - name: Cape Crypto
@@ -92,7 +86,6 @@ categories:
 
     - name: Xendit
       url: https://xendit.co/
-      logo: xendit.svg
       contributors: ["@LieAlbertTriAdrian"]
 
     - name: Cover Genius
@@ -335,6 +328,7 @@ categories:
 
     - name: Preset, Inc.
       url: https://preset.io
+      logo: preset.svg
 
     - name: PubNub
       url: https://pubnub.com
