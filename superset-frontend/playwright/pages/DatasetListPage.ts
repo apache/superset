@@ -31,6 +31,7 @@ export class DatasetListPage {
   private static readonly SELECTORS = {
     DATASET_LINK: '[data-test="internal-link"]',
     DELETE_ACTION: '.action-button svg[data-icon="delete"]',
+    EDIT_ACTION: '.action-button svg[data-icon="edit"]',
     EXPORT_ACTION: '.action-button svg[data-icon="upload"]',
     DUPLICATE_ACTION: '.action-button svg[data-icon="copy"]',
     BULK_SELECT_CONTROLS: '[data-test="bulk-select-controls"]',
@@ -90,6 +91,17 @@ export class DatasetListPage {
     await this.table.clickRowAction(
       datasetName,
       DatasetListPage.SELECTORS.DELETE_ACTION,
+    );
+  }
+
+  /**
+   * Clicks the edit action button for a dataset
+   * @param datasetName - The name of the dataset to edit
+   */
+  async clickEditAction(datasetName: string): Promise<void> {
+    await this.table.clickRowAction(
+      datasetName,
+      DatasetListPage.SELECTORS.EDIT_ACTION,
     );
   }
 

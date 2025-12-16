@@ -21,8 +21,10 @@ import { test, expect } from '@playwright/test';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
 import { CreateDatasetPage } from '../../../pages/CreateDatasetPage';
+import { ConfirmDialog } from '../../../components/modals/ConfirmDialog';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
 import { DuplicateDatasetModal } from '../../../components/modals/DuplicateDatasetModal';
+import { EditDatasetModal } from '../../../components/modals/EditDatasetModal';
 import { Toast } from '../../../components/core/Toast';
 import {
   apiDeleteDataset,
@@ -357,4 +359,55 @@ test('should navigate the create dataset wizard', async ({ page }) => {
   await expect(
     createDatasetPage.getCreateAndExploreButton().element,
   ).toBeVisible();
+});
+
+test('should edit a dataset description', async ({ page }) => {
+  const editModal = new EditDatasetModal(page);
+  const confirmDialog = new ConfirmDialog(page);
+  const toast = new Toast(page);
+
+  // Use existing example dataset
+  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+
+  // Verify dataset is visible in list
+  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
+
+  // Click edit action button
+  await datasetListPage.clickEditAction(datasetName);
+
+  // Edit modal should appear
+  await editModal.waitForVisible();
+
+  // Generate unique description to verify edit works
+  const newDescription = `Test description updated at ${Date.now()}`;
+
+  // Fill in new description
+  await editModal.fillDescription(newDescription);
+
+  // Click Save button
+  await editModal.clickSave();
+
+  // Confirm the save in the confirmation dialog
+  await confirmDialog.waitForVisible();
+  await confirmDialog.clickOk();
+
+  // Modal should close
+  await editModal.waitForHidden();
+
+  // Verify success toast appears
+  const successToast = toast.getSuccess();
+  await expect(successToast).toBeVisible();
+
+  // Verify the description was saved by re-opening the edit modal
+  await datasetListPage.clickEditAction(datasetName);
+  await editModal.waitForVisible();
+
+  // Verify description textarea contains our new description
+  await expect(editModal.getDescriptionTextarea().element).toHaveValue(
+    newDescription,
+  );
+
+  // Close modal without saving
+  await editModal.clickCancel();
+  await editModal.waitForHidden();
 });

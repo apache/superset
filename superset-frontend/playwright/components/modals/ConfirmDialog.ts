@@ -17,13 +17,30 @@
  * under the License.
  */
 
-// Core Playwright Components for Superset
-export { Button } from './Button';
-export { Checkbox } from './Checkbox';
-export { Form } from './Form';
-export { Input } from './Input';
-export { Modal } from './Modal';
-export { Select } from './Select';
-export { Table } from './Table';
-export { Tabs } from './Tabs';
-export { Textarea } from './Textarea';
+import { Page } from '@playwright/test';
+import { Modal } from '../core/Modal';
+
+/**
+ * Confirm Dialog component for Ant Design Modal.confirm dialogs.
+ * These are the "OK" / "Cancel" confirmation dialogs used throughout Superset.
+ */
+export class ConfirmDialog extends Modal {
+  constructor(page: Page) {
+    // Modal.confirm uses the same [role="dialog"] selector
+    super(page);
+  }
+
+  /**
+   * Clicks the OK button to confirm
+   */
+  async clickOk(): Promise<void> {
+    await this.clickFooterButton('OK');
+  }
+
+  /**
+   * Clicks the Cancel button to dismiss
+   */
+  async clickCancel(): Promise<void> {
+    await this.clickFooterButton('Cancel');
+  }
+}
