@@ -366,14 +366,32 @@ _Ongoing notes as we implement..._
 ### Session 1 - Markdown Integration
 - Integrated `ComponentHeaderControls` into Markdown component
 - Replaced old UI elements:
-  - Removed `HoverMenu` with `DeleteComponentButton`
+  - Removed `DeleteComponentButton` from HoverMenu (now in ComponentHeaderControls)
   - Removed `MarkdownModeDropdown` from `WithPopoverMenu.menuItems`
 - New menu includes: Edit/Preview toggle, Apply Theme, Delete
-- Added `MarkdownControlsWrapper` for top-right positioning
-- Menu shows on hover in edit mode
+- Uses existing `HoverMenu position="top"` for proper CSS integration
+- Menu shows on hover in edit mode (leverages existing DashboardWrapper CSS)
 
 **Files modified:**
 - `src/dashboard/components/gridComponents/Markdown/Markdown.jsx`
 
-**Status:** Ready for visual testing in browser
+**Status:** Completed - all tests pass
+
+### Session 2 - CSS Fix and Test Updates
+- Fixed CSS visibility issue: replaced custom `MarkdownControlsWrapper` with `HoverMenu` component
+- The custom wrapper's CSS selectors weren't being triggered by the existing DashboardWrapper CSS rules
+- Using `HoverMenu position="top"` integrates with existing CSS that shows hover menus:
+  ```css
+  div:hover > .hover-menu-container .hover-menu { opacity: 1; }
+  ```
+- Updated tests to work with new menu pattern:
+  - Tests now click "More Options" button to open dropdown
+  - Tests look for "Preview" option (not "Edit") when in edit mode
+  - All 16 Markdown tests passing
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/Markdown/Markdown.jsx`
+- `src/dashboard/components/gridComponents/Markdown/Markdown.test.tsx`
+
+**Status:** Phase 2.2 complete, ready for Phase 2.3 (Row/Column)
 

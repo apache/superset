@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, Key, MouseEvent, KeyboardEvent } from 'react';
+import { useState, useCallback, useMemo, Key, MouseEvent, KeyboardEvent } from 'react';
 import { t } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -130,26 +130,34 @@ const ComponentHeaderControls = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const theme = useTheme();
 
+  // Memoize the menu click handler
+  const handleMenuClick = useCallback(
+    ({
+      key,
+      domEvent,
+    }: {
+      key: Key;
+      domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
+    }) => {
+      onMenuClick(String(key), domEvent);
+      setIsDropdownVisible(false);
+    },
+    [onMenuClick],
+  );
+
+  // Memoize the overlay style
+  const dropdownOverlayStyle = useMemo(
+    () => ({
+      zIndex,
+      animationDuration: '0s',
+    }),
+    [zIndex],
+  );
+
   // Don't render if not in edit mode and showInViewMode is false
   if (!editMode && !showInViewMode) {
     return null;
   }
-
-  const handleMenuClick = ({
-    key,
-    domEvent,
-  }: {
-    key: Key;
-    domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
-  }) => {
-    onMenuClick(String(key), domEvent);
-    setIsDropdownVisible(false);
-  };
-
-  const dropdownOverlayStyle = {
-    zIndex,
-    animationDuration: '0s',
-  };
 
   return (
     <NoAnimationDropdown

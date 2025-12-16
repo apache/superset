@@ -28,6 +28,7 @@ import { EditorHost } from 'src/core/editors';
 import ComponentHeaderControls, {
   ComponentMenuKeys,
 } from 'src/dashboard/components/menu/ComponentHeaderControls';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
@@ -85,22 +86,6 @@ const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
 Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
-
-const MarkdownControlsWrapper = styled.div`
-  ${({ theme }) => css`
-    position: absolute;
-    top: ${theme.sizeUnit}px;
-    right: ${theme.sizeUnit}px;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.2s;
-
-    .dashboard-markdown:hover &,
-    .dashboard-markdown:focus-within & {
-      opacity: 1;
-    }
-  `}
-`;
 
 const MarkdownStyles = styled.div`
   ${({ theme }) => css`
@@ -320,37 +305,26 @@ class Markdown extends PureComponent {
     const { editorMode } = this.state;
     const isEditing = editorMode === 'edit';
 
-    const items = [
-      // Edit/Preview toggle
+    // Use stable menu item structure - avoid creating new icon instances
+    return [
       {
         key: isEditing
           ? ComponentMenuKeys.PreviewContent
           : ComponentMenuKeys.EditContent,
         label: isEditing ? t('Preview') : t('Edit'),
-        icon: isEditing ? (
-          <Icons.EyeOutlined />
-        ) : (
-          <Icons.EditOutlined />
-        ),
       },
       { type: 'divider' },
-      // Theme selection
       {
         key: ComponentMenuKeys.ApplyTheme,
         label: t('Apply theme'),
-        icon: <Icons.BgColorsOutlined />,
       },
       { type: 'divider' },
-      // Delete
       {
         key: ComponentMenuKeys.Delete,
         label: t('Delete'),
-        icon: <Icons.DeleteOutlined />,
         danger: true,
       },
     ];
-
-    return items;
   }
 
   shouldFocusMarkdown(event, container, menuRef) {
@@ -476,14 +450,14 @@ class Markdown extends PureComponent {
                   data-test="dashboard-component-chart-holder"
                 >
                   {editMode && (
-                    <MarkdownControlsWrapper>
+                    <HoverMenu position="top">
                       <ComponentHeaderControls
                         componentId={component.id}
                         menuItems={this.getMenuItems()}
                         onMenuClick={this.handleMenuClick}
                         editMode={editMode}
                       />
-                    </MarkdownControlsWrapper>
+                    </HoverMenu>
                   )}
                   {editMode && isEditing
                     ? this.renderEditMode()
