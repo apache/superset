@@ -445,7 +445,13 @@ def load_supported_charts_dashboard() -> None:
             .filter_by(table_name=tbl_name, schema=schema)
             .first()
         )
-        create_slices(obj)
+        if obj:
+            create_slices(obj)
+        else:
+            logger.warning(
+                "Table %s exists but SqlaTable metadata not found, skipping slices",
+                tbl_name,
+            )
 
     logger.debug("Creating the dashboard")
 
