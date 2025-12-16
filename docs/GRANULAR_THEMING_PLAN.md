@@ -395,3 +395,28 @@ _Ongoing notes as we implement..._
 
 **Status:** Phase 2.2 complete, ready for Phase 2.3 (Row/Column)
 
+### Session 2 - ThemeSelectorModal Implementation
+- Created `ThemeSelectorModal` component at:
+  `src/dashboard/components/menu/ThemeSelectorModal/index.tsx`
+  - Fetches themes from `/api/v1/theme/` API
+  - Shows dropdown with theme names and badges (Default, Dark)
+  - Apply/Cancel buttons
+  - Stores selected theme ID in component metadata
+
+- Wired up ThemeSelectorModal to Markdown component:
+  - Added `isThemeSelectorOpen` state
+  - Added `handleOpenThemeSelector`, `handleCloseThemeSelector`, `handleApplyTheme` methods
+  - `handleApplyTheme` stores `theme_id` in component.meta via `updateComponents`
+  - Modal opens when clicking "Apply theme" menu item
+
+**Files created:**
+- `src/dashboard/components/menu/ThemeSelectorModal/index.tsx`
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/Markdown/Markdown.jsx`
+
+**Status:** ThemeSelectorModal complete, all tests pass
+
+**Note:** Theme selection is stored in component metadata (client-side).
+Backend persistence (Phase 3) will save this to dashboard `json_metadata.component_themes`.
+
