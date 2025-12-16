@@ -19,17 +19,17 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
+import secrets
 import typing
-from importlib.resources import files
 from typing import Any, Callable, cast
 
 from flask import (
     Flask,
     request,
     Response,
-    send_file,
 )
 from flask_wtf.csrf import CSRFError
+from jinja2 import Environment, PackageLoader
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
@@ -53,6 +53,127 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 JSON_MIMETYPE = "application/json; charset=utf-8"
+
+# Set up Jinja2 environment for Cloudflare error template
+_cf_env = Environment(
+    loader=PackageLoader("superset", "templates"),
+    autoescape=True,
+)
+_cf_template = _cf_env.get_template("cloudflare_error.html")
+
+# Error code to title mapping for Cloudflare-style error pages
+CLOUDFLARE_ERROR_TITLES: dict[int, str] = {
+    400: "Bad Request",
+    401: "Access Denied",
+    403: "Access Denied",
+    404: "Web page is not found",
+    405: "Method Not Allowed",
+    408: "Request Timeout",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    502: "Bad Gateway",
+    503: "Service Temporarily Unavailable",
+    504: "Gateway Timeout",
+}
+
+# What happened descriptions for each error code
+CLOUDFLARE_WHAT_HAPPENED: dict[int, str] = {
+    400: """The server could not understand your request due to invalid syntax.
+            Please check your request and try again.""",
+    401: """This page requires authentication. You need to log in to access
+            this resource.""",
+    403: """You don't have permission to access this resource. The owner of
+            this website has banned your access based on your credentials.""",
+    404: """The page you requested could not be found. It may have been moved,
+            deleted, or never existed in the first place.""",
+    405: """The request method is not supported for the requested resource.""",
+    408: """The server timed out waiting for your request. Please try again.""",
+    429: """You've made too many requests in a short period of time.
+            Please slow down and try again later.""",
+    500: """There is an unknown connection issue between Superset and the
+            origin web server. As a result, the web page can not be displayed.""",
+    502: """Superset was unable to get a valid response from the upstream server.""",
+    503: """The server is temporarily unable to handle your request due to
+            maintenance or capacity problems. Please try again later.""",
+    504: """Superset was unable to get a response from the upstream server
+            in time.""",
+}
+
+
+def render_cloudflare_error_page(
+    error_code: int,
+    error_message: str | None = None,
+) -> str:
+    """
+    Render a Cloudflare-style error page for the given error code.
+
+    Args:
+        error_code: HTTP status code
+        error_message: Optional custom error message to display
+
+    Returns:
+        Rendered HTML string for the error page
+    """
+    from datetime import datetime, timezone
+
+    # Generate ray ID and get client IP
+    ray_id = request.headers.get("Cf-Ray", secrets.token_hex(8))[:16]
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "Unknown")
+    utc_now = datetime.now(timezone.utc)
+    time_str = utc_now.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    title = CLOUDFLARE_ERROR_TITLES.get(error_code, "Error")
+    what_happened = error_message or CLOUDFLARE_WHAT_HAPPENED.get(
+        error_code,
+        "An unexpected error occurred while processing your request.",
+    )
+
+    # Determine status indicators based on error type
+    host = request.host or "superset.io"
+    if error_code >= 500:
+        # Server errors: browser and Cloudflare OK, host has issue
+        browser_status = {"status": "ok"}
+        cloudflare_status = {"status": "ok", "location": "San Francisco"}
+        host_status = {"status": "error", "location": host}
+    elif error_code in (401, 403):
+        # Auth errors: browser has issue (needs auth)
+        browser_status = {"status": "error"}
+        cloudflare_status = {"status": "ok", "location": "San Francisco"}
+        host_status = {"status": "ok", "location": host}
+    else:
+        # Client errors (404, etc): browser has issue
+        browser_status = {"status": "error"}
+        cloudflare_status = {"status": "ok", "location": "San Francisco"}
+        host_status = {"status": "ok", "location": host}
+
+    params = {
+        "html_title": f"superset.io | {error_code}: {title}",
+        "title": title,
+        "error_code": error_code,
+        "time": time_str,
+        "ray_id": ray_id,
+        "client_ip": client_ip,
+        "browser_status": browser_status,
+        "cloudflare_status": cloudflare_status,
+        "host_status": host_status,
+        "what_happened": f"<p>{what_happened}</p>",
+        "what_can_i_do": """
+            <h5>If you are a visitor of this website:</h5>
+            <p>Please try again in a few minutes. If you continue to see this
+            error, you can contact the site administrator.</p>
+            <h5>If you are the owner of this website:</h5>
+            <p>Check your Superset logs for more information about this error.
+            You may need to restart the service or check your database
+            connections.</p>
+        """,
+        "perf_sec_by": {
+            "text": "Performance & security by",
+            "link_text": "Apache Superset",
+            "link_url": "https://superset.apache.org",
+        },
+    }
+
+    return _cf_template.render(params=params)
 
 
 def get_error_level_from_status(
@@ -157,18 +278,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
         logger.warning("HTTPException", exc_info=True)
+        error_code = ex.code or 500
 
-        if (
-            "text/html" in request.accept_mimetypes
-            and not app.config["DEBUG"]
-            and ex.code in {404, 500}
-        ):
-            path = files("superset") / f"static/assets/{ex.code}.html"
-            # Try to serve HTML file; fall back to JSON if not built
-            try:
-                return send_file(path, max_age=0), ex.code
-            except FileNotFoundError:
-                pass
+        if "text/html" in request.accept_mimetypes:
+            return Response(
+                render_cloudflare_error_page(
+                    error_code, utils.error_msg_from_exception(ex)
+                ),
+                status=error_code,
+                mimetype="text/html",
+            )
 
         return json_error_response(
             [
@@ -178,7 +297,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
                     level=ErrorLevel.ERROR,
                 ),
             ],
-            status=ex.code or 500,
+            status=error_code,
         )
 
     @app.errorhandler(CommandException)
@@ -190,13 +309,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         """
         logger.warning("CommandException", exc_info=True)
 
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
-            path = files("superset") / "static/assets/500.html"
-            # Try to serve HTML file; fall back to JSON if not built
-            try:
-                return send_file(path, max_age=0), 500
-            except FileNotFoundError:
-                pass
+        if "text/html" in request.accept_mimetypes:
+            return Response(
+                render_cloudflare_error_page(ex.status, ex.message),
+                status=ex.status,
+                mimetype="text/html",
+            )
 
         extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
         return json_error_response(
@@ -218,9 +336,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
 
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
-            path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+        if "text/html" in request.accept_mimetypes:
+            return Response(
+                render_cloudflare_error_page(500, utils.error_msg_from_exception(ex)),
+                status=500,
+                mimetype="text/html",
+            )
 
         return json_error_response(
             [

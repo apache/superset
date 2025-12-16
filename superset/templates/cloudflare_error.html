@@ -1,0 +1,184 @@
+{# Custom Cloudflare error page template with inlined CSS #}
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js ie8 oldie" lang="en-US"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en-US"> <!--<![endif]-->
+<head>
+{% set error_code = params.error_code or 500 %}
+{% set title = params.title or 'Internal server error' %}
+{% set html_title = params.html_title or ((error_code | string) + ': ' + title) %}
+<title>{{ html_title }}</title>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;font-size:15px;line-height:1.6;color:#404040;background:#fff}
+a{color:#2f7bbf;text-decoration:none}
+a:hover{color:#f48120;text-decoration:underline}
+h1,h2,h3,h4,h5{margin:0;font-weight:400}
+p{margin:0 0 1em}
+.cf-wrapper{max-width:960px;margin:0 auto}
+.cf-header{padding:40px 15px 25px}
+.cf-header h1{font-size:56px;font-weight:200;line-height:1.2;color:#222}
+.cf-header h1 span{display:inline-block}
+.cf-code-label{font-size:14px;font-weight:600;background:#f0f0f0;color:#666;padding:3px 10px;border-radius:3px;margin-left:15px;vertical-align:middle}
+.cf-header-meta{margin-top:12px;font-size:14px;color:#666}
+.cf-status-section{background:linear-gradient(90deg,#f7f7f7 0%,#fff 50%,#f7f7f7 100%);padding:30px 0}
+.cf-status-row{display:flex;align-items:center;justify-content:center;max-width:720px;margin:0 auto;padding:0 15px}
+.cf-status-item{flex:1;text-align:center;padding:20px 10px}
+.cf-status-icon{position:relative;width:90px;height:90px;margin:0 auto 12px}
+.cf-status-badge{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.cf-status-badge.ok{background:#9bca3e}
+.cf-status-badge.error{background:#cf3a32}
+.cf-status-badge svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px}
+.cf-status-label{font-size:13px;color:#888;margin-bottom:2px}
+.cf-status-name{font-size:22px;color:#666;font-weight:300}
+.cf-status-text{font-size:18px;font-weight:500;margin-top:2px}
+.cf-status-text.ok{color:#9bca3e}
+.cf-status-text.error{color:#cf3a32}
+.cf-arrow{flex:0 0 60px;height:2px;background:#ccc;position:relative;margin:0 -5px;margin-top:-30px}
+.cf-arrow:after{content:'';position:absolute;right:-1px;top:-5px;width:0;height:0;border:6px solid transparent;border-left-color:#ccc}
+.cf-arrow.error{background:#cf3a32}
+.cf-arrow.error:after{border-left-color:#cf3a32}
+.cf-content{padding:35px 15px;max-width:960px;margin:0 auto}
+.cf-content-row{display:flex;flex-wrap:wrap;gap:40px}
+.cf-content-col{flex:1;min-width:280px}
+.cf-content-col h2{font-size:26px;margin-bottom:12px;color:#333}
+.cf-content-col h5{font-size:15px;font-weight:600;margin:16px 0 6px;color:#333}
+.cf-content-col p{color:#555;line-height:1.7}
+.cf-footer{padding:18px 15px;border-top:1px solid #eee;font-size:13px;color:#777;text-align:center}
+.cf-footer-item{margin:0 8px}
+.cf-footer button{background:none;border:none;color:#2f7bbf;cursor:pointer;font-size:13px;padding:0}
+.cf-footer button:hover{text-decoration:underline}
+.cf-icon-browser{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 90'%3E%3Crect x='8' y='15' width='74' height='55' rx='4' fill='%23f1f1f1' stroke='%23ddd' stroke-width='2'/%3E%3Crect x='8' y='15' width='74' height='14' rx='4' fill='%23ddd'/%3E%3Ccircle cx='20' cy='22' r='4' fill='%23ff6058'/%3E%3Ccircle cx='32' cy='22' r='4' fill='%23ffc130'/%3E%3Ccircle cx='44' cy='22' r='4' fill='%2327ca40'/%3E%3Crect x='18' y='38' width='54' height='6' rx='2' fill='%23ddd'/%3E%3Crect x='18' y='50' width='40' height='6' rx='2' fill='%23e8e8e8'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;background-position:center;width:90px;height:90px}
+.cf-icon-cloud{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 70'%3E%3Cpath d='M72.5 55H20c-8.3 0-15-6.7-15-15 0-7.4 5.4-13.6 12.4-14.8C18.8 15.2 27.6 8 38 8c9.5 0 17.6 5.9 20.9 14.2 1.4-.3 2.9-.5 4.4-.5 9.7 0 17.6 7.6 18.2 17.1C87.2 40.5 92 46.5 92 53.5c0 8.6-6.9 15.5-15.5 15.5h-4z' fill='%23f6821f'/%3E%3Cpath d='M60.8 55H25.5C18.6 55 13 49.4 13 42.5c0-6.2 4.5-11.3 10.4-12.3C24.5 22.4 31.4 17 39.5 17c7.4 0 13.7 4.6 16.3 11.1 1.1-.2 2.2-.4 3.4-.4 7.5 0 13.7 5.9 14.2 13.3C78 42.3 82 47.2 82 53c0 6.6-5.4 12-12 12h-9.2z' fill='%23faad3f'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;background-position:center;width:90px;height:70px;margin-top:10px}
+.cf-icon-server{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 70 90'%3E%3Crect x='5' y='8' width='60' height='22' rx='3' fill='%23f1f1f1' stroke='%23ddd' stroke-width='2'/%3E%3Crect x='5' y='34' width='60' height='22' rx='3' fill='%23f1f1f1' stroke='%23ddd' stroke-width='2'/%3E%3Crect x='5' y='60' width='60' height='22' rx='3' fill='%23f1f1f1' stroke='%23ddd' stroke-width='2'/%3E%3Ccircle cx='18' cy='19' r='5' fill='%2327ca40'/%3E%3Ccircle cx='18' cy='45' r='5' fill='%2327ca40'/%3E%3Ccircle cx='18' cy='71' r='5' fill='%2327ca40'/%3E%3Crect x='30' y='16' width='25' height='6' rx='2' fill='%23ddd'/%3E%3Crect x='30' y='42' width='25' height='6' rx='2' fill='%23ddd'/%3E%3Crect x='30' y='68' width='25' height='6' rx='2' fill='%23ddd'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;background-position:center;width:70px;height:90px}
+@media (max-width:720px){
+.cf-header h1{font-size:36px}
+.cf-code-label{display:block;margin:10px 0 0;width:fit-content}
+.cf-status-row{flex-direction:column}
+.cf-status-item{padding:15px 10px}
+.cf-arrow{display:none}
+.cf-content-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="cf-wrapper">
+  <div class="cf-header">
+    <h1>
+      <span>{{ title }}</span>
+      <span class="cf-code-label">Error code {{ error_code }}</span>
+    </h1>
+    <div class="cf-header-meta">
+      Visit <a href="https://www.cloudflare.com/" target="_blank" rel="noopener noreferrer">cloudflare.com</a> for more information.
+    </div>
+    <div class="cf-header-meta">{{ params.time }}</div>
+  </div>
+</div>
+
+{% set browser_status = params.browser_status.status or 'ok' %}
+{% set cloudflare_status = params.cloudflare_status.status or 'ok' %}
+{% set host_status = params.host_status.status or 'ok' %}
+
+<div class="cf-status-section">
+  <div class="cf-status-row">
+    <div class="cf-status-item">
+      <div class="cf-status-icon">
+        <div class="cf-icon-browser"></div>
+        <div class="cf-status-badge {{ browser_status }}">
+          {% if browser_status == 'ok' %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% else %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          {% endif %}
+        </div>
+      </div>
+      <div class="cf-status-label">You</div>
+      <div class="cf-status-name">Browser</div>
+      <div class="cf-status-text {{ browser_status }}">{{ params.browser_status.status_text or ('Working' if browser_status == 'ok' else 'Error') }}</div>
+    </div>
+
+    <div class="cf-arrow {{ 'error' if browser_status != 'ok' else '' }}"></div>
+
+    <div class="cf-status-item">
+      <div class="cf-status-icon">
+        <div class="cf-icon-cloud"></div>
+        <div class="cf-status-badge {{ cloudflare_status }}">
+          {% if cloudflare_status == 'ok' %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% else %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          {% endif %}
+        </div>
+      </div>
+      <div class="cf-status-label">{{ params.cloudflare_status.location or 'San Francisco' }}</div>
+      <div class="cf-status-name">Cloudflare</div>
+      <div class="cf-status-text {{ cloudflare_status }}">{{ params.cloudflare_status.status_text or ('Working' if cloudflare_status == 'ok' else 'Error') }}</div>
+    </div>
+
+    <div class="cf-arrow {{ 'error' if host_status != 'ok' else '' }}"></div>
+
+    <div class="cf-status-item">
+      <div class="cf-status-icon">
+        <div class="cf-icon-server"></div>
+        <div class="cf-status-badge {{ host_status }}">
+          {% if host_status == 'ok' %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          {% else %}
+          <svg viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          {% endif %}
+        </div>
+      </div>
+      <div class="cf-status-label">{{ params.host_status.location or 'superset.io' }}</div>
+      <div class="cf-status-name">Host</div>
+      <div class="cf-status-text {{ host_status }}">{{ params.host_status.status_text or ('Working' if host_status == 'ok' else 'Error') }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="cf-content">
+  <div class="cf-content-row">
+    <div class="cf-content-col">
+      <h2>What happened?</h2>
+      {{ params.what_happened | safe }}
+    </div>
+    <div class="cf-content-col">
+      <h2>What can I do?</h2>
+      {{ params.what_can_i_do | safe }}
+    </div>
+  </div>
+</div>
+
+<div class="cf-wrapper">
+  <div class="cf-footer">
+    <span class="cf-footer-item">Cloudflare Ray ID: <strong>{{ params.ray_id }}</strong></span>
+    &bull;
+    <span class="cf-footer-item" id="cf-footer-item-ip">Your IP: <button type="button" id="cf-footer-ip-reveal">Click to reveal</button><span id="cf-footer-ip" class="hidden">{{ params.client_ip }}</span></span>
+    &bull;
+    {% if params.perf_sec_by %}
+    <span class="cf-footer-item">{{ params.perf_sec_by.text or 'Performance & security by' }} <a href="{{ params.perf_sec_by.link_url or 'https://www.cloudflare.com/' }}" target="_blank" rel="noopener noreferrer">{{ params.perf_sec_by.link_text or 'Cloudflare' }}</a></span>
+    {% else %}
+    <span class="cf-footer-item">Performance &amp; security by <a href="https://www.cloudflare.com/5xx-error-landing" target="_blank" rel="noopener noreferrer">Cloudflare</a></span>
+    {% endif %}
+  </div>
+</div>
+<script>
+(function(){
+  var btn = document.getElementById('cf-footer-ip-reveal');
+  var ip = document.getElementById('cf-footer-ip');
+  if (btn && ip) {
+    btn.addEventListener('click', function() {
+      btn.style.display = 'none';
+      ip.style.display = 'inline';
+    });
+  }
+})();
+</script>
+<style>.hidden{display:none}</style>
+</body>
+</html>
