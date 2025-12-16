@@ -344,3 +344,22 @@ _Ongoing notes as we implement..._
 - Decided on modal with live preview for theme selection
 - Clarified color scheme (data) vs theme (UI) separation
 
+### Session 1 - Implementation Started
+- Created `ComponentHeaderControls` component at:
+  `src/dashboard/components/menu/ComponentHeaderControls/index.tsx`
+  - Generic vertical dots menu matching SliceHeaderControls pattern
+  - Uses NoAnimationDropdown + Menu from @superset-ui/core
+  - Configurable menu items, edit mode visibility
+  - Exports `ComponentMenuKeys` enum for standard actions
+
+- Created `useComponentMenuItems` hook at:
+  `src/dashboard/components/menu/ComponentHeaderControls/useComponentMenuItems.tsx`
+  - Builds standard menu items (theme, delete)
+  - Supports custom items before/after standard items
+  - Shows "Change theme (name)" when theme applied
+
+**Next Steps:**
+1. Integrate ComponentHeaderControls into Markdown component
+2. Test with simple Edit/Preview + Theme + Delete menu
+3. Remove old MarkdownModeDropdown
+
