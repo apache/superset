@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { extendedDayjs } from '../../utils/dates';
 import type { TimezoneSelectorProps } from './index';
 
@@ -33,7 +33,7 @@ const loadComponent = (mockCurrentTime?: string) => {
 };
 
 const getSelectOptions = () =>
-  waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
+  document.querySelectorAll('.ant-select-item-option-content');
 
 const openSelectMenu = () => {
   const searchInput = screen.getByRole('combobox');
@@ -61,14 +61,7 @@ test('use the timezone from `dayjs` if no timezone provided', async () => {
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-  });
-
-  // Component should display the guessed timezone with formatted label
-  expect(
-    screen.getByTitle('GMT -05:00 (Eastern Standard Time)'),
-  ).toBeInTheDocument();
+  await screen.findByText('GMT -05:00 (Eastern Standard Time)');
 });
 
 test('update to closest deduped timezone when timezone is provided', async () => {
@@ -89,8 +82,8 @@ test('update to closest deduped timezone when timezone is provided', async () =>
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  await screen.findByText('GMT -08:00 (Pacific Standard Time)', {
+    selector: 'span',
   });
 
   // Component should show the canonical timezone with formatted label in the selection item
@@ -113,8 +106,8 @@ test('use the default timezone when an invalid timezone is provided', async () =
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  await screen.findByText('GMT +00:00 (GMT Standard Time)', {
+    selector: 'span',
   });
 
   // Component should show the default timezone with formatted label in the selection item
@@ -139,11 +132,11 @@ test('render timezones in correct order for standard time', async () => {
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  await screen.findByText('GMT -05:00 (Eastern Standard Time)', {
+    selector: 'span',
   });
 
-  const options = await getSelectOptions();
+  const options = getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
   expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Niue)');
@@ -166,8 +159,8 @@ test('can select a timezone values and returns canonical timezone name', async (
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  await screen.findByText('GMT +00:00 (GMT Standard Time)', {
+    selector: 'span',
   });
 
   const searchInput = screen.getByRole('combobox');
@@ -198,9 +191,7 @@ test('can update props and rerender with different values', async () => {
   jest.runAllTimers();
 
   // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-  });
+  await screen.findByText('GMT +04:00 (Asia/Dubai)', { selector: 'span' });
 
   // Check the selected timezone in the selector using the selection item
   expect(
@@ -214,9 +205,9 @@ test('can update props and rerender with different values', async () => {
     />,
   );
 
-  await waitFor(() => {
-    expect(
-      container.querySelector('.ant-select-selection-item'),
-    ).toHaveTextContent('GMT +08:00 (Australia/Perth)');
-  });
+  await screen.findByText('GMT +08:00 (Australia/Perth)', { selector: 'span' });
+
+  expect(
+    container.querySelector('.ant-select-selection-item'),
+  ).toHaveTextContent('GMT +08:00 (Australia/Perth)');
 });

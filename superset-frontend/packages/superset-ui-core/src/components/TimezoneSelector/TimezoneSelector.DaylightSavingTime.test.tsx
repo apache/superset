@@ -18,7 +18,7 @@
  */
 
 import { FC } from 'react';
-import { render, waitFor, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
@@ -57,19 +57,15 @@ test('render timezones in correct order for daylight saving time', async () => {
   // Run timers to execute queueMicrotask/setTimeout callback
   jest.runAllTimers();
 
-  // Wait for timezone data to load
-  await waitFor(() => {
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-  });
+  // Wait for timezone data to load by finding the first expected option
+  await screen.findByText('GMT -11:00 (Pacific/Midway)');
 
   // Verify the selected timezone is displayed correctly (in DST)
   const selectionItem = container.querySelector('.ant-select-selection-item');
   expect(selectionItem).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
 
   // Verify options are sorted by UTC offset (lowest/most negative first)
-  const options = await waitFor(() =>
-    document.querySelectorAll('.ant-select-item-option-content'),
-  );
+  const options = document.querySelectorAll('.ant-select-item-option-content');
 
   // Options should be sorted by offset: -11:00 comes before -04:00
   expect(options[0]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
@@ -77,15 +73,8 @@ test('render timezones in correct order for daylight saving time', async () => {
   expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
 
   // Find the Eastern Daylight Time option
-  // Virtual list only renders visible items, so we search the DOM for the option element
-  // by its aria-label attribute which should be available even if not rendered
-  const edtOption = await waitFor(() => {
-    const option = document.querySelector(
-      '[aria-label="GMT -04:00 (Eastern Daylight Time)"]',
-    );
-    expect(option).toBeTruthy();
-    return option;
-  });
-
+  const edtOption = await screen.findByText(
+    'GMT -04:00 (Eastern Daylight Time)',
+  );
   expect(edtOption).toBeInTheDocument();
 });
