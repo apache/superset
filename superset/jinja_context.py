@@ -776,10 +776,10 @@ class BaseTemplateProcessor:
                 "Infinite recursion detected in template"
             ) from ex
         except UndefinedError as ex:
-            match = re.search(r"'([^']+)'\s+is undefined", str(ex))
+            match = re.search(r'["\']([^"\']+)["\']\s+is undefined', str(ex))
             undefined_name = match.group(1) if match else None
             if undefined_name and re.search(
-                r"\{\{\s*" + re.escape(undefined_name) + r"\s*\(", sql
+                r"\{\{\s*(?:[\w\.]*\.)?" + re.escape(undefined_name) + r"\s*\(", sql
             ):
                 raise UndefinedTemplateFunctionException(str(ex)) from ex
             raise
