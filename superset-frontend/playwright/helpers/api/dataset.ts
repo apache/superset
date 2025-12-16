@@ -87,7 +87,10 @@ export async function getDatasetByName(
     ],
   };
   const queryParam = rison.encode(filter);
-  const response = await apiGet(page, `${ENDPOINTS.DATASET}?q=${queryParam}`);
+  // Use failOnStatusCode: false so we return null instead of throwing on errors
+  const response = await apiGet(page, `${ENDPOINTS.DATASET}?q=${queryParam}`, {
+    failOnStatusCode: false,
+  });
 
   if (!response.ok()) {
     return null;

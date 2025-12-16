@@ -32,7 +32,12 @@ import {
 
 /**
  * Test data constants
- * These reference example datasets loaded via --load-examples in CI
+ * These reference example datasets loaded via --load-examples in CI.
+ *
+ * DEPENDENCY: Tests assume the example dataset exists and is a virtual dataset.
+ * If examples aren't loaded or the dataset changes, tests will fail.
+ * This is acceptable for experimental tests; stable tests should use dedicated
+ * seeded test data to decouple from example data changes.
  */
 const TEST_DATASETS = {
   EXAMPLE_DATASET: 'members_channels_2',
