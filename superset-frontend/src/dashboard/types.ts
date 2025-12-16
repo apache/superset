@@ -129,6 +129,7 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
+  whatIfModifications: WhatIfModification[];
 };
 export type DashboardInfo = {
   id: number;
@@ -279,6 +280,20 @@ export type Slice = {
   owners: { id: number }[];
   created_by: { id: number };
 };
+
+/**
+ * What-If Analysis types
+ */
+export interface WhatIfModification {
+  column: string;
+  multiplier: number;
+}
+
+export interface WhatIfColumn {
+  columnName: string;
+  datasourceId: number;
+  usedByChartIds: number[];
+}
 
 export enum MenuKeys {
   DownloadAsImage = 'download_as_image',

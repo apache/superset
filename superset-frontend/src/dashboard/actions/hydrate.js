@@ -312,6 +312,7 @@ export const hydrateDashboard =
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},
           chartCustomizationItems,
+          whatIfModifications: [],
         },
         dashboardLayout,
       },

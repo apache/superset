@@ -774,6 +774,17 @@ export function clearAllChartStates() {
   return { type: CLEAR_ALL_CHART_STATES };
 }
 
+// What-If Analysis actions
+export const SET_WHAT_IF_MODIFICATIONS = 'SET_WHAT_IF_MODIFICATIONS';
+export function setWhatIfModifications(modifications) {
+  return { type: SET_WHAT_IF_MODIFICATIONS, modifications };
+}
+
+export const CLEAR_WHAT_IF_MODIFICATIONS = 'CLEAR_WHAT_IF_MODIFICATIONS';
+export function clearWhatIfModifications() {
+  return { type: CLEAR_WHAT_IF_MODIFICATIONS };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

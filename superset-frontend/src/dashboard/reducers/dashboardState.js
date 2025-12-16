@@ -54,6 +54,8 @@ import {
   REMOVE_CHART_STATE,
   RESTORE_CHART_STATES,
   CLEAR_ALL_CHART_STATES,
+  SET_WHAT_IF_MODIFICATIONS,
+  CLEAR_WHAT_IF_MODIFICATIONS,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -331,6 +333,18 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         chartStates: {},
+      };
+    },
+    [SET_WHAT_IF_MODIFICATIONS]() {
+      return {
+        ...state,
+        whatIfModifications: action.modifications,
+      };
+    },
+    [CLEAR_WHAT_IF_MODIFICATIONS]() {
+      return {
+        ...state,
+        whatIfModifications: [],
       };
     },
   };

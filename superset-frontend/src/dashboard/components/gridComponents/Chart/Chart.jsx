@@ -367,6 +367,9 @@ const Chart = props => {
       state.dashboardInfo?.metadata?.shared_label_colors,
     ),
   );
+  const whatIfModifications = useSelector(
+    state => state.dashboardState.whatIfModifications || EMPTY_ARRAY,
+  );
 
   const formData = useMemo(
     () =>
@@ -386,6 +389,7 @@ const Chart = props => {
         labelsColorMap,
         sharedLabelsColors,
         ownColorScheme,
+        whatIfModifications,
       }),
     [
       chart.id,
@@ -403,6 +407,7 @@ const Chart = props => {
       labelsColorMap,
       sharedLabelsColors,
       ownColorScheme,
+      whatIfModifications,
     ],
   );
 

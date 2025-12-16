@@ -30,6 +30,7 @@ import {
   ChartConfiguration,
   ChartQueryPayload,
   ActiveFilters,
+  WhatIfModification,
 } from 'src/dashboard/types';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
@@ -76,6 +77,7 @@ const cachedFormdataByChart: Record<
   CachedFormData & {
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
+    whatIfModifications?: WhatIfModification[];
   }
 > = {};
 
@@ -97,6 +99,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   allSliceIds: number[];
   chartCustomization?: JsonObject;
   activeFilters?: ActiveFilters;
+  whatIfModifications?: WhatIfModification[];
 }
 
 const createFilterDataMapping = (
@@ -450,6 +453,7 @@ export default function getFormDataWithExtraFilters({
   allSliceIds,
   chartCustomization,
   activeFilters: passedActiveFilters,
+  whatIfModifications,
 }: GetFormDataWithExtraFiltersArguments) {
   const cachedFormData = cachedFormdataByChart[sliceId];
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
@@ -476,7 +480,8 @@ export default function getFormDataWithExtraFilters({
     }) &&
     areObjectsEqual(cachedFormData?.chart_customization, chartCustomization, {
       ignoreUndefined: true,
-    })
+    }) &&
+    isEqual(cachedFormData?.whatIfModifications, whatIfModifications)
   ) {
     return cachedFormData;
   }
@@ -515,6 +520,23 @@ export default function getFormDataWithExtraFilters({
         filterIdsAppliedOnChart,
       );
       extraData.filter_data_mapping = filterDataMapping;
+    }
+  }
+
+  // Apply what-if modifications to charts that use the modified columns
+  // Note: what_if goes in 'extras', not 'extra_form_data', because the backend
+  // reads it from extras in get_sqla_query (superset/models/helpers.py)
+  let whatIfExtras: { what_if?: { modifications: WhatIfModification[] } } = {};
+  if (whatIfModifications && whatIfModifications.length > 0) {
+    const chartColumns = buildExistingColumnsSet(chart as ChartQueryPayload);
+    const applicableModifications = whatIfModifications.filter(mod =>
+      chartColumns.has(mod.column),
+    );
+
+    if (applicableModifications.length > 0) {
+      whatIfExtras = {
+        what_if: { modifications: applicableModifications },
+      };
     }
   }
 
@@ -571,6 +593,13 @@ export default function getFormDataWithExtraFilters({
     ...groupByFormData,
     ...(chartCustomization && { chart_customization: chartCustomization }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
+    // Merge what-if into extras (backend reads from extras, not extra_form_data)
+    ...(whatIfExtras.what_if && {
+      extras: {
+        ...chart.form_data?.extras,
+        ...whatIfExtras,
+      },
+    }),
   };
 
   cachedFiltersByChart[sliceId] = filters;
@@ -579,6 +608,7 @@ export default function getFormDataWithExtraFilters({
     dataMask,
     extraControls,
     ...(chartCustomization && { chart_customization: chartCustomization }),
+    whatIfModifications,
   };
 
   return formData;
