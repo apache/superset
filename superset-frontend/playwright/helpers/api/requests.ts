@@ -29,12 +29,14 @@ export interface ApiRequestOptions {
 /**
  * Get base URL for Referer header
  * Reads from environment variable configured in playwright.config.ts
- * Preserves full base URL including path prefix (e.g., /app/prefix)
+ * Preserves full base URL including path prefix (e.g., /app/prefix/)
+ * Normalizes to always end with '/' for consistent URL resolution
  */
 function getBaseUrl(): string {
   // Use environment variable which includes path prefix if configured
-  // This matches playwright.config.ts baseURL setting exactly
-  return process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+  // Normalize to always end with '/' (matches playwright.config.ts normalization)
+  const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+  return url.endsWith('/') ? url : `${url}/`;
 }
 
 interface CsrfResult {
