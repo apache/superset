@@ -42,32 +42,24 @@ const sidebars = {
         'contributing/howtos',
         'contributing/release-process',
         'contributing/resources',
+        'guidelines/design-guidelines',
         {
           type: 'category',
-          label: 'Contribution Guidelines',
+          label: 'Frontend Style Guidelines',
           collapsed: true,
           items: [
-            'guidelines/design-guidelines',
-            {
-              type: 'category',
-              label: 'Frontend Style Guidelines',
-              collapsed: true,
-              items: [
-                'guidelines/frontend-style-guidelines',
-                'guidelines/frontend/component-style-guidelines',
-                'guidelines/frontend/emotion-styling-guidelines',
-                'guidelines/frontend/testing-guidelines',
-              ],
-            },
-            {
-              type: 'category',
-              label: 'Backend Style Guidelines',
-              collapsed: true,
-              items: [
-                'guidelines/backend-style-guidelines',
-                'guidelines/backend/dao-style-guidelines',
-              ],
-            },
+            'guidelines/frontend-style-guidelines',
+            'guidelines/frontend/component-style-guidelines',
+            'guidelines/frontend/emotion-styling-guidelines',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Backend Style Guidelines',
+          collapsed: true,
+          items: [
+            'guidelines/backend-style-guidelines',
+            'guidelines/backend/dao-style-guidelines',
           ],
         },
       ],
@@ -102,6 +94,7 @@ const sidebars = {
       collapsed: true,
       items: [
         'testing/overview',
+        'testing/testing-guidelines',
         'testing/frontend-testing',
         'testing/backend-testing',
         'testing/e2e-testing',
