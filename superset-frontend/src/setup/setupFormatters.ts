@@ -28,6 +28,8 @@ import {
   createSmartDateFormatter,
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
+  RELATIVE_DAY_ID,
+  createRelativeDayFormatter,
   createMemoryFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
@@ -109,5 +111,6 @@ export default function setupFormatters(
       SMART_DATE_DETAILED_ID,
       createSmartDateDetailedFormatter(timeFormatterRegistry.d3Format),
     )
+    .registerValue(RELATIVE_DAY_ID, createRelativeDayFormatter())
     .setDefaultKey(SMART_DATE_ID);
 }
