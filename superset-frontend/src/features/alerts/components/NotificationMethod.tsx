@@ -115,7 +115,9 @@ const TRANSLATIONS = {
   EMAIL_FROM_HELPER_TEXT: t(
     'If specified, must be an aven.com email address. Leave empty to use default.',
   ),
-  EMAIL_FROM_ERROR_TEXT: t('Must be an aven.com email address (e.g. name@aven.com)'),
+  EMAIL_FROM_ERROR_TEXT: t(
+    'Must be an aven.com email address (e.g. name@aven.com)',
+  ),
   CSV_FILENAME_NAME: t('CSV filename (optional)'),
   CSV_FILENAME_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
