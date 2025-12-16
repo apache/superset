@@ -66,6 +66,7 @@ name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
 email_subject_description = "The report schedule subject line"
+email_from_description = "Custom sender email address (must be an aven.com email)"
 csv_filename_description = "The CSV filename for report attachments"
 context_markdown_description = "Markdown description"
 crontab_description = (
@@ -165,6 +166,14 @@ class ReportSchedulePostSchema(Schema):
         metadata={
             "description": email_subject_description,
             "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
+    email_from = fields.String(
+        metadata={
+            "description": email_from_description,
+            "example": "reports@aven.com",
         },
         allow_none=True,
         required=False,
@@ -307,6 +316,14 @@ class ReportSchedulePutSchema(Schema):
         metadata={
             "description": email_subject_description,
             "example": "[Report]  Report name: Dashboard or chart name",
+        },
+        allow_none=True,
+        required=False,
+    )
+    email_from = fields.String(
+        metadata={
+            "description": email_from_description,
+            "example": "reports@aven.com",
         },
         allow_none=True,
         required=False,

@@ -300,6 +300,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         to = self._get_to()
         cc = self._get_cc()
         bcc = self._get_bcc()
+        from_address = self._content.email_from
+
+        logger.info(
+            "Sending email with from_address=%s (default would be %s)",
+            from_address,
+            app.config["SMTP_MAIL_FROM"],
+        )
 
         try:
             send_email_smtp(
@@ -316,6 +323,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 cc=cc,
                 bcc=bcc,
                 header_data=content.header_data,
+                from_address=from_address,
             )
             logger.info(
                 "Report sent to email, notification content is %s", content.header_data

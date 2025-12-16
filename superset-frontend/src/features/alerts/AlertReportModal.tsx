@@ -373,6 +373,7 @@ export const TRANSLATIONS = {
   WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
   RECIPIENTS_ERROR_TEXT: t('recipients'),
   EMAIL_SUBJECT_ERROR_TEXT: t('email subject'),
+  EMAIL_FROM_ERROR_TEXT: t('email from (must be aven.com)'),
   EMAIL_VALIDATION_ERROR_TEXT: t('invalid email'),
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
@@ -500,6 +501,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
+  const [emailFromError, setEmailFromError] = useState(false);
   const [csvFilename, setCsvFilename] = useState<string>('');
   const [csvFilenameError, setCsvFilenameError] = useState(false);
 
@@ -654,6 +656,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       csv_filename: currentAlert?.csv_filename || '',
+      email_from: currentAlert?.email_from || null,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -1120,6 +1123,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT);
     }
 
+    if (emailFromError) {
+      errors.push(TRANSLATIONS.EMAIL_FROM_ERROR_TEXT);
+    }
+
     if (csvFilenameError) {
       errors.push('csv filename');
     }
@@ -1297,6 +1304,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     notificationSettings,
     conditionNotNull,
     emailError,
+    emailFromError,
     csvFilenameError,
   ]);
   useEffect(() => {
@@ -1381,6 +1389,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const handleErrorUpdate = (hasError: boolean) => {
     setEmailError(hasError);
+  };
+
+  const handleEmailFromErrorUpdate = (hasError: boolean) => {
+    setEmailFromError(hasError);
   };
 
   const handleCsvFilenameErrorUpdate = (hasError: boolean) => {
@@ -1838,6 +1850,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 email_subject={currentAlert?.email_subject || ''}
                 defaultSubject={emailSubject || ''}
                 setErrorSubject={handleErrorUpdate}
+                email_from={currentAlert?.email_from || ''}
+                setErrorEmailFrom={handleEmailFromErrorUpdate}
                 csv_filename={currentAlert?.csv_filename || ''}
                 defaultCsvFilename={csvFilename || ''}
                 setErrorCsvFilename={handleCsvFilenameErrorUpdate}

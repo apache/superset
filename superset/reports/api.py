@@ -124,6 +124,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_type",
         "working_timeout",
         "email_subject",
+        "email_from",
         "csv_filename",
     ]
     show_select_columns = show_columns + [
@@ -168,6 +169,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard",
         "database",
         "description",
+        "email_from",
         "extra",
         "force_screenshot",
         "grace_period",

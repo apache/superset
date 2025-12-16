@@ -36,6 +36,7 @@ class NotificationContent:
     embedded_data: Optional[pd.DataFrame] = None
     csv_filename: Optional[str] = None  # custom CSV filename
     email_subject: Optional[str] = None  # custom email subject
+    email_from: Optional[str] = None  # custom sender email address
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

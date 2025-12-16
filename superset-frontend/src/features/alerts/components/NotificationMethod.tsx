@@ -111,6 +111,11 @@ const TRANSLATIONS = {
   EMAIL_SUBJECT_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
   ),
+  EMAIL_FROM_NAME: t('Send email from (optional)'),
+  EMAIL_FROM_HELPER_TEXT: t(
+    'If specified, must be an aven.com email address. Leave empty to use default.',
+  ),
+  EMAIL_FROM_ERROR_TEXT: t('Must be an aven.com email address (e.g. name@aven.com)'),
   CSV_FILENAME_NAME: t('CSV filename (optional)'),
   CSV_FILENAME_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
@@ -128,6 +133,8 @@ interface NotificationMethodProps {
   email_subject: string;
   defaultSubject: string;
   setErrorSubject: (hasError: boolean) => void;
+  email_from: string;
+  setErrorEmailFrom: (hasError: boolean) => void;
   csv_filename: string;
   defaultCsvFilename: string;
   setErrorCsvFilename: (hasError: boolean) => void;
@@ -195,6 +202,8 @@ type SlackOptionsType = {
   options: { label: string; value: string }[];
 }[];
 
+const AVEN_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@aven\.com$/;
+
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
@@ -204,6 +213,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   email_subject,
   defaultSubject,
   setErrorSubject,
+  email_from,
+  setErrorEmailFrom,
   csv_filename,
   defaultCsvFilename,
   setErrorCsvFilename,
@@ -216,6 +227,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     { label: string; value: string }[]
   >([]);
   const [error, setError] = useState(false);
+  const [emailFromError, setEmailFromError] = useState(false);
   const [ccVisible, setCcVisible] = useState<boolean>(!!cc);
   const [bccVisible, setBccVisible] = useState<boolean>(!!bcc);
   const [ccValue, setCcValue] = useState<string>(cc || '');
@@ -404,6 +416,23 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
+  const onEmailFromChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { value } = event.target;
+
+    if (onInputChange) {
+      onInputChange(event);
+    }
+
+    // Validate: if value is not empty, it must be an aven.com email
+    const hasError = value.length > 0 && !AVEN_EMAIL_REGEX.test(value.trim());
+    setEmailFromError(hasError);
+    if (setErrorEmailFrom) {
+      setErrorEmailFrom(hasError);
+    }
+  };
+
   const onCcChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { target } = event;
 
@@ -504,6 +533,43 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                       }}
                     >
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </StyledInputContainer>
+          </div>
+          <div className="inline-container">
+            <StyledInputContainer>
+              {method === NotificationMethodOption.Email ? (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_FROM_NAME}
+                  </div>
+                  <div
+                    className={`input-container ${emailFromError ? 'error' : ''}`}
+                  >
+                    <input
+                      type="text"
+                      name="email_from"
+                      value={email_from}
+                      placeholder={t('Leave empty to use default')}
+                      onChange={onEmailFromChange}
+                    />
+                  </div>
+                  <div className="input-container">
+                    <div className="helper">
+                      {TRANSLATIONS.EMAIL_FROM_HELPER_TEXT}
+                    </div>
+                  </div>
+                  {emailFromError && (
+                    <div
+                      style={{
+                        color: theme.colors.error.base,
+                        fontSize: theme.gridUnit * 3,
+                      }}
+                    >
+                      {TRANSLATIONS.EMAIL_FROM_ERROR_TEXT}
                     </div>
                   )}
                 </>

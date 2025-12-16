@@ -427,6 +427,7 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    email_from=self._report_schedule.email_from,
                 )
 
         if (
@@ -460,6 +461,7 @@ class BaseReportState:
             header_data=header_data,
             csv_filename=self._report_schedule.csv_filename,
             email_subject=self._report_schedule.email_subject,
+            email_from=self._report_schedule.email_from,
         )
 
     def _send(
@@ -543,7 +545,11 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=name,
+            text=message,
+            header_data=header_data,
+            url=url,
+            email_from=self._report_schedule.email_from,
         )
 
         # filter recipients to recipients who are also owners
