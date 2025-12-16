@@ -603,6 +603,22 @@ export function refreshChart(chartKey, force, dashboardId) {
   };
 }
 
+// What-If caching actions
+export const SAVE_ORIGINAL_CHART_DATA = 'SAVE_ORIGINAL_CHART_DATA';
+export function saveOriginalChartData(key) {
+  return { type: SAVE_ORIGINAL_CHART_DATA, key };
+}
+
+export const RESTORE_ORIGINAL_CHART_DATA = 'RESTORE_ORIGINAL_CHART_DATA';
+export function restoreOriginalChartData(key) {
+  return { type: RESTORE_ORIGINAL_CHART_DATA, key };
+}
+
+export const CLEAR_ORIGINAL_CHART_DATA = 'CLEAR_ORIGINAL_CHART_DATA';
+export function clearOriginalChartData(key) {
+  return { type: CLEAR_ORIGINAL_CHART_DATA, key };
+}
+
 export const getDatasourceSamples = async (
   datasourceType,
   datasourceId,

@@ -57,6 +57,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import WhatIfPanel from 'src/dashboard/components/WhatIfDrawer';
+import WhatIfBanner from 'src/dashboard/components/WhatIfBanner';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
@@ -275,12 +276,15 @@ const StyledDashboardContent = styled.div<{
   editMode: boolean;
   marginLeft: number;
   marginRight: number;
+  hasWhatIfPanel: boolean;
 }>`
-  ${({ theme, editMode, marginLeft, marginRight }) => css`
+  ${({ theme, editMode, marginLeft, marginRight, hasWhatIfPanel }) => css`
     background-color: ${theme.colorBgLayout};
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 1fr ${hasWhatIfPanel ? 'auto' : ''} ${editMode
+      ? 'auto'
+      : ''};
+    grid-template-rows: auto 1fr;
     height: auto;
     flex: 1;
 
@@ -290,13 +294,13 @@ const StyledDashboardContent = styled.div<{
     }
 
     .grid-container {
-      /* without this, the grid will not get smaller upon toggling the builder panel on */
-      width: 0;
-      flex: 1;
+      grid-column: 1;
+      grid-row: 2;
       position: relative;
       margin: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
       margin-right: ${marginRight}px;
+      min-width: 0; /* Prevent grid blowout */
 
       ${editMode &&
       `
@@ -312,6 +316,8 @@ const StyledDashboardContent = styled.div<{
     }
 
     .dashboard-builder-sidepane {
+      grid-column: 2;
+      grid-row: 1 / -1; /* Span all rows */
       width: ${BUILDER_SIDEPANEL_WIDTH}px;
       z-index: 1;
     }
@@ -688,7 +694,9 @@ const DashboardBuilder = () => {
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
             marginRight={dashboardContentMarginRight}
+            hasWhatIfPanel={!editMode && whatIfPanelOpen}
           >
+            {!editMode && <WhatIfBanner topOffset={barTopOffset} />}
             {showDashboard ? (
               missingInitialFilters.length > 0 ? (
                 <div
@@ -698,6 +706,8 @@ const DashboardBuilder = () => {
                     align-items: center;
                     justify-content: center;
                     flex: 1;
+                    grid-column: 1;
+                    grid-row: 2;
                     & div {
                       width: 500px;
                     }

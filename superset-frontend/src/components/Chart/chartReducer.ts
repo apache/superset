@@ -177,6 +177,33 @@ export default function chartReducer(
         annotationQuery,
       };
     },
+    [actions.SAVE_ORIGINAL_CHART_DATA](state) {
+      // Only save if we don't already have cached data
+      if (state.originalQueriesResponse) {
+        return state;
+      }
+      return {
+        ...state,
+        originalQueriesResponse: state.queriesResponse,
+      };
+    },
+    [actions.RESTORE_ORIGINAL_CHART_DATA](state) {
+      if (!state.originalQueriesResponse) {
+        return state;
+      }
+      return {
+        ...state,
+        queriesResponse: state.originalQueriesResponse,
+        originalQueriesResponse: null,
+        chartStatus: 'success',
+      };
+    },
+    [actions.CLEAR_ORIGINAL_CHART_DATA](state) {
+      return {
+        ...state,
+        originalQueriesResponse: null,
+      };
+    },
   };
 
   /* eslint-disable no-param-reassign */

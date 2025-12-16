@@ -24,7 +24,10 @@ import { Button, Select } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setWhatIfModifications } from 'src/dashboard/actions/dashboardState';
-import { triggerQuery } from 'src/components/Chart/chartAction';
+import {
+  triggerQuery,
+  saveOriginalChartData,
+} from 'src/components/Chart/chartAction';
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
 import { RootState, WhatIfColumn } from 'src/dashboard/types';
 
@@ -35,6 +38,8 @@ const SLIDER_MAX = 50;
 const SLIDER_DEFAULT = 0;
 
 const PanelContainer = styled.div<{ topOffset: number }>`
+  grid-column: 2;
+  grid-row: 1 / -1; /* Span all rows */
   width: ${WHAT_IF_PANEL_WIDTH}px;
   min-width: ${WHAT_IF_PANEL_WIDTH}px;
   background-color: ${({ theme }) => theme.colorBgContainer};
@@ -45,7 +50,7 @@ const PanelContainer = styled.div<{ topOffset: number }>`
   position: sticky;
   top: ${({ topOffset }) => topOffset}px;
   height: calc(100vh - ${({ topOffset }) => topOffset}px);
-  align-self: flex-start;
+  align-self: start;
   z-index: 10;
 `;
 
@@ -162,6 +167,14 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
     const multiplier = 1 + sliderValue / 100;
 
+    // Get affected chart IDs
+    const affectedChartIds = columnToChartIds.get(selectedColumn) || [];
+
+    // Save original chart data before applying what-if modifications
+    affectedChartIds.forEach(chartId => {
+      dispatch(saveOriginalChartData(chartId));
+    });
+
     // Set the what-if modifications in Redux state
     dispatch(
       setWhatIfModifications([
@@ -173,7 +186,6 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     );
 
     // Trigger queries for all charts that use the selected column
-    const affectedChartIds = columnToChartIds.get(selectedColumn) || [];
     affectedChartIds.forEach(chartId => {
       dispatch(triggerQuery(true, chartId));
     });
