@@ -1,0 +1,166 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { ReactNode } from 'react';
+import { t } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/ui';
+import { Flex, Icons, Typography } from '@superset-ui/core/components';
+import { ConnectorStep } from '../types';
+
+interface ConnectorLayoutProps {
+  currentStep: ConnectorStep;
+  children: ReactNode;
+}
+
+const PageContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 56px);
+    background-color: ${theme.colorBgBase};
+  `}
+`;
+
+const PageHeader = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.paddingMD}px ${theme.paddingLG}px;
+    background-color: ${theme.colorBgContainer};
+    border-bottom: 1px solid ${theme.colorBorder};
+
+
+  `}
+`;
+
+const StepsContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-content: center;
+    padding: ${theme.paddingXL}px 0;
+    background-color: ${theme.colorBgBase};
+  `}
+`;
+
+const StepCircle = styled.div<{ isActive: boolean; isCompleted: boolean }>`
+  ${({ theme, isActive, isCompleted }) => `
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    ${
+      isActive || isCompleted
+        ? `
+      background-color: ${theme.colorPrimary};
+      color: white;
+    `
+        : `
+      background-color: transparent;
+      border: 2px solid ${theme.colorTextSecondary};
+      color: ${theme.colorTextSecondary};
+    `
+    }
+  `}
+`;
+
+const StepTitle = styled.span<{ isActive: boolean; isCompleted: boolean }>`
+  ${({ theme, isActive, isCompleted }) => `
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${isActive || isCompleted ? theme.colorText : theme.colorTextSecondary};
+    white-space: nowrap;
+  `}
+`;
+
+const StepConnector = styled.div<{ isCompleted: boolean }>`
+  ${({ theme, isCompleted }) => `
+    width: ${theme.sizeUnit * 20}px;
+    height: 1px;
+    background-color: ${isCompleted ? theme.colorPrimary : theme.colorBorderSecondary};
+    margin: 0 ${theme.marginMD}px;
+  `}
+`;
+
+const ContentContainer = styled(Flex)`
+  ${({ theme }) => `
+    flex: 1;
+    padding: ${theme.paddingLG}px;
+  `}
+`;
+
+interface StepConfig {
+  title: string;
+  icon: ReactNode;
+}
+
+const stepsConfig: StepConfig[] = [
+  {
+    title: t('Connect Data Source'),
+    icon: <Icons.DatabaseOutlined iconSize="m" />,
+  },
+  {
+    title: t('Review Schema'),
+    icon: <Icons.SearchOutlined iconSize="m" />,
+  },
+  {
+    title: t('Generate Dashboard'),
+    icon: <Icons.DashboardOutlined iconSize="m" />,
+  },
+];
+
+export default function ConnectorLayout({
+  currentStep,
+  children,
+}: ConnectorLayoutProps) {
+  return (
+    <PageContainer>
+      <PageHeader>
+        <Typography.Title css={{ margin: 0 }} level={3}>
+          {t('Create Dashboard from Template')}
+        </Typography.Title>
+      </PageHeader>
+      <StepsContainer>
+        <Flex align="center" gap={0}>
+          {stepsConfig.map((step, index) => {
+            const isActive = index === currentStep;
+            const isCompleted = index < currentStep;
+
+            return (
+              <Flex key={step.title} align="center" gap={8}>
+                <StepCircle isActive={isActive} isCompleted={isCompleted}>
+                  {isActive || isCompleted ? step.icon : index + 1}
+                </StepCircle>
+                <StepTitle isActive={isActive} isCompleted={isCompleted}>
+                  {step.title}
+                </StepTitle>
+                {index < stepsConfig.length - 1 && (
+                  <StepConnector isCompleted={isCompleted} />
+                )}
+              </Flex>
+            );
+          })}
+        </Flex>
+      </StepsContainer>
+      <ContentContainer vertical align="center">
+        {children}
+      </ContentContainer>
+    </PageContainer>
+  );
+}

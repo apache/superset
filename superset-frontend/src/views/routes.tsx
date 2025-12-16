@@ -34,6 +34,13 @@ const ChartCreation = lazy(
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
+const DatasourceConnector = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasourceConnector" */ 'src/pages/DatasourceConnector'
+    ),
+);
+
 const AnnotationLayerList = lazy(
   () =>
     import(
@@ -214,6 +221,14 @@ export const routes: Routes = [
   {
     path: '/chart/list/',
     Component: ChartList,
+  },
+  {
+    path: '/datasource-connector/',
+    Component: DatasourceConnector,
+  },
+  {
+    path: '/datasource-connector/loading/:runId',
+    Component: DatasourceConnector,
   },
   {
     path: '/tablemodelview/list/',
