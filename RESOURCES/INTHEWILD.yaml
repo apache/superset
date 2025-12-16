@@ -329,6 +329,7 @@ categories:
     - name: Preset, Inc.
       url: https://preset.io
       logo: preset.svg
+      contributors: ["@mistercrunch", "@betodealmeida", "@dpgaspar", "@rusackas", "@sadpandajoe", "@Vitor-Avila", "@kgabryje", "@geido", "@eschutho", "@Antonio-RiveroMartnez", "@yousoph"]
 
     - name: PubNub
       url: https://pubnub.com
