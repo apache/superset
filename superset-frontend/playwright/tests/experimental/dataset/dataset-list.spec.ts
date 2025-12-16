@@ -252,3 +252,29 @@ test('should duplicate a dataset with new name', async ({ page }) => {
   // Name should be different (the duplicate name)
   expect(duplicateDataFull.result.table_name).toBe(duplicateName);
 });
+
+test('should export a single dataset', async ({ page }) => {
+  // Use existing example dataset
+  const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
+
+  // Verify dataset is visible in list
+  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
+
+  // Set up download handler before triggering export
+  const downloadPromise = page.waitForEvent('download');
+
+  // Click export action button
+  await datasetListPage.clickExportAction(datasetName);
+
+  // Wait for download to complete
+  const download = await downloadPromise;
+
+  // Verify downloaded file is a zip
+  const fileName = download.suggestedFilename();
+  expect(fileName).toMatch(/\.zip$/);
+  expect(fileName).toContain('dataset');
+
+  // Verify download completed successfully (no failure)
+  const failure = await download.failure();
+  expect(failure).toBeNull();
+});
