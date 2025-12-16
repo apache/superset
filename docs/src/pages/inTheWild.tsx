@@ -17,187 +17,148 @@
  * under the License.
  */
 
-import BlurredSection from '../components/BlurredSection';
-import { Collapse } from 'antd';
 import Layout from '@theme/Layout';
-import { results as DataSet } from '../../static/resources/inTheWild.js';
-import styled from '@emotion/styled';
+import { Avatar, Card, Col, Collapse, Row, Typography } from 'antd';
+import BlurredSection from '../components/BlurredSection';
 import SectionHeader from '../components/SectionHeader';
-import { mq } from '../utils';
+import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 
-const StyledGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  max-width: 800px;
-  margin: 30px auto;
-  padding: 0 20px;
-  ${mq[1]} {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  ${mq[0]} {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-`;
+const { Text, Link } = Typography;
 
-const Card = styled('div')`
-  border: 1px solid var(--ifm-border-color);
-  border-radius: 10px;
-  padding: 20px;
-  text-align: center;
-  background: linear-gradient(180deg, rgba(0,122,204,0.06) 0%, rgba(0,122,204,0.03) 100%);
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
-  strong {
-    font-size: 20px;
-    transition: color 0.25s ease;
-    color: var(--ifm-font-base-color);
-  }
-  a:hover strong {
-    color: var(--ifm-color-primary);
-  }
-  a:hover {
-    text-decoration: none;
-  }
-  &:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-    transform: translateY(-2px);
-  }
-`;
+interface Organization {
+  name: string;
+  url: string;
+  logo?: string;
+  contributors?: string[];
+}
 
-const LinkedCard = styled(Card)`
-  cursor: pointer;
-  a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    justify-content: center;
-  }
-  img {
-    height: 80px;
-    margin-bottom: 12px;
-    max-width: 100%;
-    object-fit: contain;
-  }
-`;
+interface DataSetType {
+  categories: Record<string, Organization[]>;
+}
 
-// Hover styles for collapse headers
-const CollapseStyles = styled('div')`
-  .ant-collapse-header:hover {
-    background-color: rgba(0, 120, 200, 0.1);
-    transition: background-color 0.2s ease;
-  }
-`;
+const typedDataSet = DataSet as DataSetType;
 
-export default function NewPage() {
+const ContributorAvatars = ({ contributors }: { contributors?: string[] }) => {
+  if (!contributors?.length) return null;
   return (
-    <Layout title="In the Wild" description="Visually display our users">
+    <Avatar.Group size="small" max={{ count: 3 }}>
+      {contributors.map((handle) => {
+        const username = handle.replace('@', '');
+        return (
+          <a
+            key={username}
+            href={`https://github.com/${username}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Avatar
+              src={`https://github.com/${username}.png?size=40`}
+              alt={username}
+              style={{ cursor: 'pointer' }}
+            >
+              {username.charAt(0).toUpperCase()}
+            </Avatar>
+          </a>
+        );
+      })}
+    </Avatar.Group>
+  );
+};
+
+export default function InTheWild() {
+  return (
+    <Layout title="In the Wild" description="Organizations using Apache Superset">
       <main>
         <BlurredSection>
           <SectionHeader
             level="h2"
-            title="Superset Users"
+            title="In the Wild"
             subtitle="See who's using Superset and join our growing community"
           />
-          <div style={{ textAlign: 'center', marginTop: '10px' }}>
-            <a
-              href="https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md"
+          <div style={{ textAlign: 'center', marginTop: 10 }}>
+            <Link
+              href="https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.yaml"
               target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: '16px', fontWeight: 400 }}
             >
               Add your name/org!
-            </a>
+            </Link>
           </div>
         </BlurredSection>
 
-        <div style={{ height: '70px' }}></div>
-        <div style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <CollapseStyles>
-            <Collapse
-              accordion
-              bordered={false}
-              style={{
-                background: 'var(--ifm-background-color)',
-                border: '1px solid var(--ifm-border-color)',
-                borderRadius: '10px',
-                padding: '10px'
-              }}
-            >
-              {Object.entries(DataSet.categories).map(([category, items]) => {
-                const logoItems = items.filter(({ logo }) => logo && logo.trim() !== '');
-                const textItems = items.filter(({ logo }) => !logo || logo.trim() === '');
-                return (
-                  <Collapse.Panel
-                    header={
-                      <span
-                        style={{
-                          color: 'var(--ifm-font-base-color)',
-                          fontSize: '22px',
-                          fontWeight: 600
-                        }}
-                      >
-                        {`${category} (${items.length})`}
-                      </span>
-                    }
-                    key={category}
-                    style={{ borderBottom: '1px solid var(--ifm-border-color)' }}
-                  >
+        <div style={{ maxWidth: 850, margin: '70px auto 60px', padding: '0 20px' }}>
+          <Collapse
+            bordered={false}
+            defaultActiveKey={Object.keys(typedDataSet.categories)}
+            style={{
+              background: 'var(--ifm-background-color)',
+              border: '1px solid var(--ifm-border-color)',
+              borderRadius: 10,
+            }}
+            items={Object.entries(typedDataSet.categories).map(([category, items]) => {
+              const logoItems = items.filter(({ logo }) => logo?.trim());
+              const textItems = items.filter(({ logo }) => !logo?.trim());
+
+              return {
+                key: category,
+                label: (
+                  <Text strong style={{ fontSize: 16, lineHeight: '22px' }}>
+                    {category} ({items.length})
+                  </Text>
+                ),
+                children: (
+                  <>
                     {logoItems.length > 0 && (
-                      <StyledGrid>
-                        {logoItems.map(({ name, url, logo }, index) => (
-                          <LinkedCard key={index}>
+                      <Row gutter={[16, 16]} style={{ marginBottom: textItems.length > 0 ? 24 : 0 }}>
+                        {logoItems.map(({ name, url, logo, contributors }) => (
+                          <Col xs={24} sm={12} md={8} key={name}>
                             <a href={url} target="_blank" rel="noreferrer">
-                              <img src={`/img/logos/${logo}`} alt={name} />
+                              <Card
+                                hoverable
+                                style={{ height: 150, position: 'relative' }}
+                                styles={{ body: { padding: 16, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } }}
+                              >
+                                <img
+                                  src={`/img/logos/${logo}`}
+                                  alt={name}
+                                  style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }}
+                                />
+                                {contributors?.length && (
+                                  <div style={{ position: 'absolute', bottom: 8, right: 8 }}>
+                                    <ContributorAvatars contributors={contributors} />
+                                  </div>
+                                )}
+                              </Card>
                             </a>
-                          </LinkedCard>
+                          </Col>
                         ))}
-                      </StyledGrid>
+                      </Row>
                     )}
 
                     {textItems.length > 0 && (
-                      <ul style={{ marginTop: '16px', paddingLeft: '0', listStyle: 'none' }}>
-                        {textItems.map(({ name, url }, idx) => (
-                          <li
-                            key={idx}
-                            style={{
-                              marginBottom: '8px',
-                              fontSize: '15px',
-                              border: '1px solid var(--ifm-border-color)',
-                              borderRadius: '8px',
-                              padding: '6px 10px',
-                              background: 'rgba(0,122,204,0.04)',
-                              transition: 'background 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,122,204,0.09)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,122,204,0.04)')}
-                          >
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ color: 'var(--ifm-link-color)', textDecoration: 'none' }}
-                            >
-                              {name}
+                      <Row gutter={[8, 8]}>
+                        {textItems.map(({ name, url, contributors }) => (
+                          <Col xs={24} sm={12} md={8} key={name}>
+                            <a href={url} target="_blank" rel="noreferrer">
+                              <Card
+                                size="small"
+                                hoverable
+                                styles={{ body: { padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } }}
+                              >
+                                <Text ellipsis style={{ flex: 1 }}>{name}</Text>
+                                <ContributorAvatars contributors={contributors} />
+                              </Card>
                             </a>
-                          </li>
+                          </Col>
                         ))}
-                      </ul>
+                      </Row>
                     )}
-                  </Collapse.Panel>
-                );
-              })}
-            </Collapse>
-          </CollapseStyles>
+                  </>
+                ),
+              };
+            })}
+          />
         </div>
-
-        <div style={{ height: '60px' }}></div>
       </main>
     </Layout>
   );

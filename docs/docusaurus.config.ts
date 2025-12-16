@@ -427,11 +427,15 @@ const config: Config = {
               label: 'Stack Overflow',
               href: 'https://stackoverflow.com/questions/tagged/apache-superset',
             },
+            {
+              label: 'Community Calendar',
+              href: '/community#superset-community-calendar',
+            },
+            {
+              label: 'In the Wild',
+              href: '/inTheWild',
+            },
           ],
-        },
-        {
-          label: 'In the Wild',
-          to: '/inTheWild'
         },
         ...dynamicNavbarItems,
         {
