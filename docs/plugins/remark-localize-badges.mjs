@@ -169,7 +169,7 @@ export default function remarkLocalizeBadges(options = {}) {
   const staticDir = options.staticDir || path.join(docsRoot, 'static');
 
 
-  return async function transformer(tree, file) {
+  return async function transformer(tree) {
     const promises = [];
 
     // Find all image nodes
