@@ -158,7 +158,7 @@
     "geostyler-openlayers-parser": "^4.3.0",
     "geostyler-style": "7.5.0",
     "geostyler-wfs-parser": "^2.0.3",
-    "googleapis": "^168.0.0",
+    "googleapis": "^169.0.0",
     "immer": "^11.0.1",
     "interweave": "^13.1.1",
     "jquery": "^3.7.1",
