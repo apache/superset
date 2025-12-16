@@ -71,24 +71,32 @@ DATASET_DESCRIPTIONS = {
 }
 
 
-def get_data_directory() -> Path:
-    """Get the path to the data directory."""
+def get_examples_directory() -> Path:
+    """Get the path to the examples directory."""
     from .helpers import get_examples_folder
 
-    return Path(get_examples_folder()) / "data"
+    return Path(get_examples_folder())
 
 
 def discover_datasets() -> Dict[str, Callable[..., None]]:
-    """Auto-discover all Parquet files and create loaders for them."""
-    loaders: Dict[str, Callable[..., None]] = {}
-    data_dir = get_data_directory()
+    """Auto-discover all example datasets and create loaders for them.
 
-    if not data_dir.exists():
+    Examples are organized as:
+        superset/examples/{example_name}/data.parquet
+    """
+    loaders: Dict[str, Callable[..., None]] = {}
+    examples_dir = get_examples_directory()
+
+    if not examples_dir.exists():
         return loaders
 
-    # Discover all .parquet files
-    for parquet_file in sorted(data_dir.glob("*.parquet")):
-        dataset_name = parquet_file.stem
+    # Discover all example directories with data.parquet files
+    for data_file in sorted(examples_dir.glob("*/data.parquet")):
+        dataset_name = data_file.parent.name
+
+        # Skip special directories
+        if dataset_name.startswith("_"):
+            continue
 
         # Determine table name
         table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)

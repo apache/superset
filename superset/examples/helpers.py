@@ -141,10 +141,12 @@ def read_example_data(
 ) -> pd.DataFrame:
     """Load data from local Parquet files.
 
+    Examples are organized as:
+        superset/examples/{example_name}/data.parquet
+
     Args:
-        filepath: Path to the Parquet file (e.g., "examples://birth_names" or
-            "examples://birth_names.parquet")
-        table_name: Ignored (kept for backward compatibility with DuckDB interface)
+        filepath: Example name (e.g., "examples://birth_names" or just "birth_names")
+        table_name: Ignored (kept for backward compatibility)
         **kwargs: Ignored (kept for backward compatibility)
 
     Returns:
@@ -152,32 +154,28 @@ def read_example_data(
     """
     import os
 
-    # Handle different URL formats
+    # Extract example name from filepath
     if filepath.startswith(EXAMPLES_PROTOCOL):
-        # examples:// protocol
-        relative_path = filepath[len(EXAMPLES_PROTOCOL) :]
-        # Strip old extension if present and add .parquet
-        for ext in (".parquet", ".duckdb"):
-            if relative_path.endswith(ext):
-                relative_path = relative_path[: -len(ext)]
-                break
-        relative_path = f"{relative_path}.parquet"
-        local_path = os.path.join(get_examples_folder(), "data", relative_path)
+        example_name = filepath[len(EXAMPLES_PROTOCOL) :]
     elif filepath.startswith("file://"):
-        # file:// protocol - extract the actual path
-        local_path = filepath[7:]  # Remove "file://"
+        # file:// protocol - use as-is for direct file access
+        return pd.read_parquet(filepath[7:])
     else:
-        # Assume it's a relative path
-        relative_path = filepath
-        for ext in (".parquet", ".duckdb"):
-            if relative_path.endswith(ext):
-                relative_path = relative_path[: -len(ext)]
-                break
-        relative_path = f"{relative_path}.parquet"
-        local_path = os.path.join(get_examples_folder(), "data", relative_path)
+        example_name = filepath
+
+    # Strip any extension
+    for ext in (".parquet", ".duckdb"):
+        if example_name.endswith(ext):
+            example_name = example_name[: -len(ext)]
+            break
+
+    # Normalize name (lowercase, underscores)
+    example_name = example_name.lower().replace(" ", "_").replace("-", "_")
+
+    # Build path: {examples_folder}/{example_name}/data.parquet
+    local_path = os.path.join(get_examples_folder(), example_name, "data.parquet")
 
     if not os.path.exists(local_path):
         raise FileNotFoundError(f"Example data file not found: {local_path}")
 
-    # Read from Parquet (much simpler than DuckDB - no SQL needed)
     return pd.read_parquet(local_path)
