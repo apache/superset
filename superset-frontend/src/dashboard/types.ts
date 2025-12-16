@@ -40,6 +40,7 @@ import {
 } from './components/nativeFilters/ChartCustomization/types';
 import { GroupByCustomizationsState } from './reducers/groupByCustomizations';
 import { ChartState } from '../explore/types';
+import { SliceEntitiesState } from './actions/sliceEntities';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -185,7 +186,7 @@ export type DatasourcesState = {
 /** Root state of redux */
 export type RootState = {
   datasources: DatasourcesState;
-  sliceEntities: JsonObject;
+  sliceEntities: SliceEntitiesState;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
   dashboardFilters: {};

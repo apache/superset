@@ -25,7 +25,9 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { clearWhatIfModifications } from 'src/dashboard/actions/dashboardState';
 import { restoreOriginalChartData } from 'src/components/Chart/chartAction';
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
-import { RootState, WhatIfModification } from 'src/dashboard/types';
+import { RootState, Slice, WhatIfModification } from 'src/dashboard/types';
+
+const EMPTY_MODIFICATIONS: WhatIfModification[] = [];
 
 /**
  * Banner container positioned at top of dashboard content, next to the What-If panel.
@@ -96,15 +98,17 @@ const WhatIfBanner = ({ topOffset }: WhatIfBannerProps) => {
   const dispatch = useDispatch();
 
   const whatIfModifications = useSelector<RootState, WhatIfModification[]>(
-    state => state.dashboardState.whatIfModifications || [],
+    state => state.dashboardState.whatIfModifications ?? EMPTY_MODIFICATIONS,
   );
 
-  const charts = useSelector((state: RootState) => state.charts);
+  const slices = useSelector(
+    (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
+  );
   const datasources = useSelector((state: RootState) => state.datasources);
 
   const numericColumns = useMemo(
-    () => getNumericColumnsForDashboard(charts, datasources),
-    [charts, datasources],
+    () => getNumericColumnsForDashboard(slices, datasources),
+    [slices, datasources],
   );
 
   const columnToChartIds = useMemo(() => {

@@ -29,7 +29,7 @@ import {
   saveOriginalChartData,
 } from 'src/components/Chart/chartAction';
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
-import { RootState, WhatIfColumn } from 'src/dashboard/types';
+import { RootState, Slice, WhatIfColumn } from 'src/dashboard/types';
 
 export const WHAT_IF_PANEL_WIDTH = 300;
 
@@ -128,12 +128,14 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
   const [sliderValue, setSliderValue] = useState<number>(SLIDER_DEFAULT);
 
-  const charts = useSelector((state: RootState) => state.charts);
+  const slices = useSelector(
+    (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
+  );
   const datasources = useSelector((state: RootState) => state.datasources);
 
   const numericColumns = useMemo(
-    () => getNumericColumnsForDashboard(charts, datasources),
-    [charts, datasources],
+    () => getNumericColumnsForDashboard(slices, datasources),
+    [slices, datasources],
   );
 
   const columnOptions = useMemo(

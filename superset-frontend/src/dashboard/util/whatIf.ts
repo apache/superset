@@ -19,12 +19,7 @@
 import { ensureIsArray, getColumnLabel } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import {
-  ChartsState,
-  DatasourcesState,
-  ChartQueryPayload,
-  WhatIfColumn,
-} from '../types';
+import { DatasourcesState, Slice, WhatIfColumn } from '../types';
 
 /**
  * Check if a column is numeric based on its type_generic field
@@ -34,12 +29,12 @@ export function isNumericColumn(column: ColumnMeta): boolean {
 }
 
 /**
- * Extract column names from a chart's form_data
+ * Extract column names from a slice's form_data
  * This includes columns from groupby, metrics, x_axis, series, filters, etc.
  */
-export function extractColumnsFromChart(chart: ChartQueryPayload): Set<string> {
+export function extractColumnsFromSlice(slice: Slice): Set<string> {
   const columns = new Set<string>();
-  const formData = chart.form_data;
+  const formData = slice.form_data;
   if (!formData) return columns;
 
   // Helper to add column - handles both physical columns (strings) and adhoc columns
@@ -111,37 +106,38 @@ export function extractColumnsFromChart(chart: ChartQueryPayload): Set<string> {
 }
 
 /**
- * Get the datasource key from a chart's form_data
+ * Get the datasource key from a slice's form_data
  * Format: "datasourceId__datasourceType" e.g., "2__table"
  */
-export function getDatasourceKey(chart: ChartQueryPayload): string | null {
-  const datasource = chart.form_data?.datasource;
+export function getDatasourceKey(slice: Slice): string | null {
+  const datasource = slice.form_data?.datasource;
   if (!datasource || typeof datasource !== 'string') return null;
   return datasource;
 }
 
 /**
- * Get numeric columns used by charts on a dashboard
- * Returns columns grouped by their usage across charts
+ * Get numeric columns used by slices on a dashboard
+ * Returns columns grouped by their usage across slices
+ *
+ * Uses sliceEntities.slices instead of charts state because it changes less
+ * frequently (only on slice metadata updates, not on every query result change)
  */
 export function getNumericColumnsForDashboard(
-  charts: ChartsState,
+  slices: { [id: number]: Slice },
   datasources: DatasourcesState,
 ): WhatIfColumn[] {
   const columnMap = new Map<string, WhatIfColumn>();
 
-  Object.values(charts).forEach(chart => {
-    const chartId = chart.id;
-    // Chart and ChartQueryPayload both have id and form_data, so we can safely access them
-    const chartPayload = { id: chart.id, form_data: chart.form_data };
-    const datasourceKey = getDatasourceKey(chartPayload);
+  Object.values(slices).forEach(slice => {
+    const chartId = slice.slice_id;
+    const datasourceKey = getDatasourceKey(slice);
     if (!datasourceKey) return;
 
     const datasource = datasources[datasourceKey];
     if (!datasource?.columns) return;
 
-    // Extract columns referenced by this chart
-    const referencedColumns = extractColumnsFromChart(chartPayload);
+    // Extract columns referenced by this slice
+    const referencedColumns = extractColumnsFromSlice(slice);
 
     // For each referenced column, check if it's numeric
     referencedColumns.forEach(colName => {
@@ -173,12 +169,9 @@ export function getNumericColumnsForDashboard(
 }
 
 /**
- * Check if a chart uses a specific column
+ * Check if a slice uses a specific column
  */
-export function chartUsesColumn(
-  chart: ChartQueryPayload,
-  columnName: string,
-): boolean {
-  const columns = extractColumnsFromChart(chart);
+export function sliceUsesColumn(slice: Slice, columnName: string): boolean {
+  const columns = extractColumnsFromSlice(slice);
   return columns.has(columnName);
 }
