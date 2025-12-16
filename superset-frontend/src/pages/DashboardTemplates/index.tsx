@@ -17,12 +17,49 @@
  * under the License.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { SupersetClient, t } from '@superset-ui/core';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { SupersetClient, t, logging } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { DashboardTemplateGallery } from './DashboardTemplateGallery';
 import { DashboardTemplate } from './types';
+
+const PageContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: ${theme.colorBgLayout};
+  `}
+`;
+
+const PageHeader = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+    padding: ${theme.sizeUnit * 4}px;
+    background: ${theme.colorBgContainer};
+    border-bottom: 1px solid ${theme.colorBorder};
+  `}
+`;
+
+const PageTitle = styled.h2`
+  ${({ theme }) => css`
+    margin: 0;
+    font-size: ${theme.fontSizeHeading3}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+  `}
+`;
+
+const PageSubtitle = styled.p`
+  ${({ theme }) => css`
+    margin: ${theme.sizeUnit}px 0 0;
+    font-size: ${theme.fontSize}px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
 
 export default function DashboardTemplates() {
   const [templates, setTemplates] = useState<DashboardTemplate[]>([]);
@@ -30,7 +67,6 @@ export default function DashboardTemplates() {
   const history = useHistory();
 
   useEffect(() => {
-    // Fetch templates from API
     SupersetClient.get({
       endpoint: '/api/v1/dashboard/templates',
     })
@@ -38,7 +74,7 @@ export default function DashboardTemplates() {
         setTemplates(json.result);
       })
       .catch(error => {
-        console.error('Error fetching templates:', error);
+        logging.error('Error fetching templates:', error);
       })
       .finally(() => {
         setLoading(false);
@@ -47,27 +83,28 @@ export default function DashboardTemplates() {
 
   const handleSelectTemplate = (template: DashboardTemplate | null) => {
     if (template === null || template.id === null) {
-      // "Start from blank" selected - navigate to actual creation endpoint
-      history.push('/dashboard/new');
+      // /dashboard/new/ is a backend Flask route that creates a new dashboard
+      // and redirects to the edit mode. Use full page navigation.
+      navigateTo('/dashboard/new/');
     } else {
-      // Navigate to template view (read-only dashboard)
+      // Existing templates - use React Router for SPA navigation
       history.push(`/superset/dashboard/${template.uuid}/`);
     }
   };
 
   return (
-    <>
-      <PageHeaderWithActions
-        title={t('Dashboard Templates')}
-        subtitle={t(
-          'Choose a template to get started or create a blank dashboard',
-        )}
-      />
+    <PageContainer>
+      <PageHeader>
+        <PageTitle>{t('Dashboard Templates')}</PageTitle>
+        <PageSubtitle>
+          {t('Choose a template to get started or create a blank dashboard')}
+        </PageSubtitle>
+      </PageHeader>
       <DashboardTemplateGallery
         templates={templates}
         loading={loading}
         onSelectTemplate={handleSelectTemplate}
       />
-    </>
+    </PageContainer>
   );
 }

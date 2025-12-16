@@ -111,22 +111,32 @@ class DashboardDAO(BaseDAO[Dashboard]):
         Get all dashboard templates accessible to current user.
 
         Templates are dashboards with is_template=true in json_metadata.
+        Templates are "public" resources - any user with dashboard creation
+        permission can view and use them, regardless of ownership.
+
         Returns templates ordered by: featured first, then by title.
 
         Returns:
-            list[Dashboard]: List of template dashboards with access control applied
+            list[Dashboard]: List of template dashboards
+
+        Raises:
+            DashboardAccessDeniedError: If user lacks dashboard creation permission
         """
         from sqlalchemy.orm import joinedload
+
+        # Templates are accessible to any user with dashboard creation permission
+        # This bypasses the normal ownership-based DashboardAccessFilter
+        if not security_manager.can_access("can_write", "Dashboard"):
+            raise DashboardAccessDeniedError()
 
         query = db.session.query(Dashboard).options(
             joinedload(Dashboard.tags),
             joinedload(Dashboard.owners),
         )
 
-        # Apply access filter (existing pattern)
-        query = DashboardDAO.base_filter(
-            "id", SQLAInterface(Dashboard, db.session)
-        ).apply(query, None)
+        # Note: We intentionally skip DashboardAccessFilter here.
+        # Templates should be visible to all users with dashboard creation permission,
+        # not just dashboard owners.
 
         # Filter to only templates and order
         dashboards = query.all()

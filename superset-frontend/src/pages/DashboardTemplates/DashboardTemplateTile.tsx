@@ -17,40 +17,38 @@
  * under the License.
  */
 
-import React from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Tag } from 'src/components';
-import Icons from 'src/components/Icons';
+import { FC, KeyboardEvent } from 'react';
+import { t } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
+import { Tag, Card } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardTemplate } from './types';
 
-const Tile = styled.button`
-  display: flex;
-  flex-direction: column;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  cursor: pointer;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-  transition: all 0.2s ease;
+const THUMBNAIL_HEIGHT = 180;
 
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.primary.base};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+const StyledCard = styled(Card)`
+  ${({ theme }) => css`
+    overflow: hidden;
+    cursor: pointer;
 
-  &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary.base};
-    outline-offset: 2px;
-  }
+    &:hover {
+      box-shadow: ${theme.boxShadow};
+      transition: box-shadow ${theme.motionDurationSlow} ease-in-out;
+    }
+
+    .ant-card-body {
+      padding: ${theme.sizeUnit * 2}px;
+    }
+  `}
 `;
 
 const ThumbnailWrapper = styled.div`
   width: 100%;
-  height: 180px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  height: ${THUMBNAIL_HEIGHT}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
   overflow: hidden;
-  background: ${({ theme }) => theme.colors.grayscale.light3};
+  background: ${({ theme }) => theme.colorFillTertiary};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,22 +63,25 @@ const ThumbnailImage = styled.img`
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.gridUnit}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const Title = styled.div`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  color: ${({ theme }) => theme.colorText};
   text-align: left;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Description = styled.p`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -92,7 +93,7 @@ const Description = styled.p`
 const TagsWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${({ theme }) => theme.gridUnit}px;
+  gap: ${({ theme }) => theme.sizeUnit}px;
   margin-top: auto;
 `;
 
@@ -101,24 +102,28 @@ interface DashboardTemplateTileProps {
   onClick: (template: DashboardTemplate) => void;
 }
 
-export const DashboardTemplateTile: React.FC<DashboardTemplateTileProps> = ({
+export const DashboardTemplateTile: FC<DashboardTemplateTileProps> = ({
   template,
   onClick,
 }) => {
   const isBlank = template.id === null;
 
+  const handleClick = () => onClick(template);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick(template);
+    }
+  };
+
   return (
-    <Tile
-      onClick={() => onClick(template)}
+    <StyledCard
+      onClick={handleClick}
       aria-label={template.dashboard_title}
       role="button"
       tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick(template);
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       <ThumbnailWrapper>
         {template.template_thumbnail_url ? (
@@ -127,7 +132,12 @@ export const DashboardTemplateTile: React.FC<DashboardTemplateTileProps> = ({
             alt={template.dashboard_title}
           />
         ) : (
-          <Icons.DashboardOutlined iconSize="xxl" iconColor="grayscale.light1" />
+          <Icons.DashboardOutlined
+            iconSize="xxl"
+            css={(theme: SupersetTheme) => css`
+              color: ${theme.colorTextQuaternary};
+            `}
+          />
         )}
       </ThumbnailWrapper>
 
@@ -149,6 +159,6 @@ export const DashboardTemplateTile: React.FC<DashboardTemplateTileProps> = ({
           ))}
         </TagsWrapper>
       )}
-    </Tile>
+    </StyledCard>
   );
 };

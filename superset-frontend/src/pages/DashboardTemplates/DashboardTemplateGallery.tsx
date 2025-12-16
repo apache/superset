@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { FC, ChangeEvent, useMemo, useState, useCallback } from 'react';
 import Fuse from 'fuse.js';
-import { Input } from 'src/components';
-import Icons from 'src/components/Icons';
+import { t } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/ui';
+import { Input, Collapse } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardTemplateTile } from './DashboardTemplateTile';
 import {
   BLANK_TEMPLATE,
@@ -40,80 +41,112 @@ const GalleryLayout = styled.div`
     'sidebar main';
   height: 70vh;
   overflow: auto;
-  background: ${({ theme }) => theme.colors.grayscale.light4};
+  background: ${({ theme }) => theme.colorBgLayout};
 `;
 
 const LeftPane = styled.div`
-  grid-area: sidebar;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  overflow-y: auto;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid ${theme.colorBorder};
+    overflow: auto;
+
+    .ant-collapse .ant-collapse-item {
+      .ant-collapse-header {
+        font-size: ${theme.fontSizeSM}px;
+        color: ${theme.colorText};
+        padding-left: ${theme.sizeUnit * 2}px;
+        padding-bottom: ${theme.sizeUnit}px;
+      }
+
+      .ant-collapse-content .ant-collapse-content-box {
+        display: flex;
+        flex-direction: column;
+        padding: 0 ${theme.sizeUnit * 2}px;
+      }
+    }
+  `}
 `;
 
 const SearchWrapper = styled.div`
-  grid-area: search;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    grid-area: search;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit}px;
+    margin-left: ${theme.sizeUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
+    .ant-input-affix-wrapper {
+      padding-left: ${theme.sizeUnit * 2}px;
+    }
+  `}
 `;
 
 const MainContent = styled.div`
   grid-area: main;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
   overflow-y: auto;
 `;
 
 const TileGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: ${({ theme }) => theme.gridUnit * 4}px;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const Selector = styled.button<{ isSelected: boolean }>`
-  width: 100%;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  border: none;
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-  background: ${({ theme, isSelected }) =>
-    isSelected ? theme.colors.primary.light4 : 'transparent'};
-  color: ${({ theme, isSelected }) =>
-    isSelected ? theme.colors.primary.dark1 : theme.colors.grayscale.dark1};
-  font-weight: ${({ theme, isSelected }) =>
-    isSelected
-      ? theme.typography.weights.bold
-      : theme.typography.weights.normal};
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
+const SelectorLabel = styled.button`
+  ${({ theme }) => css`
+    all: unset;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    cursor: pointer;
+    margin: ${theme.sizeUnit}px 0;
+    padding: 0 ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
+    line-height: 2em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+    color: ${theme.colorText};
 
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary.light5};
-  }
+    &:focus {
+      outline: initial;
+    }
+
+    &.selected {
+      background-color: ${theme.colorPrimary};
+      color: ${theme.colorTextLightSolid};
+
+      svg {
+        color: ${theme.colorTextLightSolid};
+      }
+    }
+
+    & > span[role='img'] {
+      margin-right: ${theme.sizeUnit * 2}px;
+    }
+  `}
 `;
 
-const SectionTitle = styled.div`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  margin-top: ${({ theme }) => theme.gridUnit * 3}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-
-  &:first-child {
-    margin-top: 0;
-  }
-`;
-
-const EmptyState = styled.div`
+const NoResultsMessage = styled.div`
   text-align: center;
-  padding: ${({ theme }) => theme.gridUnit * 8}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  padding: ${({ theme }) => theme.sizeUnit * 8}px;
+  color: ${({ theme }) => theme.colorTextTertiary};
 `;
 
-export const DashboardTemplateGallery: React.FC<
-  DashboardTemplateGalleryProps
-> = ({ templates, loading, onSelectTemplate }) => {
+const InputIconAlignment = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${({ theme }) => theme.colorIcon};
+`;
+
+export const DashboardTemplateGallery: FC<DashboardTemplateGalleryProps> = ({
+  templates,
+  loading,
+  onSelectTemplate,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(ALL_TEMPLATES);
 
@@ -185,13 +218,13 @@ export const DashboardTemplateGallery: React.FC<
   }, [templatesWithBlank, searchTerm, selectedCategory, fuse]);
 
   const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     },
     [],
   );
 
-  const clearSearch = useCallback(() => {
+  const stopSearching = useCallback(() => {
     setSearchTerm('');
   }, []);
 
@@ -201,58 +234,92 @@ export const DashboardTemplateGallery: React.FC<
 
   return (
     <GalleryLayout>
-      {/* Left sidebar with category filters */}
-      <LeftPane>
-        <Selector
-          isSelected={selectedCategory === ALL_TEMPLATES}
+      <LeftPane aria-label={t('Choose template type')} role="tablist">
+        <SelectorLabel
+          css={({ sizeUnit }) => css`
+            margin: ${sizeUnit * 2}px;
+            margin-bottom: 0;
+          `}
+          className={selectedCategory === ALL_TEMPLATES ? 'selected' : ''}
           onClick={() => setSelectedCategory(ALL_TEMPLATES)}
+          tabIndex={0}
+          role="tab"
+          aria-selected={selectedCategory === ALL_TEMPLATES}
         >
+          <Icons.Ballot iconSize="m" />
           {ALL_TEMPLATES}
-        </Selector>
+        </SelectorLabel>
 
-        <Selector
-          isSelected={selectedCategory === FEATURED}
+        <SelectorLabel
+          css={({ sizeUnit }) => css`
+            margin: ${sizeUnit * 2}px;
+            margin-bottom: 0;
+          `}
+          className={selectedCategory === FEATURED ? 'selected' : ''}
           onClick={() => setSelectedCategory(FEATURED)}
+          tabIndex={0}
+          role="tab"
+          aria-selected={selectedCategory === FEATURED}
         >
-          <Icons.StarFilled iconSize="m" /> {FEATURED}
-        </Selector>
+          <Icons.FireOutlined iconSize="m" />
+          {FEATURED}
+        </SelectorLabel>
 
         {categories.length > 0 && (
-          <>
-            <SectionTitle>{t('Categories')}</SectionTitle>
-            {categories.map(category => (
-              <Selector
-                key={category}
-                isSelected={selectedCategory === category}
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category} ({templatesByCategory[category].length})
-              </Selector>
-            ))}
-          </>
+          <Collapse
+            expandIconPosition="end"
+            ghost
+            defaultActiveKey="categories"
+            items={[
+              {
+                key: 'categories',
+                label: <span className="header">{t('Categories')}</span>,
+                children: (
+                  <>
+                    {categories.map(category => (
+                      <SelectorLabel
+                        key={category}
+                        className={
+                          selectedCategory === category ? 'selected' : ''
+                        }
+                        onClick={() => setSelectedCategory(category)}
+                        tabIndex={0}
+                        role="tab"
+                        aria-selected={selectedCategory === category}
+                      >
+                        <Icons.Category iconSize="m" />
+                        {category} ({templatesByCategory[category].length})
+                      </SelectorLabel>
+                    ))}
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </LeftPane>
 
-      {/* Search bar */}
       <SearchWrapper>
         <Input
-          placeholder={t('Search templates...')}
+          type="text"
           value={searchTerm}
+          placeholder={t('Search templates...')}
           onChange={handleSearchChange}
-          prefix={<Icons.SearchOutlined />}
-          suffix={
-            searchTerm && (
-              <Icons.CloseOutlined
-                onClick={clearSearch}
-                style={{ cursor: 'pointer' }}
-              />
-            )
+          prefix={
+            <InputIconAlignment>
+              <Icons.SearchOutlined iconSize="m" />
+            </InputIconAlignment>
           }
-          allowClear
+          suffix={
+            <InputIconAlignment>
+              {searchTerm && (
+                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
+              )}
+            </InputIconAlignment>
+          }
         />
       </SearchWrapper>
 
-      {/* Main content with template tiles */}
       <MainContent>
         <TileGrid>
           {filteredTemplates.map(template => (
@@ -264,9 +331,9 @@ export const DashboardTemplateGallery: React.FC<
           ))}
         </TileGrid>
         {filteredTemplates.length === 0 && (
-          <EmptyState>
+          <NoResultsMessage>
             {t('No templates found matching your search.')}
-          </EmptyState>
+          </NoResultsMessage>
         )}
       </MainContent>
     </GalleryLayout>

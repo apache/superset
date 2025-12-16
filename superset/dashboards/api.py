@@ -239,6 +239,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "screenshot",
         "put_filters",
         "put_colors",
+        "templates",
     }
     resource_name = "dashboard"
     allow_browser_login = True

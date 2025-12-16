@@ -211,7 +211,7 @@ export const routes: Routes = [
     Component: DashboardList,
   },
   {
-    path: '/dashboard/templates',
+    path: '/dashboard/templates/',
     Component: DashboardTemplates,
   },
   {

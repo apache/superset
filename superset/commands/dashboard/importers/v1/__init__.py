@@ -207,6 +207,18 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for dashboard in dashboards:
             migrate_dashboard(dashboard)
 
+        # TODO: When implementing template dashboard import, set is_template_chart=True
+        # on all charts and is_template_dataset=True on all datasets belonging to template
+        # dashboards. Check config["metadata"]["is_template"] for each dashboard, and if True:
+        #
+        # 1. For charts: iterate through find_chart_uuids(config["position"]) to get the
+        #    chart UUIDs, then set chart.is_template_chart = True for matching charts.
+        #
+        # 2. For datasets: get all datasets referenced by the template charts (via
+        #    chart.datasource_id), then set dataset.is_template_dataset = True.
+        #
+        # These flags prevent charts and datasets from being modified/deleted via the API.
+
         # Remove all obsolete filter-box charts.
         for chart in charts:
             if chart.viz_type == "filter_box":
