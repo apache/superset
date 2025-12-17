@@ -581,6 +581,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
+    # Enable the new Data Access Rules system for table-level access control,
+    # row-level security (RLS), and column-level security (CLS). This replaces
+    # the FAB-based permission system with a more flexible JSON-based rule system.
+    "DATA_ACCESS_RULES": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported.
     "OPTIMIZE_SQL": False,
     # When impersonating a user, use the email prefix instead of the username
