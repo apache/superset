@@ -42,7 +42,6 @@ const DEFAULT_TIMEZONE = {
 };
 
 const MIN_SELECT_WIDTH = '400px';
-const DROPDOWN_MIN_HEIGHT = 265;
 
 const JANUARY_REF = extendedDayjs.tz('2021-01-01');
 const JULY_REF = extendedDayjs.tz('2021-07-01');
@@ -93,7 +92,7 @@ function computeTimezoneOptions(): TimezoneOption[] {
   for (const zone of allZones) {
     const offsetKey = getOffsetKey(zone);
     const displayName = getTimezoneDisplayName(zone, currentDate);
-    const offset = extendedDayjs.tz(currentDate, zone).format('Z');
+    const offset = currentDate.tz(zone).format('Z');
     const label = `GMT ${offset} (${displayName})`;
 
     if (!seenLabels.has(label)) {
@@ -106,13 +105,6 @@ function computeTimezoneOptions(): TimezoneOption[] {
       });
     }
   }
-
-  // Pre-sort timezone options by time offset
-  options.sort(
-    (a, b) =>
-      extendedDayjs.tz(currentDate, a.timezoneName).utcOffset() -
-      extendedDayjs.tz(currentDate, b.timezoneName).utcOffset(),
-  );
 
   cachedTimezoneOptions = options;
   return options;
@@ -129,15 +121,21 @@ function getTimezoneOptionsAsync(): Promise<TimezoneOption[]> {
 
   // Use queueMicrotask for better performance than setTimeout(0)
   // Falls back to setTimeout for older browsers
-  computePromise = new Promise<TimezoneOption[]>(resolve => {
+  computePromise = new Promise<TimezoneOption[]>((resolve, reject) => {
+    const run = () => {
+      try {
+        const result = computeTimezoneOptions();
+        resolve(result);
+      } catch (err) {
+        reject(err);
+      } finally {
+        computePromise = null;
+      }
+    };
     if (typeof queueMicrotask === 'function') {
-      queueMicrotask(() => {
-        resolve(computeTimezoneOptions());
-      });
+      queueMicrotask(run);
     } else {
-      setTimeout(() => {
-        resolve(computeTimezoneOptions());
-      }, 0);
+      setTimeout(run, 0);
     }
   });
 
@@ -195,8 +193,8 @@ export default function TimezoneSelector({
     if (!timezoneOptions) return undefined;
     const currentDate = extendedDayjs();
     return (a: TimezoneOption, b: TimezoneOption) =>
-      extendedDayjs.tz(currentDate, a.timezoneName).utcOffset() -
-      extendedDayjs.tz(currentDate, b.timezoneName).utcOffset();
+      currentDate.tz(a.timezoneName).utcOffset() -
+      currentDate.tz(b.timezoneName).utcOffset();
   }, [timezoneOptions]);
 
   const validTimezone = useMemo(() => {
@@ -216,8 +214,7 @@ export default function TimezoneSelector({
       sortComparator={sortComparator}
       loading={isLoadingOptions}
       placeholder={isLoadingOptions ? t('Loading timezones...') : placeholder}
-      dropdownStyle={{ minHeight: DROPDOWN_MIN_HEIGHT }}
-      {...rest}
+      {...({ placement: 'topLeft', ...rest } as any)}
     />
   );
 }

@@ -62,7 +62,12 @@ test('render timezones in correct order for daylight saving time', async () => {
 
   // Verify the selected timezone is displayed correctly (in DST)
   const selectionItem = container.querySelector('.ant-select-selection-item');
-  expect(selectionItem).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
+  expect(selectionItem).not.toBeNull();
+  if (selectionItem) {
+    expect(selectionItem).toHaveTextContent(
+      'GMT -04:00 (Eastern Daylight Time)',
+    );
+  }
 
   // Verify options are sorted by UTC offset (lowest/most negative first)
   const options = document.querySelectorAll('.ant-select-item-option-content');
