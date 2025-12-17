@@ -20,6 +20,16 @@
 import { Locator, Page } from '@playwright/test';
 
 /**
+ * Ant Design Select component selectors
+ */
+const SELECT_SELECTORS = {
+  DROPDOWN: '.ant-select-dropdown',
+  OPTION: '.ant-select-item-option',
+  SEARCH_INPUT: '.ant-select-selection-search-input',
+  CLEAR: '.ant-select-clear',
+} as const;
+
+/**
  * Select component for Ant Design Select/Combobox interactions.
  */
 export class Select {
@@ -74,16 +84,18 @@ export class Select {
 
   /**
    * Clicks an option in an already-open dropdown by its text content.
-   * Uses Ant Design's dropdown class structure since options don't have title attributes.
-   * @param optionText - The exact text of the option to click
+   * Uses selector-based approach matching Cypress patterns.
+   * @param optionText - The text of the option to click
    */
   async clickOption(optionText: string): Promise<void> {
-    // Ant Design renders options in a dropdown with class .ant-select-item-option
-    // The option text is in .ant-select-item-option-content
-    // We use getByRole for accessibility, falling back to text matching
-    const option = this.page.locator('.ant-select-item-option', {
-      hasText: optionText,
-    });
+    // Wait for dropdown to be visible
+    const dropdown = this.page.locator(SELECT_SELECTORS.DROPDOWN);
+    await dropdown.waitFor({ state: 'visible' });
+
+    // Find option by selector and text content (matches Cypress .contains() pattern)
+    const option = dropdown
+      .locator(SELECT_SELECTORS.OPTION)
+      .getByText(optionText, { exact: true });
     await option.click();
   }
 

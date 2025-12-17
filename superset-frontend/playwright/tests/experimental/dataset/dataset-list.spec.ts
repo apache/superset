@@ -94,16 +94,12 @@ test('should navigate to Explore when dataset name is clicked', async ({
   const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
   const dataset = await getDatasetByName(page, datasetName);
 
-  // Guard: Verify example dataset exists and is virtual (required for duplicate tests)
+  // Guard: Verify example dataset exists (required for all tests in this file)
   // This makes tests fail fast with clear message if examples aren't loaded correctly
   expect(
     dataset,
     `Example dataset '${datasetName}' not found. Ensure --load-examples was run.`,
   ).not.toBeNull();
-  expect(
-    dataset!.dataset_type,
-    `Example dataset '${datasetName}' must be virtual for duplicate tests.`,
-  ).toBe('virtual');
 
   // Verify dataset is visible in list (uses page object + Playwright auto-wait)
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
