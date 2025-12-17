@@ -39,6 +39,7 @@ const mockOnRemove = jest.fn();
 const mockOnInputChange = jest.fn();
 const mockSetErrorSubject = jest.fn();
 const mockSetErrorCsvFilename = jest.fn();
+const mockSetErrorEmailFrom = jest.fn();
 
 const mockSetting: NotificationSetting = {
   method: NotificationMethodOption.Email,
@@ -75,6 +76,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -99,6 +102,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -122,6 +127,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -150,6 +157,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -230,6 +239,8 @@ describe('NotificationMethod', () => {
       csv_filename: 'test.csv',
       defaultCsvFilename: 'default.csv',
       setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -260,6 +271,8 @@ describe('NotificationMethod', () => {
       csv_filename: 'test.csv',
       defaultCsvFilename: 'default.csv',
       setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -290,6 +303,8 @@ describe('NotificationMethod', () => {
       csv_filename: 'test.csv',
       defaultCsvFilename: 'default.csv',
       setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -321,6 +336,8 @@ describe('NotificationMethod', () => {
       csv_filename: 'test.csv',
       defaultCsvFilename: 'default.csv',
       setErrorCsvFilename: jest.fn(),
+      email_from: '',
+      setErrorEmailFrom: jest.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -357,6 +374,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -396,6 +415,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -440,6 +461,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -477,6 +500,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 
@@ -514,6 +539,8 @@ describe('NotificationMethod', () => {
         csv_filename={mockCsvFilename}
         defaultCsvFilename={mockDefaultCsvFilename}
         setErrorCsvFilename={mockSetErrorCsvFilename}
+        email_from=""
+        setErrorEmailFrom={mockSetErrorEmailFrom}
       />,
     );
 

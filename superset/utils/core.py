@@ -693,13 +693,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     bcc: str | None = None,
     mime_subtype: str = "mixed",
     header_data: HeaderDataType | None = None,
+    from_address: str | None = None,
 ) -> None:
     """
     Send an email with html content, eg:
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
-    smtp_mail_from = config["SMTP_MAIL_FROM"]
+    smtp_mail_from = from_address or config["SMTP_MAIL_FROM"]
     smtp_mail_to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
@@ -806,7 +807,7 @@ def send_mime_email(
         smtp.starttls(context=ssl_context)
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
+    logger.info("Sent an email to %s from %s", str(e_to), e_from)
     smtp.sendmail(e_from, e_to, mime_msg.as_string())
     smtp.quit()
 

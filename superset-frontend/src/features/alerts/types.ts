@@ -96,6 +96,9 @@ export type AlertObject = {
   description?: string;
   email_subject?: string;
   csv_filename?: string;
+  extra?: {
+    email_from?: string;
+  };
   error?: string;
   force_screenshot: boolean;
   grace_period?: number;
