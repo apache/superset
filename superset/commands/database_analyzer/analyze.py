@@ -277,6 +277,10 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
 
         # Process tables in parallel
         tables = self.report.tables
+        if not tables:
+            logger.warning("No tables to augment with AI descriptions")
+            return
+
         max_workers = min(10, len(tables))
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
