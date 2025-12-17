@@ -1536,11 +1536,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # Without schema: qualifies single-table queries, partial for JOINs.
         from sqlglot.optimizer.qualify import qualify
 
+        # Only expand stars if schema is provided (from DAR with feature flag enabled)
+        # to avoid potential errors in other contexts
         self._parsed = qualify(
             self._parsed,
             schema=schema,
             dialect=self._dialect,
             validate_qualify_columns=False,
+            expand_stars=bool(schema),
         )
 
         transformer = CLSTransformer(rules, self._dialect)

@@ -551,13 +551,50 @@ def apply_data_access_rules(
         if table_cls:
             cls_rules[qualified_table] = table_cls
 
-    # Apply RLS if we have predicates
+    # Apply CLS first (before RLS) so that hidden columns are removed
+    # before RLS wraps the query in a subquery
+    if cls_rules:
+        # Build schema dict for sqlglot's qualify() to expand SELECT *
+        # sqlglot expects nested format: {catalog: {schema: {table: {col: type}}}}
+        # or {schema: {table: {col: type}}} without catalog
+        table_schemas: dict[str, Any] = {}
+        for table in cls_rules.keys():
+            try:
+                columns = database.get_columns(table)
+                col_types = {
+                    col["column_name"]: str(col.get("type", "VARCHAR"))
+                    for col in columns
+                }
+
+                # Build nested structure for sqlglot
+                if table.catalog:
+                    if table.catalog not in table_schemas:
+                        table_schemas[table.catalog] = {}
+                    if table.schema:
+                        if table.schema not in table_schemas[table.catalog]:
+                            table_schemas[table.catalog][table.schema] = {}
+                        table_schemas[table.catalog][table.schema][table.table] = col_types
+                    else:
+                        table_schemas[table.catalog][table.table] = col_types
+                elif table.schema:
+                    if table.schema not in table_schemas:
+                        table_schemas[table.schema] = {}
+                    table_schemas[table.schema][table.table] = col_types
+                else:
+                    table_schemas[table.table] = col_types
+            except Exception as ex:
+                logger.warning(
+                    "Could not fetch schema for table %s: %s",
+                    table,
+                    ex,
+                )
+
+        parsed_statement.apply_cls(cls_rules, schema=table_schemas if table_schemas else None)
+
+    # Apply RLS after CLS - RLS wraps the query in a subquery with SELECT *
+    # which will pick up the already-transformed columns from CLS
     if rls_predicates:
         parsed_statement.apply_rls(catalog, schema, rls_predicates, method)
-
-    # Apply CLS if we have rules
-    if cls_rules:
-        parsed_statement.apply_cls(cls_rules)
 
 
 def get_allowed_tables(

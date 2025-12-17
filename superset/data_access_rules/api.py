@@ -31,7 +31,6 @@ from marshmallow import ValidationError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.data_access_rules.models import DataAccessRule
 from superset.data_access_rules.schemas import (
-    DataAccessRuleListSchema,
     DataAccessRulePostSchema,
     DataAccessRulePutSchema,
     DataAccessRuleShowSchema,
@@ -109,7 +108,8 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = DataAccessRulePostSchema()
     edit_model_schema = DataAccessRulePutSchema()
-    list_model_schema = DataAccessRuleListSchema()
+    # Don't use custom list_model_schema - let Flask-AppBuilder handle
+    # nested relationships via list_columns dot notation
     show_model_schema = DataAccessRuleShowSchema()
 
     openapi_spec_methods = {
