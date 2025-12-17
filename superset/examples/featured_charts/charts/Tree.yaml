@@ -14,34 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Parallel Coordinates
+slice_name: Tree
 description: null
 certified_by: null
 certification_details: null
-viz_type: para
+viz_type: tree_chart
 params:
-  compare_lag: '10'
-  compare_suffix: o10Y
-  country_fieldtype: cca3
-  entity: country_code
-  granularity_sqla: year
-  groupby: []
-  limit: 100
-  markup_type: markdown
-  metrics:
-  - sum__SP_POP_TOTL
-  - sum__SP_RUR_TOTL_ZS
-  - sum__SH_DYN_AIDS
-  row_limit: 50000
-  secondary_metric: sum__SP_POP_TOTL
-  series: country_name
-  show_bubbles: true
-  since: '2011-01-01'
-  time_range: '2014-01-01 : 2014-01-02'
-  until: '2012-01-01'
-  viz_type: para
-query_context: null
+  datasource: 8__table
+  viz_type: tree_chart
+  id: id
+  parent: parent
+  name: name
+  root_node_id: "1"
+  metric: count
+  adhoc_filters: []
+  row_limit: 1000
+  layout: radial
+  node_label_position: top
+  child_label_position: top
+  symbol: emptyCircle
+  symbolSize: 7
+  roam: false
+  extra_form_data: {}
+  dashboards: []
 cache_timeout: null
-uuid: 5cab3136-24e1-48f3-bf68-c3ec2291a27f
+uuid: 57e7f05e-0c9a-4313-8a33-e6d0999824af
 version: 1.0.0
-dataset_uuid: 41156372-3528-4550-b40c-93a170d4cbf7
+dataset_uuid: f710a997-c65e-4aa6-aaed-b7d6998565ae
