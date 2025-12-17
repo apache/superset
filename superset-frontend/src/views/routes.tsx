@@ -34,6 +34,13 @@ const ChartCreation = lazy(
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
+const DatasourceConnector = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasourceConnector" */ 'src/pages/DatasourceConnector'
+    ),
+);
+
 const AnnotationLayerList = lazy(
   () =>
     import(
@@ -75,6 +82,13 @@ const DashboardList = lazy(
 
 const Dashboard = lazy(
   () => import(/* webpackChunkName: "Dashboard" */ 'src/pages/Dashboard'),
+);
+
+const DashboardTemplates = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardTemplates" */ 'src/pages/DashboardTemplates'
+    ),
 );
 
 const DatabaseList = lazy(
@@ -204,6 +218,10 @@ export const routes: Routes = [
     Component: DashboardList,
   },
   {
+    path: '/dashboard/templates/',
+    Component: DashboardTemplates,
+  },
+  {
     path: '/superset/dashboard/:idOrSlug/',
     Component: Dashboard,
   },
@@ -214,6 +232,14 @@ export const routes: Routes = [
   {
     path: '/chart/list/',
     Component: ChartList,
+  },
+  {
+    path: '/datasource-connector/',
+    Component: DatasourceConnector,
+  },
+  {
+    path: '/datasource-connector/loading/:runId',
+    Component: DatasourceConnector,
   },
   {
     path: '/tablemodelview/list/',

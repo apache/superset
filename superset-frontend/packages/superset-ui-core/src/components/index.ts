@@ -191,3 +191,4 @@ export {
   type CodeEditorTheme,
 } from './CodeEditor';
 export { ActionButton, type ActionProps } from './ActionButton';
+export { AIInfoBanner, type AIInfoBannerProps } from './AIInfoBanner';

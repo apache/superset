@@ -205,6 +205,7 @@ class BaseDatasource(
     schema_perm = Column(String(1000))
     catalog_perm = Column(String(1000), nullable=True, default=None)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
+    is_template_dataset = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
 
     sql: str | None = None

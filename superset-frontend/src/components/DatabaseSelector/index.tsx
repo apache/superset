@@ -317,9 +317,26 @@ export function DatabaseSelector({
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
 
   function changeDatabase(
-    value: { label: string; value: number },
-    database: DatabaseValue,
+    value: { label: string; value: number } | undefined,
+    database: DatabaseValue | undefined,
   ) {
+    // Handle clearing the selection
+    if (!database) {
+      setCurrentDb(undefined);
+      setCurrentCatalog(undefined);
+      setCurrentSchema(undefined);
+      if (onDbChange) {
+        onDbChange(undefined);
+      }
+      if (onCatalogChange) {
+        onCatalogChange(undefined);
+      }
+      if (onSchemaChange) {
+        onSchemaChange(undefined);
+      }
+      return;
+    }
+
     // the database id is actually stored in the value property; the ID is used
     // for the DOM, so it can't be an integer
     const databaseWithId = { ...database, id: database.value };
@@ -361,6 +378,7 @@ export function DatabaseSelector({
         disabled={!isDatabaseSelectEnabled || readOnly}
         options={loadDatabases}
         sortComparator={sortComparator}
+        allowClear
       />,
       null,
     );
