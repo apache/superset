@@ -232,6 +232,15 @@ def test_is_safe_redirect_url_with_custom_base(app):
         assert not is_safe_redirect_url("https://external.com/page", base_url)
 
 
+def test_is_safe_redirect_url_uses_configured_base_urls(app):
+    """Test that both base URL configs are considered for internal safety checks."""
+    app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088/"
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = "http://superset.example.com/"
+
+    with app.app_context():
+        assert is_safe_redirect_url("http://localhost:8088/dashboard/1")
+
+
 def test_process_html_links_no_base_url_configured(app):
     """Test behavior when no base URL is configured"""
     app.config["WEBDRIVER_BASEURL"] = ""

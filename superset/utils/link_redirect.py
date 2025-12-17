@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import re
 from typing import Any, Optional
 from urllib.parse import quote, urlparse
 
@@ -51,6 +52,35 @@ def _get_base_url_and_host(
     return base_url, base_host
 
 
+def _get_configured_base_urls() -> list[str]:
+    """
+    Return non-empty configured base URLs.
+
+    Superset can be configured with both a user-friendly base URL and an internal one.
+    For safety checks we consider both.
+    """
+    base_urls: list[str] = []
+    for candidate in (
+        current_app.config.get("WEBDRIVER_BASEURL_USER_FRIENDLY", ""),
+        current_app.config.get("WEBDRIVER_BASEURL", ""),
+    ):
+        if candidate and candidate not in base_urls:
+            base_urls.append(candidate)
+    return base_urls
+
+
+def _get_base_hosts(base_url: Optional[str]) -> set[str]:
+    """Return the set of configured base hosts (lower-cased)."""
+    base_urls = [base_url] if base_url else _get_configured_base_urls()
+    hosts: set[str] = set()
+    for candidate in base_urls:
+        parsed = urlparse(candidate)
+        host = parsed.netloc if parsed.netloc else parsed.path
+        if parsed.scheme and host:
+            hosts.add(host.lower())
+    return hosts
+
+
 def _get_redirect_url(original_url: str, base_url: str) -> str:
     """
     Build the redirect URL for an external link.
@@ -67,7 +97,7 @@ def _get_redirect_url(original_url: str, base_url: str) -> str:
     return f"{base}/redirect/?url={quote(original_url, safe='')}"
 
 
-def _process_link_element(link: Any, base_host: str, base_url: str) -> bool:
+def _process_link_element(link: Any, base_hosts: set[str], base_url: str) -> bool:
     """Process a single link element for external URL redirection."""
     original_url = link["href"].strip()
 
@@ -91,7 +121,7 @@ def _process_link_element(link: Any, base_host: str, base_url: str) -> bool:
         link_host = parsed_url.netloc
 
         # If the hosts don't match, it's an external link
-        if link_host and link_host.lower() != base_host.lower():
+        if link_host and link_host.lower() not in base_hosts:
             redirect_url = _get_redirect_url(original_url, base_url)
             link["href"] = redirect_url
             modified = True
@@ -141,10 +171,14 @@ def process_html_links(html_content: str, base_url: Optional[str] = None) -> str
         if not base_host or not resolved_base_url:
             return html_content
 
+        base_hosts = _get_base_hosts(base_url) | {base_host.lower()}
+        if not base_hosts:
+            return html_content
+
         # Find all anchor tags with href attribute and process them
         modified = False
         for link in soup.find_all("a", href=True):
-            modified |= _process_link_element(link, base_host, resolved_base_url)
+            modified |= _process_link_element(link, base_hosts, resolved_base_url)
 
         if not modified:
             return html_content
@@ -173,37 +207,38 @@ def is_safe_redirect_url(url: str, base_url: Optional[str] = None) -> bool:
         return False
 
     try:
-        # Get the base URL from config if not provided
-        if base_url is None:
-            base_url = current_app.config.get(
-                "WEBDRIVER_BASEURL_USER_FRIENDLY",
-                current_app.config.get("WEBDRIVER_BASEURL", ""),
-            )
-
-        if not base_url:
-            logger.warning("No base URL configured for safety check")
+        stripped_url = url.strip()
+        if stripped_url.startswith("//") or stripped_url.startswith("\\\\"):
             return False
 
         # Parse both URLs
-        parsed_url = urlparse(url.strip())
-        base_parsed = urlparse(base_url)
+        parsed_url = urlparse(stripped_url)
 
-        # Get the hosts
-        url_host = parsed_url.netloc
-        base_host = base_parsed.netloc if base_parsed.netloc else base_parsed.path
-
-        if not base_host:
-            logger.warning("Invalid base URL configured for safety check")
-            return False
-
-        # For relative URLs (no host), consider them safe
-        if not url_host:
+        # Relative URLs are safe, but only if they're not protocol-relative.
+        if not parsed_url.scheme and not parsed_url.netloc:
             return True
 
-        # Check if it's the same host (case-insensitive comparison)
-        return url_host.lower() == base_host.lower()
+        if parsed_url.scheme not in ("http", "https"):
+            return False
+
+        base_hosts = _get_base_hosts(base_url)
+        if not base_hosts:
+            logger.warning("No base URL configured for safety check")
+            return False
+
+        return parsed_url.netloc.lower() in base_hosts
 
     except Exception as ex:
         logger.warning("Error checking URL safety: %s", str(ex))
         # On error, assume unsafe
         return False
+
+
+def is_valid_url_encoding(url: str) -> bool:
+    """
+    Return True if percent-escapes in the URL are syntactically valid.
+
+    The `url` query param is already decoded once by Werkzeug. If the embedded URL
+    contains percent-escapes (eg, `%20`) they should be well-formed.
+    """
+    return re.search(r"%(?![0-9A-Fa-f]{2})", url) is None

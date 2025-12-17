@@ -17,7 +17,7 @@
 
 import logging
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
 
 from flask import abort, redirect, request
 from flask_appbuilder import expose
@@ -25,7 +25,7 @@ from flask_appbuilder import expose
 from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.link_redirect import is_safe_redirect_url
+from superset.utils.link_redirect import is_safe_redirect_url, is_valid_url_encoding
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
@@ -55,10 +55,9 @@ def _get_validated_url() -> str:
         logger.warning("Redirect requested without URL parameter")
         abort(400, description="Missing URL parameter")
 
-    try:
-        target_url = unquote(target_url).strip()
-    except Exception as ex:
-        logger.error("Failed to decode URL parameter: %s", str(ex))
+    target_url = target_url.strip()
+    if not is_valid_url_encoding(target_url):
+        logger.warning("Invalid URL encoding in redirect URL parameter")
         abort(400, description="Invalid URL parameter")
 
     if target_url.lower().startswith(DANGEROUS_SCHEMES):
