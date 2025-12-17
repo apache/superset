@@ -84,6 +84,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   yAxisFormat?: string;
   xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
+  xAxisNumberFormat?: string;
   timeGrainSqla?: TimeGranularity;
   forceMaxInterval?: boolean;
   xAxisBounds: [number | undefined | null, number | undefined | null];
@@ -100,8 +101,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
 } & LegendFormData &
   TitleFormData;
 
-export interface EchartsTimeseriesChartProps
-  extends BaseChartProps<EchartsTimeseriesFormData> {
+export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
 }
 

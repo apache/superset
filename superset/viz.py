@@ -78,7 +78,7 @@ from superset.utils.core import (
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -458,7 +458,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         different time shifts will differ only in the `from_dttm`, `to_dttm`,
         `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
-        cache_dict = copy.copy(query_obj)
+        # Cast to dict[str, Any] to allow mutable operations (update, del)
+        # since TypedDict doesn't support these operations in the same way
+        cache_dict: dict[str, Any] = copy.copy(cast(dict[str, Any], query_obj))
         cache_dict.update(extra)
 
         for k in ["from_dttm", "to_dttm", "inner_from_dttm", "inner_to_dttm"]:
@@ -471,7 +473,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return md5_sha_from_str(json_data)
+        return hash_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
@@ -1313,6 +1315,7 @@ class WorldMapViz(BaseViz):
                         self.form_data["country_fieldtype"], row["country"]
                     )
             if country:
+                row["code"] = country[self.form_data["country_fieldtype"]]
                 row["country"] = country["cca3"]
                 row["latitude"] = country["lat"]
                 row["longitude"] = country["lng"]

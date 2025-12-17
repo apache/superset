@@ -60,6 +60,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
+from superset_core.api.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -94,7 +95,8 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+
     from superset.models.sql_lab import Query
 
 
@@ -139,7 +141,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -202,6 +204,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "external_url",
         "encrypted_extra",
         "impersonate_user",
+        "ssh_tunnel",
     ]
     export_children = ["tables"]
 
@@ -426,7 +429,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
-        override_ssh_tunnel: SSHTunnel | None = None,
     ) -> Engine:
         """
         Context manager for a SQLAlchemy engine.
@@ -436,19 +438,15 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         to potentially establish SSH tunnels before the connection is created, and clean
         them up once the engine is no longer used.
         """
-        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
-            DatabaseDAO,
-        )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
 
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
         ssh_context_manager = (
             ssh_manager_factory.instance.create_tunnel(
-                ssh_tunnel=ssh_tunnel,
+                ssh_tunnel=self.ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
-            if ssh_tunnel
+            if self.ssh_tunnel
             else nullcontext()
         )
 
@@ -977,37 +975,23 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self,
         catalog: str | None = None,
         schema: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine(
-            catalog=catalog,
-            schema=schema,
-            override_ssh_tunnel=ssh_tunnel,
-        ) as engine:
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog:{catalog}:schema_list",
         cache=cache_manager.cache,
     )
-    def get_all_schema_names(
-        self,
-        *,
-        catalog: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_schema_names(self, *, catalog: str | None = None) -> set[str]:
         """
         Return the schemas in a given database
 
         :param catalog: override default catalog
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: schema list
         """
         try:
-            with self.get_inspector(
-                catalog=catalog,
-                ssh_tunnel=ssh_tunnel,
-            ) as inspector:
+            with self.get_inspector(catalog=catalog) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
@@ -1019,19 +1003,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         key="db:{self.id}:catalog_list",
         cache=cache_manager.cache,
     )
-    def get_all_catalog_names(
-        self,
-        *,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_catalog_names(self) -> set[str]:
         """
         Return the catalogs in a given database
 
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: catalog list
         """
         try:
-            with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
+            with self.get_inspector() as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
             if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
@@ -1298,6 +1277,38 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         db.session.query(DatabaseUserOAuth2Tokens).filter(
             DatabaseUserOAuth2Tokens.id == self.id
         ).delete()
+
+    def execute(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
+        """
+        Execute SQL synchronously.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: QueryResult with status, data, and metadata
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute(sql, options)
+
+    def execute_async(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
+        """
+        Execute SQL asynchronously via Celery.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: AsyncQueryHandle for tracking the query
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute_async(sql, options)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

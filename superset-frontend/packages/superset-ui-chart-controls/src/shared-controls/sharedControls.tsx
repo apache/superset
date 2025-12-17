@@ -250,7 +250,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        !isEmpty(controls?.timeseries_limit_metric.value),
+      !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -340,6 +340,31 @@ const x_axis_time_format: SharedControlConfig<
   description: D3_TIME_FORMAT_DOCS,
   filterOption: ({ data: option }, search) =>
     option.label.includes(search) || option.value.includes(search),
+};
+
+const x_axis_number_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
+  type: 'SelectControl',
+  freeForm: true,
+  label: t('X Axis Number Format'),
+  renderTrigger: true,
+  default: DEFAULT_NUMBER_FORMAT,
+  choices: D3_FORMAT_OPTIONS,
+  description: D3_FORMAT_DOCS,
+  tokenSeparators: ['\n', '\t', ';'],
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
+  mapStateToProps: state => {
+    const isPercentage =
+      state.controls?.comparison_type?.value === ComparisonType.Percentage;
+    return {
+      choices: isPercentage
+        ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+        : D3_FORMAT_OPTIONS,
+    };
+  },
 };
 
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
@@ -456,6 +481,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   size: dndSizeControl,
   y_axis_format,
   x_axis_time_format,
+  x_axis_number_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
   time_shift_color,

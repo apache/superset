@@ -248,6 +248,6 @@ This architecture provides several key benefits:
 
 Now that you understand the architecture, explore:
 
-- **[Extension Project Structure](./extension-project-structure)** - How to organize your extension code
-- **[Frontend Contribution Types](./frontend-contribution-types)** - What kinds of extensions you can build
 - **[Quick Start](./quick-start)** - Build your first extension
+- **[Contribution Types](./contribution-types)** - What kinds of extensions you can build
+- **[Development](./development)** - Project structure, APIs, and development workflow

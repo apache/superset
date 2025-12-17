@@ -44,7 +44,9 @@ class CreateRLSRuleCommand(BaseCommand):
     def validate(self) -> None:
         roles = populate_roles(self._roles)
         tables = (
-            db.session.query(SqlaTable).filter(SqlaTable.id.in_(self._tables)).all()
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
+            .all()
         )
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()

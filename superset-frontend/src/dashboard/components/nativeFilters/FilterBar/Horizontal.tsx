@@ -96,7 +96,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   const chartCustomizationItems = useSelector<
     RootState,
     ChartCustomizationItem[]
-  >(state => selectChartCustomizationItems(state));
+  >(selectChartCustomizationItems);
 
   const hasFilters =
     filterValues.length > 0 ||
