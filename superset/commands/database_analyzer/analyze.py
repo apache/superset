@@ -20,6 +20,7 @@ import logging
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import Any
 
+from flask import current_app
 from sqlalchemy import inspect, MetaData, text
 
 from superset import db
@@ -169,35 +170,48 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
         schema = self.report.schema_name
         if table_type == TableType.TABLE:
             try:
+                # Use ORDER BY RANDOM() for better sampling on small tables
                 sample_sql = (
                     f'SELECT * FROM "{schema}"."{table_name}" '  # noqa: S608
-                    f"TABLESAMPLE SYSTEM(1) LIMIT 3"
+                    f"ORDER BY RANDOM() LIMIT 3"
                 )
                 result = engine.execute(text(sample_sql))
                 for row in result:
                     sample_rows.append(dict(row))
-            except Exception:
-                # Fallback to regular LIMIT if TABLESAMPLE not supported
+                logger.debug("Fetched %d sample rows from %s", len(sample_rows), table_name)
+            except Exception as e:
+                # Fallback to regular LIMIT if RANDOM() not supported
                 try:
                     fallback_sql = f'SELECT * FROM "{schema}"."{table_name}" LIMIT 3'  # noqa: S608, E501
                     result = engine.execute(text(fallback_sql))
                     for row in result:
                         sample_rows.append(dict(row))
-                except Exception:
-                    logger.debug("Could not fetch sample data for %s", table_name)
+                    logger.debug("Fetched %d sample rows from %s (fallback)", len(sample_rows), table_name)
+                except Exception as e2:
+                    logger.warning("Could not fetch sample data for %s: %s", table_name, str(e2))
 
-        # Get row count estimate
+        # Get row count (try reltuples first, fallback to actual count)
         row_count = None
         try:
+            # Try reltuples first (faster for large tables)
             count_sql = (
                 f"SELECT reltuples::BIGINT FROM pg_class "  # noqa: S608
                 f"WHERE oid = '{schema}.{table_name}'::regclass"
             )
             result = engine.execute(text(count_sql))
             row = result.fetchone()
-            row_count = row[0] if row else None
-        except Exception:
-            logger.debug("Could not fetch row count for %s", table_name)
+            row_count = row[0] if row and row[0] >= 0 else None
+            
+            # If reltuples is -1 or None, get actual count for small tables
+            if row_count is None or row_count < 0:
+                actual_count_sql = f'SELECT COUNT(*) FROM "{schema}"."{table_name}"'  # noqa: S608
+                result = engine.execute(text(actual_count_sql))
+                row_count = result.fetchone()[0]
+                logger.debug("Used actual count for %s: %d", table_name, row_count)
+            else:
+                logger.debug("Used reltuples for %s: %d", table_name, row_count)
+        except Exception as e:
+            logger.warning("Could not fetch row count for %s: %s", table_name, str(e))
 
         # Process column information
         columns_info = []
@@ -282,10 +296,13 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
             return
 
         max_workers = min(10, len(tables))
+        
+        # Capture the current Flask app context
+        app = current_app._get_current_object()
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_table = {
-                executor.submit(self._augment_table_with_ai, table): table
+                executor.submit(self._augment_table_with_ai_context, app, table): table
                 for table in tables
             }
 
@@ -299,6 +316,11 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                         table.table_name,
                         str(e),
                     )
+
+    def _augment_table_with_ai_context(self, app, table: AnalyzedTable) -> None:
+        """Wrapper to provide Flask context to the AI description thread"""
+        with app.app_context():
+            self._augment_table_with_ai(table)
 
     def _augment_table_with_ai(self, table: AnalyzedTable) -> None:
         """Generate AI descriptions for a single table and its columns"""
@@ -433,6 +455,15 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
         # Create lookup for table IDs
         table_lookup = {table.table_name: table.id for table in self.report.tables}
 
+        # Debug logging to see actual data being stored
+        for i, join_data in enumerate(inferred_joins):
+            logger.debug(
+                "Join %d data: join_type=%s, cardinality=%s", 
+                i, 
+                join_data.get("join_type"), 
+                join_data.get("cardinality")
+            )
+
         for join_data in inferred_joins:
             source_table_id = table_lookup.get(join_data["source_table"])
             target_table_id = table_lookup.get(join_data["target_table"])
@@ -451,8 +482,8 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                 target_table_id=target_table_id,
                 source_columns=json.dumps(join_data["source_columns"]),
                 target_columns=json.dumps(join_data["target_columns"]),
-                join_type=JoinType(join_data.get("join_type", "inner")),
-                cardinality=Cardinality(join_data.get("cardinality", "N:1")),
+                join_type=join_data.get("join_type", "inner"),
+                cardinality=join_data.get("cardinality", "N:1"),
                 semantic_context=join_data.get("semantic_context"),
                 extra_json=json.dumps(
                     {
