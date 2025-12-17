@@ -175,7 +175,7 @@
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
-    "nanoid": "^5.0.9",
+    "nanoid": "^5.1.6",
     "ol": "^7.5.2",
     "prop-types": "^15.8.1",
     "re-resizable": "^6.11.2",
