@@ -255,6 +255,7 @@ function AnnotationLayersList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'annotation_layer_list_search',
       },
       {
         Header: t('Changed by'),

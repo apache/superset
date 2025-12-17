@@ -81,6 +81,8 @@ function UIFilters(
             min,
             max,
             dropdownStyle,
+            autoComplete,
+            inputName,
           },
           index,
         ) => {
@@ -121,7 +123,7 @@ function UIFilters(
                 Header={Header}
                 initialValue={initialValue}
                 key={key}
-                name={id}
+                name={inputName ?? id}
                 toolTipDescription={toolTipDescription}
                 onSubmit={(value: string) => {
                   if (onFilterUpdate) {
@@ -130,6 +132,7 @@ function UIFilters(
 
                   updateFilterValue(index, value);
                 }}
+                autoComplete={autoComplete}
               />
             );
           }
