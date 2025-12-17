@@ -106,6 +106,58 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
+    def get_templates() -> list[Dashboard]:
+        """
+        Get all dashboard templates accessible to current user.
+
+        Templates are dashboards with is_template=true in json_metadata.
+        Templates are "public" resources - any user with dashboard creation
+        permission can view and use them, regardless of ownership.
+
+        Returns templates ordered by: featured first, then by title.
+
+        Returns:
+            list[Dashboard]: List of template dashboards
+
+        Raises:
+            DashboardAccessDeniedError: If user lacks dashboard creation permission
+        """
+        from sqlalchemy.orm import joinedload
+
+        # Templates are accessible to any user with dashboard creation permission
+        # This bypasses the normal ownership-based DashboardAccessFilter
+        if not security_manager.can_access("can_write", "Dashboard"):
+            raise DashboardAccessDeniedError()
+
+        query = db.session.query(Dashboard).options(
+            joinedload(Dashboard.tags),
+            joinedload(Dashboard.owners),
+        )
+
+        # Note: We intentionally skip DashboardAccessFilter here.
+        # Templates should be visible to all users with dashboard creation permission,
+        # not just dashboard owners.
+
+        # Filter to only templates and order
+        dashboards = query.all()
+
+        # Filter in Python (metadata filtering)
+        templates = []
+        for dashboard in dashboards:
+            metadata = json.loads(dashboard.json_metadata or "{}")
+            if metadata.get("is_template", False):
+                # Add sorting metadata as attributes for sorting
+                dashboard._is_featured_template = metadata.get(
+                    "is_featured_template", False
+                )
+                templates.append(dashboard)
+
+        # Sort: featured first, then alphabetically by title
+        templates.sort(key=lambda d: (not d._is_featured_template, d.dashboard_title))
+
+        return templates
+
+    @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
         """
         Get latest changed datetime for a dashboard.

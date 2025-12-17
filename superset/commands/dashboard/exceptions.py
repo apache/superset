@@ -100,3 +100,11 @@ class DashboardFaveError(CommandInvalidError):
 
 class DashboardUnfaveError(CommandInvalidError):
     message = _("Dashboard cannot be unfavorited.")
+
+
+class DashboardTemplateUpdateForbiddenError(ForbiddenError):
+    message = _("Template dashboards cannot be modified.")
+
+
+class DashboardTemplateDeleteForbiddenError(ForbiddenError):
+    message = _("Template dashboards cannot be deleted.")

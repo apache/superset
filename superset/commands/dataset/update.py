@@ -41,6 +41,7 @@ from superset.commands.dataset.exceptions import (
     DatasetMetricsExistsValidationError,
     DatasetMetricsNotFoundValidationError,
     DatasetNotFoundError,
+    DatasetTemplateUpdateForbiddenError,
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
@@ -91,6 +92,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatasetNotFoundError()
+
+        # Template datasets cannot be modified
+        if security_manager._is_template_dataset(self._model):
+            raise DatasetTemplateUpdateForbiddenError()
 
         # Check permission to update the dataset
         try:

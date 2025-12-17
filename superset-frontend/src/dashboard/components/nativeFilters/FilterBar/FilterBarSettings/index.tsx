@@ -37,6 +37,7 @@ import { useChartCustomizationModal } from '../../ChartCustomization/useChartCus
 import ChartCustomizationModal from '../../ChartCustomization/ChartCustomizationModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
+import { selectIsTemplateDashboard } from 'src/dashboard/selectors';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -76,6 +77,7 @@ const FilterBarSettings = () => {
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const isTemplate = useSelector(selectIsTemplateDashboard);
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
   const dashboardId = useSelector<RootState, number>(
@@ -258,7 +260,8 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length || !canEdit) {
+  // Hide settings for templates - templates are read-only
+  if (!menuItems.length || !canEdit || isTemplate) {
     return null;
   }
 
