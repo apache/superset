@@ -307,9 +307,23 @@ Return the response as JSON array:
 
             # Validate and clean up each join
             valid_joins = []
-            for join in joins:
+            for i, join in enumerate(joins):
+                logger.debug(
+                    "Raw join %d: join_type=%s, cardinality=%s", 
+                    i, 
+                    join.get("join_type"), 
+                    join.get("cardinality")
+                )
                 if self._validate_join(join):
+                    logger.debug(
+                        "Validated join %d: join_type=%s, cardinality=%s", 
+                        i, 
+                        join.get("join_type"), 
+                        join.get("cardinality")
+                    )
                     valid_joins.append(join)
+                else:
+                    logger.warning("Join %d failed validation", i)
 
             return valid_joins
         except json.JSONDecodeError:
@@ -335,6 +349,25 @@ Return the response as JSON array:
             join["source_columns"] = [join["source_columns"]]
         if not isinstance(join["target_columns"], list):
             join["target_columns"] = [join["target_columns"]]
+
+        # Normalize join_type to lowercase
+        if "join_type" in join:
+            join["join_type"] = str(join["join_type"]).lower()
+        
+        # Normalize cardinality to use enum values
+        if "cardinality" in join:
+            cardinality_map = {
+                "ONE_TO_ONE": "1:1",
+                "1:1": "1:1",
+                "ONE_TO_MANY": "1:N", 
+                "1:N": "1:N",
+                "MANY_TO_ONE": "N:1",
+                "N:1": "N:1", 
+                "MANY_TO_MANY": "N:M",
+                "N:M": "N:M"
+            }
+            raw_cardinality = str(join["cardinality"]).upper()
+            join["cardinality"] = cardinality_map.get(raw_cardinality, "N:1")
 
         # Set defaults for optional fields
         join.setdefault("join_type", "inner")

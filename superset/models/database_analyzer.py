@@ -204,12 +204,12 @@ class InferredJoin(Model, AuditMixinNullable, UUIDMixin):
     source_columns = sa.Column(sa.Text, nullable=False)  # JSON array
     target_columns = sa.Column(sa.Text, nullable=False)  # JSON array
     join_type = sa.Column(
-        sa.Enum(JoinType),
+        sa.Enum(JoinType, values_callable=lambda x: [e.value for e in x]),
         default=JoinType.INNER,
         nullable=False,
     )
     cardinality = sa.Column(
-        sa.Enum(Cardinality),
+        sa.Enum(Cardinality, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     semantic_context = sa.Column(sa.Text, nullable=True)
