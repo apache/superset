@@ -100,7 +100,7 @@ jobs:
           echo "IMAGE: $IMAGE_TAG"
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
- 
+
       # Scan for vulnerabilities in built container image after pushes to mainline branch.
       - name: Run Trivy container image vulnerabity scan
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
