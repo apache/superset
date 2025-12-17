@@ -176,6 +176,7 @@ export default function TimezoneSelector({
     TimezoneOption[] | null
   >(cachedTimezoneOptions);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const hasSetDefaultRef = useRef(false);
 
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
@@ -203,6 +204,29 @@ export default function TimezoneSelector({
     }
     return findMatchingTimezone(timezone, timezoneOptions);
   }, [timezone, timezoneOptions]);
+
+  // Preload timezone options on mount and set default value
+  useEffect(() => {
+    if (!timezoneOptions && !isLoadingOptions) {
+      setIsLoadingOptions(true);
+      getTimezoneOptionsAsync()
+        .then(options => {
+          setTimezoneOptions(options);
+          // Set default value if no timezone is provided and we haven't set it yet
+          if (!timezone && !hasSetDefaultRef.current) {
+            const defaultTz = findMatchingTimezone(null, options);
+            onTimezoneChange(defaultTz);
+            hasSetDefaultRef.current = true;
+          }
+        })
+        .finally(() => setIsLoadingOptions(false));
+    } else if (timezoneOptions && !timezone && !hasSetDefaultRef.current) {
+      // If options are already available (cached), set default immediately
+      const defaultTz = findMatchingTimezone(null, timezoneOptions);
+      onTimezoneChange(defaultTz);
+      hasSetDefaultRef.current = true;
+    }
+  }, [timezoneOptions, isLoadingOptions, timezone, onTimezoneChange]);
 
   return (
     <Select
