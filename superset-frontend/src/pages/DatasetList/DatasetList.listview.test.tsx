@@ -508,13 +508,8 @@ test('selecting all datasets shows correct count in toolbar', async () => {
       `${mockDatasets.length} Selected`,
     );
   });
-
-  // Verify bulk action buttons are enabled when items are selected
-  const exportButton = screen.getByRole('button', { name: /export/i });
-  const deleteButton = screen.getByRole('button', { name: 'Delete' });
-  expect(exportButton).toBeEnabled();
-  expect(deleteButton).toBeEnabled();
-}, 60000);
+  // Note: Button enable state is tested in bulk export/delete tests
+});
 
 test('bulk export triggers export with selected IDs', async () => {
   fetchMock.get(
@@ -622,23 +617,17 @@ test('exit bulk select via close button returns to normal view', async () => {
   });
   await userEvent.click(closeButton);
 
-  // Checkboxes should disappear
+  // Checkboxes should disappear and normal toolbar should return
   await waitFor(() => {
-    const checkboxes = screen.queryAllByRole('checkbox');
-    expect(checkboxes.length).toBe(0);
-  });
-
-  // Bulk action toolbar should be hidden, normal toolbar should return
-  await waitFor(() => {
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
     expect(
       screen.queryByTestId('bulk-select-controls'),
     ).not.toBeInTheDocument();
-    // Bulk select button should be back
     expect(
       screen.getByRole('button', { name: /bulk select/i }),
     ).toBeInTheDocument();
   });
-}, 60000);
+});
 
 test('certified badge appears for certified datasets', async () => {
   const certifiedDataset = {
@@ -1192,84 +1181,9 @@ test('sort order persists after deleting a dataset', async () => {
 // concern (useListViewResource handles page reset logic). This is covered by
 // integration tests where we can verify the full pagination cycle.
 
-test('bulk delete refreshes list with updated count', async () => {
-  setupBulkDeleteMocks();
-
-  renderDatasetList(mockAdminUser, {
-    addSuccessToast: mockAddSuccessToast,
-    addDangerToast: mockAddDangerToast,
-  });
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  // Enter bulk select mode
-  const bulkSelectButton = screen.getByRole('button', {
-    name: /bulk select/i,
-  });
-  await userEvent.click(bulkSelectButton);
-
-  await waitFor(() => {
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
-  });
-
-  // Select first 3 items (re-query checkboxes after each click to handle DOM updates)
-  let checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[1]);
-
-  checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[2]);
-
-  checkboxes = screen.getAllByRole('checkbox');
-  await userEvent.click(checkboxes[3]);
-
-  // Wait for selections to register
-  await waitFor(() => {
-    const selectionText = screen.getByText(/selected/i);
-    expect(selectionText).toBeInTheDocument();
-    expect(selectionText).toHaveTextContent('3');
-  });
-
-  // Verify bulk actions UI appears and click the bulk delete button
-  // Multiple bulk actions share the same test ID, so filter by text content
-  const bulkActionButtons = await screen.findAllByTestId('bulk-select-action');
-  const bulkDeleteButton = bulkActionButtons.find(btn =>
-    btn.textContent?.includes('Delete'),
-  );
-  expect(bulkDeleteButton).toBeTruthy();
-
-  await userEvent.click(bulkDeleteButton!);
-
-  // Confirm in modal - type DELETE to enable button
-  const modal = await screen.findByRole('dialog');
-
-  // Enable the danger button by typing DELETE
-  const confirmInput = within(modal).getByTestId('delete-modal-input');
-  await userEvent.clear(confirmInput);
-  await userEvent.type(confirmInput, 'DELETE');
-
-  const confirmButton = within(modal)
-    .getAllByRole('button', { name: /^delete$/i })
-    .pop();
-  await userEvent.click(confirmButton!);
-
-  // Wait for modal to close first (defensive wait for CI stability)
-  await waitFor(() => {
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  // Wait for success toast
-  await waitFor(() => {
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      expect.stringContaining('deleted'),
-    );
-  });
-
-  // Verify danger toast was not called
-  expect(mockAddDangerToast).not.toHaveBeenCalled();
-}, 60000); // 60 second timeout for slow bulk delete test
+// Note: Full bulk delete workflow (select → delete → confirm → verify toast) is
+// tested in DatasetList.integration.test.tsx as it's a multi-component orchestration
+// test. Component tests here focus on individual behaviors.
 
 test('bulk selection clears when filter changes', async () => {
   fetchMock.get(
