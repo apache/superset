@@ -93,7 +93,17 @@ test('should navigate to Explore when dataset name is clicked', async ({
   // Use existing example dataset (hermetic - loaded in CI via --load-examples)
   const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
   const dataset = await getDatasetByName(page, datasetName);
-  expect(dataset).not.toBeNull();
+
+  // Guard: Verify example dataset exists and is virtual (required for duplicate tests)
+  // This makes tests fail fast with clear message if examples aren't loaded correctly
+  expect(
+    dataset,
+    `Example dataset '${datasetName}' not found. Ensure --load-examples was run.`,
+  ).not.toBeNull();
+  expect(
+    dataset!.dataset_type,
+    `Example dataset '${datasetName}' must be virtual for duplicate tests.`,
+  ).toBe('virtual');
 
   // Verify dataset is visible in list (uses page object + Playwright auto-wait)
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
@@ -287,8 +297,8 @@ test('should export a single dataset', async ({ page }) => {
   expect(contentDisposition).toMatch(/\.zip/);
 });
 
-test('should bulk export multiple datasets', async ({ page }) => {
-  // Use existing example dataset for bulk export
+test('should export dataset via bulk select action', async ({ page }) => {
+  // Tests the bulk select + export workflow (uses single dataset for simplicity)
   const datasetName = TEST_DATASETS.EXAMPLE_DATASET;
 
   // Verify dataset is visible in list
