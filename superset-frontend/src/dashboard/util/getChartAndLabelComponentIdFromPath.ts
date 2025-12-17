@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-// input: { [id_column1]: values, [id_column2]: values }
-// output: { id: { column1: values, column2: values } }
-export default function serializeActiveFilterValues(activeFilters) {
-  return Object.entries(activeFilters).reduce((map, entry) => {
-    const [filterKey, { values }] = entry;
-    const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
-    const entryByChartId = {
-      ...map[chartId],
-      [column]: values,
-    };
-    return {
-      ...map,
-      [chartId]: entryByChartId,
-    };
-  }, {});
+export default function getChartAndLabelComponentIdFromPath(
+  directPathToChild: (string | undefined)[],
+): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild
+      .slice()
+      .filter((x): x is string => x !== undefined);
+    while (currentPath.length) {
+      const componentId = currentPath.pop()!;
+      const componentType = componentId.split('-')[0];
+
+      result[componentType.toLowerCase()] = componentId;
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        break;
+      }
+    }
+  }
+
+  return result;
 }
