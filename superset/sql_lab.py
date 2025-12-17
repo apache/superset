@@ -67,6 +67,7 @@ from superset.utils.core import (
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 from superset.utils.rls import apply_rls
+from superset.data_access_rules.utils import apply_data_access_rules
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -418,6 +419,13 @@ def execute_sql_statements(  # noqa: C901
         default_schema = query.database.get_default_schema_for_query(query)
         for statement in parsed_script.statements:
             apply_rls(query.database, query.catalog, default_schema, statement)
+
+    if is_feature_enabled("DATA_ACCESS_RULES"):
+        default_schema = query.database.get_default_schema_for_query(query)
+        for statement in parsed_script.statements:
+            apply_data_access_rules(
+                query.database, query.catalog, default_schema, statement
+            )
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when

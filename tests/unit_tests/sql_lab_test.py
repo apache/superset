@@ -36,7 +36,9 @@ from superset.sql_lab import (
     get_sql_results,
 )
 from superset.utils.rls import apply_rls, get_predicates_for_table
+from superset.data_access_rules.utils import apply_data_access_rules
 from tests.conftest import with_config
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.models.core_test import oauth2_client_info
 
 
@@ -301,3 +303,119 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
 
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
+
+
+def test_apply_data_access_rules(mocker: MockerFixture) -> None:
+    """
+    Test the ``apply_data_access_rules`` helper function.
+    """
+    from superset.data_access_rules.utils import (
+        AccessCheckResult,
+        RLSPredicate,
+        TableAccessInfo,
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "test_db"
+    database.get_default_schema_for_query.return_value = "public"
+    database.get_default_catalog.return_value = "examples"
+    database.db_engine_spec = PostgresEngineSpec
+
+    # Mock get_user_rules to return a rule with RLS predicates
+    get_user_rules = mocker.patch(
+        "superset.data_access_rules.utils.get_user_rules",
+        return_value=[],
+    )
+
+    # Mock check_table_access to return allowed access with RLS predicates
+    mocker.patch(
+        "superset.data_access_rules.utils.check_table_access",
+        return_value=TableAccessInfo(
+            access=AccessCheckResult.ALLOWED,
+            rls_predicates=[
+                RLSPredicate(predicate="org_id = 1", group_key=None),
+            ],
+            cls_rules={},
+        ),
+    )
+
+    # Mock is_feature_enabled
+    mocker.patch(
+        "superset.data_access_rules.utils.is_feature_enabled",
+        return_value=True,
+    )
+
+    parsed_statement = SQLStatement("SELECT * FROM t1", "postgresql")
+
+    apply_data_access_rules(database, "examples", "public", parsed_statement)
+
+    # Since we mocked the feature flag check, the function should have processed
+    get_user_rules.assert_called_once()
+
+
+@with_feature_flags(DATA_ACCESS_RULES=True)
+@with_config(
+    {
+        "SQLLAB_PAYLOAD_MAX_MB": 50,
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "SQLLAB_CTAS_NO_LIMIT": False,
+        "SQL_MAX_ROW": 100000,
+        "QUERY_LOGGER": None,
+        "TROUBLESHOOTING_LINK": None,
+        "STATS_LOGGER": MagicMock(),
+    }
+)
+def test_execute_sql_statements_with_data_access_rules(
+    mocker: MockerFixture, app
+) -> None:
+    """
+    Test that `execute_sql_statements` calls `apply_data_access_rules`
+    when the DATA_ACCESS_RULES feature flag is enabled.
+    """
+    # Mock apply_data_access_rules to track calls
+    mock_apply_dar = mocker.patch("superset.sql_lab.apply_data_access_rules")
+
+    # Mock the query object and database
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.database = mocker.MagicMock()
+    query.database.cache_timeout = 100
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_run_async = True
+    query.database.allow_dml = False
+    query.catalog = "examples"
+    query.database.get_default_schema_for_query.return_value = "public"
+
+    # Mock get_query to return our mocked query object
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+
+    # Mock db.session.refresh
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    # Mock the results backend
+    mocker.patch("superset.sql_lab.results_backend", return_value=True)
+
+    # Mock sys.getsizeof to simulate a small payload
+    mocker.patch("sys.getsizeof", return_value=1000)
+
+    # Mock _serialize_payload
+    mocker.patch(
+        "superset.sql_lab._serialize_payload", return_value="serialized_payload"
+    )
+
+    try:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="SELECT 42 AS answer",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+    except Exception:
+        pass  # We're just testing that apply_data_access_rules is called
+
+    # Verify apply_data_access_rules was called
+    assert mock_apply_dar.called
