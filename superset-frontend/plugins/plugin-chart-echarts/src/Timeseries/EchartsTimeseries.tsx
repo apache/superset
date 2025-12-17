@@ -58,7 +58,6 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
-  isHorizontal,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -173,7 +172,9 @@ export default function EchartsTimeseries({
 
       // Skip on touch devices to avoid interfering with scrolling
       const isTouchDevice =
-        'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        typeof window !== 'undefined' &&
+        ('ontouchstart' in window ||
+          (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
       if (isTouchDevice) {
         return;
       }
