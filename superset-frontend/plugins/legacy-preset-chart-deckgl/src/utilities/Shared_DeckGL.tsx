@@ -96,7 +96,7 @@ const jsFunctionInfo = (
   </div>
 );
 
-function jsFunctionControl(
+export function jsFunctionControl(
   label: string,
   description: string,
   extraDescr = null,

@@ -51,6 +51,15 @@ export default function webpackExtendPlugin(): Plugin<void> {
               __dirname,
               '../../superset-frontend/packages/superset-ui-core/src/components',
             ),
+            // Extension API package - allows docs to import from @apache-superset/core/ui
+            // This matches the established pattern used throughout the Superset codebase
+            // Point directly to components to avoid importing theme (which has font dependencies)
+            // Note: TypeScript types come from docs/src/types/apache-superset-core (see tsconfig.json)
+            // This split is intentional: webpack resolves actual source, tsconfig provides simplified types
+            '@apache-superset/core/ui': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src/ui/components',
+            ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(
               __dirname,
