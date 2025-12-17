@@ -120,6 +120,7 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
+from superset.data_access_rules.utils import apply_data_access_rules
 
 
 class ValidationResultDict(TypedDict):
@@ -1048,6 +1049,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_virtual=bool(self.sql),
         )
         sql = self._apply_cte(sql, sqlaq.cte)
+
+        # Apply Data Access Rules (RLS and CLS) if enabled
+        if is_feature_enabled("DATA_ACCESS_RULES"):
+            try:
+                default_schema = self.database.get_default_schema(self.catalog)
+                parsed_script = SQLScript(sql, engine=self.db_engine_spec.engine)
+                for statement in parsed_script.statements:
+                    apply_data_access_rules(
+                        self.database,
+                        self.catalog,
+                        self.schema or default_schema or "",
+                        statement,
+                    )
+                sql = parsed_script.format()
+            except Exception as ex:
+                logger.warning("Failed to apply Data Access Rules: %s", ex)
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -2050,6 +2067,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
+
+        # Apply Data Access Rules to virtual dataset SQL
+        if is_feature_enabled("DATA_ACCESS_RULES") and parsed_script.statements:
+            default_schema = self.database.get_default_schema(self.catalog)
+            try:
+                for statement in parsed_script.statements:
+                    apply_data_access_rules(
+                        self.database,
+                        self.catalog,
+                        self.schema or default_schema or "",
+                        statement,
+                    )
+                from_sql = parsed_script.format()
+            except Exception as ex:
+                logger.warning(
+                    "Failed to apply Data Access Rules to virtual dataset SQL: %s", ex
+                )
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
