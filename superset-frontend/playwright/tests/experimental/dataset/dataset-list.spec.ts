@@ -263,23 +263,28 @@ test('should export a single dataset', async ({ page }) => {
   // Verify dataset is visible in list
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-  // Set up download handler before triggering export
-  const downloadPromise = page.waitForEvent('download');
+  // Set up response intercept for export API call
+  // Export uses blob download via fetch, not traditional file download
+  const exportResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/api/v1/dataset/export/') &&
+      response.status() === 200,
+  );
 
   // Click export action button
   await datasetListPage.clickExportAction(datasetName);
 
-  // Wait for download to complete
-  const download = await downloadPromise;
+  // Wait for export API response
+  const exportResponse = await exportResponsePromise;
 
-  // Verify downloaded file is a zip
-  const fileName = download.suggestedFilename();
-  expect(fileName).toMatch(/\.zip$/);
-  expect(fileName).toContain('dataset');
+  // Verify response is a zip file
+  const contentType = exportResponse.headers()['content-type'];
+  expect(contentType).toMatch(/application\/(zip|x-zip-compressed)/);
 
-  // Verify download completed successfully (no failure)
-  const failure = await download.failure();
-  expect(failure).toBeNull();
+  // Verify content-disposition header indicates file download
+  const contentDisposition = exportResponse.headers()['content-disposition'];
+  expect(contentDisposition).toContain('attachment');
+  expect(contentDisposition).toMatch(/\.zip/);
 });
 
 test('should bulk export multiple datasets', async ({ page }) => {
@@ -298,23 +303,28 @@ test('should bulk export multiple datasets', async ({ page }) => {
   // Select the dataset checkbox
   await datasetListPage.selectDatasetCheckbox(datasetName);
 
-  // Set up download handler before triggering bulk export
-  const downloadPromise = page.waitForEvent('download');
+  // Set up response intercept for export API call
+  // Export uses blob download via fetch, not traditional file download
+  const exportResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/api/v1/dataset/export/') &&
+      response.status() === 200,
+  );
 
   // Click Export bulk action
   await datasetListPage.clickBulkAction('Export');
 
-  // Wait for download to complete
-  const download = await downloadPromise;
+  // Wait for export API response
+  const exportResponse = await exportResponsePromise;
 
-  // Verify downloaded file is a zip
-  const fileName = download.suggestedFilename();
-  expect(fileName).toMatch(/\.zip$/);
-  expect(fileName).toContain('dataset');
+  // Verify response is a zip file
+  const contentType = exportResponse.headers()['content-type'];
+  expect(contentType).toMatch(/application\/(zip|x-zip-compressed)/);
 
-  // Verify download completed successfully (no failure)
-  const failure = await download.failure();
-  expect(failure).toBeNull();
+  // Verify content-disposition header indicates file download
+  const contentDisposition = exportResponse.headers()['content-disposition'];
+  expect(contentDisposition).toContain('attachment');
+  expect(contentDisposition).toMatch(/\.zip/);
 });
 
 test('should navigate the create dataset wizard', async ({ page }) => {

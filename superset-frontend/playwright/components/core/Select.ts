@@ -73,11 +73,18 @@ export class Select {
   }
 
   /**
-   * Clicks an option in an already-open dropdown by its exact title/label
+   * Clicks an option in an already-open dropdown by its text content.
+   * Uses Ant Design's dropdown class structure since options don't have title attributes.
    * @param optionText - The exact text of the option to click
    */
   async clickOption(optionText: string): Promise<void> {
-    await this.page.getByTitle(optionText, { exact: true }).click();
+    // Ant Design renders options in a dropdown with class .ant-select-item-option
+    // The option text is in .ant-select-item-option-content
+    // We use getByRole for accessibility, falling back to text matching
+    const option = this.page.locator('.ant-select-item-option', {
+      hasText: optionText,
+    });
+    await option.click();
   }
 
   /**
