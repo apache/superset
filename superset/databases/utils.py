@@ -73,6 +73,12 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
     """
     keys = []
     columns = database.get_columns(table)
+
+    # Filter out columns hidden by CLS rules (lazy import to avoid circular dependency)
+    from superset.data_access_rules.utils import filter_columns_by_cls
+
+    columns = filter_columns_by_cls(columns, table, database)
+
     primary_key = database.get_pk_constraint(table)
     if primary_key and primary_key.get("constrained_columns"):
         primary_key["column_names"] = primary_key.pop("constrained_columns")

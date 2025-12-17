@@ -418,6 +418,70 @@ def get_cls_rules_for_table(
     return access_info.cls_rules
 
 
+def get_hidden_columns_for_table(
+    table: Table,
+    database: Database,
+    rules: list[DataAccessRule] | None = None,
+) -> set[str]:
+    """
+    Get the set of column names that should be hidden for a table.
+
+    This function checks the CLS rules for the current user and returns
+    the names of columns that have the "hide" action applied.
+
+    Args:
+        table: The fully qualified Table object
+        database: The Database object
+        rules: Optional list of rules to check (defaults to current user's rules)
+
+    Returns:
+        Set of column names that should be hidden.
+    """
+    cls_rules = get_cls_rules_for_table(table, database, rules)
+
+    hidden_columns: set[str] = set()
+    for column_name, action in cls_rules.items():
+        if action == CLSAction.HIDE:
+            hidden_columns.add(column_name)
+
+    return hidden_columns
+
+
+def filter_columns_by_cls(
+    columns: list[dict[str, Any]],
+    table: Table,
+    database: Database,
+    column_name_key: str = "column_name",
+) -> list[dict[str, Any]]:
+    """
+    Filter a list of column dictionaries to exclude hidden columns.
+
+    This function is useful for filtering column metadata returned by
+    database reflection or dataset APIs.
+
+    Args:
+        columns: List of column dictionaries
+        table: The fully qualified Table object
+        database: The Database object
+        column_name_key: The key in the column dict that contains the column name
+
+    Returns:
+        Filtered list of columns with hidden columns removed.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return columns
+
+    hidden_columns = get_hidden_columns_for_table(table, database)
+
+    if not hidden_columns:
+        return columns
+
+    return [
+        col for col in columns
+        if col.get(column_name_key) not in hidden_columns
+    ]
+
+
 def apply_data_access_rules(
     database: Database,
     catalog: str | None,

@@ -113,6 +113,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
+from superset.data_access_rules.utils import get_hidden_columns_for_table
 
 config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
@@ -438,6 +439,21 @@ class BaseDatasource(
     @property
     def data(self) -> ExplorableData:
         """Data representation of the datasource sent to the frontend"""
+        # Filter hidden columns based on CLS rules
+        columns_data = [o.data for o in self.columns]
+        if is_feature_enabled("DATA_ACCESS_RULES") and hasattr(self, "database"):
+            try:
+                table = Table(self.datasource_name, self.schema, self.catalog)
+                hidden_columns = get_hidden_columns_for_table(table, self.database)
+                if hidden_columns:
+                    columns_data = [
+                        c for c in columns_data
+                        if c.get("column_name") not in hidden_columns
+                    ]
+            except Exception:  # pylint: disable=broad-except
+                # Don't fail if CLS check fails, just return all columns
+                pass
+
         return {
             # simple fields
             "id": self.id,
@@ -462,7 +478,7 @@ class BaseDatasource(
             # sqla-specific
             "sql": self.sql,
             # one to many
-            "columns": [o.data for o in self.columns],
+            "columns": columns_data,
             "metrics": [o.data for o in self.metrics],
             "folders": self.folders,
             # TODO deprecate, move logic to JS
