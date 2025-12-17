@@ -33,6 +33,7 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  fetchChartFormData,
 } from 'src/explore/exploreUtils';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
@@ -579,7 +580,7 @@ export function redirectSQLLab(formData, history) {
 }
 
 export function refreshChart(chartKey, force, dashboardId) {
-  return (dispatch, getState) => {
+  return async (dispatch, getState) => {
     const chart = (getState().charts || {})[chartKey];
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
@@ -590,9 +591,24 @@ export function refreshChart(chartKey, force, dashboardId) {
     ) {
       return;
     }
-    dispatch(
+
+    // Fetch the latest chart definition from the database to ensure we use
+    // the most recent configuration (e.g., if the chart was modified in another tab)
+    let formDataToUse = chart.latestQueryFormData;
+    try {
+      formDataToUse = await fetchChartFormData(chart.id);
+    } catch (error) {
+      // If fetching fails, fall back to using the cached latestQueryFormData
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Failed to fetch latest chart definition, using cached form_data:',
+        error,
+      );
+    }
+
+    return dispatch(
       postChartFormData(
-        chart.latestQueryFormData,
+        formDataToUse,
         force,
         timeout,
         chart.id,

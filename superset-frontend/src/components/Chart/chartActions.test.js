@@ -502,4 +502,130 @@ describe('chart actions timeout', () => {
 
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('refreshChart', () => {
+    const chartKey = 1;
+    const chartId = 123;
+    const dashboardId = 456;
+    const mockLatestQueryFormData = {
+      datasource: '1__table',
+      viz_type: 'big_number_total',
+      slice_id: chartId,
+    };
+
+    const mockFreshFormData = {
+      ...mockLatestQueryFormData,
+      metric: { aggregate: 'COUNT_DISTINCT' },
+    };
+
+    const mockStateWithChart = {
+      charts: {
+        [chartKey]: {
+          id: chartId,
+          latestQueryFormData: mockLatestQueryFormData,
+        },
+      },
+      dashboardInfo: {
+        common: {
+          conf: {
+            SUPERSET_WEBSERVER_TIMEOUT: 60,
+          },
+        },
+      },
+      dataMask: {
+        [chartId]: {
+          ownState: {},
+        },
+      },
+    };
+
+    let fetchChartFormDataStub;
+
+    beforeEach(() => {
+      fetchChartFormDataStub = sinon
+        .stub(exploreUtils, 'fetchChartFormData')
+        .resolves(mockFreshFormData);
+    });
+
+    afterEach(() => {
+      fetchChartFormDataStub.restore();
+    });
+
+    test('should fetch fresh chart definition from database', async () => {
+      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+      const mockDispatch = sinon.spy();
+      const mockGetState = () => mockStateWithChart;
+
+      await actionThunk(mockDispatch, mockGetState);
+
+      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      expect(fetchChartFormDataStub.calledWith(chartId)).toBe(true);
+    });
+
+    test('should dispatch with fresh form_data after fetching', async () => {
+      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+      const mockDispatch = sinon.spy();
+      const mockGetState = () => mockStateWithChart;
+
+      await actionThunk(mockDispatch, mockGetState);
+
+      // Verify fetchChartFormData was called to get fresh data
+      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify dispatch was called with the thunk (meaning postChartFormData was executed)
+      expect(mockDispatch.calledOnce).toBe(true);
+      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
+    });
+
+    test('should dispatch with cached form_data if fetch fails', async () => {
+      fetchChartFormDataStub.rejects(new Error('Network error'));
+
+      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+      const mockDispatch = sinon.spy();
+      const mockGetState = () => mockStateWithChart;
+
+      await actionThunk(mockDispatch, mockGetState);
+
+      // Verify fetchChartFormData was attempted
+      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify dispatch was still called (fallback to cached data)
+      expect(mockDispatch.calledOnce).toBe(true);
+      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
+    });
+
+    test('should not refresh if latestQueryFormData is empty', async () => {
+      const stateWithEmptyFormData = {
+        ...mockStateWithChart,
+        charts: {
+          [chartKey]: {
+            id: chartId,
+            latestQueryFormData: {},
+          },
+        },
+      };
+
+      const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+      const mockDispatch = sinon.spy();
+      const mockGetState = () => stateWithEmptyFormData;
+
+      await actionThunk(mockDispatch, mockGetState);
+
+      expect(fetchChartFormDataStub.called).toBe(false);
+      expect(mockDispatch.called).toBe(false);
+    });
+
+    test('should dispatch when force parameter is false', async () => {
+      const actionThunk = actions.refreshChart(chartKey, false, dashboardId);
+      const mockDispatch = sinon.spy();
+      const mockGetState = () => mockStateWithChart;
+
+      await actionThunk(mockDispatch, mockGetState);
+
+      // Verify fetchChartFormData was called
+      expect(fetchChartFormDataStub.calledOnce).toBe(true);
+      // Verify dispatch was called (refresh happened regardless of force value)
+      expect(mockDispatch.calledOnce).toBe(true);
+      expect(typeof mockDispatch.getCall(0).args[0]).toBe('function');
+    });
+  });
 });

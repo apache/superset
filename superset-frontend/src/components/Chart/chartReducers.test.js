@@ -60,4 +60,69 @@ describe('chart reducers', () => {
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('failed');
   });
+
+  test('should update form_data on chart update success', () => {
+    const latestQueryFormData = {
+      datasource: '1__table',
+      viz_type: 'big_number_total',
+      slice_id: chartKey,
+      metric: { aggregate: 'COUNT_DISTINCT' },
+    };
+
+    const queriesResponse = [
+      {
+        data: [{ 'COUNT_DISTINCT(column)': 42 }],
+        colnames: ['COUNT_DISTINCT(column)'],
+        coltypes: [0],
+      },
+    ];
+
+    const chartWithLatestFormData = {
+      ...testChart,
+      latestQueryFormData,
+      form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+    };
+
+    const chartsWithFormData = { [chartKey]: chartWithLatestFormData };
+
+    const newState = chartReducer(
+      chartsWithFormData,
+      actions.chartUpdateSucceeded(queriesResponse, chartKey),
+    );
+
+    expect(newState[chartKey].chartStatus).toEqual('success');
+    expect(newState[chartKey].queriesResponse).toEqual(queriesResponse);
+    expect(newState[chartKey].form_data).toEqual(latestQueryFormData);
+    expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
+  });
+
+  test('should sync form_data with latestQueryFormData after refresh', () => {
+    const oldFormData = {
+      datasource: '1__table',
+      viz_type: 'big_number_total',
+      metric: { aggregate: 'COUNT' },
+    };
+
+    const newFormData = {
+      datasource: '1__table',
+      viz_type: 'big_number_total',
+      metric: { aggregate: 'MAX' },
+    };
+
+    const chartWithOldFormData = {
+      ...testChart,
+      latestQueryFormData: newFormData,
+      form_data: oldFormData,
+    };
+
+    const chartsWithOldFormData = { [chartKey]: chartWithOldFormData };
+
+    const newState = chartReducer(
+      chartsWithOldFormData,
+      actions.chartUpdateSucceeded([], chartKey),
+    );
+
+    expect(newState[chartKey].form_data).toEqual(newFormData);
+    expect(newState[chartKey].form_data.metric.aggregate).toBe('MAX');
+  });
 });
