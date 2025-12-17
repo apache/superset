@@ -58,6 +58,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  isHorizontal,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -164,6 +165,65 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
+  const handleBrushSelected = useCallback(
+    (params: any) => {
+      if (xAxis.type !== AxisType.time) {
+        return;
+      }
+
+      // Skip on touch devices to avoid interfering with scrolling
+      const isTouchDevice =
+        'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) {
+        return;
+      }
+
+      // Get the brush areas from the event
+      const brushAreas = params.batch?.[0]?.areas || [];
+      if (brushAreas.length === 0) {
+        // Brush was cleared, reset the filter
+        setDataMask({
+          extraFormData: {},
+          filterState: {
+            value: null,
+            selectedValues: null,
+          },
+        });
+        return;
+      }
+
+      const area = brushAreas[0];
+      // coordRange contains the data values of the brush selection
+      // For rect brush, coordRange is [[minX, maxX], [minY, maxY]]
+      const coordRange = area.coordRange;
+      if (!coordRange || !coordRange[0] || coordRange[0].length < 2) {
+        return;
+      }
+
+      const [startValue, endValue] = coordRange[0];
+
+      const col =
+        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+      const startFormatted = xValueFormatter(startValue);
+      const endFormatted = xValueFormatter(endValue);
+
+      setDataMask({
+        extraFormData: {
+          filters: [
+            { col, op: '>=', val: startValue },
+            { col, op: '<=', val: endValue },
+          ],
+        },
+        filterState: {
+          value: [startValue, endValue],
+          selectedValues: [startValue, endValue],
+          label: `${startFormatted} - ${endFormatted}`,
+        },
+      });
+    },
+    [formData, setDataMask, xAxis, xValueFormatter],
+  );
+
   const eventHandlers: EventHandlers = {
     click: props => {
       if (!hasDimensions) {
@@ -261,6 +321,7 @@ export default function EchartsTimeseries({
         });
       }
     },
+    brushSelected: handleBrushSelected,
   };
 
   const zrEventHandlers: EventHandlers = {
