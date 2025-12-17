@@ -143,3 +143,28 @@ test('should return empty div when all data is null', () => {
   expect(container).toBeInTheDocument();
   expect(container.querySelector('svg')).toBeNull();
 });
+
+test('should not render glyph points when showPoints is false', () => {
+  render(<SparklineCell {...defaultProps} showPoints={false} />);
+
+  const svg = document.querySelector('svg');
+  expect(svg).toBeInTheDocument();
+
+  const circles = svg!.querySelectorAll('circle');
+  expect(circles.length).toBe(0);
+});
+
+test('should apply custom color and strokeWidth to the series', () => {
+  render(
+    <SparklineCell
+      {...defaultProps}
+      color="#FF0000"
+      strokeWidth={4}
+      showPoints={true}
+    />,
+  );
+
+  const line = document.querySelector('[stroke="#FF0000"]');
+  expect(line).toBeInTheDocument();
+  expect(line).toHaveAttribute('stroke-width', '4');
+});

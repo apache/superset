@@ -642,7 +642,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # chart builder
     "DATASET_FOLDERS": False,
     # Enable Table V2 Viz plugin
-    "AG_GRID_TABLE_ENABLED": False,
+    "AG_GRID_TABLE_ENABLED": True,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
     # Enable Superset extensions, which allow users to add custom functionality

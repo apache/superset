@@ -43,6 +43,7 @@ import {
   IHeaderParams,
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { type RGBColor } from '@superset-ui/core/components';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -60,6 +61,14 @@ export type TableColumnConfig = {
   visible?: boolean;
   customColumnName?: string;
   displayTypeIcon?: boolean;
+  // Chart renderer configuration
+  chartType?: 'sparkline' | 'minibar';
+  width?: number;
+  height?: number;
+  color?: RGBColor;
+  strokeWidth?: number;
+  showValues?: boolean;
+  showPoints?: boolean;
 };
 
 export interface DataColumnMeta {

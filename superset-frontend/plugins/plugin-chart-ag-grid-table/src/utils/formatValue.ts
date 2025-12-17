@@ -116,3 +116,33 @@ export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
   }
   return '';
 };
+
+/**
+ * Extracts numeric values from either an array or an object.
+ * - If value is an array: filters out non-numeric values
+ * - If value is an object: extracts all numeric property values
+ * @param value - Array or object containing numeric data
+ * @returns Array of numeric values
+ */
+export const parseArrayValue = (
+  value:
+    | (number | string | boolean | object | null | undefined)[]
+    | Record<string, number | string | boolean | object | null | undefined>
+    | null
+    | undefined,
+): number[] => {
+  // Handle array input - filter to only numeric values
+  if (Array.isArray(value)) {
+    return value.filter((item): item is number => typeof item === 'number');
+  }
+
+  // Handle object input - extract all numeric property values
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value).filter(
+      (item): item is number => typeof item === 'number',
+    );
+  }
+
+  // Return empty array for other types
+  return [];
+};
