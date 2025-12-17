@@ -74,6 +74,9 @@ export default defineConfig({
 
     viewport: { width: 1280, height: 1024 },
 
+    // Accept downloads without prompts (needed for export tests)
+    acceptDownloads: true,
+
     // Screenshots and videos on failure
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

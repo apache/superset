@@ -18,6 +18,7 @@
  */
 
 // Core Playwright Components for Superset
+export { AceEditor } from './AceEditor';
 export { Button } from './Button';
 export { Checkbox } from './Checkbox';
 export { Form } from './Form';

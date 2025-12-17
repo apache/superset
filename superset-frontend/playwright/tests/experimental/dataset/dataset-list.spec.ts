@@ -457,10 +457,9 @@ test('should edit a dataset description', async ({ page }) => {
   await datasetListPage.clickEditAction(datasetName);
   await editModal.waitForVisible();
 
-  // Verify description textarea contains our new description
-  await expect(editModal.getDescriptionTextarea().element).toHaveValue(
-    newDescription,
-  );
+  // Verify description editor contains our new description
+  const savedDescription = await editModal.getDescription();
+  expect(savedDescription).toBe(newDescription);
 
   // Close modal without saving
   await editModal.clickCancel();

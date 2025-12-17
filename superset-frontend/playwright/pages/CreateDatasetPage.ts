@@ -26,11 +26,14 @@ import { Button, Select } from '../components/core';
 export class CreateDatasetPage {
   readonly page: Page;
 
-  private static readonly PLACEHOLDERS = {
-    DATABASE: 'Select database or type to search databases',
-    CATALOG: 'Select catalog or type to search catalogs',
-    SCHEMA: 'Select schema or type to search schemas',
-    TABLE: 'Select table or type to search tables',
+  /**
+   * Data-test selectors for the create dataset form elements.
+   * Using data-test attributes avoids strict mode violations with multiple selects.
+   */
+  private static readonly SELECTORS = {
+    DATABASE: '[data-test="select-database"]',
+    SCHEMA: '[data-test="Select schema or type to search schemas"]',
+    TABLE: '[data-test="Select table or type to search tables"]',
   } as const;
 
   constructor(page: Page) {
@@ -38,31 +41,24 @@ export class CreateDatasetPage {
   }
 
   /**
-   * Gets the database selector
+   * Gets the database selector using data-test attribute
    */
   getDatabaseSelect(): Select {
-    return Select.fromRole(this.page, CreateDatasetPage.PLACEHOLDERS.DATABASE);
+    return new Select(this.page, CreateDatasetPage.SELECTORS.DATABASE);
   }
 
   /**
-   * Gets the catalog selector
-   */
-  getCatalogSelect(): Select {
-    return Select.fromRole(this.page, CreateDatasetPage.PLACEHOLDERS.CATALOG);
-  }
-
-  /**
-   * Gets the schema selector
+   * Gets the schema selector using data-test attribute
    */
   getSchemaSelect(): Select {
-    return Select.fromRole(this.page, CreateDatasetPage.PLACEHOLDERS.SCHEMA);
+    return new Select(this.page, CreateDatasetPage.SELECTORS.SCHEMA);
   }
 
   /**
-   * Gets the table selector
+   * Gets the table selector using data-test attribute
    */
   getTableSelect(): Select {
-    return Select.fromRole(this.page, CreateDatasetPage.PLACEHOLDERS.TABLE);
+    return new Select(this.page, CreateDatasetPage.SELECTORS.TABLE);
   }
 
   /**

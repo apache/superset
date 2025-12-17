@@ -85,11 +85,15 @@ export class Select {
   /**
    * Clicks an option in an already-open dropdown by its text content.
    * Uses selector-based approach matching Cypress patterns.
+   * Handles multiple dropdowns by targeting only visible, non-hidden ones.
    * @param optionText - The text of the option to click
    */
   async clickOption(optionText: string): Promise<void> {
-    // Wait for dropdown to be visible
-    const dropdown = this.page.locator(SELECT_SELECTORS.DROPDOWN);
+    // Target visible dropdown (excludes hidden ones via :not(.ant-select-dropdown-hidden))
+    // Use .last() in case multiple dropdowns exist - the most recent one is what we want
+    const dropdown = this.page
+      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
+      .last();
     await dropdown.waitFor({ state: 'visible' });
 
     // Find option by selector and text content (matches Cypress .contains() pattern)

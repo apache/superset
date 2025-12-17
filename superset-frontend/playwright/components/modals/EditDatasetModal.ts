@@ -18,7 +18,7 @@
  */
 
 import { Page } from '@playwright/test';
-import { Modal, Tabs, Textarea } from '../core';
+import { AceEditor, Modal, Tabs } from '../core';
 
 /**
  * Edit Dataset Modal component (DatasourceModal).
@@ -47,18 +47,26 @@ export class EditDatasetModal extends Modal {
   }
 
   /**
-   * Get the description textarea component
+   * Get the description editor (AceEditor component)
    */
-  getDescriptionTextarea(): Textarea {
-    return Textarea.fromName(this.page, 'description');
+  getDescriptionEditor(): AceEditor {
+    return new AceEditor(this.page, '#ace-editor');
   }
 
   /**
-   * Fill in the description field
+   * Fill in the description field using the Ace Editor
    * @param description - The description text to enter
    */
   async fillDescription(description: string): Promise<void> {
-    await this.getDescriptionTextarea().fill(description);
+    await this.getDescriptionEditor().setText(description);
+  }
+
+  /**
+   * Get the current description text from the Ace Editor
+   * @returns The description text
+   */
+  async getDescription(): Promise<string> {
+    return this.getDescriptionEditor().getText();
   }
 
   /**
