@@ -1529,6 +1529,72 @@ class SqlaTable(
             from_clause = self._apply_what_if_transform(from_clause, what_if)
         return from_clause, cte
 
+    def _build_what_if_filter_condition(
+        self,
+        filters: list[dict[str, Any]],
+    ) -> ColumnElement | None:
+        """
+        Build a SQLAlchemy condition from a list of what-if filters.
+
+        Supports operators: ==, !=, >, <, >=, <=, IN, NOT IN, TEMPORAL_RANGE
+
+        :param filters: List of filter dicts with 'col', 'op', and 'val' keys
+        :returns: Combined SQLAlchemy condition (ANDed together), or None if no valid filters
+        """
+        from superset.common.utils.time_range_utils import (
+            get_since_until_from_time_range,
+        )
+        from superset.utils.core import FilterOperator
+
+        conditions: list[ColumnElement] = []
+        available_columns = {col.column_name for col in self.columns}
+
+        for flt in filters:
+            col_name = flt.get("col")
+            op = flt.get("op")
+            val = flt.get("val")
+
+            # Skip if column doesn't exist in datasource
+            if col_name not in available_columns:
+                continue
+
+            sqla_col = sa.column(col_name)
+
+            if op == FilterOperator.EQUALS:
+                conditions.append(sqla_col == val)
+            elif op == FilterOperator.NOT_EQUALS:
+                conditions.append(sqla_col != val)
+            elif op == FilterOperator.GREATER_THAN:
+                conditions.append(sqla_col > val)
+            elif op == FilterOperator.LESS_THAN:
+                conditions.append(sqla_col < val)
+            elif op == FilterOperator.GREATER_THAN_OR_EQUALS:
+                conditions.append(sqla_col >= val)
+            elif op == FilterOperator.LESS_THAN_OR_EQUALS:
+                conditions.append(sqla_col <= val)
+            elif op == FilterOperator.IN:
+                if isinstance(val, list):
+                    conditions.append(sqla_col.in_(val))
+            elif op == FilterOperator.NOT_IN:
+                if isinstance(val, list):
+                    conditions.append(~sqla_col.in_(val))
+            elif op == FilterOperator.TEMPORAL_RANGE:
+                # Parse time range string like "2024-01-01 : 2024-03-31" or "Last week"
+                if isinstance(val, str):
+                    since, until = get_since_until_from_time_range(time_range=val)
+                    time_conditions = []
+                    if since:
+                        time_conditions.append(sqla_col >= sa.literal(since))
+                    if until:
+                        time_conditions.append(sqla_col < sa.literal(until))
+                    if time_conditions:
+                        conditions.append(and_(*time_conditions))
+
+        if not conditions:
+            return None
+
+        return and_(*conditions)
+
     def _apply_what_if_transform(
         self,
         source: TableClause | Alias,
@@ -1547,13 +1613,20 @@ class SqlaTable(
         if not modifications:
             return source  # type: ignore
 
-        # Build a dict of column -> multiplier
-        mod_map = {m["column"]: m["multiplier"] for m in modifications}
+        # Build a dict of column -> modification config (including filters)
+        mod_map = {m["column"]: m for m in modifications}
 
         # Get columns needed by the query + modified columns
         # None means we need all columns (e.g., for complex SQL metrics)
         needed_columns: set[str] | None = what_if.get("needed_columns")
         modified_column_names = set(mod_map.keys())
+
+        # Collect columns used in filters
+        filter_columns: set[str] = set()
+        for mod in modifications:
+            for flt in mod.get("filters", []):
+                if col_name := flt.get("col"):
+                    filter_columns.add(col_name)
 
         # Determine which columns to select
         available_columns = {col.column_name for col in self.columns}
@@ -1561,8 +1634,8 @@ class SqlaTable(
             # Use all available columns
             columns_to_select = available_columns
         else:
-            # Use only needed columns + modified columns
-            columns_to_select = needed_columns | modified_column_names
+            # Use only needed columns + modified columns + filter columns
+            columns_to_select = needed_columns | modified_column_names | filter_columns
 
         # Build select list with only needed columns
         select_columns = []
@@ -1573,11 +1646,26 @@ class SqlaTable(
                 continue
 
             if col_name in mod_map:
-                # Apply transformation: column * multiplier AS column
-                multiplier = mod_map[col_name]
-                transformed = (sa.column(col_name) * sa.literal(multiplier)).label(
-                    col_name
-                )
+                mod = mod_map[col_name]
+                multiplier = mod["multiplier"]
+                filters = mod.get("filters", [])
+                col_ref = sa.column(col_name)
+
+                if filters:
+                    # Build conditional transformation with CASE WHEN
+                    condition = self._build_what_if_filter_condition(filters)
+                    if condition is not None:
+                        transformed = sa.case(
+                            (condition, col_ref * sa.literal(multiplier)),
+                            else_=col_ref,
+                        ).label(col_name)
+                    else:
+                        # No valid filter conditions, apply unconditionally
+                        transformed = (col_ref * sa.literal(multiplier)).label(col_name)
+                else:
+                    # No filters, apply transformation to all rows
+                    transformed = (col_ref * sa.literal(multiplier)).label(col_name)
+
                 select_columns.append(transformed)
             else:
                 select_columns.append(sa.column(col_name))
