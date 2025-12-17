@@ -477,10 +477,9 @@ export function exploreJSON(
       })
       .catch(response => {
         // Ignore abort errors - they're expected when filters change quickly
-        if (
-          response?.name === 'AbortError' ||
-          response?.message === 'Request aborted'
-        ) {
+        const isAbort =
+          response?.name === 'AbortError' || response?.statusText === 'abort';
+        if (isAbort) {
           // Abort is expected: filters changed, chart unmounted, etc.
           return dispatch(chartUpdateStopped(key));
         }
