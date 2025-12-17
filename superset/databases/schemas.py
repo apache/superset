@@ -66,12 +66,20 @@ database_schemas_query_schema = {
         "force": {"type": "boolean"},
         "upload_allowed": {"type": "boolean"},
         "catalog": {"type": "string"},
+        "filter": {"type": "string"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1, "maximum": 1000},
     },
 }
 
 database_catalogs_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"}},
+    "properties": {
+        "force": {"type": "boolean"},
+        "filter": {"type": "string"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1, "maximum": 1000},
+    },
 }
 
 database_tables_query_schema = {
@@ -80,6 +88,9 @@ database_tables_query_schema = {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
         "catalog_name": {"type": "string"},
+        "filter": {"type": "string"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1, "maximum": 1000},
     },
     "required": ["schema_name"],
 }

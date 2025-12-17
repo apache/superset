@@ -26,10 +26,13 @@ import {
   AsyncSelect,
   InfoTooltip,
   Input,
+  Collapse,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { DataAccessRuleObject } from './types';
+import PermissionsTree from './PermissionsTree';
+import type { PermissionsPayload } from './PermissionsTree/types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -96,6 +99,19 @@ const StyledTextArea = styled(Input.TextArea)`
   font-family: monospace;
 `;
 
+const StyledCollapse = styled(Collapse)`
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  background: transparent;
+
+  .ant-collapse-header {
+    padding: ${({ theme }) => theme.sizeUnit}px 0 !important;
+  }
+
+  .ant-collapse-content-box {
+    padding: ${({ theme }) => theme.sizeUnit}px 0 !important;
+  }
+`;
+
 export interface DataAccessRuleModalProps {
   rule: DataAccessRuleObject | null;
   addSuccessToast: (msg: string) => void;
@@ -144,6 +160,9 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
   const [selectedRole, setSelectedRole] = useState<SelectValue | null>(null);
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [permissionsPayload, setPermissionsPayload] =
+    useState<PermissionsPayload>({ allowed: [], denied: [] });
+  const [showAdvanced, setShowAdvanced] = useState<string[]>([]);
 
   const isEditMode = rule !== null;
 
@@ -166,7 +185,7 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
     }));
   };
 
-  // Validate JSON and form
+  // Validate form
   const validate = useCallback(() => {
     // Check role is selected
     if (!selectedRole?.value) {
@@ -174,27 +193,33 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
       return;
     }
 
-    // Check rule is valid JSON
-    try {
-      const parsed = JSON.parse(currentRule.rule);
-      if (typeof parsed !== 'object' || parsed === null) {
-        setJsonError(t('Rule must be a JSON object'));
+    // If advanced mode is open, validate JSON
+    if (showAdvanced.includes('advanced')) {
+      try {
+        const parsed = JSON.parse(currentRule.rule);
+        if (typeof parsed !== 'object' || parsed === null) {
+          setJsonError(t('Rule must be a JSON object'));
+          setDisableSave(true);
+          return;
+        }
+        setJsonError(null);
+      } catch {
+        setJsonError(t('Invalid JSON'));
         setDisableSave(true);
         return;
       }
-      setJsonError(null);
-      setDisableSave(false);
-    } catch {
-      setJsonError(t('Invalid JSON'));
-      setDisableSave(true);
     }
-  }, [currentRule.rule, selectedRole]);
+
+    setDisableSave(false);
+  }, [currentRule.rule, selectedRole, showAdvanced]);
 
   // Initialize
   useEffect(() => {
     if (!isEditMode) {
       setCurrentRule({ ...DEFAULT_RULE });
       setSelectedRole(null);
+      setPermissionsPayload({ allowed: [], denied: [] });
+      setShowAdvanced([]);
     } else if (rule?.id !== null && !loading && !fetchError) {
       fetchResource(rule.id as number);
     }
@@ -202,14 +227,31 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
 
   useEffect(() => {
     if (resource) {
+      const ruleStr =
+        typeof resource.rule === 'string'
+          ? resource.rule
+          : JSON.stringify(resource.rule, null, 2);
+
       setCurrentRule({
         ...resource,
         id: rule?.id,
-        rule:
-          typeof resource.rule === 'string'
-            ? resource.rule
-            : JSON.stringify(resource.rule, null, 2),
+        rule: ruleStr,
       });
+
+      // Parse rule into permissions payload
+      try {
+        const parsed =
+          typeof resource.rule === 'string'
+            ? JSON.parse(resource.rule)
+            : resource.rule;
+        setPermissionsPayload({
+          allowed: parsed.allowed || [],
+          denied: parsed.denied || [],
+        });
+      } catch {
+        setPermissionsPayload({ allowed: [], denied: [] });
+      }
+
       if (resource.role) {
         setSelectedRole({
           value: resource.role.id,
@@ -234,11 +276,43 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
     }
   };
 
+  const onPermissionsChange = useCallback((payload: PermissionsPayload) => {
+    setPermissionsPayload(payload);
+    // Update JSON representation
+    const ruleJson = JSON.stringify(payload, null, 2);
+    updateRuleState('rule', ruleJson);
+  }, []);
+
+  const onAdvancedChange = (keys: string | string[]) => {
+    const keyArray = Array.isArray(keys) ? keys : [keys];
+    setShowAdvanced(keyArray);
+
+    // When opening advanced, sync JSON from permissions
+    if (keyArray.includes('advanced')) {
+      const ruleJson = JSON.stringify(permissionsPayload, null, 2);
+      updateRuleState('rule', ruleJson);
+    }
+    // When closing advanced, sync permissions from JSON
+    if (!keyArray.includes('advanced') && showAdvanced.includes('advanced')) {
+      try {
+        const parsed = JSON.parse(currentRule.rule);
+        setPermissionsPayload({
+          allowed: parsed.allowed || [],
+          denied: parsed.denied || [],
+        });
+      } catch {
+        // Keep existing payload if JSON is invalid
+      }
+    }
+  };
+
   const hide = () => {
     clearError();
     setCurrentRule({ ...DEFAULT_RULE });
     setSelectedRole(null);
     setJsonError(null);
+    setPermissionsPayload({ allowed: [], denied: [] });
+    setShowAdvanced([]);
     onHide();
   };
 
@@ -331,42 +405,74 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {t('Rule (JSON)')} <span className="required">*</span>
+              {t('Table Permissions')}
               <InfoTooltip
                 tooltip={t(
-                  `Define the access rule as a JSON document with "allowed" and "denied" arrays. Each entry specifies database, catalog, schema, table, and optional RLS/CLS configurations.`,
+                  'Select databases, schemas, and tables to allow or deny access. Click the icons to toggle between Allow (green), Deny (red), and Inherit (gray).',
                 )}
               />
             </div>
-            <div className="input-container">
-              <StyledTextArea
-                rows={15}
-                name="rule"
-                value={currentRule.rule}
-                onChange={onRuleChange}
-                status={jsonError ? 'error' : undefined}
-                data-test="rule-json"
-              />
-            </div>
-            {jsonError && (
-              <div style={{ color: 'red', marginTop: '4px' }}>{jsonError}</div>
-            )}
+            <PermissionsTree
+              value={permissionsPayload}
+              onChange={onPermissionsChange}
+            />
           </StyledInputContainer>
 
-          <StyledInputContainer>
-            <div className="control-label">{t('Example')}</div>
-            <pre
-              style={{
-                background: '#f5f5f5',
-                padding: '12px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}
-            >
-              {RULE_EXAMPLE}
-            </pre>
-          </StyledInputContainer>
+          <StyledCollapse
+            activeKey={showAdvanced}
+            onChange={onAdvancedChange}
+            ghost
+            items={[
+              {
+                key: 'advanced',
+                label: t('Advanced: Edit JSON directly'),
+                children: (
+                  <>
+                    <StyledInputContainer>
+                      <div className="control-label">
+                        {t('Rule (JSON)')}
+                        <InfoTooltip
+                          tooltip={t(
+                            `Define the access rule as a JSON document with "allowed" and "denied" arrays. Each entry specifies database, catalog, schema, table, and optional RLS/CLS configurations.`,
+                          )}
+                        />
+                      </div>
+                      <div className="input-container">
+                        <StyledTextArea
+                          rows={15}
+                          name="rule"
+                          value={currentRule.rule}
+                          onChange={onRuleChange}
+                          status={jsonError ? 'error' : undefined}
+                          data-test="rule-json"
+                        />
+                      </div>
+                      {jsonError && (
+                        <div style={{ color: 'red', marginTop: '4px' }}>
+                          {jsonError}
+                        </div>
+                      )}
+                    </StyledInputContainer>
+
+                    <StyledInputContainer>
+                      <div className="control-label">{t('Example')}</div>
+                      <pre
+                        style={{
+                          background: '#f5f5f5',
+                          padding: '12px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          overflow: 'auto',
+                        }}
+                      >
+                        {RULE_EXAMPLE}
+                      </pre>
+                    </StyledInputContainer>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       </StyledSectionContainer>
     </StyledModal>

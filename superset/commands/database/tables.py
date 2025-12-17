@@ -46,11 +46,17 @@ class TablesDatabaseCommand(BaseCommand):
         catalog_name: str | None,
         schema_name: str,
         force: bool,
+        filter_str: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
     ):
         self._db_id = db_id
         self._catalog_name = catalog_name
         self._schema_name = schema_name
         self._force = force
+        self._filter_str = filter_str
+        self._page = page
+        self._page_size = page_size
 
     def run(self) -> dict[str, Any]:
         self.validate()
@@ -161,8 +167,24 @@ class TablesDatabaseCommand(BaseCommand):
                 key=lambda item: item["value"],
             )
 
+            # Apply filter if provided
+            if self._filter_str:
+                filter_lower = self._filter_str.lower()
+                options = [
+                    opt for opt in options if filter_lower in opt["value"].lower()
+                ]
+
+            # Get total count before pagination
+            total_count = len(options)
+
+            # Apply pagination if provided
+            if self._page is not None and self._page_size is not None:
+                start = self._page * self._page_size
+                end = start + self._page_size
+                options = options[start:end]
+
             payload = {
-                "count": len(tables) + len(views) + len(materialized_views),
+                "count": total_count,
                 "result": options,
             }
             return payload

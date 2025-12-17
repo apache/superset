@@ -717,16 +717,37 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
+            params = kwargs["rison"]
             catalogs = database.get_all_catalog_names(
                 cache=database.catalog_cache_enabled,
                 cache_timeout=database.catalog_cache_timeout or None,
-                force=kwargs["rison"].get("force", False),
+                force=params.get("force", False),
             )
             catalogs = security_manager.get_catalogs_accessible_by_user(
                 database,
                 catalogs,
             )
-            return self.response(200, result=list(catalogs))
+
+            # Convert to list and sort
+            catalogs = sorted(catalogs)
+
+            # Apply filter if provided
+            filter_str = params.get("filter", "").lower()
+            if filter_str:
+                catalogs = [c for c in catalogs if filter_str in c.lower()]
+
+            # Get total count before pagination
+            total_count = len(catalogs)
+
+            # Apply pagination if provided
+            page = params.get("page")
+            page_size = params.get("page_size")
+            if page is not None and page_size is not None:
+                start = page * page_size
+                end = start + page_size
+                catalogs = catalogs[start:end]
+
+            return self.response(200, result=catalogs, count=total_count)
         except OperationalError:
             return self.response(
                 500,
@@ -797,21 +818,38 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             if params.get("upload_allowed"):
                 if not database.allow_file_upload:
-                    return self.response(200, result=[])
+                    return self.response(200, result=[], count=0)
                 if allowed_schemas := database.get_schema_access_for_file_upload():
                     # some databases might return the list of schemas in uppercase,
                     # while the list of allowed schemas is manually inputted so
                     # could be lowercase
                     allowed_schemas = {schema.lower() for schema in allowed_schemas}
-                    return self.response(
-                        200,
-                        result=[
-                            schema
-                            for schema in schemas
-                            if schema.lower() in allowed_schemas
-                        ],
-                    )
-            return self.response(200, result=list(schemas))
+                    schemas = [
+                        schema
+                        for schema in schemas
+                        if schema.lower() in allowed_schemas
+                    ]
+
+            # Convert to list and sort
+            schemas = sorted(schemas)
+
+            # Apply filter if provided
+            filter_str = params.get("filter", "").lower()
+            if filter_str:
+                schemas = [s for s in schemas if filter_str in s.lower()]
+
+            # Get total count before pagination
+            total_count = len(schemas)
+
+            # Apply pagination if provided
+            page = params.get("page")
+            page_size = params.get("page_size")
+            if page is not None and page_size is not None:
+                start = page * page_size
+                end = start + page_size
+                schemas = schemas[start:end]
+
+            return self.response(200, result=schemas, count=total_count)
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
@@ -874,11 +912,23 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        force = kwargs["rison"].get("force", False)
-        catalog_name = kwargs["rison"].get("catalog_name")
-        schema_name = kwargs["rison"].get("schema_name", "")
+        params = kwargs["rison"]
+        force = params.get("force", False)
+        catalog_name = params.get("catalog_name")
+        schema_name = params.get("schema_name", "")
+        filter_str = params.get("filter")
+        page = params.get("page")
+        page_size = params.get("page_size")
 
-        command = TablesDatabaseCommand(pk, catalog_name, schema_name, force)
+        command = TablesDatabaseCommand(
+            pk,
+            catalog_name,
+            schema_name,
+            force,
+            filter_str=filter_str,
+            page=page,
+            page_size=page_size,
+        )
         payload = command.run()
         return self.response(200, **payload)
 
