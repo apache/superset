@@ -28,9 +28,9 @@ export const CUSTOM_AGG_FUNCS = {
   queryTotal: 'Metric total',
 };
 
-// AG Grid filter constants
 export const FILTER_POPOVER_OPEN_DELAY = 200;
 export const FILTER_INPUT_SELECTOR = 'input[data-ref="eInput"]';
+export const NOOP_FILTER_COMPARATOR = () => 0;
 
 export const FILTER_INPUT_POSITIONS = {
   FIRST: 'first' as const,

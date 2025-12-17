@@ -89,13 +89,9 @@ const autoOpenFilterAndFocus = async (
 
   if (!filterEl || !filterRef.current) return;
 
-  // Clear children safely without innerHTML to prevent XSS
-  while (filterRef.current.firstChild) {
-    filterRef.current.removeChild(filterRef.current.firstChild);
-  }
+  filterRef.current.innerHTML = '';
   filterRef.current.appendChild(filterEl);
 
-  // Focus the correct input based on lastFilteredInputPosition
   if (filterInstance?.eConditionBodies) {
     const conditionBodies = filterInstance.eConditionBodies;
     const targetIndex =
@@ -142,7 +138,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const isTimeComparison = !isMain && userColDef?.timeComparisonKey;
   const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
 
-  // Sorting logic
   const clearSort = () => {
     onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });
     setSort(null, false);
@@ -167,10 +162,8 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     else clearSort();
   };
 
-  const handleFilterClick = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+  const handleFilterClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setFilterVisible(!isFilterVisible);
 
     const filterInstance = (await api.getColumnFilterInstance(
@@ -178,15 +171,20 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     )) as AGGridFilterInstance | null;
     const filterEl = filterInstance?.eGui;
     if (filterEl && filterRef.current) {
-      // Clear children safely without innerHTML to prevent XSS
-      while (filterRef.current.firstChild) {
-        filterRef.current.removeChild(filterRef.current.firstChild);
-      }
+      filterRef.current.innerHTML = '';
       filterRef.current.appendChild(filterEl);
     }
   };
 
-  // Auto-open filter popover for the last filtered column
+  /**
+   * Auto-open filter popover for the last filtered column after server data refresh.
+   *
+   * The delay (FILTER_POPOVER_OPEN_DELAY) is necessary to:
+   * 1. Allow AG Grid to complete rendering with new data
+   * 2. Ensure filter instance is available via getColumnFilterInstance()
+   * 3. Allow React reconciliation to complete
+   * 4. Provide smooth UX without jarring immediate reopen
+   */
   useEffect(() => {
     if (lastFilteredColumn === colId && !isFilterVisible) {
       const timeoutId = setTimeout(

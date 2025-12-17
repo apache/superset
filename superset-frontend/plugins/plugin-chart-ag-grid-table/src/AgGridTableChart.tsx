@@ -111,6 +111,23 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [columns]);
 
+  useEffect(() => {
+    if (!serverPagination || !serverPaginationData || !rowCount) return;
+
+    const currentPage = serverPaginationData.currentPage ?? 0;
+    const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
+    const totalPages = Math.ceil(rowCount / currentPageSize);
+
+    if (currentPage >= totalPages && totalPages > 0) {
+      const validPage = Math.max(0, totalPages - 1);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: validPage,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  }, [rowCount, serverPagination, serverPaginationData, serverPageLength, setDataMask]);
+
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
     { key: '#', label: '#' },

@@ -150,6 +150,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const rowData = useMemo(() => data, [data]);
     const containerRef = useRef<HTMLDivElement>(null);
     const lastCapturedStateRef = useRef<string | null>(null);
+    const filterOperationVersionRef = useRef(0);
 
     const searchId = `search-${id}`;
 
@@ -351,12 +352,39 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     );
 
     const handleFilterChanged = useCallback(async () => {
+      filterOperationVersionRef.current += 1;
+      const currentVersion = filterOperationVersionRef.current;
+
       const completeFilterState = await getCompleteFilterState(
         gridRef,
         metricColumns,
       );
 
-      // Guard clause: Only call onFilterChanged if filter model has actually changed
+      // Skip stale operations from rapid filter changes
+      if (currentVersion !== filterOperationVersionRef.current) {
+        return;
+      }
+
+      // Reject invalid filter states (e.g., text filter on numeric column)
+      if (completeFilterState.originalFilterModel) {
+        const filterModel = completeFilterState.originalFilterModel;
+        const hasInvalidFilterType = Object.entries(filterModel).some(
+          ([colId, filter]: [string, any]) => {
+            if (
+              filter?.filterType === 'text' &&
+              metricColumns?.includes(colId)
+            ) {
+              return true;
+            }
+            return false;
+          },
+        );
+
+        if (hasInvalidFilterType) {
+          return;
+        }
+      }
+
       if (
         !isEqual(
           serverPaginationData?.agGridFilterModel,

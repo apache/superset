@@ -31,10 +31,12 @@ import {
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
+import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
+import { NOOP_FILTER_COMPARATOR } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
@@ -101,6 +103,73 @@ const getFilterType = (col: InputColumn) => {
       return true;
   }
 };
+
+/**
+ * Filter value getter for temporal columns.
+ * Returns null for DateWithFormatter objects with null input,
+ * enabling AG Grid's blank filter to correctly identify null dates.
+ */
+const dateFilterValueGetter = (params: {
+  data: Record<string, unknown>;
+  colDef: { field?: string };
+}) => {
+  const value = params.data?.[params.colDef.field as string];
+  // Return null for DateWithFormatter with null input so AG Grid blank filter works
+  if (value instanceof DateWithFormatter && value.input === null) {
+    return null;
+  }
+  return value;
+};
+
+/**
+ * Custom date filter options for server-side pagination.
+ * Each option has a predicate that always returns true, allowing all rows to pass
+ * client-side filtering since the actual filtering is handled by the server.
+ */
+const SERVER_SIDE_DATE_FILTER_OPTIONS = [
+  {
+    displayKey: 'serverEquals',
+    displayName: 'Equals',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverNotEqual',
+    displayName: 'Not Equal',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverBefore',
+    displayName: 'Before',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverAfter',
+    displayName: 'After',
+    predicate: () => true,
+    numberOfInputs: 1,
+  },
+  {
+    displayKey: 'serverInRange',
+    displayName: 'In Range',
+    predicate: () => true,
+    numberOfInputs: 2,
+  },
+  {
+    displayKey: 'serverBlank',
+    displayName: 'Blank',
+    predicate: () => true,
+    numberOfInputs: 0,
+  },
+  {
+    displayKey: 'serverNotBlank',
+    displayName: 'Not blank',
+    predicate: () => true,
+    numberOfInputs: 0,
+  },
+];
 
 function getHeaderLabel(col: InputColumn) {
   let headerLabel: string | undefined;
@@ -221,9 +290,16 @@ export const useColDefs = ({
           filterValueGetter,
         }),
         ...(dataType === GenericDataType.Temporal && {
-          filterParams: {
-            comparator: serverPagination ? () => 0 : dateFilterComparator,
-          },
+          // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
+          filterValueGetter: dateFilterValueGetter,
+          filterParams: serverPagination
+            ? {
+                filterOptions: SERVER_SIDE_DATE_FILTER_OPTIONS,
+                comparator: NOOP_FILTER_COMPARATOR,
+              }
+            : {
+                comparator: dateFilterComparator,
+              },
         }),
         cellDataType: getCellDataType(col),
         defaultAggFunc: getAggFunc(col),

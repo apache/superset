@@ -50,6 +50,38 @@ const NUMBER_FILTER_OPERATORS: Record<string, string> = {
   greaterThanOrEqual: '>=',
 };
 
+/**
+ * Maps custom server-side date filter operators to normalized operator names.
+ * Server-side operators (serverEquals, serverBefore, etc.) are custom operators
+ * used when server_pagination is enabled to bypass client-side filtering.
+ */
+const DATE_FILTER_OPERATOR_MAP: Record<string, string> = {
+  // Standard operators
+  equals: 'equals',
+  notEqual: 'notEqual',
+  lessThan: 'lessThan',
+  lessThanOrEqual: 'lessThanOrEqual',
+  greaterThan: 'greaterThan',
+  greaterThanOrEqual: 'greaterThanOrEqual',
+  inRange: 'inRange',
+  // Custom server-side operators (map to standard equivalents)
+  serverEquals: 'equals',
+  serverNotEqual: 'notEqual',
+  serverBefore: 'lessThan',
+  serverAfter: 'greaterThan',
+  serverInRange: 'inRange',
+};
+
+/**
+ * Blank filter operator types
+ */
+const BLANK_OPERATORS = new Set([
+  'blank',
+  'notBlank',
+  'serverBlank',
+  'serverNotBlank',
+]);
+
 function getTextComparator(type: string, value: string): string {
   if (type === 'contains' || type === 'notContains') {
     return `%${value}%`;
@@ -61,6 +93,101 @@ function getTextComparator(type: string, value: string): string {
     return `%${value}`;
   }
   return value;
+}
+
+/**
+ * Format a date string to ISO format for SQL queries, preserving local timezone.
+ * @param dateStr - Date string from AG Grid filter
+ * @returns ISO formatted date string in local timezone
+ */
+function formatDateForSQL(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * Get the start of day (00:00:00) for a given date string
+ */
+function getStartOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  return formatDateForSQL(date.toISOString());
+}
+
+/**
+ * Get the end of day (23:59:59) for a given date string
+ */
+function getEndOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(23, 59, 59, 999);
+  return formatDateForSQL(date.toISOString());
+}
+
+/**
+ * Converts a date filter to SQL clause.
+ * Handles both standard operators (equals, lessThan, etc.) and
+ * custom server-side operators (serverEquals, serverBefore, etc.).
+ *
+ * @param colId - Column identifier
+ * @param filter - AG Grid date filter object
+ * @returns SQL clause string or null if conversion not possible
+ */
+function convertDateFilterToSQL(
+  colId: string,
+  filter: AgGridFilter,
+): string | null {
+  const { type, dateFrom, dateTo } = filter;
+
+  if (!type) return null;
+
+  // Map custom server operators to standard ones
+  const normalizedType = DATE_FILTER_OPERATOR_MAP[type] || type;
+
+  switch (normalizedType) {
+    case 'equals':
+      if (!dateFrom) return null;
+      // Full day range for equals
+      return `(${colId} >= '${getStartOfDay(dateFrom)}' AND ${colId} <= '${getEndOfDay(dateFrom)}')`;
+
+    case 'notEqual':
+      if (!dateFrom) return null;
+      // Outside the full day range for not equals
+      return `(${colId} < '${getStartOfDay(dateFrom)}' OR ${colId} > '${getEndOfDay(dateFrom)}')`;
+
+    case 'lessThan':
+      if (!dateFrom) return null;
+      return `${colId} < '${getStartOfDay(dateFrom)}'`;
+
+    case 'lessThanOrEqual':
+      if (!dateFrom) return null;
+      return `${colId} <= '${getEndOfDay(dateFrom)}'`;
+
+    case 'greaterThan':
+      if (!dateFrom) return null;
+      return `${colId} > '${getEndOfDay(dateFrom)}'`;
+
+    case 'greaterThanOrEqual':
+      if (!dateFrom) return null;
+      return `${colId} >= '${getStartOfDay(dateFrom)}'`;
+
+    case 'inRange':
+      if (!dateFrom || !dateTo) return null;
+      return `${colId} BETWEEN '${getStartOfDay(dateFrom)}' AND '${getEndOfDay(dateTo)}'`;
+
+    default:
+      return null;
+  }
 }
 
 /**
@@ -106,6 +233,8 @@ export function convertColumnState(
  * - Complex: {operator: 'AND', condition1: {type: 'greaterThan', filter: 1}, condition2: {type: 'lessThan', filter: 16}}
  *   → "(column_name > 1 AND column_name < 16)"
  * - Set: {filterType: 'set', values: ['a', 'b']} → "column_name IN ('a', 'b')"
+ * - Blank: {filterType: 'text', type: 'blank'} → "column_name IS NULL"
+ * - Date: {filterType: 'date', type: 'serverBefore', dateFrom: '2024-01-01'} → "column_name < '2024-01-01T00:00:00'"
  */
 function convertFilterToSQL(
   colId: string,
@@ -132,6 +261,17 @@ function convertFilterToSQL(
     return `(${conditions.join(` ${filter.operator} `)})`;
   }
 
+  // Handle blank/notBlank operators for all filter types
+  // These are special operators that check for NULL values
+  if (filter.type && BLANK_OPERATORS.has(filter.type)) {
+    if (filter.type === 'blank' || filter.type === 'serverBlank') {
+      return `${colId} IS NULL`;
+    }
+    if (filter.type === 'notBlank' || filter.type === 'serverNotBlank') {
+      return `${colId} IS NOT NULL`;
+    }
+  }
+
   if (filter.filterType === 'text' && filter.filter && filter.type) {
     const op = TEXT_FILTER_OPERATORS[filter.type];
     const val = getTextComparator(filter.type, String(filter.filter));
@@ -149,9 +289,9 @@ function convertFilterToSQL(
     return `${colId} ${op} ${filter.filter}`;
   }
 
-  if (filter.filterType === 'date' && filter.dateFrom && filter.type) {
-    const op = NUMBER_FILTER_OPERATORS[filter.type];
-    return `${colId} ${op} '${filter.dateFrom}'`;
+  // Handle date filters with proper date formatting and custom server operators
+  if (filter.filterType === 'date' && filter.type) {
+    return convertDateFilterToSQL(colId, filter);
   }
 
   if (

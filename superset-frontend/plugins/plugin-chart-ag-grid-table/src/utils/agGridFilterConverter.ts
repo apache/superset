@@ -32,7 +32,15 @@ export type AgGridFilterOperator =
   | 'greaterThanOrEqual'
   | 'inRange'
   | 'blank'
-  | 'notBlank';
+  | 'notBlank'
+  // Custom server-side date filter operators (always pass client-side filtering)
+  | 'serverEquals'
+  | 'serverNotEqual'
+  | 'serverBefore'
+  | 'serverAfter'
+  | 'serverInRange'
+  | 'serverBlank'
+  | 'serverNotBlank';
 
 export type AgGridLogicalOperator = 'AND' | 'OR';
 
@@ -50,6 +58,14 @@ export const FILTER_OPERATORS = {
   IN_RANGE: 'inRange' as const,
   BLANK: 'blank' as const,
   NOT_BLANK: 'notBlank' as const,
+  // Custom server-side date filter operators
+  SERVER_EQUALS: 'serverEquals' as const,
+  SERVER_NOT_EQUAL: 'serverNotEqual' as const,
+  SERVER_BEFORE: 'serverBefore' as const,
+  SERVER_AFTER: 'serverAfter' as const,
+  SERVER_IN_RANGE: 'serverInRange' as const,
+  SERVER_BLANK: 'serverBlank' as const,
+  SERVER_NOT_BLANK: 'serverNotBlank' as const,
 } as const;
 
 export const SQL_OPERATORS = {
@@ -126,6 +142,14 @@ const AG_GRID_TO_SQLA_OPERATOR_MAP: Record<AgGridFilterOperator, string> = {
   [FILTER_OPERATORS.IN_RANGE]: SQL_OPERATORS.BETWEEN,
   [FILTER_OPERATORS.BLANK]: SQL_OPERATORS.IS_NULL,
   [FILTER_OPERATORS.NOT_BLANK]: SQL_OPERATORS.IS_NOT_NULL,
+  // Server-side date filter operators (map to same SQL operators as standard ones)
+  [FILTER_OPERATORS.SERVER_EQUALS]: SQL_OPERATORS.EQUALS,
+  [FILTER_OPERATORS.SERVER_NOT_EQUAL]: SQL_OPERATORS.NOT_EQUALS,
+  [FILTER_OPERATORS.SERVER_BEFORE]: SQL_OPERATORS.LESS_THAN,
+  [FILTER_OPERATORS.SERVER_AFTER]: SQL_OPERATORS.GREATER_THAN,
+  [FILTER_OPERATORS.SERVER_IN_RANGE]: SQL_OPERATORS.BETWEEN,
+  [FILTER_OPERATORS.SERVER_BLANK]: SQL_OPERATORS.IS_NULL,
+  [FILTER_OPERATORS.SERVER_NOT_BLANK]: SQL_OPERATORS.IS_NOT_NULL,
 };
 
 /**
@@ -452,8 +476,23 @@ function convertDateFilter(
   const { type, dateFrom, dateTo } = filter;
 
   // Handle null/blank checks for date columns
-  if (type === FILTER_OPERATORS.BLANK || type === FILTER_OPERATORS.NOT_BLANK) {
-    return null; // Let the standard logic handle these
+  if (type === FILTER_OPERATORS.BLANK || type === FILTER_OPERATORS.SERVER_BLANK) {
+    return {
+      col: columnName,
+      op: SQL_OPERATORS.IS_NULL,
+      val: null,
+    };
+  }
+
+  if (
+    type === FILTER_OPERATORS.NOT_BLANK ||
+    type === FILTER_OPERATORS.SERVER_NOT_BLANK
+  ) {
+    return {
+      col: columnName,
+      op: SQL_OPERATORS.IS_NOT_NULL,
+      val: null,
+    };
   }
 
   // Validate we have at least one date
@@ -466,6 +505,7 @@ function convertDateFilter(
   // Convert based on operator type
   switch (type) {
     case FILTER_OPERATORS.EQUALS:
+    case FILTER_OPERATORS.SERVER_EQUALS:
       if (!dateFrom) {
         return null;
       }
@@ -474,10 +514,12 @@ function convertDateFilter(
       break;
 
     case FILTER_OPERATORS.NOT_EQUAL:
+    case FILTER_OPERATORS.SERVER_NOT_EQUAL:
       // NOT EQUAL for dates is complex, skip for now
       return null;
 
     case FILTER_OPERATORS.LESS_THAN:
+    case FILTER_OPERATORS.SERVER_BEFORE:
       if (!dateFrom) {
         return null;
       }
@@ -494,6 +536,7 @@ function convertDateFilter(
       break;
 
     case FILTER_OPERATORS.GREATER_THAN:
+    case FILTER_OPERATORS.SERVER_AFTER:
       if (!dateFrom) {
         return null;
       }
@@ -510,6 +553,7 @@ function convertDateFilter(
       break;
 
     case FILTER_OPERATORS.IN_RANGE:
+    case FILTER_OPERATORS.SERVER_IN_RANGE:
       // Range between two dates
       if (!dateFrom || !dateTo) {
         return null;
