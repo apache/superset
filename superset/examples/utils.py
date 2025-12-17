@@ -31,6 +31,77 @@ _logger = logging.getLogger(__name__)
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
 
+def _read_file_if_exists(base: Any, path: Any) -> str | None:
+    """Read file content if it exists, return None otherwise."""
+    file_path = base / str(path)
+    if file_path.is_file():
+        return file_path.read_text("utf-8")
+    return None
+
+
+def _load_shared_configs(examples_root: Any) -> dict[str, str]:
+    """Load shared database and metadata configs from _shared directory."""
+    contents: dict[str, str] = {}
+    base = files("superset")
+    shared_dir = examples_root / "_shared"
+
+    if not (base / str(shared_dir)).is_dir():
+        return contents
+
+    # Database config -> databases/examples.yaml
+    db_content = _read_file_if_exists(base, shared_dir / "database.yaml")
+    if db_content:
+        contents["databases/examples.yaml"] = db_content
+
+    # Metadata -> metadata.yaml
+    meta_content = _read_file_if_exists(base, shared_dir / "metadata.yaml")
+    if meta_content:
+        contents["metadata.yaml"] = meta_content
+
+    return contents
+
+
+def _should_skip_directory(item: Any) -> bool:
+    """Check if directory should be skipped during traversal."""
+    name = str(item)
+    if name.startswith("_") or name.startswith("."):
+        return True
+    return name in ("configs", "data", "__pycache__")
+
+
+def _load_example_contents(
+    example_dir: Any, example_name: str, test_re: re.Pattern[str], load_test_data: bool
+) -> dict[str, str]:
+    """Load all configs (dataset, dashboard, charts) from a single example directory."""
+    contents: dict[str, str] = {}
+    base = files("superset")
+
+    # Dataset config
+    dataset_content = _read_file_if_exists(base, example_dir / "dataset.yaml")
+    if dataset_content and (load_test_data or not test_re.search("dataset.yaml")):
+        contents[f"datasets/examples/{example_name}.yaml"] = dataset_content
+
+    # Dashboard config
+    dashboard_content = _read_file_if_exists(base, example_dir / "dashboard.yaml")
+    if dashboard_content and (load_test_data or not test_re.search("dashboard.yaml")):
+        contents[f"dashboards/{example_name}.yaml"] = dashboard_content
+
+    # Chart configs
+    charts_dir = example_dir / "charts"
+    if (base / str(charts_dir)).is_dir():
+        for chart_item in (base / str(charts_dir)).iterdir():
+            if Path(str(chart_item)).suffix.lower() not in YAML_EXTENSIONS:
+                continue
+            if not load_test_data and test_re.search(str(chart_item)):
+                continue
+            chart_file = charts_dir / str(chart_item)
+            content = _read_file_if_exists(base, chart_file)
+            if content:
+                contents[f"charts/{example_name}/{chart_item}"] = content
+
+    return contents
+
+
 def load_examples_from_configs(
     force_data: bool = False, load_test_data: bool = False
 ) -> None:
@@ -70,66 +141,26 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
     """
     examples_root = files("superset") / "examples"
     test_re = re.compile(r"\.test\.")
-    contents: dict[str, str] = {}
+    base = files("superset")
 
     # Load shared configs (_shared directory)
-    shared_dir = examples_root / "_shared"
-    if (files("superset") / str(shared_dir)).is_dir():
-        # Database config -> databases/examples.yaml
-        db_file = shared_dir / "database.yaml"
-        if (files("superset") / str(db_file)).is_file():
-            contents["databases/examples.yaml"] = (
-                files("superset") / str(db_file)
-            ).read_text("utf-8")
-
-        # Metadata -> metadata.yaml
-        meta_file = shared_dir / "metadata.yaml"
-        if (files("superset") / str(meta_file)).is_file():
-            contents["metadata.yaml"] = (
-                files("superset") / str(meta_file)
-            ).read_text("utf-8")
+    contents: dict[str, str] = _load_shared_configs(examples_root)
 
     # Traverse example directories
-    for item in (files("superset") / str(examples_root)).iterdir():
+    for item in (base / str(examples_root)).iterdir():
         example_dir = examples_root / str(item)
 
-        # Skip non-directories, special dirs, and Python files
-        if not (files("superset") / str(example_dir)).is_dir():
+        # Skip non-directories and special dirs
+        if not (base / str(example_dir)).is_dir():
             continue
-        if str(item).startswith("_") or str(item).startswith("."):
-            continue
-        if str(item) in ("configs", "data", "__pycache__"):
+        if _should_skip_directory(item):
             continue
 
         example_name = str(item)
-
-        # Dataset config -> datasets/examples/{name}.yaml
-        dataset_file = example_dir / "dataset.yaml"
-        if (files("superset") / str(dataset_file)).is_file():
-            content = (files("superset") / str(dataset_file)).read_text("utf-8")
-            if not load_test_data and test_re.search(str(dataset_file)):
-                continue
-            contents[f"datasets/examples/{example_name}.yaml"] = content
-
-        # Dashboard config -> dashboards/{name}.yaml
-        dashboard_file = example_dir / "dashboard.yaml"
-        if (files("superset") / str(dashboard_file)).is_file():
-            content = (files("superset") / str(dashboard_file)).read_text("utf-8")
-            if not load_test_data and test_re.search(str(dashboard_file)):
-                continue
-            # Extract dashboard name from content or use example name
-            contents[f"dashboards/{example_name}.yaml"] = content
-
-        # Chart configs -> charts/{example_name}/{chart}.yaml
-        charts_dir = example_dir / "charts"
-        if (files("superset") / str(charts_dir)).is_dir():
-            for chart_item in (files("superset") / str(charts_dir)).iterdir():
-                chart_file = charts_dir / str(chart_item)
-                if Path(str(chart_item)).suffix.lower() in YAML_EXTENSIONS:
-                    if not load_test_data and test_re.search(str(chart_file)):
-                        continue
-                    content = (files("superset") / str(chart_file)).read_text("utf-8")
-                    contents[f"charts/{example_name}/{chart_item}"] = content
+        example_contents = _load_example_contents(
+            example_dir, example_name, test_re, load_test_data
+        )
+        contents.update(example_contents)
 
     return contents
 
