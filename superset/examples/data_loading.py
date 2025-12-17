@@ -58,7 +58,8 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
     """Auto-discover all example datasets and create loaders for them.
 
     Examples are organized as:
-        superset/examples/{example_name}/data.parquet
+        superset/examples/{example_name}/data.parquet           # Single dataset
+        superset/examples/{example_name}/data/{name}.parquet    # Multiple datasets
     """
     loaders: Dict[str, Callable[..., None]] = {}
     examples_dir = get_examples_directory()
@@ -66,7 +67,7 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
     if not examples_dir.exists():
         return loaders
 
-    # Discover all example directories with data.parquet files
+    # Discover single data.parquet files (simple examples)
     for data_file in sorted(examples_dir.glob("*/data.parquet")):
         dataset_name = data_file.parent.name
 
@@ -89,6 +90,32 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
             table_name=table_name if table_name != dataset_name else None,
             description=description,
         )
+
+    # Discover multiple parquet files in data/ folders (complex examples)
+    for data_file in sorted(examples_dir.glob("*/data/*.parquet")):
+        dataset_name = data_file.stem  # filename without extension
+
+        # Skip special directories
+        if data_file.parent.parent.name.startswith("_"):
+            continue
+
+        # Determine table name
+        table_name = TABLE_NAME_OVERRIDES.get(dataset_name, dataset_name)
+
+        # Get description
+        description = DATASET_DESCRIPTIONS.get(
+            dataset_name, f"{dataset_name.replace('_', ' ').title()} dataset"
+        )
+
+        # Create loader function
+        loader_name = f"load_{dataset_name}"
+        if loader_name not in loaders:  # Don't override existing loaders
+            loaders[loader_name] = create_generic_loader(
+                dataset_name,
+                table_name=table_name if table_name != dataset_name else None,
+                description=description,
+                data_file=data_file,  # Pass specific file path
+            )
 
     return loaders
 

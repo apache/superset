@@ -74,10 +74,26 @@ def _load_example_contents(
     contents: dict[str, str] = {}
     base = files("superset")
 
-    # Dataset config
+    # Dataset configs - support both single dataset.yaml and datasets/ folder
+    # Single dataset.yaml at root (backward compatible)
     dataset_content = _read_file_if_exists(base, example_dir / "dataset.yaml")
     if dataset_content and (load_test_data or not test_re.search("dataset.yaml")):
         contents[f"datasets/examples/{example_name}.yaml"] = dataset_content
+
+    # Multiple datasets in datasets/ folder
+    datasets_dir = example_dir / "datasets"
+    if (base / str(datasets_dir)).is_dir():
+        for dataset_item in (base / str(datasets_dir)).iterdir():
+            if Path(str(dataset_item)).suffix.lower() not in YAML_EXTENSIONS:
+                continue
+            if not load_test_data and test_re.search(str(dataset_item)):
+                continue
+            dataset_file = datasets_dir / str(dataset_item)
+            content = _read_file_if_exists(base, dataset_file)
+            if content:
+                # Use filename (without extension) as dataset name
+                dataset_name = Path(str(dataset_item)).stem
+                contents[f"datasets/examples/{dataset_name}.yaml"] = content
 
     # Dashboard config
     dashboard_content = _read_file_if_exists(base, example_dir / "dashboard.yaml")
@@ -108,8 +124,11 @@ def load_examples_from_configs(
 
     Examples are organized as:
         superset/examples/{example_name}/
-            data.parquet      # Raw data
-            dataset.yaml      # Dataset metadata
+            data.parquet      # Raw data (optional)
+            dataset.yaml      # Single dataset metadata (simple examples)
+            datasets/         # Multiple datasets (complex examples)
+                dataset1.yaml
+                dataset2.yaml
             dashboard.yaml    # Dashboard config (optional)
             charts/           # Chart configs (optional)
                 chart1.yaml
@@ -117,6 +136,9 @@ def load_examples_from_configs(
         superset/examples/_shared/
             database.yaml     # Database connection
             metadata.yaml     # Import metadata
+
+    For simple examples with one dataset, use dataset.yaml at root.
+    For complex examples with multiple datasets, use datasets/ folder.
     """
     contents = load_contents(load_test_data)
     command = ImportExamplesCommand(contents, overwrite=True, force_data=force_data)

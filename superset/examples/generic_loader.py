@@ -55,6 +55,7 @@ def load_parquet_table(  # noqa: C901
     only_metadata: bool = False,
     force: bool = False,
     sample_rows: Optional[int] = None,
+    data_file: Optional[Any] = None,
 ) -> SqlaTable:
     """Load a Parquet file into the example database.
 
@@ -65,6 +66,7 @@ def load_parquet_table(  # noqa: C901
         only_metadata: If True, only create metadata without loading data
         force: If True, replace existing table
         sample_rows: If specified, only load this many rows
+        data_file: Optional specific file path (Path object) to load from
 
     Returns:
         The created SqlaTable object
@@ -91,8 +93,11 @@ def load_parquet_table(  # noqa: C901
     if not only_metadata:
         logger.info("Loading data for %s from %s.parquet", table_name, parquet_file)
 
-        # Read from Parquet
-        pdf = read_example_data(f"examples://{parquet_file}")
+        # Read from Parquet - use specific file path if provided
+        if data_file is not None:
+            pdf = read_example_data(f"file://{data_file}")
+        else:
+            pdf = read_example_data(f"examples://{parquet_file}")
 
         # Sample if requested (handle sample_rows=0 correctly)
         if sample_rows is not None:
@@ -178,6 +183,7 @@ def create_generic_loader(
     table_name: Optional[str] = None,
     description: Optional[str] = None,
     sample_rows: Optional[int] = None,
+    data_file: Optional[Any] = None,
 ) -> Callable[[Database, SqlaTable], None]:
     """Create a loader function for a specific Parquet file.
 
@@ -189,6 +195,7 @@ def create_generic_loader(
         table_name: Table name (defaults to parquet_file)
         description: Description for the dataset
         sample_rows: Default number of rows to sample
+        data_file: Optional specific file path (Path object) for data/ folder pattern
 
     Returns:
         A loader function with the standard signature
@@ -210,6 +217,7 @@ def create_generic_loader(
             only_metadata=only_metadata,
             force=force,
             sample_rows=rows,
+            data_file=data_file,
         )
 
         if description and tbl:
