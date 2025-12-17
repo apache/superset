@@ -293,6 +293,7 @@ def test_is_safe_redirect_url_no_base_configured(app):
 def test_process_html_links_invalid_base_url(app):
     """Test behavior with invalid base URL"""
     app.config["WEBDRIVER_BASEURL"] = "not-a-valid-url"
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = "not-a-valid-url"
 
     with app.app_context():
         html = '<a href="https://external.com">External</a>'

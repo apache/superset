@@ -67,18 +67,21 @@ def _get_redirect_url(original_url: str, base_url: str) -> str:
     return f"{base}/redirect/?url={quote(original_url, safe='')}"
 
 
-def _process_link_element(link: Any, base_host: str, base_url: str) -> None:
+def _process_link_element(link: Any, base_host: str, base_url: str) -> bool:
     """Process a single link element for external URL redirection."""
     original_url = link["href"].strip()
 
     if not original_url or "/redirect?" in original_url:
-        return
+        return False
+
+    modified = False
 
     # Handle protocol-relative URLs (e.g., //evil.com/foo)
     if original_url.startswith("//"):
         # Convert to https for processing
         original_url = "https:" + original_url
         link["href"] = original_url
+        modified = True
 
     # Parse the URL
     parsed_url = urlparse(original_url)
@@ -91,6 +94,7 @@ def _process_link_element(link: Any, base_host: str, base_url: str) -> None:
         if link_host and link_host.lower() != base_host.lower():
             redirect_url = _get_redirect_url(original_url, base_url)
             link["href"] = redirect_url
+            modified = True
 
             # Optionally add a visual indicator
             if current_app.config.get("ALERT_REPORTS_EXTERNAL_LINK_INDICATOR", True):
@@ -98,8 +102,11 @@ def _process_link_element(link: Any, base_host: str, base_url: str) -> None:
                 existing_class = link.get("class", [])
                 if isinstance(existing_class, str):
                     existing_class = existing_class.split()
-                existing_class.append("external-link")
+                if "external-link" not in existing_class:
+                    existing_class.append("external-link")
+                    modified = True
                 link["class"] = existing_class
+    return modified
 
 
 def process_html_links(html_content: str, base_url: Optional[str] = None) -> str:
@@ -135,8 +142,12 @@ def process_html_links(html_content: str, base_url: Optional[str] = None) -> str
             return html_content
 
         # Find all anchor tags with href attribute and process them
+        modified = False
         for link in soup.find_all("a", href=True):
-            _process_link_element(link, base_host, resolved_base_url)
+            modified |= _process_link_element(link, base_host, resolved_base_url)
+
+        if not modified:
+            return html_content
 
         # Return the modified HTML
         return str(soup)

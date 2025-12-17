@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from typing import Any
 from urllib.parse import unquote, urlparse
 
 from flask import abort, redirect, request
@@ -29,7 +30,7 @@ from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
 
-DANGEROUS_SCHEMES = ("javascript:", "data:", "vbscript:", "file:")
+DANGEROUS_SCHEMES: tuple[str, ...] = ("javascript:", "data:", "vbscript:", "file:")
 
 
 def _normalize_url(url: str) -> str:
@@ -71,7 +72,11 @@ def _is_url_in_trusted_cookie(target_url: str) -> bool:
     """Check if the URL is in the trusted URLs cookie."""
     try:
         trusted_urls_cookie = request.cookies.get("superset_trusted_urls", "[]")
-        trusted_urls = json.loads(trusted_urls_cookie)
+        trusted_urls_raw: Any = json.loads(trusted_urls_cookie)
+        if not isinstance(trusted_urls_raw, list):
+            return False
+
+        trusted_urls = [url for url in trusted_urls_raw if isinstance(url, str)]
         normalized_target = _normalize_url(target_url)
 
         return any(
