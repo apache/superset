@@ -39,13 +39,13 @@ jest.mock('src/features/databases/DatabaseModal', () => ({
   __esModule: true,
   default: ({ show, onHide, onDatabaseAdd }: any) =>
     show ? (
-      <div data-test="database-modal">
-        <button type="button" data-test="modal-close" onClick={onHide}>
+      <div data-testid="database-modal">
+        <button type="button" data-testid="modal-close" onClick={onHide}>
           Close
         </button>
         <button
           type="button"
-          data-test="modal-add-db"
+          data-testid="modal-add-db"
           onClick={() =>
             onDatabaseAdd({
               id: 999,
@@ -64,9 +64,9 @@ jest.mock('src/features/databases/DatabaseModal', () => ({
 jest.mock('src/components/DatabaseSelector', () => ({
   __esModule: true,
   DatabaseSelector: ({ db, schema, onDbChange, onSchemaChange }: any) => (
-    <div data-test="database-selector">
+    <div data-testid="database-selector">
       <select
-        data-test="database-select"
+        data-testid="database-select"
         value={db?.id || ''}
         onChange={e => {
           const id = parseInt(e.target.value, 10);
@@ -81,7 +81,7 @@ jest.mock('src/components/DatabaseSelector', () => ({
       </select>
       {db && (
         <select
-          data-test="schema-select"
+          data-testid="schema-select"
           value={schema || ''}
           onChange={e => onSchemaChange(e.target.value || undefined)}
         >

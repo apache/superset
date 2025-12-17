@@ -230,6 +230,7 @@ export default function ReviewSchemaPanel({
   useEffect(() => {
     const stepDurations = [1500, 2000, 2500, 3000]; // ms for each step
     let timeoutId: NodeJS.Timeout;
+    let completionTimeoutId: NodeJS.Timeout;
 
     const advanceStep = (step: AnalysisStep) => {
       if (step < AnalysisStep.COMPLETE) {
@@ -240,7 +241,7 @@ export default function ReviewSchemaPanel({
             advanceStep(nextStep);
           } else {
             // Analysis complete - trigger callback after a short delay
-            setTimeout(() => {
+            completionTimeoutId = setTimeout(() => {
               onAnalysisComplete();
             }, 1000);
           }
@@ -253,6 +254,9 @@ export default function ReviewSchemaPanel({
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+      if (completionTimeoutId) {
+        clearTimeout(completionTimeoutId);
       }
     };
   }, [onAnalysisComplete]);

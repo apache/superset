@@ -63,7 +63,9 @@ class InitiateDatasourceAnalyzerCommand(BaseCommand):
         run_id = str(uuid.uuid4())
 
         # TODO: Enqueue Celery task for actual schema introspection
-        # celery_task.delay(run_id, self._database_id, self._schema_name, self._catalog_name)
+        # celery_task.delay(
+        #     run_id, self._database_id, self._schema_name, self._catalog_name
+        # )
 
         logger.info(
             "Initiated datasource analysis job %s for database %s, schema %s",
@@ -102,6 +104,8 @@ class InitiateDatasourceAnalyzerCommand(BaseCommand):
             )
             if self._schema_name not in schemas:
                 raise DatasourceAnalyzerSchemaNotFoundError()
+        except DatasourceAnalyzerSchemaNotFoundError:
+            raise
         except Exception as ex:
             logger.warning("Error fetching schemas: %s", ex)
             exceptions.append(ex)
