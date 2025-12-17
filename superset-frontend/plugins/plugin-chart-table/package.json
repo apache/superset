@@ -45,7 +45,6 @@
     "@testing-library/react": "^12.1.5",
     "@testing-library/react-hooks": "*",
     "@testing-library/user-event": "*",
-    "@types/classnames": "*",
     "@types/react": "*",
     "match-sorter": "^6.3.3",
     "react": "^17.0.2",
