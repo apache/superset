@@ -41,6 +41,7 @@ from superset.views.base_api import (
     BaseSupersetModelRestApi,
     statsd_metrics,
 )
+from superset.views.filters import BaseFilterRelatedRoles, BaseFilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "group_keys",
     }
-    resource_name = "data_access_rule"
+    resource_name = "dar"
     class_permission_name = "DataAccessRule"
     openapi_spec_tag = "Data Access Rules"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -62,6 +63,7 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "id",
         "role_id",
+        "role.id",
         "role.name",
         "rule",
         "changed_on_delta_humanized",
@@ -86,6 +88,7 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
         "id",
         "role_id",
         "role.name",
+        "role.id",
         "rule",
         "created_on",
         "changed_on",
@@ -94,6 +97,13 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_by.last_name",
     ]
+    search_columns = ["role", "changed_by"]
+
+    allowed_rel_fields = {"role", "changed_by"}
+    base_related_field_filters = {
+        "role": [["id", BaseFilterRelatedRoles, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
 
     add_model_schema = DataAccessRulePostSchema()
     edit_model_schema = DataAccessRulePutSchema()

@@ -34,6 +34,7 @@ export enum FeatureFlag {
   CssTemplates = 'CSS_TEMPLATES',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardRbac = 'DASHBOARD_RBAC',
+  DataAccessRules = 'DATA_ACCESS_RULES',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   DateRangeTimeshiftsEnabled = 'DATE_RANGE_TIMESHIFTS_ENABLED',
   /** @deprecated */

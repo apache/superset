@@ -214,6 +214,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TabStateView,
         )
         from superset.views.sqla import (
+            DataAccessRulesView,
             RowLevelSecurityView,
             TableModelView,
         )
@@ -519,6 +520,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=_("Security"),
             icon="fa-lock",
         )
+
+        if feature_flag_manager.is_feature_enabled("DATA_ACCESS_RULES"):
+            appbuilder.add_view(
+                DataAccessRulesView,
+                "Data Access Rules",
+                href="DataAccessRulesView.list",
+                label=_("Data Access Rules"),
+                category="Security",
+                category_label=_("Security"),
+                icon="fa-shield",
+            )
 
     def init_core_dependencies(self) -> None:
         """Initialize core dependency injection for direct import patterns."""

@@ -138,6 +138,13 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const DataAccessRulesList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DataAccessRulesList" */ 'src/pages/DataAccessRulesList'
+    ),
+);
+
 const RolesList = lazy(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
@@ -312,6 +319,13 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({
     path: '/superset/tags/',
     Component: Tags,
+  });
+}
+
+if (isFeatureEnabled(FeatureFlag.DataAccessRules)) {
+  routes.push({
+    path: '/dataaccessrules/list/',
+    Component: DataAccessRulesList,
   });
 }
 

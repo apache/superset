@@ -38,6 +38,17 @@ class RowLevelSecurityView(BaseSupersetView):
         return super().render_app_template()
 
 
+class DataAccessRulesView(BaseSupersetView):
+    route_base = "/dataaccessrules"
+    class_permission_name = "DataAccessRule"
+
+    @expose("/list/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()
+
+
 class TableModelView(BaseSupersetView):
     class_permission_name = "Dataset"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
