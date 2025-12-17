@@ -23,9 +23,10 @@ including CRUD operations and a group_keys discovery endpoint.
 
 import logging
 
-from flask import Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.data_access_rules.models import DataAccessRule
@@ -39,6 +40,7 @@ from superset.data_access_rules.utils import get_all_group_keys
 from superset.extensions import event_logger
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedRoles, BaseFilterRelatedUsers
@@ -117,6 +119,77 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
         "put": {"put": {"summary": "Update a data access rule"}},
         "delete": {"delete": {"summary": "Delete a data access rule"}},
     }
+
+    @expose("/<int:pk>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    def put(self, pk: int) -> Response:
+        """Update a data access rule.
+        ---
+        put:
+          summary: Update a data access rule
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The rule pk
+          requestBody:
+            description: Data access rule schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DataAccessRulePutSchema'
+          responses:
+            200:
+              description: Rule updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/DataAccessRulePutSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.edit_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        # Get existing rule
+        existing = self.datamodel.get(pk)
+        if not existing:
+            return self.response_404()
+
+        # Update fields
+        for key, value in item.items():
+            setattr(existing, key, value)
+
+        try:
+            self.datamodel.edit(existing)
+            return self.response(200, id=existing.id, result=item)
+        except Exception as ex:
+            logger.error("Error updating data access rule: %s", str(ex), exc_info=True)
+            return self.response_422(message=str(ex))
 
     @expose("/group_keys/", methods=("GET",))
     @protect()

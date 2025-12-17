@@ -560,6 +560,141 @@ def apply_data_access_rules(
         parsed_statement.apply_cls(cls_rules)
 
 
+def get_allowed_tables(
+    database_name: str,
+    schema: str | None = None,
+    catalog: str | None = None,
+) -> tuple[set[str], bool]:
+    """
+    Get all table names that the current user has access to via Data Access Rules
+    for a specific database and schema.
+
+    Args:
+        database_name: The database name to check
+        schema: Optional schema name to filter by
+        catalog: Optional catalog name to filter by
+
+    Returns:
+        Tuple of (set of table names, bool indicating if schema-level access is granted).
+        If schema-level access is granted, the set may be empty but all tables are allowed.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return set(), False
+
+    rules = get_user_rules()
+    if not rules:
+        return set(), False
+
+    table_names: set[str] = set()
+    schema_level_access = False
+
+    for rule in rules:
+        rule_dict = rule.rule_dict
+
+        # Collect tables from allowed entries
+        for entry in rule_dict.get("allowed", []):
+            if entry.get("database") != database_name:
+                continue
+
+            # If catalog is specified in the entry, it must match
+            entry_catalog = entry.get("catalog")
+            if catalog is not None and entry_catalog is not None:
+                if entry_catalog != catalog:
+                    continue
+
+            # If schema is specified, check if it matches
+            entry_schema = entry.get("schema")
+            if schema is not None and entry_schema is not None:
+                if entry_schema != schema:
+                    continue
+
+            # If entry has a table, add it to the set
+            if table := entry.get("table"):
+                table_names.add(table)
+            elif entry_schema == schema or (entry_schema is None and schema is None):
+                # Schema-level or database-level access without table means all tables
+                schema_level_access = True
+
+    return table_names, schema_level_access
+
+
+def get_allowed_schemas(database_name: str, catalog: str | None = None) -> set[str]:
+    """
+    Get all schema names that the current user has access to via Data Access Rules
+    for a specific database.
+
+    Args:
+        database_name: The database name to check
+        catalog: Optional catalog name to filter by
+
+    Returns:
+        Set of schema names the user has access to.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return set()
+
+    rules = get_user_rules()
+    if not rules:
+        return set()
+
+    schema_names: set[str] = set()
+
+    for rule in rules:
+        rule_dict = rule.rule_dict
+
+        # Collect schemas from allowed entries
+        for entry in rule_dict.get("allowed", []):
+            if entry.get("database") != database_name:
+                continue
+
+            # If catalog is specified in the entry, it must match
+            entry_catalog = entry.get("catalog")
+            if catalog is not None and entry_catalog is not None:
+                if entry_catalog != catalog:
+                    continue
+
+            # If the entry grants database-level access (no schema specified),
+            # we return an empty set to indicate "all schemas" should be allowed
+            # This will be handled by the caller
+            if schema := entry.get("schema"):
+                schema_names.add(schema)
+            elif entry.get("database") == database_name:
+                # Database-level access without schema means all schemas
+                # Return a special marker that caller can check
+                schema_names.add("*")
+
+    return schema_names
+
+
+def get_allowed_databases() -> set[str]:
+    """
+    Get all database names that the current user has access to via Data Access Rules.
+
+    This function is used to populate database selectors in SQL Lab and elsewhere.
+
+    Returns:
+        Set of database names the user has access to.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return set()
+
+    rules = get_user_rules()
+    if not rules:
+        return set()
+
+    database_names: set[str] = set()
+
+    for rule in rules:
+        rule_dict = rule.rule_dict
+
+        # Collect databases from allowed entries
+        for entry in rule_dict.get("allowed", []):
+            if database := entry.get("database"):
+                database_names.add(database)
+
+    return database_names
+
+
 def get_all_group_keys(
     database_name: str | None = None,
     table: Table | None = None,

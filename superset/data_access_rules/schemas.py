@@ -18,9 +18,10 @@
 Data Access Rules schemas for API serialization/deserialization.
 """
 
-from marshmallow import fields, Schema, validates_schema, ValidationError
+from marshmallow import fields, post_load, Schema, validates_schema, ValidationError
 
 from superset.dashboards.schemas import UserSchema
+from superset.data_access_rules.models import DataAccessRule
 
 # Field descriptions for OpenAPI documentation
 rule_description = """
@@ -68,8 +69,11 @@ class DataAccessRuleListSchema(Schema):
     role_id = fields.Integer(metadata={"description": "ID of the associated role"})
     role = fields.Nested(RoleSchema)
     rule = fields.String(metadata={"description": rule_description})
-    changed_on_delta_humanized = fields.String()
+    changed_on_delta_humanized = fields.Method("get_changed_on_delta_humanized")
     changed_by = fields.Nested(UserSchema(exclude=["username"]))
+
+    def get_changed_on_delta_humanized(self, obj: DataAccessRule) -> str:
+        return obj.changed_on_delta_humanized()
 
 
 class DataAccessRuleShowSchema(Schema):
@@ -145,6 +149,11 @@ class DataAccessRulePostSchema(Schema):
                                 )
             except json.JSONDecodeError as ex:
                 raise ValidationError(f"Invalid JSON: {ex}", field_name="rule") from ex
+
+    @post_load
+    def make_object(self, data: dict, **kwargs: dict) -> DataAccessRule:
+        """Convert validated data to a DataAccessRule instance."""
+        return DataAccessRule(**data)
 
 
 class DataAccessRulePutSchema(Schema):

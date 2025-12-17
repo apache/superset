@@ -976,6 +976,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 }
             )
 
+        # Data Access Rules
+        # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
+
+        if is_feature_enabled("DATA_ACCESS_RULES"):
+            from superset.data_access_rules.utils import get_allowed_schemas
+
+            dar_schemas = get_allowed_schemas(database.database_name, catalog)
+            if "*" in dar_schemas:
+                # Database-level access means all schemas
+                return schemas
+            accessible_schemas.update(dar_schemas)
+
         return schemas & accessible_schemas
 
     def get_catalogs_accessible_by_user(
@@ -1090,6 +1103,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 schema_perms,
             )
         }
+
+        # Check Data Access Rules
+        # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
+
+        if is_feature_enabled("DATA_ACCESS_RULES"):
+            from superset.data_access_rules.utils import get_allowed_tables
+
+            dar_tables, schema_level_access = get_allowed_tables(
+                database.database_name, schema, catalog
+            )
+            if schema_level_access:
+                # Schema-level access means all tables in the schema
+                return datasource_names
+
+            # Add DAR tables to accessible datasources
+            for table_name in dar_tables:
+                user_datasources.add(DatasourceName(table_name, schema, catalog))
 
         return [
             datasource
@@ -2410,6 +2441,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         # access to any datasource is sufficient
                         break
                 else:
+                    # Check Data Access Rules before denying
+                    if is_feature_enabled("DATA_ACCESS_RULES"):
+                        from superset.data_access_rules.utils import (
+                            AccessCheckResult,
+                            check_table_access,
+                        )
+
+                        access_info = check_table_access(
+                            database_name=database.database_name,
+                            table=table_,
+                        )
+                        if access_info.access == AccessCheckResult.ALLOWED:
+                            continue
+
                     denied.add(table_)
 
             if denied:

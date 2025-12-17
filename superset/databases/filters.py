@@ -23,9 +23,20 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import JSON
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.models.core import Database
 from superset.views.base import BaseFilter
+
+
+def get_dar_allowed_databases() -> set[str]:
+    """Get databases allowed by Data Access Rules for the current user."""
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return set()
+
+    # Lazy import to avoid circular dependency
+    from superset.data_access_rules.utils import get_allowed_databases
+
+    return get_allowed_databases()
 
 
 def can_access_databases(view_menu_name: str) -> set[str]:
@@ -62,10 +73,15 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         catalog_access_databases = can_access_databases("catalog_access")
         schema_access_databases = can_access_databases("schema_access")
         datasource_access_databases = can_access_databases("datasource_access")
+
+        # Include databases from Data Access Rules
+        dar_databases = get_dar_allowed_databases()
+
         database_names = sorted(
             catalog_access_databases
             | schema_access_databases
             | datasource_access_databases
+            | dar_databases
         )
 
         return query.filter(
