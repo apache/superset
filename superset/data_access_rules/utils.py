@@ -732,6 +732,63 @@ def get_allowed_databases() -> set[str]:
     return database_names
 
 
+@dataclass
+class AllowedTable:
+    """A table allowed by DAR with database context."""
+
+    database: str
+    table: str
+    schema: str | None = None
+    catalog: str | None = None
+
+
+def get_all_allowed_tables() -> list[AllowedTable]:
+    """
+    Get all tables that the current user has access to via Data Access Rules
+    across all databases.
+
+    This function is used for dataset filtering where we need to know all
+    specific tables the user can access.
+
+    Returns:
+        List of AllowedTable objects representing allowed tables.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return []
+
+    rules = get_user_rules()
+    if not rules:
+        return []
+
+    allowed_tables: list[AllowedTable] = []
+
+    for rule in rules:
+        rule_dict = rule.rule_dict
+
+        # Collect tables from allowed entries
+        for entry in rule_dict.get("allowed", []):
+            database = entry.get("database")
+            if not database:
+                continue
+
+            table_name = entry.get("table")
+            if not table_name:
+                # Skip database-level or schema-level access for now
+                # as we can't enumerate all tables without querying the DB
+                continue
+
+            allowed_tables.append(
+                AllowedTable(
+                    database=database,
+                    table=table_name,
+                    schema=entry.get("schema"),
+                    catalog=entry.get("catalog"),
+                )
+            )
+
+    return allowed_tables
+
+
 def get_all_group_keys(
     database_name: str | None = None,
     table: Table | None = None,

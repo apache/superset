@@ -2489,10 +2489,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            # Check DAR access for datasource
+            dar_allowed = False
+            if is_feature_enabled("DATA_ACCESS_RULES") and hasattr(
+                datasource, "database"
+            ):
+                from superset.data_access_rules.utils import (
+                    AccessCheckResult,
+                    check_table_access,
+                )
+                from superset.sql.parse import Table
+
+                dar_table = Table(
+                    table=datasource.table_name,
+                    schema=datasource.schema,
+                    catalog=getattr(datasource, "catalog", None),
+                )
+                dar_access_info = check_table_access(
+                    database_name=datasource.database.database_name,
+                    table=dar_table,
+                )
+                dar_allowed = dar_access_info.access == AccessCheckResult.ALLOWED
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
+                or dar_allowed
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
