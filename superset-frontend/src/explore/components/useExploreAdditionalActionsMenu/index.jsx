@@ -857,7 +857,7 @@ export const useExploreAdditionalActionsMenu = (
       });
     }
 
-    return <Menu selectable={false} items={menuItems} {...rest} />;
+    return <Menu selectable={false} items={menuItems} />;
   }, [
     addDangerToast,
     canDownloadCSV,
