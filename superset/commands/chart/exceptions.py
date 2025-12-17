@@ -162,3 +162,11 @@ class ChartFaveError(CommandException):
 
 class ChartUnfaveError(CommandException):
     message = _("Error unfaving chart")
+
+
+class ChartTemplateUpdateForbiddenError(ForbiddenError):
+    message = _("Charts belonging to template dashboards cannot be modified.")
+
+
+class ChartTemplateDeleteForbiddenError(ForbiddenError):
+    message = _("Charts belonging to template dashboards cannot be deleted.")

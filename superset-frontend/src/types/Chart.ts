@@ -73,6 +73,7 @@ export type Slice = {
   form_data?: QueryFormData;
   query_context?: object;
   is_managed_externally: boolean;
+  is_template_chart?: boolean;
   owners?: number[];
   datasource?: string;
   datasource_id?: number;

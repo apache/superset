@@ -150,6 +150,14 @@ export type DashboardInfo = {
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
     chart_customization_config?: ChartCustomizationItem[];
+    // Template fields
+    is_template?: boolean;
+    is_featured_template?: boolean;
+    template_category?: string;
+    template_thumbnail_url?: string;
+    template_context?: string;
+    template_description?: string;
+    template_tags?: string[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
