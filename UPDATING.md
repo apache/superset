@@ -26,12 +26,24 @@ assists people when migrating to a new version.
 
 ### Example Data Loading Improvements
 
+#### New Directory Structure
+Examples are now organized by name with data and configs co-located:
+```
+superset/examples/
+├── _shared/              # Shared database & metadata configs
+├── birth_names/          # Each example is self-contained
+│   ├── data.parquet     # Dataset (Parquet format)
+│   ├── dataset.yaml     # Dataset metadata
+│   ├── dashboard.yaml   # Dashboard config (optional)
+│   └── charts/          # Chart configs (optional)
+└── ...
+```
+
 #### Simplified Parquet-based Loading
-- All example datasets now stored as compressed Parquet files in `superset/examples/data/`
-- Auto-discovery of datasets - just drop a `.parquet` file to add a new example
-- Parquet is an Apache project format: compressed, widely-supported, self-describing schema
+- Auto-discovery: create `superset/examples/my_dataset/data.parquet` to add a new example
+- Parquet is an Apache project format: compressed (~27% smaller), self-describing schema
+- YAML configs define datasets, charts, and dashboards declaratively
 - Removed Python-based data generation from individual example files
-- Fixed birth_names dataset loading issue (was incorrectly skipped)
 
 #### Test Data Reorganization
 - Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
