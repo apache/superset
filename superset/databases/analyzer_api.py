@@ -20,32 +20,46 @@ import logging
 from typing import Any
 
 from flask import jsonify, request, Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 from marshmallow import fields, Schema, ValidationError
 
-from superset.extensions import db
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.extensions import db, event_logger
 from superset.models.database_analyzer import DatabaseSchemaReport
 from superset.tasks.database_analyzer import (
     check_analysis_status,
     kickstart_analysis,
 )
+from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class AnalyzeSchemaRequestSchema(Schema):
-    """Schema for analyze schema request"""
+class DatasourceAnalyzerPostSchema(Schema):
+    """Schema for datasource analyzer request"""
 
-    database_id = fields.Integer(required=True)
-    schema_name = fields.String(required=True, validate=lambda x: len(x) > 0)
+    database_id = fields.Integer(
+        required=True, metadata={"description": "The ID of the database connection"}
+    )
+    schema_name = fields.String(
+        required=True,
+        validate=lambda x: len(x) > 0,
+        metadata={"description": "The name of the schema to analyze"},
+    )
+    catalog_name = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The name of the catalog (optional)"},
+    )
 
 
-class AnalyzeSchemaResponseSchema(Schema):
-    """Schema for analyze schema response"""
+class DatasourceAnalyzerResponseSchema(Schema):
+    """Schema for datasource analyzer response"""
 
-    run_id = fields.String(required=True)
-    database_report_id = fields.Integer(required=True)
-    status = fields.String(required=True)
+    run_id = fields.String(
+        required=True,
+        metadata={"description": "The unique identifier for this analysis run"},
+    )
 
 
 class CheckStatusResponseSchema(Schema):
@@ -64,14 +78,20 @@ class CheckStatusResponseSchema(Schema):
     joins_count = fields.Integer(allow_none=True)
 
 
-class DatabaseAnalyzerApi(BaseApi):
+class DatasourceAnalyzerRestApi(BaseSupersetApi):
     """API endpoints for database schema analyzer"""
 
-    route_base = "/api/v1/database_analyzer"
-    resource_name = "database_analyzer"
+    route_base = "/api/v1/datasource_analyzer"
+    resource_name = "datasource_analyzer"
     allow_browser_login = True
+    class_permission_name = "DatasourceAnalyzer"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    openapi_spec_tag = "Database Analyzer"
+    openapi_spec_tag = "Datasource Analyzer"
+    openapi_spec_component_schemas = (
+        DatasourceAnalyzerPostSchema,
+        DatasourceAnalyzerResponseSchema,
+    )
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
@@ -89,106 +109,67 @@ class DatabaseAnalyzerApi(BaseApi):
         """Helper method to create 500 responses."""
         return jsonify({"message": message}), 500
 
-    openapi_spec_methods = {
-        "analyze_schema": {
-            "post": {
-                "description": "Start a new database schema analysis",
-                "requestBody": {
-                    "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": AnalyzeSchemaRequestSchema,
-                        },
-                    },
-                },
-                "responses": {
-                    "200": {
-                        "description": "Analysis started successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": AnalyzeSchemaResponseSchema,
-                            },
-                        },
-                    },
-                    "400": {"description": "Bad request"},
-                    "401": {"description": "Unauthorized"},
-                    "500": {"description": "Internal server error"},
-                },
-            },
-        },
-        "check_status": {
-            "get": {
-                "description": "Check the status of a running analysis",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "run_id",
-                        "required": True,
-                        "schema": {"type": "string"},
-                        "description": "The run ID returned from analyze_schema",
-                    },
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Status retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": CheckStatusResponseSchema,
-                            },
-                        },
-                    },
-                    "404": {"description": "Analysis not found"},
-                    "500": {"description": "Internal server error"},
-                },
-            },
-        },
-    }
-
-    @expose("/analyze", methods=("POST",))
+    @expose("/", methods=("POST",))
     @protect()
     @safe
-    def analyze_schema(self) -> Response:
-        """
-        Start a new database schema analysis.
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=True,
+    )
+    def post(self) -> Response:
+        """Initiate a datasource analysis job.
         ---
         post:
+          summary: Initiate datasource analysis
           description: >-
-            Kickstart a Celery job to analyze database schema
+            Initiates a background job to analyze a database schema.
+            Returns a run_id that can be used to track the job status.
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/AnalyzeSchemaRequestSchema'
+                  $ref: '#/components/schemas/DatasourceAnalyzerPostSchema'
           responses:
             200:
-              description: Analysis started
+              description: Analysis job initiated successfully
               content:
                 application/json:
                   schema:
-                    $ref: '#/components/schemas/AnalyzeSchemaResponseSchema'
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DatasourceAnalyzerResponseSchema'
             400:
-              description: Bad request
+              $ref: '#/components/responses/400'
             401:
-              description: Unauthorized
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
-              description: Internal server error
+              $ref: '#/components/responses/500'
         """
         try:
             # Parse request body
-            schema = AnalyzeSchemaRequestSchema()
+            schema = DatasourceAnalyzerPostSchema()
             data = schema.load(request.json)
 
-            # Start the analysis
+            # Start the analysis (catalog_name ignored for compatibility)
             result = kickstart_analysis(
                 database_id=data["database_id"],
                 schema_name=data["schema_name"],
             )
 
-            return self.response(200, **result)
+            return self.response(200, result=result)
 
-        except ValidationError as e:
-            return self.response_400(message=str(e.messages))
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         except Exception as e:
             logger.exception("Error starting database analysis")
             return self.response_500(message=str(e))
