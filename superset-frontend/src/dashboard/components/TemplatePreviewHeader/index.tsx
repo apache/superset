@@ -20,8 +20,8 @@
 import { FC } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@superset-ui/core';
-import { styled, css, Alert } from '@apache-superset/core/ui';
-import { Button, Breadcrumb } from '@superset-ui/core/components';
+import { styled, css } from '@apache-superset/core/ui';
+import { AIInfoBanner, Button, Breadcrumb } from '@superset-ui/core/components';
 
 const HeaderContainer = styled.div`
   ${({ theme }) => css`
@@ -57,6 +57,12 @@ const RightSection = styled.div`
   `}
 `;
 
+const AIBannerWrapper = styled.div`
+  ${({ theme }) => css`
+    padding: 0 ${theme.sizeUnit * 4}px ${theme.sizeUnit * 3}px;
+  `}
+`;
+
 interface TemplatePreviewHeaderProps {
   dashboardTitle: string;
   dashboardId: number;
@@ -74,8 +80,7 @@ export const TemplatePreviewHeader: FC<TemplatePreviewHeaderProps> = ({
 
   const handleUseTemplate = () => {
     // Navigate to datasource connector page with the dashboard_id
-    // This is a simple link with no side effects
-    history.push(`/dashboard/templates/connect?dashboard_id=${dashboardId}`);
+    history.push(`/datasource-connector/?dashboard_id=${dashboardId}`);
   };
 
   const breadcrumbItems = [
@@ -115,11 +120,14 @@ export const TemplatePreviewHeader: FC<TemplatePreviewHeaderProps> = ({
           </Button>
         </RightSection>
       </TopBar>
-      <Alert type="info" banner closable={false}>
-        {t(
-          'This is a preview using sample data. You can adapt it to your own data.',
-        )}
-      </Alert>
+      <AIBannerWrapper>
+        <AIInfoBanner
+          text={t(
+            'This is a fully functioning dashboard that you can explore and test. If you use this as a template, you will be able to attach your real database connection to power this dashboard in no time.',
+          )}
+          data-test="template-preview-ai-hint"
+        />
+      </AIBannerWrapper>
     </HeaderContainer>
   );
 };

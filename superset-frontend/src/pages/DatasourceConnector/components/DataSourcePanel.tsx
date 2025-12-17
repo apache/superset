@@ -160,6 +160,7 @@ export default function DataSourcePanel({
       <AddDatabaseButton
         onClick={onAddNewDatabase}
         icon={<Icons.PlusOutlined />}
+        disabled={!!database}
       >
         {t('Add a new database connection')}
       </AddDatabaseButton>

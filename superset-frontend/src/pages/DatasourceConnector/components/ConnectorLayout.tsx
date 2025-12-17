@@ -18,13 +18,14 @@
  */
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { Flex, Icons, Typography } from '@superset-ui/core/components';
+import { styled, css } from '@apache-superset/core/ui';
+import { AIInfoBanner, Flex, Icons, Typography } from '@superset-ui/core/components';
 import { ConnectorStep } from '../types';
 
 interface ConnectorLayoutProps {
   currentStep: ConnectorStep;
   children: ReactNode;
+  templateName?: string | null;
 }
 
 const PageContainer = styled.div`
@@ -105,6 +106,14 @@ const ContentContainer = styled(Flex)`
   `}
 `;
 
+const AIBannerWrapper = styled.div`
+  ${({ theme }) => css`
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: ${theme.marginLG}px;
+  `}
+`;
+
 interface StepConfig {
   title: string;
   icon: ReactNode;
@@ -128,6 +137,7 @@ const stepsConfig: StepConfig[] = [
 export default function ConnectorLayout({
   currentStep,
   children,
+  templateName,
 }: ConnectorLayoutProps) {
   return (
     <PageContainer>
@@ -159,6 +169,17 @@ export default function ConnectorLayout({
         </Flex>
       </StepsContainer>
       <ContentContainer vertical align="center">
+        {templateName && (
+          <AIBannerWrapper>
+            <AIInfoBanner
+              text={t(
+                'Choose a database connection to power the "%s" dashboard. AI will analyze your database schema and automatically connect the dashboard to your real data.',
+                templateName,
+              )}
+              data-test="datasource-connector-ai-hint"
+            />
+          </AIBannerWrapper>
+        )}
         {children}
       </ContentContainer>
     </PageContainer>

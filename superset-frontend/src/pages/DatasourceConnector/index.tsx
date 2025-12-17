@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { SupersetClient, t, logging } from '@superset-ui/core';
 import { Flex, Typography } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
@@ -28,6 +28,12 @@ import DataSourcePanel from './components/DataSourcePanel';
 import ReviewSchemaPanel from './components/ReviewSchemaPanel';
 import useDatabaseListRefresh from './hooks/useDatabaseListRefresh';
 import { ConnectorStep, DatasourceConnectorState } from './types';
+
+interface TemplateDashboardInfo {
+  id: number;
+  dashboard_title: string;
+  is_template: boolean;
+}
 
 const INITIAL_STATE: DatasourceConnectorState = {
   databaseId: null,
@@ -39,6 +45,7 @@ const INITIAL_STATE: DatasourceConnectorState = {
 
 export default function DatasourceConnector() {
   const history = useHistory();
+  const location = useLocation();
   const { addDangerToast, addSuccessToast } = useToasts();
   const { refreshKey, triggerRefresh } = useDatabaseListRefresh();
 
@@ -48,6 +55,50 @@ export default function DatasourceConnector() {
   const [currentStep, setCurrentStep] = useState<ConnectorStep>(
     ConnectorStep.CONNECT_DATA_SOURCE,
   );
+  const [templateInfo, setTemplateInfo] =
+    useState<TemplateDashboardInfo | null>(null);
+
+  // Get dashboard_id from query params
+  const dashboardId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('dashboard_id');
+    return id ? parseInt(id, 10) : null;
+  }, [location.search]);
+
+  // Fetch dashboard info when dashboard_id is present
+  useEffect(() => {
+    if (!dashboardId) return;
+
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+    })
+      .then(({ json }) => {
+        const dashboard = json.result;
+        // json_metadata is returned as a string from the API
+        let metadata: Record<string, unknown> = {};
+        if (dashboard?.json_metadata) {
+          try {
+            metadata =
+              typeof dashboard.json_metadata === 'string'
+                ? JSON.parse(dashboard.json_metadata)
+                : dashboard.json_metadata;
+          } catch {
+            logging.error('Error parsing dashboard metadata');
+          }
+        }
+        const isTemplate = !!metadata?.is_template;
+        if (isTemplate) {
+          setTemplateInfo({
+            id: dashboard.id,
+            dashboard_title: dashboard.dashboard_title,
+            is_template: true,
+          });
+        }
+      })
+      .catch(error => {
+        logging.error('Error fetching dashboard info:', error);
+      });
+  }, [dashboardId]);
 
   const handleDatabaseChange = useCallback((db: DatabaseObject | null) => {
     setDatabase(db);
@@ -103,7 +154,7 @@ export default function DatasourceConnector() {
   );
 
   const handleCancel = useCallback(() => {
-    history.push('/');
+    history.push('/dashboard/templates/');
   }, [history]);
 
   const handleContinueToReview = useCallback(async () => {
@@ -178,7 +229,10 @@ export default function DatasourceConnector() {
 
   return (
     <>
-      <ConnectorLayout currentStep={currentStep}>
+      <ConnectorLayout
+        currentStep={currentStep}
+        templateName={templateInfo?.dashboard_title}
+      >
         {renderCurrentStep()}
       </ConnectorLayout>
 

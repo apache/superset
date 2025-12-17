@@ -21,7 +21,7 @@ import { FC, ChangeEvent, useMemo, useState, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { t } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
-import { Input, Collapse } from '@superset-ui/core/components';
+import { AIInfoBanner, Input, Collapse } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { DashboardTemplateTile } from './DashboardTemplateTile';
 import {
@@ -34,10 +34,11 @@ import { DashboardTemplate, DashboardTemplateGalleryProps } from './types';
 
 const GalleryLayout = styled.div`
   display: grid;
-  grid-template-rows: auto minmax(100px, 1fr);
+  grid-template-rows: auto auto minmax(100px, 1fr);
   grid-template-columns: minmax(14em, auto) 5fr;
   grid-template-areas:
     'sidebar search'
+    'sidebar banner'
     'sidebar main';
   height: 70vh;
   overflow: auto;
@@ -79,6 +80,13 @@ const SearchWrapper = styled.div`
     .ant-input-affix-wrapper {
       padding-left: ${theme.sizeUnit * 2}px;
     }
+  `}
+`;
+
+const AIBannerWrapper = styled.div`
+  ${({ theme }) => css`
+    grid-area: banner;
+    padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -319,6 +327,15 @@ export const DashboardTemplateGallery: FC<DashboardTemplateGalleryProps> = ({
           }
         />
       </SearchWrapper>
+
+      <AIBannerWrapper>
+        <AIInfoBanner
+          text={t(
+            'Start from scratch with a blank dashboard, or pick a template from your preferred category to build a fully-functional dashboard connected to one of your database connections in no time.',
+          )}
+          data-test="templates-ai-hint"
+        />
+      </AIBannerWrapper>
 
       <MainContent>
         <TileGrid>
