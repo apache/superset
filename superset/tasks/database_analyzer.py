@@ -23,7 +23,6 @@ from typing import Any
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
 
 from superset import db
 from superset.extensions import celery_app
@@ -54,36 +53,36 @@ class DatabaseAnalyzerTask(Task):
 def analyze_database_schema(report_id: int) -> dict[str, Any]:
     """
     Celery task to analyze database schema and generate metadata.
-    
+
     :param report_id: ID of the DatabaseSchemaReport to process
     :return: Dict with status and results
     """
     from superset.commands.database_analyzer.analyze import (
         AnalyzeDatabaseSchemaCommand,
     )
-    
+
     logger.info("Starting database schema analysis for report_id: %s", report_id)
-    
+
     try:
         # Update status to running
         report = db.session.query(DatabaseSchemaReport).get(report_id)
         if not report:
             logger.error("Report with id %s not found", report_id)
             return {"status": "error", "message": f"Report {report_id} not found"}
-        
+
         report.status = AnalysisStatus.RUNNING
         report.start_dttm = datetime.now()
         db.session.commit()
-        
+
         # Execute the analysis command
         command = AnalyzeDatabaseSchemaCommand(report_id)
         result = command.run()
-        
+
         # Update status to completed
         report.status = AnalysisStatus.COMPLETED
         report.end_dttm = datetime.now()
         db.session.commit()
-        
+
         logger.info("Successfully completed analysis for report_id: %s", report_id)
         return {
             "status": "completed",
@@ -91,12 +90,12 @@ def analyze_database_schema(report_id: int) -> dict[str, Any]:
             "tables_analyzed": result.get("tables_count", 0),
             "joins_inferred": result.get("joins_count", 0),
         }
-        
+
     except SoftTimeLimitExceeded:
         logger.error("Task timed out for report_id: %s", report_id)
         _mark_report_failed(report_id, "Task timed out after 1 hour")
         return {"status": "error", "message": "Task timed out"}
-        
+
     except Exception as e:
         logger.exception("Error analyzing database schema for report_id: %s", report_id)
         _mark_report_failed(report_id, str(e))
@@ -119,7 +118,7 @@ def _mark_report_failed(report_id: int, error_message: str) -> None:
 def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
     """
     Kickstart a new database schema analysis or return existing run_id.
-    
+
     :param database_id: ID of the database to analyze
     :param schema_name: Name of the schema to analyze
     :return: Dict with run_id and database_report_id
@@ -130,8 +129,11 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
         .filter_by(database_id=database_id, schema_name=schema_name)
         .first()
     )
-    
-    if existing and existing.status in (AnalysisStatus.RESERVED, AnalysisStatus.RUNNING):
+
+    if existing and existing.status in (
+        AnalysisStatus.RESERVED,
+        AnalysisStatus.RUNNING,
+    ):
         # Job already in progress - return existing run_id
         logger.info(
             "Analysis already in progress for database %s schema %s",
@@ -141,10 +143,13 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
         return {
             "run_id": existing.celery_task_id,
             "database_report_id": existing.id,
-            "status": existing.status.value,
+            "status": existing.status,
         }
-    
-    if existing and existing.status in (AnalysisStatus.COMPLETED, AnalysisStatus.FAILED):
+
+    if existing and existing.status in (
+        AnalysisStatus.COMPLETED,
+        AnalysisStatus.FAILED,
+    ):
         # Delete old report (cascades to all related data)
         logger.info(
             "Deleting old report for database %s schema %s",
@@ -153,7 +158,7 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
         )
         db.session.delete(existing)
         db.session.flush()
-    
+
     # Create new report
     task_id = str(uuid.uuid4())
     report = DatabaseSchemaReport(
@@ -165,17 +170,17 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
     )
     db.session.add(report)
     db.session.commit()
-    
+
     # Trigger Celery job
     analyze_database_schema.apply_async(args=[report.id], task_id=task_id)
-    
+
     logger.info(
         "Started new analysis for database %s schema %s with run_id %s",
         database_id,
         schema_name,
         task_id,
     )
-    
+
     return {
         "run_id": task_id,
         "database_report_id": report.id,
@@ -186,38 +191,45 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
 def check_analysis_status(run_id: str) -> dict[str, Any]:
     """
     Check the status of a running analysis by run_id.
-    
+
     :param run_id: The Celery task ID (run_id)
     :return: Dict with status and results
     """
     report = (
-        db.session.query(DatabaseSchemaReport)
-        .filter_by(celery_task_id=run_id)
-        .first()
+        db.session.query(DatabaseSchemaReport).filter_by(celery_task_id=run_id).first()
     )
-    
+
     if not report:
-        return {"status": "not_found", "message": f"No analysis found for run_id {run_id}"}
-    
+        return {
+            "status": "not_found",
+            "message": f"No analysis found for run_id {run_id}",
+        }
+
     result = {
         "run_id": run_id,
         "database_report_id": report.id,
-        "status": report.status.value,
+        "status": report.status,
         "database_id": report.database_id,
         "schema_name": report.schema_name,
     }
-    
+
     if report.status == AnalysisStatus.RUNNING:
-        result["started_at"] = report.start_dttm.isoformat() if report.start_dttm else None
-        
+        result["started_at"] = (
+            report.start_dttm.isoformat() if report.start_dttm else None
+        )
+
     elif report.status == AnalysisStatus.COMPLETED:
-        result["started_at"] = report.start_dttm.isoformat() if report.start_dttm else None
-        result["completed_at"] = report.end_dttm.isoformat() if report.end_dttm else None
+        result["started_at"] = (
+            report.start_dttm.isoformat() if report.start_dttm else None
+        )
+        result["completed_at"] = (
+            report.end_dttm.isoformat() if report.end_dttm else None
+        )
         result["tables_count"] = len(report.tables)
         result["joins_count"] = len(report.joins)
-        
+
     elif report.status == AnalysisStatus.FAILED:
         result["error_message"] = report.error_message
         result["failed_at"] = report.end_dttm.isoformat() if report.end_dttm else None
-    
+
     return result

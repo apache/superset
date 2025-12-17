@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -25,9 +24,10 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import relationship
 
 from superset.models.helpers import AuditMixinNullable, UUIDMixin
+from superset.utils.backports import StrEnum
 
 if TYPE_CHECKING:
-    from superset.models.core import Database
+    pass
 
 
 class AnalysisStatus(str, enum.Enum):
@@ -49,7 +49,7 @@ class DatabaseSchemaReport(Model, AuditMixinNullable, UUIDMixin):
     schema_name = sa.Column(sa.String(256), nullable=False)
     celery_task_id = sa.Column(sa.String(256), nullable=True)
     status = sa.Column(
-        sa.Enum(AnalysisStatus),
+        sa.Enum(AnalysisStatus, values_callable=lambda x: [e.value for e in x]),
         default=AnalysisStatus.RESERVED,
         nullable=False,
     )
@@ -73,15 +73,15 @@ class DatabaseSchemaReport(Model, AuditMixinNullable, UUIDMixin):
     )
 
     __table_args__ = (
-        sa.UniqueConstraint("database_id", "schema_name", name="uq_database_schema_report_database_schema"),
-        sa.CheckConstraint(
-            "status IN ('reserved', 'running', 'completed', 'failed')",
-            name="ck_database_schema_report_status"
+        sa.UniqueConstraint(
+            "database_id",
+            "schema_name",
+            name="uq_database_schema_report_database_schema",
         ),
     )
 
 
-class TableType(str, enum.Enum):
+class TableType(StrEnum):
     TABLE = "table"
     VIEW = "view"
     MATERIALIZED_VIEW = "materialized_view"
@@ -100,7 +100,7 @@ class AnalyzedTable(Model, AuditMixinNullable, UUIDMixin):
     )
     table_name = sa.Column(sa.String(256), nullable=False)
     table_type = sa.Column(
-        sa.Enum(TableType),
+        sa.Enum(TableType, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     db_comment = sa.Column(sa.Text, nullable=True)
@@ -128,10 +128,8 @@ class AnalyzedTable(Model, AuditMixinNullable, UUIDMixin):
     )
 
     __table_args__ = (
-        sa.UniqueConstraint("report_id", "table_name", name="uq_analyzed_table_report_table"),
-        sa.CheckConstraint(
-            "table_type IN ('table', 'view', 'materialized_view')",
-            name="ck_analyzed_table_table_type"
+        sa.UniqueConstraint(
+            "report_id", "table_name", name="uq_analyzed_table_report_table"
         ),
     )
 
@@ -158,12 +156,16 @@ class AnalyzedColumn(Model, AuditMixinNullable, UUIDMixin):
     table = relationship("AnalyzedTable", back_populates="columns")
 
     __table_args__ = (
-        sa.UniqueConstraint("table_id", "column_name", name="uq_analyzed_column_table_column"),
-        sa.CheckConstraint("ordinal_position >= 1", name="ck_analyzed_column_ordinal_position"),
+        sa.UniqueConstraint(
+            "table_id", "column_name", name="uq_analyzed_column_table_column"
+        ),
+        sa.CheckConstraint(
+            "ordinal_position >= 1", name="ck_analyzed_column_ordinal_position"
+        ),
     )
 
 
-class JoinType(str, enum.Enum):
+class JoinType(StrEnum):
     INNER = "inner"
     LEFT = "left"
     RIGHT = "right"
@@ -171,7 +173,7 @@ class JoinType(str, enum.Enum):
     CROSS = "cross"
 
 
-class Cardinality(str, enum.Enum):
+class Cardinality(StrEnum):
     ONE_TO_ONE = "1:1"
     ONE_TO_MANY = "1:N"
     MANY_TO_ONE = "N:1"
@@ -224,15 +226,4 @@ class InferredJoin(Model, AuditMixinNullable, UUIDMixin):
         "AnalyzedTable",
         back_populates="target_joins",
         foreign_keys=[target_table_id],
-    )
-
-    __table_args__ = (
-        sa.CheckConstraint(
-            "join_type IN ('inner', 'left', 'right', 'full', 'cross')",
-            name="ck_inferred_join_join_type"
-        ),
-        sa.CheckConstraint(
-            "cardinality IN ('1:1', '1:N', 'N:1', 'N:M')",
-            name="ck_inferred_join_cardinality"
-        ),
     )
