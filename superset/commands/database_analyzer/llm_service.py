@@ -30,11 +30,13 @@ class LLMService:
     """Service for LLM integration to generate descriptions and infer joins"""
 
     def __init__(self) -> None:
-        self.api_key = current_app.config.get("LLM_API_KEY")
-        self.model = current_app.config.get("LLM_MODEL", "gpt-4o")
-        self.temperature = current_app.config.get("LLM_TEMPERATURE", 0.3)
-        self.max_tokens = current_app.config.get("LLM_MAX_TOKENS", 4096)
-        self.base_url = current_app.config.get(
+        import os
+        # Try environment variables first, then fall back to config
+        self.api_key = os.environ.get("SUPERSET_LLM_API_KEY") or current_app.config.get("LLM_API_KEY")
+        self.model = os.environ.get("SUPERSET_LLM_MODEL") or current_app.config.get("LLM_MODEL", "gpt-4o")
+        self.temperature = float(os.environ.get("SUPERSET_LLM_TEMPERATURE", current_app.config.get("LLM_TEMPERATURE", 0.3)))
+        self.max_tokens = int(os.environ.get("SUPERSET_LLM_MAX_TOKENS", current_app.config.get("LLM_MAX_TOKENS", 4096)))
+        self.base_url = os.environ.get("SUPERSET_LLM_BASE_URL") or current_app.config.get(
             "LLM_BASE_URL", "https://api.openai.com/v1"
         )
 
@@ -215,19 +217,73 @@ Return the response as JSON array:
 
     def _call_llm(self, prompt: str) -> str:
         """Call the LLM API with the given prompt"""
-        # This is a placeholder implementation
-        # In production, this would call the actual LLM API (OpenAI, Anthropic, etc.)
-
-        # For now, return mock response for testing
-        if "table descriptions" in prompt.lower():
-            return json.dumps(
+        import requests
+        
+        if not self.api_key:
+            logger.warning("No API key configured for LLM service")
+            return json.dumps({})
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        # For OpenRouter, we might need additional headers
+        if "openrouter" in self.base_url.lower():
+            headers["HTTP-Referer"] = "http://localhost:8088"  # Optional but recommended
+            headers["X-Title"] = "Superset Database Analyzer"  # Optional
+        
+        data = {
+            "model": self.model,
+            "messages": [
                 {
-                    "table_description": "This table stores data related to the schema",
-                    "column_descriptions": {},
+                    "role": "system",
+                    "content": "You are a database expert helping to document and understand database schemas. Respond only with valid JSON as requested."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
                 }
+            ],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json=data,
+                timeout=60
             )
-        else:
-            return json.dumps([])
+            
+            if response.status_code != 200:
+                logger.error(f"LLM API error: {response.status_code} - {response.text}")
+                return json.dumps({})
+            
+            result = response.json()
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            # Try to extract JSON from the response
+            if content:
+                # Clean up the response - sometimes LLMs add markdown formatting
+                content = content.strip()
+                if content.startswith("```json"):
+                    content = content[7:]
+                if content.startswith("```"):
+                    content = content[3:]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
+            
+            return content
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error calling LLM API: {e}")
+            return json.dumps({})
+        except Exception as e:
+            logger.error(f"Unexpected error in LLM call: {e}")
+            return json.dumps({})
 
     def _parse_table_description_response(self, response: str) -> dict[str, Any]:
         """Parse the LLM response for table descriptions"""
