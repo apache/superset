@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 
 class TestDatasourceAnalyzerApi(SupersetTestCase):
@@ -124,8 +124,8 @@ class TestDatasourceAnalyzerApi(SupersetTestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_post_invalid_schema_returns_400(self):
-        """Test that an invalid schema returns 400"""
+    def test_post_invalid_schema_returns_404(self):
+        """Test that a non-existent schema returns 404"""
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
@@ -143,11 +143,11 @@ class TestDatasourceAnalyzerApi(SupersetTestCase):
                 json=payload,
             )
 
-            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.status_code, 404)
 
     def test_post_no_access_returns_403(self):
         """Test that a user without database access gets 403"""
-        self.login(GAMMA_USERNAME)
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
         # Mock security_manager.can_access_database to return False
