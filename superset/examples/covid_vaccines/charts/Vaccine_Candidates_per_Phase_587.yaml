@@ -14,36 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Vaccine Candidates per Country & Stage
-viz_type: heatmap_v2
+slice_name: Vaccine Candidates per Phase
+viz_type: echarts_timeseries_bar
 params:
-  adhoc_filters: []
   x_axis: clinical_stage
-  groupby: country_name
+  adhoc_filters: []
   bottom_margin: auto
-  datasource: 69__table
-  left_margin: auto
-  linear_color_scheme: schemeYlOrBr
-  metric: count
-  normalize_across: heatmap_v2
-  queryFields:
-    metric: metrics
+  color_scheme: SUPERSET_DEFAULT
+  columns: []
+  datasource: 14__table
+  label_colors: {}
+  metrics:
+    - count
   row_limit: 10000
   show_legend: false
-  show_percentage: true
-  show_values: true
-  sort_x_axis: alpha_asc
-  sort_y_axis: alpha_asc
   time_range: No filter
   url_params: {}
-  viz_type: heatmap_v2
-  xscale_interval: null
-  value_bounds:
-    - null
-    - null
+  viz_type: echarts_timeseries_bar
+  x_ticks_layout: auto
   y_axis_format: SMART_NUMBER
-  yscale_interval: null
 cache_timeout: null
-uuid: cd111331-d286-4258-9020-c7949a109ed2
+uuid: 392f293e-0892-4316-bd41-c927b65606a4
 version: 1.0.0
 dataset_uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0

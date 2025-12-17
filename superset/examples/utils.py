@@ -49,13 +49,11 @@ def _load_shared_configs(examples_root: Any) -> dict[str, str]:
         return contents
 
     # Database config -> databases/examples.yaml
-    db_content = _read_file_if_exists(base, shared_dir / "database.yaml")
-    if db_content:
+    if db_content := _read_file_if_exists(base, shared_dir / "database.yaml"):
         contents["databases/examples.yaml"] = db_content
 
     # Metadata -> metadata.yaml
-    meta_content = _read_file_if_exists(base, shared_dir / "metadata.yaml")
-    if meta_content:
+    if meta_content := _read_file_if_exists(base, shared_dir / "metadata.yaml"):
         contents["metadata.yaml"] = meta_content
 
     return contents
