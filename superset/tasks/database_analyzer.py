@@ -72,7 +72,7 @@ def analyze_database_schema(report_id: int) -> dict[str, Any]:
 
         report.status = AnalysisStatus.RUNNING
         report.start_dttm = datetime.now()
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # Execute the analysis command
         command = AnalyzeDatabaseSchemaCommand(report_id)
@@ -81,7 +81,7 @@ def analyze_database_schema(report_id: int) -> dict[str, Any]:
         # Update status to completed
         report.status = AnalysisStatus.COMPLETED
         report.end_dttm = datetime.now()
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         logger.info("Successfully completed analysis for report_id: %s", report_id)
         return {
@@ -110,7 +110,7 @@ def _mark_report_failed(report_id: int, error_message: str) -> None:
             report.status = AnalysisStatus.FAILED
             report.end_dttm = datetime.now()
             report.error_message = error_message
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
     except Exception:
         logger.exception("Failed to update report status to failed")
 
@@ -169,7 +169,7 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
         reserved_dttm=datetime.now(),
     )
     db.session.add(report)
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     # Trigger Celery job
     analyze_database_schema.apply_async(args=[report.id], task_id=task_id)
