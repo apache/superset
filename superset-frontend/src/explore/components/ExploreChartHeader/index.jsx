@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
 import { logging, SupersetClient, t } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css, Alert } from '@apache-superset/core/ui';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -101,6 +101,9 @@ export const ExploreChartHeader = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
+
+  // Check if chart belongs to a template dashboard
+  const isTemplateChart = slice?.is_template_chart ?? false;
 
   const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
@@ -185,6 +188,7 @@ export const ExploreChartHeader = ({
       metadata?.dashboards,
       showReportModal,
       setCurrentReportDeleting,
+      isTemplateChart,
     );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);
@@ -237,13 +241,22 @@ export const ExploreChartHeader = ({
 
   return (
     <>
+      {isTemplateChart && (
+        <Alert type="info" banner closable={false}>
+          {t(
+            'This chart belongs to a template dashboard and cannot be modified.',
+          )}
+        </Alert>
+      )}
       <PageHeaderWithActions
         editableTitleProps={{
           title: sliceName ?? '',
+          // Disable title editing for template charts
           canEdit:
-            !slice ||
-            canOverwrite ||
-            (slice?.owners || []).includes(user?.userId),
+            !isTemplateChart &&
+            (!slice ||
+              canOverwrite ||
+              (slice?.owners || []).includes(user?.userId)),
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),
@@ -275,27 +288,30 @@ export const ExploreChartHeader = ({
           </div>
         }
         rightPanelAdditionalItems={
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={showModal}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
-              >
-                {t('Save')}
-              </Button>
-            </div>
-          </Tooltip>
+          // Hide save button for template charts
+          isTemplateChart ? null : (
+            <Tooltip
+              title={
+                saveDisabled
+                  ? t('Add required control values to save chart')
+                  : null
+              }
+            >
+              {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+              <div>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={showModal}
+                  disabled={saveDisabled}
+                  data-test="query-save-button"
+                  css={saveButtonStyles}
+                  icon={<Icons.SaveOutlined />}
+                >
+                  {t('Save')}
+                </Button>
+              </div>
+            </Tooltip>
+          )
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
