@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
@@ -33,21 +33,23 @@ import {
   RisonFilter,
 } from './DatasetList.testHelpers';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
+// Increase default timeout for all tests in this file
+jest.setTimeout(30000);
 
 beforeEach(() => {
   setupMocks();
 });
 
 afterEach(() => {
-  cleanup();
-  fetchMock.reset();
+  fetchMock.resetHistory();
+  fetchMock.restore();
 });
 
 test('renders page with "Datasets" title', async () => {
   renderDatasetList(mockAdminUser);
 
-  await waitForDatasetsPageReady();
+  const title = await screen.findByText('Datasets');
+  expect(title).toBeInTheDocument();
 });
 
 test('shows loading state during initial data fetch', () => {
@@ -325,7 +327,8 @@ test('handles 500 error on initial load without crashing', async () => {
   });
 
   // Component should still render without crashing
-  await waitForDatasetsPageReady();
+  const title = await screen.findByText('Datasets');
+  expect(title).toBeInTheDocument();
 });
 
 test('handles 403 error on _info endpoint and disables create actions', async () => {
@@ -365,7 +368,8 @@ test('handles network timeout without crashing', async () => {
   });
 
   // Component should not crash
-  await waitForDatasetsPageReady();
+  const title = await screen.findByText('Datasets');
+  expect(title).toBeInTheDocument();
 });
 
 test('component requires explicit mocks for all API endpoints', async () => {

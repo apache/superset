@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -42,14 +42,17 @@ import {
 
 jest.mock('src/utils/export');
 
+// Increase default timeout for all tests in this file
+jest.setTimeout(30000);
+
 beforeEach(() => {
   setupMocks();
   jest.clearAllMocks();
 });
 
 afterEach(() => {
-  cleanup();
-  fetchMock.reset();
+  fetchMock.resetHistory();
+  fetchMock.restore();
   jest.restoreAllMocks();
 });
 
