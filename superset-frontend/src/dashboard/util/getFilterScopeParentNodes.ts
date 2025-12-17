@@ -26,7 +26,10 @@ export default function getFilterScopeParentNodes(
   depthLimit = -1,
 ): string[] {
   const parentNodes: string[] = [];
-  const traverse = (currentNode: FilterScopeTreeNode | undefined, depth: number): void => {
+  const traverse = (
+    currentNode: FilterScopeTreeNode | undefined,
+    depth: number,
+  ): void => {
     if (!currentNode) {
       return;
     }
