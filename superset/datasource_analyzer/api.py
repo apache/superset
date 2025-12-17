@@ -113,11 +113,12 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             )
             result = command.run()
             return self.response(200, result=result)
-        except DatasourceAnalyzerDatabaseNotFoundError:
+        except (
+            DatasourceAnalyzerDatabaseNotFoundError,
+            DatasourceAnalyzerSchemaNotFoundError,
+        ):
             return self.response_404()
         except DatasourceAnalyzerAccessDeniedError:
             return self.response_403()
-        except DatasourceAnalyzerSchemaNotFoundError as ex:
-            return self.response_400(message=str(ex))
         except DatasourceAnalyzerInvalidError as ex:
             return self.response_422(message=str(ex))

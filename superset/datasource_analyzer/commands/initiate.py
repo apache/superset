@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
@@ -27,6 +29,9 @@ from superset.datasource_analyzer.exceptions import (
     DatasourceAnalyzerSchemaNotFoundError,
 )
 from superset.extensions import security_manager
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +53,7 @@ class InitiateDatasourceAnalyzerCommand(BaseCommand):
         self._database_id = database_id
         self._schema_name = schema_name
         self._catalog_name = catalog_name
-        self._database = None
+        self._database: Database | None = None
 
     def run(self) -> dict[str, Any]:
         """

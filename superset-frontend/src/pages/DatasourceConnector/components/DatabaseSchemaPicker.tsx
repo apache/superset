@@ -36,10 +36,8 @@ const PickerContainer = styled.div`
   ${({ theme }) => `
     width: 100%;
 
-    .database-selector-wrapper {
-      & > div {
-        margin-bottom: ${theme.paddingMD}px;
-      }
+    & > div {
+      margin-bottom: ${theme.paddingMD}px;
     }
   `}
 `;
@@ -81,7 +79,7 @@ export default function DatabaseSchemaPicker({
   );
 
   return (
-    <PickerContainer className="database-selector-wrapper">
+    <PickerContainer>
       <DatabaseSelector
         db={database}
         catalog={catalog}

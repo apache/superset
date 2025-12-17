@@ -55,17 +55,14 @@ const PanelContainer = styled.div`
 
 const IconCircle = styled.div`
   ${({ theme }) => `
-    width: ${theme.sizeUnit * 8}px;
-    height: ${theme.sizeUnit * 8}px;
-    flex-shrink: 0;
     width: ${theme.sizeUnit * 6}px;
     height: ${theme.sizeUnit * 6}px;
+    flex-shrink: 0;
     border-radius: ${theme.borderRadius}px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: ${theme.colorPrimaryBg};
-    flex-shrink: 0;
   `}
 `;
 
@@ -126,7 +123,7 @@ export default function DataSourcePanel({
   onCancel,
   onContinue,
 }: DataSourcePanelProps) {
-  const canContinue = database !== null && schema !== null && !isSubmitting;
+  const canContinue = database !== null && !!schema && !isSubmitting;
 
   return (
     <PanelContainer>

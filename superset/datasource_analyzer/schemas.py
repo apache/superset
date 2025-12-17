@@ -31,6 +31,7 @@ class DatasourceAnalyzerPostSchema(Schema):
     catalog_name = fields.String(
         required=False,
         load_default=None,
+        allow_none=True,
         metadata={"description": "The name of the catalog (optional)"},
     )
 
