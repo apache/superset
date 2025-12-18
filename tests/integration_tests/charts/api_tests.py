@@ -1145,7 +1145,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 34
+        assert data["count"] == 33
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
     def test_get_charts_dashboards(self):
@@ -1419,7 +1419,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 18
+        assert data["count"] == 17
 
     @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
@@ -1707,7 +1707,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         Chart API: Test get charts filter
         """
-        # Assuming we have 34 sample charts
+        # Assuming we have 33 sample charts
         self.login(ADMIN_USERNAME)
         arguments = {"page_size": 10, "page": 0}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -1721,7 +1721,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert len(data["result"]) == 4
+        assert len(data["result"]) == 3
 
     def test_get_charts_no_data_access(self):
         """
@@ -1914,7 +1914,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 9
+        assert data["count"] == 8
 
     def test_gets_not_created_by_user_charts_filter(self):
         arguments = {
@@ -1928,7 +1928,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 9
+        assert data["count"] == 8
 
     @pytest.mark.usefixtures("create_charts")
     def test_gets_owned_created_favorited_by_me_filter(self):
