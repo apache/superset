@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import CheckboxTree, { Node } from 'react-checkbox-tree';
+import CheckboxTree, { Node, OnCheckNode } from 'react-checkbox-tree';
 import treeIcons from './treeIcons';
 import renderFilterFieldTreeNodes, {
   FilterScopeTreeNode,
@@ -29,7 +29,7 @@ interface FilterFieldTreeProps {
   expanded: (string | number)[];
   onCheck: (checked: string[]) => void;
   onExpand: (expanded: string[]) => void;
-  onClick: (node: { value: string }) => void;
+  onClick: (node: OnCheckNode) => void;
 }
 
 export default function FilterFieldTree({
