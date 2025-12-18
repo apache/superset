@@ -149,5 +149,6 @@ export async function duplicateDataset(
     table_name: newName,
   });
   const body = await response.json();
-  return body.result;
+  // Normalize: API may return id at top level or inside result
+  return { ...body.result, id: body.result?.id ?? body.id };
 }

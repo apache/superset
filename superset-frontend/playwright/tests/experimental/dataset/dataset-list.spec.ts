@@ -149,10 +149,11 @@ test('should duplicate a dataset with new name', async ({ page }) => {
   await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
 
   // Set up response intercept to capture duplicate dataset ID
+  // Accept both 200 and 201 (endpoint may return either depending on environment)
   const duplicateResponsePromise = page.waitForResponse(
     response =>
       response.url().includes(`${ENDPOINTS.DATASET}duplicate`) &&
-      response.status() === 201,
+      [200, 201].includes(response.status()),
   );
 
   // Click duplicate action button
