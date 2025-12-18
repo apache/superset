@@ -95,6 +95,9 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             )
 
         # 2. Build QueryOptions
+        # Caching is enabled by default to reduce database load.
+        # force_refresh bypasses cache when user explicitly requests fresh data.
+        cache_opts = CacheOptions(force_refresh=True) if request.force_refresh else None
         options = QueryOptions(
             catalog=request.catalog,
             schema=request.schema_name,
@@ -102,7 +105,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             timeout_seconds=request.timeout,
             template_params=request.template_params,
             dry_run=request.dry_run,
-            cache=CacheOptions(force_refresh=True),  # No caching for MCP
+            cache=cache_opts,
         )
 
         # 3. Execute query

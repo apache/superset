@@ -52,6 +52,15 @@ class ExecuteSqlRequest(BaseModel):
         default=False,
         description="Return transformed SQL without executing (for debugging)",
     )
+    force_refresh: bool = Field(
+        default=False,
+        description=(
+            "Bypass cache and re-execute query. "
+            "IMPORTANT: Only set to true when the user EXPLICITLY requests "
+            "fresh/updated data (e.g., 'refresh', 'get latest', 're-run'). "
+            "Default to false to reduce database load."
+        ),
+    )
 
     @field_validator("sql")
     @classmethod

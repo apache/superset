@@ -179,7 +179,8 @@ class TestExecuteSql:
             assert call_args[0][0] == request["sql"]
             options = call_args[0][1]
             assert options.limit == 10
-            assert options.cache.force_refresh is True
+            # Caching is enabled by default (force_refresh=False means cache=None)
+            assert options.cache is None
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -566,3 +567,39 @@ class TestExecuteSql:
         async with Client(mcp_server) as client:
             with pytest.raises(ToolError, match="less than or equal to 10000"):
                 await client.call_tool("execute_sql", {"request": request})
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_force_refresh(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test force_refresh bypasses cache."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 1}],
+            columns=["id"],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users",
+            "limit": 10,
+            "force_refresh": True,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is True
+
+            # Verify force_refresh was passed to CacheOptions
+            call_args = mock_database.execute.call_args
+            options = call_args[0][1]
+            assert options.cache is not None
+            assert options.cache.force_refresh is True
