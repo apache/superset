@@ -72,6 +72,8 @@ class DashboardGeneratorLLMService(BaseLLMClient):
         chart_requirements: list[dict[str, Any]],
         pre_matched_columns: dict[str, Any] | None = None,
         previous_errors: list[str] | None = None,
+        required_columns: list[str] | None = None,
+        template_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Generate a virtual dataset SQL and column/metric mappings.
@@ -92,6 +94,8 @@ class DashboardGeneratorLLMService(BaseLLMClient):
             chart_requirements,
             pre_matched_columns,
             previous_errors,
+            required_columns=required_columns,
+            template_context=template_context,
         )
 
         response = self.chat_json(
@@ -110,6 +114,7 @@ class DashboardGeneratorLLMService(BaseLLMClient):
         column_mappings: dict[str, str],
         native_filters: list[dict[str, Any]],
         database_report: dict[str, Any],
+        required_columns: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Refine the dataset SQL to support native filter requirements.
@@ -146,6 +151,7 @@ class DashboardGeneratorLLMService(BaseLLMClient):
         available_columns: list[str] | None = None,
         previous_errors: list[str] | None = None,
         datetime_column: str | None = None,
+        template_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Map chart parameters from template to new dataset.
@@ -177,6 +183,7 @@ class DashboardGeneratorLLMService(BaseLLMClient):
             available_columns,
             previous_errors,
             datetime_column,
+            template_context,
         )
 
         response = self.chat_json(
@@ -589,6 +596,8 @@ Generate SQL for a virtual dataset using the confirmed column mappings.
         chart_requirements: list[dict[str, Any]],
         pre_matched_columns: dict[str, Any] | None = None,
         previous_errors: list[str] | None = None,
+        required_columns: list[str] | None = None,
+        template_context: dict[str, Any] | None = None,
     ) -> str:
         """Build prompt for dataset SQL generation."""
         # First, build a complete list of all available columns for reference
@@ -693,6 +702,16 @@ If a column name is not in this list, it does NOT exist.
                 prompt += f"{i}. {error}\n"
             prompt += "\nIMPORTANT: The previous SQL failed. Fix the issues above.\n"
 
+        if required_columns:
+            prompt += "\n## REQUIRED OUTPUT COLUMNS (must appear in SELECT)\n"
+            prompt += ", ".join(required_columns)
+            prompt += "\nIf a required column does not exist, map it to the closest available column and expose it with the required alias.\n"
+
+        if template_context:
+            prompt += "\n## TEMPLATE CONTEXT (business/domain intent)\n"
+            prompt += json.dumps(template_context, indent=2)
+            prompt += "\nUse this context to select the most semantically appropriate columns and joins.\n"
+
         prompt += """
 
 ## CONSTRAINTS
@@ -721,6 +740,7 @@ IMPORTANT: In column_mappings, the values must match the aliases you used in you
         column_mappings: dict[str, str],
         native_filters: list[dict[str, Any]],
         database_report: dict[str, Any],
+        required_columns: list[str] | None = None,
     ) -> str:
         """Build prompt for filter refinement."""
         prompt = f"""You are a database expert helping to ensure a dataset supports native filters.
@@ -752,6 +772,7 @@ IMPORTANT: In column_mappings, the values must match the aliases you used in you
 
 Check if the current SQL and column mappings support all the native filters.
 If any filter columns are missing, provide a revised SQL that includes them.
+If you need to add columns, extend the SELECT with aliases; do not remove existing fields.
 
 Return as JSON:
 {
@@ -760,6 +781,10 @@ Return as JSON:
   "filter_column_mappings": {"template_filter_column": "new_column_name", ...}
 }
 """
+        if required_columns:
+            prompt += "\nRequired filter columns (must appear with aliases): "
+            prompt += ", ".join(required_columns)
+            prompt += "\nIf a required column is unavailable, map it to the closest available column and expose it with that alias.\n"
         return prompt
 
     def _build_chart_mapping_prompt(

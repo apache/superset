@@ -168,14 +168,8 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
-    # Template-specific fields
-    is_template = fields.Boolean(allow_none=True)
-    is_featured_template = fields.Boolean(allow_none=True)
-    template_category = fields.String(allow_none=True, validate=Length(0, 255))
-    template_thumbnail_url = fields.String(allow_none=True)
-    template_context = fields.String(allow_none=True)
-    template_description = fields.String(allow_none=True)
-    template_tags = fields.List(fields.String(), allow_none=True)
+    # Template metadata is stored in the nested template_info structure
+    template_info = fields.Dict(allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument

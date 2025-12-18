@@ -145,9 +145,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
         templates = []
         for dashboard in dashboards:
             metadata = json.loads(dashboard.json_metadata or "{}")
-            if metadata.get("is_template", False):
+            # Template metadata is stored in the nested template_info structure
+            template_info = metadata.get("template_info", {})
+            if template_info.get("is_template", False):
                 # Add sorting metadata as attributes for sorting
-                dashboard._is_featured_template = metadata.get(
+                dashboard._is_featured_template = template_info.get(
                     "is_featured_template", False
                 )
                 templates.append(dashboard)

@@ -92,6 +92,7 @@ class TemplateRequirements:
     dataset_sql: str | None = None
     dataset_name: str | None = None
     chart_count: int = 0
+    template_context: dict[str, Any] | None = None
 
 
 class TemplateAnalyzer:
@@ -132,6 +133,12 @@ class TemplateAnalyzer:
         requirements.dataset_sql, requirements.dataset_name = (
             self._extract_dataset_info(dashboard)
         )
+
+        # Extract template context if present
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        template_info = metadata.get("template_info", {}) if isinstance(metadata, dict) else {}
+        if isinstance(template_info, dict) and "template_context" in template_info:
+            requirements.template_context = template_info.get("template_context")
 
         logger.info(
             "Template analysis complete: %d columns, %d metrics, %d filters",
