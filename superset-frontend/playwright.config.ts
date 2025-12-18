@@ -122,7 +122,8 @@ export default defineConfig({
     ? undefined
     : (() => {
         // Support custom base URL (e.g., http://localhost:9012/app/prefix/)
-        const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+        const baseUrl =
+          process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
         // Extract origin (scheme + host + port) for health check
         const healthUrl = new URL('health', baseUrl).href;
         return {

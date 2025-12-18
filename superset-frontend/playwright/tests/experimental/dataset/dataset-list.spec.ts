@@ -18,10 +18,6 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { createReadStream } from 'fs';
-import { mkdtemp, unlink, rmdir } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import * as unzipper from 'unzipper';
 import { DatasetListPage } from '../../../pages/DatasetListPage';
 import { ExplorePage } from '../../../pages/ExplorePage';
@@ -235,54 +231,48 @@ test('should export a dataset as a zip file', async ({ page }) => {
   // Verify dataset is visible in list
   await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-  // Set up download event listener before triggering export
-  const downloadPromise = page.waitForEvent('download');
+  // Set up API response intercept for export endpoint
+  // Note: We intercept the API response instead of relying on download events because
+  // Superset uses blob downloads (createObjectURL) which don't trigger Playwright's
+  // download event consistently, especially in app-prefix configurations.
+  const exportResponsePromise = page.waitForResponse(
+    response =>
+      response.url().includes('/api/v1/dataset/export/') &&
+      response.status() === 200,
+  );
 
   // Click export action button
   await datasetListPage.clickExportAction(datasetName);
 
-  // Wait for download to complete
-  const download = await downloadPromise;
+  // Wait for export API response
+  const exportResponse = await exportResponsePromise;
 
-  // Verify filename matches expected pattern (dataset_export_YYYYMMDDTHHMMSS.zip)
-  const fileName = download.suggestedFilename();
-  expect(fileName).toMatch(/^dataset_export_\d{8}T\d{6}\.zip$/);
+  // Verify response headers indicate zip file
+  const contentType = exportResponse.headers()['content-type'];
+  expect(contentType).toContain('application/zip');
 
-  // Save to known temp location (more robust than download.path() which can return null)
-  const tempDir = await mkdtemp(join(tmpdir(), 'playwright-export-'));
-  const downloadPath = join(tempDir, fileName);
+  const contentDisposition = exportResponse.headers()['content-disposition'];
+  expect(contentDisposition).toMatch(/filename=.*dataset_export.*\.zip/);
 
-  try {
-    await download.saveAs(downloadPath);
+  // Verify the response body is a valid zip with expected structure
+  const responseBody = await exportResponse.body();
+  expect(responseBody.length).toBeGreaterThan(0);
 
-    // Verify the zip contains expected dataset YAML structure
-    const entries: string[] = [];
-    await new Promise<void>((resolve, reject) => {
-      createReadStream(downloadPath)
-        .pipe(unzipper.Parse())
-        .on('entry', entry => {
-          entries.push(entry.path);
-          entry.autodrain();
-        })
-        .on('close', resolve)
-        .on('error', reject);
-    });
+  // Parse zip contents from response buffer
+  const entries: string[] = [];
+  const directory = await unzipper.Open.buffer(responseBody);
+  directory.files.forEach(file => entries.push(file.path));
 
-    // Export should contain at least one dataset YAML file and metadata
-    expect(entries.length).toBeGreaterThan(0);
+  // Export should contain at least one dataset YAML file and metadata
+  expect(entries.length).toBeGreaterThan(0);
 
-    // Check for dataset directory and YAML file
-    const hasDatasetYaml = entries.some(
-      entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
-    );
-    expect(hasDatasetYaml).toBe(true);
+  // Check for dataset directory and YAML file
+  const hasDatasetYaml = entries.some(
+    entry => entry.includes('datasets/') && entry.endsWith('.yaml'),
+  );
+  expect(hasDatasetYaml).toBe(true);
 
-    // Check for metadata.yaml (export manifest)
-    const hasMetadata = entries.some(entry => entry.endsWith('metadata.yaml'));
-    expect(hasMetadata).toBe(true);
-  } finally {
-    // Cleanup temp files (file may not exist if saveAs failed)
-    await unlink(downloadPath).catch(() => {});
-    await rmdir(tempDir).catch(() => {});
-  }
+  // Check for metadata.yaml (export manifest)
+  const hasMetadata = entries.some(entry => entry.endsWith('metadata.yaml'));
+  expect(hasMetadata).toBe(true);
 });
