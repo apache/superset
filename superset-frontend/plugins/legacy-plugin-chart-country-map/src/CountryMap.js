@@ -41,9 +41,64 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
+  customColorRules: PropTypes.array,
 };
 
 const maps = {};
+
+function normalizeColorKeyword(color) {
+  if (color == null) return '#000000';
+  const c = String(color).trim();
+
+  // Hex colors (#RGB, #RRGGBB, #RGBA, #RRGGBBAA)
+  if (/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c)) return c;
+
+  // CSS color functions (rgb, rgba, hsl, hsla) with flexible spacing and alpha
+  const colorFuncRegex =
+    /^(rgb|rgba)\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  const colorFuncHslRegex =
+    /^(hsl|hsla)\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i;
+  if (colorFuncRegex.test(c) || colorFuncHslRegex.test(c)) return c;
+
+  // Named CSS colors and system colors
+  const s = new Option().style;
+  s.color = c.toLowerCase();
+  if (s.color) return c;
+
+  // Fallback
+  return '#000000';
+}
+
+function safeNumber(v) {
+  if (v === null || v === undefined || v === '') return NaN;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function rgbaToHex(rgba) {
+  if (typeof rgba === 'string') return rgba;
+  if (Array.isArray(rgba)) return rgbaToHex(rgba[0]);
+  if (!rgba || typeof rgba !== 'object') return null;
+  const { r, g, b } = rgba;
+  if (r === undefined || g === undefined || b === undefined) return null;
+  const toHex = n => {
+    const hex = Math.round(n).toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function normalizeScale(scale) {
+  if (Array.isArray(scale)) return scale;
+  if (typeof scale === 'string') {
+    try {
+      return JSON.parse(scale);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 function CountryMap(element, props) {
   const {
@@ -53,22 +108,127 @@ function CountryMap(element, props) {
     country,
     linearColorScheme,
     numberFormat,
+    customColorScale = [],
     colorScheme,
     sliceId,
   } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v.metric));
-  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
+  const normalizedScale = normalizeScale(customColorScale);
+  const normalizedScaleWithColors = Array.isArray(normalizedScale)
+    ? normalizedScale.map(e => {
+        if (!e || typeof e !== 'object') return e;
+        return { ...e, color: normalizeColorKeyword(e.color) };
+      })
+    : [];
+
+  const parsedData = Array.isArray(data)
+    ? data.map(r => ({ ...r, metric: safeNumber(r.metric) }))
+    : [];
+
+  const numericValues = parsedData
+    .map(r => r.metric)
+    .filter(v => Number.isFinite(v));
+
+  let minValue = 0;
+  let maxValue = 1;
+  if (numericValues.length > 0) {
+    const extent = d3Extent(numericValues);
+    minValue = extent[0];
+    maxValue = extent[1];
+  }
+  const valueRange = maxValue - minValue;
+  const valueRangeNonZero = valueRange === 0 ? 1 : valueRange;
+
+  let percentColorScale = null;
+  if (
+    Array.isArray(normalizedScaleWithColors) &&
+    normalizedScaleWithColors.length >= 2
+  ) {
+    const sorted = normalizedScaleWithColors
+      .filter(
+        e => e && typeof e.percent === 'number' && typeof e.color === 'string',
+      )
+      .slice()
+      .sort((a, b) => a.percent - b.percent);
+
+    if (sorted.length >= 2) {
+      const domainPerc = sorted.map(e => e.percent);
+      const rangeColors = sorted.map(e => e.color);
+      percentColorScale = d3.scale
+        .linear()
+        .domain(domainPerc)
+        .range(rangeColors)
+        .clamp(true)
+        // Remove interpolation to avoid blending between steps - always return lower boundary
+        .interpolate(function (a, b) {
+          return function () {
+            return a;
+          };
+        });
+    }
+  }
+
+  let linearPaletteScale = null;
+  if (linearColorScheme) {
+    try {
+      const seq = getSequentialSchemeRegistry().get(linearColorScheme);
+      if (seq && typeof seq.createLinearScale === 'function') {
+        linearPaletteScale = seq.createLinearScale([minValue, maxValue]);
+      } else if (seq && Array.isArray(seq.colors) && seq.colors.length >= 2) {
+        linearPaletteScale = d3.scale
+          .linear()
+          .domain([minValue, maxValue])
+          .range([seq.colors[0], seq.colors[seq.colors.length - 1]])
+          .interpolate(d3.interpolateRgb);
+      }
+    } catch {
+      linearPaletteScale = null;
+    }
+  }
+
 
   const colorMap = {};
-  data.forEach(d => {
-    colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id, sliceId)
-      : linearColorScale(d.metric);
+  parsedData.forEach(r => {
+    const iso = r.country_id;
+    const value = r.metric;
+    if (!iso) return;
+    if (!Number.isFinite(value)) {
+      colorMap[iso] = 'none';
+      return;
+    }
+
+    if (percentColorScale) {
+      if (minValue === maxValue) {
+        // All values are the same; map to central color (e.g., 50%)
+        try {
+          colorMap[iso] = percentColorScale(50);
+          return;
+        } catch {
+          // continue regardless of error
+        }
+      } else {
+        const percentNormalized =
+          ((value - minValue) / valueRangeNonZero) * 100;
+        const p = Math.max(0, Math.min(100, percentNormalized));
+        try {
+          colorMap[iso] = percentColorScale(p);
+          return;
+        } catch {
+          // continue regardless of error
+        }
+      }
+    } else if (linearPaletteScale) {
+      try {
+        colorMap[iso] = linearPaletteScale(value);
+        return;
+      } catch {
+        // continue regardless of error
+      }
+    } else {
+      colorMap[iso] = 'none';
+    }
   });
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
