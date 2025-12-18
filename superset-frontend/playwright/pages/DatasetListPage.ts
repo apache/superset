@@ -30,12 +30,18 @@ export class DatasetListPage {
 
   private static readonly SELECTORS = {
     DATASET_LINK: '[data-test="internal-link"]',
-    DELETE_ACTION: '.action-button svg[data-icon="delete"]',
-    EDIT_ACTION: '.action-button svg[data-icon="edit"]',
-    EXPORT_ACTION: '.action-button svg[data-icon="upload"]',
-    DUPLICATE_ACTION: '.action-button svg[data-icon="copy"]',
     BULK_SELECT_CONTROLS: '[data-test="bulk-select-controls"]',
     BULK_SELECT_ACTION: '[data-test="bulk-select-action"]',
+  } as const;
+
+  /**
+   * Action button names for getByRole('button', { name })
+   */
+  private static readonly ACTION_BUTTONS = {
+    DELETE: 'delete',
+    EDIT: 'edit',
+    EXPORT: 'upload', // Export button uses upload icon
+    DUPLICATE: 'copy',
   } as const;
 
   constructor(page: Page) {
@@ -88,10 +94,10 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to delete
    */
   async clickDeleteAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.DELETE_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DELETE })
+      .click();
   }
 
   /**
@@ -99,10 +105,10 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to edit
    */
   async clickEditAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.EDIT_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EDIT })
+      .click();
   }
 
   /**
@@ -110,10 +116,10 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to export
    */
   async clickExportAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.EXPORT_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EXPORT })
+      .click();
   }
 
   /**
@@ -121,10 +127,10 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to duplicate
    */
   async clickDuplicateAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.DUPLICATE_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DUPLICATE })
+      .click();
   }
 
   /**

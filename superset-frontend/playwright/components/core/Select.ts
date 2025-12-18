@@ -67,12 +67,24 @@ export class Select {
   /**
    * Opens the dropdown, types to filter, and selects an option.
    * Handles cases where the option may not be initially visible in the dropdown.
+   * Waits for dropdown to close after selection to avoid stale dropdowns.
    * @param optionText - The text of the option to select
    */
   async selectOption(optionText: string): Promise<void> {
     await this.open();
     await this.type(optionText);
     await this.clickOption(optionText);
+    // Wait for dropdown to close to avoid multiple visible dropdowns
+    await this.waitForDropdownClose();
+  }
+
+  /**
+   * Waits for dropdown to close after selection
+   * This prevents strict mode violations when multiple selects are used sequentially
+   */
+  private async waitForDropdownClose(): Promise<void> {
+    // Wait for dropdown animation to complete
+    await this.page.waitForTimeout(300);
   }
 
   /**
@@ -86,7 +98,7 @@ export class Select {
    * Clicks an option in an already-open dropdown by its text content.
    * Uses selector-based approach matching Cypress patterns.
    * Handles multiple dropdowns by targeting only visible, non-hidden ones.
-   * @param optionText - The text of the option to click
+   * @param optionText - The text of the option to click (partial match for filtered results)
    */
   async clickOption(optionText: string): Promise<void> {
     // Target visible dropdown (excludes hidden ones via :not(.ant-select-dropdown-hidden))
@@ -96,11 +108,23 @@ export class Select {
       .last();
     await dropdown.waitFor({ state: 'visible' });
 
-    // Find option by selector and text content (matches Cypress .contains() pattern)
-    const option = dropdown
+    // Find option by text content - use partial match since filtered results may have prefixes
+    // (e.g., searching for 'main' shows 'examples.main', 'system.main')
+    // First try exact match, fall back to partial match
+    const exactOption = dropdown
       .locator(SELECT_SELECTORS.OPTION)
       .getByText(optionText, { exact: true });
-    await option.click();
+
+    if ((await exactOption.count()) > 0) {
+      await exactOption.click();
+    } else {
+      // Fall back to first option containing the text
+      const partialOption = dropdown
+        .locator(SELECT_SELECTORS.OPTION)
+        .filter({ hasText: optionText })
+        .first();
+      await partialOption.click();
+    }
   }
 
   /**
@@ -115,7 +139,9 @@ export class Select {
    * @param text - The text to type
    */
   async type(text: string): Promise<void> {
-    await this.locator.fill(text);
+    // Find the actual search input inside the select component
+    const searchInput = this.locator.locator(SELECT_SELECTORS.SEARCH_INPUT);
+    await searchInput.fill(text);
   }
 
   /**

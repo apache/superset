@@ -17,23 +17,38 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 import { Modal } from '../core/Modal';
 
 /**
  * Confirm Dialog component for Ant Design Modal.confirm dialogs.
  * These are the "OK" / "Cancel" confirmation dialogs used throughout Superset.
+ * Uses getByRole with name to target specific confirm dialogs when multiple are open.
  */
 export class ConfirmDialog extends Modal {
-  constructor(page: Page) {
-    // Uses the default Modal selector ([role="dialog"]) which works for Modal.confirm dialogs
+  private readonly specificLocator: Locator;
+
+  constructor(page: Page, dialogName = 'Confirm save') {
     super(page);
+    // Use getByRole with specific name to avoid strict mode violations
+    // when multiple dialogs are open (e.g., Edit Dataset modal + Confirm save dialog)
+    this.specificLocator = page.getByRole('dialog', { name: dialogName });
+  }
+
+  /**
+   * Override element getter to use specific locator
+   */
+  override get element(): Locator {
+    return this.specificLocator;
   }
 
   /**
    * Clicks the OK button to confirm
+   * Waits for element to be stable (animation complete) before clicking
    */
   async clickOk(): Promise<void> {
+    // Wait for modal animation to complete before clicking
+    await this.page.waitForTimeout(200);
     await this.clickFooterButton('OK');
   }
 

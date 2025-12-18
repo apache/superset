@@ -17,19 +17,31 @@
  * under the License.
  */
 
-import { Page } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 import { AceEditor, Modal, Tabs } from '../core';
 
 /**
  * Edit Dataset Modal component (DatasourceModal).
  * Used for editing dataset properties like description, metrics, columns, etc.
+ * Uses specific dialog name to avoid strict mode violations when multiple dialogs are open.
  */
 export class EditDatasetModal extends Modal {
   private readonly tabs: Tabs;
+  private readonly specificLocator: Locator;
 
   constructor(page: Page) {
     super(page);
     this.tabs = new Tabs(page);
+    // Use getByRole with specific name to target Edit Dataset dialog
+    // The dialog has aria-labelledby that resolves to "edit Edit Dataset"
+    this.specificLocator = page.getByRole('dialog', { name: /edit.*dataset/i });
+  }
+
+  /**
+   * Override element getter to use specific locator
+   */
+  override get element(): Locator {
+    return this.specificLocator;
   }
 
   /**
