@@ -144,6 +144,9 @@ export function DatabaseSelector({
   );
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
+  // Track if we've applied defaults to avoid re-applying after user clears selection
+  const appliedCatalogDefaultRef = useRef<string | null>(null);
+  const appliedSchemaDefaultRef = useRef<string | null>(null);
   const { addSuccessToast } = useToasts();
   const sortComparator = useCallback(
     (itemA: AntdLabeledValueWithOrder, itemB: AntdLabeledValueWithOrder) =>
@@ -240,20 +243,34 @@ export function DatabaseSelector({
   }
 
   const {
-    currentData: schemaData,
+    data: schemaData,
     isFetching: loadingSchemas,
     refetch: refetchSchemas,
   } = useSchemas({
     dbId: currentDb?.value,
     catalog: currentCatalog?.value,
-    onSuccess: (schemas, isFetched) => {
+    onSuccess: (schemas, isFetched, defaultSchema) => {
       setErrorPayload(null);
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
         !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
       ) {
-        changeSchema(undefined);
+        // Current selection not in list - try to apply default on first load
+        if (
+          defaultSchema &&
+          appliedSchemaDefaultRef.current !== defaultSchema
+        ) {
+          const defaultOption = schemas.find(s => s.value === defaultSchema);
+          if (defaultOption) {
+            appliedSchemaDefaultRef.current = defaultSchema;
+            changeSchema(defaultOption);
+          } else {
+            changeSchema(undefined);
+          }
+        } else {
+          changeSchema(undefined);
+        }
       }
 
       if (isFetched) {
@@ -274,6 +291,8 @@ export function DatabaseSelector({
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
     setCurrentSchema(undefined);
+    // Reset schema default ref so default can be applied for the new catalog
+    appliedSchemaDefaultRef.current = null;
     if (onCatalogChange && catalog?.value !== catalogRef.current) {
       onCatalogChange(catalog?.value);
     }
@@ -285,7 +304,7 @@ export function DatabaseSelector({
     refetch: refetchCatalogs,
   } = useCatalogs({
     dbId: showCatalogSelector ? currentDb?.value : undefined,
-    onSuccess: (catalogs, isFetched) => {
+    onSuccess: (catalogs, isFetched, defaultCatalog) => {
       setErrorPayload(null);
       if (!showCatalogSelector) {
         changeCatalog(null);
@@ -296,7 +315,21 @@ export function DatabaseSelector({
           catalogOption => catalogRef.current === catalogOption.value,
         )
       ) {
-        changeCatalog(undefined);
+        // Current selection not in list - try to apply default on first load
+        if (
+          defaultCatalog &&
+          appliedCatalogDefaultRef.current !== defaultCatalog
+        ) {
+          const defaultOption = catalogs.find(c => c.value === defaultCatalog);
+          if (defaultOption) {
+            appliedCatalogDefaultRef.current = defaultCatalog;
+            changeCatalog(defaultOption);
+          } else {
+            changeCatalog(undefined);
+          }
+        } else {
+          changeCatalog(undefined);
+        }
       }
 
       if (showCatalogSelector && isFetched) {
@@ -326,6 +359,9 @@ export function DatabaseSelector({
     setCurrentDb(databaseWithId);
     setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
+    // Reset default refs so defaults can be applied for the new database
+    appliedCatalogDefaultRef.current = null;
+    appliedSchemaDefaultRef.current = null;
     if (onDbChange) {
       onDbChange(databaseWithId);
     }

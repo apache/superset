@@ -163,11 +163,13 @@ const fakeDatabaseApiResultInReverseOrder = {
 const fakeSchemaApiResult = {
   count: 2,
   result: ['information_schema', 'public'],
+  default: 'public',
 };
 
 const fakeCatalogApiResult = {
   count: 0,
   result: [],
+  default: null,
 };
 
 const fakeFunctionNamesApiResult = {
@@ -381,4 +383,83 @@ test('Sends the correct schema when changing the schema', async () => {
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
   expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
+});
+
+test('Auto-selects default schema on first load when no schema is provided', async () => {
+  fetchMock.get(
+    schemaApiRoute,
+    {
+      result: ['information_schema', 'public', 'other_schema'],
+      default: 'public',
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = {
+    ...createProps(),
+    schema: undefined,
+  };
+
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+
+  // Wait for schemas to load and default to be applied
+  await waitFor(() => {
+    expect(props.onSchemaChange).toHaveBeenCalledWith('public');
+  });
+});
+
+test('Does not auto-select default schema when schema is already provided', async () => {
+  fetchMock.get(
+    schemaApiRoute,
+    {
+      result: ['information_schema', 'public', 'other_schema'],
+      default: 'public',
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = {
+    ...createProps(),
+    schema: 'information_schema',
+  };
+
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+
+  // Wait for schemas to load
+  await waitFor(() => {
+    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
+  });
+
+  // Should not call onSchemaChange since schema is already set
+  expect(props.onSchemaChange).not.toHaveBeenCalled();
+});
+
+test('Auto-selects default catalog on first load for multi-catalog database', async () => {
+  fetchMock.get(
+    catalogApiRoute,
+    {
+      result: ['catalog_a', 'catalog_b', 'catalog_c'],
+      default: 'catalog_b',
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = {
+    ...createProps(),
+    db: {
+      id: 1,
+      database_name: 'test-multicatalog',
+      backend: 'test-postgresql',
+      allow_multi_catalog: true,
+    },
+    catalog: undefined,
+    onCatalogChange: jest.fn(),
+  };
+
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+
+  // Wait for catalogs to load and default to be applied
+  await waitFor(() => {
+    expect(props.onCatalogChange).toHaveBeenCalledWith('catalog_b');
+  });
 });

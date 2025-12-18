@@ -30,7 +30,11 @@ export type CatalogOption = {
 export type FetchCatalogsQueryParams = {
   dbId?: string | number;
   forceRefresh: boolean;
-  onSuccess?: (data: CatalogOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: CatalogOption[],
+    isRefetched: boolean,
+    defaultCatalog: string | null,
+  ) => void;
   onError?: (error: ClientErrorObject) => void;
 };
 
@@ -97,7 +101,11 @@ export function useCatalogs(options: Params) {
       if (dbId && (!result.currentData || forceRefresh)) {
         trigger({ dbId, forceRefresh }).then(({ isSuccess, isError, data }) => {
           if (isSuccess) {
-            onSuccess?.(data?.catalogs || EMPTY_CATALOGS, forceRefresh);
+            onSuccess?.(
+              data?.catalogs || EMPTY_CATALOGS,
+              forceRefresh,
+              data?.defaultCatalog ?? null,
+            );
           }
           if (isError) {
             onError?.(result.error as ClientErrorObject);

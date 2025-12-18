@@ -31,7 +31,11 @@ export type FetchSchemasQueryParams = {
   dbId?: string | number;
   catalog?: string;
   forceRefresh: boolean;
-  onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
+  onSuccess?: (
+    data: SchemaOption[],
+    isRefetched: boolean,
+    defaultSchema: string | null,
+  ) => void;
   onError?: (error: ClientErrorObject) => void;
 };
 
@@ -106,7 +110,11 @@ export function useSchemas(options: Params) {
         trigger({ dbId, catalog, forceRefresh }).then(
           ({ isSuccess, isError, data }) => {
             if (isSuccess) {
-              onSuccess?.(data?.schemas || EMPTY_SCHEMAS, forceRefresh);
+              onSuccess?.(
+                data?.schemas || EMPTY_SCHEMAS,
+                forceRefresh,
+                data?.defaultSchema ?? null,
+              );
             }
             if (isError) {
               onError?.(result.error as ClientErrorObject);
