@@ -317,6 +317,32 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
 
+    @staticmethod
+    def _get_default_schema(
+        database: Database,
+        catalog: str | None,
+        accessible_schemas: set[str],
+        pk: int,
+    ) -> str | None:
+        """
+        Get the default schema for a database/catalog, with error handling.
+
+        Returns None if the default cannot be determined or is not accessible.
+        """
+        try:
+            default_schema = database.get_default_schema(catalog)
+            # Only include if user has access to it
+            if default_schema and default_schema not in accessible_schemas:
+                return None
+            return default_schema
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Could not get default schema for database %s, catalog %s",
+                pk,
+                catalog,
+            )
+            return None
+
     @expose("/<int:pk>/connection", methods=("GET",))
     @protect()
     @safe
@@ -726,7 +752,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 database,
                 catalogs,
             )
-            return self.response(200, result=list(catalogs))
+
+            # Get default catalog with error handling
+            default_catalog = None
+            try:
+                default_catalog = database.get_default_catalog()
+                # Only include if user has access to it
+                if default_catalog and default_catalog not in catalogs:
+                    default_catalog = None
+            except Exception:  # pylint: disable=broad-except
+                logger.debug("Could not get default catalog for database %s", pk)
+
+            return self.response(200, result=list(catalogs), default=default_catalog)
         except OperationalError:
             return self.response(
                 500,
@@ -795,23 +832,30 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 catalog,
                 schemas,
             )
+            default_schema = self._get_default_schema(database, catalog, schemas, pk)
+
             if params.get("upload_allowed"):
                 if not database.allow_file_upload:
-                    return self.response(200, result=[])
+                    return self.response(200, result=[], default=None)
                 if allowed_schemas := database.get_schema_access_for_file_upload():
                     # some databases might return the list of schemas in uppercase,
                     # while the list of allowed schemas is manually inputted so
                     # could be lowercase
                     allowed_schemas = {schema.lower() for schema in allowed_schemas}
+                    filtered_schemas = [
+                        schema
+                        for schema in schemas
+                        if schema.lower() in allowed_schemas
+                    ]
+                    # Check if default is in filtered list
+                    if default_schema and default_schema.lower() not in allowed_schemas:
+                        default_schema = None
                     return self.response(
                         200,
-                        result=[
-                            schema
-                            for schema in schemas
-                            if schema.lower() in allowed_schemas
-                        ],
+                        result=filtered_schemas,
+                        default=default_schema,
                     )
-            return self.response(200, result=list(schemas))
+            return self.response(200, result=list(schemas), default=default_schema)
         except OperationalError:
             return self.response(
                 500, message="There was an error connecting to the database"
