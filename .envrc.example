@@ -1,0 +1,24 @@
+# Auto-configure Docker Compose for multi-instance support
+# Requires direnv: https://direnv.net/
+#
+# Install: brew install direnv (or apt install direnv)
+# Setup: Add 'eval "$(direnv hook bash)"' to ~/.bashrc (or ~/.zshrc)
+# Allow: Run 'direnv allow' in this directory once
+
+# Generate unique project name from directory
+export COMPOSE_PROJECT_NAME=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+
+# Find available ports sequentially to avoid collisions
+_is_free() { ! lsof -i ":$1" &>/dev/null 2>&1; }
+
+_p=80;    while ! _is_free $_p; do ((_p++)); done; export NGINX_PORT=$_p
+_p=8088;  while ! _is_free $_p; do ((_p++)); done; export SUPERSET_PORT=$_p
+_p=9000;  while ! _is_free $_p; do ((_p++)); done; export NODE_PORT=$_p
+_p=8080;  while ! _is_free $_p || [ $_p -eq $NGINX_PORT ]; do ((_p++)); done; export WEBSOCKET_PORT=$_p
+_p=8081;  while ! _is_free $_p || [ $_p -eq $WEBSOCKET_PORT ]; do ((_p++)); done; export CYPRESS_PORT=$_p
+_p=5432;  while ! _is_free $_p; do ((_p++)); done; export DATABASE_PORT=$_p
+_p=6379;  while ! _is_free $_p; do ((_p++)); done; export REDIS_PORT=$_p
+
+unset _p _is_free
+
+echo "🐳 Superset configured: http://localhost:$SUPERSET_PORT (dev: localhost:$NODE_PORT)"
