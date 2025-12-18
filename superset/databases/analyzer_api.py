@@ -23,7 +23,14 @@ from flask import jsonify, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import fields, Schema, ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+# Custom permission map that includes our custom method names
+# All methods map to "read" or "write" which Admin role has access to
+ANALYZER_PERMISSION_MAP = {
+    "post": "write",
+    "get": "read",
+    "check_status": "read",
+    "get_report": "read",
+}
 from superset.extensions import db, event_logger
 from superset.models.database_analyzer import DatabaseSchemaReport
 from superset.tasks.database_analyzer import (
@@ -50,6 +57,13 @@ class DatasourceAnalyzerPostSchema(Schema):
         required=False,
         allow_none=True,
         metadata={"description": "The name of the catalog (optional)"},
+    )
+    force_reanalyze = fields.Boolean(
+        required=False,
+        load_default=False,
+        metadata={
+            "description": "Force re-analysis even if a completed report exists"
+        },
     )
 
 
@@ -81,11 +95,13 @@ class CheckStatusResponseSchema(Schema):
 class DatasourceAnalyzerRestApi(BaseSupersetApi):
     """API endpoints for database schema analyzer"""
 
-    route_base = "/api/v1/datasource_analyzer"
-    resource_name = "datasource_analyzer"
+    route_base = "/api/v1/datasource/analysis"
+    resource_name = "datasource_analysis"
     allow_browser_login = True
-    class_permission_name = "DatasourceAnalyzer"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Use existing "Database" permission - Admin users can access database features
+    class_permission_name = "Database"
+    # Map custom methods to standard "read"/"write" permissions
+    method_permission_name = ANALYZER_PERMISSION_MAP
 
     openapi_spec_tag = "Datasource Analyzer"
     openapi_spec_component_schemas = (
@@ -95,19 +111,21 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
-        return jsonify(kwargs), status_code
+        resp = jsonify(kwargs)
+        resp.status_code = status_code
+        return resp
 
     def response_400(self, message: str = "Bad request") -> Response:
         """Helper method to create 400 responses."""
-        return jsonify({"message": message}), 400
+        return self.response(400, message=message)
 
     def response_404(self, message: str = "Not found") -> Response:
         """Helper method to create 404 responses."""
-        return jsonify({"message": message}), 404
+        return self.response(404, message=message)
 
     def response_500(self, message: str = "Internal server error") -> Response:
         """Helper method to create 500 responses."""
-        return jsonify({"message": message}), 500
+        return self.response(500, message=message)
 
     @expose("/", methods=("POST",))
     @protect()
@@ -211,7 +229,8 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                     message=result.get("message", "Analysis not found")
                 )
 
-            return self.response(200, **result)
+            # Wrap in 'result' to match usePolling expectations
+            return self.response(200, result=result)
 
         except Exception as e:
             logger.exception("Error checking analysis status")
@@ -303,4 +322,93 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
         except Exception as e:
             logger.exception("Error retrieving report")
+            return self.response_500(message=str(e))
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    def get(self) -> Response:
+        """
+        Check if a completed report exists for a database/schema combination.
+        ---
+        get:
+          description: >-
+            Check if a completed database schema analysis report already exists
+            for the given database and schema. This allows the frontend to skip
+            the analysis step if a report is already available.
+          parameters:
+          - in: query
+            name: database_id
+            required: true
+            schema:
+              type: integer
+            description: The database ID
+          - in: query
+            name: schema_name
+            required: true
+            schema:
+              type: string
+            description: The schema name
+          responses:
+            200:
+              description: Check completed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether a completed report exists
+                      report_id:
+                        type: integer
+                        description: The report ID if exists
+                      created_at:
+                        type: string
+                        description: When the report was created
+                      tables_count:
+                        type: integer
+                        description: Number of tables in the report
+            400:
+              description: Missing required parameters
+            500:
+              description: Internal server error
+        """
+        try:
+            database_id = request.args.get("database_id", type=int)
+            schema_name = request.args.get("schema_name", type=str)
+
+            if not database_id or not schema_name:
+                return self.response_400(
+                    message="Both database_id and schema_name are required"
+                )
+
+            # Check for existing completed report
+            from superset.models.database_analyzer import AnalysisStatus
+
+            report = (
+                db.session.query(DatabaseSchemaReport)
+                .filter(
+                    DatabaseSchemaReport.database_id == database_id,
+                    DatabaseSchemaReport.schema_name == schema_name,
+                    DatabaseSchemaReport.status == AnalysisStatus.COMPLETED,
+                )
+                .first()
+            )
+
+            if report:
+                return self.response(
+                    200,
+                    exists=True,
+                    report_id=report.id,
+                    created_at=report.created_on.isoformat()
+                    if report.created_on
+                    else None,
+                    tables_count=len(report.tables) if report.tables else 0,
+                )
+
+            return self.response(200, exists=False, report_id=None)
+
+        except Exception as e:
+            logger.exception("Error checking for existing report")
             return self.response_500(message=str(e))

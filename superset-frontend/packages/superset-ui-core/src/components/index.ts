@@ -192,3 +192,8 @@ export {
 } from './CodeEditor';
 export { ActionButton, type ActionProps } from './ActionButton';
 export { AIInfoBanner, type AIInfoBannerProps } from './AIInfoBanner';
+export {
+  AsyncProcessPanel,
+  type AsyncProcessPanelProps,
+  type ProcessStep,
+} from './AsyncProcessPanel';
