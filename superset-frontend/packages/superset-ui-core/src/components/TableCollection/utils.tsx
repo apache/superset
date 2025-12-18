@@ -134,6 +134,8 @@ export function mapRows<T extends object>(
 ) {
   return rows.map(row => {
     prepareRow(row);
-    return { rowId: row.id, ...row.original, ...row.getRowProps() };
+    // Spread getRowProps first so data properties from row.original take precedence
+    // This prevents HTML attributes like `role: "row"` from overwriting data properties
+    return { ...row.getRowProps(), rowId: row.id, ...row.original };
   });
 }

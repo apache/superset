@@ -80,12 +80,12 @@ function DataAccessRulesList(props: DataAccessRulesListProps) {
   }
 
   function handleRuleDelete(
-    { id, role }: DataAccessRuleObject,
+    { id, name: ruleName }: DataAccessRuleObject,
     refreshData: (arg0?: FetchDataConfig | null) => void,
     addSuccessToast: (arg0: string) => void,
     addDangerToast: (arg0: string) => void,
   ) {
-    const name = role?.name || `Rule ${id}`;
+    const name = ruleName || `Rule ${id}`;
     return SupersetClient.delete({
       endpoint: `/api/v1/dar/${id}`,
     }).then(
@@ -212,7 +212,7 @@ function DataAccessRulesList(props: DataAccessRulesListProps) {
                   description={
                     <>
                       {t('Are you sure you want to delete')}{' '}
-                      <b>{original.role?.name || `Rule ${original.id}`}</b>
+                      <b>{original.name || `Rule ${original.id}`}</b>
                     </>
                   }
                   onConfirm={handleDelete}

@@ -117,8 +117,6 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = DataAccessRulePostSchema()
     edit_model_schema = DataAccessRulePutSchema()
-    # Don't use custom list_model_schema - let Flask-AppBuilder handle
-    # nested relationships via list_columns dot notation
     show_model_schema = DataAccessRuleShowSchema()
 
     openapi_spec_methods = {
