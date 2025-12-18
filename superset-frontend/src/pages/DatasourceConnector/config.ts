@@ -21,4 +21,4 @@
  * Set to true to use mock data for UI testing without backend.
  * Set to false to use real API endpoints.
  */
-export const USE_MOCK_DATA = true;
+export const USE_MOCK_DATA = false;
