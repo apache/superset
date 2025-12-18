@@ -310,6 +310,7 @@ pyjwt==2.10.1
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   flask-jwt-extended
+    #   redis
 pynacl==1.5.0
     # via paramiko
 pyopenssl==25.1.0
@@ -342,7 +343,7 @@ pyyaml==6.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
-redis==4.6.0
+redis==5.3.1
     # via apache-superset (pyproject.toml)
 referencing==0.36.2
     # via
@@ -435,7 +436,7 @@ tzdata==2025.2
     #   pandas
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   -r requirements/base.in
     #   requests

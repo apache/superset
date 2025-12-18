@@ -1,0 +1,93 @@
+---
+title: Extension Components
+sidebar_label: Overview
+sidebar_position: 1
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+# Extension Components
+
+These UI components are available to Superset extension developers through the `@apache-superset/core/ui` package. They provide a consistent look and feel with the rest of Superset and are designed to be used in extension panels, views, and other UI elements.
+
+## Available Components
+
+- [Alert](./alert)
+
+## Usage
+
+All components are exported from the `@apache-superset/core/ui` package:
+
+```tsx
+import { Alert } from '@apache-superset/core/ui';
+
+export function MyExtensionPanel() {
+  return (
+    <Alert type="info">
+      Welcome to my extension!
+    </Alert>
+  );
+}
+```
+
+## Adding New Components
+
+Components in `@apache-superset/core/ui` are automatically documented here. To add a new extension component:
+
+1. Add the component to `superset-frontend/packages/superset-core/src/ui/components/`
+2. Export it from `superset-frontend/packages/superset-core/src/ui/components/index.ts`
+3. Create a Storybook story with an `Interactive` export:
+
+```tsx
+export default {
+  title: 'Extension Components/MyComponent',
+  component: MyComponent,
+  parameters: {
+    docs: {
+      description: {
+        component: 'Description of the component...',
+      },
+    },
+  },
+};
+
+export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+
+InteractiveMyComponent.args = {
+  variant: 'primary',
+  disabled: false,
+};
+
+InteractiveMyComponent.argTypes = {
+  variant: {
+    control: { type: 'select' },
+    options: ['primary', 'secondary'],
+  },
+  disabled: {
+    control: { type: 'boolean' },
+  },
+};
+```
+
+4. Run `yarn start` in `docs/` - the page generates automatically!
+
+## Interactive Documentation
+
+For interactive examples with controls, visit the [Storybook](/storybook/?path=/docs/extension-components--docs).

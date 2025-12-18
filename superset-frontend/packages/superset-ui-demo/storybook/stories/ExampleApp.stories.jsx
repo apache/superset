@@ -21,11 +21,10 @@ import {
   Menu,
   Button,
   Card,
-  Alert,
   Input,
-  Table,
   Space,
 } from '@superset-ui/core/components';
+import { Alert, Table } from 'antd';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { Icons } from '@superset-ui/core/components/Icons';
 

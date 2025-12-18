@@ -1155,6 +1155,16 @@ class GenerateChartResponse(BaseModel):
         default_factory=dict, description="Related API endpoints for data/updates"
     )
 
+    # Form data for rendering charts in external clients (chatbot rendering)
+    form_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Complete form_data configuration for rendering the chart",
+    )
+    form_data_key: str | None = Field(
+        None,
+        description="Cache key for the form_data, used in explore URLs",
+    )
+
     # Performance and accessibility
     performance: PerformanceMetadata | None = Field(
         None, description="Performance metrics"

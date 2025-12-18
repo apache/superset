@@ -30,21 +30,23 @@ This is an area to host resources and documentation supporting the evolution and
 
 ### Sentence case
 
-Use sentence-case capitalization for everything in the UI (except these **).
+Use sentence-case capitalization for everything in the UI (except these exceptions below).
 
 Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
 
-* **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
-* **Acronyms** (e.g. CSS, HTML)
-* When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
-* User input that is reflected in the UI. E.g. a user-named a dashboard tab
+- **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
+- **Acronyms** (e.g. CSS, HTML)
+- When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
+- User input that is reflected in the UI. E.g. a user-named a dashboard tab
 
-**Sentence case vs. Title case:** Title case: "A Dog Takes a Walk in Paris" Sentence case: "A dog takes a walk in Paris"
+**Sentence case vs. Title case:**
+- Title case: "A Dog Takes a Walk in Paris"
+- Sentence case: "A dog takes a walk in Paris"
 
 **Why sentence case?**
 
-* It's generally accepted as the quickest to read
-* It's the easiest form to distinguish between common and proper nouns
+- It's generally accepted as the quickest to read
+- It's the easiest form to distinguish between common and proper nouns
 
 ### How to refer to UI elements
 
@@ -52,21 +54,38 @@ When writing about a UI element, use the same capitalization as used in the UI.
 
 For example, if an input field is labeled "Name" then you refer to this as the "Name input field". Similarly, if a button has the label "Save" in it, then it is correct to refer to the "Save button".
 
-Where a product page is titled "Settings", you refer to this in writing as follows: "Edit your personal information on the Settings page".
+Where a product page is titled "Settings", you refer to this in writing as follows:
+"Edit your personal information on the Settings page".
 
 Often a product page will have the same title as the objects it contains. In this case, refer to the page as it appears in the UI, and the objects as common nouns:
 
-* Upload a dashboard on the Dashboards page
-* Go to Dashboards
-* View dashboard
-* View all dashboards
-* Upload CSS templates on the CSS templates page
-* Queries that you save will appear on the Saved queries page
-* Create custom queries in SQL Lab then create dashboards
+- Upload a dashboard on the Dashboards page
+- Go to Dashboards
+- View dashboard
+- View all dashboards
+- Upload CSS templates on the CSS templates page
+- Queries that you save will appear on the Saved queries page
+- Create custom queries in SQL Lab then create dashboards
 
-### **Exceptions to sentence case:**
+### Exceptions to sentence case
 
-1. Acronyms and abbreviations. Examples: URL, CSV, XML
+1. **Acronyms and abbreviations.**
+   Examples: URL, CSV, XML, CSS, SQL, SSH, URI, NaN, CRON, CC, BCC
+
+2. **Proper nouns and brand names.**
+   Examples: Apache, Superset, AntD JavaScript, GeoJSON, Slack, Google Sheets, SQLAlchemy
+
+3. **Technical terms derived from proper nouns.**
+   Examples: Jinja, Gaussian, European (as in European time zone)
+
+4. **Key names.** Capitalize button labels and UI elements as they appear in the product UI.
+   Examples: Shift (as in the keyboard button), Enter key
+
+5. **Named queries or specific labeled items.**
+   Examples: Query A, Query B
+
+6. **Database names.** Always capitalize names of database engines and connectors.
+   Examples: Presto, Trino, Drill, Hive, Google Sheets
 
 ## Button Design Guidelines
 
@@ -98,6 +117,32 @@ Primary buttons have a fourth style: dropdown.
 | Tertiary | For less prominent actions; can be used in isolation or paired with a primary button |
 | Destructive | For actions that could have destructive effects on the user's data |
 
+### Format
+
+#### Anatomy
+
+Button text is centered using the Label style. Icons appear left of text when combined. If no text label exists, an icon must indicate the button's function.
+
+#### Button size
+
+- Default dimensions: 160px width × 32px height
+- Text: 11px, Inter Medium, all caps
+- Corners: 4px border radius
+- Minimum padding: 8px around text
+- Width can decrease if space is limited, but maintain minimum padding
+
+#### Button groups
+
+- Group related buttons to establish visual hierarchy
+- Avoid overwhelming users with too many actions
+- Limit calls to action; use tertiary/ghost buttons for layouts with 3+ actions
+- Maintain consistent styles within groups when possible
+- Space buttons 8px apart vertically or horizontally
+
+#### Content guidelines
+
+Button labels should be clear and predictable. Use the "\{verb\} + \{noun\}" format, except for common actions like "Done," "Close," "Cancel," "Add," or "Delete." This formula provides necessary context and aids translation, though compact UIs or localization needs may warrant exceptions.
+
 ## Error Message Design Guidelines
 
 ### Definition
@@ -128,10 +173,10 @@ In all cases, encountering errors increases user friction and frustration while 
 
 Select one pattern per error (e.g. do not implement an inline and banner pattern for the same error).
 
-When the error... | Use...
----------------- | ------
-Is directly related to a UI control | Inline error
-Is not directly related to a UI control | Banner error
+| When the error... | Use... |
+|------------------|--------|
+| Is directly related to a UI control | Inline error |
+| Is not directly related to a UI control | Banner error |
 
 #### Inline
 
@@ -146,3 +191,45 @@ Use the `LabeledErrorBoundInput` component for this error pattern.
 ##### Implementation details
 
 - Where and when relevant, scroll the screen to the UI control with the error
+- When multiple inline errors are present, scroll to the topmost error
+
+#### Banner
+
+Banner errors are used when the source of the error is not directly related to a UI control (text input, selector, etc.) such as a technical failure or a loading problem.
+
+##### Anatomy
+
+Use the `ErrorAlert` component for this error pattern.
+
+1. **Headline** (optional): 1-2 word summary of the error
+2. **Message**: What went wrong and what users should do next
+3. **Expand option** (optional): "See more"/"See less"
+4. **Details** (optional): Additional helpful context
+5. **Modal** (optional): For spatial constraints using `ToastType.DANGER`
+
+##### Implementation details
+
+- Place the banner near the content area most relevant to the error
+- For chart errors in Explore, use the chart area
+- For modal errors, use the modal footer
+- For app-wide errors, use the top of the screen
+
+### Content guidelines
+
+Effective error messages communicate:
+
+1. What went wrong
+2. What users should do next
+
+Error messages should be:
+
+- Clear and accurate, leaving no room for misinterpretation
+- Short and concise
+- Understandable to non-technical users
+- Non-blaming and avoiding negative language
+
+**Example:**
+
+❌ "Cannot delete a datasource that has slices attached to it."
+
+✅ "Please delete all charts using this dataset before deleting the dataset."

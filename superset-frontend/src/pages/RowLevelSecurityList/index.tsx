@@ -266,6 +266,7 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.StartsWith,
+        inputName: 'rls_list_search',
       },
       {
         Header: t('Filter Type'),

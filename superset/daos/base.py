@@ -173,7 +173,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
-            cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
+            cls.__orig_bases__[0]  # type: ignore[attr-defined]  # pylint: disable=no-member
         )[0]
 
     @classmethod

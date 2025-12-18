@@ -61,8 +61,7 @@ const ColumnSelectPopoverTriggerWrapper = (
   return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
 };
 
-interface ColumnSelectPopoverTriggerInnerProps
-  extends ColumnSelectPopoverTriggerProps {
+interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
   datasource?: any;
 }
 

@@ -437,7 +437,7 @@ describe('Additional actions tests', () => {
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
 
-    userEvent.hover(screen.getByText('Data Export Options'));
+    userEvent.hover(await screen.findByText('Data Export Options'));
     userEvent.hover(await screen.findByText('Export All Data'));
 
     expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
@@ -461,7 +461,7 @@ describe('Additional actions tests', () => {
     render(<ExploreHeader {...props} />, { useRedux: true });
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.hover(screen.getByText('Data Export Options'));
+    userEvent.hover(await screen.findByText('Data Export Options'));
 
     // Now the submenu should exist
     userEvent.hover(await screen.findByText('Export Current View'));
@@ -575,19 +575,12 @@ describe('Additional actions tests', () => {
 
     test('Should call downloadAsImage when click on "Export screenshot (jpeg)"', async () => {
       const props = createProps();
-      const spy = jest.spyOn(downloadAsImage, 'default');
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByLabelText('Menu actions trigger'),
-        ).toBeInTheDocument();
-      });
-
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
 
       const downloadAsImageElement = await screen.findByText(
@@ -596,7 +589,7 @@ describe('Additional actions tests', () => {
       userEvent.click(downloadAsImageElement);
 
       await waitFor(() => {
-        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spyDownloadAsImage.callCount).toBe(1);
       });
     });
 
@@ -606,7 +599,7 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
@@ -622,7 +615,7 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
@@ -636,7 +629,7 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
@@ -652,7 +645,7 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
@@ -667,7 +660,7 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
@@ -685,7 +678,7 @@ describe('Additional actions tests', () => {
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText(
         'Export to pivoted .CSV',
@@ -700,7 +693,7 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
@@ -715,7 +708,7 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
@@ -788,7 +781,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       // clear previous calls on the sinon spy you created in beforeEach
@@ -828,7 +821,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       spyExportChart.resetHistory();
@@ -858,7 +851,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       spyExportChart.resetHistory();
@@ -880,7 +873,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       spyExportChart.resetHistory();
@@ -911,7 +904,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(await screen.findByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       spyExportChart.resetHistory();
@@ -931,7 +924,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(await screen.findByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       spyExportChart.resetHistory();
@@ -963,7 +956,7 @@ describe('Additional actions tests', () => {
       render(<ExploreHeader {...props} />, { useRedux: true });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      userEvent.hover(screen.getByText('Data Export Options'));
+      userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
       // server path expected → use the sinon spy and inspect call args

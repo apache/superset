@@ -17,8 +17,8 @@ made available in the Jinja context:
 
 - `columns`: columns which to group by in the query
 - `filter`: filters applied in the query
-- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined) (deprecated beginning in version 5.0, use `get_time_filter` instead)
-- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined). **Note:** Only available in virtual datasets when a time range filter is applied in Explore/Chart views—not available in standalone SQL Lab queries. (deprecated beginning in version 5.0, use `get_time_filter` instead)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined). **Note:** Only available in virtual datasets when a time range filter is applied in Explore/Chart views—not available in standalone SQL Lab queries. (deprecated beginning in version 5.0, use `get_time_filter` instead)
 - `groupby`: columns which to group by in the query (deprecated)
 - `metrics`: aggregate expressions in the query
 - `row_limit`: row limit of the query
@@ -57,6 +57,54 @@ the time filter is not set. For many database engines, this could be replaced wi
 
 Note that the Jinja parameters are called within _double_ brackets in the query and with
 _single_ brackets in the logic blocks.
+
+### Understanding Context Availability
+
+Some Jinja variables like `from_dttm`, `to_dttm`, and `filter` are **only available when a chart or dashboard provides them**. They are populated from:
+
+- Time range filters applied in Explore/Chart views
+- Dashboard native filters
+- Filter components
+
+**These variables are NOT available in standalone SQL Lab queries** because there's no filter context. If you try to use `{{ from_dttm }}` directly in SQL Lab, you'll get an "undefined parameter" error.
+
+#### Testing Time-Filtered Queries in SQL Lab
+
+To test queries that use time variables in SQL Lab, you have several options:
+
+**Option 1: Use Jinja defaults (recommended)**
+
+```sql
+SELECT *
+FROM tbl
+WHERE dttm_col > '{{ from_dttm | default("2024-01-01", true) }}'
+  AND dttm_col < '{{ to_dttm | default("2024-12-31", true) }}'
+```
+
+**Option 2: Use SQL Lab Parameters**
+
+Set parameters in the SQL Lab UI (Parameters menu):
+```json
+{
+  "from_dttm": "2024-01-01",
+  "to_dttm": "2024-12-31"
+}
+```
+
+**Option 3: Use `{% set %}` for testing**
+
+```sql
+{% set from_dttm = "2024-01-01" %}
+{% set to_dttm = "2024-12-31" %}
+SELECT *
+FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' AND dttm_col < '{{ to_dttm }}'
+```
+
+:::tip
+When you save a SQL Lab query as a virtual dataset and use it in a chart with time filters,
+the actual filter values will override any defaults or test values you set.
+:::
 
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration

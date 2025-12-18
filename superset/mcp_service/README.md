@@ -234,3 +234,561 @@ Note: Replace "admin" with your actual Superset username. These environment vari
 ### 📍 Claude Desktop Config Location
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+---
+
+## ☸️ Kubernetes Deployment
+
+This section covers deploying the MCP service on Kubernetes for production environments. The MCP service runs as a separate deployment alongside Superset, connected via an API gateway or ingress controller.
+
+### Architecture Overview
+
+```mermaid
+graph TB
+    Client[MCP Client]
+
+    subgraph "Ingress / API Gateway"
+        Gateway[Ingress Controller<br/>Route based on URL path]
+    end
+
+    subgraph "Superset Web Deployment"
+        WebApp[Superset App<br/>Gunicorn<br/>Port: 8088]
+        WebHPA[HPA<br/>Auto-scaling]
+    end
+
+    subgraph "MCP Service Deployment"
+        MCPApp[MCP Service<br/>FastMCP Server<br/>Port: 5008]
+        MCPHPA[HPA<br/>2-3 replicas]
+    end
+
+    subgraph "Shared Dependencies"
+        DB[(PostgreSQL)]
+        Redis[(Redis)]
+    end
+
+    Client --> Gateway
+    Gateway -->|/superset/*| WebApp
+    Gateway -->|/mcp/*| MCPApp
+
+    WebHPA -.->|scales| WebApp
+    MCPHPA -.->|scales| MCPApp
+
+    WebApp --> DB
+    WebApp --> Redis
+
+    MCPApp --> DB
+
+    style Gateway fill:#9c27b0
+    style WebApp fill:#42a5f5
+    style MCPApp fill:#C76E00
+    style WebHPA fill:#66bb6a
+    style MCPHPA fill:#66bb6a
+    style DB fill:#4db6ac
+    style Redis fill:#ef5350
+```
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Ingress as Ingress/Gateway
+    participant MCP as MCP Service
+    participant Auth as Authentication
+    participant Flask as Flask Context
+    participant Tools as MCP Tools
+    participant DB as PostgreSQL
+
+    Client->>Ingress: MCP Request (/mcp/*)
+    Ingress->>MCP: Route to MCP Service
+    MCP->>Auth: Validate credentials
+    Auth-->>MCP: User authenticated
+
+    MCP->>Flask: Establish Flask app context
+    Flask->>DB: Connect to database
+    DB-->>Flask: Connection established
+
+    MCP->>Tools: Execute tool (e.g., list_dashboards)
+    Tools->>DB: Query data
+    DB-->>Tools: Return data
+    Tools-->>MCP: Tool result
+
+    MCP-->>Ingress: Response
+    Ingress-->>Client: MCP Response
+
+    Note over Auth,Flask: Authentication Layer
+    Note over Tools: Tool Execution Layer
+```
+
+### Prerequisites
+
+- Kubernetes cluster (1.19+)
+- Helm 3.x installed
+- kubectl configured with cluster access
+- PostgreSQL database (can use the bundled chart or external)
+- Redis (optional, for caching and Celery)
+
+### Option 1: Using the Official Superset Helm Chart
+
+The simplest approach is to extend the existing Superset Helm chart to include the MCP service as a sidecar or separate deployment.
+
+#### Step 1: Add the Superset Helm Repository
+
+```bash
+helm repo add superset http://apache.github.io/superset/
+helm repo update
+```
+
+#### Step 2: Create a Custom Values File
+
+Create `mcp-values.yaml` with MCP-specific configuration:
+
+```yaml
+# mcp-values.yaml
+# Extend the Superset Helm chart to include MCP service
+
+# Image configuration - ensure fastmcp extra is installed
+image:
+  repository: apache/superset
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# MCP Service configuration via extraContainers
+supersetNode:
+  extraContainers:
+    - name: mcp-service
+      image: "apache/superset:latest"
+      imagePullPolicy: IfNotPresent
+      command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          pip install fastmcp && \
+          superset mcp run --host 0.0.0.0 --port 5008
+      ports:
+        - name: mcp
+          containerPort: 5008
+          protocol: TCP
+      env:
+        - name: FLASK_APP
+          value: superset
+        - name: PYTHONPATH
+          value: /app/pythonpath
+        # MCP-specific environment variables
+        - name: MCP_DEV_USERNAME
+          value: "admin"  # Override with your admin username
+      envFrom:
+        - secretRef:
+            name: '{{ template "superset.fullname" . }}-env'
+      volumeMounts:
+        - name: superset-config
+          mountPath: /app/pythonpath
+          readOnly: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 5008
+        initialDelaySeconds: 30
+        periodSeconds: 15
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 5008
+        initialDelaySeconds: 15
+        periodSeconds: 10
+
+# Superset configuration overrides for MCP
+configOverrides:
+  mcp_config: |
+    # MCP Service Configuration
+    MCP_DEV_USERNAME = 'admin'
+    SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
+
+    # WebDriver for screenshots (adjust based on your setup)
+    WEBDRIVER_BASEURL = 'http://localhost:8088/'
+    WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+
+# Secret configuration
+extraSecretEnv:
+  SUPERSET_SECRET_KEY: 'your-secret-key-here'  # Use a strong secret!
+
+# Database configuration (using bundled PostgreSQL)
+postgresql:
+  enabled: true
+  auth:
+    username: superset
+    password: superset
+    database: superset
+
+# Redis configuration
+redis:
+  enabled: true
+  architecture: standalone
+```
+
+#### Step 3: Deploy with Helm
+
+```bash
+# Create namespace
+kubectl create namespace superset
+
+# Install the chart
+helm install superset superset/superset \
+  --namespace superset \
+  --values mcp-values.yaml \
+  --wait
+
+# Verify deployment
+kubectl get pods -n superset
+kubectl get svc -n superset
+```
+
+### Option 2: Dedicated MCP Service Deployment
+
+For production environments requiring independent scaling and isolation, deploy the MCP service as a separate Kubernetes deployment.
+
+#### Step 1: Create MCP Deployment Manifest
+
+Create `mcp-deployment.yaml`:
+
+```yaml
+# mcp-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superset-mcp
+  namespace: superset
+  labels:
+    app: superset-mcp
+    component: mcp-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: superset-mcp
+  template:
+    metadata:
+      labels:
+        app: superset-mcp
+        component: mcp-service
+    spec:
+      containers:
+        - name: mcp-service
+          image: apache/superset:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              pip install fastmcp && \
+              superset mcp run --host 0.0.0.0 --port 5008
+          ports:
+            - name: mcp
+              containerPort: 5008
+              protocol: TCP
+          env:
+            - name: FLASK_APP
+              value: superset
+            - name: PYTHONPATH
+              value: /app/pythonpath
+            - name: MCP_DEV_USERNAME
+              value: "admin"
+            # Database connection (must match Superset's config)
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superset-env
+                  key: DATABASE_URI
+          envFrom:
+            - secretRef:
+                name: superset-env
+          volumeMounts:
+            - name: superset-config
+              mountPath: /app/pythonpath
+              readOnly: true
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5008
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5008
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5008
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+            periodSeconds: 5
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: superset-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: superset-mcp
+  namespace: superset
+  labels:
+    app: superset-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5008
+      targetPort: 5008
+      protocol: TCP
+      name: mcp
+  selector:
+    app: superset-mcp
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: superset-mcp-hpa
+  namespace: superset
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: superset-mcp
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: superset-mcp-pdb
+  namespace: superset
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: superset-mcp
+```
+
+#### Step 2: Create Ingress for Routing
+
+Create `mcp-ingress.yaml` to route `/mcp/*` requests to the MCP service:
+
+```yaml
+# mcp-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: superset-ingress
+  namespace: superset
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Enable WebSocket support for MCP
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-set-header-upgrade: "$http_upgrade"
+    nginx.ingress.kubernetes.io/proxy-set-header-connection: "upgrade"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: superset.example.com
+      http:
+        paths:
+          # Route MCP requests to MCP service
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: superset-mcp
+                port:
+                  number: 5008
+          # Route all other requests to Superset
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: superset
+                port:
+                  number: 8088
+  tls:
+    - hosts:
+        - superset.example.com
+      secretName: superset-tls
+```
+
+#### Step 3: Apply the Manifests
+
+```bash
+# Apply the deployment
+kubectl apply -f mcp-deployment.yaml
+
+# Apply the ingress
+kubectl apply -f mcp-ingress.yaml
+
+# Verify
+kubectl get pods -n superset -l app=superset-mcp
+kubectl get svc -n superset
+kubectl get ingress -n superset
+```
+
+### Configuration Reference
+
+#### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MCP_DEV_USERNAME` | Superset username for MCP authentication | `admin` |
+| `MCP_AUTH_ENABLED` | Enable/disable authentication | `true` |
+| `MCP_JWT_PUBLIC_KEY` | JWT public key for token validation | - |
+| `SUPERSET_WEBSERVER_ADDRESS` | Internal Superset URL | `http://localhost:8088` |
+| `WEBDRIVER_BASEURL` | URL for screenshot generation | Same as webserver |
+
+#### superset_config.py Options
+
+```python
+# MCP Service Configuration
+MCP_DEV_USERNAME = 'admin'                    # Username for development/testing
+MCP_AUTH_ENABLED = True                       # Enable authentication
+MCP_JWT_PUBLIC_KEY = 'your-public-key'        # For JWT token validation
+
+# For production with JWT authentication
+MCP_AUTH_FACTORY = 'your.custom.auth_factory'
+MCP_USER_RESOLVER = 'your.custom.user_resolver'
+
+# WebDriver for chart screenshots
+WEBDRIVER_BASEURL = 'http://superset:8088/'
+WEBDRIVER_TYPE = 'chrome'
+WEBDRIVER_OPTION_ARGS = ['--headless', '--no-sandbox']
+```
+
+### Production Considerations
+
+#### Security
+
+1. **Authentication**: Configure proper JWT authentication for production:
+   ```python
+   # superset_config.py
+   MCP_AUTH_ENABLED = True
+   MCP_JWT_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+   Your RSA public key here
+   -----END PUBLIC KEY-----"""
+   ```
+
+2. **Network Policies**: Restrict MCP service network access:
+   ```yaml
+   apiVersion: networking.k8s.io/v1
+   kind: NetworkPolicy
+   metadata:
+     name: mcp-network-policy
+     namespace: superset
+   spec:
+     podSelector:
+       matchLabels:
+         app: superset-mcp
+     policyTypes:
+       - Ingress
+       - Egress
+     ingress:
+       - from:
+           - namespaceSelector:
+               matchLabels:
+                 name: ingress-nginx
+         ports:
+           - protocol: TCP
+             port: 5008
+     egress:
+       - to:
+           - podSelector:
+               matchLabels:
+                 app: postgresql
+         ports:
+           - protocol: TCP
+             port: 5432
+   ```
+
+3. **TLS**: Always use TLS in production via ingress or service mesh.
+
+#### Resource Allocation
+
+Recommended resources for production:
+
+```yaml
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+```
+
+#### Monitoring
+
+Add Prometheus annotations for metrics scraping:
+
+```yaml
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5008"
+    prometheus.io/path: "/metrics"
+```
+
+### Troubleshooting
+
+#### Check MCP Service Logs
+
+```bash
+kubectl logs -n superset -l app=superset-mcp -f
+```
+
+#### Verify Service Connectivity
+
+```bash
+# Port-forward to test locally
+kubectl port-forward -n superset svc/superset-mcp 5008:5008
+
+# Test health endpoint
+curl http://localhost:5008/health
+```
+
+#### Common Issues
+
+1. **Database Connection Errors**: Ensure the MCP service has the same database credentials as Superset
+2. **Authentication Failures**: Verify `MCP_DEV_USERNAME` matches an existing Superset user
+3. **Screenshot Generation Fails**: Check WebDriver configuration and ensure Chrome/Firefox is available in the container
