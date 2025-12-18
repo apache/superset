@@ -50,8 +50,12 @@ class WebhookNotification(BaseNotification):
         :raises NotificationParamException: If the webhook URL is not provided in the recipient configuration
         """  # noqa: E501
         try:
-            return json.loads(self._recipient.recipient_config_json)["target"]
-        except (json.JSONDecodeError, KeyError) as ex:
+            cfg = json.loads(self._recipient.recipient_config_json)
+            target = cfg.get("target") if isinstance(cfg, dict) else None
+            if not target:
+                raise NotificationParamException("Webhook URL is required")
+            return target
+        except (json.JSONDecodeError, KeyError, TypeError) as ex:
             raise NotificationParamException("Webhook URL is required") from ex
 
     def _get_req_payload(self) -> dict[str, Any]:
