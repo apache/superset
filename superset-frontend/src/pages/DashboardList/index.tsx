@@ -148,6 +148,7 @@ function DashboardList(props: DashboardListProps) {
     state => state.user,
   );
   const canReadTag = findPermission('can_read', 'Tag', roles);
+  const isAdmin = !!roles?.Admin;
 
   const {
     state: {
@@ -219,6 +220,14 @@ function DashboardList(props: DashboardListProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+
+  const canEditDashboard = (dashboard: Dashboard) => {
+    return canEdit && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
+  };
+
+  const canDeleteDashboard = (dashboard: Dashboard) => {
+    return canDelete && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
+  };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -433,7 +442,7 @@ function DashboardList(props: DashboardListProps) {
 
           return (
             <Actions className="actions">
-              {canDelete && (
+              {canDeleteDashboard(original) && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
                   description={
@@ -481,7 +490,7 @@ function DashboardList(props: DashboardListProps) {
                   </span>
                 </Tooltip>
               )}
-              {canEdit && (
+              {canEditDashboard(original) && (
                 <Tooltip
                   id="edit-action-tooltip"
                   title={t('Edit')}
@@ -518,6 +527,7 @@ function DashboardList(props: DashboardListProps) {
       canExport,
       saveFavoriteStatus,
       favoriteStatus,
+      isAdmin,
       refreshData,
       addSuccessToast,
       addDangerToast,
