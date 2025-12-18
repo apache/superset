@@ -2196,7 +2196,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cancel_query_id is None:
             return False
-        return bool(re.match(pattern, str(cancel_query_id)))
+        return bool(re.fullmatch(pattern, str(cancel_query_id)))
 
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument

@@ -73,20 +73,20 @@ class TestValidateCancelQueryId:
         """Test custom regex patterns"""
         from superset.db_engine_specs.base import BaseEngineSpec
 
-        # Hex pattern (for Impala)
+        # Hex pattern with exact length (for Impala - 16 hex chars per side)
         assert BaseEngineSpec.validate_cancel_query_id(
-            "abc123:def456", r"^[a-f0-9]+:[a-f0-9]+$"
+            "abc123def4567890:789abc123def4567", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
         ) is True
         assert BaseEngineSpec.validate_cancel_query_id(
-            "invalid:pattern!", r"^[a-f0-9]+:[a-f0-9]+$"
+            "invalid:pattern!", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
         ) is False
 
         # Alphanumeric with underscores (for Trino)
         assert BaseEngineSpec.validate_cancel_query_id(
-            "20240101_123456_00001_abcde", r"^[a-zA-Z0-9_]+$"
+            "20240101_123456_00001_abcde", r"[a-zA-Z0-9_]+"
         ) is True
         assert BaseEngineSpec.validate_cancel_query_id(
-            "20240101-123456", r"^[a-zA-Z0-9_]+$"
+            "20240101-123456", r"[a-zA-Z0-9_]+"
         ) is False
 
 
@@ -314,12 +314,20 @@ class TestImpalaCancelQueryValidation:
 
         requests_mock.return_value.status_code = 200
 
-        # Valid Impala query ID format: hex:hex
+        # Valid Impala query ID format: 16 hex chars per side
         result = ImpalaEngineSpec.cancel_query(
-            None, query, "abc123def456:789abc123def"
+            None, query, "abc123def4567890:789abc123def4567"
         )
         assert result is True
         requests_mock.assert_called_once()
+
+        # Also test uppercase hex (should be valid)
+        requests_mock.reset_mock()
+        requests_mock.return_value.status_code = 200
+        result = ImpalaEngineSpec.cancel_query(
+            None, query, "ABC123DEF4567890:789ABC123DEF4567"
+        )
+        assert result is True
 
     @patch("requests.post")
     def test_cancel_query_url_injection_blocked(self, requests_mock: Mock) -> None:
@@ -361,9 +369,51 @@ class TestImpalaCancelQueryValidation:
         query.database = mock_db
 
         # Missing colon
-        assert ImpalaEngineSpec.cancel_query(None, query, "abc123def456") is False
-        # Invalid characters (uppercase not in hex)
-        assert ImpalaEngineSpec.cancel_query(None, query, "ABC:DEF") is False
+        assert ImpalaEngineSpec.cancel_query(None, query, "abc123def4567890") is False
+        # Wrong length (too short)
+        assert ImpalaEngineSpec.cancel_query(None, query, "abc:def") is False
+        # Wrong length (too long)
+        assert (
+            ImpalaEngineSpec.cancel_query(
+                None, query, "abc123def45678901:789abc123def45678"
+            )
+            is False
+        )
         # Special characters
-        assert ImpalaEngineSpec.cancel_query(None, query, "abc!:def@") is False
+        assert ImpalaEngineSpec.cancel_query(None, query, "abc!:def@ghijklmn") is False
+        # Non-hex characters
+        assert (
+            ImpalaEngineSpec.cancel_query(
+                None, query, "ghijklmnopqrstuv:ghijklmnopqrstuv"
+            )
+            is False
+        )
+        requests_mock.assert_not_called()
+
+    @patch("requests.post")
+    def test_cancel_query_null_host_blocked(self, requests_mock: Mock) -> None:
+        """Test that missing host returns False"""
+        from superset.db_engine_specs.impala import ImpalaEngineSpec
+        from superset.models.sql_lab import Query
+        from superset.models.core import Database
+
+        mock_db = Mock(spec=Database)
+        mock_db.url_object.host = None  # Null host
+
+        query = Mock(spec=Query)
+        query.database = mock_db
+
+        # Valid query ID but null host should fail
+        result = ImpalaEngineSpec.cancel_query(
+            None, query, "abc123def4567890:789abc123def4567"
+        )
+        assert result is False
+        requests_mock.assert_not_called()
+
+        # Also test empty string host
+        mock_db.url_object.host = ""
+        result = ImpalaEngineSpec.cancel_query(
+            None, query, "abc123def4567890:789abc123def4567"
+        )
+        assert result is False
         requests_mock.assert_not_called()
