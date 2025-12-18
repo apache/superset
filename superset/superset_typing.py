@@ -196,15 +196,19 @@ class QueryObjectDict(TypedDict, total=False):
     timeseries_limit_metric: Metric | None
 
 
-class BaseDatasourceData(TypedDict, total=False):
+class ExplorableData(TypedDict, total=False):
     """
-    TypedDict for datasource data returned to the frontend.
+    TypedDict for explorable data returned to the frontend.
 
-    This represents the structure of the dictionary returned from BaseDatasource.data
-    property. It provides datasource information to the frontend for visualization
-    and querying.
+    This represents the structure of the dictionary returned from the `data` property
+    of any Explorable (BaseDatasource, Query, etc.). It provides datasource/query
+    information to the frontend for visualization and querying.
 
-    Core fields from BaseDatasource.data:
+    All fields are optional (total=False) since different explorable types provide
+    different subsets of these fields. Query objects provide a minimal subset while
+    SqlaTable provides the full set.
+
+    Core fields:
         id: Unique identifier for the datasource
         uid: Unique identifier including type (e.g., "1__table")
         column_formats: D3 format strings for columns
@@ -290,46 +294,6 @@ class BaseDatasourceData(TypedDict, total=False):
     extra: str | None
     always_filter_main_dttm: bool
     normalize_columns: bool
-
-
-class QueryData(TypedDict, total=False):
-    """
-    TypedDict for SQL Lab query data returned to the frontend.
-
-    This represents the structure of the dictionary returned from Query.data property
-    in SQL Lab. It provides query information to the frontend for execution and display.
-
-    Fields:
-        time_grain_sqla: Available time grains for this database
-        filter_select: Whether filter select is enabled
-        name: Query tab name
-        columns: List of column definitions
-        metrics: List of metrics (always empty for queries)
-        id: Query ID
-        type: Object type (always "query")
-        sql: SQL query text
-        owners: List of owner information
-        database: Database connection details
-        order_by_choices: Available ordering options
-        catalog: Catalog name if applicable
-        schema: Schema name if applicable
-        verbose_map: Mapping of column names to verbose names (empty for queries)
-    """
-
-    time_grain_sqla: list[tuple[Any, Any]]
-    filter_select: bool
-    name: str | None
-    columns: list[dict[str, Any]]
-    metrics: list[Any]
-    id: int
-    type: str
-    sql: str | None
-    owners: list[dict[str, Any]]
-    database: dict[str, Any]
-    order_by_choices: list[tuple[str, str]]
-    catalog: str | None
-    schema: str | None
-    verbose_map: dict[str, str]
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

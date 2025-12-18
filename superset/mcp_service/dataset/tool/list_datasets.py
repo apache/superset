@@ -66,7 +66,7 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@tool
+@tool(tags=["core"])
 @parse_request(ListDatasetsRequest)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.

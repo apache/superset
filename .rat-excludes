@@ -76,6 +76,9 @@ snowflake.svg
 ydb.svg
 loading.svg
 
+# docs third-party logos, i.e. docs/static/img/logos/*
+logos/*
+
 # docs-related
 erd.puml
 erd.svg

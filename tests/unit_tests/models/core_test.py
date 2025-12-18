@@ -333,7 +333,7 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
         inspector.bind.execute.return_value = [("examples",), ("other",)]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
-    get_inspector.assert_called_with(ssh_tunnel=None)
+    get_inspector.assert_called_with()
 
 
 def test_get_all_schema_names_needs_oauth2(mocker: MockerFixture) -> None:
@@ -1060,3 +1060,87 @@ def test_apply_limit_to_sql(
 
     limited = db.apply_limit_to_sql(sql, limit, force)
     assert limited == expected
+
+
+def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
+    """Test that Database.execute() delegates to SQLExecutor.execute()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_result
+
+
+def test_database_execute_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", None)
+    assert result == mock_result
+
+
+def test_database_execute_async_delegates_to_sql_executor(
+    mocker: MockerFixture,
+) -> None:
+    """Test that Database.execute_async() delegates to SQLExecutor.execute_async()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute_async("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_handle
+
+
+def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute_async() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute_async("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
+    assert result == mock_handle

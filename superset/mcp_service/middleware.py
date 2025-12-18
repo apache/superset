@@ -89,8 +89,8 @@ def _sanitize_error_for_logging(error: Exception) -> str:
 
 class LoggingMiddleware(Middleware):
     """
-    Middleware that logs every MCP message (request and response) using Superset's
-    event logger. This matches the core Superset audit log system (Action Log UI,
+    Middleware that logs every MCP message (request and response) using the
+    event logger. This matches the core audit log system (Action Log UI,
     logs table, custom loggers). Also attempts to log dashboard_id, chart_id
     (slice_id), and dataset_id if present in tool params.
     """
