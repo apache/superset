@@ -35,7 +35,7 @@ export default function renderFilterFieldTreeNodes({
   nodes,
   activeKey,
 }: RenderFilterFieldTreeNodesParams): FilterScopeTreeNode[] {
-  if (!nodes) {
+  if (!nodes || nodes.length === 0) {
     return [];
   }
 
