@@ -60,9 +60,9 @@ under the License.
 | can add on RoleModelView                         |:heavy_check_mark:|O|O|O|O|
 | can list on RoleModelView                        |:heavy_check_mark:|O|O|O|O|
 | copyrole on RoleModelView                        |:heavy_check_mark:|O|O|O|O|
-| can get on OpenApi                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can get on OpenApi                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can show on SwaggerView                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can get on MenuApi                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can get on MenuApi                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can list on AsyncEventsRestApi                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can invalidate on CacheRestApi                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can csv upload on Database                       |:heavy_check_mark:|O|O|O|O|
@@ -104,7 +104,7 @@ under the License.
 | can activate on TabStateView                     |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
 | can delete on TabStateView                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
 | can put on TabStateView                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
-| can read on SecurityRestApi                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+| can read on SecurityRestApi                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
 | menu access on Security                          |:heavy_check_mark:|O|O|O|O|
 | menu access on List Users                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | menu access on List Roles                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
@@ -132,7 +132,7 @@ under the License.
 | can download on DynamicPlugin                    |:heavy_check_mark:|O|O|O|O|
 | can add on DynamicPlugin                         |:heavy_check_mark:|O|O|O|O|
 | can delete on DynamicPlugin                      |:heavy_check_mark:|O|O|O|O|
-| can external metadata by name on Datasource      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can external metadata by name on Datasource      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can get value on KV                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can store on KV                                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can tagged objects on TagView                    |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
