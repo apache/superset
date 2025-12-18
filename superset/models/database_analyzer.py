@@ -57,6 +57,10 @@ class DatabaseSchemaReport(Model, AuditMixinNullable, UUIDMixin):
     start_dttm = sa.Column(sa.DateTime, nullable=True)
     end_dttm = sa.Column(sa.DateTime, nullable=True)
     error_message = sa.Column(sa.Text, nullable=True)
+    confidence_score = sa.Column(sa.Float, nullable=True)
+    confidence_breakdown = sa.Column(sa.Text, nullable=True)  # JSON dict
+    confidence_recommendations = sa.Column(sa.Text, nullable=True)  # JSON array
+    confidence_validation_notes = sa.Column(sa.Text, nullable=True)
     extra_json = sa.Column(sa.Text, nullable=True)
 
     # Relationships

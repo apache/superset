@@ -31,14 +31,29 @@ class LLMService:
 
     def __init__(self) -> None:
         import os
+
         # Try environment variables first, then fall back to config
-        self.api_key = os.environ.get("SUPERSET_LLM_API_KEY") or current_app.config.get("LLM_API_KEY")
-        self.model = os.environ.get("SUPERSET_LLM_MODEL") or current_app.config.get("LLM_MODEL", "gpt-4o")
-        self.temperature = float(os.environ.get("SUPERSET_LLM_TEMPERATURE", current_app.config.get("LLM_TEMPERATURE", 0.3)))
-        self.max_tokens = int(os.environ.get("SUPERSET_LLM_MAX_TOKENS", current_app.config.get("LLM_MAX_TOKENS", 4096)))
-        self.base_url = os.environ.get("SUPERSET_LLM_BASE_URL") or current_app.config.get(
-            "LLM_BASE_URL", "https://api.openai.com/v1"
+        self.api_key = os.environ.get("SUPERSET_LLM_API_KEY") or current_app.config.get(
+            "LLM_API_KEY"
         )
+        self.model = os.environ.get("SUPERSET_LLM_MODEL") or current_app.config.get(
+            "LLM_MODEL", "gpt-4o"
+        )
+        self.temperature = float(
+            os.environ.get(
+                "SUPERSET_LLM_TEMPERATURE",
+                current_app.config.get("LLM_TEMPERATURE", 0.3),
+            )
+        )
+        self.max_tokens = int(
+            os.environ.get(
+                "SUPERSET_LLM_MAX_TOKENS",
+                current_app.config.get("LLM_MAX_TOKENS", 4096),
+            )
+        )
+        self.base_url = os.environ.get(
+            "SUPERSET_LLM_BASE_URL"
+        ) or current_app.config.get("LLM_BASE_URL", "https://api.openai.com/v1")
 
     def is_available(self) -> bool:
         """Check if LLM service is configured and available"""
@@ -218,52 +233,59 @@ Return the response as JSON array:
     def _call_llm(self, prompt: str) -> str:
         """Call the LLM API with the given prompt"""
         import requests
-        
+
         if not self.api_key:
             logger.warning("No API key configured for LLM service")
             return json.dumps({})
-        
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        
+
         # For OpenRouter, we might need additional headers
         if "openrouter" in self.base_url.lower():
-            headers["HTTP-Referer"] = "http://localhost:8088"  # Optional but recommended
+            headers["HTTP-Referer"] = (
+                "http://localhost:8088"  # Optional but recommended
+            )
             headers["X-Title"] = "Superset Database Analyzer"  # Optional
-        
+
         data = {
             "model": self.model,
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a database expert helping to document and understand database schemas. Respond only with valid JSON as requested."
+                    "content": (
+                        "You are a database expert helping to document and "
+                        "understand database schemas. Respond only with valid "
+                        "JSON as requested."
+                    ),
                 },
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
+                {"role": "user", "content": prompt},
             ],
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
-        
+
         try:
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
                 json=data,
-                timeout=60
+                timeout=60,
             )
-            
+
             if response.status_code != 200:
-                logger.error(f"LLM API error: {response.status_code} - {response.text}")
+                logger.error(
+                    "LLM API error: %s - %s", response.status_code, response.text
+                )
                 return json.dumps({})
-            
+
             result = response.json()
-            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
-            
+            content = (
+                result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            )
+
             # Try to extract JSON from the response
             if content:
                 # Clean up the response - sometimes LLMs add markdown formatting
@@ -275,14 +297,14 @@ Return the response as JSON array:
                 if content.endswith("```"):
                     content = content[:-3]
                 content = content.strip()
-            
+
             return content
-            
+
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error calling LLM API: {e}")
+            logger.error("Error calling LLM API: %s", e)
             return json.dumps({})
         except Exception as e:
-            logger.error(f"Unexpected error in LLM call: {e}")
+            logger.error("Unexpected error in LLM call: %s", e)
             return json.dumps({})
 
     def _parse_table_description_response(self, response: str) -> dict[str, Any]:
@@ -309,17 +331,17 @@ Return the response as JSON array:
             valid_joins = []
             for i, join in enumerate(joins):
                 logger.debug(
-                    "Raw join %d: join_type=%s, cardinality=%s", 
-                    i, 
-                    join.get("join_type"), 
-                    join.get("cardinality")
+                    "Raw join %d: join_type=%s, cardinality=%s",
+                    i,
+                    join.get("join_type"),
+                    join.get("cardinality"),
                 )
                 if self._validate_join(join):
                     logger.debug(
-                        "Validated join %d: join_type=%s, cardinality=%s", 
-                        i, 
-                        join.get("join_type"), 
-                        join.get("cardinality")
+                        "Validated join %d: join_type=%s, cardinality=%s",
+                        i,
+                        join.get("join_type"),
+                        join.get("cardinality"),
                     )
                     valid_joins.append(join)
                 else:
@@ -353,18 +375,18 @@ Return the response as JSON array:
         # Normalize join_type to lowercase
         if "join_type" in join:
             join["join_type"] = str(join["join_type"]).lower()
-        
+
         # Normalize cardinality to use enum values
         if "cardinality" in join:
             cardinality_map = {
                 "ONE_TO_ONE": "1:1",
                 "1:1": "1:1",
-                "ONE_TO_MANY": "1:N", 
+                "ONE_TO_MANY": "1:N",
                 "1:N": "1:N",
                 "MANY_TO_ONE": "N:1",
-                "N:1": "N:1", 
+                "N:1": "N:1",
                 "MANY_TO_MANY": "N:M",
-                "N:M": "N:M"
+                "N:M": "N:M",
             }
             raw_cardinality = str(join["cardinality"]).upper()
             join["cardinality"] = cardinality_map.get(raw_cardinality, "N:1")
@@ -376,3 +398,145 @@ Return the response as JSON array:
         join.setdefault("suggested_by", "ai_inference")
 
         return True
+
+    def validate_analysis_confidence(
+        self,
+        schema_name: str,
+        tables: list[dict[str, Any]],
+        joins: list[dict[str, Any]],
+        ai_descriptions: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Validate the confidence of the analysis using another LLM.
+
+        :param schema_name: Name of the schema analyzed
+        :param tables: List of analyzed tables with metadata
+        :param joins: List of inferred joins
+        :param ai_descriptions: AI-generated descriptions
+        :return: Dict with confidence scores and recommendations
+        """
+        if not self.is_available():
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "validation_notes": "LLM validation not available",
+            }
+
+        prompt = self._build_confidence_validation_prompt(
+            schema_name, tables, joins, ai_descriptions
+        )
+
+        try:
+            response = self._call_llm(prompt)
+            return self._parse_confidence_validation_response(response)
+        except Exception as e:
+            logger.error("Error calling LLM for confidence validation: %s", str(e))
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "validation_notes": f"Validation failed: {str(e)}",
+            }
+
+    def _build_confidence_validation_prompt(
+        self,
+        schema_name: str,
+        tables: list[dict[str, Any]],
+        joins: list[dict[str, Any]],
+        ai_descriptions: dict[str, Any],
+    ) -> str:
+        """Build prompt for validating analysis confidence"""
+        prompt = (
+            "You are a database analysis quality auditor. Review the following "
+            "database schema analysis and provide confidence scores.\n\n"
+            f"Schema: {schema_name}\n"
+            f"Number of tables: {len(tables)}\n"
+            f"Number of inferred joins: {len(joins)}\n\n"
+            "Analysis Summary:\n"
+        )
+
+        # Add table information
+        prompt += "\nTables analyzed:\n"
+        for table in tables[:10]:  # Limit to first 10 tables for context
+            prompt += f"- {table.get('name', 'Unknown')}: "
+            prompt += f"{table.get('columns_count', 0)} columns, "
+            prompt += f"{table.get('row_count', 'unknown')} rows\n"
+            if table.get("ai_description"):
+                prompt += f"  Description: {table['ai_description'][:100]}...\n"
+
+        # Add join information
+        if joins:
+            prompt += f"\nInferred joins ({len(joins)} total):\n"
+            for join in joins[:5]:  # Show first 5 joins
+                prompt += (
+                    f"- {join.get('source_table')}.{join.get('source_columns')} -> "
+                )
+                prompt += f"{join.get('target_table')}.{join.get('target_columns')}\n"
+                prompt += f"  Type: {join.get('join_type', 'unknown')}, "
+                prompt += f"Cardinality: {join.get('cardinality', 'unknown')}, "
+                prompt += f"Confidence: {join.get('confidence_score', 0)}\n"
+
+        prompt += """
+Please evaluate the quality and completeness of this analysis and provide:
+
+1. overall_confidence: A score from 0.0 to 1.0 indicating overall confidence
+2. confidence_breakdown: Individual confidence scores for different aspects:
+   - table_descriptions: How accurate/complete are the table descriptions
+   - column_descriptions: How accurate/complete are the column descriptions
+   - join_inference: How accurate are the inferred joins
+   - schema_coverage: How complete is the schema analysis
+3. recommendations: List of specific recommendations to improve the analysis
+4. potential_issues: Any red flags or concerns noticed
+5. validation_notes: Additional context about the validation
+
+Consider factors like:
+- Consistency of descriptions
+- Plausibility of inferred relationships
+- Completeness of metadata
+- Semantic accuracy
+
+Return the response as JSON:
+{
+  "overall_confidence": 0.75,
+  "confidence_breakdown": {
+    "table_descriptions": 0.8,
+    "column_descriptions": 0.7,
+    "join_inference": 0.65,
+    "schema_coverage": 0.9
+  },
+  "recommendations": [
+    "Review join between X and Y - seems unlikely",
+    "Table Z description needs more detail"
+  ],
+  "potential_issues": [
+    "Missing relationships between related tables",
+    "Some descriptions are too generic"
+  ],
+  "validation_notes": "Analysis appears mostly complete with minor gaps"
+}
+"""
+        return prompt
+
+    def _parse_confidence_validation_response(self, response: str) -> dict[str, Any]:
+        """Parse the LLM response for confidence validation"""
+        try:
+            result = json.loads(response)
+
+            # Ensure all required fields exist with defaults
+            return {
+                "overall_confidence": float(result.get("overall_confidence", 0.5)),
+                "confidence_breakdown": result.get("confidence_breakdown", {}),
+                "recommendations": result.get("recommendations", []),
+                "potential_issues": result.get("potential_issues", []),
+                "validation_notes": result.get("validation_notes", ""),
+            }
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error("Failed to parse confidence validation response: %s", str(e))
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "potential_issues": [],
+                "validation_notes": "Failed to parse validation response",
+            }

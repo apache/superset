@@ -30,6 +30,7 @@ from superset.tasks.database_analyzer import (
     check_analysis_status,
     kickstart_analysis,
 )
+from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,8 @@ class CheckStatusResponseSchema(Schema):
     error_message = fields.String(allow_none=True)
     tables_count = fields.Integer(allow_none=True)
     joins_count = fields.Integer(allow_none=True)
+    confidence_score = fields.Float(allow_none=True)
+    confidence_validation_notes = fields.String(allow_none=True)
 
 
 class DatasourceAnalyzerRestApi(BaseSupersetApi):
@@ -257,6 +260,12 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                 "created_at": report.created_on.isoformat()
                 if report.created_on
                 else None,
+                "confidence_score": report.confidence_score,
+                "confidence_breakdown": json.loads(report.confidence_breakdown or "{}"),
+                "confidence_recommendations": json.loads(
+                    report.confidence_recommendations or "[]"
+                ),
+                "confidence_validation_notes": report.confidence_validation_notes,
                 "tables": [],
                 "joins": [],
             }

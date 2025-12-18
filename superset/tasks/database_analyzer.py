@@ -227,6 +227,8 @@ def check_analysis_status(run_id: str) -> dict[str, Any]:
         )
         result["tables_count"] = len(report.tables)
         result["joins_count"] = len(report.joins)
+        result["confidence_score"] = report.confidence_score
+        result["confidence_validation_notes"] = report.confidence_validation_notes
 
     elif report.status == AnalysisStatus.FAILED:
         result["error_message"] = report.error_message
