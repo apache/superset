@@ -19,7 +19,12 @@
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
-import { AIInfoBanner, Flex, Icons, Typography } from '@superset-ui/core/components';
+import {
+  AIInfoBanner,
+  Flex,
+  Icons,
+  Typography,
+} from '@superset-ui/core/components';
 import { ConnectorStep } from '../types';
 
 interface ConnectorLayoutProps {
@@ -134,11 +139,29 @@ const stepsConfig: StepConfig[] = [
   },
 ];
 
+// Map internal steps to visual step index
+// EDIT_SCHEMA is visually part of "Review Schema" step
+function getVisualStepIndex(step: ConnectorStep): number {
+  switch (step) {
+    case ConnectorStep.CONNECT_DATA_SOURCE:
+      return 0;
+    case ConnectorStep.REVIEW_SCHEMA:
+    case ConnectorStep.EDIT_SCHEMA:
+      return 1;
+    case ConnectorStep.GENERATE_DASHBOARD:
+      return 2;
+    default:
+      return 0;
+  }
+}
+
 export default function ConnectorLayout({
   currentStep,
   children,
   templateName,
 }: ConnectorLayoutProps) {
+  const visualStep = getVisualStepIndex(currentStep);
+
   return (
     <PageContainer>
       <PageHeader>
@@ -149,8 +172,8 @@ export default function ConnectorLayout({
       <StepsContainer>
         <Flex align="center" gap={0}>
           {stepsConfig.map((step, index) => {
-            const isActive = index === currentStep;
-            const isCompleted = index < currentStep;
+            const isActive = index === visualStep;
+            const isCompleted = index < visualStep;
 
             return (
               <Flex key={step.title} align="center" gap={8}>

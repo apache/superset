@@ -25,7 +25,11 @@ from marshmallow import fields, Schema, ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import db, event_logger
-from superset.models.database_analyzer import DatabaseSchemaReport
+from superset.models.database_analyzer import (
+    AnalyzedColumn,
+    AnalyzedTable,
+    DatabaseSchemaReport,
+)
 from superset.tasks.database_analyzer import (
     check_analysis_status,
     kickstart_analysis,
@@ -76,6 +80,48 @@ class CheckStatusResponseSchema(Schema):
     error_message = fields.String(allow_none=True)
     tables_count = fields.Integer(allow_none=True)
     joins_count = fields.Integer(allow_none=True)
+
+
+class TableDescriptionPutSchema(Schema):
+    """Schema for updating table description"""
+
+    description = fields.String(
+        required=True,
+        allow_none=True,
+        metadata={"description": "The AI-generated description for the table"},
+    )
+
+
+class ColumnDescriptionPutSchema(Schema):
+    """Schema for updating column description"""
+
+    description = fields.String(
+        required=True,
+        allow_none=True,
+        metadata={"description": "The AI-generated description for the column"},
+    )
+
+
+class GenerateDashboardPostSchema(Schema):
+    """Schema for triggering dashboard generation"""
+
+    report_id = fields.Integer(
+        required=True,
+        metadata={"description": "The database schema report ID"},
+    )
+    dashboard_id = fields.Integer(
+        required=True,
+        metadata={"description": "The dashboard template ID to use for generation"},
+    )
+
+
+class GenerateDashboardResponseSchema(Schema):
+    """Schema for dashboard generation response"""
+
+    run_id = fields.String(
+        required=True,
+        metadata={"description": "The unique identifier for this generation run"},
+    )
 
 
 class DatasourceAnalyzerRestApi(BaseSupersetApi):
@@ -279,6 +325,8 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                             "type": column.data_type,
                             "position": column.ordinal_position,
                             "description": column.ai_description or column.db_comment,
+                            "is_primary_key": column.is_primary_key,
+                            "is_foreign_key": column.is_foreign_key,
                         }
                     )
 
@@ -303,4 +351,210 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
         except Exception as e:
             logger.exception("Error retrieving report")
+            return self.response_500(message=str(e))
+
+    @expose("/table/<int:table_id>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.update_table",
+        log_to_statsd=True,
+    )
+    def update_table(self, table_id: int) -> Response:
+        """
+        Update table description.
+        ---
+        put:
+          summary: Update table AI description
+          description: >-
+            Updates the AI-generated description for an analyzed table
+          parameters:
+          - in: path
+            name: table_id
+            required: true
+            schema:
+              type: integer
+            description: The table ID
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TableDescriptionPutSchema'
+          responses:
+            200:
+              description: Table description updated successfully
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              description: Table not found
+            500:
+              description: Internal server error
+        """
+        try:
+            schema = TableDescriptionPutSchema()
+            data = schema.load(request.json)
+
+            table = db.session.query(AnalyzedTable).get(table_id)
+            if not table:
+                return self.response_404(message="Table not found")
+
+            table.ai_description = data["description"]
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+            return self.response(
+                200,
+                id=table.id,
+                name=table.table_name,
+                description=table.ai_description,
+            )
+
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
+        except Exception as e:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Error updating table description")
+            return self.response_500(message=str(e))
+
+    @expose("/column/<int:column_id>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.update_column",
+        log_to_statsd=True,
+    )
+    def update_column(self, column_id: int) -> Response:
+        """
+        Update column description.
+        ---
+        put:
+          summary: Update column AI description
+          description: >-
+            Updates the AI-generated description for an analyzed column
+          parameters:
+          - in: path
+            name: column_id
+            required: true
+            schema:
+              type: integer
+            description: The column ID
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ColumnDescriptionPutSchema'
+          responses:
+            200:
+              description: Column description updated successfully
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              description: Column not found
+            500:
+              description: Internal server error
+        """
+        try:
+            schema = ColumnDescriptionPutSchema()
+            data = schema.load(request.json)
+
+            column = db.session.query(AnalyzedColumn).get(column_id)
+            if not column:
+                return self.response_404(message="Column not found")
+
+            column.ai_description = data["description"]
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+            return self.response(
+                200,
+                id=column.id,
+                name=column.column_name,
+                description=column.ai_description,
+            )
+
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
+        except Exception as e:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Error updating column description")
+            return self.response_500(message=str(e))
+
+    @expose("/generate", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate",
+        log_to_statsd=True,
+    )
+    def generate_dashboard(self) -> Response:
+        """
+        Trigger dashboard generation from schema report.
+        ---
+        post:
+          summary: Generate dashboard from analyzed schema
+          description: >-
+            Triggers the dashboard generation Celery job using the analyzed
+            schema report and a dashboard template. Returns a run_id for
+            tracking the generation progress.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/GenerateDashboardPostSchema'
+          responses:
+            200:
+              description: Dashboard generation initiated successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/GenerateDashboardResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              description: Report or dashboard not found
+            500:
+              description: Internal server error
+        """
+        try:
+            schema = GenerateDashboardPostSchema()
+            data = schema.load(request.json)
+
+            report_id = data["report_id"]
+            dashboard_id = data["dashboard_id"]
+
+            # Verify report exists
+            report = db.session.query(DatabaseSchemaReport).get(report_id)
+            if not report:
+                return self.response_404(message="Report not found")
+
+            # TODO: Integrate with Dashboard Generation Celery Job
+            # For now, return a placeholder run_id
+            # The actual implementation will call the Celery task and return
+            # its task ID
+            import uuid
+
+            placeholder_run_id = str(uuid.uuid4())
+
+            logger.info(
+                "Dashboard generation requested for report_id=%s, dashboard_id=%s",
+                report_id,
+                dashboard_id,
+            )
+
+            return self.response(200, result={"run_id": placeholder_run_id})
+
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
+        except Exception as e:
+            logger.exception("Error initiating dashboard generation")
             return self.response_500(message=str(e))

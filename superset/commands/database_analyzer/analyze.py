@@ -20,7 +20,7 @@ import logging
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import Any
 
-from flask import current_app
+from flask import current_app, Flask
 from sqlalchemy import inspect, MetaData, text
 
 from superset import db
@@ -30,10 +30,8 @@ from superset.models.core import Database
 from superset.models.database_analyzer import (
     AnalyzedColumn,
     AnalyzedTable,
-    Cardinality,
     DatabaseSchemaReport,
     InferredJoin,
-    JoinType,
     TableType,
 )
 from superset.utils import json
@@ -178,17 +176,25 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                 result = engine.execute(text(sample_sql))
                 for row in result:
                     sample_rows.append(dict(row))
-                logger.debug("Fetched %d sample rows from %s", len(sample_rows), table_name)
-            except Exception as e:
+                logger.debug(
+                    "Fetched %d sample rows from %s", len(sample_rows), table_name
+                )
+            except Exception:
                 # Fallback to regular LIMIT if RANDOM() not supported
                 try:
                     fallback_sql = f'SELECT * FROM "{schema}"."{table_name}" LIMIT 3'  # noqa: S608, E501
                     result = engine.execute(text(fallback_sql))
                     for row in result:
                         sample_rows.append(dict(row))
-                    logger.debug("Fetched %d sample rows from %s (fallback)", len(sample_rows), table_name)
+                    logger.debug(
+                        "Fetched %d sample rows from %s (fallback)",
+                        len(sample_rows),
+                        table_name,
+                    )
                 except Exception as e2:
-                    logger.warning("Could not fetch sample data for %s: %s", table_name, str(e2))
+                    logger.warning(
+                        "Could not fetch sample data for %s: %s", table_name, str(e2)
+                    )
 
         # Get row count (try reltuples first, fallback to actual count)
         row_count = None
@@ -201,7 +207,7 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
             result = engine.execute(text(count_sql))
             row = result.fetchone()
             row_count = row[0] if row and row[0] >= 0 else None
-            
+
             # If reltuples is -1 or None, get actual count for small tables
             if row_count is None or row_count < 0:
                 actual_count_sql = f'SELECT COUNT(*) FROM "{schema}"."{table_name}"'  # noqa: S608
@@ -266,12 +272,12 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                     column_name=col_data["name"],
                     data_type=col_data["type"],
                     ordinal_position=col_data["position"],
+                    is_primary_key=col_data["is_primary_key"],
+                    is_foreign_key=col_data["is_foreign_key"],
                     db_comment=col_data["comment"],
                     extra_json=json.dumps(
                         {
                             "is_nullable": col_data["nullable"],
-                            "is_primary_key": col_data["is_primary_key"],
-                            "is_foreign_key": col_data["is_foreign_key"],
                         }
                     ),
                 )
@@ -296,7 +302,7 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
             return
 
         max_workers = min(10, len(tables))
-        
+
         # Capture the current Flask app context
         app = current_app._get_current_object()
 
@@ -317,7 +323,7 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                         str(e),
                     )
 
-    def _augment_table_with_ai_context(self, app, table: AnalyzedTable) -> None:
+    def _augment_table_with_ai_context(self, app: Flask, table: AnalyzedTable) -> None:
         """Wrapper to provide Flask context to the AI description thread"""
         with app.app_context():
             self._augment_table_with_ai(table)
@@ -458,10 +464,10 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
         # Debug logging to see actual data being stored
         for i, join_data in enumerate(inferred_joins):
             logger.debug(
-                "Join %d data: join_type=%s, cardinality=%s", 
-                i, 
-                join_data.get("join_type"), 
-                join_data.get("cardinality")
+                "Join %d data: join_type=%s, cardinality=%s",
+                i,
+                join_data.get("join_type"),
+                join_data.get("cardinality"),
             )
 
         for join_data in inferred_joins:

@@ -25,6 +25,7 @@ import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import ConnectorLayout from './components/ConnectorLayout';
 import DataSourcePanel from './components/DataSourcePanel';
+import DatasourceEditorPanel from './components/DatasourceEditorPanel';
 import ReviewSchemaPanel from './components/ReviewSchemaPanel';
 import useDatabaseListRefresh from './hooks/useDatabaseListRefresh';
 import { ConnectorStep, DatasourceConnectorState } from './types';
@@ -57,6 +58,7 @@ export default function DatasourceConnector() {
   );
   const [templateInfo, setTemplateInfo] =
     useState<TemplateDashboardInfo | null>(null);
+  const [databaseReportId, setDatabaseReportId] = useState<number | null>(null);
 
   // Get dashboard_id from query params
   const dashboardId = useMemo(() => {
@@ -154,7 +156,7 @@ export default function DatasourceConnector() {
   );
 
   const handleCancel = useCallback(() => {
-    history.push('/dashboard/templates/');
+    history.goBack();
   }, [history]);
 
   const handleContinueToReview = useCallback(async () => {
@@ -176,13 +178,30 @@ export default function DatasourceConnector() {
   }, [state, addDangerToast, addSuccessToast]);
 
   //const handleBackToConnect = useCallback(() => {
-  //   setCurrentStep(ConnectorStep.CONNECT_DATA_SOURCE);
+  //  setCurrentStep(ConnectorStep.CONNECT_DATA_SOURCE);
   //}, []);
 
-  const handleContinueToGenerate = useCallback(() => {
-    addSuccessToast(t('Moving to Generate Dashboard step'));
-    setCurrentStep(ConnectorStep.GENERATE_DASHBOARD);
-  }, [addSuccessToast]);
+  const handleAnalysisComplete = useCallback(
+    (reportId: number) => {
+      setDatabaseReportId(reportId);
+      addSuccessToast(t('Analysis complete! Review and edit your schema.'));
+      setCurrentStep(ConnectorStep.EDIT_SCHEMA);
+    },
+    [addSuccessToast],
+  );
+
+  const handleBackToReview = useCallback(() => {
+    setCurrentStep(ConnectorStep.REVIEW_SCHEMA);
+  }, []);
+
+  const handleConfirmAndGenerate = useCallback(
+    (runId: string) => {
+      addSuccessToast(t('Dashboard generation started'));
+      // Navigate to the loading screen with the run_id
+      history.push(`/datasource-connector/loading/${runId}`);
+    },
+    [addSuccessToast, history],
+  );
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -208,12 +227,27 @@ export default function DatasourceConnector() {
           <ReviewSchemaPanel
             databaseName={state.databaseName}
             schemaName={state.schemaName}
-            onAnalysisComplete={handleContinueToGenerate}
+            onAnalysisComplete={handleAnalysisComplete}
           />
+        );
+      case ConnectorStep.EDIT_SCHEMA:
+        return databaseReportId ? (
+          <DatasourceEditorPanel
+            reportId={databaseReportId}
+            dashboardId={dashboardId}
+            onBack={handleBackToReview}
+            onConfirm={handleConfirmAndGenerate}
+          />
+        ) : (
+          <Flex vertical align="center" css={{ padding: 40 }}>
+            <Typography.Text type="danger">
+              {t('No report ID available. Please restart the process.')}
+            </Typography.Text>
+          </Flex>
         );
       case ConnectorStep.GENERATE_DASHBOARD:
         return (
-          <Flex vertical align="center" style={{ padding: '40px' }}>
+          <Flex vertical align="center" css={{ padding: 40 }}>
             <Typography.Title level={3}>
               {t('Generate Dashboard')}
             </Typography.Title>
