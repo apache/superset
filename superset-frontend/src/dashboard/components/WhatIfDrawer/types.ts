@@ -53,10 +53,15 @@ export interface WhatIfInterpretRequest {
   dashboardName?: string;
 }
 
+export type WhatIfInsightType =
+  | 'observation'
+  | 'implication'
+  | 'recommendation';
+
 export interface WhatIfInsight {
   title: string;
   description: string;
-  type: 'observation' | 'implication' | 'recommendation';
+  type: WhatIfInsightType;
 }
 
 export interface WhatIfInterpretResponse {
@@ -64,6 +69,8 @@ export interface WhatIfInterpretResponse {
   insights: WhatIfInsight[];
   rawResponse?: string;
 }
+
+export type GroupedWhatIfInsights = Record<WhatIfInsightType, WhatIfInsight[]>;
 
 export type WhatIfAIStatus = 'idle' | 'loading' | 'success' | 'error';
 

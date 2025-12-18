@@ -17,25 +17,46 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Skeleton } from '@superset-ui/core/components/';
+import { Icons, IconType } from '@superset-ui/core/components/Icons';
+import { Collapse, Skeleton } from '@superset-ui/core/components/';
 import { RootState, WhatIfModification } from 'src/dashboard/types';
 import { whatIfHighlightStyles } from 'src/dashboard/util/useWhatIfHighlightStyles';
 import { fetchWhatIfInterpretation } from './whatIfApi';
 import { useChartComparison, useAllChartsLoaded } from './useChartComparison';
 import {
+  GroupedWhatIfInsights,
   WhatIfAIStatus,
-  WhatIfInsight,
+  WhatIfInsightType,
   WhatIfInterpretResponse,
 } from './types';
 
 // Static Skeleton paragraph configs to avoid recreation on each render
 const SKELETON_PARAGRAPH_3 = { rows: 3 };
 const SKELETON_PARAGRAPH_2 = { rows: 2 };
+
+// Configuration for each insight type
+const INSIGHT_TYPE_CONFIG: Record<
+  WhatIfInsightType,
+  { label: string; icon: React.ComponentType<IconType> }
+> = {
+  observation: { label: t('Observations'), icon: Icons.EyeOutlined },
+  implication: { label: t('Implications'), icon: Icons.WarningOutlined },
+  recommendation: {
+    label: t('Recommendations'),
+    icon: Icons.CheckCircleOutlined,
+  },
+};
+
+// Order in which insight types should appear
+const INSIGHT_TYPE_ORDER: WhatIfInsightType[] = [
+  'observation',
+  'implication',
+  'recommendation',
+];
 
 /**
  * Create a stable key from modifications for comparison.
@@ -114,6 +135,54 @@ const Summary = styled.div`
   background-color: ${({ theme }) => theme.colorBgElevated};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   ${whatIfHighlightStyles}
+`;
+
+const StyledCollapse = styled(Collapse)`
+  background: transparent;
+  border: none;
+
+  .ant-collapse-item {
+    border: none;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+    background: ${({ theme }) => theme.colorBgElevated};
+    border-radius: ${({ theme }) => theme.borderRadius}px !important;
+    overflow: hidden;
+
+    .ant-collapse-header {
+      padding: ${({ theme }) => theme.sizeUnit * 3}px;
+      background: transparent;
+    }
+
+    .ant-collapse-content {
+      border-top: 1px solid ${({ theme }) => theme.colorBorderSecondary};
+    }
+
+    .ant-collapse-content-box {
+      padding: ${({ theme }) => theme.sizeUnit * 2}px;
+      display: flex;
+      flex-direction: column;
+      gap: ${({ theme }) => theme.sizeUnit * 2}px;
+    }
+  }
+`;
+
+const CollapsePanelHeader = styled.div<{ insightType: WhatIfInsightType }>`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme, insightType }) => {
+    switch (insightType) {
+      case 'observation':
+        return theme.colorInfo;
+      case 'implication':
+        return theme.colorWarning;
+      case 'recommendation':
+        return theme.colorSuccess;
+      default:
+        return theme.colorText;
+    }
+  }};
 `;
 
 interface WhatIfAIInsightsProps {
@@ -236,6 +305,48 @@ const WhatIfAIInsights = ({
     }
   }, [modifications]);
 
+  // Group insights by type
+  const insights = response?.insights;
+  const groupedInsights = useMemo(() => {
+    if (!insights) return {} as GroupedWhatIfInsights;
+    return insights.reduce<GroupedWhatIfInsights>((acc, insight) => {
+      if (!acc[insight.type]) {
+        acc[insight.type] = [];
+      }
+      acc[insight.type].push(insight);
+      return acc;
+    }, {} as GroupedWhatIfInsights);
+  }, [insights]);
+
+  // Build collapse items from grouped insights
+  const collapseItems = useMemo(
+    () =>
+      INSIGHT_TYPE_ORDER.filter(type => groupedInsights[type]?.length > 0).map(
+        type => {
+          const typeInsights = groupedInsights[type];
+          const config = INSIGHT_TYPE_CONFIG[type];
+          const IconComponent = config.icon;
+
+          return {
+            key: type,
+            label: (
+              <CollapsePanelHeader insightType={type}>
+                <IconComponent iconSize="m" />
+                {config.label}
+              </CollapsePanelHeader>
+            ),
+            children: typeInsights.map((insight, index) => (
+              <InsightCard key={index} insightType={insight.type}>
+                <InsightTitle>{insight.title}</InsightTitle>
+                <InsightDescription>{insight.description}</InsightDescription>
+              </InsightCard>
+            )),
+          };
+        },
+      ),
+    [groupedInsights],
+  );
+
   if (modifications.length === 0) {
     return null;
   }
@@ -264,12 +375,12 @@ const WhatIfAIInsights = ({
         <>
           <Summary>{response.summary}</Summary>
 
-          {response.insights.map((insight: WhatIfInsight, index: number) => (
-            <InsightCard key={index} insightType={insight.type}>
-              <InsightTitle>{insight.title}</InsightTitle>
-              <InsightDescription>{insight.description}</InsightDescription>
-            </InsightCard>
-          ))}
+          <StyledCollapse
+            defaultActiveKey={INSIGHT_TYPE_ORDER}
+            items={collapseItems}
+            ghost
+            bordered
+          />
         </>
       )}
 
