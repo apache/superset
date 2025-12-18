@@ -1547,7 +1547,8 @@ class SqlaTable(
         from superset.utils.core import FilterOperator
 
         conditions: list[ColumnElement] = []
-        available_columns = {col.column_name for col in self.columns}
+        # Build a map of column name -> column object for quick lookup
+        columns_by_name = {col.column_name: col for col in self.columns}
 
         for flt in filters:
             col_name = flt.get("col")
@@ -1555,7 +1556,7 @@ class SqlaTable(
             val = flt.get("val")
 
             # Skip if column doesn't exist in datasource
-            if col_name not in available_columns:
+            if col_name not in columns_by_name:
                 continue
 
             sqla_col = sa.column(col_name)
@@ -1583,10 +1584,14 @@ class SqlaTable(
                 if isinstance(val, str):
                     since, until = get_since_until_from_time_range(time_range=val)
                     time_conditions = []
+                    col_obj = columns_by_name[col_name]
                     if since:
-                        time_conditions.append(sqla_col >= sa.literal(since))
+                        # Convert datetime to database-specific SQL literal
+                        since_sql = self.dttm_sql_literal(since, col_obj)
+                        time_conditions.append(sqla_col >= sa.literal_column(since_sql))
                     if until:
-                        time_conditions.append(sqla_col < sa.literal(until))
+                        until_sql = self.dttm_sql_literal(until, col_obj)
+                        time_conditions.append(sqla_col < sa.literal_column(until_sql))
                     if time_conditions:
                         conditions.append(and_(*time_conditions))
 

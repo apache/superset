@@ -26,5 +26,9 @@ export {
   getTimeOffset,
   computeCustomDateTime,
 } from './getTimeOffset';
-export { SEPARATOR, fetchTimeRange } from './fetchTimeRange';
+export {
+  SEPARATOR,
+  fetchTimeRange,
+  formatTimeRangeLabel,
+} from './fetchTimeRange';
 export { customTimeRangeDecode } from './customTimeRangeDecode';

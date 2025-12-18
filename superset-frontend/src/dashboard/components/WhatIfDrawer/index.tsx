@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t, logging } from '@superset-ui/core';
+import { t, logging, formatTimeRangeLabel } from '@superset-ui/core';
 import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
 import {
   Button,
@@ -26,6 +26,7 @@ import {
   Checkbox,
   Tooltip,
   Tag,
+  Popover,
 } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -35,7 +36,17 @@ import {
   saveOriginalChartData,
 } from 'src/components/Chart/chartAction';
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
-import { RootState, Slice, WhatIfColumn } from 'src/dashboard/types';
+import {
+  RootState,
+  Slice,
+  WhatIfColumn,
+  WhatIfFilter,
+  Datasource,
+} from 'src/dashboard/types';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
+import { Clauses } from 'src/explore/components/controls/FilterControl/types';
+import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
 import WhatIfAIInsights from './WhatIfAIInsights';
 import { fetchRelatedColumnSuggestions } from './whatIfApi';
 import { ExtendedWhatIfModification } from './types';
@@ -189,6 +200,48 @@ const AIReasoningItem = styled.div`
   color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
+const ColumnSelectRow = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  align-items: flex-start;
+`;
+
+const ColumnSelectWrapper = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const FilterButton = styled(Button)`
+  flex-shrink: 0;
+  padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const FilterPopoverContent = styled.div`
+  .edit-popover-resize {
+    transform: scaleX(-1);
+    float: right;
+    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * -1}px;
+    color: ${({ theme }) => theme.colorIcon};
+    cursor: nwse-resize;
+  }
+  .filter-sql-editor {
+    border: ${({ theme }) => theme.colorBorder} solid thin;
+  }
+`;
+
+const FiltersSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const FilterTagsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
 interface WhatIfPanelProps {
   onClose: () => void;
   topOffset: number;
@@ -209,6 +262,15 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   // Counter that increments each time Apply is clicked, used as key to reset AI insights
   const [applyCounter, setApplyCounter] = useState(0);
   const [showAIReasoning, setShowAIReasoning] = useState(false);
+
+  // Filter state
+  const [filters, setFilters] = useState<WhatIfFilter[]>([]);
+  const [filterPopoverVisible, setFilterPopoverVisible] = useState(false);
+  const [editingFilterIndex, setEditingFilterIndex] = useState<number | null>(
+    null,
+  );
+  const [currentAdhocFilter, setCurrentAdhocFilter] =
+    useState<AdhocFilter | null>(null);
 
   // AbortController for cancelling in-flight /suggest_related requests
   const suggestionsAbortControllerRef = useRef<AbortController | null>(null);
@@ -249,13 +311,159 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     return map;
   }, [numericColumns]);
 
+  // Find the datasource for the selected column
+  const selectedColumnInfo = useMemo(
+    () => numericColumns.find(col => col.columnName === selectedColumn),
+    [numericColumns, selectedColumn],
+  );
+
+  const selectedDatasource = useMemo((): Datasource | null => {
+    if (!selectedColumnInfo) return null;
+    // Find datasource by ID - keys are in format "id__type"
+    const datasourceEntry = Object.entries(datasources).find(([key]) => {
+      const [idStr] = key.split('__');
+      return parseInt(idStr, 10) === selectedColumnInfo.datasourceId;
+    });
+    return datasourceEntry ? datasourceEntry[1] : null;
+  }, [datasources, selectedColumnInfo]);
+
+  // Get all columns from the selected datasource for filter options
+  const filterColumnOptions = useMemo(() => {
+    if (!selectedDatasource?.columns) return [];
+    return selectedDatasource.columns;
+  }, [selectedDatasource]);
+
+  // Convert AdhocFilter to WhatIfFilter
+  const adhocFilterToWhatIfFilter = useCallback(
+    (adhocFilter: AdhocFilter): WhatIfFilter | null => {
+      if (!adhocFilter.isValid()) return null;
+
+      const { subject, operator, comparator } = adhocFilter;
+      if (!subject || !operator) return null;
+
+      // Map operator to WhatIfFilterOperator
+      let op = operator as WhatIfFilter['op'];
+
+      // Handle operator mapping
+      if (operator === 'TEMPORAL_RANGE') {
+        op = 'TEMPORAL_RANGE';
+      } else if (operator === 'IN' || operator === 'in') {
+        op = 'IN';
+      } else if (operator === 'NOT IN' || operator === 'not in') {
+        op = 'NOT IN';
+      }
+
+      return {
+        col: subject,
+        op,
+        val: comparator,
+      };
+    },
+    [],
+  );
+
+  // Convert WhatIfFilter to AdhocFilter for editing
+  const whatIfFilterToAdhocFilter = useCallback(
+    (filter: WhatIfFilter): AdhocFilter => {
+      // Find the operatorId from the operator
+      let operatorId: string | undefined;
+      for (const [key, value] of Object.entries(
+        OPERATOR_ENUM_TO_OPERATOR_TYPE,
+      )) {
+        if (value.operation === filter.op) {
+          operatorId = key;
+          break;
+        }
+      }
+
+      return new AdhocFilter({
+        expressionType: 'SIMPLE',
+        subject: filter.col,
+        operator: filter.op,
+        operatorId,
+        comparator: filter.val,
+        clause: Clauses.Where,
+      });
+    },
+    [],
+  );
+
   const handleColumnChange = useCallback((value: string | null) => {
     setSelectedColumn(value);
+    // Clear filters when column changes since they're tied to the datasource
+    setFilters([]);
   }, []);
 
   const handleSliderChange = useCallback((value: number) => {
     setSliderValue(value);
   }, []);
+
+  // Filter handlers
+  const handleOpenFilterPopover = useCallback(() => {
+    // Create a new empty AdhocFilter
+    const newFilter = new AdhocFilter({
+      expressionType: 'SIMPLE',
+      clause: Clauses.Where,
+      subject: null,
+      operator: null,
+      comparator: null,
+      isNew: true,
+    });
+    setCurrentAdhocFilter(newFilter);
+    setEditingFilterIndex(null);
+    setFilterPopoverVisible(true);
+  }, []);
+
+  const handleEditFilter = useCallback(
+    (index: number) => {
+      const filter = filters[index];
+      const adhocFilter = whatIfFilterToAdhocFilter(filter);
+      setCurrentAdhocFilter(adhocFilter);
+      setEditingFilterIndex(index);
+      setFilterPopoverVisible(true);
+    },
+    [filters, whatIfFilterToAdhocFilter],
+  );
+
+  const handleFilterChange = useCallback(
+    (adhocFilter: AdhocFilter) => {
+      const whatIfFilter = adhocFilterToWhatIfFilter(adhocFilter);
+      if (!whatIfFilter) return;
+
+      setFilters(prevFilters => {
+        if (editingFilterIndex !== null) {
+          // Update existing filter
+          const newFilters = [...prevFilters];
+          newFilters[editingFilterIndex] = whatIfFilter;
+          return newFilters;
+        }
+        // Add new filter
+        return [...prevFilters, whatIfFilter];
+      });
+      setFilterPopoverVisible(false);
+      setCurrentAdhocFilter(null);
+      setEditingFilterIndex(null);
+    },
+    [adhocFilterToWhatIfFilter, editingFilterIndex],
+  );
+
+  const handleRemoveFilter = useCallback(
+    (e: React.MouseEvent, index: number) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setFilters(prevFilters => prevFilters.filter((_, i) => i !== index));
+    },
+    [],
+  );
+
+  const handleFilterPopoverClose = useCallback(() => {
+    setFilterPopoverVisible(false);
+    setCurrentAdhocFilter(null);
+    setEditingFilterIndex(null);
+  }, []);
+
+  // No-op handler for popover resize
+  const handleFilterPopoverResize = useCallback(() => {}, []);
 
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 
@@ -272,11 +480,12 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
     const multiplier = 1 + sliderValue / 100;
 
-    // Base user modification
+    // Base user modification with filters
     const userModification: ExtendedWhatIfModification = {
       column: selectedColumn,
       multiplier,
       isAISuggested: false,
+      filters: filters.length > 0 ? filters : undefined,
     };
 
     let allModifications: ExtendedWhatIfModification[] = [userModification];
@@ -306,7 +515,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
           abortController.signal,
         );
 
-        // Add AI suggestions to modifications
+        // Add AI suggestions to modifications (with same filters as user modification)
         const aiModifications: ExtendedWhatIfModification[] =
           suggestions.suggestedModifications.map(mod => ({
             column: mod.column,
@@ -314,6 +523,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
             isAISuggested: true,
             reasoning: mod.reasoning,
             confidence: mod.confidence,
+            filters: filters.length > 0 ? filters : undefined,
           }));
 
         allModifications = [...allModifications, ...aiModifications];
@@ -372,17 +582,41 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     enableCascadingEffects,
     numericColumns,
     dashboardInfo,
+    filters,
   ]);
 
   const isApplyDisabled =
     !selectedColumn || sliderValue === SLIDER_DEFAULT || isLoadingSuggestions;
-  const isSliderDisabled = !selectedColumn;
 
   // Helper to format percentage change
   const formatPercentage = (multiplier: number): string => {
     const pct = (multiplier - 1) * 100;
     const sign = pct >= 0 ? '+' : '';
     return `${sign}${pct.toFixed(1)}%`;
+  };
+
+  // Helper to format filter for display (matching Explore filter label format)
+  const formatFilterLabel = (filter: WhatIfFilter): string => {
+    const { col, op, val } = filter;
+
+    // Special handling for TEMPORAL_RANGE to match Explore format
+    if (op === 'TEMPORAL_RANGE' && typeof val === 'string') {
+      return formatTimeRangeLabel(val, col);
+    }
+
+    let valStr: string;
+    if (Array.isArray(val)) {
+      valStr = val.join(', ');
+    } else if (typeof val === 'boolean') {
+      valStr = val ? 'true' : 'false';
+    } else {
+      valStr = String(val);
+    }
+    // Truncate long values
+    if (valStr.length > 20) {
+      valStr = `${valStr.substring(0, 17)}...`;
+    }
+    return `${col} ${op} ${valStr}`;
   };
 
   const sliderMarks = {
@@ -410,15 +644,89 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
       <PanelContent>
         <FormSection>
           <Label>{t('Select column to adjust')}</Label>
-          <Select
-            value={selectedColumn}
-            onChange={handleColumnChange}
-            options={columnOptions}
-            placeholder={t('Choose a column...')}
-            allowClear
-            showSearch
-            ariaLabel={t('Select column to adjust')}
-          />
+          <ColumnSelectRow>
+            <ColumnSelectWrapper>
+              <Select
+                value={selectedColumn}
+                onChange={handleColumnChange}
+                options={columnOptions}
+                placeholder={t('Choose a column...')}
+                allowClear
+                showSearch
+                ariaLabel={t('Select column to adjust')}
+              />
+            </ColumnSelectWrapper>
+            <Popover
+              open={filterPopoverVisible}
+              onOpenChange={setFilterPopoverVisible}
+              trigger="click"
+              placement="left"
+              destroyOnHidden
+              content={
+                currentAdhocFilter && selectedDatasource ? (
+                  <FilterPopoverContent>
+                    <AdhocFilterEditPopover
+                      adhocFilter={currentAdhocFilter}
+                      options={filterColumnOptions}
+                      datasource={selectedDatasource}
+                      onChange={handleFilterChange}
+                      onClose={handleFilterPopoverClose}
+                      onResize={handleFilterPopoverResize}
+                      requireSave
+                    />
+                  </FilterPopoverContent>
+                ) : null
+              }
+            >
+              <Tooltip
+                title={
+                  selectedColumn
+                    ? t('Add filter to scope the modification')
+                    : t('Select a column first')
+                }
+              >
+                <FilterButton
+                  onClick={handleOpenFilterPopover}
+                  disabled={!selectedColumn || !selectedDatasource}
+                  aria-label={t('Add filter')}
+                  buttonStyle="tertiary"
+                >
+                  <Icons.FilterOutlined iconSize="m" />
+                </FilterButton>
+              </Tooltip>
+            </Popover>
+          </ColumnSelectRow>
+          {filters.length > 0 && (
+            <FiltersSection>
+              <Label
+                css={css`
+                  font-size: ${theme.fontSizeSM}px;
+                  color: ${theme.colorTextSecondary};
+                `}
+              >
+                {t('Filters')}
+              </Label>
+              <FilterTagsContainer>
+                {filters.map((filter, index) => (
+                  <Tag
+                    key={`${filter.col}-${filter.op}-${index}`}
+                    closable
+                    onClose={e => handleRemoveFilter(e, index)}
+                    onClick={() => handleEditFilter(index)}
+                    css={css`
+                      cursor: pointer;
+                      margin: 0;
+                      &:hover {
+                        opacity: 0.8;
+                      }
+                    `}
+                  >
+                    {formatFilterLabel(filter)}
+                  </Tag>
+                ))}
+              </FilterTagsContainer>
+            </FiltersSection>
+          )}
         </FormSection>
 
         <FormSection>
@@ -429,7 +737,6 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
               max={SLIDER_MAX}
               value={sliderValue}
               onChange={handleSliderChange}
-              disabled={isSliderDisabled}
               marks={sliderMarks}
               tooltip={{
                 formatter: (value?: number) =>

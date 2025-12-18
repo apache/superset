@@ -32,7 +32,7 @@ export const buildTimeRangeString = (since: string, until: string): string =>
 const formatDateEndpoint = (dttm: string, isStart?: boolean): string =>
   dttm.replace('T00:00:00', '') || (isStart ? '-∞' : '∞');
 
-export const formatTimeRange = (
+export const formatTimeRangeLabel = (
   timeRange: string,
   columnPlaceholder = 'col',
 ) => {
@@ -86,7 +86,7 @@ export const fetchTimeRange = async (
         response?.json?.result[0]?.until || '',
       );
       return {
-        value: formatTimeRange(timeRangeString, columnPlaceholder),
+        value: formatTimeRangeLabel(timeRangeString, columnPlaceholder),
       };
     }
     const timeRanges = response?.json?.result.map((result: any) =>
