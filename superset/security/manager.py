@@ -415,6 +415,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Datasource metadata for chart rendering
         ("can_get", "Datasource"),
         ("can_external_metadata", "Datasource"),
+        # Annotations on charts
+        ("can_read", "Annotation"),
+        ("can_read", "AnnotationLayerRestApi"),
+        # Chart permalinks (for shared chart links)
+        ("can_read", "ExplorePermalinkRestApi"),
     }
 
     # View menus that Public role should NOT have access to
@@ -1254,10 +1259,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.set_role("sql_lab", self._is_sql_lab_pvm, pvms)
 
         # Configure public role
-        # If PUBLIC_ROLE_LIKE is not set or is "Public", use the built-in Public role
-        # Otherwise, copy permissions from the specified role (legacy behavior)
+        # If PUBLIC_ROLE_LIKE is "Public", use the built-in Public role with
+        # sensible defaults for anonymous dashboard viewing.
+        # If set to another role name (e.g., "Gamma"), copy permissions from that role.
+        # If not set (None), the Public role remains empty (default/legacy behavior).
         public_role_like = get_conf()["PUBLIC_ROLE_LIKE"]
-        if not public_role_like or public_role_like == "Public":
+        if public_role_like == "Public":
             # Use the built-in Public role with minimal read-only permissions
             self.set_role("Public", self._is_public_pvm, pvms)
         elif public_role_like:

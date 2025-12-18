@@ -28,8 +28,9 @@ under the License.
 | can write on ReportSchedule                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can read on Chart                                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can write on Chart                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can read on Annotation                           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can read on Annotation                           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can write on Annotation                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can read on AnnotationLayerRestApi               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can read on Dataset                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can write on Dataset                             |:heavy_check_mark:|:heavy_check_mark:|O|O|O|
 | can read on Log                                  |:heavy_check_mark:|O|O|O|O|
@@ -188,7 +189,7 @@ under the License.
 | can write on ExploreFormDataRestApi              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can read on ExploreFormDataRestApi               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can write on ExplorePermalinkRestApi             |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can read on ExplorePermalinkRestApi              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can read on ExplorePermalinkRestApi              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can export on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can import on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can export on SavedQuery                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
