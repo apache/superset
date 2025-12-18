@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -413,6 +413,167 @@ test('delete button opens modal with dataset details', async () => {
   expect(modal).toBeInTheDocument();
 });
 
+test('delete action successfully deletes dataset and refreshes list', async () => {
+  const datasetToDelete = mockDatasets[0];
+  setupDeleteMocks(datasetToDelete.id);
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [datasetToDelete], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addSuccessToast: mockAddSuccessToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const deleteButton = await within(table).findByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  // Modal opens with dataset info
+  const modal = await screen.findByRole('dialog');
+
+  // Type DELETE to enable confirm button
+  const confirmInput = within(modal).getByTestId('delete-modal-input');
+  await userEvent.type(confirmInput, 'DELETE');
+
+  // Track API calls before confirm
+  const callsBefore = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  // Click confirm - find the danger button (last delete button in modal)
+  const confirmButton = within(modal)
+    .getAllByRole('button', { name: /^delete$/i })
+    .pop();
+  await userEvent.click(confirmButton!);
+
+  // Wait for delete API call
+  await waitFor(() => {
+    const deleteCalls = fetchMock.calls(
+      `glob:*/api/v1/dataset/${datasetToDelete.id}`,
+    );
+    const hasDelete = deleteCalls.some(
+      call => (call[1] as RequestInit)?.method === 'DELETE',
+    );
+    expect(hasDelete).toBe(true);
+  });
+
+  // Success toast shown and modal closes
+  await waitFor(() => {
+    expect(mockAddSuccessToast).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // List refreshes
+  await waitFor(() => {
+    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(
+      callsBefore,
+    );
+  });
+});
+
+test('delete action cancel closes modal without deleting', async () => {
+  const dataset = mockDatasets[0];
+  setupDeleteMocks(dataset.id);
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const deleteButton = await within(table).findByTestId('delete');
+  await userEvent.click(deleteButton);
+
+  const modal = await screen.findByRole('dialog');
+
+  // Click Cancel button
+  const cancelButton = within(modal).getByRole('button', { name: /cancel/i });
+  await userEvent.click(cancelButton);
+
+  // Modal closes
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // No delete API call made (only related_objects GET was called)
+  const deleteCalls = fetchMock.calls(
+    `glob:*/api/v1/dataset/${dataset.id}`,
+  );
+  const hasDeleteMethod = deleteCalls.some(
+    call => (call[1] as RequestInit)?.method === 'DELETE',
+  );
+  expect(hasDeleteMethod).toBe(false);
+
+  // Dataset still in list
+  expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+});
+
+test('duplicate action successfully duplicates virtual dataset', async () => {
+  const virtualDataset = mockDatasets[1]; // Virtual dataset (kind: 'virtual')
+  setupDuplicateMocks();
+
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [virtualDataset], count: 1 },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addSuccessToast: mockAddSuccessToast,
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+  const duplicateButton = await within(table).findByTestId('copy');
+  await userEvent.click(duplicateButton);
+
+  const modal = await screen.findByRole('dialog');
+
+  // Enter new name
+  const input = within(modal).getByRole('textbox');
+  await userEvent.clear(input);
+  await userEvent.type(input, 'Copy of Analytics');
+
+  // Track API calls before submit
+  const callsBefore = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  // Submit
+  const submitButton = within(modal).getByRole('button', {
+    name: /duplicate/i,
+  });
+  await userEvent.click(submitButton);
+
+  // Wait for duplicate API call and modal closes
+  await waitFor(() => {
+    const dupCalls = fetchMock.calls(API_ENDPOINTS.DATASET_DUPLICATE);
+    expect(dupCalls.length).toBeGreaterThan(0);
+    // Modal closes (duplicate success doesn't show toast, just closes modal)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // List refreshes
+  await waitFor(() => {
+    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(
+      callsBefore,
+    );
+  });
+});
+
 test('duplicate button visible only for virtual datasets', async () => {
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
@@ -617,12 +778,12 @@ test('exit bulk select via close button returns to normal view', async () => {
   });
   await userEvent.click(closeButton);
 
-  // Checkboxes should disappear and normal toolbar should return
+  // Wait for bulk select controls to be removed and normal toolbar restored
   await waitFor(() => {
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
     expect(
       screen.queryByTestId('bulk-select-controls'),
     ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
     expect(
       screen.getByRole('button', { name: /bulk select/i }),
     ).toBeInTheDocument();
@@ -913,6 +1074,50 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   expect(duplicateButton).not.toHaveClass('disabled');
 });
 
+test('displays error when initial dataset fetch fails with 500', async () => {
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { status: 500, body: { message: 'Internal Server Error' } },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: mockAddDangerToast,
+  });
+
+  // Error toast should be shown
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalled();
+  });
+});
+
+test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET is enabled', async () => {
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {
+      common: {
+        conf: {
+          PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: true,
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // When flag is enabled, links should use internal-link data-test attribute
+  const internalLinks = screen.getAllByTestId('internal-link');
+  expect(internalLinks.length).toBeGreaterThan(0);
+
+  // Each link should be a React Router Link (has href attribute)
+  internalLinks.forEach(link => {
+    expect(link).toHaveAttribute('href');
+  });
+});
+
 test('delete action gracefully handles 403 forbidden error', async () => {
   const dataset = mockDatasets[0];
 
@@ -933,14 +1138,17 @@ test('delete action gracefully handles 403 forbidden error', async () => {
 
   await userEvent.click(deleteButton);
 
-  // Allow time for the error to be caught and processed
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 100));
+  // Wait for SupersetClient.get to be called (it's mocked to throw error)
+  await waitFor(() => {
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining('/related_objects'),
+      }),
+    );
   });
 
   // Verify modal did NOT open (error prevented it)
-  const modal = screen.queryByRole('dialog');
-  expect(modal).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
   // Verify dataset still in list (not removed)
   expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
@@ -966,9 +1174,13 @@ test('delete action gracefully handles 500 internal server error', async () => {
 
   await userEvent.click(deleteButton);
 
-  // Allow time for the error to be caught and processed
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 100));
+  // Wait for SupersetClient.get to be called (it's mocked to throw error)
+  await waitFor(() => {
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining('/related_objects'),
+      }),
+    );
   });
 
   // Verify modal did NOT open
@@ -1022,15 +1234,14 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast
-  await waitFor(() =>
+  // Wait for error toast and verify modal stays open (combined to avoid race)
+  await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
-    ),
-  );
-
-  // Modal stays open on error (component doesn't close it on failure)
-  expect(screen.queryByRole('dialog')).toBeInTheDocument();
+    );
+    // Modal stays open on error (component doesn't close it on failure)
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 
   // Verify original dataset still in list
   expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
@@ -1079,15 +1290,14 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   });
   await userEvent.click(submitButton);
 
-  // Wait for error toast
-  await waitFor(() =>
+  // Wait for error toast and verify modal stays open (combined to avoid race)
+  await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       expect.stringMatching(/issue duplicating.*selected datasets/i),
-    ),
-  );
-
-  // Modal stays open on error (component doesn't close it on failure)
-  expect(screen.queryByRole('dialog')).toBeInTheDocument();
+    );
+    // Modal stays open on error (component doesn't close it on failure)
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 
   // Verify table state unchanged
   expect(screen.getByText(virtualDataset.table_name)).toBeInTheDocument();
