@@ -137,13 +137,13 @@ export async function apiDeleteDataset(
  * @param page - Playwright page instance (provides authentication context)
  * @param datasetId - ID of the dataset to duplicate
  * @param newName - Name for the duplicated dataset
- * @returns The duplicated dataset result containing its new ID
+ * @returns Object containing the new dataset's ID (use apiGetDataset for full details)
  */
 export async function duplicateDataset(
   page: Page,
   datasetId: number,
   newName: string,
-): Promise<DatasetResult> {
+): Promise<{ id: number }> {
   const response = await apiPost(page, `${ENDPOINTS.DATASET}duplicate`, {
     base_model_id: datasetId,
     table_name: newName,
@@ -156,5 +156,5 @@ export async function duplicateDataset(
       `Duplicate dataset API returned no id. Response: ${JSON.stringify(body)}`,
     );
   }
-  return { ...body.result, id: resolvedId };
+  return { id: resolvedId };
 }

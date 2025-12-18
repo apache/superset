@@ -120,10 +120,16 @@ export default defineConfig({
   // Web server setup - disabled in CI (Flask started separately in workflow)
   webServer: process.env.CI
     ? undefined
-    : {
-        command: 'curl -f http://localhost:8088/health',
-        url: 'http://localhost:8088/health',
-        reuseExistingServer: true,
-        timeout: 5000,
-      },
+    : (() => {
+        // Support custom base URL (e.g., http://localhost:9012/app/prefix/)
+        const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+        // Extract origin (scheme + host + port) for health check
+        const healthUrl = new URL('health', baseUrl).href;
+        return {
+          command: `curl -f ${healthUrl}`,
+          url: healthUrl,
+          reuseExistingServer: true,
+          timeout: 5000,
+        };
+      })(),
 });
