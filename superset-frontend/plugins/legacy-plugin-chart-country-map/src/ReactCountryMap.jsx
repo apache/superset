@@ -70,10 +70,5 @@ export default styled(CountryMap)`
       cursor: pointer;
       stroke: ${theme.colorSplit};
     }
-
-    g.text-layer text, g.text-layer text.big-text, g.text-layer text.result-text {
-      text-shadow: 1px 1px 1px white;
-      filter: drop-shadow(0px 0px 0.1px #FFFFFF);
-    }
   `}
 `;
