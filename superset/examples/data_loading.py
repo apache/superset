@@ -36,15 +36,7 @@ TABLE_NAME_OVERRIDES = {
 }
 
 # Dataset descriptions for documentation (auto-discovered datasets without YAML configs)
-DATASET_DESCRIPTIONS = {
-    "airports": "Airport locations data",
-    "birth_france": "France birth data",
-    "countries": "World Bank country statistics",
-    "multiformat_time_series": "Time series data in multiple formats",
-    "paris_iris": "Paris IRIS geographic data",
-    "random_time_series": "Random time series data",
-    "san_francisco": "San Francisco addresses",
-}
+DATASET_DESCRIPTIONS: Dict[str, str] = {}
 
 
 def get_examples_directory() -> Path:
