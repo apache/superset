@@ -37,11 +37,7 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import (
-    import_tag,
-    load_yaml,
-    METADATA_FILE_NAME,
-)
+from superset.commands.importers.v1.utils import import_tag, load_yaml, METADATA_FILE_NAME
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
 from superset.connectors.sqla.models import SqlaTable
