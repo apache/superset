@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import MagicMock
+
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import User
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from superset.security.manager import ExcludeUsersFilter, SupersetSecurityManager
+from superset.security.manager import ExcludeUsersFilter
 
 
 def test_exclude_users_filter_no_exclusions(mocker: MockerFixture) -> None:
@@ -30,14 +32,16 @@ def test_exclude_users_filter_no_exclusions(mocker: MockerFixture) -> None:
 
     The query should be returned unmodified.
     """
+    mock_sm = MagicMock()
+    mock_sm.get_exclude_users_from_lists.return_value = []
+
+    mock_current_app = MagicMock()
+    mock_current_app.config = {"EXCLUDE_USERS_FROM_LISTS": None}
+    mock_current_app.appbuilder.sm = mock_sm
+
     mocker.patch(
-        "superset.security.manager.current_app.config",
-        {"EXCLUDE_USERS_FROM_LISTS": None},
-    )
-    mocker.patch.object(
-        SupersetSecurityManager,
-        "get_exclude_users_from_lists",
-        return_value=[],
+        "superset.security.manager.current_app",
+        mock_current_app,
     )
 
     engine = create_engine("sqlite://")
@@ -55,9 +59,14 @@ def test_exclude_users_filter_with_config(mocker: MockerFixture) -> None:
     """
     Test ExcludeUsersFilter when EXCLUDE_USERS_FROM_LISTS config is set.
     """
+    mock_current_app = MagicMock()
+    mock_current_app.config = {
+        "EXCLUDE_USERS_FROM_LISTS": ["service_account", "automation_user"]
+    }
+
     mocker.patch(
-        "superset.security.manager.current_app.config",
-        {"EXCLUDE_USERS_FROM_LISTS": ["service_account", "automation_user"]},
+        "superset.security.manager.current_app",
+        mock_current_app,
     )
 
     engine = create_engine("sqlite://")
@@ -82,16 +91,18 @@ def test_exclude_users_filter_with_config(mocker: MockerFixture) -> None:
 def test_exclude_users_filter_with_security_manager(mocker: MockerFixture) -> None:
     """
     Test ExcludeUsersFilter when EXCLUDE_USERS_FROM_LISTS is None
-    and security manager provides the exclusion list.
+    and security manager instance provides the exclusion list.
     """
+    mock_sm = MagicMock()
+    mock_sm.get_exclude_users_from_lists.return_value = ["gamma", "guest"]
+
+    mock_current_app = MagicMock()
+    mock_current_app.config = {"EXCLUDE_USERS_FROM_LISTS": None}
+    mock_current_app.appbuilder.sm = mock_sm
+
     mocker.patch(
-        "superset.security.manager.current_app.config",
-        {"EXCLUDE_USERS_FROM_LISTS": None},
-    )
-    mocker.patch.object(
-        SupersetSecurityManager,
-        "get_exclude_users_from_lists",
-        return_value=["gamma", "guest"],
+        "superset.security.manager.current_app",
+        mock_current_app,
     )
 
     engine = create_engine("sqlite://")
@@ -111,6 +122,8 @@ def test_exclude_users_filter_with_security_manager(mocker: MockerFixture) -> No
     assert "ab_user.username NOT IN" in query_str
     assert "gamma" in query_str
     assert "guest" in query_str
+    # Verify the instance method was called
+    mock_sm.get_exclude_users_from_lists.assert_called_once()
 
 
 def test_exclude_users_filter_config_takes_precedence(mocker: MockerFixture) -> None:
@@ -118,15 +131,16 @@ def test_exclude_users_filter_config_takes_precedence(mocker: MockerFixture) -> 
     Test that EXCLUDE_USERS_FROM_LISTS config takes precedence over
     security manager's get_exclude_users_from_lists method.
     """
+    mock_sm = MagicMock()
+    mock_sm.get_exclude_users_from_lists.return_value = ["sm_user"]
+
+    mock_current_app = MagicMock()
+    mock_current_app.config = {"EXCLUDE_USERS_FROM_LISTS": ["config_user"]}
+    mock_current_app.appbuilder.sm = mock_sm
+
     mocker.patch(
-        "superset.security.manager.current_app.config",
-        {"EXCLUDE_USERS_FROM_LISTS": ["config_user"]},
-    )
-    # This should NOT be called when config is set
-    get_exclude_mock = mocker.patch.object(
-        SupersetSecurityManager,
-        "get_exclude_users_from_lists",
-        return_value=["sm_user"],
+        "superset.security.manager.current_app",
+        mock_current_app,
     )
 
     engine = create_engine("sqlite://")
@@ -148,4 +162,4 @@ def test_exclude_users_filter_config_takes_precedence(mocker: MockerFixture) -> 
     # SM user should NOT be in the query (config takes precedence)
     assert "sm_user" not in query_str
     # get_exclude_users_from_lists should not be called when config is set
-    get_exclude_mock.assert_not_called()
+    mock_sm.get_exclude_users_from_lists.assert_not_called()

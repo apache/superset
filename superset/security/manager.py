@@ -157,7 +157,7 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
     def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
         exclude_users = (
-            SupersetSecurityManager.get_exclude_users_from_lists()
+            current_app.appbuilder.sm.get_exclude_users_from_lists()
             if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
             else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
