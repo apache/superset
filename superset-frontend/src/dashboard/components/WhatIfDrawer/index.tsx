@@ -18,9 +18,14 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
-import { Button, Select } from '@superset-ui/core/components';
+import {
+  Button,
+  Select,
+  Checkbox,
+  Tooltip,
+} from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setWhatIfModifications } from 'src/dashboard/actions/dashboardState';
@@ -31,6 +36,8 @@ import {
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
 import { RootState, Slice, WhatIfColumn } from 'src/dashboard/types';
 import WhatIfAIInsights from './WhatIfAIInsights';
+import { fetchRelatedColumnSuggestions } from './whatIfApi';
+import { ExtendedWhatIfModification } from './types';
 
 export const WHAT_IF_PANEL_WIDTH = 300;
 
@@ -115,6 +122,69 @@ const SliderContainer = styled.div`
 
 const ApplyButton = styled(Button)`
   width: 100%;
+  min-height: 32px;
+`;
+
+const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+const ModificationsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const ModificationsSectionTitle = styled.div`
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme }) => theme.colorText};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+`;
+
+const ModificationCard = styled.div<{ isAISuggested?: boolean }>`
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  background-color: ${({ theme, isAISuggested }) =>
+    isAISuggested ? theme.colorInfoBg : theme.colorBgLayout};
+  border: 1px solid
+    ${({ theme, isAISuggested }) =>
+      isAISuggested ? theme.colorInfoBorder : theme.colorBorderSecondary};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
+
+const ModificationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+const ModificationColumn = styled.span`
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme }) => theme.colorText};
+`;
+
+const ModificationValue = styled.span<{ isPositive: boolean }>`
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme, isPositive }) =>
+    isPositive ? theme.colorSuccess : theme.colorError};
+`;
+
+const AIBadge = styled.span`
+  font-size: ${({ theme }) => theme.fontSizeXS}px;
+  padding: 2px 6px;
+  background-color: ${({ theme }) => theme.colorInfo};
+  color: ${({ theme }) => theme.colorWhite};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+`;
+
+const ModificationReasoning = styled.div`
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
+  font-style: italic;
 `;
 
 interface WhatIfPanelProps {
@@ -129,6 +199,11 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
   const [sliderValue, setSliderValue] = useState<number>(SLIDER_DEFAULT);
   const [affectedChartIds, setAffectedChartIds] = useState<number[]>([]);
+  const [enableCascadingEffects, setEnableCascadingEffects] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [appliedModifications, setAppliedModifications] = useState<
+    ExtendedWhatIfModification[]
+  >([]);
 
   const slices = useSelector(
     (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
@@ -166,40 +241,111 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     setSliderValue(value);
   }, []);
 
-  const handleApply = useCallback(() => {
+  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
+
+  const handleApply = useCallback(async () => {
     if (!selectedColumn) return;
 
     const multiplier = 1 + sliderValue / 100;
 
-    // Get affected chart IDs
-    const chartIds = columnToChartIds.get(selectedColumn) || [];
+    // Base user modification
+    const userModification: ExtendedWhatIfModification = {
+      column: selectedColumn,
+      multiplier,
+      isAISuggested: false,
+    };
+
+    let allModifications: ExtendedWhatIfModification[] = [userModification];
+
+    // If cascading effects enabled, fetch AI suggestions
+    if (enableCascadingEffects) {
+      setIsLoadingSuggestions(true);
+      try {
+        const suggestions = await fetchRelatedColumnSuggestions({
+          selectedColumn,
+          userMultiplier: multiplier,
+          availableColumns: numericColumns.map(col => ({
+            columnName: col.columnName,
+            description: col.description,
+            verboseName: col.verboseName,
+            datasourceId: col.datasourceId,
+          })),
+          dashboardName: dashboardInfo?.dash_edit_perm
+            ? dashboardInfo?.dashboard_title
+            : undefined,
+        });
+
+        // Add AI suggestions to modifications
+        const aiModifications: ExtendedWhatIfModification[] =
+          suggestions.suggestedModifications.map(mod => ({
+            column: mod.column,
+            multiplier: mod.multiplier,
+            isAISuggested: true,
+            reasoning: mod.reasoning,
+            confidence: mod.confidence,
+          }));
+
+        allModifications = [...allModifications, ...aiModifications];
+      } catch (error) {
+        logging.error('Failed to get AI suggestions:', error);
+        // Continue with just user modification
+      }
+      setIsLoadingSuggestions(false);
+    }
+
+    setAppliedModifications(allModifications);
+
+    // Collect all affected chart IDs from all modifications
+    const allAffectedChartIds = new Set<number>();
+    allModifications.forEach(mod => {
+      const chartIds = columnToChartIds.get(mod.column) || [];
+      chartIds.forEach(id => allAffectedChartIds.add(id));
+    });
+    const chartIdsArray = Array.from(allAffectedChartIds);
 
     // Save affected chart IDs for AI insights
-    setAffectedChartIds(chartIds);
+    setAffectedChartIds(chartIdsArray);
 
     // Save original chart data before applying what-if modifications
-    chartIds.forEach(chartId => {
+    chartIdsArray.forEach(chartId => {
       dispatch(saveOriginalChartData(chartId));
     });
 
-    // Set the what-if modifications in Redux state
+    // Set the what-if modifications in Redux state (all modifications)
     dispatch(
-      setWhatIfModifications([
-        {
-          column: selectedColumn,
-          multiplier,
-        },
-      ]),
+      setWhatIfModifications(
+        allModifications.map(mod => ({
+          column: mod.column,
+          multiplier: mod.multiplier,
+          filters: mod.filters,
+        })),
+      ),
     );
 
-    // Trigger queries for all charts that use the selected column
-    chartIds.forEach(chartId => {
+    // Trigger queries for all affected charts
+    chartIdsArray.forEach(chartId => {
       dispatch(triggerQuery(true, chartId));
     });
-  }, [dispatch, selectedColumn, sliderValue, columnToChartIds]);
+  }, [
+    dispatch,
+    selectedColumn,
+    sliderValue,
+    columnToChartIds,
+    enableCascadingEffects,
+    numericColumns,
+    dashboardInfo,
+  ]);
 
-  const isApplyDisabled = !selectedColumn || sliderValue === SLIDER_DEFAULT;
+  const isApplyDisabled =
+    !selectedColumn || sliderValue === SLIDER_DEFAULT || isLoadingSuggestions;
   const isSliderDisabled = !selectedColumn;
+
+  // Helper to format percentage change
+  const formatPercentage = (multiplier: number): string => {
+    const pct = (multiplier - 1) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(1)}%`;
+  };
 
   const sliderMarks = {
     [SLIDER_MIN]: `${SLIDER_MIN}%`,
@@ -255,22 +401,79 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
           </SliderContainer>
         </FormSection>
 
+        <CheckboxContainer>
+          <Checkbox
+            checked={enableCascadingEffects}
+            onChange={e => setEnableCascadingEffects(e.target.checked)}
+          >
+            {t('AI-powered cascading effects')}
+          </Checkbox>
+          <Tooltip
+            title={t(
+              'When enabled, AI will analyze column relationships and automatically suggest related columns that should also be modified.',
+            )}
+          >
+            <Icons.InfoCircleOutlined
+              iconSize="s"
+              css={css`
+                color: ${theme.colorTextSecondary};
+                cursor: help;
+              `}
+            />
+          </Tooltip>
+        </CheckboxContainer>
+
         <ApplyButton
           buttonStyle="primary"
           onClick={handleApply}
           disabled={isApplyDisabled}
+          loading={isLoadingSuggestions}
         >
           <Icons.StarFilled iconSize="s" />
-          {t('See what if')}
+          {isLoadingSuggestions
+            ? t('Analyzing relationships...')
+            : t('See what if')}
         </ApplyButton>
 
-        <Alert
-          type="info"
-          message={t(
-            'Select a column above to simulate changes and preview how it would impact your dashboard in real-time.',
-          )}
-          showIcon
-        />
+        {appliedModifications.length === 0 && (
+          <Alert
+            type="info"
+            message={t(
+              'Select a column above to simulate changes and preview how it would impact your dashboard in real-time.',
+            )}
+            showIcon
+          />
+        )}
+
+        {appliedModifications.length > 0 && (
+          <ModificationsSection>
+            <ModificationsSectionTitle>
+              {t('Applied Modifications')}
+            </ModificationsSectionTitle>
+            {appliedModifications.map((mod, idx) => (
+              <ModificationCard key={idx} isAISuggested={mod.isAISuggested}>
+                <ModificationHeader>
+                  <ModificationColumn>{mod.column}</ModificationColumn>
+                  <div
+                    css={css`
+                      display: flex;
+                      align-items: center;
+                      gap: ${theme.sizeUnit}px;
+                    `}
+                  >
+                    <ModificationValue isPositive={mod.multiplier >= 1}>
+                      {formatPercentage(mod.multiplier)}
+                    </ModificationValue>
+                    {mod.isAISuggested && <AIBadge>{t('AI')}</AIBadge>}
+                  </div>
+                </ModificationHeader>
+                {mod.reasoning && (
+                  <ModificationReasoning>{mod.reasoning}</ModificationReasoning>
+                )}
+              </ModificationCard>
+            ))}
+          </ModificationsSection>
+        )}
 
         {affectedChartIds.length > 0 && (
           <WhatIfAIInsights affectedChartIds={affectedChartIds} />

@@ -71,3 +71,41 @@ export interface WhatIfInterpretResponse {
 }
 
 export type WhatIfAIStatus = 'idle' | 'loading' | 'success' | 'error';
+
+// Types for suggest_related endpoint
+
+export interface AvailableColumn {
+  columnName: string;
+  description?: string | null;
+  verboseName?: string | null;
+  datasourceId: number;
+}
+
+export interface SuggestedModification {
+  column: string;
+  multiplier: number;
+  reasoning: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface WhatIfSuggestRelatedRequest {
+  selectedColumn: string;
+  userMultiplier: number;
+  availableColumns: AvailableColumn[];
+  dashboardName?: string;
+}
+
+export interface WhatIfSuggestRelatedResponse {
+  suggestedModifications: SuggestedModification[];
+  explanation?: string;
+}
+
+// Extended modification type that tracks whether it came from AI
+export interface ExtendedWhatIfModification {
+  column: string;
+  multiplier: number;
+  filters?: WhatIfFilter[];
+  isAISuggested?: boolean;
+  reasoning?: string;
+  confidence?: 'high' | 'medium' | 'low';
+}

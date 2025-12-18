@@ -161,3 +161,90 @@ class WhatIfInterpretResponseSchema(Schema):
         required=False,
         metadata={"description": "Raw AI response (only in debug mode)"},
     )
+
+
+# Schemas for suggest_related endpoint
+
+
+class AvailableColumnSchema(Schema):
+    """Schema for an available column with metadata."""
+
+    column_name = fields.String(
+        required=True,
+        metadata={"description": "Name of the column"},
+    )
+    description = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "Column description/documentation"},
+    )
+    verbose_name = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "Human-readable column name"},
+    )
+    datasource_id = fields.Integer(
+        required=True,
+        metadata={"description": "ID of the datasource containing this column"},
+    )
+
+
+class WhatIfSuggestRelatedRequestSchema(Schema):
+    """Schema for suggest_related request."""
+
+    selected_column = fields.String(
+        required=True,
+        metadata={"description": "The column the user selected to modify"},
+    )
+    user_multiplier = fields.Float(
+        required=True,
+        metadata={
+            "description": "The multiplier the user applied (e.g., 1.1 for +10%)"
+        },
+    )
+    available_columns = fields.List(
+        fields.Nested(AvailableColumnSchema),
+        required=True,
+        metadata={"description": "All numeric columns available in the dashboard"},
+    )
+    dashboard_name = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "Name of the dashboard for context"},
+    )
+
+
+class SuggestedModificationSchema(Schema):
+    """Schema for a single AI-suggested modification."""
+
+    column = fields.String(
+        required=True,
+        metadata={"description": "Column name to modify"},
+    )
+    multiplier = fields.Float(
+        required=True,
+        metadata={"description": "Suggested multiplier for this column"},
+    )
+    reasoning = fields.String(
+        required=True,
+        metadata={"description": "Brief explanation of why this column is related"},
+    )
+    confidence = fields.String(
+        required=True,
+        metadata={"description": "Confidence level: high, medium, or low"},
+    )
+
+
+class WhatIfSuggestRelatedResponseSchema(Schema):
+    """Schema for suggest_related response."""
+
+    suggested_modifications = fields.List(
+        fields.Nested(SuggestedModificationSchema),
+        required=True,
+        metadata={"description": "List of AI-suggested column modifications"},
+    )
+    explanation = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "Overall explanation of the relationship analysis"},
+    )

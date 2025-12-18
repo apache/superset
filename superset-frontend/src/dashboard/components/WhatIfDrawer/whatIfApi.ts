@@ -23,6 +23,9 @@ import {
   WhatIfInterpretResponse,
   ChartComparison,
   WhatIfFilter,
+  WhatIfSuggestRelatedRequest,
+  WhatIfSuggestRelatedResponse,
+  SuggestedModification,
 } from './types';
 
 interface ApiResponse {
@@ -82,5 +85,51 @@ export async function fetchWhatIfInterpretation(
       type: insight.type as 'observation' | 'implication' | 'recommendation',
     })),
     rawResponse: result.raw_response,
+  };
+}
+
+interface ApiSuggestRelatedResponse {
+  result: {
+    suggested_modifications: Array<{
+      column: string;
+      multiplier: number;
+      reasoning: string;
+      confidence: string;
+    }>;
+    explanation?: string;
+  };
+}
+
+export async function fetchRelatedColumnSuggestions(
+  request: WhatIfSuggestRelatedRequest,
+): Promise<WhatIfSuggestRelatedResponse> {
+  const response = await SupersetClient.post({
+    endpoint: '/api/v1/what_if/suggest_related',
+    jsonPayload: {
+      selected_column: request.selectedColumn,
+      user_multiplier: request.userMultiplier,
+      available_columns: request.availableColumns.map(col => ({
+        column_name: col.columnName,
+        description: col.description,
+        verbose_name: col.verboseName,
+        datasource_id: col.datasourceId,
+      })),
+      dashboard_name: request.dashboardName,
+    },
+  });
+
+  const data = response.json as ApiSuggestRelatedResponse;
+  const { result } = data;
+
+  return {
+    suggestedModifications: result.suggested_modifications.map(
+      (mod): SuggestedModification => ({
+        column: mod.column,
+        multiplier: mod.multiplier,
+        reasoning: mod.reasoning,
+        confidence: mod.confidence as 'high' | 'medium' | 'low',
+      }),
+    ),
+    explanation: result.explanation,
   };
 }

@@ -28,10 +28,13 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 from superset.what_if.commands.interpret import WhatIfInterpretCommand
+from superset.what_if.commands.suggest_related import WhatIfSuggestRelatedCommand
 from superset.what_if.exceptions import OpenRouterAPIError, OpenRouterConfigError
 from superset.what_if.schemas import (
     WhatIfInterpretRequestSchema,
     WhatIfInterpretResponseSchema,
+    WhatIfSuggestRelatedRequestSchema,
+    WhatIfSuggestRelatedResponseSchema,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,6 +113,76 @@ class WhatIfRestApi(BaseSupersetApi):
         except OpenRouterConfigError as ex:
             logger.error("OpenRouter configuration error: %s", ex)
             return self.response(500, message="AI interpretation is not configured")
+        except OpenRouterAPIError as ex:
+            logger.error("OpenRouter API error: %s", ex)
+            return self.response(502, message=str(ex))
+        except ValueError as ex:
+            logger.warning("Invalid request: %s", ex)
+            return self.response_400(message=str(ex))
+
+    @expose("/suggest_related", methods=("POST",))
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    def suggest_related(self) -> Response:
+        """Get AI suggestions for related column modifications.
+        ---
+        post:
+          summary: Get AI-suggested cascading column modifications
+          description: >-
+            Analyzes column relationships and suggests related columns
+            that should be modified when a user modifies a specific column.
+            Uses AI to infer causal, mathematical, and domain-specific relationships.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/WhatIfSuggestRelatedRequestSchema'
+          responses:
+            200:
+              description: Related column suggestions generated successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/WhatIfSuggestRelatedResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+            502:
+              description: Error communicating with AI service
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+          security:
+            - jwt: []
+        """
+        try:
+            request_data = WhatIfSuggestRelatedRequestSchema().load(request.json)
+        except ValidationError as ex:
+            logger.warning("Invalid request data: %s", ex.messages)
+            return self.response_400(message=str(ex.messages))
+
+        try:
+            command = WhatIfSuggestRelatedCommand(request_data)
+            result = command.run()
+            return self.response(
+                200, result=WhatIfSuggestRelatedResponseSchema().dump(result)
+            )
+        except OpenRouterConfigError as ex:
+            logger.error("OpenRouter configuration error: %s", ex)
+            return self.response(500, message="AI suggestions are not configured")
         except OpenRouterAPIError as ex:
             logger.error("OpenRouter API error: %s", ex)
             return self.response(502, message=str(ex))

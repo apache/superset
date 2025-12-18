@@ -154,6 +154,8 @@ export function getNumericColumnsForDashboard(
             columnName: colName,
             datasourceId: datasource.id,
             usedByChartIds: [chartId],
+            description: colMetadata.description,
+            verboseName: colMetadata.verbose_name,
           });
         } else {
           const existing = columnMap.get(key)!;

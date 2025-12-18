@@ -312,6 +312,8 @@ export interface WhatIfColumn {
   columnName: string;
   datasourceId: number;
   usedByChartIds: number[];
+  description?: string | null;
+  verboseName?: string | null;
 }
 
 export enum MenuKeys {
