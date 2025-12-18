@@ -23,6 +23,7 @@ import {
   useState,
   useRef,
   RefObject,
+  useCallback,
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
@@ -60,6 +61,7 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import ThemeSelectorModal from '../menu/ThemeSelectorModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
 const RefreshTooltip = styled.div`
@@ -139,6 +141,10 @@ export interface SliceHeaderControlsProps {
   supersetCanCSV?: boolean;
 
   crossFiltersEnabled?: boolean;
+
+  // Theme-related props
+  currentThemeId?: number | null;
+  onApplyTheme?: (themeId: number | null) => void;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -156,6 +162,7 @@ const SliceHeaderControls = (
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
@@ -298,11 +305,27 @@ const SliceHeaderControls = (
         }
         break;
       }
+      case MenuKeys.ApplyTheme: {
+        setIsThemeSelectorOpen(true);
+        break;
+      }
       default:
         break;
     }
     setIsDropdownVisible(false);
   };
+
+  const handleCloseThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(false);
+  }, []);
+
+  const handleApplyTheme = useCallback(
+    (themeId: number | null) => {
+      props.onApplyTheme?.(themeId);
+      handleCloseThemeSelector();
+    },
+    [props.onApplyTheme, handleCloseThemeSelector],
+  );
 
   const {
     componentId,
@@ -414,7 +437,15 @@ const SliceHeaderControls = (
     });
   }
 
-  if (canExplore || canEditCrossFilters) {
+  // Add theme selector if the callback is provided
+  if (props.onApplyTheme) {
+    newMenuItems.push({
+      key: MenuKeys.ApplyTheme,
+      label: t('Apply theme'),
+    });
+  }
+
+  if (canExplore || canEditCrossFilters || props.onApplyTheme) {
     newMenuItems.push({ type: 'divider' });
   }
 
@@ -605,6 +636,17 @@ const SliceHeaderControls = (
       />
 
       {canEditCrossFilters && scopingModal}
+
+      {props.onApplyTheme && (
+        <ThemeSelectorModal
+          show={isThemeSelectorOpen}
+          onHide={handleCloseThemeSelector}
+          onApply={handleApplyTheme}
+          currentThemeId={props.currentThemeId ?? null}
+          componentId={componentId}
+          componentType="Chart"
+        />
+      )}
     </>
   );
 };

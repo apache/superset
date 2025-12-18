@@ -28,6 +28,7 @@ import { EditorHost } from 'src/core/editors';
 import ComponentHeaderControls, {
   ComponentMenuKeys,
 } from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ThemeSelectorModal from 'src/dashboard/components/menu/ThemeSelectorModal';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
@@ -239,16 +240,17 @@ class Markdown extends PureComponent {
   }
 
   handleChangeEditorMode(mode) {
-    const nextState = {
-      ...this.state,
-      editorMode: mode,
-    };
     if (mode === 'preview') {
       this.updateMarkdownContent();
-      nextState.hasError = false;
     }
 
-    this.setState(nextState);
+    // Use functional setState to avoid overwriting concurrent state updates
+    // (e.g., isThemeSelectorOpen being set by handleOpenThemeSelector)
+    this.setState(prevState => ({
+      ...prevState,
+      editorMode: mode,
+      ...(mode === 'preview' ? { hasError: false } : {}),
+    }));
   }
 
   updateMarkdownContent() {
@@ -463,51 +465,53 @@ class Markdown extends PureComponent {
               menuItems={[]}
               editMode={editMode}
             >
-              <MarkdownStyles
-                data-test="dashboard-markdown-editor"
-                className={cx(
-                  'dashboard-markdown',
-                  isEditing && 'dashboard-markdown--editing',
-                )}
-                id={component.id}
-              >
-                <ResizableContainer
+              <ComponentThemeProvider themeId={component.meta.theme_id}>
+                <MarkdownStyles
+                  data-test="dashboard-markdown-editor"
+                  className={cx(
+                    'dashboard-markdown',
+                    isEditing && 'dashboard-markdown--editing',
+                  )}
                   id={component.id}
-                  adjustableWidth={parentComponent.type === ROW_TYPE}
-                  adjustableHeight
-                  widthStep={columnWidth}
-                  widthMultiple={widthMultiple}
-                  heightStep={GRID_BASE_UNIT}
-                  heightMultiple={component.meta.height}
-                  minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-                  minHeightMultiple={GRID_MIN_ROW_UNITS}
-                  maxWidthMultiple={availableColumnCount + widthMultiple}
-                  onResizeStart={this.handleResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  editMode={isFocused ? false : editMode}
                 >
-                  <div
-                    ref={dragSourceRef}
-                    className="dashboard-component dashboard-component-chart-holder"
-                    data-test="dashboard-component-chart-holder"
+                  <ResizableContainer
+                    id={component.id}
+                    adjustableWidth={parentComponent.type === ROW_TYPE}
+                    adjustableHeight
+                    widthStep={columnWidth}
+                    widthMultiple={widthMultiple}
+                    heightStep={GRID_BASE_UNIT}
+                    heightMultiple={component.meta.height}
+                    minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+                    minHeightMultiple={GRID_MIN_ROW_UNITS}
+                    maxWidthMultiple={availableColumnCount + widthMultiple}
+                    onResizeStart={this.handleResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    editMode={isFocused ? false : editMode}
                   >
-                    {editMode && (
-                      <HoverMenu position="top">
-                        <ComponentHeaderControls
-                          componentId={component.id}
-                          menuItems={this.getMenuItems()}
-                          onMenuClick={this.handleMenuClick}
-                          editMode={editMode}
-                        />
-                      </HoverMenu>
-                    )}
-                    {editMode && isEditing
-                      ? this.renderEditMode()
-                      : this.renderPreviewMode()}
-                  </div>
-                </ResizableContainer>
-              </MarkdownStyles>
+                    <div
+                      ref={dragSourceRef}
+                      className="dashboard-component dashboard-component-chart-holder"
+                      data-test="dashboard-component-chart-holder"
+                    >
+                      {editMode && (
+                        <HoverMenu position="top">
+                          <ComponentHeaderControls
+                            componentId={component.id}
+                            menuItems={this.getMenuItems()}
+                            onMenuClick={this.handleMenuClick}
+                            editMode={editMode}
+                          />
+                        </HoverMenu>
+                      )}
+                      {editMode && isEditing
+                        ? this.renderEditMode()
+                        : this.renderPreviewMode()}
+                    </div>
+                  </ResizableContainer>
+                </MarkdownStyles>
+              </ComponentThemeProvider>
             </WithPopoverMenu>
           )}
         </Draggable>

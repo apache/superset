@@ -30,17 +30,19 @@ import cx from 'classnames';
 import { t } from '@apache-superset/core';
 import { FeatureFlag, isFeatureEnabled, JsonObject } from '@superset-ui/core';
 import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
-import { Icons, Constants } from '@superset-ui/core/components';
+import { Constants } from '@superset-ui/core/components';
 import {
   Draggable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import IconButton from 'src/dashboard/components/IconButton';
-import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
+import ComponentHeaderControls, {
+  ComponentMenuKeys,
+} from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ThemeSelectorModal from 'src/dashboard/components/menu/ThemeSelectorModal';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
@@ -158,12 +160,19 @@ const Row = memo((props: RowProps) => {
   const [isInView, setIsInView] = useState(false);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isComponentVisibleRef = useRef(isComponentVisible);
+  const rowComponentRef = useRef(rowComponent);
 
   useEffect(() => {
     isComponentVisibleRef.current = isComponentVisible;
   }, [isComponentVisible]);
+
+  // Keep ref updated with latest rowComponent to avoid stale closures
+  useEffect(() => {
+    rowComponentRef.current = rowComponent;
+  }, [rowComponent]);
 
   // if chart not rendered - render it if it's less than 1 view height away from current viewport
   // if chart rendered - remove it if it's more than 4 view heights away from current viewport
@@ -234,6 +243,12 @@ const Row = memo((props: RowProps) => {
     setIsFocused(Boolean(nextFocus));
   }, []);
 
+  const backgroundStyle =
+    backgroundStyleOptions.find(
+      opt =>
+        opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
+    ) ?? backgroundStyleOptions[0];
+
   const handleChangeBackground = useCallback(
     (nextValue: string) => {
       const metaKey = 'background';
@@ -256,6 +271,97 @@ const Row = memo((props: RowProps) => {
     deleteComponent(rowComponent.id as string, parentId);
   }, [deleteComponent, rowComponent, parentId]);
 
+  const handleOpenThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(true);
+  }, []);
+
+  const handleCloseThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(false);
+  }, []);
+
+  const handleApplyTheme = useCallback(
+    (themeId: number | null) => {
+      // Use ref to get latest component state, avoiding stale closures
+      const currentComponent = rowComponentRef.current;
+      if (themeId !== null) {
+        updateComponents({
+          [currentComponent.id as string]: {
+            ...currentComponent,
+            meta: {
+              ...currentComponent.meta,
+              theme_id: themeId,
+            },
+          },
+        });
+      } else {
+        // Clear theme - omit theme_id from meta
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, camelcase
+        const { theme_id, ...metaWithoutTheme } = currentComponent.meta || {};
+        updateComponents({
+          [currentComponent.id as string]: {
+            ...currentComponent,
+            meta: metaWithoutTheme,
+          },
+        });
+      }
+      handleCloseThemeSelector();
+    },
+    [updateComponents, handleCloseThemeSelector],
+  );
+
+  const handleMenuClick = useCallback(
+    (key: string) => {
+      switch (key) {
+        case ComponentMenuKeys.BackgroundStyle:
+          // Toggle between transparent and solid
+          handleChangeBackground(
+            backgroundStyle.value === BACKGROUND_TRANSPARENT
+              ? backgroundStyleOptions[1].value
+              : BACKGROUND_TRANSPARENT,
+          );
+          break;
+        case ComponentMenuKeys.ApplyTheme:
+          handleOpenThemeSelector();
+          break;
+        case ComponentMenuKeys.Delete:
+          handleDeleteComponent();
+          break;
+        default:
+          break;
+      }
+    },
+    [
+      backgroundStyle.value,
+      handleChangeBackground,
+      handleDeleteComponent,
+      handleOpenThemeSelector,
+    ],
+  );
+
+  const menuItems = useMemo(
+    () => [
+      {
+        key: ComponentMenuKeys.BackgroundStyle,
+        label:
+          backgroundStyle.value === BACKGROUND_TRANSPARENT
+            ? t('Background: Transparent')
+            : t('Background: Solid'),
+      },
+      { type: 'divider' as const },
+      {
+        key: ComponentMenuKeys.ApplyTheme,
+        label: t('Apply theme'),
+      },
+      { type: 'divider' as const },
+      {
+        key: ComponentMenuKeys.Delete,
+        label: t('Delete'),
+        danger: true,
+      },
+    ],
+    [backgroundStyle.value],
+  );
+
   const handleMenuHover = useCallback((hover: { isHovered: boolean }) => {
     setHoverMenuHovered(hover.isHovered);
   }, []);
@@ -268,12 +374,6 @@ const Row = memo((props: RowProps) => {
     [rowComponent.children],
   );
 
-  const backgroundStyle =
-    backgroundStyleOptions.find(
-      opt =>
-        opt.value === (rowComponent.meta?.background ?? BACKGROUND_TRANSPARENT),
-    ) ?? backgroundStyleOptions[0];
-
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
   const renderChild = useCallback(
     ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement> }) => (
@@ -281,13 +381,7 @@ const Row = memo((props: RowProps) => {
         isFocused={isFocused}
         onChangeFocus={handleChangeFocus}
         disableClick
-        menuItems={[
-          <BackgroundStyleDropdown
-            id={`${rowComponent.id}-background`}
-            value={backgroundStyle.value}
-            onChange={handleChangeBackground}
-          />,
-        ]}
+        menuItems={[]}
         editMode={editMode}
       >
         {editMode && (
@@ -297,24 +391,28 @@ const Row = memo((props: RowProps) => {
             position="left"
           >
             <DragHandle position="left" />
-            <DeleteComponentButton onDelete={handleDeleteComponent} />
-            <IconButton
-              onClick={() => handleChangeFocus(true)}
-              icon={<Icons.SettingOutlined iconSize="l" />}
+            <ComponentHeaderControls
+              componentId={rowComponent.id as string}
+              menuItems={menuItems}
+              onMenuClick={handleMenuClick}
+              editMode={editMode}
             />
           </HoverMenu>
         )}
-        <GridRow
-          className={cx(
-            'grid-row',
-            rowItems.length === 0 && 'grid-row--empty',
-            hoverMenuHovered && 'grid-row--hovered',
-            backgroundStyle.className,
-          )}
-          data-test={`grid-row-${backgroundStyle.className}`}
-          ref={containerRef}
-          editMode={editMode}
+        <ComponentThemeProvider
+          themeId={rowComponent.meta?.theme_id as number | undefined}
         >
+          <GridRow
+            className={cx(
+              'grid-row',
+              rowItems.length === 0 && 'grid-row--empty',
+              hoverMenuHovered && 'grid-row--hovered',
+              backgroundStyle.className,
+            )}
+            data-test={`grid-row-${backgroundStyle.className}`}
+            ref={containerRef}
+            editMode={editMode}
+          >
           {editMode && (
             <Droppable
               {...(rowItems.length === 0
@@ -399,25 +497,25 @@ const Row = memo((props: RowProps) => {
                 )}
               </Fragment>
             ))}
-        </GridRow>
+          </GridRow>
+        </ComponentThemeProvider>
       </WithPopoverMenu>
     ),
     [
       backgroundStyle.className,
-      backgroundStyle.value,
       columnWidth,
       containerHeight,
       depth,
       editMode,
-      handleChangeBackground,
       handleChangeFocus,
       handleComponentDrop,
-      handleDeleteComponent,
+      handleMenuClick,
       handleMenuHover,
       hoverMenuHovered,
       isComponentVisible,
       isFocused,
       isInView,
+      menuItems,
       onChangeTab,
       onResize,
       onResizeStart,
@@ -429,17 +527,27 @@ const Row = memo((props: RowProps) => {
   );
 
   return (
-    <Draggable
-      component={rowComponent}
-      parentComponent={parentComponent}
-      orientation="row"
-      index={index}
-      depth={depth}
-      onDrop={handleComponentDrop}
-      editMode={editMode}
-    >
-      {renderChild}
-    </Draggable>
+    <>
+      <Draggable
+        component={rowComponent}
+        parentComponent={parentComponent}
+        orientation="row"
+        index={index}
+        depth={depth}
+        onDrop={handleComponentDrop}
+        editMode={editMode}
+      >
+        {renderChild}
+      </Draggable>
+      <ThemeSelectorModal
+        show={isThemeSelectorOpen}
+        onHide={handleCloseThemeSelector}
+        onApply={handleApplyTheme}
+        currentThemeId={(rowComponent.meta?.theme_id as number) || null}
+        componentId={rowComponent.id as string}
+        componentType="Row"
+      />
+    </>
   );
 });
 

@@ -420,3 +420,235 @@ _Ongoing notes as we implement..._
 **Note:** Theme selection is stored in component metadata (client-side).
 Backend persistence (Phase 3) will save this to dashboard `json_metadata.component_themes`.
 
+### Session 3 - Bug Fix: setState Race Condition
+
+**Problem:** Clicking "Apply theme" menu item didn't open the modal. Debug logging showed:
+- `handleOpenThemeSelector` was called and set `isThemeSelectorOpen: true`
+- But the setState callback showed `isThemeSelectorOpen: false`
+- ThemeSelectorModal received `show: false`
+
+**Root Cause:** `handleChangeEditorMode` used a non-functional setState pattern:
+```javascript
+const nextState = { ...this.state, editorMode: mode };  // Reads stale state
+this.setState(nextState);  // Overwrites pending isThemeSelectorOpen: true
+```
+
+When the dropdown menu closed, it triggered `handleChangeFocus → handleChangeEditorMode`,
+which copied the old state (before React applied the pending `isThemeSelectorOpen: true`)
+and overwrote it.
+
+**Fix:** Changed to functional setState:
+```javascript
+this.setState(prevState => ({
+  ...prevState,
+  editorMode: mode,
+  ...(mode === 'preview' ? { hasError: false } : {}),
+}));
+```
+
+**Status:** Modal now opens correctly. Theme selection is stored in component metadata.
+
+**Next Steps:**
+1. ~~Phase 2.3: Add ComponentHeaderControls to Row/Column~~ DONE
+2. Phase 2.4: Add ComponentHeaderControls to Tabs
+3. Phase 1.2: Add theme selector to SliceHeaderControls (charts)
+4. Phase 3: Backend persistence
+5. Phase 4: Theme rendering/application
+
+### Session 3 - Phase 2.3: Row/Column Integration
+
+Updated Row and Column components to use `ComponentHeaderControls`:
+
+**Row.tsx changes:**
+- Replaced `DeleteComponentButton` and gear `IconButton` with `ComponentHeaderControls`
+- Removed `BackgroundStyleDropdown` from `WithPopoverMenu.menuItems`
+- Added menu items: Background toggle (Transparent/Solid), Apply theme, Delete
+- Added `ThemeSelectorModal` integration
+- Fixed `backgroundStyle` variable ordering (moved before hooks that use it)
+
+**Column.jsx changes:**
+- Same pattern as Row
+- Replaced old UI elements with `ComponentHeaderControls`
+- Added theme selector modal integration
+
+**Test updates:**
+- Updated Row.test.tsx and Column.test.jsx to use new menu pattern
+- Removed mocks for `DeleteComponentButton`
+- Tests now click "More Options" menu button and select "Delete" from dropdown
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/Row/Row.tsx`
+- `src/dashboard/components/gridComponents/Row/Row.test.tsx`
+- `src/dashboard/components/gridComponents/Column/Column.jsx`
+- `src/dashboard/components/gridComponents/Column/Column.test.jsx`
+
+**Status:** All tests pass (Row, Column, Markdown)
+
+### Session 4 - Phase 2.4: Tabs Integration
+
+Updated Tabs and TabsRenderer components to use `ComponentHeaderControls`:
+
+**TabsRenderer.tsx changes:**
+- Replaced `DeleteComponentButton` with `ComponentHeaderControls`
+- Added `handleOpenThemeSelector` prop to interface
+- Added `handleMenuClick` callback for menu actions
+- Added menu items: Apply theme, Delete
+- Menu appears in HoverMenu alongside DragHandle
+
+**Tabs.jsx changes:**
+- Added `ThemeSelectorModal` import and integration
+- Added `isThemeSelectorOpen` state
+- Added `handleOpenThemeSelector`, `handleCloseThemeSelector`, `handleApplyTheme` handlers
+- Passed `handleOpenThemeSelector` to TabsRenderer
+- Theme stored in `tabsComponent.meta.theme_id`
+
+**Test updates:**
+- Updated TabsRenderer.test.tsx to include `handleOpenThemeSelector` in props
+- Updated Tabs.test.tsx:
+  - Removed `DeleteComponentButton` mock (no longer used)
+  - Updated tests to check for `ComponentHeaderControls` via `[aria-label="More Options"]`
+  - Updated delete test to use menu pattern (click menu button, then "Delete" option)
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx`
+- `src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.test.tsx`
+- `src/dashboard/components/gridComponents/Tabs/Tabs.jsx`
+- `src/dashboard/components/gridComponents/Tabs/Tabs.test.tsx`
+
+**Status:** All tests pass (108 tests across 7 test suites)
+
+**Phase 2 Complete!** All dashboard components now have consistent `ComponentHeaderControls` menu:
+- Markdown: Edit/Preview toggle, Apply theme, Delete
+- Row: Background toggle, Apply theme, Delete
+- Column: Background toggle, Apply theme, Delete
+- Tabs: Apply theme, Delete
+
+**Next Steps:**
+1. ~~Phase 1.2: Add theme selector to SliceHeaderControls (charts)~~ DONE
+2. Phase 3: Backend persistence
+3. Phase 4: Theme rendering/application
+
+### Session 4 - Phase 1.2: SliceHeaderControls (Chart) Theme Integration
+
+Added theme selector to chart menu in dashboard view:
+
+**types.ts changes:**
+- Added `currentThemeId?: number | null` prop
+- Added `onApplyTheme?: (themeId: number | null) => void` callback prop
+
+**dashboard/types.ts changes:**
+- Added `ApplyTheme = 'apply_theme'` to MenuKeys enum
+
+**SliceHeaderControls/index.tsx changes:**
+- Added `isThemeSelectorOpen` state
+- Added `handleCloseThemeSelector` and `handleApplyTheme` handlers
+- Added `ApplyTheme` case to handleMenuClick switch
+- Added "Apply theme" menu item (only shown if `onApplyTheme` prop is provided)
+- Added `ThemeSelectorModal` rendering
+
+**Design notes:**
+- Theme selector only appears if parent passes `onApplyTheme` callback
+- This allows gradual adoption - parent components can enable theming when ready
+- Charts in dashboard view can have themes applied once parent wiring is complete
+
+**Files modified:**
+- `src/dashboard/types.ts`
+- `src/dashboard/components/SliceHeaderControls/types.ts`
+- `src/dashboard/components/SliceHeaderControls/index.tsx`
+
+**Status:** All 33 tests pass
+
+**Remaining Work:**
+1. ~~Wire up `onApplyTheme` callback in parent component (ChartHolder/SliceHeader)~~ DONE
+2. Phase 3: Backend persistence for component themes
+3. Phase 4: Theme rendering/application
+
+### Session 5 - Phase 4.2: ComponentThemeProvider Implementation
+
+Created `ComponentThemeProvider` for component-level theme application:
+
+**ComponentThemeProvider/index.tsx:**
+- Wrapper component that loads and applies theme for dashboard components
+- Fetches theme from ThemeController via `createTheme(themeId, parentThemeConfig)`
+- Merges component theme with parent theme for proper inheritance
+- Error boundary catches missing ThemeProvider (e.g., in tests) and gracefully falls back
+- Uses ref for parent theme config to avoid infinite re-render loops
+
+**Integration:**
+- Wrapped children of Row, Column, Tabs, Markdown, ChartHolder with ComponentThemeProvider
+- Components pass `themeId={component.meta?.theme_id}` to the provider
+- Theme inheritance works: Instance → Dashboard → Tab → Row/Column → Chart/Component
+
+**useComponentTheme hook:**
+- Helper hook to get theme info for UI display
+- Returns `{ themeId, themeName, hasTheme }`
+
+**Files created:**
+- `src/dashboard/components/ComponentThemeProvider/index.tsx`
+- `src/dashboard/components/ComponentThemeProvider/ComponentThemeProvider.test.tsx`
+
+**Status:** Theme application working. Themes now visually apply to components.
+
+### Session 5 - ChartHolder/SliceHeader Wiring Complete
+
+Wired up `onApplyTheme` from SliceHeaderControls through the component hierarchy:
+
+**ChartHolder.tsx changes:**
+- Added `handleApplyTheme` callback that updates component.meta.theme_id
+- Uses `getComponentById` pattern to avoid stale closures
+- Passes `onApplyTheme` and `currentThemeId` to Chart component
+- Wrapped Chart with `ComponentThemeProvider`
+
+**Chart.jsx and SliceHeader changes:**
+- Props flow: ChartHolder → Chart → SliceHeader → SliceHeaderControls
+- `onApplyTheme` and `currentThemeId` passed down the hierarchy
+- Theme modal now accessible from chart's menu
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/ChartHolder/ChartHolder.tsx`
+- `src/dashboard/components/gridComponents/Chart/Chart.jsx`
+- `src/dashboard/components/SliceHeader/index.tsx`
+
+### Session 5 - Stability Fixes for handleApplyTheme
+
+Fixed re-render issues caused by unstable callback dependencies:
+
+**Problem:** `handleApplyTheme` callbacks in Row, Column, Tabs had the full component object
+or `props` in their dependency arrays, causing unnecessary re-renders.
+
+**Solution:** Applied ref pattern to all components:
+1. Create ref: `const componentRef = useRef(component)`
+2. Keep ref updated: `useEffect(() => { componentRef.current = component }, [component])`
+3. Use ref in callback: `const currentComponent = componentRef.current`
+4. Remove component from dependencies
+
+**Files modified:**
+- `src/dashboard/components/gridComponents/Row/Row.tsx`
+- `src/dashboard/components/gridComponents/Column/Column.jsx`
+- `src/dashboard/components/gridComponents/Tabs/Tabs.jsx`
+- `src/dashboard/components/gridComponents/ChartHolder/ChartHolder.tsx`
+
+**ComponentThemeProvider re-render fix:**
+- Fixed infinite re-render loop caused by `parentThemeConfig` in useEffect dependencies
+- Changed to use ref pattern for parent theme config
+- Simplified `useComponentTheme` hook to avoid setState in effect
+
+**Status:** All re-render issues resolved. Dashboard loads cleanly without excessive renders.
+
+### Current Status Summary
+
+**Completed:**
+- Phase 1.2: Chart theme in dashboard (SliceHeaderControls) ✅
+- Phase 2.1: ComponentHeaderControls component ✅
+- Phase 2.2: Markdown menu integration ✅
+- Phase 2.3: Row/Column menu integration ✅
+- Phase 2.4: Tabs menu integration ✅
+- Phase 4.2: ComponentThemeProvider and theme application ✅
+
+**In Progress:**
+- Phase 3: Backend persistence (themes stored in component.meta, needs API save)
+
+**Not Started:**
+- Phase 1.1: Chart theme in Explore view
+- Theme visual indicators in edit mode
+

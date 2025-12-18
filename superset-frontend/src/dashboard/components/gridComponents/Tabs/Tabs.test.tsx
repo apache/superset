@@ -18,6 +18,7 @@
  */
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -25,7 +26,6 @@ import {
 } from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import Tabs from './Tabs';
@@ -44,17 +44,6 @@ jest.mock('src/dashboard/containers/DashboardComponent', () =>
   )),
 );
 
-jest.mock('src/dashboard/components/DeleteComponentButton', () =>
-  jest.fn(props => (
-    <button
-      type="button"
-      data-test="DeleteComponentButton"
-      onClick={props.onDelete}
-    >
-      DeleteComponentButton
-    </button>
-  )),
-);
 jest.mock('src/dashboard/util/getLeafComponentIdFromPath', () => jest.fn());
 
 jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
@@ -124,7 +113,10 @@ beforeEach(() => {
 
 test('Should render editMode:true', () => {
   const props = createProps();
-  render(<Tabs {...props} />, { useRedux: true, useDnd: true });
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
   expect(
     screen
       .getAllByRole('tab')
@@ -133,7 +125,10 @@ test('Should render editMode:true', () => {
   expect(screen.getAllByRole('tab', { name: 'remove' })).toHaveLength(3);
   expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
-  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
+  // ComponentHeaderControls renders a button with "More Options" aria-label
+  expect(
+    container.querySelector('[aria-label="More Options"]'),
+  ).toBeInTheDocument();
 });
 
 test('Should render HoverMenu in editMode', () => {
@@ -169,13 +164,16 @@ test('Should not render HoverMenu when renderHoverMenu is false', () => {
 test('Should render editMode:false', () => {
   const props = createProps();
   props.editMode = false;
-  render(<Tabs {...props} />, {
+  const { container } = render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
   });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
-  expect(DeleteComponentButton).not.toHaveBeenCalled();
+  // ComponentHeaderControls should not be rendered
+  expect(
+    container.querySelector('[aria-label="More Options"]'),
+  ).not.toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: 'remove' }),
   ).not.toBeInTheDocument();
@@ -188,26 +186,42 @@ test('Update component props', () => {
   const props = createProps();
   (getLeafComponentIdFromPath as jest.Mock).mockResolvedValueOnce('none');
   props.editMode = false;
-  const { rerender } = render(<Tabs {...props} />, {
+  const { rerender, container } = render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
   });
-  expect(DeleteComponentButton).not.toHaveBeenCalled();
+  // ComponentHeaderControls should not be rendered
+  expect(
+    container.querySelector('[aria-label="More Options"]'),
+  ).not.toBeInTheDocument();
 
   props.editMode = true;
   rerender(<Tabs {...props} />);
-  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
+  // ComponentHeaderControls should now be rendered
+  expect(
+    container.querySelector('[aria-label="More Options"]'),
+  ).toBeInTheDocument();
 });
 
-test('Clicking on "DeleteComponentButton"', () => {
+test('Clicking Delete menu item deletes tabs container', async () => {
   const props = createProps();
-  render(<Tabs {...props} />, {
+  const { container } = render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
   });
 
   expect(props.deleteComponent).not.toHaveBeenCalled();
-  userEvent.click(screen.getByTestId('DeleteComponentButton'));
+
+  // Click the "More Options" menu button
+  const menuButton = container.querySelector('[aria-label="More Options"]');
+  fireEvent.click(menuButton!);
+
+  // Wait for menu to open and click Delete
+  await waitFor(() => {
+    const deleteOption = screen.getByText('Delete');
+    fireEvent.click(deleteOption);
+  });
+
   expect(props.deleteComponent).toHaveBeenCalledWith(
     'TABS-L-d9eyOE-b',
     'GRID_ID',

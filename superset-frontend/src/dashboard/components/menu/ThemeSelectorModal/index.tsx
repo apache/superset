@@ -55,7 +55,7 @@ const StyledModalContent = styled.div`
     .theme-selector-label {
       display: block;
       margin-bottom: ${theme.sizeUnit * 2}px;
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     .theme-selector-help {
@@ -211,24 +211,28 @@ const ThemeSelectorModal = ({
     >
       <StyledModalContent>
         <div className="theme-selector-field">
-          <label className="theme-selector-label" htmlFor="theme-select">
+          <span className="theme-selector-label">
             {t('Select a theme for this %s', componentType)}
-          </label>
+          </span>
           <Select
-            id="theme-select"
+            ariaLabel={t('Select a theme')}
             data-test="theme-selector-select"
             value={selectedThemeId}
-            onChange={(value: number | null) => setSelectedThemeId(value)}
+            onChange={value =>
+              setSelectedThemeId(value === undefined ? null : (value as number))
+            }
             options={themeOptions}
             placeholder={t('Select a theme...')}
             allowClear
             onClear={handleClear}
             loading={isLoading}
             disabled={isLoading}
-            style={{ width: '100%' }}
+            css={css`
+              width: 100%;
+            `}
             notFoundContent={
               error ? (
-                <span style={{ color: theme.colorError }}>{error}</span>
+                <span css={{ color: theme.colorError }}>{error}</span>
               ) : (
                 t('No themes available')
               )

@@ -118,6 +118,12 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const createTheme = useCallback(
+    (themeId: string, parentThemeConfig?: AnyThemeConfig) =>
+      themeController.createTheme(themeId, parentThemeConfig),
+    [themeController],
+  );
+
   const getAppliedThemeId = useCallback(
     () => themeController.getAppliedThemeId(),
     [themeController],
@@ -138,6 +144,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      createTheme,
       getAppliedThemeId,
     }),
     [
@@ -154,6 +161,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      createTheme,
       getAppliedThemeId,
     ],
   );

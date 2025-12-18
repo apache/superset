@@ -87,6 +87,8 @@ const propTypes = {
   isFullSize: PropTypes.bool,
   extraControls: PropTypes.object,
   isInView: PropTypes.bool,
+  onApplyTheme: PropTypes.func,
+  currentThemeId: PropTypes.number,
 };
 
 const RESIZE_TIMEOUT = 500;
@@ -665,6 +667,8 @@ const Chart = props => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel}
+        onApplyTheme={props.onApplyTheme}
+        currentThemeId={props.currentThemeId}
       />
 
       {/*
