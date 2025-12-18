@@ -46,7 +46,7 @@ export default function Root({ children }) {
     const { matomoUrl, matomoSiteId } = customFields;
 
     if (typeof window !== 'undefined') {
-      const devMode = window.location.hostname === 'localhost';
+      const devMode = ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(window.location.hostname);
 
       // Initialize the _paq array
       window._paq = window._paq || [];
