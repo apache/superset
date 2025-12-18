@@ -109,7 +109,7 @@ const PanelContent = styled.div`
 const FormSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit}px;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const Label = styled.label`

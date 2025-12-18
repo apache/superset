@@ -216,6 +216,7 @@ const Header = () => {
     maxUndoHistoryExceeded,
     editMode,
     lastModifiedTime,
+    whatIfPanelOpen,
   } = useSelector(
     state => ({
       expandedSlices: state.dashboardState.expandedSlices,
@@ -231,6 +232,7 @@ const Header = () => {
       maxUndoHistoryExceeded: !!state.dashboardState.maxUndoHistoryExceeded,
       editMode: !!state.dashboardState.editMode,
       lastModifiedTime: state.lastModifiedTime,
+      whatIfPanelOpen: !!state.dashboardState.whatIfPanelOpen,
     }),
     shallowEqual,
   );
@@ -740,7 +742,7 @@ const Header = () => {
               <button
                 type="button"
                 css={whatIfButtonStyle}
-                onClick={() => dispatch(toggleWhatIfPanel(true))}
+                onClick={() => dispatch(toggleWhatIfPanel(!whatIfPanelOpen))}
                 data-test="what-if-button"
                 aria-label={t('What-if playground')}
               >
@@ -781,6 +783,7 @@ const Header = () => {
       undoLength,
       userCanEdit,
       userCanSaveAs,
+      whatIfPanelOpen,
     ],
   );
 
