@@ -107,11 +107,26 @@ position:
     - GRID_ID
     - ROW-EnergyCharts
     type: CHART
+  CHART-UnicodeCloud:
+    children: []
+    id: CHART-UnicodeCloud
+    meta:
+      chartId: 42
+      height: 69
+      sliceName: Unicode Cloud
+      uuid: 609e26d8-8e1e-4097-9751-931708e24ee4
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-MiscCharts
+    type: CHART
   DASHBOARD_VERSION_KEY: v2
   GRID_ID:
     children:
     - ROW-SytNzNA4X
     - ROW-EnergyCharts
+    - ROW-MiscCharts
     id: GRID_ID
     parents:
     - ROOT_ID
@@ -144,6 +159,16 @@ position:
     - CHART-EnergyForce
     - CHART-Heatmap
     id: ROW-EnergyCharts
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-MiscCharts:
+    children:
+    - CHART-UnicodeCloud
+    id: ROW-MiscCharts
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
