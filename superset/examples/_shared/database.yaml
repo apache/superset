@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 database_name: examples
-sqlalchemy_uri: duckdb:////tmp/examples.db
+sqlalchemy_uri: __SQLALCHEMY_EXAMPLES_URI__
 expose_in_sqllab: true
 extra:
   allows_virtual_table_explore: true

@@ -41,6 +41,8 @@ def _read_file_if_exists(base: Any, path: Any) -> str | None:
 
 def _load_shared_configs(examples_root: Any) -> dict[str, str]:
     """Load shared database and metadata configs from _shared directory."""
+    from flask import current_app
+
     contents: dict[str, str] = {}
     base = files("superset")
     shared_dir = examples_root / "_shared"
@@ -50,6 +52,9 @@ def _load_shared_configs(examples_root: Any) -> dict[str, str]:
 
     # Database config -> databases/examples.yaml
     if db_content := _read_file_if_exists(base, shared_dir / "database.yaml"):
+        # Replace placeholder with configured examples URI
+        examples_uri = current_app.config.get("SQLALCHEMY_EXAMPLES_URI", "")
+        db_content = db_content.replace("__SQLALCHEMY_EXAMPLES_URI__", examples_uri)
         contents["databases/examples.yaml"] = db_content
 
     # Metadata -> metadata.yaml
