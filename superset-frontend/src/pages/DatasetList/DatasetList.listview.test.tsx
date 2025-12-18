@@ -781,7 +781,9 @@ test('exit bulk select via close button returns to normal view', async () => {
   });
   await userEvent.click(closeButton);
 
-  // Wait for bulk select controls to be removed first (deterministic anchor)
+  // Wait for bulk select controls to be removed
+  // Using callback form of waitForElementToBeRemoved - resolves immediately if
+  // already gone (handles fast teardown) and has longer default timeout
   await waitForElementToBeRemoved(() =>
     screen.queryByTestId('bulk-select-controls'),
   );
@@ -1460,9 +1462,10 @@ test('bulk selection clears when filter changes', async () => {
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
   const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  expect(risonAfterFilter).toBeTruthy();
   const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter!),
-  ) as Record<string, any>;
+    decodeURIComponent(risonAfterFilter),
+  ) as Record<string, unknown>;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),
@@ -1475,6 +1478,48 @@ test('bulk selection clears when filter changes', async () => {
   });
 }, 30000); // 30 second timeout for slow CI environment
 
+test('type filter API call includes correct filter parameter', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  // Wait for Type filter combobox to be rendered
+  await screen.findByRole('combobox', { name: 'Type' }, { timeout: 5000 });
+
+  // Snapshot call count before filter
+  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+
+  // Apply Type filter
+  await selectOption('Virtual', 'Type');
+
+  // Wait for filter API call to complete
+  await waitFor(() => {
+    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    expect(calls.length).toBeGreaterThan(callsBeforeFilter);
+  });
+
+  // Verify the latest API call includes the Type filter
+  const url = fetchMock.calls(API_ENDPOINTS.DATASETS).at(-1)?.[0] as string;
+  expect(url).toContain('filters');
+
+  const risonPayload = url.split('?q=')[1];
+  expect(risonPayload).toBeTruthy();
+  const decoded = rison.decode(decodeURIComponent(risonPayload)) as Record<
+    string,
+    unknown
+  >;
+  const filters = Array.isArray(decoded?.filters) ? decoded.filters : [];
+
+  // Type filter should be present (sql=false for Virtual datasets)
+  expect(filters).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ col: 'sql', value: false }),
+    ]),
+  );
+});
+
 test('type filter persists after duplicating a dataset', async () => {
   const datasetToDuplicate = mockDatasets.find(d => d.kind === 'virtual')!;
 
@@ -1486,10 +1531,13 @@ test('type filter persists after duplicating a dataset', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
+  // Wait for Type filter combobox to be rendered
+  await screen.findByRole('combobox', { name: 'Type' }, { timeout: 5000 });
+
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
-  // Apply Type filter unconditionally - each test must be independent
+  // Apply Type filter
   await selectOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
@@ -1503,9 +1551,10 @@ test('type filter persists after duplicating a dataset', async () => {
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
   const risonAfterFilter = urlAfterFilter.split('?q=')[1];
+  expect(risonAfterFilter).toBeTruthy();
   const decodedAfterFilter = rison.decode(
-    decodeURIComponent(risonAfterFilter!),
-  ) as Record<string, any>;
+    decodeURIComponent(risonAfterFilter),
+  ) as Record<string, unknown>;
   expect(decodedAfterFilter.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),
@@ -1556,55 +1605,13 @@ test('type filter persists after duplicating a dataset', async () => {
     .calls(API_ENDPOINTS.DATASETS)
     .at(-1)?.[0] as string;
   const risonAfterDuplicate = urlAfterDuplicate.split('?q=')[1];
+  expect(risonAfterDuplicate).toBeTruthy();
   const decodedAfterDuplicate = rison.decode(
-    decodeURIComponent(risonAfterDuplicate!),
-  ) as Record<string, any>;
+    decodeURIComponent(risonAfterDuplicate),
+  ) as Record<string, unknown>;
   expect(decodedAfterDuplicate.filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: 'sql', value: false }),
     ]),
   );
-});
-
-test('type filter API call includes correct filter parameter', async () => {
-  renderDatasetList(mockAdminUser);
-
-  await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-  });
-
-  // Snapshot call count before filter
-  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
-
-  // Apply Type filter unconditionally - each test must be independent
-  await selectOption('Virtual', 'Type');
-
-  // Wait for filter API call to complete
-  await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
-    expect(calls.length).toBeGreaterThan(callsBeforeFilter);
-  });
-
-  // Verify the latest API call includes the Type filter
-  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
-  const latestCall = calls[calls.length - 1];
-  const url = latestCall[0] as string;
-
-  // URL should contain filters parameter
-  expect(url).toContain('filters');
-  const risonPayload = url.split('?q=')[1];
-  expect(risonPayload).toBeTruthy();
-  const decoded = rison.decode(decodeURIComponent(risonPayload!)) as Record<
-    string,
-    unknown
-  >;
-  const filters = Array.isArray(decoded?.filters) ? decoded.filters : [];
-
-  // Type filter should be present (sql=false for Virtual datasets)
-  const hasTypeFilter = filters.some(
-    (filter: Record<string, unknown>) =>
-      filter?.col === 'sql' && filter?.value === false,
-  );
-
-  expect(hasTypeFilter).toBe(true);
 });
