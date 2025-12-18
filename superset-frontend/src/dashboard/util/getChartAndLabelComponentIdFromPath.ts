@@ -16,24 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getFilterScopeParentNodes(nodes = [], depthLimit = -1) {
-  const parentNodes = [];
-  const traverse = (currentNode, depth) => {
-    if (!currentNode) {
-      return;
-    }
+import { IN_COMPONENT_ELEMENT_TYPES } from './constants';
 
-    if (currentNode.children && (depthLimit === -1 || depth < depthLimit)) {
-      parentNodes.push(currentNode.value);
-      currentNode.children.forEach(child => traverse(child, depth + 1));
-    }
-  };
+export default function getChartAndLabelComponentIdFromPath(
+  directPathToChild: (string | undefined)[],
+): Record<string, string> {
+  const result: Record<string, string> = {};
 
-  if (nodes.length > 0) {
-    nodes.forEach(node => {
-      traverse(node, 0);
-    });
+  if (directPathToChild.length > 0) {
+    const currentPath = directPathToChild
+      .slice()
+      .filter((x): x is string => x !== undefined);
+    while (currentPath.length) {
+      const componentId = currentPath.pop()!;
+      const componentType = componentId.split('-')[0];
+
+      result[componentType.toLowerCase()] = componentId;
+      if (!IN_COMPONENT_ELEMENT_TYPES.includes(componentType)) {
+        break;
+      }
+    }
   }
 
-  return parentNodes;
+  return result;
 }

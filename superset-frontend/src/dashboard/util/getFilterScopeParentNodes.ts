@@ -16,21 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
+interface FilterScopeTreeNode {
+  value?: string | number;
+  children?: FilterScopeTreeNode[];
+}
 
-// input: { [id_column1]: values, [id_column2]: values }
-// output: { id: { column1: values, column2: values } }
-export default function serializeActiveFilterValues(activeFilters) {
-  return Object.entries(activeFilters).reduce((map, entry) => {
-    const [filterKey, { values }] = entry;
-    const { chartId, column } = getChartIdAndColumnFromFilterKey(filterKey);
-    const entryByChartId = {
-      ...map[chartId],
-      [column]: values,
-    };
-    return {
-      ...map,
-      [chartId]: entryByChartId,
-    };
-  }, {});
+export default function getFilterScopeParentNodes(
+  nodes: FilterScopeTreeNode[] = [],
+  depthLimit = -1,
+): string[] {
+  const parentNodes: string[] = [];
+  const traverse = (
+    currentNode: FilterScopeTreeNode | undefined,
+    depth: number,
+  ): void => {
+    if (!currentNode) {
+      return;
+    }
+
+    if (currentNode.children && (depthLimit === -1 || depth < depthLimit)) {
+      if (currentNode.value !== undefined) {
+        parentNodes.push(String(currentNode.value));
+      }
+      currentNode.children.forEach(child => traverse(child, depth + 1));
+    }
+  };
+
+  if (nodes.length > 0) {
+    nodes.forEach(node => {
+      traverse(node, 0);
+    });
+  }
+
+  return parentNodes;
 }
