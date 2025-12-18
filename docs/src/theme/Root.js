@@ -27,6 +27,15 @@ const DOWNLOAD_EXTENSIONS = [
   'csv', 'json', 'yaml', 'yml',
 ];
 
+// Scroll depth milestones to track
+const SCROLL_MILESTONES = [25, 50, 75, 100];
+
+// Custom dimension IDs (configure these in Matomo admin)
+// Using visit-scoped dimensions for user preferences
+const CUSTOM_DIMENSIONS = {
+  DOCS_VERSION: 1,
+  COLOR_MODE: 2,
+};
 
 export default function Root({ children }) {
   const { siteConfig } = useDocusaurusContext();
@@ -72,6 +81,14 @@ export default function Root({ children }) {
         window._paq.push(['trackSiteSearch', keyword, category, resultsCount]);
       };
 
+      // Helper to set custom dimensions
+      const setCustomDimension = (dimensionId, value) => {
+        if (devMode) {
+          console.log('Matomo setCustomDimension:', { dimensionId, value });
+        }
+        window._paq.push(['setCustomDimension', dimensionId, value]);
+      };
+
       // Track external link clicks using domain as category (vendor-agnostic)
       const handleLinkClick = (event) => {
         const link = event.target.closest('a');
@@ -95,12 +112,10 @@ export default function Root({ children }) {
 
       // Track Algolia search queries
       const setupAlgoliaTracking = () => {
-        // Watch for Algolia search modal
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check for Algolia search input
                 const searchInput = node.querySelector?.('.DocSearch-Input') ||
                                    (node.classList?.contains('DocSearch-Input') ? node : null);
                 if (searchInput) {
@@ -113,7 +128,7 @@ export default function Root({ children }) {
                         const results = document.querySelectorAll('.DocSearch-Hit');
                         trackSiteSearch(query, 'Documentation', results.length);
                       }
-                    }, 1000); // Debounce to avoid tracking every keystroke
+                    }, 1000);
                   });
                 }
               }
@@ -143,15 +158,81 @@ export default function Root({ children }) {
         }
       };
 
+      // Track scroll depth
+      let scrollMilestonesReached = new Set();
+      const handleScroll = () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (docHeight <= 0) return;
+
+        const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+
+        SCROLL_MILESTONES.forEach(milestone => {
+          if (scrollPercent >= milestone && !scrollMilestonesReached.has(milestone)) {
+            scrollMilestonesReached.add(milestone);
+            trackEvent('Scroll Depth', `${milestone}%`, window.location.pathname);
+          }
+        });
+      };
+
+      // Reset scroll tracking on route change
+      const resetScrollTracking = () => {
+        scrollMilestonesReached = new Set();
+      };
+
+      // Track 404 pages
+      const track404 = () => {
+        const is404 = document.querySelector('.theme-doc-404') ||
+                      document.title.toLowerCase().includes('not found') ||
+                      document.querySelector('h1')?.textContent?.toLowerCase().includes('not found');
+        if (is404) {
+          trackEvent('Error', '404', window.location.pathname);
+          if (devMode) {
+            console.log('Matomo: 404 page detected', window.location.pathname);
+          }
+        }
+      };
+
+      // Track copy-to-clipboard events on code blocks
+      const handleCopy = (event) => {
+        const codeBlock = event.target.closest('pre, code, .prism-code');
+        if (codeBlock) {
+          const codeText = window.getSelection()?.toString() || '';
+          const codeSnippet = codeText.substring(0, 100) + (codeText.length > 100 ? '...' : '');
+          trackEvent('Code', 'Copy', `${window.location.pathname}: ${codeSnippet}`);
+        }
+      };
+
+      // Track color mode preference
+      const trackColorMode = () => {
+        const colorMode = document.documentElement.getAttribute('data-theme') ||
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setCustomDimension(CUSTOM_DIMENSIONS.COLOR_MODE, colorMode);
+      };
+
+      // Track docs version from URL or version selector
+      const trackDocsVersion = () => {
+        const pathMatch = window.location.pathname.match(/\/docs\/([\d.]+)\//);
+        const version = pathMatch ? pathMatch[1] : 'latest';
+        setCustomDimension(CUSTOM_DIMENSIONS.DOCS_VERSION, version);
+      };
+
       // Handle route changes for SPA
       const handleRouteChange = () => {
         if (devMode) {
           console.log('Route changed to:', window.location.pathname);
         }
 
+        // Reset scroll tracking for new page
+        resetScrollTracking();
+
         setTimeout(() => {
           const currentTitle = document.title;
           const currentPath = window.location.pathname;
+
+          // Set custom dimensions before tracking page view
+          trackColorMode();
+          trackDocsVersion();
 
           if (devMode) {
             console.log('Tracking page view:', currentPath, currentTitle);
@@ -167,6 +248,9 @@ export default function Root({ children }) {
           window._paq.push(['setReferrerUrl', window.location.href]);
           window._paq.push(['setDocumentTitle', currentTitle]);
           window._paq.push(['trackPageView']);
+
+          // Check for 404 after page renders
+          setTimeout(track404, 500);
         }, 100);
       };
 
@@ -206,6 +290,20 @@ export default function Root({ children }) {
       document.addEventListener('click', handleLinkClick);
       document.addEventListener('click', handleCTAClick);
       document.addEventListener('play', handleVideoPlay, true);
+      document.addEventListener('copy', handleCopy);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+
+      // Watch for color mode changes
+      const colorModeObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'data-theme') {
+            trackColorMode();
+            trackEvent('User Preference', 'Color Mode Change',
+              document.documentElement.getAttribute('data-theme'));
+          }
+        });
+      });
+      colorModeObserver.observe(document.documentElement, { attributes: true });
 
       // Set up Algolia tracking
       const algoliaObserver = setupAlgoliaTracking();
@@ -227,9 +325,14 @@ export default function Root({ children }) {
         document.removeEventListener('click', handleLinkClick);
         document.removeEventListener('click', handleCTAClick);
         document.removeEventListener('play', handleVideoPlay, true);
+        document.removeEventListener('copy', handleCopy);
+        window.removeEventListener('scroll', handleScroll);
 
         if (algoliaObserver) {
           algoliaObserver.disconnect();
+        }
+        if (colorModeObserver) {
+          colorModeObserver.disconnect();
         }
       };
     }
