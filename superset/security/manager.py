@@ -2915,9 +2915,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Check if a dashboard is marked as a template.
 
-        Templates are dashboards with is_template=true in their json_metadata.
-        Template dashboards can be viewed by any user with dashboard creation
-        permission, regardless of ownership.
+        Template metadata is stored in the nested "template_info" structure
+        within the dashboard's json_metadata. Template dashboards can be viewed
+        by any user with dashboard creation permission, regardless of ownership.
 
         :param dashboard: The dashboard to check
         :returns: True if the dashboard is a template, False otherwise
@@ -2926,7 +2926,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
         try:
             metadata = json.loads(dashboard.json_metadata)
-            return metadata.get("is_template", False)
+            template_info = metadata.get("template_info", {})
+            return template_info.get("is_template", False)
         except (json.JSONDecodeError, TypeError):
             return False
 

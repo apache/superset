@@ -63,7 +63,7 @@ const ANALYZER_STEPS: ProcessStep[] = [
   },
 ];
 
-const SIMULATED_STEP_DURATIONS = [1500, 2000, 2500];
+const SIMULATED_STEP_DURATIONS = [2500, 3200, 3800];
 const LAST_STEP_INDEX = ANALYZER_STEPS.length - 1;
 
 const Container = styled.div`
@@ -88,14 +88,13 @@ export default function DatasourceAnalyzerPanel({
   onError,
 }: DatasourceAnalyzerPanelProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [shouldPoll, setShouldPoll] = useState(false);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   // Polling for the last step
   const { data, status: pollingStatus } = usePolling<AnalysisStatusResponse>({
     endpoint: `/api/v1/datasource/analysis/status/${runId}`,
     interval: 2000,
-    enabled: shouldPoll,
+    enabled: true,
     isComplete: data => data?.status === 'completed',
     isError: data => data?.status === 'failed' || data?.status === 'not_found',
     onComplete: data => {
@@ -130,10 +129,6 @@ export default function DatasourceAnalyzerPanel({
         const timeout = setTimeout(() => {
           setCurrentStepIndex(index + 1);
 
-          // When reaching the last step, start polling
-          if (index + 1 === LAST_STEP_INDEX) {
-            setShouldPoll(true);
-          }
         }, accumulatedDelay);
         timeoutsRef.current.push(timeout);
       });

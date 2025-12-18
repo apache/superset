@@ -599,6 +599,13 @@ class AgenticDashboardGenerator:
         actual_columns: list[str] = []
         actual_types: dict[str, str] = {}
 
+        required_columns = set()
+        if requirements:
+            required_columns.update({c.name for c in requirements.columns})
+            for f in requirements.filters:
+                if f.target_column:
+                    required_columns.add(f.target_column)
+
         while attempt < MAX_DATASET_ATTEMPTS:
             attempt += 1
             logger.info("Dataset generation attempt %d/%d", attempt, MAX_DATASET_ATTEMPTS)
@@ -613,6 +620,8 @@ class AgenticDashboardGenerator:
                         self._format_pre_matches(mapping_proposal) if mapping_proposal else None
                     ),
                     previous_errors=previous_errors if previous_errors else None,
+                    required_columns=list(required_columns) if required_columns else None,
+                    template_context=getattr(requirements, "template_context", None),
                 )
 
                 dataset_sql = llm_result.get("sql")
@@ -636,7 +645,40 @@ class AgenticDashboardGenerator:
                         "Dataset validated successfully with %d columns",
                         len(actual_columns),
                     )
-                    break
+
+                    # If required columns are still missing, attempt an additive refinement
+                    if validation_result.missing_columns:
+                        logger.info(
+                            "Attempting dataset refinement to add missing columns: %s",
+                            ", ".join(validation_result.missing_columns),
+                        )
+                        try:
+                            refine_result = self.llm_service.refine_dataset_for_filters(
+                                current_dataset_sql=dataset_sql,
+                                column_mappings=column_mappings,
+                                native_filters=[],
+                                database_report=report_data,
+                                required_columns=validation_result.missing_columns,
+                            )
+                            if refine_result.get("needs_revision") and refine_result.get("revised_sql"):
+                                dataset_sql = refine_result["revised_sql"]
+                                validation_result = self._validate_dataset_execution(
+                                    dataset_sql, report, requirements
+                                )
+                                if validation_result.success:
+                                    actual_columns = validation_result.actual_columns
+                                    actual_types = validation_result.actual_types
+                                    logger.info(
+                                        "Dataset refined successfully; columns now %d",
+                                        len(actual_columns),
+                                    )
+                                    break
+                        except Exception as refine_exc:  # pragma: no cover
+                            logger.warning(
+                                "Dataset refinement failed: %s", str(refine_exc)
+                            )
+                    else:
+                        break
                 else:
                     error_msg = validation_result.error_message or "Validation failed"
                     previous_errors.append(error_msg)
@@ -972,6 +1014,10 @@ class AgenticDashboardGenerator:
                     datetime_column=datetime_column,
                 )
 
+                # Ensure datasource param points to generated dataset (form_data safety)
+                if dataset_id:
+                    mapped_params["datasource"] = f"{dataset_id}__table"
+
                 # On final attempt, apply simplified fallback to increase success odds
                 if attempt == MAX_CHART_ATTEMPTS:
                     mapped_params = self._apply_chart_fallback(
@@ -980,6 +1026,9 @@ class AgenticDashboardGenerator:
 
                 mapped_params = self._normalize_metrics(
                     mapped_params, actual_columns
+                )
+                mapped_params = self._ensure_numeric_metric(
+                    mapped_params, actual_types or {}, actual_columns
                 )
 
                 # Apply title suggestion if provided by LLM when rescoping
@@ -1146,6 +1195,8 @@ class AgenticDashboardGenerator:
                 )
 
             form_data = json.loads(chart.params or "{}")
+            # Ensure minimal metric presence when form_data indicates metrics are expected
+            form_data = self._ensure_metrics_present(form_data)
 
             # Translate form_data params to query params
             # granularity_sqla -> granularity (required by get_sqla_query)
@@ -1166,7 +1217,17 @@ class AgenticDashboardGenerator:
                 ) as conn:
                     cursor = conn.cursor()
                     cursor.execute(test_sql)
-                    cursor.fetchall()
+                    rows = cursor.fetchall()
+
+                if not rows:
+                    # Treat empty data as failure requiring refinement
+                    return ChartValidationResult(
+                        chart_id=chart.id,
+                        chart_name=chart_name,
+                        success=False,
+                        error_message="Query returned no rows",
+                        query_executed=True,
+                    )
 
                 return ChartValidationResult(
                     chart_id=chart.id,
@@ -1273,6 +1334,44 @@ class AgenticDashboardGenerator:
 
         return normalized
 
+    def _ensure_numeric_metric(
+        self,
+        params: dict[str, Any],
+        actual_types: dict[str, str],
+        actual_columns: list[str],
+    ) -> dict[str, Any]:
+        """
+        Inject a numeric metric when metric keys exist but resolved metrics are empty.
+        Uses the first numeric column if available, otherwise COUNT(*).
+        """
+        updated = dict(params)
+
+        def has_metric_value() -> bool:
+            for key in ["metrics", "metric", "percent_metrics", "percentMetrics"]:
+                val = updated.get(key)
+                if isinstance(val, list) and len(val) > 0:
+                    return True
+                if isinstance(val, dict) and val:
+                    return True
+                if isinstance(val, str) and val.strip():
+                    return True
+            return False
+
+        if has_metric_value():
+            return updated
+
+        # Pick best numeric column
+        numeric_candidates = [
+            col for col, col_type in actual_types.items()
+            if self._is_numeric_type(col_type)
+        ] or [col for col in actual_columns if self._is_numeric_type(col)]
+
+        metric_expr = (
+            f"SUM({numeric_candidates[0]})" if numeric_candidates else "COUNT(*)"
+        )
+        updated["metrics"] = [self._adhoc_sql_metric(metric_expr)]
+        return updated
+
     def _build_reduced_scope_chart_params(
         self,
         actual_columns: list[str],
@@ -1376,6 +1475,45 @@ class AgenticDashboardGenerator:
                 query_params[key] = []
 
         return query_params
+
+    def _ensure_metrics_present(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Ensure form_data has a metric when metric-like keys are present but empty.
+
+        This is dynamic: only inject when the form_data already expects metrics
+        (i.e., keys exist but values are empty).
+        """
+        updated = dict(form_data)
+
+        def inject_metric(key: str) -> None:
+            updated[key] = [self._adhoc_sql_metric("COUNT(*)")]
+
+        metric_keys = ["metrics", "metric", "percent_metrics", "percentMetrics"]
+        has_metric_key = any(key in updated for key in metric_keys)
+
+        if has_metric_key:
+            metrics = updated.get("metrics") or []
+            metric = updated.get("metric")
+            percent_metrics = updated.get("percent_metrics") or []
+            percentMetrics = updated.get("percentMetrics") or []
+
+            if (
+                (isinstance(metrics, list) and len(metrics) == 0)
+                and not metric
+                and isinstance(percent_metrics, list)
+                and len(percent_metrics) == 0
+                and isinstance(percentMetrics, list)
+                and len(percentMetrics) == 0
+            ):
+                inject_metric("metrics")
+
+            # Normalize single metric string
+            if isinstance(metric, str):
+                updated["metric"] = self._adhoc_sql_metric(metric)
+            if isinstance(metrics, str):
+                updated["metrics"] = [self._adhoc_sql_metric(metrics)]
+
+        return updated
 
     # =========================================================================
     # Phase 5: FILTERS - Per-filter iteration loops
@@ -1866,17 +2004,19 @@ class AgenticDashboardGenerator:
 
         # Template-related metadata keys to exclude from generated dashboards
         # These identify the dashboard as a template and should not be carried over
+        # Note: template_info is the new nested structure containing all template metadata
+        template_metadata_keys = {"template_info"}
         template_metadata_prefixes = (
-            "is_template",  # is_template
-            "is_featured",  # is_featured_template
-            "template_",  # template_category, template_thumbnail_url, template_context,
-            # template_description, template_tags
+            "is_template",  # is_template (legacy)
+            "is_featured",  # is_featured_template (legacy)
+            "template_",  # template_category, etc. (legacy)
         )
 
         copy_metadata = {
             k: v
             for k, v in original_metadata.items()
-            if not k.startswith(template_metadata_prefixes)
+            if k not in template_metadata_keys
+            and not k.startswith(template_metadata_prefixes)
         }
 
         if template.position_json:
@@ -1898,7 +2038,8 @@ class AgenticDashboardGenerator:
         cleaned_metadata = {
             k: v
             for k, v in current_metadata.items()
-            if not k.startswith(template_metadata_prefixes)
+            if k not in template_metadata_keys
+            and not k.startswith(template_metadata_prefixes)
         }
         new_dashboard.json_metadata = json.dumps(cleaned_metadata)
 
