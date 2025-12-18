@@ -29,6 +29,10 @@ import {
   FolderOutlined,
   TableOutlined,
   ColumnHeightOutlined,
+  NumberOutlined,
+  EyeInvisibleOutlined,
+  StopOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import type { TreeProps } from 'antd';
 import type {
@@ -591,11 +595,39 @@ function PermissionsTree({
   };
 
   const clsOptions = [
-    { value: '', label: t('None') },
-    { value: 'hash', label: t('Hash') },
-    { value: 'mask', label: t('Mask') },
-    { value: 'nullify', label: t('Nullify') },
-    { value: 'hide', label: t('Hide') },
+    { value: '', label: ' ' },
+    {
+      value: 'hash',
+      label: (
+        <span>
+          <NumberOutlined /> {t('Hash')}
+        </span>
+      ),
+    },
+    {
+      value: 'mask',
+      label: (
+        <span>
+          <StarOutlined /> {t('Mask')}
+        </span>
+      ),
+    },
+    {
+      value: 'nullify',
+      label: (
+        <span>
+          <StopOutlined /> {t('Null')}
+        </span>
+      ),
+    },
+    {
+      value: 'hide',
+      label: (
+        <span>
+          <EyeInvisibleOutlined /> {t('Hide')}
+        </span>
+      ),
+    },
   ];
 
   const titleRender = (node: PermissionNode) => {
