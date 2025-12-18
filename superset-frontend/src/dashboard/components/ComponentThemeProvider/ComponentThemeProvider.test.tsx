@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import '@testing-library/jest-dom';
 import { ReactNode } from 'react';
 import { render, screen, waitFor, act, configure } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
