@@ -116,3 +116,29 @@ export async function fetchTables(
     count: response.json.count,
   };
 }
+
+export interface ColumnInfo {
+  name: string;
+  type: string;
+  nullable?: boolean;
+  default?: string;
+}
+
+export async function fetchColumns(
+  databaseId: number,
+  tableName: string,
+  schemaName?: string,
+  catalogName?: string,
+): Promise<ColumnInfo[]> {
+  const params: Record<string, string> = {
+    name: tableName,
+  };
+  if (schemaName) params.schema = schemaName;
+  if (catalogName) params.catalog = catalogName;
+
+  const queryString = new URLSearchParams(params).toString();
+  const response = await SupersetClient.get({
+    endpoint: `/api/v1/database/${databaseId}/table_metadata/?${queryString}`,
+  });
+  return response.json.columns || [];
+}

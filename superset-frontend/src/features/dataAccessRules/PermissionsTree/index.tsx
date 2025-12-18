@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
-import { Tree, Tooltip, Spin, Button } from 'antd';
+import { Tree, Tooltip, Spin, Button, Select } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -28,22 +28,26 @@ import {
   DatabaseOutlined,
   FolderOutlined,
   TableOutlined,
+  ColumnHeightOutlined,
 } from '@ant-design/icons';
 import type { TreeProps } from 'antd';
 import type {
   PermissionNode,
   TreeState,
   PermissionsPayload,
+  CLSAction,
 } from './types';
 import {
   fetchDatabases,
   fetchCatalogs,
   fetchSchemas,
   fetchTables,
+  fetchColumns,
   type DatabaseInfo,
 } from './api';
 import {
   makeKey,
+  makeClsKey,
   getEffectiveState,
   getExplicitState,
   cyclePermissionState,
@@ -108,6 +112,30 @@ const StyledContainer = styled.div`
       color: ${theme.colorTextSecondary};
       margin-left: ${theme.sizeUnit}px;
     }
+
+    .cls-select {
+      width: 90px;
+      font-size: 12px;
+    }
+
+    .column-node {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .column-name {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit}px;
+    }
+
+    .column-type {
+      font-size: 11px;
+      color: ${theme.colorTextSecondary};
+    }
   `}
 `;
 
@@ -127,6 +155,7 @@ function PermissionsTree({
     loadedKeys: [],
     treeData: [],
     permissionStates: {},
+    clsRules: {},
   });
   const [loading, setLoading] = useState(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
@@ -157,10 +186,14 @@ function PermissionsTree({
       return;
     }
     if (value && databaseMaps.nameToId.size > 0) {
-      const states = loadPermissionsFromPayload(value, databaseMaps.nameToId);
+      const { states, clsRules } = loadPermissionsFromPayload(
+        value,
+        databaseMaps.nameToId,
+      );
       setTreeState(prev => ({
         ...prev,
         permissionStates: states,
+        clsRules,
       }));
     }
   }, [value, databaseMaps.nameToId]);
@@ -296,6 +329,30 @@ function PermissionsTree({
           catalogName,
           schemaName,
           tableName: table.value,
+          isLeaf: false, // Tables are expandable to show columns
+          children: [],
+        }));
+      }
+
+      // Table level -> load columns
+      if (nodeType === 'table' && node.tableName) {
+        const columns = await fetchColumns(
+          databaseId,
+          node.tableName,
+          schemaName,
+          catalogName,
+        );
+        const tableKey = node.key as string;
+        return columns.map(col => ({
+          key: `${tableKey}|col:${col.name}`,
+          title: col.name,
+          nodeType: 'column' as const,
+          databaseId,
+          databaseName: node.databaseName,
+          catalogName,
+          schemaName,
+          tableName: node.tableName,
+          columnName: col.name,
           isLeaf: true,
         }));
       }
@@ -348,9 +405,48 @@ function PermissionsTree({
 
     // Notify parent of changes
     if (onChange && databaseMaps.idToName.size > 0) {
-      const payload = generatePermissionsPayload(newStates, databaseMaps.idToName);
+      const payload = generatePermissionsPayload(
+        newStates,
+        databaseMaps.idToName,
+        treeState.clsRules,
+      );
       onChange(payload);
     }
+  };
+
+  const handleClsChange = (
+    tableKey: string,
+    columnName: string,
+    action: CLSAction | undefined,
+  ) => {
+    const clsKey = makeClsKey(tableKey, columnName);
+
+    // Mark as internal update to prevent circular updates
+    isInternalUpdateRef.current = true;
+
+    setTreeState(prev => {
+      const newClsRules = { ...prev.clsRules };
+      if (action) {
+        newClsRules[clsKey] = action;
+      } else {
+        delete newClsRules[clsKey];
+      }
+
+      // Notify parent of changes
+      if (onChange && databaseMaps.idToName.size > 0) {
+        const payload = generatePermissionsPayload(
+          prev.permissionStates,
+          databaseMaps.idToName,
+          newClsRules,
+        );
+        onChange(payload);
+      }
+
+      return {
+        ...prev,
+        clsRules: newClsRules,
+      };
+    });
   };
 
   const getStateIcon = (nodeKey: string) => {
@@ -407,16 +503,59 @@ function PermissionsTree({
         return <FolderOutlined />;
       case 'table':
         return <TableOutlined />;
+      case 'column':
+        return <ColumnHeightOutlined />;
       default:
         return null;
     }
   };
 
+  const clsOptions = [
+    { value: '', label: t('None') },
+    { value: 'hash', label: t('Hash') },
+    { value: 'mask', label: t('Mask') },
+    { value: 'nullify', label: t('Nullify') },
+    { value: 'hide', label: t('Hide') },
+  ];
+
   const titleRender = (node: PermissionNode) => {
     const nodeKey = node.key as string;
     const isExpanded = treeState.expandedKeys.includes(nodeKey);
-    const isLeaf = node.isLeaf || node.nodeType === 'table';
     const title = node.title as string;
+
+    // Column nodes get special rendering with CLS dropdown
+    if (node.nodeType === 'column' && node.tableName && node.columnName) {
+      // Get the table key by removing the column part
+      const tableKey = nodeKey.substring(0, nodeKey.lastIndexOf('|col:'));
+      const clsKey = makeClsKey(tableKey, node.columnName);
+      const currentAction = treeState.clsRules[clsKey] || '';
+
+      return (
+        <div className="column-node">
+          <span className="column-name">
+            {getNodeIcon(node.nodeType)}
+            <span>{title}</span>
+          </span>
+          <Select
+            className="cls-select"
+            size="small"
+            value={currentAction}
+            onChange={(val: string) =>
+              handleClsChange(
+                tableKey,
+                node.columnName as string,
+                (val || undefined) as CLSAction | undefined,
+              )
+            }
+            onClick={e => e.stopPropagation()}
+            options={clsOptions}
+          />
+        </div>
+      );
+    }
+
+    // Non-column nodes: check if leaf (columns are leafs, tables are not anymore)
+    const isLeaf = node.nodeType === 'column';
 
     // Count descendants with custom permissions when collapsed
     const counts =
@@ -457,6 +596,7 @@ function PermissionsTree({
     setTreeState(prev => ({
       ...prev,
       permissionStates: {},
+      clsRules: {},
     }));
     if (onChange) {
       onChange({ allowed: [], denied: [] });

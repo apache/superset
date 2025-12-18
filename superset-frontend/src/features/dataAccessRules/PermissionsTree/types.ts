@@ -21,7 +21,9 @@ import type { DataNode } from 'antd/es/tree';
 
 export type PermissionState = 'allow' | 'deny' | 'inherit';
 
-export type NodeType = 'database' | 'catalog' | 'schema' | 'table';
+export type NodeType = 'database' | 'catalog' | 'schema' | 'table' | 'column';
+
+export type CLSAction = 'hash' | 'mask' | 'nullify' | 'hide';
 
 export interface PermissionNode extends DataNode {
   key: string;
@@ -32,6 +34,7 @@ export interface PermissionNode extends DataNode {
   catalogName?: string;
   schemaName?: string;
   tableName?: string;
+  columnName?: string;
   children?: PermissionNode[];
   isLeaf?: boolean;
   hasMore?: boolean;
@@ -43,6 +46,7 @@ export interface TreeState {
   loadedKeys: string[];
   treeData: PermissionNode[];
   permissionStates: Record<string, PermissionState>;
+  clsRules: Record<string, CLSAction>; // key format: "tableKey:columnName" -> action
 }
 
 export interface PermissionsPayload {
@@ -55,4 +59,5 @@ export interface PermissionEntry {
   catalog?: string;
   schema?: string;
   table?: string;
+  cls?: Record<string, string>; // column name -> action
 }

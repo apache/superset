@@ -23,6 +23,7 @@ import type {
   PermissionsPayload,
   PermissionEntry,
   NodeType,
+  CLSAction,
 } from './types';
 
 // Key format: db:{id}|cat:{name}|schema:{name}|table:{name}
@@ -289,15 +290,70 @@ export function findNodeByKey(
   return null;
 }
 
+/**
+ * Make a CLS key from a table key and column name.
+ * Format: "{tableKey}::{columnName}"
+ */
+export function makeClsKey(tableKey: string, columnName: string): string {
+  return `${tableKey}::${columnName}`;
+}
+
+/**
+ * Parse a CLS key into table key and column name.
+ */
+export function parseClsKey(clsKey: string): {
+  tableKey: string;
+  columnName: string;
+} | null {
+  const separatorIndex = clsKey.indexOf('::');
+  if (separatorIndex === -1) return null;
+  return {
+    tableKey: clsKey.slice(0, separatorIndex),
+    columnName: clsKey.slice(separatorIndex + 2),
+  };
+}
+
+/**
+ * Get CLS rules for a specific table from the clsRules state.
+ */
+export function getTableClsRules(
+  tableKey: string,
+  clsRules: Record<string, CLSAction>,
+): Record<string, CLSAction> {
+  const tableRules: Record<string, CLSAction> = {};
+  const prefix = `${tableKey}::`;
+
+  Object.entries(clsRules).forEach(([key, action]) => {
+    if (key.startsWith(prefix)) {
+      const columnName = key.slice(prefix.length);
+      tableRules[columnName] = action;
+    }
+  });
+
+  return tableRules;
+}
+
 export function generatePermissionsPayload(
   permissionStates: Record<string, PermissionState>,
   databases: Map<number, string>,
+  clsRules: Record<string, CLSAction> = {},
 ): PermissionsPayload {
   const allowed: PermissionEntry[] = [];
   const denied: PermissionEntry[] = [];
 
   // Clean up states - remove redundant entries
   const cleanedStates = cleanupStates(permissionStates);
+
+  // Group CLS rules by table key
+  const clsByTable: Record<string, Record<string, string>> = {};
+  Object.entries(clsRules).forEach(([clsKey, action]) => {
+    const parsed = parseClsKey(clsKey);
+    if (!parsed) return;
+    if (!clsByTable[parsed.tableKey]) {
+      clsByTable[parsed.tableKey] = {};
+    }
+    clsByTable[parsed.tableKey][parsed.columnName] = action;
+  });
 
   Object.entries(cleanedStates).forEach(([key, state]) => {
     const parsed = parseKey(key);
@@ -313,10 +369,48 @@ export function generatePermissionsPayload(
     if (parsed.schemaName) entry.schema = parsed.schemaName;
     if (parsed.tableName) entry.table = parsed.tableName;
 
+    // Add CLS rules if this is a table entry and has CLS rules
+    if (parsed.tableName && clsByTable[key]) {
+      entry.cls = clsByTable[key];
+    }
+
     if (state === 'allow') {
       allowed.push(entry);
     } else if (state === 'deny') {
       denied.push(entry);
+    }
+  });
+
+  // Also add CLS rules for tables that don't have explicit permission states
+  // but do have CLS rules (they inherit permission from parent)
+  Object.entries(clsByTable).forEach(([tableKey, columnRules]) => {
+    // Check if we already added this table
+    const parsed = parseKey(tableKey);
+    const databaseName = databases.get(parsed.databaseId);
+    if (!databaseName) return;
+
+    // Only add if not already in allowed list
+    const alreadyInAllowed = allowed.some(
+      entry =>
+        entry.database === databaseName &&
+        entry.catalog === parsed.catalogName &&
+        entry.schema === parsed.schemaName &&
+        entry.table === parsed.tableName,
+    );
+
+    if (!alreadyInAllowed && Object.keys(columnRules).length > 0) {
+      // Check if the table has effective allow state (inherited)
+      const effectiveState = getEffectiveState(tableKey, permissionStates);
+      if (effectiveState === 'allow') {
+        const entry: PermissionEntry = {
+          database: databaseName,
+          table: parsed.tableName,
+          cls: columnRules,
+        };
+        if (parsed.catalogName) entry.catalog = parsed.catalogName;
+        if (parsed.schemaName) entry.schema = parsed.schemaName;
+        allowed.push(entry);
+      }
     }
   });
 
@@ -363,8 +457,9 @@ function cleanupStates(
 export function loadPermissionsFromPayload(
   payload: PermissionsPayload,
   databases: Map<string, number>,
-): Record<string, PermissionState> {
+): { states: Record<string, PermissionState>; clsRules: Record<string, CLSAction> } {
   const states: Record<string, PermissionState> = {};
+  const clsRules: Record<string, CLSAction> = {};
 
   payload.allowed.forEach(entry => {
     const databaseId = databases.get(entry.database);
@@ -377,6 +472,14 @@ export function loadPermissionsFromPayload(
       tableName: entry.table,
     });
     states[key] = 'allow';
+
+    // Load CLS rules if present
+    if (entry.cls && entry.table) {
+      Object.entries(entry.cls).forEach(([columnName, action]) => {
+        const clsKey = makeClsKey(key, columnName);
+        clsRules[clsKey] = action as CLSAction;
+      });
+    }
   });
 
   payload.denied.forEach(entry => {
@@ -392,5 +495,5 @@ export function loadPermissionsFromPayload(
     states[key] = 'deny';
   });
 
-  return states;
+  return { states, clsRules };
 }
