@@ -30,6 +30,17 @@ _logger = logging.getLogger(__name__)
 
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
+# Examples that should always be loaded (were in original configs/ directory)
+# New examples should only be loaded when load_test_data=True
+CORE_EXAMPLES = {
+    "cleaned_sales_data",
+    "covid_vaccines",
+    "fcc_2018_survey",
+    "featured_charts",
+    "slack_dashboard",
+    "video_game_sales",
+}
+
 
 def _read_file_if_exists(base: Any, path: Any) -> str | None:
     """Read file content if it exists, return None otherwise."""
@@ -215,6 +226,11 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
             continue
 
         example_name = str(item)
+
+        # When load_test_data=False, only load core examples (for test compatibility)
+        if not load_test_data and example_name not in CORE_EXAMPLES:
+            continue
+
         example_contents = _load_example_contents(
             example_dir, example_name, test_re, load_test_data
         )
