@@ -24,7 +24,8 @@ params:
   - occupancy
   all_columns_x: LON
   all_columns_y: LAT
-  granularity_sqla: day
+  granularity_sqla: datetime
+  time_grain_sqla: P1D
   mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
   row_limit: 500000
   since: '2014-01-01'
