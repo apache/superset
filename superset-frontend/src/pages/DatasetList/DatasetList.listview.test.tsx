@@ -1101,6 +1101,28 @@ test('displays error when initial dataset fetch fails with 500', async () => {
   });
 });
 
+test('displays error when initial dataset fetch fails with 403 permission denied', async () => {
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { status: 403, body: { message: 'Access Denied' } },
+    { overwriteRoutes: true },
+  );
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: mockAddDangerToast,
+  });
+
+  // Error toast should be shown for permission denied
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalled();
+  });
+
+  // No dataset names from mockDatasets should appear in the document
+  mockDatasets.forEach(dataset => {
+    expect(screen.queryByText(dataset.table_name)).not.toBeInTheDocument();
+  });
+});
+
 test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET is enabled', async () => {
   renderDatasetList(
     mockAdminUser,
