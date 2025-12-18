@@ -199,13 +199,16 @@ export default function Root({ children }) {
         console.log('Setting up Matomo tracking with enhanced features');
       }
 
-      possibleEvents.forEach(eventName => {
-        document.addEventListener(eventName, () => {
+      // Store handler references for proper cleanup
+      const routeHandlers = possibleEvents.map(eventName => {
+        const handler = () => {
           if (devMode) {
             console.log(`Docusaurus route update detected via ${eventName}`);
           }
           handleRouteChange();
-        });
+        };
+        document.addEventListener(eventName, handler);
+        return { eventName, handler };
       });
 
       // Manual history tracking as fallback
@@ -230,8 +233,8 @@ export default function Root({ children }) {
 
       // Cleanup
       return () => {
-        possibleEvents.forEach(eventName => {
-          document.removeEventListener(eventName, handleRouteChange);
+        routeHandlers.forEach(({ eventName, handler }) => {
+          document.removeEventListener(eventName, handler);
         });
 
         if (originalPushState) {
