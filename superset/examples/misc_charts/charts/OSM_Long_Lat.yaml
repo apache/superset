@@ -26,7 +26,18 @@ params:
   all_columns_y: LAT
   granularity_sqla: datetime
   time_grain_sqla: P1D
-  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  mapbox_style: mapbox://styles/mapbox/light-v9
+  mapbox_color: rgb(0, 139, 139)
+  clustering_radius: '60'
+  global_opacity: 1
+  point_radius: Auto
+  point_radius_unit: Pixels
+  render_while_dragging: true
+  pandas_aggfunc: sum
+  mapbox_label: []
+  viewport_longitude: -122.405293
+  viewport_latitude: 37.772123
+  viewport_zoom: 11
   row_limit: 100000
   since: '2014-01-01'
   until: now
