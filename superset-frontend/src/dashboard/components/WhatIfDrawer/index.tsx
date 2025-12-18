@@ -30,6 +30,7 @@ import {
 } from 'src/components/Chart/chartAction';
 import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
 import { RootState, Slice, WhatIfColumn } from 'src/dashboard/types';
+import WhatIfAIInsights from './WhatIfAIInsights';
 
 export const WHAT_IF_PANEL_WIDTH = 300;
 
@@ -127,6 +128,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
   const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
   const [sliderValue, setSliderValue] = useState<number>(SLIDER_DEFAULT);
+  const [affectedChartIds, setAffectedChartIds] = useState<number[]>([]);
 
   const slices = useSelector(
     (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
@@ -170,10 +172,13 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     const multiplier = 1 + sliderValue / 100;
 
     // Get affected chart IDs
-    const affectedChartIds = columnToChartIds.get(selectedColumn) || [];
+    const chartIds = columnToChartIds.get(selectedColumn) || [];
+
+    // Save affected chart IDs for AI insights
+    setAffectedChartIds(chartIds);
 
     // Save original chart data before applying what-if modifications
-    affectedChartIds.forEach(chartId => {
+    chartIds.forEach(chartId => {
       dispatch(saveOriginalChartData(chartId));
     });
 
@@ -188,7 +193,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     );
 
     // Trigger queries for all charts that use the selected column
-    affectedChartIds.forEach(chartId => {
+    chartIds.forEach(chartId => {
       dispatch(triggerQuery(true, chartId));
     });
   }, [dispatch, selectedColumn, sliderValue, columnToChartIds]);
@@ -266,6 +271,10 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
           )}
           showIcon
         />
+
+        {affectedChartIds.length > 0 && (
+          <WhatIfAIInsights affectedChartIds={affectedChartIds} />
+        )}
       </PanelContent>
     </PanelContainer>
   );

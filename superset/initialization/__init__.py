@@ -223,6 +223,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.what_if.api import WhatIfRestApi
 
         set_app_error_handlers(self.superset_app)
         self.register_request_handlers()
@@ -266,6 +267,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
+        appbuilder.add_api(WhatIfRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)

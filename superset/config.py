@@ -1145,6 +1145,18 @@ QUERY_LOGGER = None
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
+# ---------------------------------------------------
+# What-If AI Interpretation Configuration
+# ---------------------------------------------------
+# API key for OpenRouter (required for AI interpretation of what-if analysis)
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+# Model to use for interpretation (default: x-ai/grok-4.1-fast)
+OPENROUTER_MODEL = "x-ai/grok-4.1-fast"
+# API base URL for OpenRouter
+OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
+# Request timeout in seconds
+OPENROUTER_TIMEOUT = 30
+
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 

@@ -285,9 +285,27 @@ export type Slice = {
 /**
  * What-If Analysis types
  */
+export type WhatIfFilterOperator =
+  | '=='
+  | '!='
+  | '>'
+  | '<'
+  | '>='
+  | '<='
+  | 'IN'
+  | 'NOT IN'
+  | 'TEMPORAL_RANGE';
+
+export interface WhatIfFilter {
+  col: string;
+  op: WhatIfFilterOperator;
+  val: string | number | boolean | Array<string | number>;
+}
+
 export interface WhatIfModification {
   column: string;
   multiplier: number;
+  filters?: WhatIfFilter[];
 }
 
 export interface WhatIfColumn {
