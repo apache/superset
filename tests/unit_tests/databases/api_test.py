@@ -225,93 +225,96 @@ def test_database_connection(
     mocker.patch("superset.utils.log.DBEventLogger.log")
 
     response = client.get("/api/v1/database/1/connection")
-    assert response.json == {
-        "id": 1,
-        "result": {
-            "allow_ctas": False,
-            "allow_cvas": False,
-            "allow_dml": False,
-            "allow_file_upload": False,
-            "allow_run_async": False,
-            "backend": "gsheets",
-            "cache_timeout": None,
-            "configuration_method": "sqlalchemy_form",
-            "database_name": "my_database",
-            "driver": "gsheets",
-            "engine_information": {
-                "disable_ssh_tunneling": True,
-                "supports_dynamic_catalog": False,
-                "supports_file_upload": True,
-                "supports_oauth2": True,
-            },
-            "expose_in_sqllab": True,
-            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
-            "force_ctas_schema": None,
+    assert (
+        response.json
+        == {
             "id": 1,
-            "impersonate_user": False,
-            "is_managed_externally": False,
-            "masked_encrypted_extra": json.dumps(
-                {
+            "result": {
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "allow_run_async": False,
+                "backend": "gsheets",
+                "cache_timeout": None,
+                "configuration_method": "sqlalchemy_form",
+                "database_name": "my_database",
+                "driver": "gsheets",
+                "engine_information": {
+                    "disable_ssh_tunneling": True,
+                    "supports_dynamic_catalog": False,
+                    "supports_file_upload": True,
+                    "supports_oauth2": True,
+                },
+                "expose_in_sqllab": True,
+                "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
+                "force_ctas_schema": None,
+                "id": 1,
+                "impersonate_user": False,
+                "is_managed_externally": False,
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "service_account_info": {
+                            "type": "service_account",
+                            "project_id": "black-sanctum-314419",
+                            "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
+                            "private_key": "XXXXXXXXXX",
+                            "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
+                            "client_id": "114567578578109757129",
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                            "token_uri": "https://oauth2.googleapis.com/token",
+                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                        }
+                    }
+                ),
+                "parameters": {
                     "service_account_info": {
-                        "type": "service_account",
-                        "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-                        "private_key": "XXXXXXXXXX",
+                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                        "private_key": "XXXXXXXXXX",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "project_id": "black-sanctum-314419",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                        "type": "service_account",
                     }
-                }
-            ),
-            "parameters": {
-                "service_account_info": {
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
-                    "client_id": "114567578578109757129",
-                    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-                    "private_key": "XXXXXXXXXX",
-                    "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-                    "project_id": "black-sanctum-314419",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "type": "service_account",
-                }
-            },
-            "parameters_schema": {
-                "properties": {
-                    "catalog": {"type": "object"},
-                    "oauth2_client_info": {
-                        "default": {
-                            "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-                            "scope": (
-                                "https://www.googleapis.com/auth/drive.readonly "
-                                "https://www.googleapis.com/auth/spreadsheets "
-                                "https://spreadsheets.google.com/feeds"
-                            ),
-                            "token_request_uri": "https://oauth2.googleapis.com/token",
-                        },
-                        "description": "OAuth2 client information",
-                        "nullable": True,
-                        "type": "string",
-                        "x-encrypted-extra": True,
-                    },
-                    "service_account_info": {
-                        "description": "Contents of GSheets JSON credentials.",
-                        "type": "string",
-                        "x-encrypted-extra": True,
-                    },
                 },
-                "type": "object",
+                "parameters_schema": {
+                    "properties": {
+                        "catalog": {"type": "object"},
+                        "oauth2_client_info": {
+                            "default": {
+                                "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                                "scope": (
+                                    "https://www.googleapis.com/auth/drive.readonly "
+                                    "https://www.googleapis.com/auth/spreadsheets "
+                                    "https://spreadsheets.google.com/feeds"
+                                ),
+                                "token_request_uri": "https://oauth2.googleapis.com/token",
+                            },
+                            "description": "OAuth2 client information",
+                            "nullable": True,
+                            "type": "string",
+                            "x-encrypted-extra": True,
+                        },
+                        "service_account_info": {
+                            "description": "Contents of GSheets JSON credentials.",
+                            "type": "string",
+                            "x-encrypted-extra": True,
+                        },
+                    },
+                    "type": "object",
+                },
+                "server_cert": None,
+                "sqlalchemy_uri": "gsheets://",
+                "ssh_tunnel": None,
+                "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
             },
-            "server_cert": None,
-            "sqlalchemy_uri": "gsheets://",
-            "ssh_tunnel": None,
-            "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
-        },
-    }
+        }
+    )
 
     response = client.get("/api/v1/database/1")
     assert response.json == {
@@ -2104,6 +2107,7 @@ def test_catalogs(
     """
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = "db2"
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
@@ -2115,7 +2119,7 @@ def test_catalogs(
 
     response = client.get("/api/v1/database/1/catalogs/")
     assert response.status_code == 200
-    assert response.json == {"result": ["db2"]}
+    assert response.json == {"result": ["db2"], "default": "db2"}
     database.get_all_catalog_names.assert_called_with(
         cache=database.catalog_cache_enabled,
         cache_timeout=database.catalog_cache_timeout,
@@ -2187,6 +2191,7 @@ def test_schemas(
 
     database = mocker.MagicMock()
     database.get_all_schema_names.return_value = {"schema1", "schema2"}
+    database.get_default_schema.return_value = "schema2"
     datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
     datamodel.get.return_value = database
 
@@ -2198,7 +2203,7 @@ def test_schemas(
 
     response = client.get("/api/v1/database/1/schemas/")
     assert response.status_code == 200
-    assert response.json == {"result": ["schema2"]}
+    assert response.json == {"result": ["schema2"], "default": "schema2"}
     database.get_all_schema_names.assert_called_with(
         catalog=None,
         cache=database.schema_cache_enabled,
@@ -2274,3 +2279,184 @@ def test_schemas_with_oauth2(
             }
         ]
     }
+
+
+def test_catalogs_default_not_accessible(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that `default` is null when the default catalog is not accessible to the user.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.return_value = "db1"  # default is db1
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    # User only has access to db2, not the default db1
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["db2"], "default": None}
+
+
+def test_catalogs_default_retrieval_fails(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that the endpoint still works when get_default_catalog fails.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.return_value = {"db1", "db2"}
+    database.get_default_catalog.side_effect = Exception("Connection failed")
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db1", "db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 200
+    # Result should still be returned, default is null due to error
+    assert set(response.json["result"]) == {"db1", "db2"}
+    assert response.json["default"] is None
+
+
+def test_schemas_default_not_accessible(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that `default` is null when the default schema is not accessible to the user.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "private"}
+    database.get_default_schema.return_value = "public"  # default is public
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    # User only has access to private, not the default public
+    security_manager.get_schemas_accessible_by_user.return_value = {"private"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    assert response.json == {"result": ["private"], "default": None}
+
+
+def test_schemas_default_retrieval_fails(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that the endpoint still works when get_default_schema fails.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "private"}
+    database.get_default_schema.side_effect = Exception("Connection failed")
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"public", "private"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 200
+    # Result should still be returned, default is null due to error
+    assert set(response.json["result"]) == {"public", "private"}
+    assert response.json["default"] is None
+
+
+def test_schemas_default_with_upload_allowed(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that default schema is returned correctly with upload_allowed filter.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "uploads", "private"}
+    database.get_default_schema.return_value = "public"
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = ["uploads", "public"]
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {
+        "public",
+        "uploads",
+        "private",
+    }
+
+    response = client.get("/api/v1/database/1/schemas/?q=(upload_allowed:!t)")
+    assert response.status_code == 200
+    # Only upload-allowed schemas should be returned
+    assert set(response.json["result"]) == {"public", "uploads"}
+    # Default should be public since it's in the allowed list
+    assert response.json["default"] == "public"
+
+
+def test_schemas_default_not_in_upload_allowed(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that default schema is null when not in upload_allowed schemas.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.return_value = {"public", "uploads", "private"}
+    database.get_default_schema.return_value = "private"  # default not in allowed list
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = ["uploads", "public"]
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {
+        "public",
+        "uploads",
+        "private",
+    }
+
+    response = client.get("/api/v1/database/1/schemas/?q=(upload_allowed:!t)")
+    assert response.status_code == 200
+    assert set(response.json["result"]) == {"public", "uploads"}
+    # Default should be null since "private" is not in allowed list
+    assert response.json["default"] is None
