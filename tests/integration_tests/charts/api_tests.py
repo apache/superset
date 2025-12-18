@@ -1043,6 +1043,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "viz_type": None,
             "query_context": None,
             "is_managed_externally": False,
+            "is_template_chart": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on_delta_humanized" in data["result"]
@@ -1144,7 +1145,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 33
+        assert data["count"] == 34
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
     def test_get_charts_dashboards(self):
@@ -1418,7 +1419,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 17
+        assert data["count"] == 18
 
     @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
@@ -1706,7 +1707,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         Chart API: Test get charts filter
         """
-        # Assuming we have 33 sample charts
+        # Assuming we have 34 sample charts
         self.login(ADMIN_USERNAME)
         arguments = {"page_size": 10, "page": 0}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -1720,7 +1721,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert len(data["result"]) == 3
+        assert len(data["result"]) == 4
 
     def test_get_charts_no_data_access(self):
         """
@@ -1913,7 +1914,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 8
+        assert data["count"] == 9
 
     def test_gets_not_created_by_user_charts_filter(self):
         arguments = {
@@ -1927,7 +1928,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 8
+        assert data["count"] == 9
 
     @pytest.mark.usefixtures("create_charts")
     def test_gets_owned_created_favorited_by_me_filter(self):

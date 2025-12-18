@@ -2446,7 +2446,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response["charts"]["count"] == 33
+        assert response["charts"]["count"] == 34
         assert response["dashboards"]["count"] == 3
 
     def test_get_database_related_objects_not_found(self):
