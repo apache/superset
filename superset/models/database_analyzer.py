@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import enum
+import re
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -25,9 +27,56 @@ from sqlalchemy.orm import relationship
 
 from superset.models.helpers import AuditMixinNullable, UUIDMixin
 from superset.utils.backports import StrEnum
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     pass
+
+
+# Type mapping patterns to convert SQL type strings to GenericDataType.
+# Based on BaseEngineSpec._default_column_type_mappings patterns.
+_TYPE_PATTERNS: list[tuple[re.Pattern[str], GenericDataType]] = [
+    # String types
+    (re.compile(r"^string", re.IGNORECASE), GenericDataType.STRING),
+    (re.compile(r"^n((var)?char|text)", re.IGNORECASE), GenericDataType.STRING),
+    (re.compile(r"^(var)?char", re.IGNORECASE), GenericDataType.STRING),
+    (re.compile(r"^(tiny|medium|long)?text", re.IGNORECASE), GenericDataType.STRING),
+    (re.compile(r"^uuid", re.IGNORECASE), GenericDataType.STRING),
+    (re.compile(r"^json", re.IGNORECASE), GenericDataType.STRING),
+    # Numeric types
+    (re.compile(r"^smallint", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^int(eger)?", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^bigint", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^long", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^decimal", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^numeric", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^float", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^double", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^real", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^(small|big)?serial", re.IGNORECASE), GenericDataType.NUMERIC),
+    (re.compile(r"^money", re.IGNORECASE), GenericDataType.NUMERIC),
+    # Temporal types
+    (re.compile(r"^timestamp", re.IGNORECASE), GenericDataType.TEMPORAL),
+    (re.compile(r"^datetime", re.IGNORECASE), GenericDataType.TEMPORAL),
+    (re.compile(r"^date", re.IGNORECASE), GenericDataType.TEMPORAL),
+    (re.compile(r"^time", re.IGNORECASE), GenericDataType.TEMPORAL),
+    (re.compile(r"^interval", re.IGNORECASE), GenericDataType.TEMPORAL),
+    # Boolean types
+    (re.compile(r"^bool(ean)?", re.IGNORECASE), GenericDataType.BOOLEAN),
+]
+
+
+def _infer_generic_type(data_type: str) -> GenericDataType:
+    """
+    Infer GenericDataType from a SQL type string.
+
+    :param data_type: SQL type string (e.g., "VARCHAR(255)", "INTEGER")
+    :return: GenericDataType enum value, defaults to STRING if no match
+    """
+    for pattern, generic_type in _TYPE_PATTERNS:
+        if pattern.match(data_type):
+            return generic_type
+    return GenericDataType.STRING
 
 
 class AnalysisStatus(str, enum.Enum):
@@ -167,6 +216,18 @@ class AnalyzedColumn(Model, AuditMixinNullable, UUIDMixin):
             "ordinal_position >= 1", name="ck_analyzed_column_ordinal_position"
         ),
     )
+
+    @cached_property
+    def type_generic(self) -> GenericDataType:
+        """
+        Infer generic data type from the column's SQL data type string.
+
+        Uses regex pattern matching based on common SQL type conventions
+        (consistent with BaseEngineSpec._default_column_type_mappings).
+
+        :return: GenericDataType enum value
+        """
+        return _infer_generic_type(self.data_type)
 
 
 class JoinType(StrEnum):

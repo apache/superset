@@ -49,68 +49,82 @@ class DatabaseAnalyzerTask(Task):
     base=DatabaseAnalyzerTask,
     soft_time_limit=3600,  # 1 hour soft limit
     time_limit=3900,  # 1 hour 5 min hard limit
+    bind=True,
 )
-def analyze_database_schema(report_id: int) -> dict[str, Any]:
+def analyze_database_schema(self: Task, report_id: int) -> dict[str, Any]:
     """
     Celery task to analyze database schema and generate metadata.
 
     :param report_id: ID of the DatabaseSchemaReport to process
     :return: Dict with status and results
     """
+    # Import here to avoid circular imports and to get the Flask app
+    from superset import create_app
     from superset.commands.database_analyzer.analyze import (
         AnalyzeDatabaseSchemaCommand,
     )
 
     logger.info("Starting database schema analysis for report_id: %s", report_id)
 
-    try:
-        # Update status to running
-        report = db.session.query(DatabaseSchemaReport).get(report_id)
-        if not report:
-            logger.error("Report with id %s not found", report_id)
-            return {"status": "error", "message": f"Report {report_id} not found"}
+    # Use Flask app context for database operations
+    flask_app = create_app()
+    with flask_app.app_context():
+        try:
+            # Update status to running
+            report = db.session.query(DatabaseSchemaReport).get(report_id)
+            if not report:
+                logger.error("Report with id %s not found", report_id)
+                return {"status": "error", "message": f"Report {report_id} not found"}
 
-        report.status = AnalysisStatus.RUNNING
-        report.start_dttm = datetime.now()
-        db.session.commit()  # pylint: disable=consider-using-transaction
+            report.status = AnalysisStatus.RUNNING
+            report.start_dttm = datetime.now()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
-        # Execute the analysis command
-        command = AnalyzeDatabaseSchemaCommand(report_id)
-        result = command.run()
+            # Execute the analysis command
+            command = AnalyzeDatabaseSchemaCommand(report_id)
+            result = command.run()
 
-        # Update status to completed
-        report.status = AnalysisStatus.COMPLETED
-        report.end_dttm = datetime.now()
-        db.session.commit()  # pylint: disable=consider-using-transaction
+            # Update status to completed
+            report.status = AnalysisStatus.COMPLETED
+            report.end_dttm = datetime.now()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
-        logger.info("Successfully completed analysis for report_id: %s", report_id)
-        return {
-            "status": "completed",
-            "database_report_id": report_id,
-            "tables_analyzed": result.get("tables_count", 0),
-            "joins_inferred": result.get("joins_count", 0),
-        }
+            logger.info(
+                "Successfully completed analysis for report_id: %s", report_id
+            )
+            return {
+                "status": "completed",
+                "database_report_id": report_id,
+                "tables_analyzed": result.get("tables_count", 0),
+                "joins_inferred": result.get("joins_count", 0),
+            }
 
-    except SoftTimeLimitExceeded:
-        logger.error("Task timed out for report_id: %s", report_id)
-        _mark_report_failed(report_id, "Task timed out after 1 hour")
-        return {"status": "error", "message": "Task timed out"}
+        except SoftTimeLimitExceeded:
+            logger.error("Task timed out for report_id: %s", report_id)
+            _mark_report_failed(report_id, "Task timed out after 1 hour")
+            return {"status": "error", "message": "Task timed out"}
 
-    except Exception as e:
-        logger.exception("Error analyzing database schema for report_id: %s", report_id)
-        _mark_report_failed(report_id, str(e))
-        raise
+        except Exception as e:
+            logger.exception(
+                "Error analyzing database schema for report_id: %s", report_id
+            )
+            _mark_report_failed(report_id, str(e))
+            raise
 
 
 def _mark_report_failed(report_id: int, error_message: str) -> None:
     """Mark a report as failed with error message"""
+    from superset import create_app
+
     try:
-        report = db.session.query(DatabaseSchemaReport).get(report_id)
-        if report:
-            report.status = AnalysisStatus.FAILED
-            report.end_dttm = datetime.now()
-            report.error_message = error_message
-            db.session.commit()  # pylint: disable=consider-using-transaction
+        flask_app = create_app()
+        with flask_app.app_context():
+            report = db.session.query(DatabaseSchemaReport).get(report_id)
+            if report:
+                report.status = AnalysisStatus.FAILED
+                report.end_dttm = datetime.now()
+                report.error_message = error_message
+                db.session.commit()  # pylint: disable=consider-using-transaction
     except Exception:
         logger.exception("Failed to update report status to failed")
 
@@ -143,7 +157,7 @@ def kickstart_analysis(database_id: int, schema_name: str) -> dict[str, Any]:
         return {
             "run_id": existing.celery_task_id,
             "database_report_id": existing.id,
-            "status": existing.status,
+            "status": existing.status.value,
         }
 
     if existing and existing.status in (
@@ -208,7 +222,7 @@ def check_analysis_status(run_id: str) -> dict[str, Any]:
     result = {
         "run_id": run_id,
         "database_report_id": report.id,
-        "status": report.status,
+        "status": report.status.value,
         "database_id": report.database_id,
         "schema_name": report.schema_name,
     }
