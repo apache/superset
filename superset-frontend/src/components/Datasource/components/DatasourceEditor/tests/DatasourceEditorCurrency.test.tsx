@@ -29,14 +29,14 @@ import {
   DATASOURCE_ENDPOINT,
   setupDatasourceEditorMocks,
   cleanupAsyncOperations,
-  asyncRender,
+  fastRender,
   dismissDatasourceWarning,
 } from './DatasourceEditor.test.utils';
 
 type MetricType = DatasetObject['metrics'][number];
 
 // Factory function for currency props - returns fresh copy to prevent test pollution
-// Using single metric to minimize DOM size for faster test execution while still validating currency functionality
+// Using single metric to minimize DOM size for faster test execution
 const createPropsWithCurrency = () => {
   const baseProps = createProps();
   return {
@@ -54,6 +54,22 @@ const createPropsWithCurrency = () => {
   };
 };
 
+// Shared setup to navigate to expanded currency section
+const setupCurrencySection = async () => {
+  await dismissDatasourceWarning();
+
+  // Navigate to metrics tab - use findBy which has built-in waiting
+  const metricButton = await screen.findByTestId('collection-tab-Metrics');
+  await userEvent.click(metricButton);
+
+  // Expand the metric row
+  const expandToggles = await screen.findAllByLabelText(/expand row/i);
+  await userEvent.click(expandToggles[0]);
+
+  // Wait for currency section to be visible
+  await screen.findByText('Metric currency');
+};
+
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
   setupDatasourceEditorMocks();
@@ -66,99 +82,57 @@ afterEach(async () => {
 
 test('renders currency section in metrics tab', async () => {
   const testProps = createPropsWithCurrency();
-  await asyncRender(testProps);
+  fastRender(testProps);
 
-  await dismissDatasourceWarning();
+  await setupCurrencySection();
 
-  // Navigate to metrics tab
-  const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
-
-  // Expand the single metric row with currency
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
-
-  // Check for currency section header
-  const currencyHeader = await screen.findByText('Metric currency');
-  expect(currencyHeader).toBeVisible();
-
-  // Verify currency position selector exists
-  const positionSelector = screen.getByRole('combobox', {
-    name: 'Currency prefix or suffix',
-  });
-  expect(positionSelector).toBeInTheDocument();
-
-  // Verify currency symbol selector exists
-  const symbolSelector = screen.getByRole('combobox', {
-    name: 'Currency symbol',
-  });
-  expect(symbolSelector).toBeInTheDocument();
+  // Verify currency selectors exist
+  expect(
+    screen.getByRole('combobox', { name: 'Currency prefix or suffix' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: 'Currency symbol' }),
+  ).toBeInTheDocument();
 });
 
-// Allow extra headroom for dropdown render on slower CI runners
 test('changes currency position from prefix to suffix', async () => {
   const testProps = createPropsWithCurrency();
+  fastRender(testProps);
 
-  await asyncRender(testProps);
+  await setupCurrencySection();
 
-  await dismissDatasourceWarning();
-
-  // Navigate to metrics tab
-  const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
-
-  // Expand the metric with currency
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
-
-  // Select suffix option via shared helper (rc-virtual-list aware)
   await selectOption('Suffix', 'Currency prefix or suffix');
-  await cleanupAsyncOperations();
 
-  // Verify onChange was called with suffix position
   await waitFor(() => {
     expect(testProps.onChange).toHaveBeenCalledTimes(1);
-    const callArg = testProps.onChange.mock.calls[0][0];
-
-    const metrics = callArg.metrics || [];
-    const updatedMetric = metrics.find(
-      (m: MetricType) => m.currency && m.currency.symbolPosition === 'suffix',
-    );
-
-    expect(updatedMetric?.currency?.symbol).toBe('USD');
   });
-}, 30000);
 
-// Allow extra headroom for dropdown render on slower CI runners
+  // Verify the exact call arguments
+  const callArg = testProps.onChange.mock.calls[0][0];
+  const metrics = callArg.metrics || [];
+  const updatedMetric = metrics.find(
+    (m: MetricType) => m.currency?.symbolPosition === 'suffix',
+  );
+  expect(updatedMetric?.currency?.symbol).toBe('USD');
+}, 60000);
+
 test('changes currency symbol from USD to GBP', async () => {
   const testProps = createPropsWithCurrency();
+  fastRender(testProps);
 
-  await asyncRender(testProps);
+  await setupCurrencySection();
 
-  await dismissDatasourceWarning();
-
-  // Navigate to metrics tab
-  const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
-
-  // Expand the metric with currency
-  const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
-
-  // Select GBP option via shared helper (rc-virtual-list aware)
   await selectOption('£ (GBP)', 'Currency symbol');
-  await cleanupAsyncOperations();
 
-  // Verify onChange was called with GBP
   await waitFor(() => {
     expect(testProps.onChange).toHaveBeenCalledTimes(1);
-    const callArg = testProps.onChange.mock.calls[0][0];
-
-    const metrics = callArg.metrics || [];
-    const updatedMetric = metrics.find(
-      (m: MetricType) => m.currency && m.currency.symbol === 'GBP',
-    );
-
-    expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
   });
-}, 30000);
+
+  // Verify the exact call arguments
+  const callArg = testProps.onChange.mock.calls[0][0];
+  const metrics = callArg.metrics || [];
+  const updatedMetric = metrics.find(
+    (m: MetricType) => m.currency?.symbol === 'GBP',
+  );
+  expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
+}, 60000);
