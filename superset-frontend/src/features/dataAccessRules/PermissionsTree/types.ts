@@ -43,7 +43,6 @@ export interface TreeState {
   loadedKeys: string[];
   treeData: PermissionNode[];
   permissionStates: Record<string, PermissionState>;
-  searchValue: string;
 }
 
 export interface PermissionsPayload {

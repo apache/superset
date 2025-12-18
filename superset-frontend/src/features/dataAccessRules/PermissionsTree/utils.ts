@@ -190,7 +190,7 @@ function clearDescendantStates(
  */
 function isDescendantOf(childKey: string, ancestorKey: string): boolean {
   // A key is a descendant if it starts with the ancestor key + '|'
-  return childKey.startsWith(ancestorKey + '|');
+  return childKey.startsWith(`${ancestorKey}|`);
 }
 
 /**
@@ -245,7 +245,7 @@ export function countDescendantPermissions(
  * Check if a key is a direct child of another key.
  */
 function isDirectChildOf(childKey: string, parentKey: string): boolean {
-  if (!childKey.startsWith(parentKey + '|')) {
+  if (!childKey.startsWith(`${parentKey}|`)) {
     return false;
   }
   // Count the number of '|' segments after the parent

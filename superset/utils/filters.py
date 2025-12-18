@@ -22,7 +22,15 @@ from sqlalchemy.sql.elements import BooleanClauseList
 
 
 def get_dar_dataset_filters(base_model: type[Model]) -> list[Any]:
-    """Get SQLAlchemy filters for DAR-allowed tables."""
+    """
+    Get SQLAlchemy filters for DAR-allowed datasets.
+
+    Handles hierarchical permissions:
+    - Database-level: allows all tables in the database
+    - Catalog-level: allows all tables in the catalog
+    - Schema-level: allows all tables in the schema
+    - Table-level: allows only the specific table
+    """
     # pylint: disable=import-outside-toplevel
     import logging
 
@@ -33,28 +41,42 @@ def get_dar_dataset_filters(base_model: type[Model]) -> list[Any]:
         return []
 
     try:
-        from superset.data_access_rules.utils import get_all_allowed_tables
+        from superset.data_access_rules.utils import get_all_allowed_entries
 
-        allowed_tables = get_all_allowed_tables()
-        if not allowed_tables:
+        allowed_entries = get_all_allowed_entries()
+        if not allowed_entries:
             return []
 
-        # Build OR filters for each allowed table
-        table_filters = []
-        for table in allowed_tables:
-            table_filter = and_(
-                Database.database_name == table.database,
-                base_model.table_name == table.table,
-            )
-            # Add schema filter if specified
-            if table.schema:
-                table_filter = and_(
-                    table_filter,
-                    base_model.schema == table.schema,
-                )
-            table_filters.append(table_filter)
+        # Build OR filters for each allowed entry at its hierarchy level
+        filters = []
+        for entry in allowed_entries:
+            # Start with database filter (always required)
+            entry_filter = Database.database_name == entry.database
 
-        return table_filters
+            # Add catalog filter if specified
+            if entry.catalog is not None:
+                entry_filter = and_(
+                    entry_filter,
+                    base_model.catalog == entry.catalog,
+                )
+
+            # Add schema filter if specified
+            if entry.schema is not None:
+                entry_filter = and_(
+                    entry_filter,
+                    base_model.schema == entry.schema,
+                )
+
+            # Add table filter if specified
+            if entry.table is not None:
+                entry_filter = and_(
+                    entry_filter,
+                    base_model.table_name == entry.table,
+                )
+
+            filters.append(entry_filter)
+
+        return filters
     except Exception as ex:
         logging.getLogger(__name__).warning(
             "Error getting DAR dataset filters: %s", ex

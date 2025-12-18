@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
-import { Tree, Input, Tooltip, Spin, Button } from 'antd';
+import { Tree, Tooltip, Spin, Button } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -32,7 +32,6 @@ import {
 import type { TreeProps } from 'antd';
 import type {
   PermissionNode,
-  PermissionState,
   TreeState,
   PermissionsPayload,
 } from './types';
@@ -45,7 +44,6 @@ import {
 } from './api';
 import {
   makeKey,
-  parseKey,
   getEffectiveState,
   getExplicitState,
   cyclePermissionState,
@@ -129,7 +127,6 @@ function PermissionsTree({
     loadedKeys: [],
     treeData: [],
     permissionStates: {},
-    searchValue: '',
   });
   const [loading, setLoading] = useState(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
@@ -146,7 +143,7 @@ function PermissionsTree({
   }, [databases]);
 
   // Track if we're in the middle of an internal update to avoid circular updates
-  const [isInternalUpdate, setIsInternalUpdate] = useState(false);
+  const isInternalUpdateRef = useRef(false);
 
   // Load initial databases
   useEffect(() => {
@@ -155,8 +152,8 @@ function PermissionsTree({
 
   // Load initial value (only on mount or when value changes externally)
   useEffect(() => {
-    if (isInternalUpdate) {
-      setIsInternalUpdate(false);
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
       return;
     }
     if (value && databaseMaps.nameToId.size > 0) {
@@ -342,7 +339,7 @@ function PermissionsTree({
     const newStates = cyclePermissionState(nodeKey, treeState.permissionStates);
 
     // Mark as internal update to prevent circular updates
-    setIsInternalUpdate(true);
+    isInternalUpdateRef.current = true;
 
     setTreeState(prev => ({
       ...prev,
@@ -419,6 +416,7 @@ function PermissionsTree({
     const nodeKey = node.key as string;
     const isExpanded = treeState.expandedKeys.includes(nodeKey);
     const isLeaf = node.isLeaf || node.nodeType === 'table';
+    const title = node.title as string;
 
     // Count descendants with custom permissions when collapsed
     const counts =
@@ -431,7 +429,7 @@ function PermissionsTree({
       <div className="node-title">
         {getStateIcon(nodeKey)}
         {getNodeIcon(node.nodeType)}
-        <span>{node.title as string}</span>
+        <span>{title}</span>
         {hasCustomRules && (
           <span className="node-count">
             (
@@ -454,15 +452,8 @@ function PermissionsTree({
     );
   };
 
-  const onSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTreeState(prev => ({
-      ...prev,
-      searchValue: e.target.value,
-    }));
-  };
-
   const clearAll = () => {
-    setIsInternalUpdate(true);
+    isInternalUpdateRef.current = true;
     setTreeState(prev => ({
       ...prev,
       permissionStates: {},
@@ -474,13 +465,6 @@ function PermissionsTree({
 
   return (
     <StyledContainer>
-      <Input.Search
-        className="search-input"
-        placeholder={t('Search databases, schemas, tables...')}
-        onChange={onSearch}
-        value={treeState.searchValue}
-        allowClear
-      />
       <div style={{ marginBottom: 8 }}>
         <Button size="small" onClick={clearAll}>
           {t('Reset All')}

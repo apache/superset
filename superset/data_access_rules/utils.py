@@ -742,6 +742,67 @@ class AllowedTable:
     catalog: str | None = None
 
 
+@dataclass
+class AllowedEntry:
+    """
+    An allowed entry from DAR at any level of the hierarchy.
+
+    Fields may be None to indicate "all" at that level:
+    - database only: all catalogs/schemas/tables in that database
+    - database + catalog: all schemas/tables in that catalog
+    - database + schema: all tables in that schema (for DBs without catalogs)
+    - database + catalog + schema: all tables in that schema
+    - database + schema + table: specific table (for DBs without catalogs)
+    - database + catalog + schema + table: specific table
+    """
+
+    database: str
+    catalog: str | None = None
+    schema: str | None = None
+    table: str | None = None
+
+
+def get_all_allowed_entries() -> list[AllowedEntry]:
+    """
+    Get all access entries that the current user has via Data Access Rules
+    across all databases.
+
+    This function returns entries at all hierarchy levels (database, schema, table),
+    allowing callers to build appropriate filters for their use case.
+
+    Returns:
+        List of AllowedEntry objects representing allowed access.
+    """
+    if not is_feature_enabled("DATA_ACCESS_RULES"):
+        return []
+
+    rules = get_user_rules()
+    if not rules:
+        return []
+
+    allowed_entries: list[AllowedEntry] = []
+
+    for rule in rules:
+        rule_dict = rule.rule_dict
+
+        # Collect all allowed entries
+        for entry in rule_dict.get("allowed", []):
+            database = entry.get("database")
+            if not database:
+                continue
+
+            allowed_entries.append(
+                AllowedEntry(
+                    database=database,
+                    catalog=entry.get("catalog"),
+                    schema=entry.get("schema"),
+                    table=entry.get("table"),
+                )
+            )
+
+    return allowed_entries
+
+
 def get_all_allowed_tables() -> list[AllowedTable]:
     """
     Get all tables that the current user has access to via Data Access Rules
