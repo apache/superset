@@ -282,8 +282,8 @@ const StyledDashboardContent = styled.div<{
     background-color: ${theme.colorBgLayout};
     display: grid;
     grid-template-columns: 1fr ${hasWhatIfPanel ? 'auto' : ''} ${editMode
-      ? 'auto'
-      : ''};
+        ? 'auto'
+        : ''};
     grid-template-rows: auto 1fr;
     height: auto;
     flex: 1;
@@ -302,15 +302,8 @@ const StyledDashboardContent = styled.div<{
       margin-right: ${marginRight}px;
       min-width: 0; /* Prevent grid blowout */
 
-      ${editMode &&
-      `
-      max-width: calc(100% - ${
-        BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
-      }px);
-    `}
-
       /* this is the ParentSize wrapper */
-    & > div:first-child {
+      & > div:first-child {
         height: 100% !important;
       }
     }

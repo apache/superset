@@ -40,6 +40,7 @@ const TABS_KEYS = {
 
 const BuilderComponentPane = ({ topOffset = 0 }) => (
   <div
+    className="dashboard-builder-sidepane"
     data-test="dashboard-builder-sidepane"
     css={css`
       position: sticky;
