@@ -30,13 +30,6 @@ const DOWNLOAD_EXTENSIONS = [
 // Scroll depth milestones to track
 const SCROLL_MILESTONES = [25, 50, 75, 100];
 
-// Custom dimension IDs (configure these in Matomo admin)
-// Using visit-scoped dimensions for user preferences
-const CUSTOM_DIMENSIONS = {
-  DOCS_VERSION: 1,
-  COLOR_MODE: 2,
-};
-
 export default function Root({ children }) {
   const { siteConfig } = useDocusaurusContext();
   const { customFields } = siteConfig;
@@ -81,13 +74,6 @@ export default function Root({ children }) {
         window._paq.push(['trackSiteSearch', keyword, category, resultsCount]);
       };
 
-      // Helper to set custom dimensions
-      const setCustomDimension = (dimensionId, value) => {
-        if (devMode) {
-          console.log('Matomo setCustomDimension:', { dimensionId, value });
-        }
-        window._paq.push(['setCustomDimension', dimensionId, value]);
-      };
 
       // Track external link clicks using domain as category (vendor-agnostic)
       const handleLinkClick = (event) => {
@@ -203,18 +189,18 @@ export default function Root({ children }) {
         }
       };
 
-      // Track color mode preference
+      // Track color mode preference (as event, no admin config needed)
       const trackColorMode = () => {
         const colorMode = document.documentElement.getAttribute('data-theme') ||
                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        setCustomDimension(CUSTOM_DIMENSIONS.COLOR_MODE, colorMode);
+        trackEvent('User Preference', 'Color Mode', colorMode);
       };
 
-      // Track docs version from URL or version selector
+      // Track docs version from URL (as event, no admin config needed)
       const trackDocsVersion = () => {
         const pathMatch = window.location.pathname.match(/\/docs\/([\d.]+)\//);
         const version = pathMatch ? pathMatch[1] : 'latest';
-        setCustomDimension(CUSTOM_DIMENSIONS.DOCS_VERSION, version);
+        trackEvent('User Preference', 'Docs Version', version);
       };
 
       // Handle route changes for SPA
@@ -297,7 +283,6 @@ export default function Root({ children }) {
       const colorModeObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.attributeName === 'data-theme') {
-            trackColorMode();
             trackEvent('User Preference', 'Color Mode Change',
               document.documentElement.getAttribute('data-theme'));
           }
