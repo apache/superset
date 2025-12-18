@@ -1094,34 +1094,41 @@ def test_collect_needed_columns_empty(mocker: MockerFixture) -> None:
     assert needed == set()
 
 
-def test_collect_needed_columns_returns_none_for_sql_metrics(
+def test_collect_needed_columns_extracts_from_sql_metrics(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test that _collect_needed_columns returns None for SQL-type adhoc metrics,
-    indicating all columns should be included.
+    Test that _collect_needed_columns uses sqlglot to extract column references
+    from SQL-type adhoc metrics.
     """
     database = mocker.MagicMock()
 
     table = SqlaTable(
         table_name="sales",
         database=database,
-        columns=[TableColumn(column_name="col1")],
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="revenue"),
+            TableColumn(column_name="orders"),
+        ],
     )
 
-    # SQL-type adhoc metric - can't determine columns
+    # SQL-type adhoc metric with complex expression
     needed = table._collect_needed_columns(
         columns=["date"],
         metrics=[
             {
                 "expressionType": "SQL",
-                "sqlExpression": "SUM(hidden_column)",
+                "sqlExpression": "SUM(revenue) / NULLIF(COUNT(orders), 0)",
             }
         ],
     )
 
-    # Should return None to signal all columns needed
-    assert needed is None
+    # Should extract column references using sqlglot
+    assert needed is not None
+    assert "date" in needed
+    assert "revenue" in needed
+    assert "orders" in needed
 
 
 def test_collect_needed_columns_returns_none_for_saved_metrics(
@@ -1189,57 +1196,283 @@ def test_apply_what_if_transform_all_columns_when_needed_none(
     assert "col4" in compiled
 
 
-def test_collect_needed_columns_returns_none_for_adhoc_columns(
+def test_collect_needed_columns_extracts_from_adhoc_columns(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test that _collect_needed_columns returns None for adhoc columns
-    with SQL expressions, indicating all columns should be included.
+    Test that _collect_needed_columns uses sqlglot to extract column references
+    from adhoc columns with SQL expressions.
     """
     database = mocker.MagicMock()
 
     table = SqlaTable(
         table_name="sales",
         database=database,
-        columns=[TableColumn(column_name="col1")],
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="first_name"),
+            TableColumn(column_name="last_name"),
+        ],
     )
 
     # Adhoc column with SQL expression in columns list
     needed = table._collect_needed_columns(
         columns=[
             "date",
-            {"label": "custom_col", "sqlExpression": "CONCAT(first_name, last_name)"},
+            {"label": "full_name", "sqlExpression": "CONCAT(first_name, last_name)"},
         ],
         metrics=[],
     )
 
-    # Should return None to signal all columns needed
-    assert needed is None
+    # Should extract column references using sqlglot
+    assert needed is not None
+    assert "date" in needed
+    assert "first_name" in needed
+    assert "last_name" in needed
 
 
-def test_collect_needed_columns_returns_none_for_adhoc_groupby(
+def test_collect_needed_columns_extracts_from_adhoc_groupby(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test that _collect_needed_columns returns None for adhoc columns in groupby.
+    Test that _collect_needed_columns uses sqlglot to extract column references
+    from adhoc columns in groupby.
     """
     database = mocker.MagicMock()
 
     table = SqlaTable(
         table_name="sales",
         database=database,
-        columns=[TableColumn(column_name="col1")],
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="revenue"),
+        ],
     )
 
     # Adhoc column in groupby
     needed = table._collect_needed_columns(
+        columns=["revenue"],
         groupby=[
             {"label": "year", "sqlExpression": "EXTRACT(YEAR FROM date)"},
         ],
         metrics=[],
     )
 
-    assert needed is None
+    # Should extract column references using sqlglot
+    assert needed is not None
+    assert "date" in needed
+    assert "revenue" in needed
+
+
+def test_collect_needed_columns_handles_column_reference(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that _collect_needed_columns correctly handles columns with
+    isColumnReference=True, extracting the column name from sqlExpression.
+    """
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        columns=[TableColumn(column_name="date"), TableColumn(column_name="customers")],
+    )
+
+    # Column with sqlExpression but isColumnReference=True (common in time-series charts)
+    needed = table._collect_needed_columns(
+        columns=[
+            {
+                "timeGrain": "P1D",
+                "columnType": "BASE_AXIS",
+                "sqlExpression": "date",
+                "label": "date",
+                "expressionType": "SQL",
+                "isColumnReference": True,
+            }
+        ],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "customers"},
+            }
+        ],
+    )
+
+    assert needed is not None
+    assert "date" in needed
+    assert "customers" in needed
+
+
+def test_collect_needed_columns_extracts_from_complex_sql_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that _collect_needed_columns uses sqlglot to extract column references
+    from complex SQL expressions.
+    """
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="first_name"),
+            TableColumn(column_name="last_name"),
+        ],
+    )
+
+    # Complex SQL expression without isColumnReference
+    needed = table._collect_needed_columns(
+        columns=[
+            "date",
+            {
+                "sqlExpression": "CONCAT(first_name, ' ', last_name)",
+                "label": "full_name",
+                "expressionType": "SQL",
+            },
+        ],
+        metrics=[],
+    )
+
+    # Should extract column references using sqlglot
+    assert needed is not None
+    assert "date" in needed
+    assert "first_name" in needed
+    assert "last_name" in needed
+
+
+def test_collect_needed_columns_extracts_from_adhoc_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that _collect_needed_columns uses sqlglot to extract column references
+    from adhoc filters with SQL expressions.
+    """
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="revenue"),
+            TableColumn(column_name="quantity"),
+            TableColumn(column_name="price"),
+        ],
+    )
+
+    # Adhoc filter with SQL expression
+    needed = table._collect_needed_columns(
+        columns=["date"],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "revenue"},
+            }
+        ],
+        filter=[
+            {
+                "col": {
+                    "sqlExpression": "quantity * price",
+                    "label": "total_value",
+                    "expressionType": "SQL",
+                },
+                "op": ">",
+                "val": 1000,
+            }
+        ],
+    )
+
+    # Should extract column references using sqlglot
+    assert needed is not None
+    assert "date" in needed
+    assert "revenue" in needed
+    assert "quantity" in needed
+    assert "price" in needed
+
+
+def test_collect_needed_columns_extracts_from_extras_where(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that _collect_needed_columns extracts column references from
+    extras.where (raw SQL WHERE clause).
+    """
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="revenue"),
+            TableColumn(column_name="region"),
+            TableColumn(column_name="customers"),
+        ],
+    )
+
+    # extras.where contains raw SQL filter
+    needed = table._collect_needed_columns(
+        columns=["date"],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "revenue"},
+            }
+        ],
+        extras={"where": "(region = 'US')"},
+    )
+
+    # Should extract 'region' from the where clause
+    assert needed is not None
+    assert "date" in needed
+    assert "revenue" in needed
+    assert "region" in needed
+    assert "customers" not in needed  # Not referenced
+
+
+def test_collect_needed_columns_extracts_from_extras_having(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that _collect_needed_columns extracts column references from
+    extras.having (raw SQL HAVING clause).
+    """
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        columns=[
+            TableColumn(column_name="date"),
+            TableColumn(column_name="revenue"),
+            TableColumn(column_name="orders"),
+        ],
+    )
+
+    # extras.having contains raw SQL filter
+    needed = table._collect_needed_columns(
+        columns=["date"],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "revenue"},
+            }
+        ],
+        extras={"having": "SUM(orders) > 100"},
+    )
+
+    # Should extract 'orders' from the having clause
+    assert needed is not None
+    assert "date" in needed
+    assert "revenue" in needed
+    assert "orders" in needed
 
 
 def test_apply_what_if_transform_with_single_filter(mocker: MockerFixture) -> None:

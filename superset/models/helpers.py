@@ -63,6 +63,9 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
+import sqlglot
+from sqlglot import exp
+
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
@@ -2062,6 +2065,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return from_clause, cte
 
+    def _extract_columns_from_sql(
+        self, sql_expression: str, available_columns: set[str]
+    ) -> set[str]:
+        """
+        Extract column references from a SQL expression using sqlglot.
+
+        :param sql_expression: The SQL expression to parse
+        :param available_columns: Set of known column names in the dataset
+        :returns: Set of column names found in the expression that exist in available_columns
+        """
+        try:
+            # Parse the expression as a SELECT statement to handle it properly
+            parsed = sqlglot.parse_one(f"SELECT {sql_expression}")
+            found_columns: set[str] = set()
+            for column in parsed.find_all(exp.Column):
+                col_name = column.name
+                if col_name in available_columns:
+                    found_columns.add(col_name)
+            return found_columns
+        except Exception:  # noqa: BLE001
+            # If parsing fails, return all available columns as fallback
+            return available_columns
+
     def _collect_needed_columns(  # noqa: C901
         self,
         columns: Optional[list[Column]] = None,
@@ -2070,6 +2096,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         filter: Optional[list[utils.QueryObjectFilterClause]] = None,
         orderby: Optional[list[OrderBy]] = None,
         granularity: Optional[str] = None,
+        extras: Optional[dict[str, Any]] = None,
     ) -> Optional[set[str]]:
         """
         Collect all column names needed by the query for what-if transformation.
@@ -2079,6 +2106,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                   or None if all columns should be included (e.g., for complex metrics)
         """
         needed: set[str] = set()
+        available_columns = {col.column_name for col in self.columns}
 
         # Add granularity column (time column)
         if granularity:
@@ -2089,10 +2117,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, str):
                 needed.add(col)
             elif isinstance(col, dict):
-                if col.get("sqlExpression"):
-                    # Adhoc column with SQL expression - can't determine columns
-                    return None
-                if col.get("column_name"):
+                if sql_expr := col.get("sqlExpression"):
+                    # Check if it's just a simple column reference
+                    if col.get("isColumnReference"):
+                        needed.add(sql_expr)
+                    else:
+                        # Parse SQL expression to extract column references
+                        needed.update(
+                            self._extract_columns_from_sql(sql_expr, available_columns)
+                        )
+                elif col.get("column_name"):
                     needed.add(col["column_name"])
 
         # Add columns from groupby
@@ -2100,30 +2134,39 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, str):
                 needed.add(col)
             elif isinstance(col, dict):
-                if col.get("sqlExpression"):
-                    # Adhoc column with SQL expression - can't determine columns
-                    return None
-                if col.get("column_name"):
+                if sql_expr := col.get("sqlExpression"):
+                    # Check if it's just a simple column reference
+                    if col.get("isColumnReference"):
+                        needed.add(sql_expr)
+                    else:
+                        # Parse SQL expression to extract column references
+                        needed.update(
+                            self._extract_columns_from_sql(sql_expr, available_columns)
+                        )
+                elif col.get("column_name"):
                     needed.add(col["column_name"])
 
-        # Add columns from metrics (try to extract column references)
-        # For complex metrics (SQL expressions or saved metrics), we need all columns
-        # because we can't easily parse what columns they reference
+        # Add columns from metrics
         for metric in metrics or []:
             if isinstance(metric, str):
-                # Saved metric - can't determine columns, need all
-                return None  # Signal to use all columns
+                # Saved metric - we need to look it up to find the expression
+                # For now, fallback to selecting all columns
+                return None
             elif isinstance(metric, dict):
                 expression_type = metric.get("expressionType")
                 if expression_type == "SQL":
-                    # SQL expression - can't determine columns, need all
-                    return None  # Signal to use all columns
-                # SIMPLE adhoc metric - check for column reference
-                metric_column = metric.get("column")
-                if isinstance(metric_column, dict):
-                    col_name = metric_column.get("column_name")
-                    if isinstance(col_name, str):
-                        needed.add(col_name)
+                    # Parse SQL expression to extract column references
+                    if sql_expr := metric.get("sqlExpression"):
+                        needed.update(
+                            self._extract_columns_from_sql(sql_expr, available_columns)
+                        )
+                else:
+                    # SIMPLE adhoc metric - check for column reference
+                    metric_column = metric.get("column")
+                    if isinstance(metric_column, dict):
+                        col_name = metric_column.get("column_name")
+                        if isinstance(col_name, str):
+                            needed.add(col_name)
 
         # Add columns from filters
         for flt in filter or []:
@@ -2131,10 +2174,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(col, str):
                 needed.add(col)
             elif isinstance(col, dict):
-                if col.get("sqlExpression"):
-                    # Adhoc column filter - can't determine columns
-                    return None
-                if col.get("column_name"):
+                if sql_expr := col.get("sqlExpression"):
+                    # Check if it's just a simple column reference
+                    if col.get("isColumnReference"):
+                        needed.add(sql_expr)
+                    else:
+                        # Parse SQL expression to extract column references
+                        needed.update(
+                            self._extract_columns_from_sql(sql_expr, available_columns)
+                        )
+                elif col.get("column_name"):
                     needed.add(col["column_name"])
 
         # Add columns from orderby
@@ -2144,11 +2193,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if isinstance(col, str):
                     needed.add(col)
                 elif isinstance(col, dict):
-                    if col.get("sqlExpression"):
-                        # Adhoc column orderby - can't determine columns
-                        return None
-                    if col.get("column_name"):
+                    if sql_expr := col.get("sqlExpression"):
+                        # Check if it's just a simple column reference
+                        if col.get("isColumnReference"):
+                            needed.add(sql_expr)
+                        else:
+                            # Parse SQL expression to extract column references
+                            needed.update(
+                                self._extract_columns_from_sql(
+                                    sql_expr, available_columns
+                                )
+                            )
+                    elif col.get("column_name"):
                         needed.add(col["column_name"])
+
+        # Add columns from extras.where and extras.having (raw SQL clauses)
+        if extras:
+            if where := extras.get("where"):
+                needed.update(
+                    self._extract_columns_from_sql(where, available_columns)
+                )
+            if having := extras.get("having"):
+                needed.update(
+                    self._extract_columns_from_sql(having, available_columns)
+                )
 
         return needed
 
@@ -2982,6 +3050,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 filter=filter,
                 orderby=orderby,
                 granularity=granularity,
+                extras=extras,
             )
         tbl, cte = self.get_from_clause(template_processor, what_if=what_if)
 
