@@ -97,15 +97,15 @@ def inject_model_implementations() -> None:
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement - extensions will import concrete implementations
-    core_models_module.Database = HostDatabase  # type: ignore[assignment,misc]
-    core_models_module.Dataset = HostDataset  # type: ignore[assignment,misc]
-    core_models_module.Chart = HostChart  # type: ignore[assignment,misc]
-    core_models_module.Dashboard = HostDashboard  # type: ignore[assignment,misc]
-    core_models_module.User = HostUser  # type: ignore[assignment,misc]
-    core_models_module.Query = HostQuery  # type: ignore[assignment,misc]
-    core_models_module.SavedQuery = HostSavedQuery  # type: ignore[assignment,misc]
-    core_models_module.Tag = HostTag  # type: ignore[assignment,misc]
-    core_models_module.KeyValue = HostKeyValue  # type: ignore[assignment,misc]
+    core_models_module.Database = HostDatabase  # type: ignore[misc]
+    core_models_module.Dataset = HostDataset  # type: ignore[misc]
+    core_models_module.Chart = HostChart  # type: ignore[misc]
+    core_models_module.Dashboard = HostDashboard  # type: ignore[misc]
+    core_models_module.User = HostUser  # type: ignore[misc]
+    core_models_module.Query = HostQuery  # type: ignore[misc]
+    core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
+    core_models_module.Tag = HostTag  # type: ignore[misc]
+    core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:

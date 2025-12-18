@@ -30,15 +30,18 @@ _logger = logging.getLogger(__name__)
 
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
-# Examples that should always be loaded (were in original configs/ directory)
-# New examples should only be loaded when load_test_data=True
+# Examples that should always be loaded (were in original configs/ directory
+# or are needed by test fixtures)
+# New examples (deck_gl, misc_charts) only loaded when load_test_data=True
 CORE_EXAMPLES = {
+    "birth_names",
     "cleaned_sales_data",
     "covid_vaccines",
     "fcc_2018_survey",
     "featured_charts",
     "slack_dashboard",
     "video_game_sales",
+    "wb_health_population",
 }
 
 
