@@ -702,20 +702,26 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_500(message=str(ex))
 
     def _enrich_template_with_metadata(self, dashboard: Dashboard) -> dict[str, Any]:
-        """Extract template metadata from json_metadata into top-level fields."""
+        """Extract template metadata from json_metadata into top-level fields.
+
+        Template metadata is stored in the nested "template_info" structure
+        within the dashboard's json_metadata.
+        """
         metadata = json.loads(dashboard.json_metadata or "{}")
+        template_info = metadata.get("template_info", {})
+
         return {
             "id": dashboard.id,
             "uuid": str(dashboard.uuid),
             "dashboard_title": dashboard.dashboard_title,
             "slug": dashboard.slug,
-            "is_template": metadata.get("is_template", False),
-            "is_featured_template": metadata.get("is_featured_template", False),
-            "template_category": metadata.get("template_category"),
-            "template_description": metadata.get("template_description"),
-            "template_thumbnail_url": metadata.get("template_thumbnail_url"),
-            "template_tags": metadata.get("template_tags", []),
-            "template_context": metadata.get("template_context"),
+            "is_template": template_info.get("is_template", False),
+            "is_featured_template": template_info.get("is_featured_template", False),
+            "template_category": template_info.get("template_category"),
+            "template_description": template_info.get("template_description"),
+            "template_thumbnail_url": template_info.get("template_thumbnail_url"),
+            "template_tags": template_info.get("template_tags", []),
+            "template_context": template_info.get("template_context"),
         }
 
     @expose("/", methods=("POST",))

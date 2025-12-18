@@ -2571,8 +2571,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # Allow chart access if the chart belongs to a template dashboard
             # and user has dashboard creation permission
             if self.can_access("can_write", "Dashboard") and any(
-                self._is_template_dashboard(dashboard)
-                for dashboard in chart.dashboards
+                self._is_template_dashboard(dashboard) for dashboard in chart.dashboards
             ):
                 return
 
@@ -2916,9 +2915,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Check if a dashboard is marked as a template.
 
-        Templates are dashboards with is_template=true in their json_metadata.
-        Template dashboards can be viewed by any user with dashboard creation
-        permission, regardless of ownership.
+        Template metadata is stored in the nested "template_info" structure
+        within the dashboard's json_metadata. Template dashboards can be viewed
+        by any user with dashboard creation permission, regardless of ownership.
 
         :param dashboard: The dashboard to check
         :returns: True if the dashboard is a template, False otherwise
@@ -2927,7 +2926,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
         try:
             metadata = json.loads(dashboard.json_metadata)
-            return metadata.get("is_template", False)
+            template_info = metadata.get("template_info", {})
+            return template_info.get("is_template", False)
         except (json.JSONDecodeError, TypeError):
             return False
 
@@ -2943,7 +2943,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param dataset: The dataset to check
         :returns: True if the dataset is a template dataset, False otherwise
         """
-        return getattr(dataset, "is_template_dataset", False)
+        return getattr(dataset, "is_template_dataset", False) is True
 
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False

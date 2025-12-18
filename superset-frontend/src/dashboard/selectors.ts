@@ -21,6 +21,9 @@ import { RootState } from 'src/dashboard/types';
 /**
  * Selector to check if the current dashboard is a template.
  * Template dashboards are read-only and cannot be edited.
+ *
+ * Template metadata is stored in the nested "template_info" structure
+ * within the dashboard's metadata.
  */
 export const selectIsTemplateDashboard = (state: RootState): boolean =>
-  !!state.dashboardInfo?.metadata?.is_template;
+  !!state.dashboardInfo?.metadata?.template_info?.is_template;

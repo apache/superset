@@ -145,9 +145,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
         templates = []
         for dashboard in dashboards:
             metadata = json.loads(dashboard.json_metadata or "{}")
-            if metadata.get("is_template", False):
+            # Template metadata is stored in the nested template_info structure
+            template_info = metadata.get("template_info", {})
+            if template_info.get("is_template", False):
                 # Add sorting metadata as attributes for sorting
-                dashboard._is_featured_template = metadata.get(
+                dashboard._is_featured_template = template_info.get(
                     "is_featured_template", False
                 )
                 templates.append(dashboard)
@@ -348,16 +350,37 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ]
 
     @classmethod
+    def _is_template_dashboard(cls, dashboard: Dashboard) -> bool:
+        """Check if a dashboard is marked as a template."""
+        if not dashboard.json_metadata:
+            return False
+        try:
+            metadata = json.loads(dashboard.json_metadata)
+            return metadata.get("is_template", False)
+        except (json.JSONDecodeError, TypeError):
+            return False
+
+    @classmethod
     def copy_dashboard(
-        cls, original_dash: Dashboard, data: dict[str, Any]
+        cls,
+        original_dash: Dashboard,
+        data: dict[str, Any],
+        owner: Any | None = None,
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
+        # Skip RBAC check if dashboard is a template or no user context (Celery)
+        if (
+            is_feature_enabled("DASHBOARD_RBAC")
+            and hasattr(g, "user")
+            and not cls._is_template_dashboard(original_dash)
+            and not security_manager.is_owner(original_dash)
         ):
             raise DashboardForbiddenError()
 
+        # Use provided owner, fall back to g.user for request context
+        effective_owner = owner if owner is not None else getattr(g, "user", None)
+
         dash = Dashboard()
-        dash.owners = [g.user] if g.user else []
+        dash.owners = [effective_owner] if effective_owner else []
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -367,7 +390,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
+                new_slice.owners = [effective_owner] if effective_owner else []
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

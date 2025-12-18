@@ -14,3 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Merge database analyzer and main branches
+
+Revision ID: 4a032c8dbc11
+Revises: ('aaca38be72f2', 'c95466b0')
+Create Date: 2025-12-17 18:01:29.962499
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '4a032c8dbc11'
+down_revision = ('aaca38be72f2', 'c95466b0')
+
+from alembic import op
+import sqlalchemy as sa
+
+
+def upgrade():
+    pass
+
+
+def downgrade():
+    pass

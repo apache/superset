@@ -114,7 +114,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             raise ChartNotFoundError()
 
         # Charts belonging to template dashboards cannot be modified
-        if self._model.is_template_chart:
+        if self._model.is_template_chart is True:
             raise ChartTemplateUpdateForbiddenError()
 
         # Check and update ownership; when only updating query context we ignore
