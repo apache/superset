@@ -31,6 +31,7 @@ import {
   ChartQueryPayload,
   ActiveFilters,
   WhatIfModification,
+  Slice,
 } from 'src/dashboard/types';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
@@ -43,6 +44,10 @@ import {
 } from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
+import {
+  collectSqlExpressionsFromSlice,
+  findColumnsInSqlExpressions,
+} from '../whatIf';
 
 interface CachedFormData {
   extra_form_data?: JsonObject;
@@ -547,8 +552,20 @@ export default function getFormDataWithExtraFilters({
   let whatIfExtras: { what_if?: { modifications: WhatIfModification[] } } = {};
   if (whatIfModifications && whatIfModifications.length > 0) {
     const chartColumns = buildExistingColumnsSet(chart as ChartQueryPayload);
-    const applicableModifications = whatIfModifications.filter(mod =>
-      chartColumns.has(mod.column),
+
+    // Also check if modified columns appear in SQL expressions
+    // (e.g., custom metrics like AVG(orders / customers))
+    const modifiedColumnNames = whatIfModifications.map(mod => mod.column);
+    const sliceForSqlCheck = { form_data: chart.form_data } as Slice;
+    const sqlExpressions = collectSqlExpressionsFromSlice(sliceForSqlCheck);
+    const sqlReferencedColumns = findColumnsInSqlExpressions(
+      sqlExpressions,
+      modifiedColumnNames,
+    );
+
+    const applicableModifications = whatIfModifications.filter(
+      mod =>
+        chartColumns.has(mod.column) || sqlReferencedColumns.has(mod.column),
     );
 
     if (applicableModifications.length > 0) {

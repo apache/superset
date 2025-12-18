@@ -29,6 +29,124 @@ export function isNumericColumn(column: ColumnMeta): boolean {
 }
 
 /**
+ * Collect all SQL expressions from a slice's form_data.
+ * This includes:
+ * - Metrics with expressionType: 'SQL' (sqlExpression)
+ * - Filters with expressionType: 'SQL' (sqlExpression)
+ * - Adhoc columns in groupby, x_axis, series, etc. (sqlExpression)
+ */
+export function collectSqlExpressionsFromSlice(slice: Slice): string[] {
+  const expressions: string[] = [];
+  const formData = slice.form_data;
+  if (!formData) return expressions;
+
+  // Helper to extract sqlExpression from adhoc columns
+  const addAdhocColumnExpression = (col: unknown) => {
+    if (
+      col &&
+      typeof col === 'object' &&
+      'sqlExpression' in col &&
+      typeof (col as { sqlExpression: unknown }).sqlExpression === 'string'
+    ) {
+      expressions.push((col as { sqlExpression: string }).sqlExpression);
+    }
+  };
+
+  // Extract SQL expressions from metrics
+  ensureIsArray(formData.metrics).forEach((metric: unknown) => {
+    if (
+      metric &&
+      typeof metric === 'object' &&
+      'expressionType' in metric &&
+      (metric as { expressionType: unknown }).expressionType === 'SQL' &&
+      'sqlExpression' in metric &&
+      typeof (metric as { sqlExpression: unknown }).sqlExpression === 'string'
+    ) {
+      expressions.push((metric as { sqlExpression: string }).sqlExpression);
+    }
+  });
+
+  // Extract SQL expression from singular metric
+  if (
+    formData.metric &&
+    typeof formData.metric === 'object' &&
+    'expressionType' in formData.metric &&
+    (formData.metric as { expressionType: unknown }).expressionType === 'SQL' &&
+    'sqlExpression' in formData.metric &&
+    typeof (formData.metric as { sqlExpression: unknown }).sqlExpression ===
+      'string'
+  ) {
+    expressions.push(
+      (formData.metric as { sqlExpression: string }).sqlExpression,
+    );
+  }
+
+  // Extract SQL expressions from filters
+  ensureIsArray(formData.adhoc_filters).forEach((filter: unknown) => {
+    if (
+      filter &&
+      typeof filter === 'object' &&
+      'expressionType' in filter &&
+      (filter as { expressionType: unknown }).expressionType === 'SQL' &&
+      'sqlExpression' in filter &&
+      typeof (filter as { sqlExpression: unknown }).sqlExpression === 'string'
+    ) {
+      expressions.push((filter as { sqlExpression: string }).sqlExpression);
+    }
+  });
+
+  // Extract SQL expressions from adhoc columns in groupby, x_axis, series, columns, entity
+  ensureIsArray(formData.groupby).forEach(addAdhocColumnExpression);
+  ensureIsArray(formData.columns).forEach(addAdhocColumnExpression);
+
+  if (formData.x_axis) {
+    addAdhocColumnExpression(formData.x_axis);
+  }
+  if (formData.series) {
+    addAdhocColumnExpression(formData.series);
+  }
+  if (formData.entity) {
+    addAdhocColumnExpression(formData.entity);
+  }
+
+  return expressions;
+}
+
+/**
+ * Find column names that appear in SQL expressions.
+ * Uses word boundary matching to avoid false positives
+ * (e.g., "order" shouldn't match "order_id" or "reorder").
+ */
+export function findColumnsInSqlExpressions(
+  sqlExpressions: string[],
+  columnNames: string[],
+): Set<string> {
+  const foundColumns = new Set<string>();
+
+  if (sqlExpressions.length === 0 || columnNames.length === 0) {
+    return foundColumns;
+  }
+
+  // Combine all SQL expressions into one string for efficient searching
+  const combinedSql = sqlExpressions.join(' ');
+
+  columnNames.forEach(columnName => {
+    // Use word boundary regex to match exact column names
+    // Escape special regex characters in column name
+    const escapedName = columnName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match column name surrounded by word boundaries or common SQL delimiters
+    const regex = new RegExp(
+      `(^|[^a-zA-Z0-9_])${escapedName}([^a-zA-Z0-9_]|$)`,
+    );
+    if (regex.test(combinedSql)) {
+      foundColumns.add(columnName);
+    }
+  });
+
+  return foundColumns;
+}
+
+/**
  * Extract column names from a slice's form_data
  * This includes columns from groupby, metrics, x_axis, series, filters, etc.
  */
@@ -136,8 +254,26 @@ export function getNumericColumnsForDashboard(
     const datasource = datasources[datasourceKey];
     if (!datasource?.columns) return;
 
-    // Extract columns referenced by this slice
+    // Extract columns explicitly referenced by this slice
     const referencedColumns = extractColumnsFromSlice(slice);
+
+    // Also check SQL expressions for column references
+    const sqlExpressions = collectSqlExpressionsFromSlice(slice);
+    if (sqlExpressions.length > 0) {
+      // Get all numeric column names from this datasource
+      const numericColumnNames = datasource.columns
+        .filter((c: ColumnMeta) => isNumericColumn(c))
+        .map((c: ColumnMeta) => c.column_name);
+
+      // Find which numeric columns are referenced in SQL expressions
+      const sqlReferencedColumns = findColumnsInSqlExpressions(
+        sqlExpressions,
+        numericColumnNames,
+      );
+
+      // Add SQL-referenced columns to the set
+      sqlReferencedColumns.forEach(colName => referencedColumns.add(colName));
+    }
 
     // For each referenced column, check if it's numeric
     referencedColumns.forEach(colName => {
@@ -171,9 +307,23 @@ export function getNumericColumnsForDashboard(
 }
 
 /**
- * Check if a slice uses a specific column
+ * Check if a slice uses a specific column.
+ * Checks both explicitly referenced columns and columns in SQL expressions.
  */
 export function sliceUsesColumn(slice: Slice, columnName: string): boolean {
   const columns = extractColumnsFromSlice(slice);
-  return columns.has(columnName);
+  if (columns.has(columnName)) {
+    return true;
+  }
+
+  // Also check SQL expressions
+  const sqlExpressions = collectSqlExpressionsFromSlice(slice);
+  if (sqlExpressions.length > 0) {
+    const sqlReferencedColumns = findColumnsInSqlExpressions(sqlExpressions, [
+      columnName,
+    ]);
+    return sqlReferencedColumns.has(columnName);
+  }
+
+  return false;
 }

@@ -20,7 +20,11 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, keyframes } from '@emotion/react';
 import { RootState, WhatIfModification } from 'src/dashboard/types';
-import { extractColumnsFromSlice } from './whatIf';
+import {
+  extractColumnsFromSlice,
+  collectSqlExpressionsFromSlice,
+  findColumnsInSqlExpressions,
+} from './whatIf';
 
 const EMPTY_STYLES = undefined;
 
@@ -119,13 +123,26 @@ const useWhatIfHighlightStyles = (chartId: number) => {
     }
 
     const chartColumns = extractColumnsFromSlice(slice);
-    const modifiedColumns = new Set(
-      whatIfModifications.map((mod: WhatIfModification) => mod.column),
+    const modifiedColumnNames = whatIfModifications.map(
+      (mod: WhatIfModification) => mod.column,
     );
+    const modifiedColumns = new Set(modifiedColumnNames);
 
-    // Check if any of the chart's columns are being modified
+    // Check if any of the chart's explicitly referenced columns are being modified
     for (const column of chartColumns) {
       if (modifiedColumns.has(column)) {
+        return true;
+      }
+    }
+
+    // Also check if modified columns appear in SQL expressions
+    const sqlExpressions = collectSqlExpressionsFromSlice(slice);
+    if (sqlExpressions.length > 0) {
+      const sqlReferencedColumns = findColumnsInSqlExpressions(
+        sqlExpressions,
+        modifiedColumnNames,
+      );
+      if (sqlReferencedColumns.size > 0) {
         return true;
       }
     }

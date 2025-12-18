@@ -25,6 +25,7 @@ import {
   Select,
   Checkbox,
   Tooltip,
+  Tag,
 } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -39,7 +40,7 @@ import WhatIfAIInsights from './WhatIfAIInsights';
 import { fetchRelatedColumnSuggestions } from './whatIfApi';
 import { ExtendedWhatIfModification } from './types';
 
-export const WHAT_IF_PANEL_WIDTH = 300;
+export const WHAT_IF_PANEL_WIDTH = 340;
 
 const SLIDER_MIN = -50;
 const SLIDER_MAX = 50;
@@ -102,7 +103,7 @@ const PanelContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 4}px;
+  gap: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
 const FormSection = styled.div`
@@ -136,56 +137,56 @@ const CheckboxContainer = styled.div`
 const ModificationsSection = styled.div`
   display: flex;
   flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 5}px;
+`;
+
+const ModificationTagsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const ModificationsSectionTitle = styled.div`
-  color: ${({ theme }) => theme.colorText};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+const AIBadge = styled.span`
+  font-size: 10px;
+  padding: 0 4px;
+  background-color: ${({ theme }) => theme.colorInfo};
+  color: ${({ theme }) => theme.colorWhite};
+  border-radius: 16px;
+  line-height: 1.2;
 `;
 
-const ModificationCard = styled.div<{ isAISuggested?: boolean }>`
-  padding: ${({ theme }) => theme.sizeUnit * 2}px;
-  background-color: ${({ theme, isAISuggested }) =>
-    isAISuggested ? theme.colorInfoBg : theme.colorBgLayout};
-  border: 1px solid
-    ${({ theme, isAISuggested }) =>
-      isAISuggested ? theme.colorInfoBorder : theme.colorBorderSecondary};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
-
-const ModificationHeader = styled.div`
+const AIReasoningSection = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: ${({ theme }) => theme.sizeUnit}px;
 `;
 
-const ModificationColumn = styled.span`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-  color: ${({ theme }) => theme.colorText};
+const AIReasoningToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: ${({ theme }) => theme.colorTextTertiary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+
+  &:hover {
+    color: ${({ theme }) => theme.colorText};
+  }
 `;
 
-const ModificationValue = styled.span<{ isPositive: boolean }>`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-  color: ${({ theme, isPositive }) =>
-    isPositive ? theme.colorSuccess : theme.colorError};
+const AIReasoningContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const AIBadge = styled.span`
-  font-size: ${({ theme }) => theme.fontSizeXS}px;
-  padding: 2px 6px;
-  background-color: ${({ theme }) => theme.colorInfo};
-  color: ${({ theme }) => theme.colorWhite};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-`;
-
-const ModificationReasoning = styled.div`
+const AIReasoningItem = styled.div`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorTextSecondary};
-  margin-top: ${({ theme }) => theme.sizeUnit}px;
-  font-style: italic;
 `;
 
 interface WhatIfPanelProps {
@@ -207,6 +208,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   >([]);
   // Counter that increments each time Apply is clicked, used as key to reset AI insights
   const [applyCounter, setApplyCounter] = useState(0);
+  const [showAIReasoning, setShowAIReasoning] = useState(false);
 
   const slices = useSelector(
     (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
@@ -458,31 +460,57 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
         {appliedModifications.length > 0 && (
           <ModificationsSection>
-            <ModificationsSectionTitle>
-              {t('Applied modifications')}
-            </ModificationsSectionTitle>
-            {appliedModifications.map((mod, idx) => (
-              <ModificationCard key={idx} isAISuggested={mod.isAISuggested}>
-                <ModificationHeader>
-                  <ModificationColumn>{mod.column}</ModificationColumn>
-                  <div
+            <ModificationTagsContainer>
+              {appliedModifications.map((mod, idx) => (
+                <Tag
+                  key={idx}
+                  css={css`
+                    display: inline-flex;
+                    align-items: center;
+                    gap: ${theme.sizeUnit}px;
+                    margin: 0;
+                  `}
+                >
+                  <span>{mod.column}</span>
+                  {mod.isAISuggested && <AIBadge>{t('AI')}</AIBadge>}
+                  <span
                     css={css`
-                      display: flex;
-                      align-items: center;
-                      gap: ${theme.sizeUnit}px;
+                      font-weight: ${theme.fontWeightStrong};
+                      color: ${mod.multiplier >= 1
+                        ? theme.colorSuccess
+                        : theme.colorError};
                     `}
                   >
-                    <ModificationValue isPositive={mod.multiplier >= 1}>
-                      {formatPercentage(mod.multiplier)}
-                    </ModificationValue>
-                    {mod.isAISuggested && <AIBadge>{t('AI')}</AIBadge>}
-                  </div>
-                </ModificationHeader>
-                {mod.reasoning && (
-                  <ModificationReasoning>{mod.reasoning}</ModificationReasoning>
+                    {formatPercentage(mod.multiplier)}
+                  </span>
+                </Tag>
+              ))}
+            </ModificationTagsContainer>
+            {appliedModifications.some(mod => mod.reasoning) && (
+              <AIReasoningSection>
+                <AIReasoningToggle
+                  onClick={() => setShowAIReasoning(!showAIReasoning)}
+                >
+                  {showAIReasoning ? (
+                    <Icons.DownOutlined iconSize="xs" />
+                  ) : (
+                    <Icons.RightOutlined iconSize="xs" />
+                  )}
+                  {t('How AI chose these')}
+                </AIReasoningToggle>
+                {showAIReasoning && (
+                  <AIReasoningContent>
+                    {appliedModifications
+                      .filter(mod => mod.reasoning)
+                      .map((mod, idx) => (
+                        <AIReasoningItem key={idx}>
+                          <strong>{mod.column}:</strong> {mod.reasoning}
+                        </AIReasoningItem>
+                      ))}
+                  </AIReasoningContent>
                 )}
-              </ModificationCard>
-            ))}
+              </AIReasoningSection>
+            )}
           </ModificationsSection>
         )}
 
