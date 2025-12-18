@@ -8,6 +8,8 @@ amqp==5.3.1
     # via kombu
 annotated-types==0.7.0
     # via pydantic
+anyio==4.12.0
+    # via httpx
 apispec==6.6.1
     # via
     #   -r requirements/base.in
@@ -50,6 +52,8 @@ celery==5.5.2
     # via apache-superset (pyproject.toml)
 certifi==2025.6.15
     # via
+    #   httpcore
+    #   httpx
     #   requests
     #   selenium
 cffi==1.17.1
@@ -164,16 +168,26 @@ greenlet==3.1.1
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
-    # via wsproto
+    # via
+    #   httpcore
+    #   wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
 holidays==0.82
     # via apache-superset (pyproject.toml)
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   langgraph-sdk
+    #   langsmith
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
 idna==3.10
     # via
+    #   anyio
     #   email-validator
+    #   httpx
     #   requests
     #   trio
     #   url-normalize
@@ -187,8 +201,12 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
+jsonpatch==1.33
+    # via langchain-core
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
+jsonpointer==3.0.0
+    # via jsonpatch
 jsonschema==4.23.0
     # via
     #   flask-appbuilder
@@ -199,6 +217,24 @@ jsonschema-specifications==2025.4.1
     #   openapi-schema-validator
 kombu==5.5.3
     # via celery
+langchain-core==1.2.2
+    # via
+    #   apache-superset (pyproject.toml)
+    #   langgraph
+    #   langgraph-checkpoint
+    #   langgraph-prebuilt
+langgraph==1.0.5
+    # via apache-superset (pyproject.toml)
+langgraph-checkpoint==3.0.1
+    # via
+    #   langgraph
+    #   langgraph-prebuilt
+langgraph-prebuilt==1.0.5
+    # via langgraph
+langgraph-sdk==0.3.0
+    # via langgraph
+langsmith==0.5.0
+    # via langchain-core
 limits==5.1.0
     # via flask-limiter
 mako==1.3.10
@@ -252,6 +288,12 @@ openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
     # via flask-limiter
+orjson==3.11.5
+    # via
+    #   langgraph-sdk
+    #   langsmith
+ormsgpack==1.12.1
+    # via langgraph-checkpoint
 outcome==1.3.0.post0
     # via
     #   trio
@@ -262,6 +304,8 @@ packaging==25.0
     #   apispec
     #   deprecation
     #   gunicorn
+    #   langchain-core
+    #   langsmith
     #   limits
     #   marshmallow
     #   shillelagh
@@ -301,6 +345,9 @@ pydantic==2.11.7
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
+    #   langchain-core
+    #   langgraph
+    #   langsmith
 pydantic-core==2.33.2
     # via pydantic
 pygments==2.19.1
@@ -343,6 +390,7 @@ pyyaml==6.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
+    #   langchain-core
 redis==5.3.1
     # via apache-superset (pyproject.toml)
 referencing==0.36.2
@@ -351,10 +399,14 @@ referencing==0.36.2
     #   jsonschema-specifications
 requests==2.32.4
     # via
+    #   langsmith
     #   requests-cache
+    #   requests-toolbelt
     #   shillelagh
 requests-cache==1.2.1
     # via shillelagh
+requests-toolbelt==1.0.0
+    # via langsmith
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
@@ -408,6 +460,8 @@ sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
     # via apache-superset (pyproject.toml)
+tenacity==9.1.2
+    # via langchain-core
 trio==0.30.0
     # via
     #   selenium
@@ -418,8 +472,10 @@ typing-extensions==4.15.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   anyio
     #   apache-superset-core
     #   cattrs
+    #   langchain-core
     #   limits
     #   pydantic
     #   pydantic-core
@@ -442,6 +498,10 @@ urllib3==2.6.0
     #   requests
     #   requests-cache
     #   selenium
+uuid-utils==0.12.0
+    # via
+    #   langchain-core
+    #   langsmith
 vine==5.1.0
     # via
     #   amqp
@@ -478,5 +538,9 @@ xlsxwriter==3.0.9
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
+xxhash==3.6.0
+    # via langgraph
 zstandard==0.23.0
-    # via flask-compress
+    # via
+    #   flask-compress
+    #   langsmith

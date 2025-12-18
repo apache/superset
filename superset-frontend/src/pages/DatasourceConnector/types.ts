@@ -23,12 +23,21 @@ export interface DatasourceConnectorState {
   catalogName: string | null;
   schemaName: string | null;
   isSubmitting: boolean;
+  forceReanalyze: boolean;
 }
 
 export interface DatasourceAnalyzerPostPayload {
   database_id: number;
   schema_name: string;
   catalog_name?: string | null;
+  force_reanalyze?: boolean;
+}
+
+export interface ExistingReportResponse {
+  exists: boolean;
+  report_id: number | null;
+  created_at: string | null;
+  tables_count: number;
 }
 
 export interface DatasourceAnalyzerResponse {
@@ -41,7 +50,9 @@ export enum ConnectorStep {
   CONNECT_DATA_SOURCE = 0,
   REVIEW_SCHEMA = 1,
   EDIT_SCHEMA = 2,
-  GENERATE_DASHBOARD = 3,
+  REVIEW_MAPPINGS = 3,
+  GENERATE_DASHBOARD = 4,
+  REVIEW_PENDING = 5,
 }
 
 // Schema Editor Types
@@ -97,4 +108,57 @@ export interface GenerateDashboardResponse {
   result: {
     run_id: string;
   };
+}
+
+export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'failed';
+
+export interface ColumnMapping {
+  template_column: string;
+  user_column: string | null;
+  user_table: string | null;
+  confidence: number;
+  confidence_level: ConfidenceLevel;
+  match_reasons: string[];
+  alternatives: Array<{
+    column: string;
+    table: string;
+    confidence: number;
+  }>;
+}
+
+export interface MetricMapping {
+  template_metric: string;
+  user_expression: string | null;
+  confidence: number;
+  confidence_level: ConfidenceLevel;
+  match_reasons: string[];
+  alternatives: string[];
+}
+
+export interface MappingProposal {
+  proposal_id: string;
+  column_mappings: ColumnMapping[];
+  metric_mappings: MetricMapping[];
+  unmapped_columns: string[];
+  unmapped_metrics: string[];
+  review_reasons: string[];
+  overall_confidence: number;
+}
+
+export interface MappingProposalResponse {
+  requires_review: boolean;
+  proposal_id?: string;
+  run_id?: string;
+  message?: string;
+  column_mappings?: ColumnMapping[];
+  metric_mappings?: MetricMapping[];
+  unmapped_columns?: string[];
+  unmapped_metrics?: string[];
+  review_reasons?: string[];
+  overall_confidence?: number;
+}
+
+export interface AdjustedMappings {
+  columns: Record<string, { column: string; table: string }>;
+  metrics: Record<string, string>;
 }
