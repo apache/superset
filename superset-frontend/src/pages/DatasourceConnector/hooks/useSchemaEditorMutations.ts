@@ -28,12 +28,10 @@ interface MutationState {
 
 interface UseSchemaEditorMutationsReturn {
   updateTableDescription: (
-    reportId: number,
     tableId: number,
     description: string | null,
   ) => Promise<boolean>;
   updateColumnDescription: (
-    reportId: number,
     columnId: number,
     description: string | null,
   ) => Promise<boolean>;
@@ -51,7 +49,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
   });
 
   const updateTableDescription = useCallback(
-    async (reportId: number, tableId: number, description: string | null): Promise<boolean> => {
+    async (tableId: number, description: string | null): Promise<boolean> => {
       setMutationState({ loading: true, error: null });
 
       // Use mock for testing
@@ -67,7 +65,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         await SupersetClient.put({
-          endpoint: `/api/v1/datasource_analyzer/report/${reportId}/table/${tableId}`,
+          endpoint: `/api/v1/datasource_analyzer/table/${tableId}`,
           jsonPayload: { description },
         });
         setMutationState({ loading: false, error: null });
@@ -86,7 +84,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
   );
 
   const updateColumnDescription = useCallback(
-    async (reportId: number, columnId: number, description: string | null): Promise<boolean> => {
+    async (columnId: number, description: string | null): Promise<boolean> => {
       setMutationState({ loading: true, error: null });
 
       // Use mock for testing
@@ -102,7 +100,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         await SupersetClient.put({
-          endpoint: `/api/v1/datasource_analyzer/report/${reportId}/column/${columnId}`,
+          endpoint: `/api/v1/datasource_analyzer/column/${columnId}`,
           jsonPayload: { description },
         });
         setMutationState({ loading: false, error: null });
@@ -135,14 +133,15 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         const response = await SupersetClient.post({
-          endpoint: `/api/v1/datasource_analyzer/report/${reportId}/generate_dashboard`,
+          endpoint: '/api/v1/datasource_analyzer/generate',
           jsonPayload: {
+            report_id: reportId,
             dashboard_id: dashboardId,
           },
         });
         const data = response.json as GenerateDashboardResponse;
         setMutationState({ loading: false, error: null });
-        return data.run_id;
+        return data.result.run_id;
       } catch (err) {
         logging.error('Error generating dashboard:', err);
         const errorMessage =

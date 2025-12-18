@@ -116,24 +116,24 @@ export default function DatasourceEditorPanel({
 
   const handleUpdateTableDescription = useCallback(
     async (tableId: number, description: string | null): Promise<boolean> => {
-      const success = await updateTableDescription(reportId, tableId, description);
+      const success = await updateTableDescription(tableId, description);
       if (success) {
         refetch();
       }
       return success;
     },
-    [updateTableDescription, refetch, reportId],
+    [updateTableDescription, refetch],
   );
 
   const handleUpdateColumnDescription = useCallback(
     async (columnId: number, description: string | null): Promise<boolean> => {
-      const success = await updateColumnDescription(reportId, columnId, description);
+      const success = await updateColumnDescription(columnId, description);
       if (success) {
         refetch();
       }
       return success;
     },
-    [updateColumnDescription, refetch, reportId],
+    [updateColumnDescription, refetch],
   );
 
   const handleConfirmAndGenerate = useCallback(async () => {

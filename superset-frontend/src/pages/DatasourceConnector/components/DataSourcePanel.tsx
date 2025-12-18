@@ -20,6 +20,8 @@ import { t } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   Button,
+  Checkbox,
+  Collapse,
   Divider,
   Flex,
   Icons,
@@ -33,9 +35,13 @@ interface DataSourcePanelProps {
   catalog: string | null;
   schema: string | null;
   isSubmitting: boolean;
+  forceReanalyze: boolean;
+  hasExistingReport: boolean;
+  existingReportInfo?: string;
   onDatabaseChange: (db: DatabaseObject | null) => void;
   onCatalogChange: (catalog: string | null) => void;
   onSchemaChange: (schema: string | null) => void;
+  onForceReanalyzeChange: (checked: boolean) => void;
   onError: (msg: string) => void;
   onAddNewDatabase: () => void;
   onCancel: () => void;
@@ -110,14 +116,32 @@ const TitleRow = styled(Flex)`
   `}
 `;
 
+const AdvancedOptionsWrapper = styled.div`
+  ${({ theme }) => `
+    margin-bottom: ${theme.marginMD}px;
+
+    .ant-collapse-header {
+      padding: ${theme.paddingSM}px 0 !important;
+    }
+
+    .ant-collapse-content-box {
+      padding: ${theme.paddingSM}px 0 !important;
+    }
+  `}
+`;
+
 export default function DataSourcePanel({
   database,
   catalog,
   schema,
   isSubmitting,
+  forceReanalyze,
+  hasExistingReport,
+  existingReportInfo,
   onDatabaseChange,
   onCatalogChange,
   onSchemaChange,
+  onForceReanalyzeChange,
   onError,
   onAddNewDatabase,
   onCancel,
@@ -154,6 +178,54 @@ export default function DataSourcePanel({
           onError={onError}
         />
       </FormSection>
+
+      {hasExistingReport && (
+        <AdvancedOptionsWrapper>
+          <Collapse
+            ghost
+            items={[
+              {
+                key: 'advanced',
+                label: (
+                  <Typography.Text type="secondary">
+                    <Icons.SettingOutlined iconSize="s" /> {t('Advanced options')}
+                  </Typography.Text>
+                ),
+                children: (
+                  <Flex vertical gap="middle">
+                    {existingReportInfo && (
+                      <Flex align="center" gap="small">
+                        <Icons.CheckCircleFilled
+                          iconSize="s"
+                          css={({ colorSuccess }) => ({ color: colorSuccess })}
+                        />
+                        <Typography.Text type="secondary">
+                          {existingReportInfo}
+                        </Typography.Text>
+                      </Flex>
+                    )}
+                    <Checkbox
+                      checked={forceReanalyze}
+                      onChange={e => onForceReanalyzeChange(e.target.checked)}
+                    >
+                      <Flex vertical gap="small">
+                        <Typography.Text>
+                          {t('Force database semantic remapping')}
+                        </Typography.Text>
+                        <Typography.Text type="secondary" css={{ fontSize: 12 }}>
+                          {t(
+                            'Re-analyze the database schema even if analysis data already exists. Use this if your schema has changed.',
+                          )}
+                        </Typography.Text>
+                      </Flex>
+                    </Checkbox>
+                  </Flex>
+                ),
+              },
+            ]}
+          />
+        </AdvancedOptionsWrapper>
+      )}
 
       <StyledDivider>{t('or')}</StyledDivider>
 

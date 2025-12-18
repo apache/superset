@@ -23,7 +23,14 @@ from flask import jsonify, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import fields, Schema, ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+# Custom permission map that includes our custom method names
+# All methods map to "read" or "write" which Admin role has access to
+ANALYZER_PERMISSION_MAP = {
+    "post": "write",
+    "get": "read",
+    "check_status": "read",
+    "get_report": "read",
+}
 from superset.extensions import db, event_logger
 from superset.models.database_analyzer import (
     AnalyzedColumn,
@@ -54,6 +61,13 @@ class DatasourceAnalyzerPostSchema(Schema):
         required=False,
         allow_none=True,
         metadata={"description": "The name of the catalog (optional)"},
+    )
+    force_reanalyze = fields.Boolean(
+        required=False,
+        load_default=False,
+        metadata={
+            "description": "Force re-analysis even if a completed report exists"
+        },
     )
 
 
@@ -127,11 +141,13 @@ class GenerateDashboardResponseSchema(Schema):
 class DatasourceAnalyzerRestApi(BaseSupersetApi):
     """API endpoints for database schema analyzer"""
 
-    route_base = "/api/v1/datasource_analyzer"
-    resource_name = "datasource_analyzer"
+    route_base = "/api/v1/datasource/analysis"
+    resource_name = "datasource_analysis"
     allow_browser_login = True
-    class_permission_name = "DatasourceAnalyzer"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Use existing "Database" permission - Admin users can access database features
+    class_permission_name = "Database"
+    # Map custom methods to standard "read"/"write" permissions
+    method_permission_name = ANALYZER_PERMISSION_MAP
 
     openapi_spec_tag = "Datasource Analyzer"
     openapi_spec_component_schemas = (
@@ -141,19 +157,21 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
-        return jsonify(kwargs), status_code
+        resp = jsonify(kwargs)
+        resp.status_code = status_code
+        return resp
 
     def response_400(self, message: str = "Bad request") -> Response:
         """Helper method to create 400 responses."""
-        return jsonify({"message": message}), 400
+        return self.response(400, message=message)
 
     def response_404(self, message: str = "Not found") -> Response:
         """Helper method to create 404 responses."""
-        return jsonify({"message": message}), 404
+        return self.response(404, message=message)
 
     def response_500(self, message: str = "Internal server error") -> Response:
         """Helper method to create 500 responses."""
-        return jsonify({"message": message}), 500
+        return self.response(500, message=message)
 
     @expose("/", methods=("POST",))
     @protect()
@@ -257,7 +275,8 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                     message=result.get("message", "Analysis not found")
                 )
 
-            return self.response(200, **result)
+            # Wrap in 'result' to match usePolling expectations
+            return self.response(200, result=result)
 
         except Exception as e:
             logger.exception("Error checking analysis status")
@@ -338,8 +357,10 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                     {
                         "id": join.id,
                         "source_table": join.source_table.table_name,
+                        "source_table_id": join.source_table_id,
                         "source_columns": join.source_columns,
                         "target_table": join.target_table.table_name,
+                        "target_table_id": join.target_table_id,
                         "target_columns": join.target_columns,
                         "join_type": join.join_type,
                         "cardinality": join.cardinality,
@@ -353,7 +374,96 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             logger.exception("Error retrieving report")
             return self.response_500(message=str(e))
 
-    @expose("/report/<int:report_id>/table/<int:table_id>", methods=("PUT",))
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    def get(self) -> Response:
+        """
+        Check if a completed report exists for a database/schema combination.
+        ---
+        get:
+          description: >-
+            Check if a completed database schema analysis report already exists
+            for the given database and schema. This allows the frontend to skip
+            the analysis step if a report is already available.
+          parameters:
+          - in: query
+            name: database_id
+            required: true
+            schema:
+              type: integer
+            description: The database ID
+          - in: query
+            name: schema_name
+            required: true
+            schema:
+              type: string
+            description: The schema name
+          responses:
+            200:
+              description: Check completed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      exists:
+                        type: boolean
+                        description: Whether a completed report exists
+                      report_id:
+                        type: integer
+                        description: The report ID if exists
+                      created_at:
+                        type: string
+                        description: When the report was created
+                      tables_count:
+                        type: integer
+                        description: Number of tables in the report
+            400:
+              description: Missing required parameters
+            500:
+              description: Internal server error
+        """
+        try:
+            database_id = request.args.get("database_id", type=int)
+            schema_name = request.args.get("schema_name", type=str)
+
+            if not database_id or not schema_name:
+                return self.response_400(
+                    message="Both database_id and schema_name are required"
+                )
+
+            # Check for existing completed report
+            from superset.models.database_analyzer import AnalysisStatus
+
+            report = (
+                db.session.query(DatabaseSchemaReport)
+                .filter(
+                    DatabaseSchemaReport.database_id == database_id,
+                    DatabaseSchemaReport.schema_name == schema_name,
+                    DatabaseSchemaReport.status == AnalysisStatus.COMPLETED,
+                )
+                .first()
+            )
+
+            if report:
+                return self.response(
+                    200,
+                    exists=True,
+                    report_id=report.id,
+                    created_at=report.created_on.isoformat()
+                    if report.created_on
+                    else None,
+                    tables_count=len(report.tables) if report.tables else 0,
+                )
+
+            return self.response(200, exists=False, report_id=None)
+
+        except Exception as e:
+            logger.exception("Error checking for existing report")
+            return self.response_500(message=str(e))
+
+    @expose("/table/<int:table_id>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -362,57 +472,47 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.update_table",
         log_to_statsd=True,
     )
-    def update_table(self, report_id: int, table_id: int) -> Response:
-        """Update table description.
+    def update_table(self, table_id: int) -> Response:
+        """
+        Update table description.
         ---
         put:
-          summary: Update table description
-          description: Update the AI-generated or user-edited description for a table
+          summary: Update table AI description
+          description: >-
+            Updates the AI-generated description for an analyzed table
           parameters:
-          - in: path
-            name: report_id
-            required: true
-            schema:
-              type: integer
           - in: path
             name: table_id
             required: true
             schema:
               type: integer
+            description: The table ID
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    description:
-                      type: string
-                      description: New description for the table
+                  $ref: '#/components/schemas/TableDescriptionPutSchema'
           responses:
             200:
-              description: Table updated successfully
+              description: Table description updated successfully
+            400:
+              $ref: '#/components/responses/400'
             404:
               description: Table not found
             500:
               description: Internal server error
         """
         try:
-            from superset.models.database_analyzer import AnalyzedTable
+            schema = TableDescriptionPutSchema()
+            data = schema.load(request.json)
 
-            data = request.json or {}
-            
-            table = (
-                db.session.query(AnalyzedTable)
-                .filter_by(id=table_id, report_id=report_id)
-                .first()
-            )
-
+            table = db.session.query(AnalyzedTable).get(table_id)
             if not table:
                 return self.response_404(message="Table not found")
 
-            table.ai_description = data.get("description")
-            db.session.commit()
+            table.ai_description = data["description"]
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
             return self.response(
                 200,
@@ -421,12 +521,14 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                 description=table.ai_description,
             )
 
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
         except Exception as e:
-            logger.exception("Error updating table")
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Error updating table description")
             return self.response_500(message=str(e))
 
-    @expose("/report/<int:report_id>/column/<int:column_id>", methods=("PUT",))
+    @expose("/column/<int:column_id>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
@@ -435,62 +537,47 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.update_column",
         log_to_statsd=True,
     )
-    def update_column(self, report_id: int, column_id: int) -> Response:
-        """Update column description.
+    def update_column(self, column_id: int) -> Response:
+        """
+        Update column description.
         ---
         put:
-          summary: Update column description
-          description: Update the AI-generated or user-edited description for a column
+          summary: Update column AI description
+          description: >-
+            Updates the AI-generated description for an analyzed column
           parameters:
-          - in: path
-            name: report_id
-            required: true
-            schema:
-              type: integer
           - in: path
             name: column_id
             required: true
             schema:
               type: integer
+            description: The column ID
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    description:
-                      type: string
-                      description: New description for the column
+                  $ref: '#/components/schemas/ColumnDescriptionPutSchema'
           responses:
             200:
-              description: Column updated successfully
+              description: Column description updated successfully
+            400:
+              $ref: '#/components/responses/400'
             404:
               description: Column not found
             500:
               description: Internal server error
         """
         try:
-            from superset.models.database_analyzer import AnalyzedColumn, AnalyzedTable
+            schema = ColumnDescriptionPutSchema()
+            data = schema.load(request.json)
 
-            data = request.json or {}
-            
-            # Verify column belongs to a table in this report
-            column = (
-                db.session.query(AnalyzedColumn)
-                .join(AnalyzedTable)
-                .filter(
-                    AnalyzedColumn.id == column_id,
-                    AnalyzedTable.report_id == report_id,
-                )
-                .first()
-            )
-
+            column = db.session.query(AnalyzedColumn).get(column_id)
             if not column:
                 return self.response_404(message="Column not found")
 
-            column.ai_description = data.get("description")
-            db.session.commit()
+            column.ai_description = data["description"]
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
             return self.response(
                 200,
@@ -499,9 +586,11 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                 description=column.ai_description,
             )
 
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
         except Exception as e:
-            logger.exception("Error updating column")
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Error updating column description")
             return self.response_500(message=str(e))
 
     @expose("/report/<int:report_id>/join", methods=("POST",))
@@ -813,85 +902,78 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             db.session.rollback()
             return self.response_500(message=str(e))
 
-    @expose("/report/<int:report_id>/generate_dashboard", methods=("POST",))
+    @expose("/generate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate_dashboard",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate",
         log_to_statsd=True,
     )
-    def generate_dashboard(self, report_id: int) -> Response:
-        """Generate dashboard from database report.
+    def generate_dashboard(self) -> Response:
+        """
+        Trigger dashboard generation from schema report.
         ---
         post:
-          summary: Generate dashboard
+          summary: Generate dashboard from analyzed schema
           description: >-
-            Launch dashboard generation job based on the analyzed database schema.
-            Returns a run_id for tracking the generation progress.
-          parameters:
-          - in: path
-            name: report_id
-            required: true
-            schema:
-              type: integer
+            Triggers the dashboard generation Celery job using the analyzed
+            schema report and a dashboard template. Returns a run_id for
+            tracking the generation progress.
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  required: [dashboard_id]
-                  properties:
-                    dashboard_id:
-                      type: integer
-                      description: ID of the dashboard template to use
+                  $ref: '#/components/schemas/GenerateDashboardPostSchema'
           responses:
             200:
-              description: Dashboard generation started
+              description: Dashboard generation initiated successfully
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      run_id:
-                        type: string
-                        description: Unique identifier for tracking the generation job
+                      result:
+                        $ref: '#/components/schemas/GenerateDashboardResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
             404:
-              description: Report not found
+              description: Report or dashboard not found
             500:
               description: Internal server error
         """
         try:
-            data = request.json or {}
+            schema = GenerateDashboardPostSchema()
+            data = schema.load(request.json)
+
+            report_id = data["report_id"]
+            dashboard_id = data["dashboard_id"]
 
             # Verify report exists
             report = db.session.query(DatabaseSchemaReport).get(report_id)
             if not report:
                 return self.response_404(message="Report not found")
 
-            # TODO: Launch dashboard generation Celery job
-            # This is a placeholder for the actual dashboard generation logic
-            # which should be implemented in the Dashboard Generator Celery job ticket
-            
-            # For now, return a mock run_id
+            # TODO: Integrate with Dashboard Generation Celery Job
+            # For now, return a placeholder run_id
+            # The actual implementation will call the Celery task and return
+            # its task ID
             import uuid
-            run_id = str(uuid.uuid4())
-            
-            # In the actual implementation, this would:
-            # 1. Launch the Dashboard Generator Celery job
-            # 2. Pass the database_report_id and dashboard_id
-            # 3. Return the actual run_id from the Celery job
-            
+
+            placeholder_run_id = str(uuid.uuid4())
+
             logger.info(
-                "Dashboard generation requested for report_id=%s with template_id=%s",
+                "Dashboard generation requested for report_id=%s, dashboard_id=%s",
                 report_id,
-                data.get("dashboard_id"),
+                dashboard_id,
             )
 
-            return self.response(200, run_id=run_id)
+            return self.response(200, result={"run_id": placeholder_run_id})
 
+        except ValidationError as error:
+            return self.response_400(message=str(error.messages))
         except Exception as e:
-            logger.exception("Error starting dashboard generation")
+            logger.exception("Error initiating dashboard generation")
             return self.response_500(message=str(e))

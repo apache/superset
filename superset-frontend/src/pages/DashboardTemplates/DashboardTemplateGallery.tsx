@@ -40,8 +40,9 @@ const GalleryLayout = styled.div`
     'sidebar search'
     'sidebar banner'
     'sidebar main';
-  height: 70vh;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   background: ${({ theme }) => theme.colorBgLayout};
 `;
 
@@ -86,6 +87,7 @@ const SearchWrapper = styled.div`
 const AIBannerWrapper = styled.div`
   ${({ theme }) => css`
     grid-area: banner;
+    margin-top: ${theme.sizeUnit * 2}px;
     padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px;
   `}
 `;
