@@ -25,6 +25,7 @@ import {
   Select,
   Checkbox,
   Tooltip,
+  Tag,
   CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
@@ -33,7 +34,7 @@ import { useNumericColumns } from 'src/dashboard/util/useNumericColumns';
 import { RootState, Datasource } from 'src/dashboard/types';
 import WhatIfAIInsights from './WhatIfAIInsights';
 import HarryPotterWandLoader from './HarryPotterWandLoader';
-import FilterSection from './FilterSection';
+import FilterButton from './FilterButton';
 import ModificationsDisplay from './ModificationsDisplay';
 import { useWhatIfFilters } from './useWhatIfFilters';
 import { useWhatIfApply } from './useWhatIfApply';
@@ -58,6 +59,8 @@ import {
   CheckboxContainer,
   ColumnSelectRow,
   ColumnSelectWrapper,
+  FiltersSection,
+  FilterTagsContainer,
 } from './styles';
 
 export { WHAT_IF_PANEL_WIDTH };
@@ -199,8 +202,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
                 ariaLabel={t('Select column to adjust')}
               />
             </ColumnSelectWrapper>
-            <FilterSection
-              filters={filters}
+            <FilterButton
               filterPopoverVisible={filterPopoverVisible}
               currentAdhocFilter={currentAdhocFilter}
               selectedColumn={selectedColumn}
@@ -211,11 +213,39 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
               onFilterChange={handleFilterChange}
               onFilterPopoverClose={handleFilterPopoverClose}
               onFilterPopoverResize={handleFilterPopoverResize}
-              onEditFilter={handleEditFilter}
-              onRemoveFilter={handleRemoveFilter}
-              formatFilterLabel={formatFilterLabel}
             />
           </ColumnSelectRow>
+          {filters.length > 0 && (
+            <FiltersSection>
+              <Label
+                css={css`
+                  font-size: ${theme.fontSizeSM}px;
+                  color: ${theme.colorTextSecondary};
+                `}
+              >
+                {t('Filters')}
+              </Label>
+              <FilterTagsContainer>
+                {filters.map((filter, index) => (
+                  <Tag
+                    key={`${filter.col}-${filter.op}-${index}`}
+                    closable
+                    onClose={e => handleRemoveFilter(e, index)}
+                    onClick={() => handleEditFilter(index)}
+                    css={css`
+                      cursor: pointer;
+                      margin: 0;
+                      &:hover {
+                        opacity: 0.8;
+                      }
+                    `}
+                  >
+                    {formatFilterLabel(filter)}
+                  </Tag>
+                ))}
+              </FilterTagsContainer>
+            </FiltersSection>
+          )}
         </FormSection>
 
         <FormSection>

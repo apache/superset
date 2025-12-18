@@ -81,7 +81,7 @@ const ModificationsDisplay = memo(function ModificationsDisplay({
                   : theme.colorError};
               `}
             >
-              {formatPercentageChange(mod.multiplier, 1)}
+              {formatPercentageChange(mod.multiplier, 0)}
             </span>
           </Tag>
         ))}
@@ -103,7 +103,10 @@ const ModificationsDisplay = memo(function ModificationsDisplay({
                 .filter(mod => mod.reasoning)
                 .map((mod, idx) => (
                   <AIReasoningItem key={idx}>
-                    <strong>{mod.column}:</strong> {mod.reasoning}
+                    <strong>
+                      {mod.column} {formatPercentageChange(mod.multiplier, 0)}
+                    </strong>
+                    <div>{mod.reasoning}</div>
                   </AIReasoningItem>
                 ))}
             </AIReasoningContent>

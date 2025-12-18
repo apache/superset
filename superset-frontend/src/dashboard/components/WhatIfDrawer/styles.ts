@@ -175,7 +175,7 @@ export const ColumnSelectWrapper = styled.div`
   min-width: 0;
 `;
 
-export const FilterButton = styled(Button)`
+export const FilterButtonStyled = styled(Button)`
   flex-shrink: 0;
   padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
 `;
