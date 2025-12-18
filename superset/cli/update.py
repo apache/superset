@@ -39,14 +39,24 @@ logger = logging.getLogger(__name__)
 @click.command()
 @with_appcontext
 @transaction()
-@click.option("--database_name", "-d", help="Database name to change")
-@click.option("--uri", "-u", help="Database URI to change")
+@click.option(
+    "--database_name",
+    "-d",
+    required=True,
+    help="Database name to change"
+)
+@click.option(
+    "--uri",
+    "-u",
+    required=True,
+    help="Database URI to change"
+)
 @click.option(
     "--skip_create",
     "-s",
     is_flag=True,
     default=False,
-    help="Create the DB if it doesn't exist",
+    help="Don't create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI"""
