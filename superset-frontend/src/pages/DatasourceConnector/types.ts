@@ -94,7 +94,5 @@ export interface GenerateDashboardPayload {
 }
 
 export interface GenerateDashboardResponse {
-  result: {
-    run_id: string;
-  };
+  run_id: string;
 }
