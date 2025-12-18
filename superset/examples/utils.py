@@ -67,6 +67,54 @@ def _should_skip_directory(item: Any) -> bool:
     return name in ("configs", "data", "__pycache__")
 
 
+def _load_datasets_from_folder(
+    base: Any,
+    datasets_dir: Any,
+    test_re: re.Pattern[str],
+    load_test_data: bool,
+) -> dict[str, str]:
+    """Load dataset configs from a datasets/ folder."""
+    contents: dict[str, str] = {}
+    if not (base / str(datasets_dir)).is_dir():
+        return contents
+
+    for dataset_item in (base / str(datasets_dir)).iterdir():
+        if Path(str(dataset_item)).suffix.lower() not in YAML_EXTENSIONS:
+            continue
+        if not load_test_data and test_re.search(str(dataset_item)):
+            continue
+        dataset_file = datasets_dir / str(dataset_item)
+        content = _read_file_if_exists(base, dataset_file)
+        if content:
+            dataset_name = Path(str(dataset_item)).stem
+            contents[f"datasets/examples/{dataset_name}.yaml"] = content
+    return contents
+
+
+def _load_charts_from_folder(
+    base: Any,
+    charts_dir: Any,
+    example_name: str,
+    test_re: re.Pattern[str],
+    load_test_data: bool,
+) -> dict[str, str]:
+    """Load chart configs from a charts/ folder."""
+    contents: dict[str, str] = {}
+    if not (base / str(charts_dir)).is_dir():
+        return contents
+
+    for chart_item in (base / str(charts_dir)).iterdir():
+        if Path(str(chart_item)).suffix.lower() not in YAML_EXTENSIONS:
+            continue
+        if not load_test_data and test_re.search(str(chart_item)):
+            continue
+        chart_file = charts_dir / str(chart_item)
+        content = _read_file_if_exists(base, chart_file)
+        if content:
+            contents[f"charts/{example_name}/{chart_item}"] = content
+    return contents
+
+
 def _load_example_contents(
     example_dir: Any, example_name: str, test_re: re.Pattern[str], load_test_data: bool
 ) -> dict[str, str]:
@@ -74,26 +122,17 @@ def _load_example_contents(
     contents: dict[str, str] = {}
     base = files("superset")
 
-    # Dataset configs - support both single dataset.yaml and datasets/ folder
     # Single dataset.yaml at root (backward compatible)
     dataset_content = _read_file_if_exists(base, example_dir / "dataset.yaml")
     if dataset_content and (load_test_data or not test_re.search("dataset.yaml")):
         contents[f"datasets/examples/{example_name}.yaml"] = dataset_content
 
     # Multiple datasets in datasets/ folder
-    datasets_dir = example_dir / "datasets"
-    if (base / str(datasets_dir)).is_dir():
-        for dataset_item in (base / str(datasets_dir)).iterdir():
-            if Path(str(dataset_item)).suffix.lower() not in YAML_EXTENSIONS:
-                continue
-            if not load_test_data and test_re.search(str(dataset_item)):
-                continue
-            dataset_file = datasets_dir / str(dataset_item)
-            content = _read_file_if_exists(base, dataset_file)
-            if content:
-                # Use filename (without extension) as dataset name
-                dataset_name = Path(str(dataset_item)).stem
-                contents[f"datasets/examples/{dataset_name}.yaml"] = content
+    contents.update(
+        _load_datasets_from_folder(
+            base, example_dir / "datasets", test_re, load_test_data
+        )
+    )
 
     # Dashboard config
     dashboard_content = _read_file_if_exists(base, example_dir / "dashboard.yaml")
@@ -101,17 +140,11 @@ def _load_example_contents(
         contents[f"dashboards/{example_name}.yaml"] = dashboard_content
 
     # Chart configs
-    charts_dir = example_dir / "charts"
-    if (base / str(charts_dir)).is_dir():
-        for chart_item in (base / str(charts_dir)).iterdir():
-            if Path(str(chart_item)).suffix.lower() not in YAML_EXTENSIONS:
-                continue
-            if not load_test_data and test_re.search(str(chart_item)):
-                continue
-            chart_file = charts_dir / str(chart_item)
-            content = _read_file_if_exists(base, chart_file)
-            if content:
-                contents[f"charts/{example_name}/{chart_item}"] = content
+    contents.update(
+        _load_charts_from_folder(
+            base, example_dir / "charts", example_name, test_re, load_test_data
+        )
+    )
 
     return contents
 
