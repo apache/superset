@@ -135,6 +135,17 @@ const WhatIfAIInsights = ({
   const chartComparisons = useChartComparison(affectedChartIds);
   const allChartsLoaded = useAllChartsLoaded(affectedChartIds);
 
+  // AbortController for cancelling in-flight /interpret requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup: cancel any pending requests on unmount
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
+
   // Track modification changes to reset status when user adjusts the slider
   const modificationsKey = getModificationsKey(modifications);
   const prevModificationsKeyRef = useRef<string>(modificationsKey);
@@ -182,6 +193,8 @@ const WhatIfAIInsights = ({
       console.log(
         '[WhatIfAIInsights] Modifications changed, resetting status to idle',
       );
+      // Cancel any in-flight request when modifications change
+      abortControllerRef.current?.abort();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: resetting state when modifications change
       setStatus('idle');
       setResponse(null);
@@ -194,18 +207,32 @@ const WhatIfAIInsights = ({
       return;
     }
 
+    // Cancel any in-flight request before starting a new one
+    abortControllerRef.current?.abort();
+
+    // Create a new AbortController for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setStatus('loading');
     setError(null);
 
     try {
-      const result = await fetchWhatIfInterpretation({
-        modifications,
-        charts: chartComparisons,
-        dashboardName: dashboardTitle,
-      });
+      const result = await fetchWhatIfInterpretation(
+        {
+          modifications,
+          charts: chartComparisons,
+          dashboardName: dashboardTitle,
+        },
+        abortController.signal,
+      );
       setResponse(result);
       setStatus('success');
     } catch (err) {
+      // Don't update state if the request was aborted
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       setError(
         err instanceof Error
           ? err.message

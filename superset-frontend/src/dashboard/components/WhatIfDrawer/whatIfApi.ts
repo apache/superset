@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, Signal } from '@superset-ui/core';
 import {
   WhatIfInterpretRequest,
   WhatIfInterpretResponse,
@@ -42,9 +42,11 @@ interface ApiResponse {
 
 export async function fetchWhatIfInterpretation(
   request: WhatIfInterpretRequest,
+  signal?: Signal,
 ): Promise<WhatIfInterpretResponse> {
   const response = await SupersetClient.post({
     endpoint: '/api/v1/what_if/interpret',
+    signal,
     jsonPayload: {
       modifications: request.modifications.map(mod => ({
         column: mod.column,
@@ -102,9 +104,11 @@ interface ApiSuggestRelatedResponse {
 
 export async function fetchRelatedColumnSuggestions(
   request: WhatIfSuggestRelatedRequest,
+  signal?: Signal,
 ): Promise<WhatIfSuggestRelatedResponse> {
   const response = await SupersetClient.post({
     endpoint: '/api/v1/what_if/suggest_related',
+    signal,
     jsonPayload: {
       selected_column: request.selectedColumn,
       user_multiplier: request.userMultiplier,

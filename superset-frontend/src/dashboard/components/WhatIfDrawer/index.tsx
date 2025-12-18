@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t, logging } from '@superset-ui/core';
 import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
@@ -210,6 +210,17 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const [applyCounter, setApplyCounter] = useState(0);
   const [showAIReasoning, setShowAIReasoning] = useState(false);
 
+  // AbortController for cancelling in-flight /suggest_related requests
+  const suggestionsAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup: cancel any pending requests on unmount
+  useEffect(
+    () => () => {
+      suggestionsAbortControllerRef.current?.abort();
+    },
+    [],
+  );
+
   const slices = useSelector(
     (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
   );
@@ -251,6 +262,9 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const handleApply = useCallback(async () => {
     if (!selectedColumn) return;
 
+    // Cancel any in-flight suggestions request
+    suggestionsAbortControllerRef.current?.abort();
+
     // Immediately clear previous results and increment counter to reset AI insights component
     setAppliedModifications([]);
     setAffectedChartIds([]);
@@ -269,21 +283,28 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
     // If cascading effects enabled, fetch AI suggestions
     if (enableCascadingEffects) {
+      // Create a new AbortController for this request
+      const abortController = new AbortController();
+      suggestionsAbortControllerRef.current = abortController;
+
       setIsLoadingSuggestions(true);
       try {
-        const suggestions = await fetchRelatedColumnSuggestions({
-          selectedColumn,
-          userMultiplier: multiplier,
-          availableColumns: numericColumns.map(col => ({
-            columnName: col.columnName,
-            description: col.description,
-            verboseName: col.verboseName,
-            datasourceId: col.datasourceId,
-          })),
-          dashboardName: dashboardInfo?.dash_edit_perm
-            ? dashboardInfo?.dashboard_title
-            : undefined,
-        });
+        const suggestions = await fetchRelatedColumnSuggestions(
+          {
+            selectedColumn,
+            userMultiplier: multiplier,
+            availableColumns: numericColumns.map(col => ({
+              columnName: col.columnName,
+              description: col.description,
+              verboseName: col.verboseName,
+              datasourceId: col.datasourceId,
+            })),
+            dashboardName: dashboardInfo?.dash_edit_perm
+              ? dashboardInfo?.dashboard_title
+              : undefined,
+          },
+          abortController.signal,
+        );
 
         // Add AI suggestions to modifications
         const aiModifications: ExtendedWhatIfModification[] =
@@ -297,6 +318,10 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
         allModifications = [...allModifications, ...aiModifications];
       } catch (error) {
+        // Don't log or update state if the request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
         logging.error('Failed to get AI suggestions:', error);
         // Continue with just user modification
       }
