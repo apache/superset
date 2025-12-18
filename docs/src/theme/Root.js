@@ -128,9 +128,8 @@ export default function Root({ children }) {
                     debounceTimer = setTimeout(() => {
                       const query = e.target.value.trim();
                       if (query.length >= 3) {
-                        // Get result count if available
                         const results = document.querySelectorAll('.DocSearch-Hit');
-                        trackSiteSearch(query, 'Documentation', results.length || false);
+                        trackSiteSearch(query, 'Documentation', results.length);
                       }
                     }, 1000); // Debounce to avoid tracking every keystroke
                   });
