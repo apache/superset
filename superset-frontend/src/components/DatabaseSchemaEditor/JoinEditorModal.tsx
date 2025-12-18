@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, Alert } from '@apache-superset/core/ui';
 import {
   Modal,
   Select,
@@ -26,7 +26,6 @@ import {
   Form,
   Space,
   Typography,
-  Alert,
 } from '@superset-ui/core/components';
 
 export enum JoinType {

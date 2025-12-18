@@ -32,6 +32,7 @@ import useSchemaEditorMutations from '../hooks/useSchemaEditorMutations';
 import SchemaTreeView from './SchemaTreeView';
 import SchemaDetailPanel from './SchemaDetailPanel';
 import type { SchemaSelection } from '../types';
+import { JoinsList } from '../../../components/DatabaseSchemaEditor';
 
 interface DatasourceEditorPanelProps {
   reportId: number;
@@ -203,6 +204,24 @@ export default function DatasourceEditorPanel({
           isUpdating={mutationState.loading}
         />
       </ContentGrid>
+
+      <JoinsList
+        databaseReportId={reportId}
+        joins={report.joins}
+        tables={report.tables.map(table => ({
+          id: table.id,
+          name: table.name,
+          columns: table.columns.map(col => ({
+            id: col.id,
+            name: col.name,
+            type: col.type,
+          })),
+        }))}
+        onJoinsUpdate={() => {
+          // Refetch the report to get updated joins
+          refetch();
+        }}
+      />
 
       <FooterActions justify="space-between" align="center">
         <Button onClick={onBack} disabled={isGenerating}>

@@ -26,8 +26,8 @@ import {
   Typography,
   Popconfirm,
   Tag,
-  message,
 } from '@superset-ui/core/components';
+import { useToasts } from '../MessageToasts/withToasts';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import JoinEditorModal, {
   Join,
@@ -97,6 +97,7 @@ const JoinsList = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [editingJoin, setEditingJoin] = useState<Join | null>(null);
   const [loading, setLoading] = useState(false);
+  const { addSuccessToast, addDangerToast } = useToasts();
 
   const handleAddJoin = () => {
     setEditingJoin(null);
@@ -119,13 +120,13 @@ const JoinsList = ({
         const updatedJoins = joins.filter(j => j.id !== joinId);
         setJoins(updatedJoins);
         onJoinsUpdate?.(updatedJoins);
-        message.success(t('Join deleted successfully'));
+        addSuccessToast(t('Join deleted successfully'));
       } else {
         throw new Error('Failed to delete join');
       }
     } catch (error) {
       console.error('Delete join error:', error);
-      message.error(
+      addDangerToast(
         t('Failed to delete join: %s', error?.message || String(error)),
       );
     } finally {
@@ -161,7 +162,7 @@ const JoinsList = ({
         setJoins(updatedJoins);
         onJoinsUpdate?.(updatedJoins);
         setModalVisible(false);
-        message.success(
+        addSuccessToast(
           join.id
             ? t('Join updated successfully')
             : t('Join created successfully'),
@@ -171,7 +172,7 @@ const JoinsList = ({
       }
     } catch (error) {
       console.error('Save join error:', error);
-      message.error(
+      addDangerToast(
         t('Failed to save join: %s', error?.message || String(error)),
       );
     } finally {

@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import type { Join } from '../../../components/DatabaseSchemaEditor';
+
 export interface DatasourceConnectorState {
   databaseId: number | null;
   databaseName: string | null;
@@ -76,6 +78,7 @@ export interface DatabaseSchemaReport {
   status: string;
   created_at: string | null;
   tables: AnalyzedTable[];
+  joins: Join[];
 }
 
 export interface SchemaReportResponse {
@@ -85,7 +88,7 @@ export interface SchemaReportResponse {
   status: string;
   created_at: string | null;
   tables: AnalyzedTable[];
-  joins: unknown[];
+  joins: Join[];
 }
 
 export interface GenerateDashboardPayload {
