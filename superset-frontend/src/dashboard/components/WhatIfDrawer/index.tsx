@@ -48,6 +48,7 @@ import AdhocFilterEditPopover from 'src/explore/components/controls/FilterContro
 import { Clauses } from 'src/explore/components/controls/FilterControl/types';
 import { OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
 import WhatIfAIInsights from './WhatIfAIInsights';
+import MagicWandLoader from './MagicWandLoader';
 import { fetchRelatedColumnSuggestions } from './whatIfApi';
 import { ExtendedWhatIfModification } from './types';
 
@@ -858,6 +859,14 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
           />
         )}
       </PanelContent>
+      {isLoadingSuggestions && (
+        <MagicWandLoader
+          onDismiss={() => {
+            suggestionsAbortControllerRef.current?.abort();
+            setIsLoadingSuggestions(false);
+          }}
+        />
+      )}
     </PanelContainer>
   );
 };
