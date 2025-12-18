@@ -57,7 +57,7 @@ class DeleteChartCommand(BaseCommand):
 
         # Charts belonging to template dashboards cannot be deleted
         for model in self._models:
-            if model.is_template_chart:
+            if model.is_template_chart is True:
                 raise ChartTemplateDeleteForbiddenError()
 
         # Check there are no associated ReportSchedules
