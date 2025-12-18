@@ -27,16 +27,6 @@ const DOWNLOAD_EXTENSIONS = [
   'csv', 'json', 'yaml', 'yml',
 ];
 
-// External domains to categorize for better analytics
-const EXTERNAL_LINK_CATEGORIES = {
-  'github.com': 'GitHub',
-  'slack.com': 'Slack',
-  'bit.ly': 'Slack', // Slack invite link
-  'stackoverflow.com': 'Stack Overflow',
-  'lists.apache.org': 'Mailing List',
-  'preset.io': 'Preset',
-  'kapa.ai': 'Kapa AI',
-};
 
 export default function Root({ children }) {
   const { siteConfig } = useDocusaurusContext();
@@ -82,7 +72,7 @@ export default function Root({ children }) {
         window._paq.push(['trackSiteSearch', keyword, category, resultsCount]);
       };
 
-      // Track external link clicks with categorization
+      // Track external link clicks using domain as category (vendor-agnostic)
       const handleLinkClick = (event) => {
         const link = event.target.closest('a');
         if (!link) return;
@@ -96,16 +86,8 @@ export default function Root({ children }) {
           // Skip internal links
           if (url.hostname === window.location.hostname) return;
 
-          // Determine category based on domain
-          let category = 'External Link';
-          for (const [domain, cat] of Object.entries(EXTERNAL_LINK_CATEGORIES)) {
-            if (url.hostname.includes(domain)) {
-              category = cat;
-              break;
-            }
-          }
-
-          trackEvent('Outbound Link', category, href);
+          // Use hostname as category for vendor-agnostic tracking
+          trackEvent('Outbound Link', url.hostname, href);
         } catch {
           // Invalid URL, skip tracking
         }
