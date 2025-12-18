@@ -16,14 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Layout, LayoutItem } from 'src/dashboard/types';
 import { TAB_TYPE, DASHBOARD_GRID_TYPE } from '../componentTypes';
 import { DASHBOARD_ROOT_ID } from '../constants';
 import findNonTabChildChartIds from './findNonTabChildChartIds';
 
+interface TopLevelNode {
+  id: string;
+  type: string;
+  parent_type: string | null;
+  parent_id: string | null;
+  index: number | null;
+  depth: number;
+  slice_ids: number[];
+}
+
+interface RecurseParams {
+  node: LayoutItem | undefined;
+  index?: number | null;
+  depth: number;
+  parentType?: string | null;
+  parentId?: string | null;
+}
+
 // This function traverses the layout to identify top grid + tab level components
 // for which we track load times
-function findTopLevelComponentIds(layout) {
-  const topLevelNodes = [];
+function findTopLevelComponentIds(layout: Layout): TopLevelNode[] {
+  const topLevelNodes: TopLevelNode[] = [];
 
   function recurseFromNode({
     node,
@@ -31,7 +50,7 @@ function findTopLevelComponentIds(layout) {
     depth,
     parentType = null,
     parentId = null,
-  }) {
+  }: RecurseParams): void {
     if (!node) return;
 
     let nextParentType = parentType;
@@ -79,9 +98,11 @@ function findTopLevelComponentIds(layout) {
 }
 
 // This method is called frequently, so cache results
-let cachedLayout;
-let cachedTopLevelNodes;
-export default function findTopLevelComponentIdsWithCache(layout) {
+let cachedLayout: Layout | undefined;
+let cachedTopLevelNodes: TopLevelNode[] = [];
+export default function findTopLevelComponentIdsWithCache(
+  layout: Layout,
+): TopLevelNode[] {
   if (layout === cachedLayout) {
     return cachedTopLevelNodes;
   }

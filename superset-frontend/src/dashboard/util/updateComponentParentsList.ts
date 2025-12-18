@@ -18,10 +18,22 @@
  */
 import { logging } from '@superset-ui/core';
 
+interface LayoutComponent {
+  id: string;
+  parents?: string[];
+  children?: string[];
+  [key: string]: unknown;
+}
+
+interface UpdateComponentParentsListParams {
+  currentComponent?: LayoutComponent | null;
+  layout?: Record<string, LayoutComponent>;
+}
+
 export default function updateComponentParentsList({
   currentComponent,
   layout = {},
-}) {
+}: UpdateComponentParentsListParams): void {
   if (currentComponent && layout) {
     if (layout[currentComponent.id]) {
       const parentsList = Array.isArray(currentComponent.parents)
