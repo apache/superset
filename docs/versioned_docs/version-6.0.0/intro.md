@@ -165,7 +165,7 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 ## Contributor Guide
 
 Interested in contributing? Check out our
-[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
+[Developer Portal](https://superset.apache.org/developer_portal/)
 to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 
