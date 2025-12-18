@@ -41,7 +41,7 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
-  customColorRules: PropTypes.array,
+  customColorScale: PropTypes.array,
 };
 
 const maps = {};
