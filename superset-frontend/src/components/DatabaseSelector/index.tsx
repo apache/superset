@@ -39,8 +39,9 @@ import {
   Select,
   AsyncSelect,
   Label,
-  FormLabel,
   LabeledValue as AntdLabeledValue,
+  Space,
+  Button,
 } from '@superset-ui/core/components';
 
 import { ErrorMessageWithStackTrace } from 'src/components';
@@ -51,8 +52,21 @@ import type {
 } from './types';
 import { StyledFormLabel } from './styles';
 
-const DatabaseSelectorWrapper = styled.div`
-  ${({ theme }) => `
+const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
+  ${({ theme, horizontal }) =>
+    horizontal
+      ? `
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      column-gap: ${theme.sizeUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+
+      & .ant-space-compact button {
+        padding: ${theme.sizeUnit * 2}px;
+      }
+`
+      : `
     .refresh {
       display: flex;
       align-items: center;
@@ -71,10 +85,9 @@ const DatabaseSelectorWrapper = styled.div`
       flex: 1;
     }
 
-    & > div {
+      > div {
       margin-bottom: ${theme.sizeUnit * 4}px;
-    }
-  `}
+`}
 `;
 
 const LabelStyle = styled.div`
@@ -130,6 +143,7 @@ export function DatabaseSelector({
   schema,
   readOnly = false,
   sqlLabMode = false,
+  horizontalMode = false,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
@@ -337,32 +351,64 @@ export function DatabaseSelector({
     }
   }
 
-  function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
+  function renderSelectRow(
+    label: string,
+    select: ReactNode,
+    refreshBtn: ReactNode,
+  ) {
+    if (horizontalMode) {
+      return (
+        <Space.Compact>
+          {refreshBtn && (
+            <Button
+              buttonStyle="tertiary"
+              onClick={({ currentTarget }) =>
+                (
+                  currentTarget.querySelector(
+                    'span[role="button"]',
+                  ) as HTMLAnchorElement
+                )?.click?.()
+              }
+            >
+              {refreshBtn}
+            </Button>
+          )}
+          {select}
+        </Space.Compact>
+      );
+    }
     return (
-      <div className="section">
-        <span className="select">{select}</span>
-        <span className="refresh">{refreshBtn}</span>
-      </div>
+      <>
+        <StyledFormLabel>{label}</StyledFormLabel>
+        <div className="section">
+          <span className="select">{select}</span>
+          <span className="refresh">{refreshBtn}</span>
+        </div>
+      </>
     );
   }
 
   function renderDatabaseSelect() {
-    return renderSelectRow(
-      <AsyncSelect
-        ariaLabel={t('Select database or type to search databases')}
-        optionFilterProps={['database_name', 'value']}
-        data-test="select-database"
-        header={<FormLabel>{t('Database')}</FormLabel>}
-        lazyLoading={false}
-        notFoundContent={emptyState}
-        onChange={changeDatabase}
-        value={currentDb}
-        placeholder={t('Select database or type to search databases')}
-        disabled={!isDatabaseSelectEnabled || readOnly}
-        options={loadDatabases}
-        sortComparator={sortComparator}
-      />,
-      null,
+    return (
+      <div>
+        {renderSelectRow(
+          t('Database'),
+          <AsyncSelect
+            ariaLabel={t('Select database or type to search databases')}
+            optionFilterProps={['database_name', 'value']}
+            data-test="select-database"
+            lazyLoading={false}
+            notFoundContent={emptyState}
+            onChange={changeDatabase}
+            value={currentDb}
+            placeholder={t('Select database or type to search databases')}
+            disabled={!isDatabaseSelectEnabled || readOnly}
+            options={loadDatabases}
+            sortComparator={sortComparator}
+          />,
+          null,
+        )}
+      </div>
     );
   }
 
@@ -375,8 +421,8 @@ export function DatabaseSelector({
     );
     return (
       <>
-        <StyledFormLabel>{t('Catalog')}</StyledFormLabel>
         {renderSelectRow(
+          t('Catalog'),
           <Select
             ariaLabel={t('Select catalog or type to search catalogs')}
             disabled={!currentDb || readOnly}
@@ -406,8 +452,8 @@ export function DatabaseSelector({
     );
     return (
       <>
-        <StyledFormLabel>{t('Schema')}</StyledFormLabel>
         {renderSelectRow(
+          t('Schema'),
           <Select
             ariaLabel={t('Select schema or type to search schemas')}
             disabled={!currentDb || readOnly}
@@ -435,7 +481,10 @@ export function DatabaseSelector({
   }
 
   return (
-    <DatabaseSelectorWrapper data-test="DatabaseSelector">
+    <DatabaseSelectorWrapper
+      data-test="DatabaseSelector"
+      horizontal={Boolean(horizontalMode)}
+    >
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}

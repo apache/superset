@@ -41,6 +41,30 @@ const StyledEditableTabs = styled(EditableTabs)`
   height: 100%;
   display: flex;
   flex-direction: column;
+  & .ant-tabs-nav-list {
+    align-items: end;
+  }
+  & .ant-tabs-nav::before {
+    border-color: ${({ theme }) => theme.colorBorder} !important;
+  }
+  & .ant-tabs-nav-add {
+    border-color: ${({ theme }) => theme.colorBorder} !important;
+    height: 34px;
+  }
+  & .ant-tabs-nav-list {
+    padding-top: 1px;
+  }
+  & .ant-tabs-tab-active {
+    border-left-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-top-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-right-color: ${({ theme }) => theme.colorPrimaryActive} !important;
+    box-shadow: 0 0 2px ${({ theme }) => theme.colorPrimaryActive} !important;
+    border-top: 2px;
+  }
+  & .ant-tabs-tab:not(.ant-tabs-tab-active) {
+    border-color: ${({ theme }) => theme.colorBorder} !important;
+    box-shadow: inset 0 0 1px ${({ theme }) => theme.colorBorder} !important;
+  }
 `;
 
 const StyledTab = styled.span`
@@ -204,7 +228,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            <Icons.PlusCircleOutlined
+            <Icons.PlusOutlined
               iconSize="l"
               css={css`
                 vertical-align: middle;

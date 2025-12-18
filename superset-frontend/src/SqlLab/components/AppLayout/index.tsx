@@ -19,7 +19,7 @@
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
@@ -34,8 +34,11 @@ import {
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import { ViewContribution } from 'src/SqlLab/contributions';
+import StatusBar from '../StatusBar';
 
 const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   height: 100%;
 
   & .ant-splitter-panel:not(.sqllab-body):not(.queryPane) {
@@ -97,7 +100,14 @@ const AppLayout: React.FC = ({ children }) => {
 
   return (
     <StyledContainer>
-      <Splitter lazy onResizeEnd={onSidebarChange} onResize={noop}>
+      <Splitter
+        css={css`
+          flex: 1;
+        `}
+        lazy
+        onResizeEnd={onSidebarChange}
+        onResize={noop}
+      >
         <Splitter.Panel
           collapsible={{
             start: true,
@@ -131,6 +141,7 @@ const AppLayout: React.FC = ({ children }) => {
           </Splitter.Panel>
         )}
       </Splitter>
+      <StatusBar queryEditorId={queryEditorId} />
     </StyledContainer>
   );
 };
