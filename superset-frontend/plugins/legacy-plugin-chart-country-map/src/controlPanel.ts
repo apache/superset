@@ -76,32 +76,22 @@ const config: ControlPanelConfig = {
               type: 'TextAreaControl',
               label: t('Custom Color Scale (by %)'),
               description: t(
-                'Custom configuration that overrides the linear color scheme color codes and thresholds. Thresholds are defined in percentage, and color codes accept any valid CSS value. Copy-paste and edit following sample configuration to define your own thresholds and colors :\n\n' +
-                  '[\n' +
-                  '  { "percent": 0, "color": "white" },\n' +
-                  '  { "percent": 0.01, "color": "#A00000" },\n' +
-                  '  { "percent": 20, "color": "#E52B50" },\n' +
-                  '  { "percent": 35, "color": "#FFA500" },\n' +
-                  '  { "percent": 50, "color": "#FFFF99" },\n' +
-                  '  { "percent": 65, "color": "#9ACD32" },\n' +
-                  '  { "percent": 80, "color": "#3CB371" },\n' +
-                  '  { "percent": 99.99, "color": "#228B22" },\n' +
-                  '  { "percent": 100, "color": "black" }\n' +
+                'Custom JSON configuration that overrides the linear color scheme color codes and thresholds.<br />Thresholds are defined in percentage, and color codes accept any valid CSS value.<br />Config must be a valid JSON excerpt.<br />Copy-paste and adapt following sample configuration to define your own thresholds and colors :<br />\n' +
+                  '[<br />\n' +
+                  '  { "percent": 0, "color": "white" },<br />\n' +
+                  '  { "percent": 0.01, "color": "#A00000" },<br />\n' +
+                  '  { "percent": 20, "color": "#E52B50" },<br />\n' +
+                  '  { "percent": 35, "color": "#FFA500" },<br />\n' +
+                  '  { "percent": 50, "color": "#FFFF99" },<br />\n' +
+                  '  { "percent": 65, "color": "#9ACD32" },<br />\n' +
+                  '  { "percent": 80, "color": "#3CB371" },<br />\n' +
+                  '  { "percent": 99.99, "color": "#228B22" },<br />\n' +
+                  '  { "percent": 100, "color": "black" }<br />\n' +
                   ']',
               ),
-              default: `[
-  { "percent": 0, "color": "white" },
-  { "percent": 0.01, "color": "#A00000" },
-  { "percent": 20, "color": "#E52B50" },
-  { "percent": 35, "color": "#FFA500" },
-  { "percent": 50, "color": "#FFFF99" },
-  { "percent": 65, "color": "#9ACD32" },
-  { "percent": 80, "color": "#3CB371" },
-  { "percent": 99.99, "color": "#228B22" },
-  { "percent": 100, "color": "black" }
-]`,
+              default: ``,
               language: 'json',
-              rows: 10,
+              rows: 12,
               renderTrigger: true,
             },
           },
