@@ -16,34 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import DashboardGrid from '../components/DashboardGrid';
+import { t } from '@superset-ui/core';
 
-import {
-  handleComponentDrop,
-  resizeComponent,
-} from '../actions/dashboardLayout';
-import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
-
-function mapStateToProps({ dashboardState, dashboardInfo }) {
-  return {
-    editMode: dashboardState.editMode,
-    canEdit: dashboardInfo.dash_edit_perm,
-    dashboardId: dashboardInfo.id,
-  };
+interface MissingChartProps {
+  height: number;
 }
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      handleComponentDrop,
-      resizeComponent,
-      setDirectPathToChild,
-      setEditMode,
-    },
-    dispatch,
+export default function MissingChart({ height }: MissingChartProps) {
+  return (
+    <div className="missing-chart-container" style={{ height: height + 20 }}>
+      <div className="missing-chart-body">
+        {t(
+          'There is no chart definition associated with this component, could it have been deleted?',
+        )}
+        <br />
+        <br />
+        {t('Delete this container and save to remove this message.')}
+      </div>
+    </div>
   );
 }
-
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

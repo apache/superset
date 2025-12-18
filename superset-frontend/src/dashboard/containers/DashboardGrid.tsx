@@ -16,36 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { fetchSlices, updateSlices } from '../actions/sliceEntities';
-import SliceAdder from '../components/SliceAdder';
+import DashboardGrid from '../components/DashboardGrid';
 
-function mapStateToProps(
-  { sliceEntities, dashboardInfo, dashboardState },
-  ownProps,
-) {
+import {
+  handleComponentDrop,
+  resizeComponent,
+} from '../actions/dashboardLayout';
+import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
+import { RootState } from 'src/dashboard/types';
+
+function mapStateToProps({ dashboardState, dashboardInfo }: RootState) {
   return {
-    height: ownProps.height,
-    userId: +dashboardInfo.userId,
-    dashboardId: dashboardInfo.id,
-    selectedSliceIds: dashboardState.sliceIds,
-    slices: sliceEntities.slices,
-    isLoading: sliceEntities.isLoading,
-    errorMessage: sliceEntities.errorMessage,
-    lastUpdated: sliceEntities.lastUpdated,
     editMode: dashboardState.editMode,
+    canEdit: dashboardInfo.dash_edit_perm,
+    dashboardId: dashboardInfo.id,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return bindActionCreators(
     {
-      fetchSlices,
-      updateSlices,
+      handleComponentDrop,
+      resizeComponent,
+      setDirectPathToChild,
+      setEditMode,
     },
     dispatch,
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SliceAdder);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

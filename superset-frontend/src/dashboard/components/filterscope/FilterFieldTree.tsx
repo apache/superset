@@ -16,54 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import CheckboxTree from 'react-checkbox-tree';
-import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';
-import renderFilterScopeTreeNodes from './renderFilterScopeTreeNodes';
+import CheckboxTree, { Node } from 'react-checkbox-tree';
 import treeIcons from './treeIcons';
+import renderFilterFieldTreeNodes, {
+  FilterScopeTreeNode,
+} from './renderFilterFieldTreeNodes';
 
-const propTypes = {
-  nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
-  checked: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  expanded: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  onCheck: PropTypes.func.isRequired,
-  onExpand: PropTypes.func.isRequired,
-  selectedChartId: PropTypes.number,
-};
+interface FilterFieldTreeProps {
+  activeKey?: string | null;
+  nodes: FilterScopeTreeNode[];
+  checked: (string | number)[];
+  expanded: (string | number)[];
+  onCheck: (checked: string[]) => void;
+  onExpand: (expanded: string[]) => void;
+  onClick: (node: { value: string }) => void;
+}
 
-const defaultProps = {
-  selectedChartId: null,
-};
-
-const NOOP = () => {};
-
-export default function FilterScopeTree({
+export default function FilterFieldTree({
+  activeKey = null,
   nodes = [],
   checked = [],
   expanded = [],
+  onClick,
   onCheck,
   onExpand,
-  selectedChartId,
-}) {
+}: FilterFieldTreeProps) {
   return (
     <CheckboxTree
       showExpandAll
-      expandOnClick
       showNodeIcon={false}
-      nodes={renderFilterScopeTreeNodes({ nodes, selectedChartId })}
-      checked={checked}
-      expanded={expanded}
+      expandOnClick
+      nodes={renderFilterFieldTreeNodes({ nodes, activeKey }) as Node[]}
+      checked={checked.map(String)}
+      expanded={expanded.map(String)}
+      onClick={onClick}
       onCheck={onCheck}
       onExpand={onExpand}
-      onClick={NOOP}
       icons={treeIcons}
     />
   );
 }
-
-FilterScopeTree.propTypes = propTypes;
-FilterScopeTree.defaultProps = defaultProps;

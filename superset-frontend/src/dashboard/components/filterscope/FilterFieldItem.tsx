@@ -16,22 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import cx from 'classnames';
+import { FormLabel } from '@superset-ui/core/components';
 
-import aggregateOptionType from './aggregateOptionType';
+interface FilterFieldItemProps {
+  label: string;
+  isSelected: boolean;
+}
 
-const propTypes = {
-  aggregate: aggregateOptionType,
-  showType: PropTypes.bool,
-};
-
-export default function AggregateOption({ aggregate, showType }) {
+export default function FilterFieldItem({
+  label,
+  isSelected,
+}: FilterFieldItemProps) {
   return (
-    <div>
-      {showType && <ColumnTypeLabel type="aggregate" />}
-      <span className="option-label">{aggregate.aggregate_name}</span>
-    </div>
+    <span
+      className={cx('filter-field-item filter-container', {
+        'is-selected': isSelected,
+      })}
+    >
+      <FormLabel htmlFor={label}>{label}</FormLabel>
+    </span>
   );
 }
-AggregateOption.propTypes = propTypes;
