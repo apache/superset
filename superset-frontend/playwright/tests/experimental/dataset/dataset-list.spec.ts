@@ -169,10 +169,11 @@ test('should duplicate a dataset with new name', async ({ page }) => {
   // Click the Duplicate button
   await duplicateModal.clickDuplicate();
 
-  // Get the duplicate dataset ID from response
+  // Get the duplicate dataset ID from response (handle both response shapes)
   const duplicateResponse = await duplicateResponsePromise;
   const duplicateData = await duplicateResponse.json();
-  const duplicateId = duplicateData.id;
+  const duplicateId = duplicateData.result?.id ?? duplicateData.id;
+  expect(duplicateId, 'Duplicate API should return dataset id').toBeTruthy();
 
   // Track duplicate for cleanup (original is example data, don't delete it)
   testResources = { datasetIds: [duplicateId] };

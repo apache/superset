@@ -150,5 +150,11 @@ export async function duplicateDataset(
   });
   const body = await response.json();
   // Normalize: API may return id at top level or inside result
-  return { ...body.result, id: body.result?.id ?? body.id };
+  const resolvedId = body.result?.id ?? body.id;
+  if (!resolvedId) {
+    throw new Error(
+      `Duplicate dataset API returned no id. Response: ${JSON.stringify(body)}`,
+    );
+  }
+  return { ...body.result, id: resolvedId };
 }
