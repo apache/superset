@@ -129,6 +129,44 @@ function DataAccessRulesList(props: DataAccessRulesListProps) {
       {
         Cell: ({
           row: {
+            original: { name },
+          },
+        }: {
+          row: { original: DataAccessRuleObject };
+        }) => name || '-',
+        accessor: 'name',
+        Header: t('Name'),
+        size: 'lg',
+        id: 'name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { description },
+          },
+        }: {
+          row: { original: DataAccessRuleObject };
+        }) => {
+          if (!description) return '-';
+          const truncated =
+            description.length > 100
+              ? `${description.substring(0, 100)}...`
+              : description;
+          return (
+            <Tooltip id="desc-tooltip" title={description} placement="top">
+              <span>{truncated}</span>
+            </Tooltip>
+          );
+        },
+        accessor: 'description',
+        Header: t('Description'),
+        size: 'xl',
+        id: 'description',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
             original: { role },
           },
         }: {
@@ -138,32 +176,6 @@ function DataAccessRulesList(props: DataAccessRulesListProps) {
         Header: t('Role'),
         size: 'lg',
         id: 'role',
-        disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { rule },
-          },
-        }: {
-          row: { original: DataAccessRuleObject };
-        }) => {
-          const displayRule =
-            typeof rule === 'string' ? rule : JSON.stringify(rule);
-          const truncated =
-            displayRule.length > 100
-              ? `${displayRule.substring(0, 100)}...`
-              : displayRule;
-          return (
-            <Tooltip id="rule-tooltip" title={displayRule} placement="top">
-              <code style={{ fontSize: '11px' }}>{truncated}</code>
-            </Tooltip>
-          );
-        },
-        accessor: 'rule',
-        Header: t('Rule (JSON)'),
-        size: 'xxl',
-        id: 'rule',
         disableSortBy: true,
       },
       {

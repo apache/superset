@@ -68,7 +68,7 @@ from __future__ import annotations
 from typing import Any
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
@@ -87,6 +87,8 @@ class DataAccessRule(Model, AuditMixinNullable):
     __tablename__ = "data_access_rules"
 
     id = Column(Integer, primary_key=True)
+    name = Column(String(250), nullable=True)
+    description = Column(Text, nullable=True)
     role_id = Column(Integer, ForeignKey("ab_role.id"), nullable=False)
     rule = Column(Text, nullable=False)
 
@@ -97,7 +99,7 @@ class DataAccessRule(Model, AuditMixinNullable):
     )
 
     def __repr__(self) -> str:
-        return f"<DataAccessRule(id={self.id}, role_id={self.role_id})>"
+        return f"<DataAccessRule(id={self.id}, name={self.name!r}, role_id={self.role_id})>"
 
     @property
     def rule_dict(self) -> dict[str, Any]:

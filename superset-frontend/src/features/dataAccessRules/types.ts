@@ -24,6 +24,8 @@ export type RoleObject = {
 
 export type DataAccessRuleObject = {
   id?: number;
+  name?: string;
+  description?: string;
   role_id: number;
   role?: RoleObject;
   rule: string;

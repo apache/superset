@@ -164,6 +164,16 @@ const StyledContainer = styled.div`
       max-width: 250px;
       font-size: 12px;
     }
+
+    .count-allowed {
+      color: ${theme.colorSuccess};
+      font-weight: ${theme.fontWeightSemiBold};
+    }
+
+    .count-denied {
+      color: ${theme.colorError};
+      font-weight: ${theme.fontWeightSemiBold};
+    }
   `}
 `;
 
@@ -684,13 +694,9 @@ function PermissionsTree({
         {hasCustomRules && (
           <span className="node-count">
             (
-            <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
-              {counts.allowed}
-            </span>
+            <span className="count-allowed">{counts.allowed}</span>
             {' / '}
-            <span style={{ color: '#f5222d', fontWeight: 'bold' }}>
-              {counts.denied}
-            </span>
+            <span className="count-denied">{counts.denied}</span>
             )
           </span>
         )}

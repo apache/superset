@@ -66,6 +66,8 @@ class DataAccessRuleListSchema(Schema):
     """Schema for listing data access rules."""
 
     id = fields.Integer(metadata={"description": "Unique ID of the rule"})
+    name = fields.String(metadata={"description": "Name of the rule"})
+    description = fields.String(metadata={"description": "Description of the rule"})
     role_id = fields.Integer(metadata={"description": "ID of the associated role"})
     role = fields.Nested(RoleSchema)
     rule = fields.String(metadata={"description": rule_description})
@@ -80,6 +82,8 @@ class DataAccessRuleShowSchema(Schema):
     """Schema for showing a single data access rule."""
 
     id = fields.Integer(metadata={"description": "Unique ID of the rule"})
+    name = fields.String(metadata={"description": "Name of the rule"})
+    description = fields.String(metadata={"description": "Description of the rule"})
     role_id = fields.Integer(metadata={"description": "ID of the associated role"})
     role = fields.Nested(RoleSchema)
     rule = fields.String(metadata={"description": rule_description})
@@ -92,6 +96,16 @@ class DataAccessRuleShowSchema(Schema):
 class DataAccessRulePostSchema(Schema):
     """Schema for creating a data access rule."""
 
+    name = fields.String(
+        metadata={"description": "Name for this rule (optional)"},
+        required=False,
+        allow_none=True,
+    )
+    description = fields.String(
+        metadata={"description": "Description of the rule (optional)"},
+        required=False,
+        allow_none=True,
+    )
     role_id = fields.Integer(
         metadata={"description": "ID of the role this rule applies to"},
         required=True,
@@ -159,6 +173,16 @@ class DataAccessRulePostSchema(Schema):
 class DataAccessRulePutSchema(Schema):
     """Schema for updating a data access rule."""
 
+    name = fields.String(
+        metadata={"description": "Name for this rule (optional)"},
+        required=False,
+        allow_none=True,
+    )
+    description = fields.String(
+        metadata={"description": "Description of the rule (optional)"},
+        required=False,
+        allow_none=True,
+    )
     role_id = fields.Integer(
         metadata={"description": "ID of the role this rule applies to"},
         required=False,

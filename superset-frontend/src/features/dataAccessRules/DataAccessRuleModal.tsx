@@ -122,6 +122,8 @@ export interface DataAccessRuleModalProps {
 }
 
 const DEFAULT_RULE: DataAccessRuleObject = {
+  name: '',
+  description: '',
   role_id: 0,
   rule: JSON.stringify(
     {
@@ -132,19 +134,6 @@ const DEFAULT_RULE: DataAccessRuleObject = {
     2,
   ),
 };
-
-const RULE_EXAMPLE = `{
-  "allowed": [
-    {"database": "sales", "schema": "orders"},
-    {"database": "sales", "schema": "orders", "table": "prices",
-     "rls": {"predicate": "org_id = 123", "group_key": "org"}},
-    {"database": "sales", "schema": "users", "table": "info",
-     "cls": {"email": "mask", "ssn": "hide"}}
-  ],
-  "denied": [
-    {"database": "sales", "schema": "internal"}
-  ]
-}`;
 
 type SelectValue = {
   value: number;
@@ -318,6 +307,8 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
 
   const onSave = () => {
     const data = {
+      name: currentRule.name || null,
+      description: currentRule.description || null,
       role_id: selectedRole?.value,
       rule: currentRule.rule,
     };
@@ -405,6 +396,43 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
+              {t('Name')}
+              <InfoTooltip
+                tooltip={t('Optional name to help identify this rule.')}
+              />
+            </div>
+            <div className="input-container">
+              <Input
+                name="name"
+                value={currentRule.name || ''}
+                onChange={e => updateRuleState('name', e.target.value)}
+                placeholder={t('e.g., Sales team access')}
+                data-test="rule-name"
+              />
+            </div>
+          </StyledInputContainer>
+
+          <StyledInputContainer>
+            <div className="control-label">
+              {t('Description')}
+              <InfoTooltip
+                tooltip={t('Optional description of what this rule grants or restricts.')}
+              />
+            </div>
+            <div className="input-container">
+              <Input.TextArea
+                name="description"
+                value={currentRule.description || ''}
+                onChange={e => updateRuleState('description', e.target.value)}
+                placeholder={t('Describe the purpose of this rule...')}
+                rows={2}
+                data-test="rule-description"
+              />
+            </div>
+          </StyledInputContainer>
+
+          <StyledInputContainer>
+            <div className="control-label">
               {t('Table Permissions')}
               <InfoTooltip
                 tooltip={t(
@@ -454,20 +482,6 @@ function DataAccessRuleModal(props: DataAccessRuleModalProps) {
                       )}
                     </StyledInputContainer>
 
-                    <StyledInputContainer>
-                      <div className="control-label">{t('Example')}</div>
-                      <pre
-                        style={{
-                          background: '#f5f5f5',
-                          padding: '12px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          overflow: 'auto',
-                        }}
-                      >
-                        {RULE_EXAMPLE}
-                      </pre>
-                    </StyledInputContainer>
                   </>
                 ),
               },

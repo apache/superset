@@ -63,6 +63,8 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "id",
+        "name",
+        "description",
         "role_id",
         "role.id",
         "role.name",
@@ -74,19 +76,26 @@ class DataAccessRulesRestApi(BaseSupersetModelRestApi):
     ]
     order_columns = [
         "id",
+        "name",
         "role_id",
         "changed_on_delta_humanized",
     ]
     add_columns = [
+        "name",
+        "description",
         "role_id",
         "rule",
     ]
     edit_columns = [
+        "name",
+        "description",
         "role_id",
         "rule",
     ]
     show_columns = [
         "id",
+        "name",
+        "description",
         "role_id",
         "role.name",
         "role.id",
