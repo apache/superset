@@ -27,7 +27,7 @@ params:
   granularity_sqla: datetime
   time_grain_sqla: P1D
   mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
-  row_limit: 500000
+  row_limit: 100000
   since: '2014-01-01'
   until: now
   viz_type: mapbox
