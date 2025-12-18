@@ -43,8 +43,8 @@ export interface DatasetCreatePayload {
 export interface DatasetResult {
   id: number;
   table_name: string;
-  sql?: string;
-  schema?: string;
+  sql?: string | null;
+  schema?: string | null;
   database: {
     id: number;
     database_name: string;
