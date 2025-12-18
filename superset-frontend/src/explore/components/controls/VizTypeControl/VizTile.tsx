@@ -56,10 +56,10 @@ export const VizTile = ({
     setShowTooltip(
       Boolean(
         !isTransitioning &&
-          (!isActive ||
-            (chartNameRef.current &&
-              chartNameRef.current.scrollWidth >
-                chartNameRef.current.clientWidth)),
+        (!isActive ||
+          (chartNameRef.current &&
+            chartNameRef.current.scrollWidth >
+              chartNameRef.current.clientWidth)),
       ),
     );
   }, [isActive, isTransitioning]);

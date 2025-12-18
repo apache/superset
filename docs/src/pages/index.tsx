@@ -19,14 +19,42 @@
 import { useRef, useState, useEffect, JSX } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import { Carousel } from 'antd';
+import { Card, Carousel, Flex } from 'antd';
 import styled from '@emotion/styled';
 import GitHubButton from 'react-github-btn';
 import { mq } from '../utils';
 import { Databases } from '../resources/data';
 import SectionHeader from '../components/SectionHeader';
 import BlurredSection from '../components/BlurredSection';
+import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import '../styles/main.less';
+
+interface Organization {
+  name: string;
+  url: string;
+  logo?: string;
+}
+
+interface DataSetType {
+  categories: Record<string, Organization[]>;
+}
+
+const typedDataSet = DataSet as DataSetType;
+
+// Extract all organizations with logos for the carousel
+const companiesWithLogos = Object.values(typedDataSet.categories)
+  .flat()
+  .filter((org) => org.logo?.trim());
+
+// Fisher-Yates shuffle for fair randomization
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 const features = [
   {
@@ -452,6 +480,7 @@ export default function Home(): JSX.Element {
   const slider = useRef(null);
 
   const [slideIndex, setSlideIndex] = useState(0);
+  const [shuffledCompanies, setShuffledCompanies] = useState(companiesWithLogos);
 
   const onChange = (current, next) => {
     setSlideIndex(next);
@@ -478,6 +507,11 @@ export default function Home(): JSX.Element {
       logo.setAttribute('src', '/img/superset-logo-horiz.svg');
     }
   };
+
+  // Shuffle companies on mount for fair rotation
+  useEffect(() => {
+    setShuffledCompanies(shuffleArray(companiesWithLogos));
+  }, []);
 
   // Set up dark <-> light navbar change
   useEffect(() => {
@@ -747,6 +781,74 @@ export default function Home(): JSX.Element {
             </span>
           </StyledIntegrations>
         </BlurredSection>
+        {/* Only show carousel when we have enough logos (>10) for a good display */}
+        {companiesWithLogos.length > 10 && (
+          <BlurredSection>
+            <div style={{ padding: '0 20px' }}>
+              <SectionHeader
+                level="h2"
+                title="Trusted by teams everywhere"
+                subtitle="Join thousands of companies using Superset to explore and visualize their data"
+              />
+              <div style={{ maxWidth: 1160, margin: '25px auto 0' }}>
+                <Carousel
+                  autoplay
+                  autoplaySpeed={2000}
+                  slidesToShow={6}
+                  slidesToScroll={1}
+                  dots={false}
+                  responsive={[
+                    { breakpoint: 1024, settings: { slidesToShow: 4 } },
+                    { breakpoint: 768, settings: { slidesToShow: 3 } },
+                    { breakpoint: 480, settings: { slidesToShow: 2 } },
+                  ]}
+                >
+                  {shuffledCompanies.map(({ name, url, logo }) => (
+                    <div key={name}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Visit ${name}`}
+                      >
+                        <Card
+                          style={{ margin: '0 8px' }}
+                          styles={{
+                            body: {
+                              height: 80,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 16,
+                            },
+                          }}
+                        >
+                          <img
+                            src={`/img/logos/${logo}`}
+                            alt={name}
+                            title={name}
+                            style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        </Card>
+                      </a>
+                    </div>
+                  ))}
+                </Carousel>
+              </div>
+              <Flex justify="center" style={{ marginTop: 30, fontSize: 17 }}>
+                <Link to="/inTheWild">See all companies</Link>
+                <span style={{ margin: '0 8px' }}>·</span>
+                <a
+                  href="https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.yaml"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Add yours to the list!
+                </a>
+              </Flex>
+            </div>
+          </BlurredSection>
+        )}
       </StyledMain>
     </Layout>
   );

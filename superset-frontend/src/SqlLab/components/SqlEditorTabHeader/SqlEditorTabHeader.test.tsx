@@ -37,7 +37,6 @@ import {
   REMOVE_QUERY_EDITOR,
   QUERY_EDITOR_SET_TITLE,
   ADD_QUERY_EDITOR,
-  QUERY_EDITOR_TOGGLE_LEFT_BAR,
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
@@ -155,24 +154,6 @@ describe('SqlEditorTabHeader', () => {
         }),
       );
       mockPrompt.mockClear();
-    });
-
-    test('should dispatch toggleLeftBar action', async () => {
-      await waitFor(() =>
-        expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
-      );
-      fireEvent.click(screen.getByTestId('toggle-menu-option'));
-
-      const actions = store.getActions();
-      await waitFor(() =>
-        expect(actions[0]).toEqual({
-          type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
-          hideLeftBar: !defaultQueryEditor.hideLeftBar,
-          queryEditor: expect.objectContaining({
-            id: defaultQueryEditor.id,
-          }),
-        }),
-      );
     });
 
     test('should dispatch removeAllOtherQueryEditors action', async () => {

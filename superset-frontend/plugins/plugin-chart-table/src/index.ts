@@ -39,6 +39,7 @@ const metadata = new ChartMetadata({
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
     Behavior.DrillBy,
+    'EXPORT_CURRENT_VIEW' as any,
   ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],

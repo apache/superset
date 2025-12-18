@@ -68,7 +68,7 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         query_obj = self._query_context.queries[0]
         sql_query = datasource.get_query_str(query_obj.to_dict())
 
-        return sql_query, datasource.database
+        return sql_query, getattr(datasource, "database", None)
 
     def _get_row_limit(self) -> int | None:
         """

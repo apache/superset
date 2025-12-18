@@ -18,7 +18,7 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.0.1rc2"
+version = "0.0.1rc3"
 description = "Core Python package for building Apache Superset backend extensions and integrations"
 readme = "README.md"
 authors = [

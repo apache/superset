@@ -36,8 +36,7 @@ import {
 } from '../buildQueryUtils';
 
 export interface DeckScatterFormData
-  extends Omit<SpatialFormData, 'color_picker'>,
-    SqlaFormData {
+  extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
   point_radius_fixed?: {
     value?: string;
   };

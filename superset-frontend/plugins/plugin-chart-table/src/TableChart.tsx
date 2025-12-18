@@ -25,6 +25,7 @@ import {
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
   useEffect,
+  useRef,
 } from 'react';
 
 import {
@@ -907,10 +908,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               formatter: ColorFormatters[number],
               valueToFormat: any,
             ) => {
-              const hasValue =
-                valueToFormat !== undefined && valueToFormat !== null;
-              if (!hasValue) return;
-
               const formatterResult =
                 formatter.getColorFromValue(valueToFormat);
               if (!formatterResult) return;
@@ -1358,6 +1355,50 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   };
 
+  // collect client-side filtered rows for export & push snapshot to ownState (guarded)
+  const [clientViewRows, setClientViewRows] = useState<DataRecord[]>([]);
+
+  const exportColumns = useMemo(
+    () =>
+      visibleColumnsMeta.map(col => ({
+        key: col.key,
+        label: col.config?.customColumnName || col.originalLabel || col.key,
+      })),
+    [visibleColumnsMeta],
+  );
+
+  // Use a ref to store previous clientViewRows and exportColumns for robust change detection
+  const prevClientViewRef = useRef<{
+    rows: DataRecord[];
+    columns: typeof exportColumns;
+  } | null>(null);
+  useEffect(() => {
+    if (serverPagination) return; // only for client-side mode
+    const prev = prevClientViewRef.current;
+    const rowsChanged = !prev || !isEqual(prev.rows, clientViewRows);
+    const columnsChanged = !prev || !isEqual(prev.columns, exportColumns);
+    if (rowsChanged || columnsChanged) {
+      prevClientViewRef.current = {
+        rows: clientViewRows,
+        columns: exportColumns,
+      };
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        clientView: {
+          rows: clientViewRows,
+          columns: exportColumns,
+          count: clientViewRows.length,
+        },
+      });
+    }
+  }, [
+    clientViewRows,
+    exportColumns,
+    serverPagination,
+    setDataMask,
+    serverPaginationData,
+  ]);
+
   return (
     <Styles>
       <DataTable<D>
@@ -1395,6 +1436,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchChange={debouncedSearch}
         searchOptions={searchOptions}
         onFilteredDataChange={handleFilteredDataChange}
+        onFilteredRowsChange={setClientViewRows}
       />
     </Styles>
   );
