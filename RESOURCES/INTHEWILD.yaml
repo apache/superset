@@ -204,6 +204,10 @@ categories:
       url: https://www.zeptonow.com/
       contributors: ["@gwthm-in"]
 
+    - name: Blinkit
+      url: https://blinkit.com/
+      contributors: ["@amsharm2"]
+
   Enterprise Technology:
     - name: A3Data
       url: https://a3data.com.br
