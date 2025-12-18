@@ -16,34 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import DashboardGrid from '../components/DashboardGrid';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import {
-  handleComponentDrop,
-  resizeComponent,
-} from '../actions/dashboardLayout';
-import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
+import { updateDashboardFiltersScope } from '../actions/dashboardFilters';
+import { setUnsavedChanges } from '../actions/dashboardState';
+import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
+import { RootState } from 'src/dashboard/types';
 
-function mapStateToProps({ dashboardState, dashboardInfo }) {
+function mapStateToProps({ dashboardLayout, dashboardFilters }: RootState) {
   return {
-    editMode: dashboardState.editMode,
-    canEdit: dashboardInfo.dash_edit_perm,
-    dashboardId: dashboardInfo.id,
+    dashboardFilters,
+    layout: dashboardLayout.present,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return bindActionCreators(
     {
-      handleComponentDrop,
-      resizeComponent,
-      setDirectPathToChild,
-      setEditMode,
+      updateDashboardFiltersScope,
+      setUnsavedChanges,
     },
     dispatch,
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(FilterScopeSelector);

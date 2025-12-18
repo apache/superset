@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
 
-import aggregateOptionType from './aggregateOptionType';
+interface MissingChartProps {
+  height: number;
+}
 
-const propTypes = {
-  aggregate: aggregateOptionType,
-  showType: PropTypes.bool,
-};
-
-export default function AggregateOption({ aggregate, showType }) {
+export default function MissingChart({ height }: MissingChartProps) {
   return (
-    <div>
-      {showType && <ColumnTypeLabel type="aggregate" />}
-      <span className="option-label">{aggregate.aggregate_name}</span>
+    <div className="missing-chart-container" style={{ height: height + 20 }}>
+      <div className="missing-chart-body">
+        {t(
+          'There is no chart definition associated with this component, could it have been deleted?',
+        )}
+        <br />
+        <br />
+        {t('Delete this container and save to remove this message.')}
+      </div>
     </div>
   );
 }
-AggregateOption.propTypes = propTypes;

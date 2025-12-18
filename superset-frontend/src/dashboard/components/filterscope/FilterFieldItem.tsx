@@ -16,33 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import FilterFieldItem from './FilterFieldItem';
+import cx from 'classnames';
+import { FormLabel } from '@superset-ui/core/components';
 
-export default function renderFilterFieldTreeNodes({ nodes, activeKey }) {
-  if (!nodes) {
-    return [];
-  }
+interface FilterFieldItemProps {
+  label: string;
+  isSelected: boolean;
+}
 
-  const root = nodes[0];
-  const allFilterNodes = root.children;
-  const children = allFilterNodes.map(node => ({
-    ...node,
-    children: node.children.map(child => {
-      const { label, value } = child;
-      return {
-        ...child,
-        label: (
-          <FilterFieldItem isSelected={value === activeKey} label={label} />
-        ),
-      };
-    }),
-  }));
-
-  return [
-    {
-      ...root,
-      label: <span className="root">{root.label}</span>,
-      children,
-    },
-  ];
+export default function FilterFieldItem({
+  label,
+  isSelected,
+}: FilterFieldItemProps) {
+  return (
+    <span
+      className={cx('filter-field-item filter-container', {
+        'is-selected': isSelected,
+      })}
+    >
+      <FormLabel htmlFor={label}>{label}</FormLabel>
+    </span>
+  );
 }

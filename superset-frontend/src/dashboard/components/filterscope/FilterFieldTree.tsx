@@ -16,47 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import CheckboxTree from 'react-checkbox-tree';
-import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';
+import CheckboxTree, { Node, OnCheckNode } from 'react-checkbox-tree';
 import treeIcons from './treeIcons';
-import renderFilterFieldTreeNodes from './renderFilterFieldTreeNodes';
+import renderFilterFieldTreeNodes, {
+  FilterScopeTreeNode,
+} from './renderFilterFieldTreeNodes';
 
-const propTypes = {
-  activeKey: PropTypes.string,
-  nodes: PropTypes.arrayOf(filterScopeSelectorTreeNodePropShape).isRequired,
-  checked: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  expanded: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  ).isRequired,
-  onCheck: PropTypes.func.isRequired,
-  onExpand: PropTypes.func.isRequired,
-  onClick: PropTypes.func.isRequired,
-};
-
-const defaultProps = {
-  activeKey: null,
-};
+interface FilterFieldTreeProps {
+  activeKey?: string | null;
+  nodes: FilterScopeTreeNode[];
+  checked: (string | number)[];
+  expanded: (string | number)[];
+  onCheck: (checked: string[]) => void;
+  onExpand: (expanded: string[]) => void;
+  onClick: (node: OnCheckNode) => void;
+}
 
 export default function FilterFieldTree({
-  activeKey,
+  activeKey = null,
   nodes = [],
   checked = [],
   expanded = [],
   onClick,
   onCheck,
   onExpand,
-}) {
+}: FilterFieldTreeProps) {
   return (
     <CheckboxTree
       showExpandAll
       showNodeIcon={false}
       expandOnClick
-      nodes={renderFilterFieldTreeNodes({ nodes, activeKey })}
-      checked={checked}
-      expanded={expanded}
+      nodes={renderFilterFieldTreeNodes({ nodes, activeKey }) as Node[]}
+      checked={checked.map(String)}
+      expanded={expanded.map(String)}
       onClick={onClick}
       onCheck={onCheck}
       onExpand={onExpand}
@@ -64,6 +56,3 @@ export default function FilterFieldTree({
     />
   );
 }
-
-FilterFieldTree.propTypes = propTypes;
-FilterFieldTree.defaultProps = defaultProps;
