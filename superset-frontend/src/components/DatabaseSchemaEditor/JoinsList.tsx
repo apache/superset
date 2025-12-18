@@ -110,10 +110,10 @@ const JoinsList = ({
   };
 
   const handleDeleteJoin = async (joinId: number) => {
-    setLoading(true);
+      setLoading(true);
     try {
       const response = await SupersetClient.delete({
-        endpoint: `/api/v1/datasource_analyzer/report/${databaseReportId}/join/${joinId}`,
+        endpoint: `/api/v1/datasource/analysis/report/${databaseReportId}/join/${joinId}`,
       });
 
       if (response.ok) {
@@ -138,8 +138,8 @@ const JoinsList = ({
     setLoading(true);
     try {
       const endpoint = join.id
-        ? `/api/v1/datasource_analyzer/report/${databaseReportId}/join/${join.id}`
-        : `/api/v1/datasource_analyzer/report/${databaseReportId}/join`;
+        ? `/api/v1/datasource/analysis/report/${databaseReportId}/join/${join.id}`
+        : `/api/v1/datasource/analysis/report/${databaseReportId}/join`;
       
       const method = join.id ? 'PUT' : 'POST';
       
@@ -204,9 +204,14 @@ const JoinsList = ({
       title: t('Source Columns'),
       dataIndex: 'source_columns',
       key: 'source_columns',
-      render: (columns: string[]) => (
-        <Typography.Text code>{columns.join(', ')}</Typography.Text>
-      ),
+      render: (cols: string[] | string) => {
+        const columns = Array.isArray(cols)
+          ? cols
+          : typeof cols === 'string'
+            ? cols.split(',').map(c => c.trim()).filter(Boolean)
+            : [];
+        return <Typography.Text code>{columns.join(', ')}</Typography.Text>;
+      },
     },
     {
       title: t('Join Type'),
@@ -228,9 +233,14 @@ const JoinsList = ({
       title: t('Target Columns'),
       dataIndex: 'target_columns',
       key: 'target_columns',
-      render: (columns: string[]) => (
-        <Typography.Text code>{columns.join(', ')}</Typography.Text>
-      ),
+      render: (cols: string[] | string) => {
+        const columns = Array.isArray(cols)
+          ? cols
+          : typeof cols === 'string'
+            ? cols.split(',').map(c => c.trim()).filter(Boolean)
+            : [];
+        return <Typography.Text code>{columns.join(', ')}</Typography.Text>;
+      },
     },
     {
       title: t('Cardinality'),

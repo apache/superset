@@ -183,6 +183,7 @@ export default function DataSourcePanel({
         <AdvancedOptionsWrapper>
           <Collapse
             ghost
+            defaultActiveKey={[]}
             items={[
               {
                 key: 'advanced',

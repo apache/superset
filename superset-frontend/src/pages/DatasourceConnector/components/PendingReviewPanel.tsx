@@ -55,7 +55,8 @@ const Card = styled.div`
     background: ${theme.colorBgContainer};
     border: 1px solid ${theme.colorBorder};
     border-radius: ${theme.borderRadius}px;
-    padding: ${theme.paddingLG}px ${theme.paddingLG}px ${theme.paddingMD}px ${theme.paddingLG}px;
+    padding: ${theme.paddingXL}px ${theme.paddingXL}px ${theme.paddingLG}px
+      ${theme.paddingXL}px;
     width: 100%;
   `}
 `;
@@ -172,7 +173,7 @@ export default function PendingReviewPanel({
                 {t('Open dashboard')}
               </Button>
               {datasetId ? (
-                <Button href={`/tablemodelview/edit/${datasetId}`}>
+                <Button href={`/dataset/${datasetId}`}>
                   {t('Open dataset')}
                 </Button>
               ) : null}

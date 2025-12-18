@@ -30,6 +30,7 @@ ANALYZER_PERMISSION_MAP = {
     "get": "read",
     "check_status": "read",
     "get_report": "read",
+    "generate_dashboard": "write",
 }
 from superset.extensions import db, event_logger
 from superset.models.database_analyzer import (
@@ -37,6 +38,7 @@ from superset.models.database_analyzer import (
     AnalyzedTable,
     DatabaseSchemaReport,
 )
+from superset.tasks.dashboard_generator import kickstart_generation
 from superset.tasks.database_analyzer import (
     check_analysis_status,
     kickstart_analysis,
@@ -362,15 +364,25 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
             # Add joins
             for join in report.joins:
+                source_columns = (
+                    json.loads(join.source_columns)
+                    if isinstance(join.source_columns, str)
+                    else join.source_columns
+                )
+                target_columns = (
+                    json.loads(join.target_columns)
+                    if isinstance(join.target_columns, str)
+                    else join.target_columns
+                )
                 result["joins"].append(
                     {
                         "id": join.id,
                         "source_table": join.source_table.table_name,
                         "source_table_id": join.source_table_id,
-                        "source_columns": join.source_columns,
+                        "source_columns": source_columns,
                         "target_table": join.target_table.table_name,
                         "target_table_id": join.target_table_id,
-                        "target_columns": join.target_columns,
+                        "target_columns": target_columns,
                         "join_type": join.join_type,
                         "cardinality": join.cardinality,
                         "semantic_context": join.semantic_context,
@@ -965,21 +977,19 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             if not report:
                 return self.response_404(message="Report not found")
 
-            # TODO: Integrate with Dashboard Generation Celery Job
-            # For now, return a placeholder run_id
-            # The actual implementation will call the Celery task and return
-            # its task ID
-            import uuid
-
-            placeholder_run_id = str(uuid.uuid4())
-
-            logger.info(
-                "Dashboard generation requested for report_id=%s, dashboard_id=%s",
-                report_id,
-                dashboard_id,
+            result = kickstart_generation(
+                database_report_id=report_id,
+                template_dashboard_id=dashboard_id,
             )
 
-            return self.response(200, result={"run_id": placeholder_run_id})
+            logger.info(
+                "Dashboard generation requested for report_id=%s, dashboard_id=%s -> run_id=%s",
+                report_id,
+                dashboard_id,
+                result.get("run_id"),
+            )
+
+            return self.response(200, result=result)
 
         except ValidationError as error:
             return self.response_400(message=str(error.messages))

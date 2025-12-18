@@ -134,14 +134,20 @@ export default function DatasourceConnector() {
             logging.error('Error parsing dashboard metadata');
           }
         }
-        const isTemplate = !!metadata?.is_template;
-        if (isTemplate) {
-          setTemplateInfo({
-            id: dashboard.id,
-            dashboard_title: dashboard.dashboard_title,
-            is_template: true,
-          });
-        }
+        const templateInfoMeta =
+          (metadata?.template_info as Record<string, unknown>) || {};
+        const isTemplate =
+          (templateInfoMeta?.is_template as boolean | undefined) ??
+          (metadata?.is_template as boolean | undefined) ??
+          true;
+
+        setTemplateInfo({
+          id: dashboard.id,
+          dashboard_title:
+            (templateInfoMeta?.dashboard_title as string | undefined) ||
+            dashboard.dashboard_title,
+          is_template: isTemplate,
+        });
       })
       .catch(error => {
         logging.error('Error fetching dashboard info:', error);

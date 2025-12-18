@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Tree } from 'antd';
@@ -115,6 +115,8 @@ export default function SchemaTreeView({
   schemaName,
 }: SchemaTreeViewProps) {
   const theme = useTheme();
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [autoCollapsed, setAutoCollapsed] = useState(false);
 
   const treeData: TreeDataNode[] = useMemo(
     () =>
@@ -187,7 +189,22 @@ export default function SchemaTreeView({
     return [`column-${selection.table.id}-${selection.column.id}`];
   }, [selection]);
 
-  const defaultExpandedKeys = tables.map(table => `table-${table.id}`);
+  // Collapse by default on first render to reduce vertical space.
+  // Users can expand as needed.
+  const initialExpandedKeys =
+    autoCollapsed && expandedKeys.length === 0
+      ? []
+      : expandedKeys.length > 0
+        ? expandedKeys
+        : tables.map(table => `table-${table.id}`);
+
+  // Once we compute collapsed state the first time, avoid reapplying.
+  useMemo(() => {
+    if (!autoCollapsed) {
+      setExpandedKeys([]);
+      setAutoCollapsed(true);
+    }
+  }, [autoCollapsed]);
 
   return (
     <TreeContainer>
@@ -220,7 +237,8 @@ export default function SchemaTreeView({
       <Tree
         treeData={treeData}
         selectedKeys={selectedKeys}
-        defaultExpandedKeys={defaultExpandedKeys}
+        expandedKeys={initialExpandedKeys}
+        onExpand={keys => setExpandedKeys(keys)}
         onSelect={handleSelect}
         showIcon={false}
         blockNode

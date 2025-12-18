@@ -203,7 +203,7 @@ export default function useSchemaReport(
 
     try {
       const response = await SupersetClient.get({
-        endpoint: `/api/v1/datasource_analyzer/report/${reportId}`,
+        endpoint: `/api/v1/datasource/analysis/report/${reportId}`,
       });
 
       const data = response.json as SchemaReportResponse;
