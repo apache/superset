@@ -1092,6 +1092,11 @@ test('displays error when initial dataset fetch fails with 500', async () => {
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalled();
   });
+
+  // No dataset names from mockDatasets should appear in the document
+  mockDatasets.forEach(dataset => {
+    expect(screen.queryByText(dataset.table_name)).not.toBeInTheDocument();
+  });
 });
 
 test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET is enabled', async () => {
@@ -1481,17 +1486,16 @@ test('type filter persists after duplicating a dataset', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Apply Type filter using selectOption helper
-  // Check if filter is already applied (from previous test state)
-  const typeFilterCombobox = screen.queryByRole('combobox', { name: /^Type:/ });
-  if (!typeFilterCombobox) {
-    // Filter not applied yet, apply it
-    await selectOption('Virtual', 'Type');
-  }
+  // Snapshot call count before filter
+  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
-  // Wait a moment for any pending filter operations to complete
+  // Apply Type filter unconditionally - each test must be independent
+  await selectOption('Virtual', 'Type');
+
+  // Wait for filter API call to complete
   await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify filter is present by checking the latest API call
@@ -1569,17 +1573,16 @@ test('type filter API call includes correct filter parameter', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Apply Type filter using selectOption helper
-  // Check if filter is already applied (from previous test state)
-  const typeFilterCombobox = screen.queryByRole('combobox', { name: /^Type:/ });
-  if (!typeFilterCombobox) {
-    // Filter not applied yet, apply it
-    await selectOption('Virtual', 'Type');
-  }
+  // Snapshot call count before filter
+  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
 
-  // Wait a moment for any pending filter operations to complete
+  // Apply Type filter unconditionally - each test must be independent
+  await selectOption('Virtual', 'Type');
+
+  // Wait for filter API call to complete
   await waitFor(() => {
-    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify the latest API call includes the Type filter
