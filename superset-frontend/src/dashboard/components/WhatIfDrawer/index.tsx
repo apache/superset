@@ -112,12 +112,14 @@ const FormSection = styled.div`
 `;
 
 const Label = styled.label`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
   color: ${({ theme }) => theme.colorText};
 `;
 
 const SliderContainer = styled.div`
   padding: 0 ${({ theme }) => theme.sizeUnit}px;
+  & .ant-slider-mark {
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
+  }
 `;
 
 const ApplyButton = styled(Button)`
@@ -138,7 +140,6 @@ const ModificationsSection = styled.div`
 `;
 
 const ModificationsSectionTitle = styled.div`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
   color: ${({ theme }) => theme.colorText};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
@@ -204,6 +205,8 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const [appliedModifications, setAppliedModifications] = useState<
     ExtendedWhatIfModification[]
   >([]);
+  // Counter that increments each time Apply is clicked, used as key to reset AI insights
+  const [applyCounter, setApplyCounter] = useState(0);
 
   const slices = useSelector(
     (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
@@ -245,6 +248,11 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
 
   const handleApply = useCallback(async () => {
     if (!selectedColumn) return;
+
+    // Immediately clear previous results and increment counter to reset AI insights component
+    setAppliedModifications([]);
+    setAffectedChartIds([]);
+    setApplyCounter(c => c + 1);
 
     const multiplier = 1 + sliderValue / 100;
 
@@ -303,9 +311,6 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     });
     const chartIdsArray = Array.from(allAffectedChartIds);
 
-    // Save affected chart IDs for AI insights
-    setAffectedChartIds(chartIdsArray);
-
     // Save original chart data before applying what-if modifications
     chartIdsArray.forEach(chartId => {
       dispatch(saveOriginalChartData(chartId));
@@ -323,9 +328,15 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     );
 
     // Trigger queries for all affected charts
+    // This sets chart status to 'loading', which is important for AI insights timing
     chartIdsArray.forEach(chartId => {
       dispatch(triggerQuery(true, chartId));
     });
+
+    // Set affected chart IDs AFTER Redux updates and query triggers
+    // This ensures WhatIfAIInsights mounts when charts are already loading,
+    // preventing it from immediately fetching with stale data
+    setAffectedChartIds(chartIdsArray);
   }, [
     dispatch,
     selectedColumn,
@@ -448,7 +459,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
         {appliedModifications.length > 0 && (
           <ModificationsSection>
             <ModificationsSectionTitle>
-              {t('Applied Modifications')}
+              {t('Applied modifications')}
             </ModificationsSectionTitle>
             {appliedModifications.map((mod, idx) => (
               <ModificationCard key={idx} isAISuggested={mod.isAISuggested}>
@@ -476,7 +487,15 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
         )}
 
         {affectedChartIds.length > 0 && (
-          <WhatIfAIInsights affectedChartIds={affectedChartIds} />
+          <WhatIfAIInsights
+            key={applyCounter}
+            affectedChartIds={affectedChartIds}
+            modifications={appliedModifications.map(mod => ({
+              column: mod.column,
+              multiplier: mod.multiplier,
+              filters: mod.filters,
+            }))}
+          />
         )}
       </PanelContent>
     </PanelContainer>

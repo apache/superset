@@ -20,6 +20,7 @@
 import { useCallback, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { QueryData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ActiveTabs,
   DashboardLayout,
@@ -38,6 +39,7 @@ interface ChartStateWithOriginal {
 interface QueryResponse {
   data?: Array<Record<string, unknown>>;
   colnames?: string[];
+  coltypes?: GenericDataType[];
 }
 
 function extractMetricValue(
@@ -138,6 +140,7 @@ interface ChartComparisonData {
   originalData?: Array<Record<string, unknown>>;
   modifiedData?: Array<Record<string, unknown>>;
   colnames?: string[];
+  coltypes?: GenericDataType[];
 }
 
 /**
@@ -165,6 +168,7 @@ function useChartComparisonData(
           originalData: originalResponse?.data,
           modifiedData: modifiedResponse?.data,
           colnames: modifiedResponse?.colnames,
+          coltypes: modifiedResponse?.coltypes,
         };
       }
     }
@@ -242,12 +246,24 @@ export function useChartComparison(
         continue;
       }
 
-      // Get column names from the response
+      // Get column names and types from the response
       const colnames = chartState.colnames || [];
+      const coltypes = chartState.coltypes || [];
       const metrics: ChartMetricComparison[] = [];
 
-      for (const metricName of colnames) {
-        // Only include numeric columns
+      for (let i = 0; i < colnames.length; i++) {
+        const metricName = colnames[i];
+        const coltype = coltypes[i];
+
+        // Only include numeric columns (not temporal/date, string, or boolean)
+        // This filters out x-axis date columns and dimension columns
+        // If coltypes is available, use it; otherwise fall back to runtime check
+        if (coltype !== undefined && coltype !== GenericDataType.Numeric) {
+          continue;
+        }
+
+        // Runtime check: verify the column actually contains numeric values
+        // This also catches cases where coltypes is not available
         if (!isNumericColumn(modifiedData, metricName)) continue;
 
         const originalValue = extractMetricValue(originalData, metricName);

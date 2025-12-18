@@ -114,18 +114,18 @@ const Summary = styled.div`
 
 interface WhatIfAIInsightsProps {
   affectedChartIds: number[];
+  modifications: WhatIfModification[];
 }
 
-const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
+const WhatIfAIInsights = ({
+  affectedChartIds,
+  modifications,
+}: WhatIfAIInsightsProps) => {
   const [status, setStatus] = useState<WhatIfAIStatus>('idle');
   const [response, setResponse] = useState<WhatIfInterpretResponse | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
-
-  const whatIfModifications = useSelector<RootState, WhatIfModification[]>(
-    state => state.dashboardState.whatIfModifications ?? [],
-  );
 
   const dashboardTitle = useSelector<RootState, string>(
     // @ts-ignore
@@ -136,12 +136,12 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
   const allChartsLoaded = useAllChartsLoaded(affectedChartIds);
 
   // Track modification changes to reset status when user adjusts the slider
-  const modificationsKey = getModificationsKey(whatIfModifications);
+  const modificationsKey = getModificationsKey(modifications);
   const prevModificationsKeyRef = useRef<string>(modificationsKey);
 
   // Debug logging for race condition diagnosis
   const willTriggerFetch =
-    whatIfModifications.length > 0 &&
+    modifications.length > 0 &&
     chartComparisons.length > 0 &&
     allChartsLoaded &&
     status === 'idle';
@@ -150,7 +150,7 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
     affectedChartIds,
     allChartsLoaded,
     chartComparisonsLength: chartComparisons.length,
-    whatIfModificationsLength: whatIfModifications.length,
+    modificationsLength: modifications.length,
     status,
     modificationsKey,
     willTriggerFetch,
@@ -177,7 +177,7 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
   useEffect(() => {
     if (
       modificationsKey !== prevModificationsKeyRef.current &&
-      whatIfModifications.length > 0
+      modifications.length > 0
     ) {
       console.log(
         '[WhatIfAIInsights] Modifications changed, resetting status to idle',
@@ -187,10 +187,10 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
       setResponse(null);
       prevModificationsKeyRef.current = modificationsKey;
     }
-  }, [modificationsKey, whatIfModifications.length]);
+  }, [modificationsKey, modifications.length]);
 
   const fetchInsights = useCallback(async () => {
-    if (whatIfModifications.length === 0 || chartComparisons.length === 0) {
+    if (modifications.length === 0 || chartComparisons.length === 0) {
       return;
     }
 
@@ -199,7 +199,7 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
 
     try {
       const result = await fetchWhatIfInterpretation({
-        modifications: whatIfModifications,
+        modifications,
         charts: chartComparisons,
         dashboardName: dashboardTitle,
       });
@@ -213,42 +213,36 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
       );
       setStatus('error');
     }
-  }, [whatIfModifications, chartComparisons, dashboardTitle]);
+  }, [modifications, chartComparisons, dashboardTitle]);
 
   // Automatically fetch insights when all affected charts have finished loading.
   // We wait for allChartsLoaded to prevent race conditions where we'd send
   // stale data before charts have re-queried with the what-if modifications.
-  // The setState call here is intentional - we're synchronizing with Redux state changes.
+  // The setState call here is intentional - we're synchronizing with prop changes.
   useEffect(() => {
     if (
-      whatIfModifications.length > 0 &&
+      modifications.length > 0 &&
       chartComparisons.length > 0 &&
       allChartsLoaded &&
       status === 'idle'
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: triggering async fetch based on Redux state
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: triggering async fetch based on prop changes
       fetchInsights();
     }
-  }, [
-    whatIfModifications,
-    chartComparisons,
-    allChartsLoaded,
-    status,
-    fetchInsights,
-  ]);
+  }, [modifications, chartComparisons, allChartsLoaded, status, fetchInsights]);
 
   // Reset state when modifications are cleared.
-  // The setState calls here are intentional - we're resetting local state when Redux state changes.
+  // The setState calls here are intentional - we're resetting local state when props change.
   useEffect(() => {
-    if (whatIfModifications.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: resetting state when Redux modifications cleared
+    if (modifications.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: resetting state when modifications cleared
       setStatus('idle');
       setResponse(null);
       setError(null);
     }
-  }, [whatIfModifications]);
+  }, [modifications]);
 
-  if (whatIfModifications.length === 0) {
+  if (modifications.length === 0) {
     return null;
   }
 
