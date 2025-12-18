@@ -31,7 +31,7 @@ superset/examples/
 ├── _shared/                    # Shared configuration for all examples
 │   ├── database.yaml          # Database connection (examples database)
 │   └── metadata.yaml          # Import metadata
-├── birth_names/               # Example: US Birth Names
+├── birth_names/               # Simple example: single dataset
 │   ├── data.parquet          # Dataset (Parquet format)
 │   ├── dataset.yaml          # Dataset metadata & column definitions
 │   ├── dashboard.yaml        # Dashboard layout (optional)
@@ -39,12 +39,31 @@ superset/examples/
 │       ├── Boys.yaml
 │       ├── Girls.yaml
 │       └── ...
-├── energy_usage/              # Example: Energy Sankey diagram
-│   ├── data.parquet
-│   ├── dataset.yaml
+├── deck_gl/                   # Complex example: multiple datasets
+│   ├── datasets/             # Multiple dataset configs
+│   │   ├── long_lat.yaml
+│   │   ├── flights.yaml
+│   │   └── bart_lines.yaml
+│   ├── data/                 # Multiple data files
+│   │   ├── long_lat.parquet
+│   │   ├── flights.parquet
+│   │   └── bart_lines.parquet
+│   ├── dashboard.yaml
+│   └── charts/
+├── featured_charts/          # SQL virtual datasets (no parquet)
+│   ├── datasets/
+│   │   ├── hierarchical_dataset.yaml  # sql: field defines the data
+│   │   └── project_management.yaml
+│   ├── dashboard.yaml
 │   └── charts/
 └── ...
 ```
+
+### Simple vs Complex Examples
+
+- **Simple examples**: Use `data.parquet` + `dataset.yaml` at root level
+- **Complex examples**: Use `datasets/` folder for multiple dataset YAMLs and `data/` folder for multiple parquet files
+- **SQL virtual datasets**: Use `datasets/` with `sql:` field in YAML (no parquet file needed)
 
 ## Adding a New Example
 
