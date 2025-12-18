@@ -24,6 +24,7 @@ import { styled, Alert } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Skeleton } from '@superset-ui/core/components/';
 import { RootState, WhatIfModification } from 'src/dashboard/types';
+import { whatIfHighlightStyles } from 'src/dashboard/util/useWhatIfHighlightStyles';
 import { fetchWhatIfInterpretation } from './whatIfApi';
 import { useChartComparison, useAllChartsLoaded } from './useChartComparison';
 import {
@@ -108,6 +109,7 @@ const Summary = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme }) => theme.colorBgElevated};
   border-radius: ${({ theme }) => theme.borderRadius}px;
+  ${whatIfHighlightStyles}
 `;
 
 interface WhatIfAIInsightsProps {
@@ -137,7 +139,13 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
   const modificationsKey = getModificationsKey(whatIfModifications);
   const prevModificationsKeyRef = useRef<string>(modificationsKey);
 
-  // Debug logging
+  // Debug logging for race condition diagnosis
+  const willTriggerFetch =
+    whatIfModifications.length > 0 &&
+    chartComparisons.length > 0 &&
+    allChartsLoaded &&
+    status === 'idle';
+
   console.log('[WhatIfAIInsights] State:', {
     affectedChartIds,
     allChartsLoaded,
@@ -145,12 +153,25 @@ const WhatIfAIInsights = ({ affectedChartIds }: WhatIfAIInsightsProps) => {
     whatIfModificationsLength: whatIfModifications.length,
     status,
     modificationsKey,
-    willTriggerFetch:
-      whatIfModifications.length > 0 &&
-      chartComparisons.length > 0 &&
-      allChartsLoaded &&
-      status === 'idle',
+    willTriggerFetch,
   });
+
+  // Log chart comparison details when about to fetch (helps diagnose race conditions)
+  if (willTriggerFetch && chartComparisons.length > 0) {
+    console.log(
+      '[WhatIfAIInsights] Chart comparisons to send:',
+      chartComparisons.map(c => ({
+        chartId: c.chartId,
+        chartName: c.chartName,
+        metrics: c.metrics.map(m => ({
+          name: m.metricName,
+          original: m.originalValue,
+          modified: m.modifiedValue,
+          change: `${m.percentageChange.toFixed(2)}%`,
+        })),
+      })),
+    );
+  }
 
   // Reset status when modifications change (user adjusts the slider)
   useEffect(() => {

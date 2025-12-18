@@ -36,16 +36,16 @@ const rainbowSlide = keyframes`
 
 const pulse = keyframes`
   0%, 100% {
-    opacity: 0.7;
-    filter: blur(0px);
+    opacity: 0.6;
+    filter: blur(2px);
   }
   50% {
-    opacity: 1;
-    filter: blur(2px);
+    opacity: 0.9;
+    filter: blur(6px);
   }
 `;
 
-const whatIfHighlightStyles = css`
+export const whatIfHighlightStyles = css`
   position: relative;
 
   &::before {
@@ -53,34 +53,34 @@ const whatIfHighlightStyles = css`
     position: absolute;
     inset: -2px;
     border-radius: 10px;
-    padding: 4px;
+    padding: 3px;
     background: linear-gradient(
       90deg,
-      #ff0000,
-      #ff8000,
-      #ffff00,
-      #80ff00,
-      #00ff00,
-      #00ff80,
-      #00ffff,
-      #0080ff,
-      #0000ff,
-      #8000ff,
-      #ff00ff,
-      #ff0080,
-      #ff0000,
-      #ff8000,
-      #ffff00,
-      #80ff00,
-      #00ff00,
-      #00ff80,
-      #00ffff,
-      #0080ff,
-      #0000ff,
-      #8000ff,
-      #ff00ff,
-      #ff0080,
-      #ff0000
+      #ffb3b3,
+      #ffd9b3,
+      #ffffb3,
+      #d9ffb3,
+      #b3ffb3,
+      #b3ffd9,
+      #b3ffff,
+      #b3d9ff,
+      #b3b3ff,
+      #d9b3ff,
+      #ffb3ff,
+      #ffb3d9,
+      #ffb3b3,
+      #ffd9b3,
+      #ffffb3,
+      #d9ffb3,
+      #b3ffb3,
+      #b3ffd9,
+      #b3ffff,
+      #b3d9ff,
+      #b3b3ff,
+      #d9b3ff,
+      #ffb3ff,
+      #ffb3d9,
+      #ffb3b3
     );
     background-size: 300% 100%;
     animation:

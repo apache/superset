@@ -229,10 +229,18 @@ export function useChartComparison(
 
       if (!chartState || !displayData) continue;
 
-      const originalData = chartState.originalData;
-      const modifiedData = chartState.modifiedData;
+      const { originalData, modifiedData } = chartState;
 
       if (!originalData || !modifiedData) continue;
+
+      // Skip if original and modified data are the same reference
+      // This indicates the what-if query hasn't completed yet (race condition guard)
+      if (originalData === modifiedData) {
+        console.warn(
+          `[useChartComparison] Chart ${chartId}: originalData === modifiedData (same reference), skipping`,
+        );
+        continue;
+      }
 
       // Get column names from the response
       const colnames = chartState.colnames || [];
@@ -296,7 +304,9 @@ function useChartLoadingStatuses(
 
 /**
  * Check if all affected charts (in active tabs) have finished loading.
- * Returns true if no visible chart is currently in 'loading' status.
+ * Returns true only if ALL visible charts are in a definitive complete state
+ * ('success' or 'rendered'). This prevents race conditions where charts
+ * might briefly be in an intermediate state.
  */
 export function useAllChartsLoaded(chartIds: number[]): boolean {
   const visibleChartIds = useChartsInActiveTabs(chartIds);
@@ -309,6 +319,15 @@ export function useAllChartsLoaded(chartIds: number[]): boolean {
     }));
     console.log('[useAllChartsLoaded] Chart statuses:', statuses);
 
-    return visibleChartIds.every(id => chartStatuses[id] !== 'loading');
+    // Require explicit completion status, not just "not loading"
+    // This prevents race conditions during state transitions
+    // Include 'failed' to avoid waiting indefinitely for charts that errored
+    const completeStatuses = ['success', 'rendered', 'failed'];
+    return (
+      visibleChartIds.length > 0 &&
+      visibleChartIds.every(id =>
+        completeStatuses.includes(chartStatuses[id] ?? ''),
+      )
+    );
   }, [chartStatuses, visibleChartIds]);
 }

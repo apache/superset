@@ -21,7 +21,6 @@ import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { t, logging } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { Loading } from '@superset-ui/core/components';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -97,17 +96,6 @@ const ChartWrapper = styled.div`
   &.dashboard-chart--overflowable {
     overflow: visible;
   }
-`;
-
-const ChartOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 5;
-  background-color: ${({ theme }) => theme.colorBgMask};
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const SliceContainer = styled.div`
@@ -611,7 +599,6 @@ const Chart = props => {
     return <MissingChart height={getChartHeight()} />;
   }
 
-  const isLoading = chartStatus === 'loading';
   const cachedDttm =
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
@@ -683,17 +670,6 @@ const Chart = props => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
-          <ChartOverlay
-            style={{
-              width,
-              height: getChartHeight(),
-            }}
-          >
-            <Loading size="s" muted />
-          </ChartOverlay>
-        )}
-
         <ChartContainer
           width={width}
           height={getChartHeight()}
