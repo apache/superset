@@ -41,12 +41,18 @@ export interface PermissionNode extends DataNode {
   totalCount?: number;
 }
 
+export interface RLSRule {
+  predicate: string;
+  groupKey?: string;
+}
+
 export interface TreeState {
   expandedKeys: string[];
   loadedKeys: string[];
   treeData: PermissionNode[];
   permissionStates: Record<string, PermissionState>;
-  clsRules: Record<string, CLSAction>; // key format: "tableKey:columnName" -> action
+  clsRules: Record<string, CLSAction>; // key format: "tableKey::columnName" -> action
+  rlsRules: Record<string, RLSRule>; // key format: tableKey -> RLSRule
 }
 
 export interface PermissionsPayload {
@@ -59,5 +65,9 @@ export interface PermissionEntry {
   catalog?: string;
   schema?: string;
   table?: string;
+  rls?: {
+    predicate: string;
+    group_key?: string;
+  };
   cls?: Record<string, string>; // column name -> action
 }

@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
-import { Tree, Tooltip, Spin, Button, Select } from 'antd';
+import { Tree, Tooltip, Spin, Button, Select, Input } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -36,6 +36,7 @@ import type {
   TreeState,
   PermissionsPayload,
   CLSAction,
+  RLSRule,
 } from './types';
 import {
   fetchDatabases,
@@ -136,6 +137,33 @@ const StyledContainer = styled.div`
       font-size: 11px;
       color: ${theme.colorTextSecondary};
     }
+
+    .rls-container {
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit}px;
+      padding: ${theme.sizeUnit}px 0;
+      margin-bottom: ${theme.sizeUnit}px;
+      border-bottom: 1px dashed ${theme.colorBorder};
+    }
+
+    .rls-row {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit}px;
+    }
+
+    .rls-label {
+      font-size: 11px;
+      color: ${theme.colorTextSecondary};
+      min-width: 70px;
+    }
+
+    .rls-input {
+      flex: 1;
+      max-width: 250px;
+      font-size: 12px;
+    }
   `}
 `;
 
@@ -156,6 +184,7 @@ function PermissionsTree({
     treeData: [],
     permissionStates: {},
     clsRules: {},
+    rlsRules: {},
   });
   const [loading, setLoading] = useState(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
@@ -186,7 +215,7 @@ function PermissionsTree({
       return;
     }
     if (value && databaseMaps.nameToId.size > 0) {
-      const { states, clsRules } = loadPermissionsFromPayload(
+      const { states, clsRules, rlsRules } = loadPermissionsFromPayload(
         value,
         databaseMaps.nameToId,
       );
@@ -194,6 +223,7 @@ function PermissionsTree({
         ...prev,
         permissionStates: states,
         clsRules,
+        rlsRules,
       }));
     }
   }, [value, databaseMaps.nameToId]);
@@ -409,9 +439,48 @@ function PermissionsTree({
         newStates,
         databaseMaps.idToName,
         treeState.clsRules,
+        treeState.rlsRules,
       );
       onChange(payload);
     }
+  };
+
+  const handleRlsChange = (
+    tableKey: string,
+    field: 'predicate' | 'groupKey',
+    value: string,
+  ) => {
+    // Mark as internal update to prevent circular updates
+    isInternalUpdateRef.current = true;
+
+    setTreeState(prev => {
+      const currentRls = prev.rlsRules[tableKey] || { predicate: '' };
+      const newRls: RLSRule = { ...currentRls, [field]: value };
+
+      // Remove the rule if both fields are empty
+      const newRlsRules = { ...prev.rlsRules };
+      if (!newRls.predicate && !newRls.groupKey) {
+        delete newRlsRules[tableKey];
+      } else {
+        newRlsRules[tableKey] = newRls;
+      }
+
+      // Notify parent of changes
+      if (onChange && databaseMaps.idToName.size > 0) {
+        const payload = generatePermissionsPayload(
+          prev.permissionStates,
+          databaseMaps.idToName,
+          prev.clsRules,
+          newRlsRules,
+        );
+        onChange(payload);
+      }
+
+      return {
+        ...prev,
+        rlsRules: newRlsRules,
+      };
+    });
   };
 
   const handleClsChange = (
@@ -438,6 +507,7 @@ function PermissionsTree({
           prev.permissionStates,
           databaseMaps.idToName,
           newClsRules,
+          prev.rlsRules,
         );
         onChange(payload);
       }
@@ -554,6 +624,48 @@ function PermissionsTree({
       );
     }
 
+    // Table nodes get RLS inputs when expanded
+    if (node.nodeType === 'table' && isExpanded) {
+      const currentRls = treeState.rlsRules[nodeKey] || {
+        predicate: '',
+        groupKey: '',
+      };
+
+      return (
+        <div>
+          <div className="node-title">
+            {getStateIcon(nodeKey)}
+            {getNodeIcon(node.nodeType)}
+            <span>{title}</span>
+          </div>
+          <div className="rls-container">
+            <div className="rls-row">
+              <span className="rls-label">{t('RLS Predicate')}</span>
+              <Input
+                className="rls-input"
+                size="small"
+                placeholder={t('e.g., org_id = {{current_user_id}}')}
+                value={currentRls.predicate}
+                onChange={e => handleRlsChange(nodeKey, 'predicate', e.target.value)}
+                onClick={e => e.stopPropagation()}
+              />
+            </div>
+            <div className="rls-row">
+              <span className="rls-label">{t('Group Key')}</span>
+              <Input
+                className="rls-input"
+                size="small"
+                placeholder={t('Optional grouping key')}
+                value={currentRls.groupKey || ''}
+                onChange={e => handleRlsChange(nodeKey, 'groupKey', e.target.value)}
+                onClick={e => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // Non-column nodes: check if leaf (columns are leafs, tables are not anymore)
     const isLeaf = node.nodeType === 'column';
 
@@ -597,6 +709,7 @@ function PermissionsTree({
       ...prev,
       permissionStates: {},
       clsRules: {},
+      rlsRules: {},
     }));
     if (onChange) {
       onChange({ allowed: [], denied: [] });

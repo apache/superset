@@ -24,6 +24,7 @@ import type {
   PermissionEntry,
   NodeType,
   CLSAction,
+  RLSRule,
 } from './types';
 
 // Key format: db:{id}|cat:{name}|schema:{name}|table:{name}
@@ -337,6 +338,7 @@ export function generatePermissionsPayload(
   permissionStates: Record<string, PermissionState>,
   databases: Map<number, string>,
   clsRules: Record<string, CLSAction> = {},
+  rlsRules: Record<string, RLSRule> = {},
 ): PermissionsPayload {
   const allowed: PermissionEntry[] = [];
   const denied: PermissionEntry[] = [];
@@ -369,6 +371,19 @@ export function generatePermissionsPayload(
     if (parsed.schemaName) entry.schema = parsed.schemaName;
     if (parsed.tableName) entry.table = parsed.tableName;
 
+    // Add RLS rules if this is a table entry and has RLS rules
+    if (parsed.tableName && rlsRules[key]) {
+      const rls = rlsRules[key];
+      if (rls.predicate) {
+        entry.rls = {
+          predicate: rls.predicate,
+        };
+        if (rls.groupKey) {
+          entry.rls.group_key = rls.groupKey;
+        }
+      }
+    }
+
     // Add CLS rules if this is a table entry and has CLS rules
     if (parsed.tableName && clsByTable[key]) {
       entry.cls = clsByTable[key];
@@ -381,9 +396,14 @@ export function generatePermissionsPayload(
     }
   });
 
-  // Also add CLS rules for tables that don't have explicit permission states
-  // but do have CLS rules (they inherit permission from parent)
-  Object.entries(clsByTable).forEach(([tableKey, columnRules]) => {
+  // Also add RLS/CLS rules for tables that don't have explicit permission states
+  // but do have RLS or CLS rules (they inherit permission from parent)
+  const tablesWithRules = new Set([
+    ...Object.keys(clsByTable),
+    ...Object.keys(rlsRules),
+  ]);
+
+  tablesWithRules.forEach(tableKey => {
     // Check if we already added this table
     const parsed = parseKey(tableKey);
     const databaseName = databases.get(parsed.databaseId);
@@ -398,17 +418,34 @@ export function generatePermissionsPayload(
         entry.table === parsed.tableName,
     );
 
-    if (!alreadyInAllowed && Object.keys(columnRules).length > 0) {
+    const hasClsRules =
+      clsByTable[tableKey] && Object.keys(clsByTable[tableKey]).length > 0;
+    const hasRlsRules =
+      rlsRules[tableKey] && rlsRules[tableKey].predicate;
+
+    if (!alreadyInAllowed && (hasClsRules || hasRlsRules)) {
       // Check if the table has effective allow state (inherited)
       const effectiveState = getEffectiveState(tableKey, permissionStates);
       if (effectiveState === 'allow') {
         const entry: PermissionEntry = {
           database: databaseName,
           table: parsed.tableName,
-          cls: columnRules,
         };
         if (parsed.catalogName) entry.catalog = parsed.catalogName;
         if (parsed.schemaName) entry.schema = parsed.schemaName;
+
+        if (hasRlsRules) {
+          const rls = rlsRules[tableKey];
+          entry.rls = { predicate: rls.predicate };
+          if (rls.groupKey) {
+            entry.rls.group_key = rls.groupKey;
+          }
+        }
+
+        if (hasClsRules) {
+          entry.cls = clsByTable[tableKey];
+        }
+
         allowed.push(entry);
       }
     }
@@ -457,9 +494,14 @@ function cleanupStates(
 export function loadPermissionsFromPayload(
   payload: PermissionsPayload,
   databases: Map<string, number>,
-): { states: Record<string, PermissionState>; clsRules: Record<string, CLSAction> } {
+): {
+  states: Record<string, PermissionState>;
+  clsRules: Record<string, CLSAction>;
+  rlsRules: Record<string, RLSRule>;
+} {
   const states: Record<string, PermissionState> = {};
   const clsRules: Record<string, CLSAction> = {};
+  const rlsRules: Record<string, RLSRule> = {};
 
   payload.allowed.forEach(entry => {
     const databaseId = databases.get(entry.database);
@@ -472,6 +514,14 @@ export function loadPermissionsFromPayload(
       tableName: entry.table,
     });
     states[key] = 'allow';
+
+    // Load RLS rules if present
+    if (entry.rls && entry.table) {
+      rlsRules[key] = {
+        predicate: entry.rls.predicate,
+        groupKey: entry.rls.group_key,
+      };
+    }
 
     // Load CLS rules if present
     if (entry.cls && entry.table) {
@@ -495,5 +545,5 @@ export function loadPermissionsFromPayload(
     states[key] = 'deny';
   });
 
-  return { states, clsRules };
+  return { states, clsRules, rlsRules };
 }
