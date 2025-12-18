@@ -23,6 +23,20 @@ certification_details: null
 published: false
 uuid: 318288e3-3e8e-4a76-9561-f8cd199dfaa7
 position:
+  CHART-HJOYVMV0E7:
+    children: []
+    id: CHART-HJOYVMV0E7
+    meta:
+      chartId: 30
+      height: 69
+      sliceName: OSM Long/Lat
+      uuid: 7a444809-5243-45ad-b42d-f4a447bade9d
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-SytNzNA4X
+    type: CHART
   CHART-S1WYNz4AVX:
     children: []
     id: CHART-S1WYNz4AVX
@@ -131,6 +145,7 @@ position:
     children:
     - CHART-rkgF4G4A4X
     - CHART-S1WYNz4AVX
+    - CHART-HJOYVMV0E7
     id: ROW-SytNzNA4X
     meta:
       background: BACKGROUND_TRANSPARENT
