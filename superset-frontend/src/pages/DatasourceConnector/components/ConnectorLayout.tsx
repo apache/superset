@@ -26,6 +26,7 @@ interface ConnectorLayoutProps {
   currentStep: ConnectorStep;
   children: ReactNode;
   templateName?: string | null;
+  databaseName?: string | null;
 }
 
 const PageContainer = styled.div`
@@ -134,11 +135,54 @@ const stepsConfig: StepConfig[] = [
   },
 ];
 
+function getAIBannerText(
+  currentStep: ConnectorStep,
+  templateName?: string | null,
+  databaseName?: string | null,
+): string | null {
+  switch (currentStep) {
+    case ConnectorStep.CONNECT_DATA_SOURCE:
+      return templateName
+        ? t(
+            'Choose a database connection to power the "%s" dashboard. AI will analyze your database schema and automatically connect the dashboard to your real data.',
+            templateName,
+          )
+        : null;
+    case ConnectorStep.REVIEW_SCHEMA:
+      return databaseName
+        ? t(
+            'AI is analyzing your "%s" database schema. This may take a while for large databases.',
+            databaseName,
+          )
+        : t(
+            'AI is analyzing your database schema. This may take a while for large databases.',
+          );
+    case ConnectorStep.REVIEW_MAPPINGS:
+      return t(
+        'AI needs your help to map some columns. Please review the suggestions below.',
+      );
+    case ConnectorStep.GENERATE_DASHBOARD:
+      return templateName
+        ? t(
+            'AI is customizing your dashboard from the "%s" template. The template is being adapted to match your data schema and generate meaningful visualizations.',
+            templateName,
+          )
+        : t(
+            'AI is customizing your dashboard. The template is being adapted to match your data schema and generate meaningful visualizations.',
+          );
+    default:
+      return null;
+  }
+}
+
 export default function ConnectorLayout({
   currentStep,
   children,
   templateName,
+  databaseName,
 }: ConnectorLayoutProps) {
+  const bannerText = getAIBannerText(currentStep, templateName, databaseName);
+
   return (
     <PageContainer>
       <PageHeader>
@@ -169,13 +213,10 @@ export default function ConnectorLayout({
         </Flex>
       </StepsContainer>
       <ContentContainer vertical align="center">
-        {templateName && (
+        {bannerText && (
           <AIBannerWrapper>
             <AIInfoBanner
-              text={t(
-                'Choose a database connection to power the "%s" dashboard. AI will analyze your database schema and automatically connect the dashboard to your real data.',
-                templateName,
-              )}
+              text={bannerText}
               data-test="datasource-connector-ai-hint"
             />
           </AIBannerWrapper>
