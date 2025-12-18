@@ -131,6 +131,7 @@ export type DashboardState = {
   };
   chartStates?: Record<string, any>;
   whatIfModifications: WhatIfModification[];
+  whatIfPanelOpen?: boolean;
 };
 export type DashboardInfo = {
   id: number;

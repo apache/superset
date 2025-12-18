@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
@@ -24,8 +24,9 @@ import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { clearWhatIfModifications } from 'src/dashboard/actions/dashboardState';
 import { restoreOriginalChartData } from 'src/components/Chart/chartAction';
-import { getNumericColumnsForDashboard } from 'src/dashboard/util/whatIf';
-import { RootState, Slice, WhatIfModification } from 'src/dashboard/types';
+import { formatPercentageChange } from 'src/dashboard/util/whatIf';
+import { useNumericColumns } from 'src/dashboard/util/useNumericColumns';
+import { RootState, WhatIfModification } from 'src/dashboard/types';
 
 const EMPTY_MODIFICATIONS: WhatIfModification[] = [];
 
@@ -83,12 +84,6 @@ const ExitButton = styled(Button)`
   }
 `;
 
-const formatPercentageChange = (multiplier: number): string => {
-  const percentChange = (multiplier - 1) * 100;
-  const sign = percentChange >= 0 ? '+' : '';
-  return `${sign}${Math.round(percentChange)}%`;
-};
-
 interface WhatIfBannerProps {
   topOffset: number;
 }
@@ -101,23 +96,7 @@ const WhatIfBanner = ({ topOffset }: WhatIfBannerProps) => {
     state => state.dashboardState.whatIfModifications ?? EMPTY_MODIFICATIONS,
   );
 
-  const slices = useSelector(
-    (state: RootState) => state.sliceEntities.slices as { [id: number]: Slice },
-  );
-  const datasources = useSelector((state: RootState) => state.datasources);
-
-  const numericColumns = useMemo(
-    () => getNumericColumnsForDashboard(slices, datasources),
-    [slices, datasources],
-  );
-
-  const columnToChartIds = useMemo(() => {
-    const map = new Map<string, number[]>();
-    numericColumns.forEach(col => {
-      map.set(col.columnName, col.usedByChartIds);
-    });
-    return map;
-  }, [numericColumns]);
+  const { columnToChartIds } = useNumericColumns();
 
   const handleExitWhatIf = useCallback(() => {
     const affectedChartIds = new Set<number>();

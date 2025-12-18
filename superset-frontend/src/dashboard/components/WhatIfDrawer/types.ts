@@ -17,6 +17,17 @@
  * under the License.
  */
 
+// Import shared types for internal use
+import type {
+  WhatIfFilter,
+  WhatIfFilterOperator,
+  WhatIfModification,
+} from 'src/dashboard/types';
+
+// Re-export shared types from dashboard/types.ts
+export type { WhatIfFilter, WhatIfFilterOperator, WhatIfModification };
+
+// Types specific to chart comparison display
 export interface ChartMetricComparison {
   metricName: string;
   originalValue: number;
@@ -31,23 +42,7 @@ export interface ChartComparison {
   metrics: ChartMetricComparison[];
 }
 
-export type WhatIfFilterOperator =
-  | '=='
-  | '!='
-  | '>'
-  | '<'
-  | '>='
-  | '<='
-  | 'IN'
-  | 'NOT IN'
-  | 'TEMPORAL_RANGE';
-
-export interface WhatIfFilter {
-  col: string;
-  op: WhatIfFilterOperator;
-  val: string | number | boolean | Array<string | number>;
-}
-
+// Types for /interpret API endpoint
 export interface WhatIfInterpretRequest {
   modifications: Array<{
     column: string;
@@ -72,8 +67,7 @@ export interface WhatIfInterpretResponse {
 
 export type WhatIfAIStatus = 'idle' | 'loading' | 'success' | 'error';
 
-// Types for suggest_related endpoint
-
+// Types for /suggest_related API endpoint
 export interface AvailableColumn {
   columnName: string;
   description?: string | null;

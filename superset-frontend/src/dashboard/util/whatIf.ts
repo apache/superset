@@ -16,10 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, getColumnLabel } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  getColumnLabel,
+  isQueryFormColumn,
+  JsonValue,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourcesState, Slice, WhatIfColumn } from '../types';
+
+/**
+ * Type definitions for form_data structures used in what-if analysis.
+ * These are local types for the subset of form_data we need to inspect.
+ */
+
+/** Metric definition in form_data */
+interface FormDataMetric {
+  expressionType?: 'SIMPLE' | 'SQL';
+  column?: string | { column_name: string };
+  aggregate?: string;
+  sqlExpression?: string;
+  label?: string;
+}
+
+/** Filter definition in form_data */
+interface FormDataFilter {
+  expressionType?: 'SIMPLE' | 'SQL';
+  subject?: string;
+  operator?: string;
+  comparator?: JsonValue;
+  sqlExpression?: string;
+  clause?: string;
+}
 
 /**
  * Check if a column is numeric based on its type_generic field
@@ -156,8 +185,8 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
   if (!formData) return columns;
 
   // Helper to add column - handles both physical columns (strings) and adhoc columns
-  const addColumn = (col: any) => {
-    if (col) {
+  const addColumn = (col: unknown) => {
+    if (isQueryFormColumn(col)) {
       const label = getColumnLabel(col);
       if (label) columns.add(label);
     }
@@ -172,7 +201,7 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
   }
 
   // Extract metrics - get column names from metric definitions
-  ensureIsArray(formData.metrics).forEach((metric: any) => {
+  ensureIsArray(formData.metrics).forEach((metric: string | FormDataMetric) => {
     if (typeof metric === 'string') {
       // Saved metric name - we can't extract columns from it
       return;
@@ -181,7 +210,7 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
       const metricColumn = metric.column;
       if (typeof metricColumn === 'string') {
         columns.add(metricColumn);
-      } else if (metricColumn?.column_name) {
+      } else if (metricColumn && typeof metricColumn === 'object' && 'column_name' in metricColumn) {
         columns.add(metricColumn.column_name);
       }
     }
@@ -189,12 +218,12 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
 
   // Extract metric (singular) - used by pie charts and other single-metric charts
   if (formData.metric && typeof formData.metric === 'object') {
-    const metric = formData.metric as any;
-    if ('column' in metric) {
+    const metric = formData.metric as FormDataMetric;
+    if ('column' in metric && metric.column) {
       const metricColumn = metric.column;
       if (typeof metricColumn === 'string') {
         columns.add(metricColumn);
-      } else if (metricColumn?.column_name) {
+      } else if (typeof metricColumn === 'object' && 'column_name' in metricColumn) {
         columns.add(metricColumn.column_name);
       }
     }
@@ -211,7 +240,7 @@ export function extractColumnsFromSlice(slice: Slice): Set<string> {
   }
 
   // Extract columns from filters
-  ensureIsArray(formData.adhoc_filters).forEach((filter: any) => {
+  ensureIsArray(formData.adhoc_filters).forEach((filter: FormDataFilter) => {
     if (filter?.subject && typeof filter.subject === 'string') {
       columns.add(filter.subject);
     }
@@ -326,4 +355,25 @@ export function sliceUsesColumn(slice: Slice, columnName: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Format a multiplier value as a percentage change string.
+ * Example: 1.15 -> "+15%", 0.85 -> "-15%"
+ *
+ * @param multiplier - The multiplier value (1 = no change)
+ * @param decimals - Number of decimal places (default: 0)
+ * @returns Formatted percentage string with sign
+ */
+export function formatPercentageChange(
+  multiplier: number,
+  decimals: number = 0,
+): string {
+  const percentChange = (multiplier - 1) * 100;
+  const sign = percentChange >= 0 ? '+' : '';
+  const formatted =
+    decimals > 0
+      ? percentChange.toFixed(decimals)
+      : Math.round(percentChange).toString();
+  return `${sign}${formatted}%`;
 }

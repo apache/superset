@@ -128,11 +128,10 @@ export function useIsChartInActiveTab() {
 export function useChartsInActiveTabs(chartIds: number[]): number[] {
   const isChartInActiveTab = useIsChartInActiveTab();
 
-  return useMemo(() => {
-    const visibleCharts = chartIds.filter(isChartInActiveTab);
-    console.log('[useChartsInActiveTabs] Visible charts:', visibleCharts);
-    return visibleCharts;
-  }, [chartIds, isChartInActiveTab]);
+  return useMemo(
+    () => chartIds.filter(isChartInActiveTab),
+    [chartIds, isChartInActiveTab],
+  );
 }
 
 interface ChartComparisonData {
@@ -222,11 +221,6 @@ export function useChartComparison(
   return useMemo(() => {
     const comparisons: ChartComparison[] = [];
 
-    console.log(
-      '[useChartComparison] Processing visible charts:',
-      visibleChartIds,
-    );
-
     for (const chartId of visibleChartIds) {
       const chartState = chartData[chartId];
       const displayData = chartDisplayData[chartId];
@@ -240,9 +234,6 @@ export function useChartComparison(
       // Skip if original and modified data are the same reference
       // This indicates the what-if query hasn't completed yet (race condition guard)
       if (originalData === modifiedData) {
-        console.warn(
-          `[useChartComparison] Chart ${chartId}: originalData === modifiedData (same reference), skipping`,
-        );
         continue;
       }
 
@@ -251,7 +242,7 @@ export function useChartComparison(
       const coltypes = chartState.coltypes || [];
       const metrics: ChartMetricComparison[] = [];
 
-      for (let i = 0; i < colnames.length; i++) {
+      for (let i = 0; i < colnames.length; i += 1) {
         const metricName = colnames[i];
         const coltype = coltypes[i];
 
@@ -329,12 +320,6 @@ export function useAllChartsLoaded(chartIds: number[]): boolean {
   const chartStatuses = useChartLoadingStatuses(visibleChartIds);
 
   return useMemo(() => {
-    const statuses = visibleChartIds.map(id => ({
-      id,
-      status: chartStatuses[id],
-    }));
-    console.log('[useAllChartsLoaded] Chart statuses:', statuses);
-
     // Require explicit completion status, not just "not loading"
     // This prevents race conditions during state transitions
     // Include 'failed' to avoid waiting indefinitely for charts that errored

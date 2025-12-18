@@ -33,6 +33,10 @@ import {
   WhatIfInterpretResponse,
 } from './types';
 
+// Static Skeleton paragraph configs to avoid recreation on each render
+const SKELETON_PARAGRAPH_3 = { rows: 3 };
+const SKELETON_PARAGRAPH_2 = { rows: 2 };
+
 /**
  * Create a stable key from modifications for comparison.
  * This allows us to detect when modifications have meaningfully changed.
@@ -150,49 +154,12 @@ const WhatIfAIInsights = ({
   const modificationsKey = getModificationsKey(modifications);
   const prevModificationsKeyRef = useRef<string>(modificationsKey);
 
-  // Debug logging for race condition diagnosis
-  const willTriggerFetch =
-    modifications.length > 0 &&
-    chartComparisons.length > 0 &&
-    allChartsLoaded &&
-    status === 'idle';
-
-  console.log('[WhatIfAIInsights] State:', {
-    affectedChartIds,
-    allChartsLoaded,
-    chartComparisonsLength: chartComparisons.length,
-    modificationsLength: modifications.length,
-    status,
-    modificationsKey,
-    willTriggerFetch,
-  });
-
-  // Log chart comparison details when about to fetch (helps diagnose race conditions)
-  if (willTriggerFetch && chartComparisons.length > 0) {
-    console.log(
-      '[WhatIfAIInsights] Chart comparisons to send:',
-      chartComparisons.map(c => ({
-        chartId: c.chartId,
-        chartName: c.chartName,
-        metrics: c.metrics.map(m => ({
-          name: m.metricName,
-          original: m.originalValue,
-          modified: m.modifiedValue,
-          change: `${m.percentageChange.toFixed(2)}%`,
-        })),
-      })),
-    );
-  }
-
   // Reset status when modifications change (user adjusts the slider)
   useEffect(() => {
     if (
       modificationsKey !== prevModificationsKeyRef.current &&
       modifications.length > 0
     ) {
-      console.log(
-        '[WhatIfAIInsights] Modifications changed, resetting status to idle',
-      );
       // Cancel any in-flight request when modifications change
       abortControllerRef.current?.abort();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: resetting state when modifications change
@@ -280,7 +247,9 @@ const WhatIfAIInsights = ({
         {t('AI Insights')}
       </InsightsHeader>
 
-      {status === 'loading' && <Skeleton active paragraph={{ rows: 3 }} />}
+      {status === 'loading' && (
+        <Skeleton active paragraph={SKELETON_PARAGRAPH_3} />
+      )}
 
       {status === 'error' && (
         <Alert
@@ -305,7 +274,7 @@ const WhatIfAIInsights = ({
       )}
 
       {status === 'idle' && !allChartsLoaded && (
-        <Skeleton active paragraph={{ rows: 2 }} />
+        <Skeleton active paragraph={SKELETON_PARAGRAPH_2} />
       )}
     </InsightsContainer>
   );
