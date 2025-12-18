@@ -68,9 +68,13 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
         # Infer joins using AI
         self._infer_joins_with_ai()
 
+        # Validate the analysis confidence
+        self._validate_analysis_confidence()
+
         return {
             "tables_count": len(self.report.tables),
             "joins_count": len(self.report.joins),
+            "confidence_score": self.report.confidence_score,
         }
 
     def validate(self) -> None:
@@ -501,3 +505,106 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
             db.session.add(join)
 
         db.session.commit()  # pylint: disable=consider-using-transaction
+
+    def _validate_analysis_confidence(self) -> None:
+        """Use another LLM to validate the confidence of the analysis"""
+        assert self.report is not None
+
+        logger.info("Validating analysis confidence using LLM")
+
+        if not self.llm_service.is_available():
+            logger.warning("LLM service not available, skipping confidence validation")
+            return
+
+        try:
+            # Prepare data for validation
+            tables_data = []
+            for table in self.report.tables:
+                extra_json = json.loads(table.extra_json or "{}")
+                tables_data.append(
+                    {
+                        "name": table.table_name,
+                        "type": table.table_type.value if table.table_type else "table",
+                        "columns_count": len(table.columns),
+                        "row_count": extra_json.get("row_count_estimate"),
+                        "ai_description": table.ai_description,
+                        "has_description": bool(
+                            table.ai_description or table.db_comment
+                        ),
+                    }
+                )
+
+            joins_data = []
+            for join in self.report.joins:
+                extra_json = json.loads(join.extra_json or "{}")
+                joins_data.append(
+                    {
+                        "source_table": join.source_table.table_name,
+                        "source_columns": json.loads(join.source_columns),
+                        "target_table": join.target_table.table_name,
+                        "target_columns": json.loads(join.target_columns),
+                        "join_type": join.join_type.value
+                        if join.join_type
+                        else "inner",
+                        "cardinality": join.cardinality.value
+                        if join.cardinality
+                        else "N:1",
+                        "confidence_score": extra_json.get("confidence_score", 0.5),
+                        "semantic_context": join.semantic_context,
+                    }
+                )
+
+            # Collect all AI descriptions
+            ai_descriptions = {
+                "tables": {
+                    table.table_name: table.ai_description
+                    for table in self.report.tables
+                    if table.ai_description
+                },
+                "columns": {},
+            }
+            for table in self.report.tables:
+                for col in table.columns:
+                    if col.ai_description:
+                        key = f"{table.table_name}.{col.column_name}"
+                        ai_descriptions["columns"][key] = col.ai_description
+
+            # Call validation service
+            validation_result = self.llm_service.validate_analysis_confidence(
+                schema_name=self.report.schema_name,
+                tables=tables_data,
+                joins=joins_data,
+                ai_descriptions=ai_descriptions,
+            )
+
+            # Store validation results
+            self.report.confidence_score = validation_result.get(
+                "overall_confidence", 0.5
+            )
+            self.report.confidence_breakdown = json.dumps(
+                validation_result.get("confidence_breakdown", {})
+            )
+
+            # Combine recommendations and potential issues
+            all_recommendations = []
+            all_recommendations.extend(validation_result.get("recommendations", []))
+            all_recommendations.extend(validation_result.get("potential_issues", []))
+
+            self.report.confidence_recommendations = json.dumps(all_recommendations)
+            self.report.confidence_validation_notes = validation_result.get(
+                "validation_notes", ""
+            )
+
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+            logger.info(
+                "Confidence validation complete. Score: %.2f",
+                self.report.confidence_score or 0.5,
+            )
+
+        except Exception as e:
+            logger.error("Error validating analysis confidence: %s", str(e))
+            # Set default confidence if validation fails
+            self.report.confidence_score = 0.5
+            self.report.confidence_validation_notes = f"Validation error: {str(e)}"
+            db.session.commit()  # pylint: disable=consider-using-transaction
