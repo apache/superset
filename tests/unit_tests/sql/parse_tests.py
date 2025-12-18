@@ -2891,6 +2891,20 @@ def test_singlestore_engine_mapping():
     assert "COUNT(*)" in formatted
 
 
+def test_awsathena_engine_mapping():
+    """
+    Test the `awsathena` dialect is properly mapped to ATHENA instead of PRESTO.
+    """
+    sql = (
+        "USING EXTERNAL FUNCTION my_func(x INT) RETURNS INT LAMBDA 'lambda_name' "
+        "SELECT my_func(id) FROM my_table"
+    )
+    statement = SQLStatement(sql, engine="awsathena")
+
+    # Should parse without errors using Athena dialect
+    statement.format()
+
+
 def test_remove_quotes() -> None:
     """
     Test the `remove_quotes` helper function.
