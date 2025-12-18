@@ -37,9 +37,14 @@ from superset.commands.dashboard.importers.v1.utils import (
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag, load_yaml, METADATA_FILE_NAME
+from superset.commands.importers.v1.utils import (
+    import_tag,
+    load_yaml,
+    METADATA_FILE_NAME,
+)
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -230,17 +235,36 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for dashboard in dashboards:
             migrate_dashboard(dashboard)
 
-        # TODO: When implementing template dashboard import, set is_template_chart=True
-        # on all charts and is_template_dataset=True on all datasets belonging to template
-        # dashboards. Check config["metadata"]["is_template"] for each dashboard, and if True:
-        #
-        # 1. For charts: iterate through find_chart_uuids(config["position"]) to get the
-        #    chart UUIDs, then set chart.is_template_chart = True for matching charts.
-        #
-        # 2. For datasets: get all datasets referenced by the template charts (via
-        #    chart.datasource_id), then set dataset.is_template_dataset = True.
-        #
-        # These flags prevent charts and datasets from being modified/deleted via the API.
+        # Set is_template_chart and is_template_dataset flags for template dashboards.
+        # These flags prevent charts/datasets from being modified/deleted via the API.
+        if template_metadata.get("is_template"):
+            template_chart_ids: set[int] = set()
+            template_dataset_ids: set[int] = set()
+
+            # Collect all chart IDs from template dashboards
+            for file_name, config in configs.items():
+                if file_name.startswith("dashboards/"):
+                    for chart_uuid in find_chart_uuids(config["position"]):
+                        if chart_uuid in chart_ids:
+                            template_chart_ids.add(chart_ids[chart_uuid])
+
+            # Set is_template_chart=True for all template charts
+            for chart in charts:
+                if chart.id in template_chart_ids:
+                    chart.is_template_chart = True
+                    # Collect dataset IDs from template charts
+                    if chart.datasource_id:
+                        template_dataset_ids.add(chart.datasource_id)
+
+            # Set is_template_dataset=True for all datasets used by template charts
+            if template_dataset_ids:
+                datasets = (
+                    db.session.query(SqlaTable)
+                    .filter(SqlaTable.id.in_(template_dataset_ids))  # type: ignore[attr-defined]
+                    .all()
+                )
+                for dataset in datasets:
+                    dataset.is_template_dataset = True
 
         # Remove all obsolete filter-box charts.
         for chart in charts:
