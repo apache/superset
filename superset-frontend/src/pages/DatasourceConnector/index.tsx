@@ -24,6 +24,7 @@ import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import ConnectorLayout from './components/ConnectorLayout';
 import DataSourcePanel from './components/DataSourcePanel';
+import DatasourceEditorPanel from './components/DatasourceEditorPanel';
 import DatasourceAnalyzerPanel from './components/DatasourceAnalyzerPanel';
 import DashboardGeneratorPanel from './components/DashboardGeneratorPanel';
 import MappingReviewPanel from './components/MappingReviewPanel';
@@ -78,6 +79,7 @@ export default function DatasourceConnector() {
   );
   const [templateInfo, setTemplateInfo] =
     useState<TemplateDashboardInfo | null>(null);
+  const [databaseReportId, setDatabaseReportId] = useState<number | null>(null);
   const [analysisRunId, setAnalysisRunId] = useState<string | null>(null);
   const [generationRunId, setGenerationRunId] = useState<string | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
@@ -163,7 +165,7 @@ export default function DatasourceConnector() {
             exists: true,
             reportId: result.report_id,
             tablesCount: result.tables_count,
-            createdAt: result.created_at,
+            createdAt: result.created_at ?? undefined,
           });
         } else {
           setExistingReportInfo({ exists: false });
@@ -236,7 +238,7 @@ export default function DatasourceConnector() {
   );
 
   const handleCancel = useCallback(() => {
-    history.push('/dashboard/templates/');
+    history.goBack();
   }, [history]);
 
   const handleAnalysisComplete = useCallback(
@@ -362,6 +364,30 @@ export default function DatasourceConnector() {
     handleAnalysisComplete,
   ]);
 
+  // Handler when analysis completes - transition to schema editor
+  const handleAnalysisCompleteToEditor = useCallback(
+    (newReportId: number) => {
+      setDatabaseReportId(newReportId);
+      setReportId(newReportId);
+      addSuccessToast(t('Analysis complete! Review and edit your schema.'));
+      setCurrentStep(ConnectorStep.EDIT_SCHEMA);
+    },
+    [addSuccessToast],
+  );
+
+  const handleBackToReview = useCallback(() => {
+    setCurrentStep(ConnectorStep.REVIEW_SCHEMA);
+  }, []);
+
+  const handleConfirmAndGenerate = useCallback(
+    (runId: string) => {
+      setGenerationRunId(runId);
+      addSuccessToast(t('Dashboard generation started'));
+      setCurrentStep(ConnectorStep.GENERATE_DASHBOARD);
+    },
+    [addSuccessToast],
+  );
+
   const handleMappingApprove = useCallback(
     async (adjustments: AdjustedMappings) => {
       if (!mappingProposal || !reportId || !dashboardId) {
@@ -474,8 +500,17 @@ export default function DatasourceConnector() {
           <DatasourceAnalyzerPanel
             runId={analysisRunId}
             databaseName={state.databaseName}
-            onComplete={handleAnalysisComplete}
+            onComplete={handleAnalysisCompleteToEditor}
             onError={handleAnalysisError}
+          />
+        ) : null;
+      case ConnectorStep.EDIT_SCHEMA:
+        return databaseReportId ? (
+          <DatasourceEditorPanel
+            reportId={databaseReportId}
+            dashboardId={dashboardId}
+            onBack={handleBackToReview}
+            onConfirm={handleConfirmAndGenerate}
           />
         ) : null;
       case ConnectorStep.REVIEW_MAPPINGS:

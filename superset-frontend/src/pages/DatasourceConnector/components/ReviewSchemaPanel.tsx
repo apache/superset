@@ -24,7 +24,7 @@ import { Flex, Icons, Typography } from '@superset-ui/core/components';
 interface ReviewSchemaPanelProps {
   databaseName: string | null;
   schemaName: string | null;
-  onAnalysisComplete: () => void;
+  onAnalysisComplete: (reportId: number) => void;
 }
 
 enum AnalysisStep {
@@ -241,8 +241,10 @@ export default function ReviewSchemaPanel({
             advanceStep(nextStep);
           } else {
             // Analysis complete - trigger callback after a short delay
+            // TODO: In real implementation, get the reportId from the analysis API
+            // For now, use a placeholder reportId of 1
             completionTimeoutId = setTimeout(() => {
-              onAnalysisComplete();
+              onAnalysisComplete(1);
             }, 1000);
           }
         }, stepDurations[step]);
