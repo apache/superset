@@ -229,6 +229,8 @@ class AgenticDashboardGenerator:
         self.mapping_service = MappingService()
         self.template_analyzer = TemplateAnalyzer()
         self.use_graph = use_graph
+        # Cache dataset datetime bounds per run to avoid repeated scans
+        self.dataset_time_bounds: dict[int, tuple[str | None, str | None]] = {}
 
         if use_graph:
             self.graph = self._build_graph()
@@ -1197,6 +1199,8 @@ class AgenticDashboardGenerator:
             form_data = json.loads(chart.params or "{}")
             # Ensure minimal metric presence when form_data indicates metrics are expected
             form_data = self._ensure_metrics_present(form_data)
+            # Align time range to dataset bounds when absent or empty
+            form_data = self._ensure_time_range(form_data, datasource)
 
             # Translate form_data params to query params
             # granularity_sqla -> granularity (required by get_sqla_query)
@@ -1433,6 +1437,84 @@ class AgenticDashboardGenerator:
             "label": expression,
         }
 
+    def _ensure_time_range(
+        self, form_data: dict[str, Any], datasource: SqlaTable
+    ) -> dict[str, Any]:
+        """
+        If no time_range is provided, align it to dataset bounds using min/max of the datetime column.
+
+        This avoids inheriting template time ranges that may not match the target dataset.
+        """
+        updated = dict(form_data)
+        if updated.get("time_range"):
+            return updated
+
+        dttm_col = datasource.main_dttm_col
+        if not dttm_col:
+            return updated
+
+        bounds = self._get_dataset_time_bounds(datasource)
+        if not bounds:
+            return updated
+
+        start, end = bounds
+        if start or end:
+            start_str = start or ""
+            end_str = end or ""
+            updated["time_range"] = f"{start_str} : {end_str}"
+        return updated
+
+    def _get_dataset_time_bounds(
+        self, datasource: SqlaTable
+    ) -> tuple[str | None, str | None] | None:
+        """
+        Compute (min, max) for the dataset's datetime column. Cached per dataset.
+        """
+        try:
+            if datasource.id in self.dataset_time_bounds:
+                return self.dataset_time_bounds[datasource.id]
+
+            dttm_col = datasource.main_dttm_col
+            if not dttm_col:
+                return None
+
+            sql = datasource.sql
+            if sql:
+                bounds_sql = (
+                    f'SELECT MIN("{dttm_col}") AS min_dttm, MAX("{dttm_col}") AS max_dttm '
+                    f'FROM ({sql}) __bounds'
+                )
+            else:
+                table_ref = (
+                    f'"{datasource.schema}"."{datasource.table_name}"'
+                    if datasource.schema
+                    else f'"{datasource.table_name}"'
+                )
+                bounds_sql = (
+                    f'SELECT MIN("{dttm_col}") AS min_dttm, MAX("{dttm_col}") AS max_dttm '
+                    f"FROM {table_ref}"
+                )
+
+            with datasource.database.get_raw_connection(
+                schema=datasource.schema
+            ) as conn:
+                cursor = conn.cursor()
+                cursor.execute(bounds_sql)
+                row = cursor.fetchone()
+
+            if not row:
+                return None
+
+            start, end = row[0], row[1]
+            # Convert to ISO strings if possible
+            start_str = start.isoformat() if start else None
+            end_str = end.isoformat() if end else None
+
+            self.dataset_time_bounds[datasource.id] = (start_str, end_str)
+            return self.dataset_time_bounds[datasource.id]
+        except Exception:
+            return None
+
     def _translate_form_data_to_query_params(
         self, form_data: dict[str, Any], datasource: SqlaTable
     ) -> dict[str, Any]:
@@ -1447,6 +1529,44 @@ class AgenticDashboardGenerator:
         The granularity param is critical for time-series charts.
         """
         query_params = dict(form_data)
+
+        # Normalize adhoc_filters into core filter clauses so time ranges and other
+        # filters are honored during validation queries.
+        adhoc_filters = query_params.pop("adhoc_filters", []) or []
+        filter_clauses = query_params.get("filter") or []
+        for adhoc in adhoc_filters:
+            expr_type = adhoc.get("expressionType")
+            op = adhoc.get("operator")
+            comparator = adhoc.get("comparator")
+
+            if expr_type == "SIMPLE":
+                col = adhoc.get("subject") or adhoc.get("column")
+                if col and op:
+                    filter_clauses.append({"col": col, "op": op, "val": comparator})
+            elif expr_type == "SQL":
+                sql_expression = adhoc.get("sqlExpression")
+                if sql_expression and op:
+                    filter_clauses.append(
+                        {
+                            "col": {
+                                "sqlExpression": sql_expression,
+                                "label": sql_expression,
+                                "expressionType": "SQL",
+                            },
+                            "op": op,
+                            "val": comparator,
+                        }
+                    )
+        query_params["filter"] = filter_clauses
+
+        # Apply time_range to a temporal filter so the generated SQL reflects it
+        time_range = query_params.get("time_range")
+        if time_range and time_range != "No filter":
+            temporal_col = datasource.main_dttm_col or query_params.get("granularity")
+            if temporal_col:
+                query_params["filter"].append(
+                    {"col": temporal_col, "op": "TEMPORAL_RANGE", "val": time_range}
+                )
 
         # Translate granularity_sqla to granularity
         # This is required by get_sqla_query for time-series charts

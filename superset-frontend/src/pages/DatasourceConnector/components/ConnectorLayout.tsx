@@ -202,7 +202,6 @@ function getAIBannerText(
       return null;
   }
 }
-
 export default function ConnectorLayout({
   currentStep,
   children,

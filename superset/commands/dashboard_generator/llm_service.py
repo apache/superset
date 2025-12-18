@@ -796,6 +796,7 @@ Return as JSON:
         available_columns: list[str] | None = None,
         previous_errors: list[str] | None = None,
         datetime_column: str | None = None,
+        template_context: dict[str, Any] | None = None,
     ) -> str:
         """Build prompt for chart parameter mapping with grounding techniques."""
         prompt = f"""You are mapping chart parameters from an old dataset to a new one.
@@ -871,6 +872,11 @@ Result: {"metrics": ["COUNT(*)", {"expressionType": "SIMPLE", "column": {"column
 
 ## OUTPUT: Return the updated parameters as valid JSON object
 """
+
+        if template_context:
+            prompt += "\n## TEMPLATE CONTEXT (business/domain intent)\n"
+            prompt += json.dumps(template_context, indent=2)
+            prompt += "\nUse this context when choosing columns/metrics.\n"
         return prompt
 
     # =========================================================================

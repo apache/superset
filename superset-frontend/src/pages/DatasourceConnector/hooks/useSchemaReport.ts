@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging } from '@superset-ui/core';
 import type { SchemaReportResponse, DatabaseSchemaReport } from '../types';
 import { USE_MOCK_DATA } from '../config';
+import { JoinType, Cardinality } from '../../../components/DatabaseSchemaEditor';
 
 // Mock data for testing UI without backend
 const MOCK_REPORT: DatabaseSchemaReport = {
@@ -151,6 +152,20 @@ const MOCK_REPORT: DatabaseSchemaReport = {
       ],
     },
   ],
+  joins: [
+    {
+      id: 1,
+      source_table: 'orders',
+      source_table_id: 1,
+      source_columns: ['customer_id'],
+      target_table: 'customers',
+      target_table_id: 2,
+      target_columns: ['customer_id'],
+      join_type: JoinType.LEFT,
+      cardinality: Cardinality.MANY_TO_ONE,
+      semantic_context: 'Orders are linked to customers through the customer_id field',
+    },
+  ],
 };
 
 interface UseSchemaReportReturn {
@@ -188,7 +203,7 @@ export default function useSchemaReport(
 
     try {
       const response = await SupersetClient.get({
-        endpoint: `/api/v1/datasource_analyzer/report/${reportId}`,
+        endpoint: `/api/v1/datasource/analysis/report/${reportId}`,
       });
 
       const data = response.json as SchemaReportResponse;
@@ -199,6 +214,7 @@ export default function useSchemaReport(
         status: data.status,
         created_at: data.created_at,
         tables: data.tables,
+        joins: data.joins || [],
       });
     } catch (err) {
       logging.error('Error fetching schema report:', err);

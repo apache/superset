@@ -30,6 +30,7 @@ ANALYZER_PERMISSION_MAP = {
     "get": "read",
     "check_status": "read",
     "get_report": "read",
+    "generate_dashboard": "write",
 }
 from superset.extensions import db, event_logger
 from superset.models.database_analyzer import (
@@ -37,10 +38,12 @@ from superset.models.database_analyzer import (
     AnalyzedTable,
     DatabaseSchemaReport,
 )
+from superset.tasks.dashboard_generator import kickstart_generation
 from superset.tasks.database_analyzer import (
     check_analysis_status,
     kickstart_analysis,
 )
+from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -94,6 +97,8 @@ class CheckStatusResponseSchema(Schema):
     error_message = fields.String(allow_none=True)
     tables_count = fields.Integer(allow_none=True)
     joins_count = fields.Integer(allow_none=True)
+    confidence_score = fields.Float(allow_none=True)
+    confidence_validation_notes = fields.String(allow_none=True)
 
 
 class TableDescriptionPutSchema(Schema):
@@ -322,6 +327,12 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
                 "created_at": report.created_on.isoformat()
                 if report.created_on
                 else None,
+                "confidence_score": report.confidence_score,
+                "confidence_breakdown": json.loads(report.confidence_breakdown or "{}"),
+                "confidence_recommendations": json.loads(
+                    report.confidence_recommendations or "[]"
+                ),
+                "confidence_validation_notes": report.confidence_validation_notes,
                 "tables": [],
                 "joins": [],
             }
@@ -353,13 +364,25 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
 
             # Add joins
             for join in report.joins:
+                source_columns = (
+                    json.loads(join.source_columns)
+                    if isinstance(join.source_columns, str)
+                    else join.source_columns
+                )
+                target_columns = (
+                    json.loads(join.target_columns)
+                    if isinstance(join.target_columns, str)
+                    else join.target_columns
+                )
                 result["joins"].append(
                     {
                         "id": join.id,
                         "source_table": join.source_table.table_name,
-                        "source_columns": join.source_columns,
+                        "source_table_id": join.source_table_id,
+                        "source_columns": source_columns,
                         "target_table": join.target_table.table_name,
-                        "target_columns": join.target_columns,
+                        "target_table_id": join.target_table_id,
+                        "target_columns": target_columns,
                         "join_type": join.join_type,
                         "cardinality": join.cardinality,
                         "semantic_context": join.semantic_context,
@@ -591,6 +614,315 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             logger.exception("Error updating column description")
             return self.response_500(message=str(e))
 
+    @expose("/report/<int:report_id>/join", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.create_join",
+        log_to_statsd=True,
+    )
+    def create_join(self, report_id: int) -> Response:
+        """Create a new join relationship.
+        ---
+        post:
+          summary: Create join relationship
+          description: Create a new join relationship between tables
+          parameters:
+          - in: path
+            name: report_id
+            required: true
+            schema:
+              type: integer
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required: [source_table_id, target_table_id, source_columns, target_columns, join_type, cardinality]
+                  properties:
+                    source_table_id:
+                      type: integer
+                    target_table_id:
+                      type: integer
+                    source_columns:
+                      type: array
+                      items:
+                        type: string
+                    target_columns:
+                      type: array
+                      items:
+                        type: string
+                    join_type:
+                      type: string
+                      enum: [inner, left, right, full, cross]
+                    cardinality:
+                      type: string
+                      enum: ["1:1", "1:N", "N:1", "N:M"]
+                    semantic_context:
+                      type: string
+          responses:
+            201:
+              description: Join created successfully
+            400:
+              description: Bad request
+            404:
+              description: Report or table not found
+            500:
+              description: Internal server error
+        """
+        try:
+            import json
+            from superset.models.database_analyzer import (
+                AnalyzedTable,
+                InferredJoin,
+                JoinType,
+                Cardinality,
+            )
+
+            data = request.json or {}
+
+            # Verify report exists
+            report = db.session.query(DatabaseSchemaReport).get(report_id)
+            if not report:
+                return self.response_404(message="Report not found")
+
+            # Verify tables belong to this report
+            source_table = (
+                db.session.query(AnalyzedTable)
+                .filter_by(id=data["source_table_id"], report_id=report_id)
+                .first()
+            )
+            target_table = (
+                db.session.query(AnalyzedTable)
+                .filter_by(id=data["target_table_id"], report_id=report_id)
+                .first()
+            )
+
+            if not source_table or not target_table:
+                return self.response_404(message="Table not found")
+
+            # Create join
+            join = InferredJoin(
+                report_id=report_id,
+                source_table_id=data["source_table_id"],
+                target_table_id=data["target_table_id"],
+                source_columns=json.dumps(data["source_columns"]),
+                target_columns=json.dumps(data["target_columns"]),
+                join_type=JoinType(data["join_type"]),
+                cardinality=Cardinality(data["cardinality"]),
+                semantic_context=data.get("semantic_context"),
+            )
+
+            db.session.add(join)
+            db.session.commit()
+
+            return self.response(
+                201,
+                id=join.id,
+                source_table=source_table.table_name,
+                source_columns=data["source_columns"],
+                target_table=target_table.table_name,
+                target_columns=data["target_columns"],
+                join_type=join.join_type.value,
+                cardinality=join.cardinality.value,
+                semantic_context=join.semantic_context,
+            )
+
+        except Exception as e:
+            logger.exception("Error creating join")
+            db.session.rollback()
+            return self.response_500(message=str(e))
+
+    @expose("/report/<int:report_id>/join/<int:join_id>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.update_join",
+        log_to_statsd=True,
+    )
+    def update_join(self, report_id: int, join_id: int) -> Response:
+        """Update a join relationship.
+        ---
+        put:
+          summary: Update join relationship
+          description: Update an existing join relationship
+          parameters:
+          - in: path
+            name: report_id
+            required: true
+            schema:
+              type: integer
+          - in: path
+            name: join_id
+            required: true
+            schema:
+              type: integer
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    source_table_id:
+                      type: integer
+                    target_table_id:
+                      type: integer
+                    source_columns:
+                      type: array
+                      items:
+                        type: string
+                    target_columns:
+                      type: array
+                      items:
+                        type: string
+                    join_type:
+                      type: string
+                      enum: [inner, left, right, full, cross]
+                    cardinality:
+                      type: string
+                      enum: ["1:1", "1:N", "N:1", "N:M"]
+                    semantic_context:
+                      type: string
+          responses:
+            200:
+              description: Join updated successfully
+            404:
+              description: Join not found
+            500:
+              description: Internal server error
+        """
+        try:
+            import json
+            from superset.models.database_analyzer import (
+                AnalyzedTable,
+                InferredJoin,
+                JoinType,
+                Cardinality,
+            )
+
+            data = request.json or {}
+
+            join = (
+                db.session.query(InferredJoin)
+                .filter_by(id=join_id, report_id=report_id)
+                .first()
+            )
+
+            if not join:
+                return self.response_404(message="Join not found")
+
+            # Update fields if provided
+            if "source_table_id" in data:
+                source_table = (
+                    db.session.query(AnalyzedTable)
+                    .filter_by(id=data["source_table_id"], report_id=report_id)
+                    .first()
+                )
+                if not source_table:
+                    return self.response_404(message="Source table not found")
+                join.source_table_id = data["source_table_id"]
+
+            if "target_table_id" in data:
+                target_table = (
+                    db.session.query(AnalyzedTable)
+                    .filter_by(id=data["target_table_id"], report_id=report_id)
+                    .first()
+                )
+                if not target_table:
+                    return self.response_404(message="Target table not found")
+                join.target_table_id = data["target_table_id"]
+
+            if "source_columns" in data:
+                join.source_columns = json.dumps(data["source_columns"])
+            if "target_columns" in data:
+                join.target_columns = json.dumps(data["target_columns"])
+            if "join_type" in data:
+                join.join_type = JoinType(data["join_type"])
+            if "cardinality" in data:
+                join.cardinality = Cardinality(data["cardinality"])
+            if "semantic_context" in data:
+                join.semantic_context = data["semantic_context"]
+
+            db.session.commit()
+
+            return self.response(
+                200,
+                id=join.id,
+                source_table=join.source_table.table_name,
+                source_columns=json.loads(join.source_columns),
+                target_table=join.target_table.table_name,
+                target_columns=json.loads(join.target_columns),
+                join_type=join.join_type.value,
+                cardinality=join.cardinality.value,
+                semantic_context=join.semantic_context,
+            )
+
+        except Exception as e:
+            logger.exception("Error updating join")
+            db.session.rollback()
+            return self.response_500(message=str(e))
+
+    @expose("/report/<int:report_id>/join/<int:join_id>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_join",
+        log_to_statsd=True,
+    )
+    def delete_join(self, report_id: int, join_id: int) -> Response:
+        """Delete a join relationship.
+        ---
+        delete:
+          summary: Delete join relationship
+          description: Delete an existing join relationship
+          parameters:
+          - in: path
+            name: report_id
+            required: true
+            schema:
+              type: integer
+          - in: path
+            name: join_id
+            required: true
+            schema:
+              type: integer
+          responses:
+            204:
+              description: Join deleted successfully
+            404:
+              description: Join not found
+            500:
+              description: Internal server error
+        """
+        try:
+            from superset.models.database_analyzer import InferredJoin
+
+            join = (
+                db.session.query(InferredJoin)
+                .filter_by(id=join_id, report_id=report_id)
+                .first()
+            )
+
+            if not join:
+                return self.response_404(message="Join not found")
+
+            db.session.delete(join)
+            db.session.commit()
+
+            return self.response(204)
+
+        except Exception as e:
+            logger.exception("Error deleting join")
+            db.session.rollback()
+            return self.response_500(message=str(e))
+
     @expose("/generate", methods=("POST",))
     @protect()
     @safe
@@ -645,21 +977,19 @@ class DatasourceAnalyzerRestApi(BaseSupersetApi):
             if not report:
                 return self.response_404(message="Report not found")
 
-            # TODO: Integrate with Dashboard Generation Celery Job
-            # For now, return a placeholder run_id
-            # The actual implementation will call the Celery task and return
-            # its task ID
-            import uuid
-
-            placeholder_run_id = str(uuid.uuid4())
-
-            logger.info(
-                "Dashboard generation requested for report_id=%s, dashboard_id=%s",
-                report_id,
-                dashboard_id,
+            result = kickstart_generation(
+                database_report_id=report_id,
+                template_dashboard_id=dashboard_id,
             )
 
-            return self.response(200, result={"run_id": placeholder_run_id})
+            logger.info(
+                "Dashboard generation requested for report_id=%s, dashboard_id=%s -> run_id=%s",
+                report_id,
+                dashboard_id,
+                result.get("run_id"),
+            )
+
+            return self.response(200, result=result)
 
         except ValidationError as error:
             return self.response_400(message=str(error.messages))

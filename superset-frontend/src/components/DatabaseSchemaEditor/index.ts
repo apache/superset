@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/**
- * Set to true to use mock data for UI testing without backend.
- * Set to false to use real API endpoints.
- */
-export const USE_MOCK_DATA = false;
+export { default as JoinEditorModal } from './JoinEditorModal';
+export { default as JoinsList } from './JoinsList';
+export type { Join, Table, Column } from './JoinEditorModal';
+export { JoinType, Cardinality } from './JoinEditorModal';

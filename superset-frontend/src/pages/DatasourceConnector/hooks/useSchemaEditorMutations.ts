@@ -65,7 +65,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         await SupersetClient.put({
-          endpoint: `/api/v1/datasource_analyzer/table/${tableId}`,
+          endpoint: `/api/v1/datasource/analysis/table/${tableId}`,
           jsonPayload: { description },
         });
         setMutationState({ loading: false, error: null });
@@ -100,7 +100,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         await SupersetClient.put({
-          endpoint: `/api/v1/datasource_analyzer/column/${columnId}`,
+          endpoint: `/api/v1/datasource/analysis/column/${columnId}`,
           jsonPayload: { description },
         });
         setMutationState({ loading: false, error: null });
@@ -133,7 +133,7 @@ export default function useSchemaEditorMutations(): UseSchemaEditorMutationsRetu
 
       try {
         const response = await SupersetClient.post({
-          endpoint: '/api/v1/datasource_analyzer/generate',
+          endpoint: '/api/v1/datasource/analysis/generate',
           jsonPayload: {
             report_id: reportId,
             dashboard_id: dashboardId,

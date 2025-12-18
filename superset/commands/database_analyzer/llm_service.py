@@ -39,6 +39,7 @@ class LLMService(BaseLLMClient):
     Extends BaseLLMClient with domain-specific methods for:
     - Generating table/column descriptions from schema and sample data
     - Inferring join relationships between tables
+    - Validating analysis confidence
 
     Uses the "database_analyzer" feature configuration, which defaults to
     a large-context model (google/gemini-2.0-flash-001) optimized for
@@ -307,3 +308,155 @@ Return as JSON array:
         join.setdefault("suggested_by", "ai_inference")
 
         return True
+
+    def validate_analysis_confidence(
+        self,
+        schema_name: str,
+        tables: list[dict[str, Any]],
+        joins: list[dict[str, Any]],
+        ai_descriptions: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Validate the confidence of the analysis using another LLM.
+
+        :param schema_name: Name of the schema analyzed
+        :param tables: List of analyzed tables with metadata
+        :param joins: List of inferred joins
+        :param ai_descriptions: AI-generated descriptions
+        :return: Dict with confidence scores and recommendations
+        """
+        if not self.is_available():
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "validation_notes": "LLM validation not available",
+            }
+
+        prompt = self._build_confidence_validation_prompt(
+            schema_name, tables, joins, ai_descriptions
+        )
+
+        response = self.chat_json(
+            prompt=prompt,
+            system_prompt=(
+                "You are a database analysis quality auditor. Review database "
+                "schema analyses and provide confidence scores."
+            ),
+        )
+
+        if not response.success or not response.json_content:
+            logger.error(
+                "Error calling LLM for confidence validation: %s",
+                response.error or "No content",
+            )
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "validation_notes": f"Validation failed: {response.error or 'Unknown error'}",
+            }
+
+        return self._parse_confidence_validation_response(response.json_content)
+
+    def _build_confidence_validation_prompt(
+        self,
+        schema_name: str,
+        tables: list[dict[str, Any]],
+        joins: list[dict[str, Any]],
+        ai_descriptions: dict[str, Any],
+    ) -> str:
+        """Build prompt for validating analysis confidence"""
+        prompt = (
+            "You are a database analysis quality auditor. Review the following "
+            "database schema analysis and provide confidence scores.\n\n"
+            f"Schema: {schema_name}\n"
+            f"Number of tables: {len(tables)}\n"
+            f"Number of inferred joins: {len(joins)}\n\n"
+            "Analysis Summary:\n"
+        )
+
+        # Add table information
+        prompt += "\nTables analyzed:\n"
+        for table in tables[:10]:  # Limit to first 10 tables for context
+            prompt += f"- {table.get('name', 'Unknown')}: "
+            prompt += f"{table.get('columns_count', 0)} columns, "
+            prompt += f"{table.get('row_count', 'unknown')} rows\n"
+            if table.get("ai_description"):
+                prompt += f"  Description: {table['ai_description'][:100]}...\n"
+
+        # Add join information
+        if joins:
+            prompt += f"\nInferred joins ({len(joins)} total):\n"
+            for join in joins[:5]:  # Show first 5 joins
+                prompt += (
+                    f"- {join.get('source_table')}.{join.get('source_columns')} -> "
+                )
+                prompt += f"{join.get('target_table')}.{join.get('target_columns')}\n"
+                prompt += f"  Type: {join.get('join_type', 'unknown')}, "
+                prompt += f"Cardinality: {join.get('cardinality', 'unknown')}, "
+                prompt += f"Confidence: {join.get('confidence_score', 0)}\n"
+
+        prompt += """
+Please evaluate the quality and completeness of this analysis and provide:
+
+1. overall_confidence: A score from 0.0 to 1.0 indicating overall confidence
+2. confidence_breakdown: Individual confidence scores for different aspects:
+   - table_descriptions: How accurate/complete are the table descriptions
+   - column_descriptions: How accurate/complete are the column descriptions
+   - join_inference: How accurate are the inferred joins
+   - schema_coverage: How complete is the schema analysis
+3. recommendations: List of specific recommendations to improve the analysis
+4. potential_issues: Any red flags or concerns noticed
+5. validation_notes: Additional context about the validation
+
+Consider factors like:
+- Consistency of descriptions
+- Plausibility of inferred relationships
+- Completeness of metadata
+- Semantic accuracy
+
+Return the response as JSON:
+{
+  "overall_confidence": 0.75,
+  "confidence_breakdown": {
+    "table_descriptions": 0.8,
+    "column_descriptions": 0.7,
+    "join_inference": 0.65,
+    "schema_coverage": 0.9
+  },
+  "recommendations": [
+    "Review join between X and Y - seems unlikely",
+    "Table Z description needs more detail"
+  ],
+  "potential_issues": [
+    "Missing relationships between related tables",
+    "Some descriptions are too generic"
+  ],
+  "validation_notes": "Analysis appears mostly complete with minor gaps"
+}
+"""
+        return prompt
+
+    def _parse_confidence_validation_response(
+        self, result: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Parse the LLM response for confidence validation"""
+        try:
+            # Ensure all required fields exist with defaults
+            return {
+                "overall_confidence": float(result.get("overall_confidence", 0.5)),
+                "confidence_breakdown": result.get("confidence_breakdown", {}),
+                "recommendations": result.get("recommendations", []),
+                "potential_issues": result.get("potential_issues", []),
+                "validation_notes": result.get("validation_notes", ""),
+            }
+        except (ValueError, TypeError) as e:
+            logger.error("Failed to parse confidence validation response: %s", str(e))
+            return {
+                "overall_confidence": 0.5,
+                "confidence_breakdown": {},
+                "recommendations": [],
+                "potential_issues": [],
+                "validation_notes": "Failed to parse validation response",
+            }
