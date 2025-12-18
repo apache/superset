@@ -109,7 +109,7 @@ def normalize_example_data_url(url: str) -> str:
     # Handle existing examples:// protocol
     if url.startswith(EXAMPLES_PROTOCOL):
         # Remove the protocol for processing
-        example_name = url[len(EXAMPLES_PROTOCOL):]
+        example_name = url[len(EXAMPLES_PROTOCOL) :]
     elif url.startswith(("file://", "http://", "https://", "s3://", "gs://")):
         # Already a valid URL protocol, return as-is
         return url
