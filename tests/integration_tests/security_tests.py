@@ -1522,9 +1522,9 @@ class TestRolePermission(SupersetTestCase):
 
         # Any permissions Public has that Gamma doesn't should be intentional
         # (there shouldn't be any in the current design)
-        assert (
-            len(public_only) == 0
-        ), f"Public has permissions Gamma doesn't: {public_only}"
+        assert len(public_only) == 0, (
+            f"Public has permissions Gamma doesn't: {public_only}"
+        )
 
         # Public should have significantly fewer permissions than Gamma
         assert len(public_perm_set) < len(gamma_perm_set)
