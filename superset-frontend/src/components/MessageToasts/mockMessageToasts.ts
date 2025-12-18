@@ -16,29 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findTopLevelComponentIds from './findTopLevelComponentIds';
-import childChartsDidLoad from './childChartsDidLoad';
+import { ToastType, ToastMeta } from 'src/components/MessageToasts/types';
 
-export default function getLoadStatsPerTopLevelComponent({
-  layout,
-  chartQueries,
-}) {
-  const topLevelComponents = findTopLevelComponentIds(layout);
-  const stats = {};
-  topLevelComponents.forEach(({ id, ...restStats }) => {
-    const { didLoad, minQueryStartTime } = childChartsDidLoad({
-      id,
-      layout,
-      chartQueries,
-    });
+const mockMessageToasts: Partial<ToastMeta>[] = [
+  { id: 'info_id', toastType: ToastType.Info, text: 'info toast' },
+  { id: 'danger_id', toastType: ToastType.Danger, text: 'danger toast' },
+];
 
-    stats[id] = {
-      didLoad,
-      id,
-      minQueryStartTime,
-      ...restStats,
-    };
-  });
-
-  return stats;
-}
+export default mockMessageToasts;
