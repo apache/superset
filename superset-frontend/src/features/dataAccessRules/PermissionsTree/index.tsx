@@ -630,6 +630,18 @@ function PermissionsTree({
     },
   ];
 
+  // Count CLS rules for a given table
+  const countClsRules = (tableKey: string): number => {
+    const prefix = `${tableKey}::`;
+    return Object.keys(treeState.clsRules).filter(key => key.startsWith(prefix)).length;
+  };
+
+  // Check if a table has RLS rules
+  const hasRlsRules = (tableKey: string): boolean => {
+    const rls = treeState.rlsRules[tableKey];
+    return !!(rls && (rls.predicate || rls.groupKey));
+  };
+
   const titleRender = (node: PermissionNode) => {
     const nodeKey = node.key as string;
     const isExpanded = treeState.expandedKeys.includes(nodeKey);
@@ -673,12 +685,32 @@ function PermissionsTree({
         groupKey: '',
       };
 
+      // Check if table has permissions, CLS, or RLS
+      const tableCounts = countDescendantPermissions(nodeKey, treeState.permissionStates);
+      const tableExplicitState = getExplicitState(nodeKey, treeState.permissionStates);
+      const clsCount = countClsRules(nodeKey);
+      const hasRls = hasRlsRules(nodeKey);
+      const tableHasConfig =
+        tableExplicitState === 'allow' ||
+        tableExplicitState === 'deny' ||
+        (tableCounts && (tableCounts.allowed > 0 || tableCounts.denied > 0)) ||
+        clsCount > 0 ||
+        hasRls;
+
       return (
         <div>
           <div className="node-title">
             {getStateIcon(nodeKey)}
             {getNodeIcon(node.nodeType)}
-            <span>{title}</span>
+            <span style={tableHasConfig ? { fontWeight: 600 } : undefined}>{title}</span>
+            {(hasRls || clsCount > 0) && (
+              <span className="node-count">
+                ({[
+                  hasRls ? 'RLS' : null,
+                  clsCount > 0 ? `CLS: ${clsCount}` : null,
+                ].filter(Boolean).join(', ')})
+              </span>
+            )}
           </div>
           <div className="rls-container">
             <div className="rls-row">
@@ -711,25 +743,44 @@ function PermissionsTree({
     // Non-column nodes: check if leaf (columns are leafs, tables are not anymore)
     const isLeaf = node.nodeType === 'column';
 
-    // Count descendants with custom permissions when collapsed
-    const counts =
-      !isExpanded && !isLeaf
-        ? countDescendantPermissions(nodeKey, treeState.permissionStates)
-        : null;
+    // Count descendants with custom permissions
+    const counts = !isLeaf
+      ? countDescendantPermissions(nodeKey, treeState.permissionStates)
+      : null;
     const hasCustomRules = counts && (counts.allowed > 0 || counts.denied > 0);
+
+    // Check if this node itself has explicit permissions
+    const explicitState = getExplicitState(nodeKey, treeState.permissionStates);
+    const hasExplicitPermission = explicitState === 'allow' || explicitState === 'deny';
+
+    // For tables, also check CLS/RLS
+    const isTable = node.nodeType === 'table';
+    const clsCount = isTable ? countClsRules(nodeKey) : 0;
+    const hasRls = isTable ? hasRlsRules(nodeKey) : false;
+
+    // Bold if node or any children have permissions, or if table has CLS/RLS
+    const shouldBeBold = hasExplicitPermission || hasCustomRules || clsCount > 0 || hasRls;
 
     return (
       <div className="node-title">
         {getStateIcon(nodeKey)}
         {getNodeIcon(node.nodeType)}
-        <span>{title}</span>
-        {hasCustomRules && (
+        <span style={shouldBeBold ? { fontWeight: 600 } : undefined}>{title}</span>
+        {hasCustomRules && !isExpanded && (
           <span className="node-count">
             (
             <span className="count-allowed">{counts.allowed}</span>
             {' / '}
             <span className="count-denied">{counts.denied}</span>
             )
+          </span>
+        )}
+        {isTable && (hasRls || clsCount > 0) && !isExpanded && (
+          <span className="node-count">
+            ({[
+              hasRls ? 'RLS' : null,
+              clsCount > 0 ? `CLS: ${clsCount}` : null,
+            ].filter(Boolean).join(', ')})
           </span>
         )}
         {node.hasMore && node.totalCount && (
