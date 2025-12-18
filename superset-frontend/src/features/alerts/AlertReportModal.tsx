@@ -39,7 +39,6 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-// import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
   AsyncSelect,
@@ -264,11 +263,6 @@ export const StyledInputContainer = styled.div`
       text-align: left;
     }
 
-    .required {
-      margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorError};
-    }
-
     .control-label {
       margin-bottom: ${theme.sizeUnit * 2}px;
       color: ${theme.colorText};
@@ -401,10 +395,6 @@ const StyledNotificationMethodWrapper = styled.div`
   .inline-container .input-container {
     margin-left: 0;
   }
-`;
-
-const inputSpacer = (theme: SupersetTheme) => css`
-  margin-right: ${theme.sizeUnit * 3}px;
 `;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
@@ -2047,6 +2037,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <ModalFormField
                     label={isReport ? t('Report name') : t('Alert name')}
                     required
+                    error={
+                      validationStatus[Sections.General]?.hasErrors &&
+                      !currentAlert?.name?.trim()
+                        ? t(
+                            '%s name is required',
+                            isReport ? t('Report') : t('Alert'),
+                          )
+                        : undefined
+                    }
                   >
                     <Input
                       name="name"
@@ -2059,7 +2058,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
+                  <ModalFormField
+                    label={t('Owners')}
+                    required
+                    error={
+                      validationStatus[Sections.General]?.hasErrors &&
+                      (!currentAlert?.owners ||
+                        currentAlert.owners.length === 0)
+                        ? t('Owners are required')
+                        : undefined
+                    }
+                  >
                     <AsyncSelect
                       ariaLabel={t('Owners')}
                       allowClear
@@ -2120,40 +2129,46 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     ),
                     children: (
                       <div>
-                        <StyledInputContainer>
-                          <div className="control-label">
-                            {t('Database')}
-                            <span className="required">*</span>
-                          </div>
-                          <div className="input-container">
-                            <AsyncSelect
-                              ariaLabel={t('Database')}
-                              name="source"
-                              placeholder={t('Select database')}
-                              value={
-                                currentAlert?.database?.label &&
-                                currentAlert?.database?.value
-                                  ? {
-                                      value: currentAlert.database.value,
-                                      label: currentAlert.database.label,
-                                    }
-                                  : undefined
-                              }
-                              options={loadSourceOptions}
-                              onChange={onSourceChange}
-                            />
-                          </div>
-                        </StyledInputContainer>
-                        <StyledInputContainer>
-                          <div className="control-label">
-                            {t('SQL Query')}
-                            <InfoTooltip
-                              tooltip={t(
-                                'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
-                              )}
-                            />
-                            <span className="required">*</span>
-                          </div>
+                        <ModalFormField
+                          label={t('Database')}
+                          required
+                          error={
+                            validationStatus[Sections.Alert]?.hasErrors &&
+                            !currentAlert?.database
+                              ? t('Database is required')
+                              : undefined
+                          }
+                        >
+                          <AsyncSelect
+                            ariaLabel={t('Database')}
+                            name="source"
+                            placeholder={t('Select database')}
+                            value={
+                              currentAlert?.database?.label &&
+                              currentAlert?.database?.value
+                                ? {
+                                    value: currentAlert.database.value,
+                                    label: currentAlert.database.label,
+                                  }
+                                : undefined
+                            }
+                            options={loadSourceOptions}
+                            onChange={onSourceChange}
+                          />
+                        </ModalFormField>
+                        <ModalFormField
+                          label={t('SQL Query')}
+                          required
+                          tooltip={t(
+                            'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
+                          )}
+                          error={
+                            validationStatus[Sections.Alert]?.hasErrors &&
+                            !currentAlert?.sql?.length
+                              ? t('SQL Query is required')
+                              : undefined
+                          }
+                        >
                           <TextAreaControl
                             name="sql"
                             language="sql"
@@ -2165,57 +2180,60 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             initialValue={resource?.sql}
                             key={currentAlert?.id}
                           />
-                        </StyledInputContainer>
+                        </ModalFormField>
                         <div
                           className="inline-container wrap"
                           css={css`
                             gap: ${theme.sizeUnit}px;
                           `}
                         >
-                          <StyledInputContainer css={noMarginBottom}>
-                            <div className="control-label" css={inputSpacer}>
-                              {t('Trigger Alert If...')}
-                              <span className="required">*</span>
-                            </div>
-                            <div className="input-container">
-                              <Select
-                                ariaLabel={t('Condition')}
-                                onChange={onConditionChange}
-                                placeholder={t('Condition')}
-                                value={
-                                  currentAlert?.validator_config_json?.op ||
-                                  undefined
-                                }
-                                options={CONDITIONS}
-                              />
-                            </div>
-                          </StyledInputContainer>
-                          <StyledInputContainer css={noMarginBottom}>
-                            <div className="control-label">
-                              {t('Value')}{' '}
-                              {!conditionNotNull && (
-                                <span className="required">*</span>
-                              )}
-                            </div>
-                            <div className="input-container">
-                              <InputNumber
-                                disabled={conditionNotNull}
-                                type="number"
-                                name="threshold"
-                                value={
-                                  currentAlert?.validator_config_json
-                                    ?.threshold !== undefined &&
-                                  !conditionNotNull
-                                    ? currentAlert.validator_config_json
-                                        .threshold
-                                    : ''
-                                }
-                                min={0}
-                                placeholder={t('Value')}
-                                onChange={onThresholdChange}
-                              />
-                            </div>
-                          </StyledInputContainer>
+                          <ModalFormField
+                            label={t('Trigger Alert If...')}
+                            required
+                            error={
+                              validationStatus[Sections.Alert]?.hasErrors &&
+                              !currentAlert?.validator_config_json?.op
+                                ? t('Condition is required')
+                                : undefined
+                            }
+                          >
+                            <Select
+                              ariaLabel={t('Condition')}
+                              onChange={onConditionChange}
+                              placeholder={t('Condition')}
+                              value={
+                                currentAlert?.validator_config_json?.op ||
+                                undefined
+                              }
+                              options={CONDITIONS}
+                            />
+                          </ModalFormField>
+                          <ModalFormField
+                            label={t('Value')}
+                            required={!conditionNotNull}
+                            error={
+                              validationStatus[Sections.Alert]?.hasErrors &&
+                              !conditionNotNull &&
+                              !currentAlert?.validator_config_json?.threshold
+                                ? t('Value is required')
+                                : undefined
+                            }
+                          >
+                            <InputNumber
+                              disabled={conditionNotNull}
+                              type="number"
+                              name="threshold"
+                              value={
+                                currentAlert?.validator_config_json
+                                  ?.threshold !== undefined && !conditionNotNull
+                                  ? currentAlert.validator_config_json.threshold
+                                  : ''
+                              }
+                              min={0}
+                              placeholder={t('Value')}
+                              onChange={onThresholdChange}
+                            />
+                          </ModalFormField>
                         </div>
                       </div>
                     ),
@@ -2482,7 +2500,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <InputNumber
                           type="number"
                           name="custom_width"
-                          value={currentAlert?.custom_width || undefined}
+                          value={currentAlert?.custom_width || 1600}
                           min={600}
                           max={2400}
                           placeholder={t('Input custom width in pixels')}
@@ -2525,66 +2543,66 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     value={currentAlert?.crontab || ''}
                     onChange={newVal => updateAlertState('crontab', newVal)}
                   />
-                  <StyledInputContainer>
-                    <div className="control-label">
-                      {t('Timezone')} <span className="required">*</span>
-                    </div>
+                  <ModalFormField
+                    label={t('Timezone')}
+                    required
+                    error={
+                      validationStatus[Sections.Schedule]?.hasErrors &&
+                      !currentAlert?.timezone
+                        ? t('Timezone is required')
+                        : undefined
+                    }
+                  >
                     <TimezoneSelector
                       onTimezoneChange={onTimezoneChange}
                       timezone={currentAlert?.timezone}
                       minWidth="100%"
                     />
-                  </StyledInputContainer>
-                  <StyledInputContainer>
-                    <div className="control-label">
-                      {t('Log retention')}
-                      <span className="required">*</span>
-                    </div>
-                    <div className="input-container">
-                      <Select
-                        ariaLabel={t('Log retention')}
-                        placeholder={t('Log retention')}
-                        onChange={onLogRetentionChange}
-                        value={currentAlert?.log_retention}
-                        options={RETENTION_OPTIONS}
-                        sortComparator={propertyComparator('value')}
-                      />
-                    </div>
-                  </StyledInputContainer>
-                  <StyledInputContainer css={noMarginBottom}>
-                    {isReport ? (
-                      <>
-                        <div className="control-label">
-                          {t('Working timeout')}
-                          <span className="required">*</span>
-                        </div>
-                        <div className="input-container">
-                          <NumberInput
-                            min={1}
-                            name="working_timeout"
-                            value={currentAlert?.working_timeout || ''}
-                            placeholder={t('Time in seconds')}
-                            onChange={onTimeoutVerifyChange}
-                            timeUnit={t('seconds')}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="control-label">{t('Grace period')}</div>
-                        <div className="input-container">
-                          <NumberInput
-                            min={1}
-                            name="grace_period"
-                            value={currentAlert?.grace_period || ''}
-                            placeholder={t('Time in seconds')}
-                            onChange={onTimeoutVerifyChange}
-                            timeUnit={t('seconds')}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </StyledInputContainer>
+                  </ModalFormField>
+                  <ModalFormField
+                    label={t('Log retention')}
+                    required
+                    error={
+                      validationStatus[Sections.Schedule]?.hasErrors &&
+                      !currentAlert?.log_retention
+                        ? t('Log retention is required')
+                        : undefined
+                    }
+                  >
+                    <Select
+                      ariaLabel={t('Log retention')}
+                      placeholder={t('Log retention')}
+                      onChange={onLogRetentionChange}
+                      value={currentAlert?.log_retention}
+                      options={RETENTION_OPTIONS}
+                      sortComparator={propertyComparator('value')}
+                    />
+                  </ModalFormField>
+                  <ModalFormField
+                    label={isReport ? t('Working timeout') : t('Grace period')}
+                    required={isReport}
+                    error={
+                      validationStatus[Sections.Schedule]?.hasErrors &&
+                      isReport &&
+                      !currentAlert?.working_timeout
+                        ? t('Working timeout is required')
+                        : undefined
+                    }
+                    bottomSpacing={false}
+                  >
+                    <NumberInput
+                      min={1}
+                      name={isReport ? 'working_timeout' : 'grace_period'}
+                      value={
+                        isReport
+                          ? currentAlert?.working_timeout || ''
+                          : currentAlert?.grace_period || ''
+                      }
+                      placeholder={t('Time in seconds')}
+                      onChange={onTimeoutVerifyChange}
+                      timeUnit={t('seconds')}
+                    />
+                  </ModalFormField>
                 </>
               ),
             },
