@@ -197,6 +197,8 @@ class AnalyzedColumn(Model, AuditMixinNullable, UUIDMixin):
     column_name = sa.Column(sa.String(256), nullable=False)
     data_type = sa.Column(sa.String(256), nullable=False)
     ordinal_position = sa.Column(sa.Integer, nullable=False)
+    is_primary_key = sa.Column(sa.Boolean, default=False, nullable=False)
+    is_foreign_key = sa.Column(sa.Boolean, default=False, nullable=False)
     db_comment = sa.Column(sa.Text, nullable=True)
     ai_description = sa.Column(sa.Text, nullable=True)
     extra_json = sa.Column(sa.Text, nullable=True)

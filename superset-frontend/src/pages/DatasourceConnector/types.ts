@@ -49,9 +49,65 @@ export interface DatasourceAnalyzerResponse {
 export enum ConnectorStep {
   CONNECT_DATA_SOURCE = 0,
   REVIEW_SCHEMA = 1,
-  REVIEW_MAPPINGS = 2,
-  GENERATE_DASHBOARD = 3,
-  REVIEW_PENDING = 4,
+  EDIT_SCHEMA = 2,
+  REVIEW_MAPPINGS = 3,
+  GENERATE_DASHBOARD = 4,
+  REVIEW_PENDING = 5,
+}
+
+// Schema Editor Types
+export interface AnalyzedColumn {
+  id: number;
+  name: string;
+  type: string;
+  position: number;
+  description: string | null;
+  is_primary_key?: boolean;
+  is_foreign_key?: boolean;
+}
+
+export interface AnalyzedTable {
+  id: number;
+  name: string;
+  type: 'table' | 'view' | 'materialized_view';
+  description: string | null;
+  columns: AnalyzedColumn[];
+}
+
+// Selection types for the detail panel
+export type SchemaSelection =
+  | { type: 'table'; table: AnalyzedTable }
+  | { type: 'column'; column: AnalyzedColumn; table: AnalyzedTable }
+  | null;
+
+export interface DatabaseSchemaReport {
+  id: number;
+  database_id: number;
+  schema_name: string;
+  status: string;
+  created_at: string | null;
+  tables: AnalyzedTable[];
+}
+
+export interface SchemaReportResponse {
+  id: number;
+  database_id: number;
+  schema_name: string;
+  status: string;
+  created_at: string | null;
+  tables: AnalyzedTable[];
+  joins: unknown[];
+}
+
+export interface GenerateDashboardPayload {
+  report_id: number;
+  dashboard_id: number;
+}
+
+export interface GenerateDashboardResponse {
+  result: {
+    run_id: string;
+  };
 }
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'failed';
