@@ -20,7 +20,7 @@ import logging
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import Any
 
-from flask import current_app
+from flask import current_app, Flask
 from sqlalchemy import inspect, MetaData, text
 
 from superset import db
@@ -276,12 +276,12 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                     column_name=col_data["name"],
                     data_type=col_data["type"],
                     ordinal_position=col_data["position"],
+                    is_primary_key=col_data["is_primary_key"],
+                    is_foreign_key=col_data["is_foreign_key"],
                     db_comment=col_data["comment"],
                     extra_json=json.dumps(
                         {
                             "is_nullable": col_data["nullable"],
-                            "is_primary_key": col_data["is_primary_key"],
-                            "is_foreign_key": col_data["is_foreign_key"],
                         }
                     ),
                 )
@@ -327,7 +327,7 @@ class AnalyzeDatabaseSchemaCommand(BaseCommand):
                         str(e),
                     )
 
-    def _augment_table_with_ai_context(self, app: Any, table: AnalyzedTable) -> None:
+    def _augment_table_with_ai_context(self, app: Flask, table: AnalyzedTable) -> None:
         """Wrapper to provide Flask context to the AI description thread"""
         with app.app_context():
             self._augment_table_with_ai(table)

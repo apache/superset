@@ -19,7 +19,12 @@
 import { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
-import { AIInfoBanner, Flex, Icons, Typography } from '@superset-ui/core/components';
+import {
+  AIInfoBanner,
+  Flex,
+  Icons,
+  Typography,
+} from '@superset-ui/core/components';
 import { ConnectorStep } from '../types';
 
 interface ConnectorLayoutProps {
@@ -135,6 +140,25 @@ const stepsConfig: StepConfig[] = [
   },
 ];
 
+// Map internal steps to visual step index
+// EDIT_SCHEMA is visually part of "Review Schema" step
+// REVIEW_MAPPINGS and REVIEW_PENDING are visually part of "Generate Dashboard" step
+function getVisualStepIndex(step: ConnectorStep): number {
+  switch (step) {
+    case ConnectorStep.CONNECT_DATA_SOURCE:
+      return 0;
+    case ConnectorStep.REVIEW_SCHEMA:
+    case ConnectorStep.EDIT_SCHEMA:
+      return 1;
+    case ConnectorStep.REVIEW_MAPPINGS:
+    case ConnectorStep.GENERATE_DASHBOARD:
+    case ConnectorStep.REVIEW_PENDING:
+      return 2;
+    default:
+      return 0;
+  }
+}
+
 function getAIBannerText(
   currentStep: ConnectorStep,
   templateName?: string | null,
@@ -157,6 +181,10 @@ function getAIBannerText(
         : t(
             'AI is analyzing your database schema. This may take a while for large databases.',
           );
+    case ConnectorStep.EDIT_SCHEMA:
+      return t(
+        'Review and edit the AI-generated schema descriptions below before generating your dashboard.',
+      );
     case ConnectorStep.REVIEW_MAPPINGS:
       return t(
         'AI needs your help to map some columns. Please review the suggestions below.',
@@ -174,13 +202,13 @@ function getAIBannerText(
       return null;
   }
 }
-
 export default function ConnectorLayout({
   currentStep,
   children,
   templateName,
   databaseName,
 }: ConnectorLayoutProps) {
+  const visualStep = getVisualStepIndex(currentStep);
   const bannerText = getAIBannerText(currentStep, templateName, databaseName);
 
   return (
@@ -193,8 +221,8 @@ export default function ConnectorLayout({
       <StepsContainer>
         <Flex align="center" gap={0}>
           {stepsConfig.map((step, index) => {
-            const isActive = index === currentStep;
-            const isCompleted = index < currentStep;
+            const isActive = index === visualStep;
+            const isCompleted = index < visualStep;
 
             return (
               <Flex key={step.title} align="center" gap={8}>
