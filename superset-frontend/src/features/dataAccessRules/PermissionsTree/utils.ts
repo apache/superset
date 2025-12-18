@@ -131,11 +131,10 @@ export function cyclePermissionState(
   let nextState: PermissionState;
 
   if (!parentKey) {
-    // Root element (database) - cycle through all three states
+    // Root element (database) - only toggle between inherit and allow
+    // (deny is the default state, so there's no point in explicitly denying)
     if (currentState === 'inherit') {
       nextState = 'allow';
-    } else if (currentState === 'allow') {
-      nextState = 'deny';
     } else {
       nextState = 'inherit';
     }
