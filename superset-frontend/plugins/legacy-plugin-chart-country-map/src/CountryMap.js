@@ -75,19 +75,6 @@ function safeNumber(v) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-function rgbaToHex(rgba) {
-  if (typeof rgba === 'string') return rgba;
-  if (Array.isArray(rgba)) return rgbaToHex(rgba[0]);
-  if (!rgba || typeof rgba !== 'object') return null;
-  const { r, g, b } = rgba;
-  if (r === undefined || g === undefined || b === undefined) return null;
-  const toHex = n => {
-    const hex = Math.round(n).toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-  };
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 function normalizeScale(scale) {
   if (Array.isArray(scale)) return scale;
   if (typeof scale === 'string') {
