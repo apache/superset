@@ -415,12 +415,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Datasource metadata for chart rendering
         ("can_get", "Datasource"),
         ("can_external_metadata", "Datasource"),
-        ("can_external_metadata_by_name", "Datasource"),
-        # Security API for CSRF tokens
-        ("can_read", "SecurityRestApi"),
-        # Menu and OpenAPI access
-        ("can_get", "OpenApi"),
-        ("can_get", "MenuApi"),
     }
 
     # View menus that Public role should NOT have access to
