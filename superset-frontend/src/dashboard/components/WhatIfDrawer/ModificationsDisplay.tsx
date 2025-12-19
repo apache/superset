@@ -71,7 +71,7 @@ const ModificationsDisplay = memo(function ModificationsDisplay({
               margin: 0;
             `}
           >
-            <span>{mod.column}</span>
+            <span>{mod.verboseName || mod.column}</span>
             {mod.isAISuggested && <AIBadge>{t('AI')}</AIBadge>}
             <span
               css={css`
@@ -104,7 +104,8 @@ const ModificationsDisplay = memo(function ModificationsDisplay({
                 .map((mod, idx) => (
                   <AIReasoningItem key={idx}>
                     <strong>
-                      {mod.column} {formatPercentageChange(mod.multiplier, 0)}
+                      {mod.verboseName || mod.column}{' '}
+                      {formatPercentageChange(mod.multiplier, 0)}
                     </strong>
                     <div>{mod.reasoning}</div>
                   </AIReasoningItem>

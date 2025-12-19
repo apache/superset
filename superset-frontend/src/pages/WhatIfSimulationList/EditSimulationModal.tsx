@@ -36,12 +36,16 @@ import {
   SLIDER_TOOLTIP_CONFIG,
 } from 'src/dashboard/components/WhatIfDrawer/constants';
 
+/** Maps column name to verbose name for display */
+type ColumnVerboseNames = Record<string, string>;
+
 interface EditSimulationModalProps {
   simulation: WhatIfSimulation | null;
   onHide: () => void;
   onSaved: () => void;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
+  columnVerboseNames: ColumnVerboseNames;
 }
 
 const ModificationRow = styled.div`
@@ -137,6 +141,7 @@ function EditSimulationModal({
   onSaved,
   addSuccessToast,
   addDangerToast,
+  columnVerboseNames,
 }: EditSimulationModalProps) {
   const theme = useTheme();
 
@@ -265,7 +270,9 @@ function EditSimulationModal({
         modifications.map((mod, index) => (
           <ModificationRow key={`${mod.column}-${index}`}>
             <ModificationHeader>
-              <ColumnName>{mod.column}</ColumnName>
+              <ColumnName>
+                {columnVerboseNames[mod.column] || mod.column}
+              </ColumnName>
               <div
                 css={css`
                   display: flex;

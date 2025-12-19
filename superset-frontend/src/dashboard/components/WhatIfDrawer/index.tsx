@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { css, Alert, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/ui';
 import {
   Select,
   Checkbox,
@@ -162,7 +162,7 @@ const WhatIfPanel = ({
     () =>
       numericColumns.map(col => ({
         value: col.columnName,
-        label: col.columnName,
+        label: col.verboseName || col.columnName,
       })),
     [numericColumns],
   );
@@ -473,16 +473,6 @@ const WhatIfPanel = ({
             ? t('Analyzing relationships...')
             : t('See what if')}
         </ApplyButton>
-
-        {appliedModifications.length === 0 && (
-          <Alert
-            type="info"
-            message={t(
-              'Select a column above to simulate changes and preview how it would impact your dashboard in real-time.',
-            )}
-            showIcon
-          />
-        )}
 
         <ModificationsDisplay modifications={appliedModifications} />
 

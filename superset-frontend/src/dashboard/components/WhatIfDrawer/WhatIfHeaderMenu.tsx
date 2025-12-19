@@ -217,10 +217,11 @@ const WhatIfHeaderMenu = ({
         aria-label={t('More Options')}
         aria-haspopup="true"
         css={css`
-          padding: ${theme.sizeUnit}px;
+          padding: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          height: 20px;
         `}
       >
         <VerticalDotsTrigger />

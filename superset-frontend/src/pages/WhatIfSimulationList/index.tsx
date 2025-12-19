@@ -63,6 +63,9 @@ interface DashboardInfo {
   slug: string | null;
 }
 
+/** Maps column name to verbose name for display */
+type ColumnVerboseNames = Record<string, string>;
+
 const PageContainer = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
@@ -119,11 +122,15 @@ function formatFilterLabel(filter: WhatIfFilter): string {
  */
 function ModificationTag({
   modification,
+  columnVerboseNames,
 }: {
   modification: WhatIfModification;
+  columnVerboseNames: ColumnVerboseNames;
 }) {
   const theme = useTheme();
   const hasFilters = modification.filters && modification.filters.length > 0;
+  const displayName =
+    columnVerboseNames[modification.column] || modification.column;
 
   const tagContent = (
     <Tag
@@ -134,7 +141,7 @@ function ModificationTag({
         margin: 0;
       `}
     >
-      <span>{modification.column}</span>
+      <span>{displayName}</span>
       <span
         css={css`
           font-weight: ${theme.fontWeightStrong};
@@ -172,6 +179,8 @@ function WhatIfSimulationList({
   const [dashboards, setDashboards] = useState<Record<number, DashboardInfo>>(
     {},
   );
+  const [columnVerboseNames, setColumnVerboseNames] =
+    useState<ColumnVerboseNames>({});
   const [loading, setLoading] = useState(true);
   const [simulationCurrentlyDeleting, setSimulationCurrentlyDeleting] =
     useState<WhatIfSimulation | null>(null);
@@ -188,17 +197,40 @@ function WhatIfSimulationList({
       const dashboardIds = [...new Set(result.map(sim => sim.dashboardId))];
       if (dashboardIds.length > 0) {
         const dashboardInfos: Record<number, DashboardInfo> = {};
+        const verboseNames: ColumnVerboseNames = {};
+
         await Promise.all(
           dashboardIds.map(async id => {
             try {
-              const response = await SupersetClient.get({
-                endpoint: `/api/v1/dashboard/${id}`,
-              });
+              // Fetch dashboard info and datasets in parallel
+              const [dashboardResponse, datasetsResponse] = await Promise.all([
+                SupersetClient.get({
+                  endpoint: `/api/v1/dashboard/${id}`,
+                }),
+                SupersetClient.get({
+                  endpoint: `/api/v1/dashboard/${id}/datasets`,
+                }),
+              ]);
+
               dashboardInfos[id] = {
                 id,
-                dashboard_title: response.json.result.dashboard_title,
-                slug: response.json.result.slug,
+                dashboard_title: dashboardResponse.json.result.dashboard_title,
+                slug: dashboardResponse.json.result.slug,
               };
+
+              // Extract column verbose names from all datasets
+              const datasets = datasetsResponse.json.result || [];
+              datasets.forEach(
+                (dataset: {
+                  columns?: { column_name: string; verbose_name?: string }[];
+                }) => {
+                  (dataset.columns || []).forEach(col => {
+                    if (col.verbose_name) {
+                      verboseNames[col.column_name] = col.verbose_name;
+                    }
+                  });
+                },
+              );
             } catch {
               dashboardInfos[id] = {
                 id,
@@ -209,6 +241,7 @@ function WhatIfSimulationList({
           }),
         );
         setDashboards(dashboardInfos);
+        setColumnVerboseNames(verboseNames);
       }
     } catch (error) {
       addDangerToast(t('Failed to load simulations'));
@@ -336,6 +369,7 @@ function WhatIfSimulationList({
                   <ModificationTag
                     key={`${mod.column}-${idx}`}
                     modification={mod}
+                    columnVerboseNames={columnVerboseNames}
                   />
                 ))}
               </ModificationTagsRow>
@@ -408,7 +442,7 @@ function WhatIfSimulationList({
         disableSortBy: true,
       },
     ],
-    [dashboards, history],
+    [dashboards, history, columnVerboseNames],
   );
 
   const emptyState = {
@@ -486,6 +520,7 @@ function WhatIfSimulationList({
           onSaved={loadSimulations}
           addSuccessToast={addSuccessToast}
           addDangerToast={addDangerToast}
+          columnVerboseNames={columnVerboseNames}
         />
       )}
       <ConfirmStatusChange

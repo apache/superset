@@ -108,12 +108,18 @@ export function useWhatIfApply({
 
     const multiplier = 1 + sliderValue / 100;
 
+    // Find verbose name for the selected column
+    const selectedColumnInfo = numericColumns.find(
+      col => col.columnName === selectedColumn,
+    );
+
     // Base user modification with filters
     const userModification: ExtendedWhatIfModification = {
       column: selectedColumn,
       multiplier,
       isAISuggested: false,
       filters: filters.length > 0 ? filters : undefined,
+      verboseName: selectedColumnInfo?.verboseName,
     };
 
     let allModifications: ExtendedWhatIfModification[] = [userModification];
@@ -145,14 +151,20 @@ export function useWhatIfApply({
 
         // Add AI suggestions to modifications (with same filters as user modification)
         const aiModifications: ExtendedWhatIfModification[] =
-          suggestions.suggestedModifications.map(mod => ({
-            column: mod.column,
-            multiplier: mod.multiplier,
-            isAISuggested: true,
-            reasoning: mod.reasoning,
-            confidence: mod.confidence,
-            filters: filters.length > 0 ? filters : undefined,
-          }));
+          suggestions.suggestedModifications.map(mod => {
+            const colInfo = numericColumns.find(
+              col => col.columnName === mod.column,
+            );
+            return {
+              column: mod.column,
+              multiplier: mod.multiplier,
+              isAISuggested: true,
+              reasoning: mod.reasoning,
+              confidence: mod.confidence,
+              filters: filters.length > 0 ? filters : undefined,
+              verboseName: colInfo?.verboseName,
+            };
+          });
 
         allModifications = [...allModifications, ...aiModifications];
       } catch (error) {
@@ -232,7 +244,18 @@ export function useWhatIfApply({
       // Increment counter to reset AI insights component
       setApplyCounter(c => c + 1);
 
-      setAppliedModifications(modifications);
+      // Populate verbose names for loaded modifications
+      const modificationsWithVerboseNames = modifications.map(mod => {
+        const colInfo = numericColumns.find(
+          col => col.columnName === mod.column,
+        );
+        return {
+          ...mod,
+          verboseName: mod.verboseName || colInfo?.verboseName,
+        };
+      });
+
+      setAppliedModifications(modificationsWithVerboseNames);
 
       // Collect all affected chart IDs from all modifications
       const allAffectedChartIds = new Set<number>();
@@ -250,7 +273,7 @@ export function useWhatIfApply({
       // Set the what-if modifications in Redux state
       dispatch(
         setWhatIfModifications(
-          modifications.map(mod => ({
+          modificationsWithVerboseNames.map(mod => ({
             column: mod.column,
             multiplier: mod.multiplier,
             filters: mod.filters,
@@ -266,7 +289,7 @@ export function useWhatIfApply({
       // Set affected chart IDs to enable AI insights
       setAffectedChartIds(chartIdsArray);
     },
-    [dispatch, columnToChartIds],
+    [dispatch, columnToChartIds, numericColumns],
   );
 
   /**

@@ -109,4 +109,6 @@ export interface ExtendedWhatIfModification {
   isAISuggested?: boolean;
   reasoning?: string;
   confidence?: 'high' | 'medium' | 'low';
+  /** Human-readable column label for display */
+  verboseName?: string | null;
 }
