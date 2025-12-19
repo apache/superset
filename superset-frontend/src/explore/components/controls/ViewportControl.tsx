@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { Component, type ReactNode } from 'react';
 import { t } from '@superset-ui/core';
-import PropTypes from 'prop-types';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimal2sexagesimal } from 'geolib';
 
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
 
-export const DEFAULT_VIEWPORT = {
+export interface Viewport {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  bearing: number;
+  pitch: number;
+}
+
+export const DEFAULT_VIEWPORT: Viewport = {
   longitude: 6.85236157047845,
   latitude: 31.222656842808707,
   zoom: 1,
@@ -33,54 +40,49 @@ export const DEFAULT_VIEWPORT = {
   pitch: 0,
 };
 
-const PARAMS = ['longitude', 'latitude', 'zoom', 'bearing', 'pitch'];
+const PARAMS: (keyof Viewport)[] = [
+  'longitude',
+  'latitude',
+  'zoom',
+  'bearing',
+  'pitch',
+];
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.shape({
-    longitude: PropTypes.number,
-    latitude: PropTypes.number,
-    zoom: PropTypes.number,
-    bearing: PropTypes.number,
-    pitch: PropTypes.number,
-  }),
-  default: PropTypes.object,
-  name: PropTypes.string.isRequired,
-};
+interface ViewportControlProps {
+  onChange?: (value: Viewport) => void;
+  value?: Viewport;
+  default?: Record<string, unknown>;
+  name: string;
+}
 
-const defaultProps = {
-  onChange: () => {},
-  default: { type: 'fix', value: 5 },
-  value: DEFAULT_VIEWPORT,
-};
+export default class ViewportControl extends Component<ViewportControlProps> {
+  static defaultProps = {
+    onChange: () => {},
+    default: { type: 'fix', value: 5 },
+    value: DEFAULT_VIEWPORT,
+  };
 
-export default class ViewportControl extends Component {
-  constructor(props) {
-    super(props);
-    this.onChange = this.onChange.bind(this);
-  }
-
-  onChange(ctrl, value) {
-    this.props.onChange({
-      ...this.props.value,
+  onChange = (ctrl: keyof Viewport, value: number): void => {
+    this.props.onChange?.({
+      ...this.props.value!,
       [ctrl]: value,
     });
-  }
+  };
 
-  renderTextControl(ctrl) {
+  renderTextControl(ctrl: keyof Viewport): ReactNode {
     return (
       <div key={ctrl}>
         <FormLabel>{ctrl}</FormLabel>
         <TextControl
-          value={this.props.value[ctrl]}
-          onChange={this.onChange.bind(this, ctrl)}
+          value={this.props.value?.[ctrl]}
+          onChange={(value: number) => this.onChange(ctrl, value)}
           isFloat
         />
       </div>
     );
   }
 
-  renderPopover() {
+  renderPopover(): ReactNode {
     return (
       <div id={`filter-popover-${this.props.name}`}>
         {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
@@ -88,8 +90,8 @@ export default class ViewportControl extends Component {
     );
   }
 
-  renderLabel() {
-    if (this.props.value.longitude && this.props.value.latitude) {
+  renderLabel(): string {
+    if (this.props.value?.longitude && this.props.value?.latitude) {
       return `${decimal2sexagesimal(
         this.props.value.longitude,
       )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
@@ -97,7 +99,7 @@ export default class ViewportControl extends Component {
     return 'N/A';
   }
 
-  render() {
+  render(): ReactNode {
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -114,6 +116,3 @@ export default class ViewportControl extends Component {
     );
   }
 }
-
-ViewportControl.propTypes = propTypes;
-ViewportControl.defaultProps = defaultProps;

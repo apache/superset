@@ -20,6 +20,7 @@ import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
+import type { SqlLabRootState, QueryEditor } from '../types';
 import * as actions from '../actions/sqlLab';
 import {
   addToObject,
@@ -31,7 +32,19 @@ import {
   extendArr,
 } from '../../reduxUtils';
 
-function alterUnsavedQueryEditorState(state, updatedState, id, silent = false) {
+type SqlLabState = SqlLabRootState['sqlLab'];
+
+interface SqlLabAction {
+  type: string;
+  [key: string]: unknown;
+}
+
+function alterUnsavedQueryEditorState(
+  state: SqlLabState,
+  updatedState: Partial<QueryEditor>,
+  id: string,
+  silent = false,
+): Partial<SqlLabState> {
   if (state.tabHistory[state.tabHistory.length - 1] !== id) {
     const { queryEditors } = alterInArr(
       state,
@@ -52,8 +65,11 @@ function alterUnsavedQueryEditorState(state, updatedState, id, silent = false) {
   };
 }
 
-export default function sqlLabReducer(state = {}, action) {
-  const actionHandlers = {
+export default function sqlLabReducer(
+  state: SqlLabState = {} as SqlLabState,
+  action: SqlLabAction,
+): SqlLabState {
+  const actionHandlers: Record<string, () => SqlLabState> = {
     [actions.ADD_QUERY_EDITOR]() {
       const mergeUnsavedState = alterInArr(
         state,

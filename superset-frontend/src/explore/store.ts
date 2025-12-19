@@ -18,10 +18,28 @@
  */
 /* eslint camelcase: 0 */
 import { getChartControlPanelRegistry, VizType } from '@superset-ui/core';
+import type { QueryFormData } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
 
-function handleDeprecatedControls(formData) {
+interface ExploreState {
+  common?: {
+    conf: {
+      DEFAULT_VIZ_TYPE?: string;
+    };
+  };
+  datasource: {
+    type: string;
+  };
+}
+
+type FormData = QueryFormData & {
+  y_axis_zero?: boolean;
+  y_axis_bounds?: [number | null, number | null];
+  datasource?: string;
+};
+
+function handleDeprecatedControls(formData: FormData): void {
   // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
@@ -31,7 +49,10 @@ function handleDeprecatedControls(formData) {
   }
 }
 
-export function getControlsState(state, inputFormData) {
+export function getControlsState(
+  state: ExploreState,
+  inputFormData: FormData,
+): Record<string, unknown> {
   /*
    * Gets a new controls object to put in the state. The controls object
    * is similar to the configuration control with only the controls
@@ -60,8 +81,10 @@ export function getControlsState(state, inputFormData) {
   return controlsState;
 }
 
-export function applyDefaultFormData(inputFormData) {
-  const datasourceType = inputFormData.datasource.split('__')[1];
+export function applyDefaultFormData(
+  inputFormData: FormData,
+): Record<string, unknown> {
+  const datasourceType = inputFormData.datasource?.split('__')[1] ?? '';
   const vizType = inputFormData.viz_type;
   const controlsState = getAllControlsState(
     vizType,
@@ -71,14 +94,14 @@ export function applyDefaultFormData(inputFormData) {
   );
   const controlFormData = getFormDataFromControls(controlsState);
 
-  const formData = {};
+  const formData: Record<string, unknown> = {};
   Object.keys(controlsState)
     .concat(Object.keys(inputFormData))
     .forEach(controlName => {
-      if (inputFormData[controlName] === undefined) {
+      if (inputFormData[controlName as keyof FormData] === undefined) {
         formData[controlName] = controlFormData[controlName];
       } else {
-        formData[controlName] = inputFormData[controlName];
+        formData[controlName] = inputFormData[controlName as keyof FormData];
       }
     });
 

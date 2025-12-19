@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
-import PropTypes from 'prop-types';
+import { Component, type ReactNode } from 'react';
 import {
   Row,
   Col,
@@ -35,27 +34,54 @@ const spatialTypes = {
   latlong: 'latlong',
   delimited: 'delimited',
   geohash: 'geohash',
-};
+} as const;
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.object,
-  animation: PropTypes.bool,
-  choices: PropTypes.array,
-};
+type SpatialType = (typeof spatialTypes)[keyof typeof spatialTypes];
 
-const defaultProps = {
-  onChange: () => {},
-  animation: true,
-  choices: [],
-};
+interface SpatialValue {
+  type: SpatialType;
+  latCol?: string;
+  lonCol?: string;
+  lonlatCol?: string;
+  delimiter?: string;
+  reverseCheckbox?: boolean;
+  geohashCol?: string;
+}
 
-export default class SpatialControl extends Component {
-  constructor(props) {
+interface SpatialControlProps {
+  onChange?: (value: SpatialValue, errors: string[]) => void;
+  value?: SpatialValue;
+  animation?: boolean;
+  choices?: [string, string][];
+}
+
+interface SpatialControlState {
+  type: SpatialType;
+  delimiter: string;
+  latCol: string | undefined;
+  lonCol: string | undefined;
+  lonlatCol: string | undefined;
+  reverseCheckbox: boolean;
+  geohashCol: string | undefined;
+  value: SpatialValue | null;
+  errors: string[];
+}
+
+export default class SpatialControl extends Component<
+  SpatialControlProps,
+  SpatialControlState
+> {
+  static defaultProps = {
+    onChange: () => {},
+    animation: true,
+    choices: [],
+  };
+
+  constructor(props: SpatialControlProps) {
     super(props);
-    const v = props.value || {};
-    let defaultCol;
-    if (props.choices.length > 0) {
+    const v = props.value || ({} as SpatialValue);
+    let defaultCol: string | undefined;
+    if (props.choices && props.choices.length > 0) {
       defaultCol = props.choices[0][0];
     }
     this.state = {
@@ -69,19 +95,16 @@ export default class SpatialControl extends Component {
       value: null,
       errors: [],
     };
-    this.toggleCheckbox = this.toggleCheckbox.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.renderReverseCheckbox = this.renderReverseCheckbox.bind(this);
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     this.onChange();
   }
 
-  onChange() {
+  onChange = (): void => {
     const { type } = this.state;
-    const value = { type };
-    const errors = [];
+    const value: SpatialValue = { type };
+    const errors: string[] = [];
     const errMsg = t('Invalid lat/long configuration.');
     if (type === spatialTypes.latlong) {
       value.latCol = this.state.latCol;
@@ -104,21 +127,21 @@ export default class SpatialControl extends Component {
       }
     }
     this.setState({ value, errors });
-    this.props.onChange(value, errors);
-  }
+    this.props.onChange?.(value, errors);
+  };
 
-  setType(type) {
+  setType = (type: SpatialType): void => {
     this.setState({ type }, this.onChange);
-  }
+  };
 
-  toggleCheckbox() {
+  toggleCheckbox = (): void => {
     this.setState(
       prevState => ({ reverseCheckbox: !prevState.reverseCheckbox }),
       this.onChange,
     );
-  }
+  };
 
-  renderLabelContent() {
+  renderLabelContent(): string | null {
     if (this.state.errors.length > 0) {
       return 'N/A';
     }
@@ -134,25 +157,28 @@ export default class SpatialControl extends Component {
     return null;
   }
 
-  renderSelect(name, type) {
+  renderSelect(name: keyof SpatialControlState, type: SpatialType): ReactNode {
     return (
       <SelectControl
         ariaLabel={name}
         name={name}
         choices={this.props.choices}
-        value={this.state[name]}
+        value={this.state[name] as string}
         clearable={false}
         onFocus={() => {
           this.setType(type);
         }}
-        onChange={value => {
-          this.setState({ [name]: value }, this.onChange);
+        onChange={(value: string) => {
+          this.setState(
+            { [name]: value } as unknown as SpatialControlState,
+            this.onChange,
+          );
         }}
       />
     );
   }
 
-  renderReverseCheckbox() {
+  renderReverseCheckbox(): ReactNode {
     return (
       <span>
         {t('Reverse lat/long ')}
@@ -164,13 +190,13 @@ export default class SpatialControl extends Component {
     );
   }
 
-  renderPopoverContent() {
+  renderPopoverContent(): ReactNode {
     return (
       <div style={{ width: '300px' }}>
         <PopoverSection
           title={t('Longitude & Latitude columns')}
           isSelected={this.state.type === spatialTypes.latlong}
-          onSelect={this.setType.bind(this, spatialTypes.latlong)}
+          onSelect={() => this.setType(spatialTypes.latlong)}
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
@@ -190,7 +216,7 @@ export default class SpatialControl extends Component {
               'Python library for more details',
           )}
           isSelected={this.state.type === spatialTypes.delimited}
-          onSelect={this.setType.bind(this, spatialTypes.delimited)}
+          onSelect={() => this.setType(spatialTypes.delimited)}
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
@@ -205,7 +231,7 @@ export default class SpatialControl extends Component {
         <PopoverSection
           title={t('Geohash')}
           isSelected={this.state.type === spatialTypes.geohash}
-          onSelect={this.setType.bind(this, spatialTypes.geohash)}
+          onSelect={() => this.setType(spatialTypes.geohash)}
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
@@ -221,13 +247,13 @@ export default class SpatialControl extends Component {
     );
   }
 
-  render() {
+  render(): ReactNode {
     return (
       <div>
         <ControlHeader {...this.props} />
         <Popover
           content={this.renderPopoverContent()}
-          placement="topLeft" // so that popover doesn't move when label changes
+          placement="topLeft"
           trigger="click"
         >
           <Label className="pointer">{this.renderLabelContent()}</Label>
@@ -236,6 +262,3 @@ export default class SpatialControl extends Component {
     );
   }
 }
-
-SpatialControl.propTypes = propTypes;
-SpatialControl.defaultProps = defaultProps;

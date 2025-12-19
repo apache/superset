@@ -18,6 +18,8 @@
  */
 import { nanoid } from 'nanoid';
 import rison from 'rison';
+import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
+import type { QueryResponse, SupersetError } from '@superset-ui/core';
 import {
   FeatureFlag,
   SupersetClient,
@@ -38,9 +40,62 @@ import {
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
+import type { QueryEditor, SqlLabRootState, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
+
+// Type definitions for SqlLab actions
+export interface Query {
+  id: string;
+  dbId?: number;
+  sql: string;
+  sqlEditorId?: string | null;
+  sqlEditorImmutableId?: string;
+  tab?: string;
+  catalog?: string | null;
+  schema?: string | null;
+  tempTable?: string;
+  templateParams?: string;
+  queryLimit?: number;
+  runAsync?: boolean;
+  ctas?: boolean;
+  ctas_method?: string;
+  isDataPreview?: boolean;
+  progress?: number;
+  startDttm?: number;
+  state?: string;
+  cached?: boolean;
+  resultsKey?: string;
+  updateTabState?: boolean;
+  tableName?: string;
+  link?: string;
+  inLocalStorage?: boolean;
+}
+
+export interface Database {
+  id: number;
+  allow_run_async: boolean;
+  disable_data_preview?: boolean;
+}
+
+interface SqlLabAction {
+  type: string;
+  [key: string]: unknown;
+}
+
+type SqlLabThunkAction<R = void> = ThunkAction<
+  R,
+  SqlLabRootState,
+  unknown,
+  SqlLabAction
+>;
+
+type SqlLabThunkDispatch = ThunkDispatch<
+  SqlLabRootState,
+  unknown,
+  SqlLabAction
+>;
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -112,13 +167,14 @@ export const addWarningToast = addWarningToastAction;
 export const CtasEnum = {
   Table: 'TABLE',
   View: 'VIEW',
-};
+} as const;
+
 const ERR_MSG_CANT_LOAD_QUERY = t("The query couldn't be loaded");
 
 // a map of SavedQuery field names to the different names used client-side,
 // because for now making the names consistent is too complicated
 // so it might as well only happen in one place
-const queryClientMapping = {
+const queryClientMapping: Record<string, string> = {
   id: 'remoteId',
   db_id: 'dbId',
   label: 'name',
@@ -127,13 +183,19 @@ const queryClientMapping = {
 const queryServerMapping = invert(queryClientMapping);
 
 // uses a mapping like those above to convert object key names to another style
-const fieldConverter = mapping => obj =>
-  mapKeys(obj, (value, key) => (key in mapping ? mapping[key] : key));
+const fieldConverter =
+  (mapping: Record<string, string>) =>
+  <T extends Record<string, unknown>>(obj: T): Record<string, unknown> =>
+    mapKeys(obj, (_value, key) => (key in mapping ? mapping[key] : key));
 
 export const convertQueryToServer = fieldConverter(queryServerMapping);
 export const convertQueryToClient = fieldConverter(queryClientMapping);
 
-export function getUpToDateQuery(rootState, queryEditor, key) {
+export function getUpToDateQuery(
+  rootState: SqlLabRootState,
+  queryEditor: QueryEditor | { id: string },
+  key?: string,
+): QueryEditor {
   const {
     sqlLab: { unsavedQueryEditor, queryEditors },
   } = rootState;
@@ -142,10 +204,12 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     id,
     ...queryEditors.find(qe => qe.id === id),
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
-  };
+  } as QueryEditor;
 }
 
-export function resetState(data) {
+export function resetState(
+  data?: Record<string, unknown>,
+): SqlLabThunkAction<void> {
   return (dispatch, getState) => {
     const { common } = getState();
     const initialState = getInitialState({
@@ -162,15 +226,19 @@ export function resetState(data) {
   };
 }
 
-export function updateQueryEditor(alterations) {
+export function updateQueryEditor(
+  alterations: Partial<QueryEditor>,
+): SqlLabAction {
   return { type: UPDATE_QUERY_EDITOR, alterations };
 }
 
-export function setEditorTabLastUpdate(timestamp) {
+export function setEditorTabLastUpdate(timestamp: number): SqlLabAction {
   return { type: SET_EDITOR_TAB_LAST_UPDATE, timestamp };
 }
 
-export function scheduleQuery(query) {
+export function scheduleQuery(
+  query: Record<string, unknown>,
+): SqlLabThunkAction<Promise<void>> {
   return dispatch =>
     SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
@@ -191,7 +259,9 @@ export function scheduleQuery(query) {
       );
 }
 
-export function estimateQueryCost(queryEditor) {
+export function estimateQueryCost(
+  queryEditor: QueryEditor,
+): SqlLabThunkAction<Promise<unknown[]>> {
   return (dispatch, getState) => {
     const { dbId, catalog, schema, sql, selectedText, templateParams } =
       getUpToDateQuery(getState(), queryEditor);
@@ -232,11 +302,14 @@ export function estimateQueryCost(queryEditor) {
   };
 }
 
-export function clearInactiveQueries(interval) {
+export function clearInactiveQueries(interval: number): SqlLabAction {
   return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
-export function startQuery(query, runPreviewOnly) {
+export function startQuery(
+  query: Query,
+  runPreviewOnly?: boolean,
+): SqlLabAction {
   Object.assign(query, {
     id: query.id ? query.id : nanoid(11),
     progress: 0,
@@ -247,11 +320,17 @@ export function startQuery(query, runPreviewOnly) {
   return { type: START_QUERY, query, runPreviewOnly };
 }
 
-export function querySuccess(query, results) {
+export function querySuccess(
+  query: Query,
+  results: QueryResponse,
+): SqlLabAction {
   return { type: QUERY_SUCCESS, query, results };
 }
 
-export function logFailedQuery(query, errors) {
+export function logFailedQuery(
+  query: Query,
+  errors?: SupersetError[],
+): SqlLabThunkAction<void> {
   return function (dispatch) {
     const eventData = {
       has_err: true,
@@ -259,7 +338,9 @@ export function logFailedQuery(query, errors) {
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, message, extra }) => {
-      const issueCodes = extra?.issue_codes?.map(({ code }) => code) || [-1];
+      const issueCodes = (
+        extra as { issue_codes?: { code: number }[] }
+      )?.issue_codes?.map(({ code }) => code) || [-1];
       dispatch(
         logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
           ...eventData,
@@ -272,34 +353,48 @@ export function logFailedQuery(query, errors) {
   };
 }
 
-export function createQueryFailedAction(query, msg, link, errors) {
+export function createQueryFailedAction(
+  query: Query,
+  msg: string,
+  link?: string,
+  errors?: SupersetError[],
+): SqlLabAction {
   return { type: QUERY_FAILED, query, msg, link, errors };
 }
 
-export function queryFailed(query, msg, link, errors) {
+export function queryFailed(
+  query: Query,
+  msg: string,
+  link?: string,
+  errors?: SupersetError[],
+): SqlLabThunkAction<void> {
   return function (dispatch) {
     dispatch(logFailedQuery(query, errors));
     dispatch(createQueryFailedAction(query, msg, link, errors));
   };
 }
 
-export function stopQuery(query) {
+export function stopQuery(query: Query): SqlLabAction {
   return { type: STOP_QUERY, query };
 }
 
-export function clearQueryResults(query) {
+export function clearQueryResults(query: Query): SqlLabAction {
   return { type: CLEAR_QUERY_RESULTS, query };
 }
 
-export function removeDataPreview(table) {
+export function removeDataPreview(table: Table): SqlLabAction {
   return { type: REMOVE_DATA_PREVIEW, table };
 }
 
-export function requestQueryResults(query) {
+export function requestQueryResults(query: Query): SqlLabAction {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-export function fetchQueryResults(query, displayLimit, timeoutInMs) {
+export function fetchQueryResults(
+  query: Query,
+  displayLimit?: number,
+  timeoutInMs?: number,
+): SqlLabThunkAction<Promise<void>> {
   return function (dispatch, getState) {
     const { SQLLAB_QUERY_RESULT_TIMEOUT } = getState().common?.conf ?? {};
     dispatch(requestQueryResults(query));
@@ -315,7 +410,7 @@ export function fetchQueryResults(query, displayLimit, timeoutInMs) {
       parseMethod: 'json-bigint',
       ...(timeout && { timeout, signal: controller.signal }),
     })
-      .then(({ json }) => dispatch(querySuccess(query, json)))
+      .then(({ json }) => dispatch(querySuccess(query, json as QueryResponse)))
       .catch(response => {
         controller.abort();
         getClientErrorObject(response).then(error => {
@@ -332,7 +427,10 @@ export function fetchQueryResults(query, displayLimit, timeoutInMs) {
   };
 }
 
-export function runQuery(query, runPreviewOnly) {
+export function runQuery(
+  query: Query,
+  runPreviewOnly?: boolean,
+): SqlLabThunkAction<Promise<void>> {
   return function (dispatch) {
     dispatch(startQuery(query, runPreviewOnly));
     const postPayload = {
@@ -361,7 +459,7 @@ export function runQuery(query, runPreviewOnly) {
     })
       .then(({ json }) => {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, json));
+          dispatch(querySuccess(query, json as QueryResponse));
         }
       })
       .catch(response =>
@@ -381,16 +479,17 @@ export function runQuery(query, runPreviewOnly) {
 }
 
 export function runQueryFromSqlEditor(
-  database,
-  queryEditor,
-  defaultQueryLimit,
-  tempTable,
-  ctas,
-  ctasMethod,
-) {
+  database: Database | null,
+  queryEditor: QueryEditor,
+  defaultQueryLimit: number,
+  tempTable?: string,
+  ctas?: boolean,
+  ctasMethod?: string,
+): SqlLabThunkAction<void> {
   return function (dispatch, getState) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const query = {
+    const query: Query = {
+      id: nanoid(11),
       dbId: qe.dbId,
       sql: qe.selectedText || qe.sql,
       sqlEditorId: qe.tabViewId ?? qe.id,
@@ -410,14 +509,14 @@ export function runQueryFromSqlEditor(
   };
 }
 
-export function reRunQuery(query) {
+export function reRunQuery(query: Query): SqlLabThunkAction<void> {
   // run Query with a new id
   return function (dispatch) {
     dispatch(runQuery({ ...query, id: nanoid(11) }));
   };
 }
 
-export function postStopQuery(query) {
+export function postStopQuery(query: Query): SqlLabThunkAction<Promise<void>> {
   return function (dispatch) {
     return SupersetClient.post({
       endpoint: '/api/v1/query/stop',
@@ -430,11 +529,17 @@ export function postStopQuery(query) {
   };
 }
 
-export function setDatabases(databases) {
+export function setDatabases(
+  databases: Record<string, Database>,
+): SqlLabAction {
   return { type: SET_DATABASES, databases };
 }
 
-function migrateTable(table, queryEditorId, dispatch) {
+function migrateTable(
+  table: Table,
+  queryEditorId: string,
+  dispatch: SqlLabThunkDispatch,
+): Promise<void> {
   return SupersetClient.post({
     endpoint: encodeURI('/tableschemaview/'),
     postPayload: { table: { ...table, queryEditorId } },
@@ -459,7 +564,11 @@ function migrateTable(table, queryEditorId, dispatch) {
     );
 }
 
-function migrateQuery(queryId, queryEditorId, dispatch) {
+function migrateQuery(
+  queryId: string,
+  queryEditorId: string,
+  dispatch: SqlLabThunkDispatch,
+): Promise<void> {
   return SupersetClient.post({
     endpoint: encodeURI(`/tabstateview/${queryEditorId}/migrate_query`),
     postPayload: { queryId },
@@ -486,7 +595,9 @@ function migrateQuery(queryId, queryEditorId, dispatch) {
  * stored in local storage will also be synchronized to the backend
  * through syncQueryEditor.
  */
-export function syncQueryEditor(queryEditor) {
+export function syncQueryEditor(
+  queryEditor: QueryEditor,
+): SqlLabThunkAction<Promise<void[] | void>> {
   return function (dispatch, getState) {
     const { tables, queries } = getState().sqlLab;
     const localStorageTables = tables.filter(
@@ -513,10 +624,10 @@ export function syncQueryEditor(queryEditor) {
         });
         return Promise.all([
           ...localStorageTables.map(table =>
-            migrateTable(table, newQueryEditor.tabViewId, dispatch),
+            migrateTable(table, newQueryEditor.tabViewId!, dispatch),
           ),
           ...localStorageQueries.map(query =>
-            migrateQuery(query.id, newQueryEditor.tabViewId, dispatch),
+            migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
           ),
         ]);
       })
@@ -533,7 +644,9 @@ export function syncQueryEditor(queryEditor) {
   };
 }
 
-export function addQueryEditor(queryEditor) {
+export function addQueryEditor(
+  queryEditor: Partial<QueryEditor>,
+): SqlLabAction {
   const newQueryEditor = {
     ...queryEditor,
     id: nanoid(11),
@@ -707,7 +820,7 @@ export function fetchQueryEditor(queryEditor, displayLimit) {
         };
         dispatch(loadQueryEditor(loadedQueryEditor));
         dispatch(setTables(json.table_schemas || []));
-        if (json.latest_query && json.latest_query.resultsKey) {
+        if (json.latest_query?.resultsKey) {
           dispatch(fetchQueryResults(json.latest_query, displayLimit));
         }
       })
@@ -812,7 +925,8 @@ export function queryEditorSetTitle(queryEditor, name, id) {
 }
 
 export function saveQuery(query, clientId) {
-  const { id, ...payload } = convertQueryToServer(query);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, ...payload } = convertQueryToServer(query);
 
   return dispatch =>
     SupersetClient.post({
@@ -858,7 +972,8 @@ export const addSavedQueryToTabState =
   };
 
 export function updateSavedQuery(query, clientId) {
-  const { id, ...payload } = convertQueryToServer(query);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, ...payload } = convertQueryToServer(query);
 
   return dispatch =>
     SupersetClient.put({

@@ -56,6 +56,7 @@
  * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
+import type { Column } from '@superset-ui/core';
 import {
   t,
   getCategoricalSchemeRegistry,
@@ -66,6 +67,14 @@ import {
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
+
+interface Datasource {
+  columns: Column[];
+  metrics: unknown[];
+  granularity_sqla?: Column[];
+  main_dttm_col?: string;
+  time_grain_sqla?: unknown[];
+}
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -137,7 +146,7 @@ const groupByControl = {
     const newState = {};
     if (state.datasource) {
       newState.options = state.datasource.columns.filter(c => c.groupby);
-      if (control && control.includeTime) {
+      if (control?.includeTime) {
         newState.options.push(timeColumnOption);
       }
     }
@@ -167,10 +176,18 @@ const metric = {
   description: t('Metric'),
 };
 
-export function columnChoices(datasource) {
-  if (datasource && datasource.columns) {
+export function columnChoices(
+  datasource: Datasource | null | undefined,
+): [string, string][] {
+  if (datasource?.columns) {
     return datasource.columns
-      .map(col => [col.column_name, col.verbose_name || col.column_name])
+      .map(
+        col =>
+          [col.column_name, col.verbose_name || col.column_name] as [
+            string,
+            string,
+          ],
+      )
       .sort((opt1, opt2) =>
         opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1,
       );
@@ -425,9 +442,7 @@ export const controls = {
     description: D3_FORMAT_DOCS,
     mapStateToProps: state => {
       const showWarning =
-        state.controls &&
-        state.controls.comparison_type &&
-        state.controls.comparison_type.value === 'percentage';
+        state.controls?.comparison_type?.value === 'percentage';
       return {
         warning: showWarning
           ? t(

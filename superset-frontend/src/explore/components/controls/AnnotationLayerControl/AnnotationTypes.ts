@@ -18,12 +18,25 @@
  */
 import { t } from '@superset-ui/core';
 
-function extractTypes(metadata) {
-  return Object.keys(metadata).reduce((prev, key) => {
-    const result = prev;
-    result[key] = key;
-    return result;
-  }, {});
+interface Annotation {
+  sourceType?: string;
+  timeColumn?: string;
+  intervalEndColumn?: string;
+  titleColumn?: string;
+  descriptionColumns?: string[];
+}
+
+function extractTypes<T extends Record<string, { value: string }>>(
+  metadata: T,
+): Record<keyof T, string> {
+  return Object.keys(metadata).reduce(
+    (prev, key) => {
+      const result = prev;
+      result[key as keyof T] = key;
+      return result;
+    },
+    {} as Record<keyof T, string>,
+  );
 }
 
 export const ANNOTATION_TYPES_METADATA = {
@@ -62,7 +75,9 @@ export const ANNOTATION_SOURCE_TYPES = extractTypes(
   ANNOTATION_SOURCE_TYPES_METADATA,
 );
 
-export function requiresQuery(annotationSourceType) {
+export function requiresQuery(
+  annotationSourceType: string | undefined,
+): boolean {
   return !!annotationSourceType;
 }
 
@@ -71,9 +86,9 @@ const NATIVE_COLUMN_NAMES = {
   intervalEndColumn: 'end_dttm',
   titleColumn: 'short_descr',
   descriptionColumns: ['long_descr'],
-};
+} as const;
 
-export function applyNativeColumns(annotation) {
+export function applyNativeColumns(annotation: Annotation): Annotation {
   if (annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
     return { ...annotation, ...NATIVE_COLUMN_NAMES };
   }
