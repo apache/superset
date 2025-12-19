@@ -46,6 +46,10 @@ if (!versionsConfig.components.disabled) {
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
       remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
       lastVersion: versionsConfig.components.lastVersion,
@@ -70,6 +74,10 @@ if (!versionsConfig.developer_portal.disabled) {
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
       remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
       lastVersion: versionsConfig.developer_portal.lastVersion,
@@ -343,6 +351,10 @@ const config: Config = {
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
           remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+          admonitions: {
+            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+            extendDefaults: true,
+          },
           includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
           lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
           onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
