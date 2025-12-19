@@ -204,10 +204,11 @@ class AnnotationLayer extends PureComponent<
     } = props;
 
     // Only allow override whole time_range
-    if ('since' in overrides || 'until' in overrides) {
-      overrides.time_range = null;
-      delete overrides.since;
-      delete overrides.until;
+    const processedOverrides: AnnotationOverrides = overrides ? { ...overrides } : {};
+    if ('since' in processedOverrides || 'until' in processedOverrides) {
+      processedOverrides.time_range = null;
+      delete processedOverrides.since;
+      delete processedOverrides.until;
     }
 
     // Check if annotationType is supported by this chart
@@ -221,25 +222,25 @@ class AnnotationLayer extends PureComponent<
 
     this.state = {
       // base
-      name,
-      annotationType: validAnnotationType,
-      sourceType,
-      value,
-      overrides,
-      show,
-      showLabel,
+      name: name || '',
+      annotationType: validAnnotationType || DEFAULT_ANNOTATION_TYPE,
+      sourceType: sourceType || null,
+      value: value || null,
+      overrides: processedOverrides,
+      show: show ?? true,
+      showLabel: showLabel ?? false,
       // slice
-      titleColumn,
-      descriptionColumns,
-      timeColumn,
-      intervalEndColumn,
+      titleColumn: titleColumn || '',
+      descriptionColumns: descriptionColumns || [],
+      timeColumn: timeColumn || '',
+      intervalEndColumn: intervalEndColumn || '',
       // display
       color: color || AUTOMATIC_COLOR,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
+      opacity: opacity || '',
+      style: style || 'solid',
+      width: width ?? 1,
+      showMarkers: showMarkers ?? false,
+      hideLine: hideLine ?? false,
       // refData
       isNew: !name,
       slice: null,

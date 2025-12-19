@@ -306,10 +306,7 @@ export function clearInactiveQueries(interval: number): SqlLabAction {
   return { type: CLEAR_INACTIVE_QUERIES, interval };
 }
 
-export function startQuery(
-  query: Query,
-  runPreviewOnly?: boolean,
-): SqlLabAction {
+export function startQuery(query: Query, runPreviewOnly?: boolean) {
   Object.assign(query, {
     id: query.id ? query.id : nanoid(11),
     progress: 0,
@@ -317,14 +314,11 @@ export function startQuery(
     state: query.runAsync ? 'pending' : 'running',
     cached: false,
   });
-  return { type: START_QUERY, query, runPreviewOnly };
+  return { type: START_QUERY, query, runPreviewOnly } as const;
 }
 
-export function querySuccess(
-  query: Query,
-  results: QueryResponse,
-): SqlLabAction {
-  return { type: QUERY_SUCCESS, query, results };
+export function querySuccess(query: Query, results: QueryResponse) {
+  return { type: QUERY_SUCCESS, query, results } as const;
 }
 
 export function logFailedQuery(
@@ -358,8 +352,8 @@ export function createQueryFailedAction(
   msg: string,
   link?: string,
   errors?: SupersetError[],
-): SqlLabAction {
-  return { type: QUERY_FAILED, query, msg, link, errors };
+) {
+  return { type: QUERY_FAILED, query, msg, link, errors } as const;
 }
 
 export function queryFailed(
@@ -374,8 +368,8 @@ export function queryFailed(
   };
 }
 
-export function stopQuery(query: Query): SqlLabAction {
-  return { type: STOP_QUERY, query };
+export function stopQuery(query: Query) {
+  return { type: STOP_QUERY, query } as const;
 }
 
 export function clearQueryResults(query: Query): SqlLabAction {
