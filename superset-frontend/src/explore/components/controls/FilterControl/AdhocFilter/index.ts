@@ -30,8 +30,8 @@ const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
 
 interface AdhocFilterInput {
   expressionType?: string;
-  subject?: string;
-  operator?: string;
+  subject?: string | null;
+  operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
   clause?: string;
@@ -42,6 +42,8 @@ interface AdhocFilterInput {
   deck_slices?: unknown;
   layerFilterScope?: unknown;
   filterOptionName?: string;
+  // Allow additional properties for flexibility
+  [key: string]: unknown;
 }
 
 export default class AdhocFilter {

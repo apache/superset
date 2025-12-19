@@ -40,6 +40,12 @@ interface AdhocMetricInput {
   hasCustomLabel?: boolean;
   label?: string;
   optionName?: string;
+  // Additional properties that may be passed in
+  metric_name?: string;
+  expression?: string;
+  error_text?: string;
+  uuid?: string;
+  [key: string]: unknown;
 }
 
 function inferSqlExpressionColumn(adhocMetric: AdhocMetricInput): string | null {
