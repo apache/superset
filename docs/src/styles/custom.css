@@ -134,3 +134,42 @@ ul.dropdown__menu svg {
   --ifm-font-base-color: #bbb5ac;
   --ifm-border-color: #797063;
 }
+
+/* Custom "resources" admonition for additional resources/links */
+.alert--resources {
+  --ifm-alert-background-color: #f3e8ff;
+  --ifm-alert-border-color: #a855f7;
+  --ifm-alert-foreground-color: #6b21a8;
+  background-color: var(--ifm-alert-background-color);
+  border-left: 5px solid var(--ifm-alert-border-color);
+}
+
+.alert--resources .admonition-heading h5 {
+  color: var(--ifm-alert-foreground-color);
+}
+
+.alert--resources .admonition-icon svg {
+  fill: var(--ifm-alert-foreground-color);
+  stroke: var(--ifm-alert-foreground-color);
+}
+
+/* Resources admonition - dark mode */
+[data-theme='dark'] .alert--resources {
+  --ifm-alert-background-color: #3b0764;
+  --ifm-alert-border-color: #a855f7;
+  --ifm-alert-foreground-color: #e9d5ff;
+}
+
+/* Style links within resources admonition */
+.alert--resources a {
+  color: #7c3aed;
+  text-decoration: none;
+}
+
+.alert--resources a:hover {
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .alert--resources a {
+  color: #c4b5fd;
+}
