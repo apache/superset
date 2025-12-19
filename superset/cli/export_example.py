@@ -24,21 +24,21 @@ Usage:
     superset export-example --dashboard-slug my-dashboard --name my_example
 """
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import click
-import pandas as pd
 import yaml
-from flask import g
 from flask.cli import with_appcontext
 
-from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.utils import json as superset_json
+if TYPE_CHECKING:
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +149,8 @@ def export_dataset_data(
     sample_rows: Optional[int] = None,
 ) -> bool:
     """Export dataset data to Parquet. Returns True on success."""
+    import pandas as pd  # pylint: disable=import-outside-toplevel
+
     if not dataset.database:
         logger.warning("Dataset %s has no database", dataset.table_name)
         return False
@@ -290,6 +292,10 @@ def export_dashboard(
     dataset_id_to_uuid: dict[int, str],
 ) -> dict[str, Any]:
     """Export dashboard to YAML format with proper ID remapping."""
+    from superset.utils import (
+        json as superset_json,  # pylint: disable=import-outside-toplevel
+    )
+
     position = dashboard.position or {}
 
     # Update position to use UUIDs
@@ -371,9 +377,7 @@ def export_dashboard(
 @with_appcontext
 @click.option("--dashboard-id", "-d", type=int, help="Dashboard ID to export")
 @click.option("--dashboard-slug", "-s", type=str, help="Dashboard slug to export")
-@click.option(
-    "--name", "-n", required=True, help="Name for the example folder"
-)
+@click.option("--name", "-n", required=True, help="Name for the example folder")
 @click.option(
     "--output-dir",
     "-o",
@@ -439,6 +443,14 @@ def export_example(  # noqa: C901
         # Export metadata only (no data)
         superset export-example -d 1 -n my_example --no-export-data
     """
+    # Import Superset modules at runtime to avoid app initialization issues
+    # pylint: disable=import-outside-toplevel
+    from flask import g
+
+    from superset import db, security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json as superset_json
+
     g.user = security_manager.find_user(username="admin")
 
     # Find the dashboard
