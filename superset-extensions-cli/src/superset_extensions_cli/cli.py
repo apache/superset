@@ -479,6 +479,11 @@ def init(
     (target_dir / "extension.json").write_text(extension_json)
     click.secho("✅ Created extension.json", fg="green")
 
+    # Create .gitignore
+    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    (target_dir / ".gitignore").write_text(gitignore)
+    click.secho("✅ Created .gitignore", fg="green")
+
     # Initialize frontend files
     if include_frontend:
         frontend_dir = target_dir / "frontend"
