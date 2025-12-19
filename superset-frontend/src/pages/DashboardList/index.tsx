@@ -22,7 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -75,6 +75,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -115,7 +116,30 @@ export interface Dashboard {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colorIcon};
+  ${({ theme }) => css`
+    color: ${theme.colorIcon};
+
+    .disabled {
+      svg,
+      i {
+        &:hover {
+          path {
+            fill: ${theme.colorText};
+          }
+        }
+      }
+      color: ${theme.colorTextDisabled};
+      &:hover {
+        cursor: not-allowed;
+      }
+      .ant-menu-item:hover {
+        cursor: default;
+      }
+      &::after {
+        color: ${theme.colorTextDisabled};
+      }
+    }
+  `}
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -148,7 +172,6 @@ function DashboardList(props: DashboardListProps) {
     state => state.user,
   );
   const canReadTag = findPermission('can_read', 'Tag', roles);
-  const isAdmin = !!roles?.Admin;
 
   const {
     state: {
@@ -213,7 +236,6 @@ function DashboardList(props: DashboardListProps) {
     addSuccessToast(t('Dashboard imported'));
   };
 
-
   // TODO: Fix usage of localStorage keying on the user id
   const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
 
@@ -221,11 +243,6 @@ function DashboardList(props: DashboardListProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-
-  const canEditDashboard = (dashboard: Dashboard) => canEdit && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
-  ;
-
-  const canDeleteDashboard = (dashboard: Dashboard) =>  canDelete && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -428,6 +445,14 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          // Verify owner or isAdmin
+          const allowEdit =
+            original.owners.some((owner: Owner) => owner.id === user.userId) ||
+            isUserAdmin(user);
+          const allowDelete =
+            original.owners.some((owner: Owner) => owner.id === user.userId) ||
+            isUserAdmin(user);
+
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -440,7 +465,7 @@ function DashboardList(props: DashboardListProps) {
 
           return (
             <Actions className="actions">
-              {canDeleteDashboard(original) && (
+              {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
                   description={
@@ -454,14 +479,20 @@ function DashboardList(props: DashboardListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowDelete
+                          ? t('Delete')
+                          : t(
+                              'You must be a dashboard owner in order to delete. Please reach out to a dashboard owner to request modifications or delete access.',
+                            )
+                      }
                       placement="bottom"
                     >
                       <span
                         role="button"
                         tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
+                        className={`action-button ${allowDelete ? '' : 'disabled'}`}
+                        onClick={allowDelete ? confirmDelete : undefined}
                       >
                         <Icons.DeleteOutlined
                           iconSize="l"
@@ -488,17 +519,23 @@ function DashboardList(props: DashboardListProps) {
                   </span>
                 </Tooltip>
               )}
-              {canEditDashboard(original) && (
+              {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dashboard owner in order to edit. Please reach out to a dashboard owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
+                    onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
@@ -525,7 +562,6 @@ function DashboardList(props: DashboardListProps) {
       canExport,
       saveFavoriteStatus,
       favoriteStatus,
-      isAdmin,
       refreshData,
       addSuccessToast,
       addDangerToast,
