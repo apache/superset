@@ -33,10 +33,6 @@ jest.mock('@superset-ui/core', () => ({
 
 jest.mock('content-disposition');
 
-jest.mock('./pathUtils', () => ({
-  ensureAppRoot: jest.fn((path: string) => path),
-}));
-
 let mockBlob: Blob;
 let mockResponse: Response;
 let createElementSpy: jest.SpyInstance;
