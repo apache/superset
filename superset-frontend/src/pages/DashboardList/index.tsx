@@ -213,6 +213,7 @@ function DashboardList(props: DashboardListProps) {
     addSuccessToast(t('Dashboard imported'));
   };
 
+
   // TODO: Fix usage of localStorage keying on the user id
   const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
 
@@ -221,13 +222,10 @@ function DashboardList(props: DashboardListProps) {
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
 
-  const canEditDashboard = (dashboard: Dashboard) => {
-    return canEdit && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
-  };
+  const canEditDashboard = (dashboard: Dashboard) => canEdit && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
+  ;
 
-  const canDeleteDashboard = (dashboard: Dashboard) => {
-    return canDelete && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
-  };
+  const canDeleteDashboard = (dashboard: Dashboard) =>  canDelete && (isAdmin || dashboard.owners.some((owner: Owner) => owner.id === user.userId));
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
