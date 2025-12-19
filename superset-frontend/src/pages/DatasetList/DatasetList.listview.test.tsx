@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -51,8 +51,8 @@ jest.mock('src/components/MessageToasts/actions', () => ({
 
 jest.mock('src/utils/export');
 
-// Increase default timeout for all tests in this file
-jest.setTimeout(30000);
+// Increase default timeout for tests that involve multiple async operations
+jest.setTimeout(15000);
 
 const buildSupersetClientError = ({
   status,
@@ -131,23 +131,13 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  // Allow pending React state updates to complete before cleanup
-  await new Promise(resolve => setTimeout(resolve, 0));
-
-  cleanup();
-
-  // Clean up antd portal elements that may persist between tests
-  // These are created outside React's tree and aren't cleaned by RTL's cleanup()
-  document.querySelectorAll('.ant-select-dropdown').forEach(el => el.remove());
-  document.querySelectorAll('.ant-dropdown').forEach(el => el.remove());
-  document.querySelectorAll('.ant-modal-root').forEach(el => el.remove());
-  document.querySelectorAll('.ant-message').forEach(el => el.remove());
-  document.querySelectorAll('.ant-notification').forEach(el => el.remove());
-
-  // Reset document body to ensure complete isolation
-  document.body.innerHTML = '';
+  // Flush pending React state updates within act() to prevent warnings
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
 
   // Reset browser history state to prevent query params leaking between tests
+  // QueryParamProvider reads from window.history, which persists across renders
   window.history.replaceState({}, '', '/');
 
   fetchMock.resetHistory();
@@ -1515,7 +1505,7 @@ test('bulk selection clears when filter changes', async () => {
   await waitFor(() => {
     expect(screen.getByText(/0 selected/i)).toBeInTheDocument();
   });
-}, 30000); // 30 second timeout for slow CI environment
+});
 
 test('type filter API call includes correct filter parameter', async () => {
   renderDatasetList(mockAdminUser);
@@ -1524,8 +1514,8 @@ test('type filter API call includes correct filter parameter', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Wait for Type filter combobox with extended timeout for slow CI
-  await screen.findByRole('combobox', { name: 'Type' }, { timeout: 15000 });
+  // Wait for Type filter combobox
+  await screen.findByRole('combobox', { name: 'Type' });
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
@@ -1557,7 +1547,7 @@ test('type filter API call includes correct filter parameter', async () => {
       expect.objectContaining({ col: 'sql', value: false }),
     ]),
   );
-}, 30000); // 30 second timeout for slow CI filter rendering
+});
 
 test('type filter persists after duplicating a dataset', async () => {
   const datasetToDuplicate = mockDatasets.find(d => d.kind === 'virtual')!;
@@ -1566,15 +1556,12 @@ test('type filter persists after duplicating a dataset', async () => {
 
   renderDatasetList(mockAdminUser);
 
-  await waitFor(
-    () => {
-      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
-    },
-    { timeout: 15000 },
-  );
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
 
-  // Wait for Type filter combobox with extended timeout for slow CI
-  await screen.findByRole('combobox', { name: 'Type' }, { timeout: 15000 });
+  // Wait for Type filter combobox
+  await screen.findByRole('combobox', { name: 'Type' });
 
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
@@ -1656,4 +1643,4 @@ test('type filter persists after duplicating a dataset', async () => {
       expect.objectContaining({ col: 'sql', value: false }),
     ]),
   );
-}, 60000); // 60 second timeout - this test does filter + duplicate + refetch
+});
