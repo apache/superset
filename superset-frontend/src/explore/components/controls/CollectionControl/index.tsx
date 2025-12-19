@@ -73,13 +73,13 @@ const propTypes = {
   controlName: PropTypes.string.isRequired,
 };
 
-const defaultProps = {
+const defaultProps: Partial<CollectionControlProps> = {
   label: null,
   description: null,
   onChange: () => {},
   placeholder: t('Empty collection'),
   itemGenerator: () => ({ key: nanoid(11) }),
-  keyAccessor: o => o.key,
+  keyAccessor: (o: CollectionItem) => o.key ?? '',
   value: [],
   addTooltip: t('Add an item'),
 };
@@ -95,6 +95,10 @@ const SortableDragger = SortableHandle(() => (
 ));
 
 class CollectionControl extends Component<CollectionControlProps> {
+  static propTypes = propTypes;
+
+  static defaultProps = defaultProps;
+
   constructor(props: CollectionControlProps) {
     super(props);
     this.onAdd = this.onAdd.bind(this);
@@ -218,8 +222,5 @@ class CollectionControl extends Component<CollectionControlProps> {
     );
   }
 }
-
-CollectionControl.propTypes = propTypes;
-CollectionControl.defaultProps = defaultProps;
 
 export default withTheme(CollectionControl);

@@ -18,10 +18,10 @@
  * under the License.
  */
 
-import { PureComponent } from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { DatasourceType, SupersetClient, t } from '@superset-ui/core';
-import { css, styled, withTheme } from '@apache-superset/core/ui';
+import { DatasourceType, SupersetClient, t, Datasource } from '@superset-ui/core';
+import { css, styled, withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -51,6 +51,34 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Link } from 'react-router-dom';
 
+interface DatasourceControlActions {
+  changeDatasource: (datasource: Datasource) => void;
+  setControlValue: (name: string, value: unknown) => void;
+}
+
+interface FormData {
+  granularity_sqla?: string;
+  [key: string]: unknown;
+}
+
+interface DatasourceControlProps {
+  actions: DatasourceControlActions;
+  onChange?: () => void;
+  value?: string | null;
+  datasource: Datasource;
+  form_data: FormData;
+  isEditable?: boolean;
+  onDatasourceSave?: ((datasource: Datasource) => void) | null;
+  theme: SupersetTheme;
+}
+
+interface DatasourceControlState {
+  showEditDatasourceModal: boolean;
+  showChangeDatasourceModal: boolean;
+  showSaveDatasetModal: boolean;
+  showDatasource?: boolean;
+}
+
 const propTypes = {
   actions: PropTypes.object.isRequired,
   onChange: PropTypes.func,
@@ -68,7 +96,7 @@ const defaultProps = {
   isEditable: true,
 };
 
-const getDatasetType = datasource => {
+const getDatasetType = (datasource: Datasource): string => {
   if (datasource.type === 'query') {
     return 'query';
   }
@@ -146,8 +174,8 @@ export const datasourceIconLookup = {
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
-export const renderDatasourceTitle = (displayString, tooltip) =>
-  displayString?.length > VISIBLE_TITLE_LENGTH ? (
+export const renderDatasourceTitle = (displayString: string | undefined, tooltip: string) =>
+  displayString?.length && displayString.length > VISIBLE_TITLE_LENGTH ? (
     // Add a tooltip only for long names that will be visually truncated
     <Tooltip title={tooltip}>
       <span className="title-select">{displayString}</span>
@@ -159,12 +187,12 @@ export const renderDatasourceTitle = (displayString, tooltip) =>
   );
 
 // Different data source types use different attributes for the display title
-export const getDatasourceTitle = datasource => {
-  if (datasource?.type === 'query') return datasource?.sql;
+export const getDatasourceTitle = (datasource: Datasource | null | undefined): string => {
+  if (datasource?.type === 'query') return datasource?.sql || '';
   return datasource?.name || '';
 };
 
-const preventRouterLinkWhileMetaClicked = evt => {
+const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
   if (evt.metaKey) {
     evt.preventDefault();
   } else {
@@ -172,8 +200,12 @@ const preventRouterLinkWhileMetaClicked = evt => {
   }
 };
 
-class DatasourceControl extends PureComponent {
-  constructor(props) {
+class DatasourceControl extends PureComponent<DatasourceControlProps, DatasourceControlState> {
+  static propTypes = propTypes;
+
+  static defaultProps = defaultProps;
+
+  constructor(props: DatasourceControlProps) {
     super(props);
     this.state = {
       showEditDatasourceModal: false,
@@ -182,7 +214,7 @@ class DatasourceControl extends PureComponent {
     };
   }
 
-  onDatasourceSave = datasource => {
+  onDatasourceSave = (datasource: Datasource) => {
     this.props.actions.changeDatasource(datasource);
     const { temporalColumns, defaultTemporalColumn } =
       getTemporalColumns(datasource);
@@ -238,7 +270,7 @@ class DatasourceControl extends PureComponent {
     }));
   };
 
-  handleMenuItemClick = ({ key }) => {
+  handleMenuItemClick = ({ key }: { key: string }) => {
     switch (key) {
       case CHANGE_DATASET:
         this.toggleChangeDatasourceModal();
@@ -546,8 +578,5 @@ class DatasourceControl extends PureComponent {
     );
   }
 }
-
-DatasourceControl.propTypes = propTypes;
-DatasourceControl.defaultProps = defaultProps;
 
 export default withTheme(DatasourceControl);
