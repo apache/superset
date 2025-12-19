@@ -383,7 +383,7 @@ export const renderDatasetList = (
 
   return render(
     <Provider store={store}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/']}>
         <QueryParamProvider>
           <DatasetList user={user} {...props} />
         </QueryParamProvider>
