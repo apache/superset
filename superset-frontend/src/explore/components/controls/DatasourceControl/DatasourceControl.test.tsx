@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
@@ -107,37 +108,40 @@ interface TestProps {
 }
 
 // Use type assertion for test props since the component is wrapped with withTheme
-const createProps = (overrides: JsonObject = {}): TestProps => ({
-  hovered: false,
-  type: 'DatasourceControl',
-  label: 'Datasource',
-  default: null,
-  description: null,
-  value: '25__table',
-  form_data: {},
-  datasource: mockDatasource,
-  validationErrors: [],
-  name: 'datasource',
-  actions: {
-    changeDatasource: jest.fn(),
-    setControlValue: jest.fn(),
-  },
-  isEditable: true,
-  user: {
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: { Admin: Array(173) },
-    userId: 1,
-    username: 'admin',
-  },
-  onChange: jest.fn(),
-  onDatasourceSave: jest.fn(),
-  ...overrides,
-});
+// The withTheme HOC makes the props type complex, so we use a cast to bypass the type check
+type DatasourceControlComponentProps = React.ComponentProps<typeof DatasourceControl>;
+const createProps = (overrides: JsonObject = {}): DatasourceControlComponentProps =>
+  ({
+    hovered: false,
+    type: 'DatasourceControl',
+    label: 'Datasource',
+    default: null,
+    description: null,
+    value: '25__table',
+    form_data: {},
+    datasource: mockDatasource,
+    validationErrors: [],
+    name: 'datasource',
+    actions: {
+      changeDatasource: jest.fn(),
+      setControlValue: jest.fn(),
+    },
+    isEditable: true,
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: { Admin: Array(173) },
+      userId: 1,
+      username: 'admin',
+    },
+    onChange: jest.fn(),
+    onDatasourceSave: jest.fn(),
+    ...overrides,
+  }) as DatasourceControlComponentProps;
 
 async function openAndSaveChanges(datasource: TestDatasource) {
   fetchMock.get(

@@ -20,6 +20,7 @@ import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
 } from 'src/explore/constants';
 import { translateToSql } from '../utils/translateToSQL';
 import { Clauses, ExpressionTypes } from '../types';
@@ -68,7 +69,7 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (adhocFilter.operatorId && DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId) >= 0) {
+      if (adhocFilter.operatorId && DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >= 0) {
         this.comparator = undefined;
       }
       this.clause = adhocFilter.clause || Clauses.Where;

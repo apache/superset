@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { AGGREGATES } from 'src/explore/constants';
@@ -70,10 +71,18 @@ const defaultProps = {
   datasource: {},
 };
 
+// Cast props to handle AdhocMetric type in options array
+type AdhocFilterEditPopoverComponentProps = React.ComponentProps<typeof AdhocFilterEditPopover>;
 const renderPopover = (props: Partial<typeof defaultProps> = {}) =>
-  render(<AdhocFilterEditPopover {...defaultProps} {...props} />, {
-    useRedux: true, // Add Redux provider for context
-  });
+  render(
+    <AdhocFilterEditPopover
+      {...(defaultProps as unknown as AdhocFilterEditPopoverComponentProps)}
+      {...(props as unknown as Partial<AdhocFilterEditPopoverComponentProps>)}
+    />,
+    {
+      useRedux: true, // Add Redux provider for context
+    },
+  );
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterEditPopover', () => {

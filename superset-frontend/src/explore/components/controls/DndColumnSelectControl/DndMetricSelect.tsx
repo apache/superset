@@ -90,7 +90,7 @@ const coerceMetrics = (
       );
       if (column) {
         // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
-        return new AdhocMetric({ ...(metric as unknown as Record<string, unknown>), column });
+        return new AdhocMetric({ ...(metric as unknown as Record<string, unknown>), column: column as unknown as Record<string, unknown> });
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
@@ -349,9 +349,10 @@ const DndMetricSelect = (props: any) => {
       droppedItem.type === DndItemType.Column
     ) {
       const itemValue = droppedItem.value as ColumnMeta;
-      const config: Partial<AdhocMetric> = {
+      // Cast config to handle ColumnMeta/ColumnType mismatch
+      const config = {
         column: itemValue,
-      };
+      } as Partial<AdhocMetric>;
       if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (

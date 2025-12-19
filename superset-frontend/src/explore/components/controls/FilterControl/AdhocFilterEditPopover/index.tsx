@@ -34,6 +34,7 @@ import columnType from 'src/explore/components/controls/FilterControl/columnType
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
+  Operators,
 } from 'src/explore/constants';
 import rison from 'rison';
 import { isObject } from 'lodash';
@@ -210,9 +211,8 @@ export default class AdhocFilterEditPopover extends Component<
   }
 
   onSave() {
-    const hasDeckSlices =
-      this.state.adhocFilter.deck_slices &&
-      this.state.adhocFilter.deck_slices.length > 0;
+    const deckSlices = this.state.adhocFilter.deck_slices as number[] | undefined;
+    const hasDeckSlices = deckSlices && deckSlices.length > 0;
 
     if (!hasDeckSlices) {
       this.props.onChange(this.state.adhocFilter);
@@ -226,10 +226,9 @@ export default class AdhocFilterEditPopover extends Component<
       }
       return item;
     });
-    const correctedAdhocFilter = {
-      ...this.state.adhocFilter,
+    const correctedAdhocFilter = this.state.adhocFilter.duplicateWith({
       layerFilterScope: selectedLayers,
-    };
+    });
     this.setState({ hasLayerFilterScopeChanged: false });
     this.props.onChange(correctedAdhocFilter);
     this.props.onClose();
@@ -261,17 +260,17 @@ export default class AdhocFilterEditPopover extends Component<
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
-  onTabChange(activeKey) {
+  onTabChange(activeKey: string) {
     this.setState({
       activeKey,
     });
   }
 
-  adjustHeight(heightDifference) {
+  adjustHeight(heightDifference: number) {
     this.setState(state => ({ height: state.height + heightDifference }));
   }
 
-  loadLayerOptions(page, pageSize) {
+  loadLayerOptions(page: number, pageSize: number) {
     const query = rison.encode({
       columns: ['id', 'slice_name', 'viz_type'],
       filters: [{ col: 'viz_type', opr: 'sw', value: 'deck' }],
@@ -297,7 +296,7 @@ export default class AdhocFilterEditPopover extends Component<
         };
       }
 
-      const deckSlices = this.props.adhocFilter?.deck_slices || [];
+      const deckSlices = (this.props.adhocFilter?.deck_slices || []) as number[];
 
       const list = [
         {
@@ -306,7 +305,7 @@ export default class AdhocFilterEditPopover extends Component<
           label: 'All',
         },
         ...response.json.result
-          .map(item => {
+          .map((item: { id: number; slice_name: string }) => {
             const sliceIndex = deckSlices.indexOf(item.id);
             return {
               id: item.id,
@@ -315,8 +314,8 @@ export default class AdhocFilterEditPopover extends Component<
               sliceIndex,
             };
           })
-          .filter(item => item.sliceIndex !== -1)
-          .map(({ sliceIndex, ...item }) => item),
+          .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
+          .map(({ sliceIndex, ...item }: { sliceIndex: number; id: number; value: number; label: string }) => item),
       ];
 
       return {
@@ -326,24 +325,26 @@ export default class AdhocFilterEditPopover extends Component<
     });
   }
 
-  onLayerChange(selectedValue) {
-    let updatedSelectedLayers = selectedValue;
+  onLayerChange(selectedValue: LayerOption[] | number[] | null) {
+    let updatedSelectedLayers: LayerOption[] = selectedValue as LayerOption[] || [];
 
     if (!selectedValue || selectedValue.length === 0) {
       updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
     } else if (
       selectedValue.length > 1 &&
-      selectedValue.some(item => item.value === -1 || item === -1)
+      selectedValue.some((item: LayerOption | number) =>
+        (typeof item === 'object' && item.value === -1) || item === -1
+      )
     ) {
+      const lastItem = selectedValue[selectedValue.length - 1];
       if (
-        selectedValue[selectedValue.length - 1].value === -1 ||
-        selectedValue[selectedValue.length - 1] === -1
+        (typeof lastItem === 'object' && lastItem.value === -1) ||
+        lastItem === -1
       ) {
         updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
       } else {
-        updatedSelectedLayers = selectedValue
-          .filter(item => item.value !== -1)
-          .filter(item => item !== -1);
+        updatedSelectedLayers = (selectedValue as LayerOption[])
+          .filter((item: LayerOption) => item.value !== -1);
       }
     }
 
@@ -374,8 +375,8 @@ export default class AdhocFilterEditPopover extends Component<
       !adhocFilter.equals(propsAdhocFilter) ||
       hasLayerFilterScopeChanged;
 
-    const hasDeckSlices =
-      adhocFilter.deck_slices && adhocFilter.deck_slices.length > 0;
+    const renderDeckSlices = adhocFilter.deck_slices as number[] | undefined;
+    const hasDeckSlices = renderDeckSlices && renderDeckSlices.length > 0;
 
     return (
       <FilterPopoverContentContainer
@@ -399,7 +400,7 @@ export default class AdhocFilterEditPopover extends Component<
               children: (
                 <ErrorBoundary>
                   <AdhocFilterEditPopoverSimpleTabContent
-                    operators={operators}
+                    operators={operators as Operators[] | undefined}
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
                     options={options}

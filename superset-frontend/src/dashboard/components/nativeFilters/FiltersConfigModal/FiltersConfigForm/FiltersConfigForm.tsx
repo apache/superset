@@ -19,7 +19,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import {
-  AdhocFilter,
   Behavior,
   ChartDataResponseResult,
   Column,

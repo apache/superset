@@ -394,13 +394,13 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
   addNewFilterPopoverTrigger(trigger: ReactNode): JSX.Element {
     return (
       <AdhocFilterPopoverTrigger
-        operators={this.props.operators}
+        operators={this.props.operators as Operators[] | undefined}
         sections={this.props.sections}
         adhocFilter={new AdhocFilter({})}
-        datasource={this.props.datasource}
+        datasource={this.props.datasource as Record<string, unknown> || {}}
         options={this.state.options}
-        onFilterEdit={this.onNewFilter}
-        partitionColumn={this.state.partitionColumn}
+        onFilterEdit={this.onNewFilter as (editedFilter: AdhocFilter) => void}
+        partitionColumn={this.state.partitionColumn ?? undefined}
       >
         {trigger}
       </AdhocFilterPopoverTrigger>
