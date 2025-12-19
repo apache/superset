@@ -76,6 +76,9 @@ snowflake.svg
 ydb.svg
 loading.svg
 
+# docs third-party logos, i.e. docs/static/img/logos/*
+logos/*
+
 # docs-related
 erd.puml
 erd.svg
@@ -83,6 +86,7 @@ intro_header.txt
 
 # for LLMs
 llm-context.md
+llms.txt
 AGENTS.md
 LLMS.md
 CLAUDE.md

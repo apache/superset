@@ -15,11 +15,24 @@ module.exports = {
     ...config,
     module: {
       ...config.module,
-      rules: customConfig.module.rules,
+      rules: [
+        ...customConfig.module.rules,
+        // Fix for Storybook 8 ESM issue with react-dom/test-utils
+        {
+          test: /\.m?js$/,
+          resolve: {
+            fullySpecified: false,
+          },
+        },
+      ],
     },
     resolve: {
       ...config.resolve,
       ...customConfig.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        ...customConfig.resolve?.alias,
+      },
     },
   }),
 

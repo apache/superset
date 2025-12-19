@@ -16,16 +16,17 @@
 # under the License.
 
 """
-FastMCP app factory and initialization for Superset MCP service.
+FastMCP app factory and initialization for the MCP service.
 This file provides a configurable factory function to create FastMCP instances
 following the Flask application factory pattern. All tool modules should import
 mcp from here and use @mcp.tool decorators.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Set
+from typing import Any, Callable, Dict, List, Sequence, Set
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,11 @@ System Information:
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
-- superset://instance/metadata: Access instance configuration and metadata
-- superset://chart/templates: Access chart configuration templates
+- instance/metadata: Access instance configuration and metadata
+- chart/templates: Access chart configuration templates
 
 Available Prompts:
-- superset_quickstart: Interactive guide for getting started with the MCP service
+- quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
 Common Chart Types (viz_type) and Behaviors:
@@ -130,7 +131,7 @@ General usage tips:
 - Chart previews are served as PNG images via custom screenshot endpoints
 
 If you are unsure which tool to use, start with get_instance_info
-or use the superset_quickstart prompt for an interactive guide.
+or use the quickstart prompt for an interactive guide.
 """
 
 
@@ -146,6 +147,7 @@ def _build_mcp_kwargs(
     tools: List[Any] | None,
     include_tags: Set[str] | None,
     exclude_tags: Set[str] | None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Build FastMCP constructor arguments."""
@@ -165,6 +167,8 @@ def _build_mcp_kwargs(
         mcp_kwargs["include_tags"] = include_tags
     if exclude_tags is not None:
         mcp_kwargs["exclude_tags"] = exclude_tags
+    if middleware is not None:
+        mcp_kwargs["middleware"] = middleware
 
     # Add any additional kwargs
     mcp_kwargs.update(kwargs)
@@ -197,7 +201,7 @@ def _log_instance_creation(
 
 
 def create_mcp_app(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
     branding: str | None = None,
     auth: Any | None = None,
@@ -206,6 +210,7 @@ def create_mcp_app(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -225,11 +230,16 @@ def create_mcp_app(
         include_tags: Set of tags to include (whitelist)
         exclude_tags: Set of tags to exclude (blacklist)
         config: Additional configuration dictionary
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP constructor arguments
 
     Returns:
         Configured FastMCP instance
     """
+    # Default name if not provided
+    if name is None:
+        name = "MCP Server"
+
     # Use default instructions if none provided
     if instructions is None:
         # If branding is provided, use it to generate instructions
@@ -240,7 +250,15 @@ def create_mcp_app(
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
-        name, instructions, auth, lifespan, tools, include_tags, exclude_tags, **kwargs
+        name,
+        instructions,
+        auth,
+        lifespan,
+        tools,
+        include_tags,
+        exclude_tags,
+        middleware,
+        **kwargs,
     )
 
     # Create the FastMCP instance
@@ -256,13 +274,12 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-# Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app(stateless_http=True)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
-# Tools use @mcp.tool decorators and register automatically on import.
-# Import prompts and resources to register them with the mcp instance
+# Tools use the @tool decorator from `superset-core` and register automatically
+# on import. Import prompts and resources to register them with the mcp instance
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
@@ -318,6 +335,7 @@ def init_fastmcp_server(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -331,6 +349,7 @@ def init_fastmcp_server(
         name: Server name (defaults to "{APP_NAME} MCP Server")
         instructions: Custom instructions (defaults to branded with APP_NAME)
         auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP configuration
 
     Returns:
@@ -361,6 +380,7 @@ def init_fastmcp_server(
             include_tags is not None,
             exclude_tags is not None,
             config is not None,
+            middleware is not None,
             kwargs,
         ]
     )
@@ -376,6 +396,7 @@ def init_fastmcp_server(
             include_tags=include_tags,
             exclude_tags=exclude_tags,
             config=config,
+            middleware=middleware,
             **kwargs,
         )
     else:

@@ -16,7 +16,7 @@
 # under the License.
 
 """
-System resources for providing Superset configuration and stats
+System resources for providing instance configuration and stats
 """
 
 import logging
@@ -27,11 +27,11 @@ from superset.mcp_service.auth import mcp_auth_hook
 logger = logging.getLogger(__name__)
 
 
-@mcp.resource("superset://instance/metadata")
+@mcp.resource("instance://metadata")
 @mcp_auth_hook
 def get_instance_metadata_resource() -> str:
     """
-    Provide comprehensive metadata about the Superset instance.
+    Provide comprehensive metadata about the instance.
 
     This resource gives LLMs context about:
     - Available datasets and their popularity
