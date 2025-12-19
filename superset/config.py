@@ -371,7 +371,12 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI = True
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
+
+
+# Enables SWAGGER UI for superset openapi spec
+# ex: http://localhost:8080/(prefix)/swagger/v1
+
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -386,7 +391,7 @@ AUTH_TYPE = AUTH_DB
 # AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-# AUTH_ROLE_PUBLIC = 'Public'
+AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
 # AUTH_USER_REGISTRATION = True
