@@ -4690,3 +4690,106 @@ def test_merge_cls_rules_complex_scenario() -> None:
             "credit_card": CLSAction.HIDE,
         },
     }
+
+
+def test_combined_rls_and_cls_snowflake() -> None:
+    """
+    Test combined RLS and CLS application with Snowflake dialect.
+
+    This tests a real-world scenario where:
+    - A table has both RLS (row-level security) and CLS (column-level security) rules
+    - The column names in the rule are lowercase but Snowflake uppercases identifiers
+    - Both transformations should be applied correctly
+
+    Rule configuration:
+    {
+      "allowed": [
+        {"database": "Snowflake", "catalog": "SAMPLE_DATA", "schema": "tpcds_sf10tcl"},
+        {
+          "database": "Snowflake",
+          "table": "customer",
+          "catalog": "SAMPLE_DATA",
+          "schema": "tpcds_sf10tcl",
+          "rls": {"predicate": "C_BIRTH_COUNTRY = 'BRAZIL'"},
+          "cls": {"c_email_address": "hash"}
+        }
+      ]
+    }
+    """
+    sql = "SELECT C_BIRTH_COUNTRY, C_EMAIL_ADDRESS FROM customer LIMIT 10"
+    statement = SQLStatement(sql, engine="snowflake")
+
+    # CLS rules with lowercase column name (as stored in the rule)
+    cls_rules = {
+        Table("customer", "tpcds_sf10tcl", "SAMPLE_DATA"): {
+            "c_email_address": CLSAction.HASH
+        }
+    }
+
+    # RLS predicate
+    rls_predicate = statement.parse_predicate("C_BIRTH_COUNTRY = 'BRAZIL'")
+    rls_predicates = {
+        Table("customer", "tpcds_sf10tcl", "SAMPLE_DATA"): [rls_predicate]
+    }
+
+    # Schema for qualify() to expand SELECT *
+    table_schema = {
+        "SAMPLE_DATA": {
+            "tpcds_sf10tcl": {
+                "customer": {
+                    "C_BIRTH_COUNTRY": "VARCHAR",
+                    "C_EMAIL_ADDRESS": "VARCHAR",
+                }
+            }
+        }
+    }
+
+    # Apply CLS first (before RLS)
+    statement.apply_cls(cls_rules, schema=table_schema)
+
+    # Apply RLS after CLS
+    statement.apply_rls(
+        "SAMPLE_DATA", "tpcds_sf10tcl", rls_predicates, RLSMethod.AS_SUBQUERY
+    )
+
+    result = statement.format()
+
+    # Verify CLS is applied: c_email_address should be hashed with MD5
+    assert "MD5(TO_CHAR(" in result
+    assert "C_EMAIL_ADDRESS" in result
+
+    # Verify RLS is applied: should have subquery with WHERE clause
+    assert "WHERE" in result
+    assert "C_BIRTH_COUNTRY = 'BRAZIL'" in result
+
+    # Verify the structure: should be SELECT ... FROM (SELECT * FROM ... WHERE ...) AS ...
+    assert "SELECT" in result
+    assert "FROM (" in result
+
+
+def test_combined_rls_and_cls_case_insensitive_matching() -> None:
+    """
+    Test that RLS and CLS matching is case-insensitive.
+
+    Snowflake uppercases identifiers, so the rule column names (lowercase)
+    must match the query column names (uppercase after qualify()).
+    """
+    sql = "SELECT email FROM users"
+    statement = SQLStatement(sql, engine="snowflake")
+
+    # Rules with lowercase names
+    cls_rules = {Table("users"): {"email": CLSAction.HASH}}
+    rls_predicate = statement.parse_predicate("active = TRUE")
+    rls_predicates = {Table("users"): [rls_predicate]}
+
+    table_schema = {"users": {"email": "VARCHAR", "active": "BOOLEAN"}}
+
+    # Apply CLS then RLS
+    statement.apply_cls(cls_rules, schema=table_schema)
+    statement.apply_rls(None, None, rls_predicates, RLSMethod.AS_SUBQUERY)
+
+    result = statement.format()
+
+    # Both should be applied despite case differences
+    assert "MD5" in result  # CLS hash applied
+    assert "active = TRUE" in result  # RLS predicate applied

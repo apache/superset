@@ -551,7 +551,7 @@ def apply_data_access_rules(
         if table_cls:
             cls_rules[qualified_table] = table_cls
 
-    # Apply CLS first (before RLS) so that hidden columns are removed
+    # Apply CLS first (before RLS) so that column transformations happen
     # before RLS wraps the query in a subquery
     if cls_rules:
         # Build schema dict for sqlglot's qualify() to expand SELECT *
@@ -591,8 +591,10 @@ def apply_data_access_rules(
 
         parsed_statement.apply_cls(cls_rules, schema=table_schemas if table_schemas else None)
 
-    # Apply RLS after CLS - RLS wraps the query in a subquery with SELECT *
-    # which will pick up the already-transformed columns from CLS
+    # Apply RLS after CLS
+    # Note: CLS runs qualify() which may change identifier case for some databases
+    # (e.g., Snowflake uppercases identifiers). The RLSTransformer normalizes
+    # table names to lowercase for case-insensitive matching.
     if rls_predicates:
         parsed_statement.apply_rls(catalog, schema, rls_predicates, method)
 
