@@ -48,6 +48,10 @@ const NEWLINE_BYTE = 10; // '\n' character code
  */
 const ensureUrlPrefix = (url: string): string => {
   const appRoot = applicationRoot();
+  // Protocol-relative URLs (//example.com/...) should pass through unchanged
+  if (url.startsWith('//')) {
+    return url;
+  }
   // Only process relative URLs (starting with /)
   if (!url.startsWith('/')) {
     return url;
@@ -57,7 +61,8 @@ const ensureUrlPrefix = (url: string): string => {
     return url;
   }
   // If URL already has the app root prefix, return as-is
-  if (url.startsWith(appRoot)) {
+  // Use strict check to avoid false positives with sibling paths (e.g., /app2 when appRoot is /app)
+  if (url === appRoot || url.startsWith(`${appRoot}/`)) {
     return url;
   }
   // Apply prefix via makeUrl

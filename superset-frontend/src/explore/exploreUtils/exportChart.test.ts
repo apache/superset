@@ -40,143 +40,134 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const { ensureAppRoot } = jest.requireMock('src/utils/pathUtils');
+const { getChartMetadataRegistry } = jest.requireMock('@superset-ui/core');
 
-describe('exportChart URL prefix for streaming export', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Default: no prefix
-    ensureAppRoot.mockImplementation((path: string) => path);
+// Minimal formData that won't trigger legacy API (useLegacyApi = false)
+const baseFormData = {
+  datasource: '1__table',
+  viz_type: 'table',
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Default: no prefix
+  ensureAppRoot.mockImplementation((path: string) => path);
+  // Default: v1 API (not legacy)
+  getChartMetadataRegistry.mockReturnValue({
+    get: jest.fn().mockReturnValue({ parseMethod: 'json' }),
+  });
+});
+
+// Tests for exportChart URL prefix handling in streaming export
+test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
+  const appRoot = '/superset';
+  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
   });
 
-  // Minimal formData that won't trigger legacy API (useLegacyApi = false)
-  const baseFormData = {
+  expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.url).toBe('/superset/api/v1/chart/data');
+  expect(callArgs.exportType).toBe('csv');
+});
+
+test('exportChart v1 API passes unprefixed URL when no app root is configured', async () => {
+  ensureAppRoot.mockImplementation((path: string) => path);
+
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.url).toBe('/api/v1/chart/data');
+});
+
+test('exportChart v1 API passes nested prefix for deeply nested deployments', async () => {
+  const appRoot = '/my-company/analytics/superset';
+  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'xlsx',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  expect(callArgs.url).toBe('/my-company/analytics/superset/api/v1/chart/data');
+  expect(callArgs.exportType).toBe('xlsx');
+});
+
+test('exportChart passes csv exportType for CSV exports', async () => {
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      exportType: 'csv',
+    }),
+  );
+});
+
+test('exportChart passes xlsx exportType for Excel exports', async () => {
+  const onStartStreamingExport = jest.fn();
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'xlsx',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
+  });
+
+  expect(onStartStreamingExport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      exportType: 'xlsx',
+    }),
+  );
+});
+
+test('exportChart legacy API (useLegacyApi=true) passes prefixed URL with app root configured', async () => {
+  // Legacy API uses getExploreUrl() -> getURIDirectory() -> ensureAppRoot()
+  const appRoot = '/superset';
+  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  // Configure mock to return useLegacyApi: true
+  getChartMetadataRegistry.mockReturnValue({
+    get: jest.fn().mockReturnValue({ useLegacyApi: true, parseMethod: 'json' }),
+  });
+
+  const onStartStreamingExport = jest.fn();
+  const legacyFormData = {
     datasource: '1__table',
-    viz_type: 'table',
+    viz_type: 'legacy_viz',
   };
 
-  describe('v1 API endpoint', () => {
-    test('passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
-      const appRoot = '/superset';
-      ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
-
-      const onStartStreamingExport = jest.fn();
-
-      await exportChart({
-        formData: baseFormData,
-        resultFormat: 'csv',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-      const callArgs = onStartStreamingExport.mock.calls[0][0];
-      expect(callArgs.url).toBe('/superset/api/v1/chart/data');
-      expect(callArgs.exportType).toBe('csv');
-    });
-
-    test('passes unprefixed URL when no app root is configured', async () => {
-      ensureAppRoot.mockImplementation((path: string) => path);
-
-      const onStartStreamingExport = jest.fn();
-
-      await exportChart({
-        formData: baseFormData,
-        resultFormat: 'csv',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-      const callArgs = onStartStreamingExport.mock.calls[0][0];
-      expect(callArgs.url).toBe('/api/v1/chart/data');
-    });
-
-    test('passes nested prefix for deeply nested deployments', async () => {
-      const appRoot = '/my-company/analytics/superset';
-      ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
-
-      const onStartStreamingExport = jest.fn();
-
-      await exportChart({
-        formData: baseFormData,
-        resultFormat: 'xlsx',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-      const callArgs = onStartStreamingExport.mock.calls[0][0];
-      expect(callArgs.url).toBe(
-        '/my-company/analytics/superset/api/v1/chart/data',
-      );
-      expect(callArgs.exportType).toBe('xlsx');
-    });
+  await exportChart({
+    formData: legacyFormData,
+    resultFormat: 'csv',
+    onStartStreamingExport: onStartStreamingExport as unknown as null,
   });
 
-  describe('exportType passthrough', () => {
-    test('passes csv exportType for CSV exports', async () => {
-      const onStartStreamingExport = jest.fn();
-
-      await exportChart({
-        formData: baseFormData,
-        resultFormat: 'csv',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exportType: 'csv',
-        }),
-      );
-    });
-
-    test('passes xlsx exportType for Excel exports', async () => {
-      const onStartStreamingExport = jest.fn();
-
-      await exportChart({
-        formData: baseFormData,
-        resultFormat: 'xlsx',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exportType: 'xlsx',
-        }),
-      );
-    });
-  });
-
-  describe('legacy API endpoint (useLegacyApi=true)', () => {
-    // Legacy API uses getExploreUrl() -> getURIDirectory() -> ensureAppRoot()
-    // This test ensures the legacy path also correctly prefixes URLs
-    const { getChartMetadataRegistry } = jest.requireMock('@superset-ui/core');
-
-    test('passes prefixed URL for legacy viz type with app root configured', async () => {
-      const appRoot = '/superset';
-      ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
-
-      // Configure mock to return useLegacyApi: true
-      getChartMetadataRegistry.mockReturnValue({
-        get: jest
-          .fn()
-          .mockReturnValue({ useLegacyApi: true, parseMethod: 'json' }),
-      });
-
-      const onStartStreamingExport = jest.fn();
-      const legacyFormData = {
-        datasource: '1__table',
-        viz_type: 'legacy_viz',
-      };
-
-      await exportChart({
-        formData: legacyFormData,
-        resultFormat: 'csv',
-        onStartStreamingExport: onStartStreamingExport as unknown as null,
-      });
-
-      expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
-      const callArgs = onStartStreamingExport.mock.calls[0][0];
-      // Legacy path uses getURIDirectory which calls ensureAppRoot
-      expect(callArgs.url).toContain(appRoot);
-      expect(callArgs.exportType).toBe('csv');
-    });
-  });
+  expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
+  const callArgs = onStartStreamingExport.mock.calls[0][0];
+  // Legacy path uses getURIDirectory which calls ensureAppRoot
+  expect(callArgs.url).toContain(appRoot);
+  expect(callArgs.exportType).toBe('csv');
 });

@@ -218,172 +218,213 @@ test('sets ERROR status and calls onError when fetch rejects', async () => {
 });
 
 // URL prefix guard tests - prevent regression of missing app root prefix
-describe('URL prefix guard', () => {
-  const { applicationRoot } = jest.requireMock('src/utils/getBootstrapData');
-  const { makeUrl } = jest.requireMock('src/utils/pathUtils');
+const { applicationRoot } = jest.requireMock('src/utils/getBootstrapData');
+const { makeUrl } = jest.requireMock('src/utils/pathUtils');
 
-  const createMockFetch = () =>
-    jest.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({
-        'Content-Disposition': 'attachment; filename="export.csv"',
+const createPrefixTestMockFetch = () =>
+  jest.fn().mockResolvedValue({
+    ok: true,
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename="export.csv"',
+    }),
+    body: {
+      getReader: () => ({
+        read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
       }),
-      body: {
-        getReader: () => ({
-          read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
-        }),
-      },
-    });
-
-  beforeEach(() => {
-    applicationRoot.mockReturnValue('');
-    makeUrl.mockImplementation((path: string) => path);
+    },
   });
 
-  test('applies prefix to unprefixed relative URL when app root is configured', async () => {
-    const appRoot = '/superset';
-    applicationRoot.mockReturnValue(appRoot);
-    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+test('URL prefix guard applies prefix to unprefixed relative URL when app root is configured', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
 
-    const mockFetch = createMockFetch();
-    global.fetch = mockFetch;
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
 
-    const { result } = renderHook(() => useStreamingExport());
+  const { result } = renderHook(() => useStreamingExport());
 
-    act(() => {
-      result.current.startExport({
-        url: '/api/v1/sqllab/export_streaming/',
-        payload: { client_id: 'test-id' },
-        exportType: 'csv',
-      });
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
     });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Guard should have applied the prefix
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/superset/api/v1/sqllab/export_streaming/',
-      expect.any(Object),
-    );
   });
 
-  test('does not double-prefix URL that already has app root', async () => {
-    const appRoot = '/superset';
-    applicationRoot.mockReturnValue(appRoot);
-    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
-
-    const mockFetch = createMockFetch();
-    global.fetch = mockFetch;
-
-    const { result } = renderHook(() => useStreamingExport());
-
-    // URL already has prefix (caller did the right thing)
-    act(() => {
-      result.current.startExport({
-        url: '/superset/api/v1/sqllab/export_streaming/',
-        payload: { client_id: 'test-id' },
-        exportType: 'csv',
-      });
-    });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Should NOT double-prefix
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/superset/api/v1/sqllab/export_streaming/',
-      expect.any(Object),
-    );
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  test('leaves URL unchanged when no app root is configured', async () => {
-    applicationRoot.mockReturnValue('');
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/superset/api/v1/sqllab/export_streaming/',
+    expect.any(Object),
+  );
+});
 
-    const mockFetch = createMockFetch();
-    global.fetch = mockFetch;
+test('URL prefix guard does not double-prefix URL that already has app root', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
 
-    const { result } = renderHook(() => useStreamingExport());
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
 
-    act(() => {
-      result.current.startExport({
-        url: '/api/v1/sqllab/export_streaming/',
-        payload: { client_id: 'test-id' },
-        exportType: 'csv',
-      });
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/superset/api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
     });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // No prefix should be applied
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/v1/sqllab/export_streaming/',
-      expect.any(Object),
-    );
   });
 
-  test('leaves relative URL without leading slash unchanged (caller responsibility)', async () => {
-    // URLs without leading slash are treated as non-relative and passed through.
-    // Callers should always use absolute paths starting with /
-    const appRoot = '/superset';
-    applicationRoot.mockReturnValue(appRoot);
-    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
-
-    const mockFetch = createMockFetch();
-    global.fetch = mockFetch;
-
-    const { result } = renderHook(() => useStreamingExport());
-
-    act(() => {
-      result.current.startExport({
-        url: 'api/v1/sqllab/export_streaming/',
-        payload: { client_id: 'test-id' },
-        exportType: 'csv',
-      });
-    });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // URL without leading slash is passed through unchanged - guard only handles /paths
-    expect(mockFetch).toHaveBeenCalledWith(
-      'api/v1/sqllab/export_streaming/',
-      expect.any(Object),
-    );
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  test('leaves absolute URLs (http/https) unchanged', async () => {
-    // Absolute URLs should pass through without modification
-    const appRoot = '/superset';
-    applicationRoot.mockReturnValue(appRoot);
-    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/superset/api/v1/sqllab/export_streaming/',
+    expect.any(Object),
+  );
+});
 
-    const mockFetch = createMockFetch();
-    global.fetch = mockFetch;
+test('URL prefix guard leaves URL unchanged when no app root is configured', async () => {
+  applicationRoot.mockReturnValue('');
 
-    const { result } = renderHook(() => useStreamingExport());
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
 
-    act(() => {
-      result.current.startExport({
-        url: 'https://external.example.com/api/export/',
-        payload: { client_id: 'test-id' },
-        exportType: 'csv',
-      });
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
     });
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Absolute URLs should not be modified
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://external.example.com/api/export/',
-      expect.any(Object),
-    );
   });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/api/v1/sqllab/export_streaming/',
+    expect.any(Object),
+  );
+});
+
+test('URL prefix guard leaves relative URL without leading slash unchanged', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: 'api/v1/sqllab/export_streaming/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(mockFetch).toHaveBeenCalledWith(
+    'api/v1/sqllab/export_streaming/',
+    expect.any(Object),
+  );
+});
+
+test('URL prefix guard leaves absolute URLs (https) unchanged', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: 'https://external.example.com/api/export/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(mockFetch).toHaveBeenCalledWith(
+    'https://external.example.com/api/export/',
+    expect.any(Object),
+  );
+});
+
+test('URL prefix guard leaves protocol-relative URLs (//host) unchanged', async () => {
+  const appRoot = '/superset';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '//external.example.com/api/export/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(mockFetch).toHaveBeenCalledWith(
+    '//external.example.com/api/export/',
+    expect.any(Object),
+  );
+});
+
+test('URL prefix guard correctly handles sibling paths (prefixes /app2 when appRoot is /app)', async () => {
+  const appRoot = '/app';
+  applicationRoot.mockReturnValue(appRoot);
+  makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/app2/api/v1/export/',
+      payload: { client_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  // /app2 should be prefixed because it's not under /app/ - it's a sibling path
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/app/app2/api/v1/export/',
+    expect.any(Object),
+  );
 });
