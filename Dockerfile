@@ -160,7 +160,7 @@ ENV SUPERSET_HOME="/app/superset_home" \
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
 WORKDIR /app
-# Set up necessary directories and user
+# Set up necessary directories
 RUN mkdir -p \
       ${PYTHONPATH} \
       superset/static \
