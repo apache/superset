@@ -43,8 +43,9 @@ This is a list of statements that describe how we do frontend development in Sup
 - We organize our repo so similar files live near each other, and tests are co-located with the files they test.
   - See: [SIP-61](https://github.com/apache/superset/issues/12098)
 - We prefer small, easily testable files and components.
-- We use ESLint and Prettier to automatically fix lint errors and format the code.
+- We use OXC (oxlint) and Prettier to automatically fix lint errors and format the code.
   - We do not debate code formatting style in PRs, instead relying on automated tooling to enforce it.
   - If there's not a linting rule, we don't have a rule!
+  - See: [Linting How-Tos](../contributing/howtos#typescript--javascript)
 - We use [React Storybook](https://storybook.js.org/) and [Applitools](https://applitools.com/) to help preview/test and stabilize our components
   - A public Storybook with components from the `master` branch is available [here](https://apache-superset.github.io/superset-ui/?path=/story/*)

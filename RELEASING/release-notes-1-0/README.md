@@ -92,7 +92,7 @@ Some of the new features in this release are disabled by default. Each has a fea
 
 | Feature | Feature Flag | Dependencies | Documentation
 | --- | --- | --- | --- |
-| Global Async Queries | `GLOBAL_ASYNC_QUERIES: True` | Redis 5.0+, celery workers configured and running | [Extra documentation](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries )
+| Global Async Queries | `GLOBAL_ASYNC_QUERIES: True` | Redis 5.0+, celery workers configured and running | [Extra documentation](https://superset.apache.org/docs/contributing/misc#async-chart-queries)
 | Dashboard Native Filters | `DASHBOARD_NATIVE_FILTERS: True` | |
 | Alerts & Reporting | `ALERT_REPORTS: True` | [Celery workers configured & celery beat process](https://superset.apache.org/docs/installation/async-queries-celery) |
 | Homescreen Thumbnails | `THUMBNAILS: TRUE, THUMBNAIL_CACHE_CONFIG: CacheConfig = { "CACHE_TYPE": "null", "CACHE_NO_NULL_WARNING": True}`| selenium, pillow 7, celery |

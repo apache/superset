@@ -1,0 +1,107 @@
+---
+title: Feature Flags
+hide_title: true
+sidebar_position: 2
+version: 1
+---
+
+import featureFlags from '@site/static/feature-flags.json';
+
+export const FlagTable = ({flags}) => (
+  <table>
+    <thead>
+      <tr>
+        <th>Flag</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {flags.map((flag) => (
+        <tr key={flag.name}>
+          <td><code>{flag.name}</code></td>
+          <td><code>{flag.default ? 'True' : 'False'}</code></td>
+          <td>
+            {flag.description}
+            {flag.docs && (
+              <> (<a href={flag.docs}>docs</a>)</>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+
+# Feature Flags
+
+Superset uses feature flags to control the availability of features. Feature flags allow
+gradual rollout of new functionality and provide a way to enable experimental features.
+
+To enable a feature flag, add it to your `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "ENABLE_TEMPLATE_PROCESSING": True,
+}
+```
+
+## Lifecycle
+
+Feature flags progress through lifecycle stages:
+
+| Stage | Description |
+|-------|-------------|
+| **Development** | Experimental features under active development. May be incomplete or unstable. |
+| **Testing** | Feature complete but undergoing testing. Usable but may contain bugs. |
+| **Stable** | Production-ready features. Safe for all deployments. |
+| **Deprecated** | Features scheduled for removal. Migrate away from these. |
+
+---
+
+## Development
+
+These features are experimental and under active development. Use only in development environments.
+
+<FlagTable flags={featureFlags.flags.development} />
+
+---
+
+## Testing
+
+These features are complete but still being tested. They are usable but may have bugs.
+
+<FlagTable flags={featureFlags.flags.testing} />
+
+---
+
+## Stable
+
+These features are production-ready and safe to enable.
+
+<FlagTable flags={featureFlags.flags.stable} />
+
+---
+
+## Deprecated
+
+These features are scheduled for removal. Plan to migrate away from them.
+
+<FlagTable flags={featureFlags.flags.deprecated} />
+
+---
+
+## Adding New Feature Flags
+
+When adding a new feature flag to `superset/config.py`, include the following annotations:
+
+```python
+# Description of what the feature does
+# @lifecycle: development | testing | stable | deprecated
+# @docs: https://superset.apache.org/docs/... (optional)
+# @category: runtime_config | path_to_deprecation (optional, for stable flags)
+"MY_NEW_FEATURE": False,
+```
+
+This documentation is auto-generated from the annotations in
+[config.py](https://github.com/apache/superset/blob/master/superset/config.py).

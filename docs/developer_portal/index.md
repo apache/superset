@@ -86,7 +86,6 @@ Everything you need to contribute to the Apache Superset project. This section i
 - **[Configuration Guide](https://superset.apache.org/docs/configuration/configuring-superset)** - Setup and configuration
 
 ### Important Files
-- **[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)** - Contribution guidelines
 - **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - LLM development guide
 - **[UPDATING.md](https://github.com/apache/superset/blob/master/UPDATING.md)** - Breaking changes log
 

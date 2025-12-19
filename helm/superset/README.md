@@ -257,7 +257,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
 | supersetWebsockets.containerSecurityContext | object | `{}` |  |
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |
-| supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries |
+| supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://superset.apache.org/docs/contributing/misc#async-chart-queries |
 | supersetWebsockets.extraContainers | list | `[]` | Launch additional containers into supersetWebsockets pods |
 | supersetWebsockets.image.pullPolicy | string | `"IfNotPresent"` |  |
 | supersetWebsockets.image.repository | string | `"oneacrefund/superset-websocket"` | There is no official image (yet), this one is community-supported |
