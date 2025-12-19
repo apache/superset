@@ -167,7 +167,7 @@ const MessageSpan = styled.span`
   text-align: center;
   margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
   width: fit-content;
-  color: ${({ theme }) => theme.colorText};
+  color: ${({ theme }) => theme.colorPrimary};
 `;
 
 const LoadingOverlay = styled.div`
@@ -180,7 +180,7 @@ const LoadingOverlay = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: ${({ theme }) => theme.colorBgMask};
+  background-color: ${({ theme }) => theme.colorBgBase}cc;
   z-index: 10;
 `;
 
@@ -338,7 +338,6 @@ class Chart extends PureComponent<ChartProps, {}> {
         <Loading
           position="inline-centered"
           size={this.props.dashboardId ? 's' : 'm'}
-          muted={!!this.props.dashboardId}
         />
         <MessageSpan>{message}</MessageSpan>
       </LoadingOverlay>

@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { t, SupersetClient } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
@@ -174,7 +174,6 @@ function WhatIfSimulationList({
   addDangerToast,
   addSuccessToast,
 }: WhatIfSimulationListProps) {
-  const history = useHistory();
   const [simulations, setSimulations] = useState<WhatIfSimulation[]>([]);
   const [dashboards, setDashboards] = useState<Record<number, DashboardInfo>>(
     {},
@@ -396,26 +395,10 @@ function WhatIfSimulationList({
         }: {
           row: { original: WhatIfSimulation };
         }) => {
-          const dashboard = dashboards[original.dashboardId];
-          const dashboardUrl = dashboard?.slug
-            ? `/superset/dashboard/${dashboard.slug}/`
-            : `/superset/dashboard/${original.dashboardId}/`;
-          const simulationUrl = `${dashboardUrl}?simulation=${original.id}`;
-
-          const handleOpen = () => {
-            history.push(simulationUrl);
-          };
           const handleEdit = () => setSimulationCurrentlyEditing(original);
           const handleDelete = () => setSimulationCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'open-action',
-              tooltip: t('Open in Dashboard'),
-              placement: 'bottom',
-              icon: 'ExportOutlined',
-              onClick: handleOpen,
-            },
             {
               label: 'edit-action',
               tooltip: t('Edit modifications'),
@@ -442,7 +425,7 @@ function WhatIfSimulationList({
         disableSortBy: true,
       },
     ],
-    [dashboards, history, columnVerboseNames],
+    [dashboards, columnVerboseNames],
   );
 
   const emptyState = {
