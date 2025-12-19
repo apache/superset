@@ -3676,10 +3676,13 @@ def test_apply_cls_parametrized(
 def test_apply_cls_subquery() -> None:
     """
     Test CLS applies to subqueries.
+
+    Requires schema to expand SELECT * in outer query.
     """
     rules = {Table("users"): {"ssn": CLSAction.HASH}}
+    schema = {"users": {"ssn": "VARCHAR", "name": "VARCHAR"}}
     sql = "SELECT * FROM (SELECT ssn, name FROM users) AS subq"
-    result = apply_cls(sql, rules, engine="postgresql")
+    result = apply_cls(sql, rules, engine="postgresql", schema=schema)
 
     assert result == (
         "SELECT\n"
@@ -3697,10 +3700,13 @@ def test_apply_cls_subquery() -> None:
 def test_apply_cls_cte() -> None:
     """
     Test CLS applies to CTEs.
+
+    Requires schema to expand SELECT * in outer query.
     """
     rules = {Table("users"): {"ssn": CLSAction.HASH}}
+    schema = {"users": {"ssn": "VARCHAR", "name": "VARCHAR"}}
     sql = "WITH cte AS (SELECT ssn, name FROM users) SELECT * FROM cte"
-    result = apply_cls(sql, rules, engine="postgresql")
+    result = apply_cls(sql, rules, engine="postgresql", schema=schema)
 
     assert result == (
         'WITH "cte" AS (\n'
