@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
@@ -132,7 +132,7 @@ class CollectionControl extends Component<CollectionControlProps> {
     if (currentValue.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
-    const Control = controlMap[this.props.controlName];
+    const Control = (controlMap as Record<string, React.ComponentType<any>>)[this.props.controlName];
     const keyAccessor = this.props.keyAccessor ?? ((o: CollectionItem) => o.key ?? '');
     return (
       <SortableList

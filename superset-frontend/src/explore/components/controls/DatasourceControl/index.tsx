@@ -51,8 +51,22 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Link } from 'react-router-dom';
 
+// Extended Datasource interface with all properties used in this component
+interface ExtendedDatasource extends Datasource {
+  sql?: string;
+  select_star?: string;
+  owners?: Array<{ id: number; first_name: string; last_name: string }>;
+  extra?: string;
+  health_check_message?: string;
+  database?: {
+    id: number;
+    database_name: string;
+    backend?: string;
+  };
+}
+
 interface DatasourceControlActions {
-  changeDatasource: (datasource: Datasource) => void;
+  changeDatasource: (datasource: ExtendedDatasource) => void;
   setControlValue: (name: string, value: unknown) => void;
 }
 
@@ -65,10 +79,10 @@ interface DatasourceControlProps {
   actions: DatasourceControlActions;
   onChange?: () => void;
   value?: string | null;
-  datasource: Datasource;
+  datasource: ExtendedDatasource;
   form_data: FormData;
   isEditable?: boolean;
-  onDatasourceSave?: ((datasource: Datasource) => void) | null;
+  onDatasourceSave?: ((datasource: ExtendedDatasource) => void) | null;
   theme: SupersetTheme;
 }
 
@@ -96,7 +110,7 @@ const defaultProps = {
   isEditable: true,
 };
 
-const getDatasetType = (datasource: Datasource): string => {
+const getDatasetType = (datasource: ExtendedDatasource): string => {
   if (datasource.type === 'query') {
     return 'query';
   }
@@ -187,7 +201,7 @@ export const renderDatasourceTitle = (displayString: string | undefined, tooltip
   );
 
 // Different data source types use different attributes for the display title
-export const getDatasourceTitle = (datasource: Datasource | null | undefined): string => {
+export const getDatasourceTitle = (datasource: ExtendedDatasource | null | undefined): string => {
   if (datasource?.type === 'query') return datasource?.sql || '';
   return datasource?.name || '';
 };
