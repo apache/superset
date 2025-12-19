@@ -178,6 +178,10 @@ const UserRegistrations = lazy(
     ),
 );
 
+const FileHandler = lazy(
+  () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -205,6 +209,10 @@ export const routes: Routes = [
   {
     path: '/superset/welcome/',
     Component: Home,
+  },
+  {
+    path: '/superset/file-handler',
+    Component: FileHandler,
   },
   {
     path: '/dashboard/list/',
