@@ -325,4 +325,65 @@ describe('URL prefix guard', () => {
       expect.any(Object),
     );
   });
+
+  test('leaves relative URL without leading slash unchanged (caller responsibility)', async () => {
+    // URLs without leading slash are treated as non-relative and passed through.
+    // Callers should always use absolute paths starting with /
+    const appRoot = '/superset';
+    applicationRoot.mockReturnValue(appRoot);
+    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+    const mockFetch = createMockFetch();
+    global.fetch = mockFetch;
+
+    const { result } = renderHook(() => useStreamingExport());
+
+    act(() => {
+      result.current.startExport({
+        url: 'api/v1/sqllab/export_streaming/',
+        payload: { client_id: 'test-id' },
+        exportType: 'csv',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // URL without leading slash is passed through unchanged - guard only handles /paths
+    expect(mockFetch).toHaveBeenCalledWith(
+      'api/v1/sqllab/export_streaming/',
+      expect.any(Object),
+    );
+  });
+
+  test('leaves absolute URLs (http/https) unchanged', async () => {
+    // Absolute URLs should pass through without modification
+    const appRoot = '/superset';
+    applicationRoot.mockReturnValue(appRoot);
+    makeUrl.mockImplementation((path: string) => `${appRoot}${path}`);
+
+    const mockFetch = createMockFetch();
+    global.fetch = mockFetch;
+
+    const { result } = renderHook(() => useStreamingExport());
+
+    act(() => {
+      result.current.startExport({
+        url: 'https://external.example.com/api/export/',
+        payload: { client_id: 'test-id' },
+        exportType: 'csv',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Absolute URLs should not be modified
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://external.example.com/api/export/',
+      expect.any(Object),
+    );
+  });
 });
