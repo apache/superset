@@ -371,10 +371,11 @@ test('Sends the correct schema when changing the schema', async () => {
   });
   await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
   rerender(<DatabaseSelector {...props} />);
-  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
-  const select = screen.getByRole('combobox', {
+  // Wait for schema data to load
+  const select = await screen.findByRole('combobox', {
     name: 'Select schema or type to search schemas: public',
   });
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   expect(select).toBeInTheDocument();
   await userEvent.click(select);
   const schemaOption = await screen.findByText('information_schema');

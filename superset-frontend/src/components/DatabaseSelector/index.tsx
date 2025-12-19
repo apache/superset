@@ -246,33 +246,11 @@ export function DatabaseSelector({
     data: schemaData,
     isFetching: loadingSchemas,
     refetch: refetchSchemas,
+    defaultSchema,
   } = useSchemas({
     dbId: currentDb?.value,
     catalog: currentCatalog?.value,
-    onSuccess: (schemas, isFetched, defaultSchema) => {
-      setErrorPayload(null);
-      if (schemas.length === 1) {
-        changeSchema(schemas[0]);
-      } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
-      ) {
-        // Current selection not in list - try to apply default on first load
-        if (
-          defaultSchema &&
-          appliedSchemaDefaultRef.current !== defaultSchema
-        ) {
-          const defaultOption = schemas.find(s => s.value === defaultSchema);
-          if (defaultOption) {
-            appliedSchemaDefaultRef.current = defaultSchema;
-            changeSchema(defaultOption);
-          } else {
-            changeSchema(undefined);
-          }
-        } else {
-          changeSchema(undefined);
-        }
-      }
-
+    onSuccess: (schemas, isFetched) => {
       if (isFetched) {
         addSuccessToast('List refreshed');
       }
@@ -288,6 +266,36 @@ export function DatabaseSelector({
 
   const schemaOptions = schemaData || EMPTY_SCHEMA_OPTIONS;
 
+  // Handle schema auto-selection when data changes
+  useEffect(() => {
+    if (!schemaData || loadingSchemas) return;
+
+    setErrorPayload(null);
+
+    if (schemaData.length === 1) {
+      changeSchema(schemaData[0]);
+    } else if (
+      !schemaData.find(schemaOption => schemaRef.current === schemaOption.value)
+    ) {
+      // Current selection not in list - try to apply default on first load
+      if (
+        defaultSchema &&
+        appliedSchemaDefaultRef.current !== defaultSchema
+      ) {
+        const defaultOption = schemaData.find(s => s.value === defaultSchema);
+        if (defaultOption) {
+          appliedSchemaDefaultRef.current = defaultSchema;
+          changeSchema(defaultOption);
+        } else {
+          changeSchema(undefined);
+        }
+      } else {
+        changeSchema(undefined);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaData, defaultSchema, loadingSchemas]);
+
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
     setCurrentSchema(undefined);
@@ -302,36 +310,10 @@ export function DatabaseSelector({
     data: catalogData,
     isFetching: loadingCatalogs,
     refetch: refetchCatalogs,
+    defaultCatalog,
   } = useCatalogs({
     dbId: showCatalogSelector ? currentDb?.value : undefined,
-    onSuccess: (catalogs, isFetched, defaultCatalog) => {
-      setErrorPayload(null);
-      if (!showCatalogSelector) {
-        changeCatalog(null);
-      } else if (catalogs.length === 1) {
-        changeCatalog(catalogs[0]);
-      } else if (
-        !catalogs.find(
-          catalogOption => catalogRef.current === catalogOption.value,
-        )
-      ) {
-        // Current selection not in list - try to apply default on first load
-        if (
-          defaultCatalog &&
-          appliedCatalogDefaultRef.current !== defaultCatalog
-        ) {
-          const defaultOption = catalogs.find(c => c.value === defaultCatalog);
-          if (defaultOption) {
-            appliedCatalogDefaultRef.current = defaultCatalog;
-            changeCatalog(defaultOption);
-          } else {
-            changeCatalog(undefined);
-          }
-        } else {
-          changeCatalog(undefined);
-        }
-      }
-
+    onSuccess: (catalogs, isFetched) => {
       if (showCatalogSelector && isFetched) {
         addSuccessToast('List refreshed');
       }
@@ -348,6 +330,49 @@ export function DatabaseSelector({
   });
 
   const catalogOptions = catalogData || EMPTY_CATALOG_OPTIONS;
+
+  // Handle catalog auto-selection when data changes
+  useEffect(() => {
+    if (loadingCatalogs) return;
+
+    setErrorPayload(null);
+
+    if (!showCatalogSelector) {
+      // Only clear catalog if it's not already null
+      if (currentCatalog !== null) {
+        setCurrentCatalog(null);
+        if (onCatalogChange && catalogRef.current !== null) {
+          onCatalogChange(null);
+        }
+      }
+    } else if (catalogData && catalogData.length === 1) {
+      changeCatalog(catalogData[0]);
+    } else if (
+      catalogData &&
+      !catalogData.find(
+        catalogOption => catalogRef.current === catalogOption.value,
+      )
+    ) {
+      // Current selection not in list - try to apply default on first load
+      if (
+        defaultCatalog &&
+        appliedCatalogDefaultRef.current !== defaultCatalog
+      ) {
+        const defaultOption = catalogData.find(
+          c => c.value === defaultCatalog,
+        );
+        if (defaultOption) {
+          appliedCatalogDefaultRef.current = defaultCatalog;
+          changeCatalog(defaultOption);
+        } else {
+          changeCatalog(undefined);
+        }
+      } else {
+        changeCatalog(undefined);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogData, defaultCatalog, loadingCatalogs, showCatalogSelector]);
 
   function changeDatabase(
     value: { label: string; value: number },
