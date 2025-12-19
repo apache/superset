@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@superset-ui/core';
-import { withTheme } from '@apache-superset/core/ui';
+import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 import {
   SortableContainer,
   SortableHandle,
@@ -36,6 +36,27 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import controlMap from '..';
+
+interface CollectionItem {
+  key?: string;
+  [key: string]: unknown;
+}
+
+interface CollectionControlProps {
+  name: string;
+  label?: string | null;
+  description?: string | null;
+  placeholder?: string;
+  addTooltip?: string;
+  itemGenerator?: () => CollectionItem;
+  keyAccessor?: (item: CollectionItem) => string;
+  onChange?: (value: CollectionItem[]) => void;
+  value?: CollectionItem[];
+  isFloat?: boolean;
+  isInt?: boolean;
+  controlName: string;
+  theme: SupersetTheme;
+}
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -73,63 +94,71 @@ const SortableDragger = SortableHandle(() => (
   />
 ));
 
-class CollectionControl extends Component {
-  constructor(props) {
+class CollectionControl extends Component<CollectionControlProps> {
+  constructor(props: CollectionControlProps) {
     super(props);
     this.onAdd = this.onAdd.bind(this);
   }
 
-  onChange(i, value) {
-    const newValue = [...this.props.value];
-    newValue[i] = { ...this.props.value[i], ...value };
-    this.props.onChange(newValue);
+  onChange(i: number, value: CollectionItem) {
+    const currentValue = this.props.value ?? [];
+    const newValue = [...currentValue];
+    newValue[i] = { ...currentValue[i], ...value };
+    this.props.onChange?.(newValue);
   }
 
   onAdd() {
-    this.props.onChange(this.props.value.concat([this.props.itemGenerator()]));
+    const currentValue = this.props.value ?? [];
+    const newItem = this.props.itemGenerator?.() ?? { key: nanoid(11) };
+    this.props.onChange?.(currentValue.concat([newItem]));
   }
 
-  onSortEnd({ oldIndex, newIndex }) {
-    this.props.onChange(arrayMove(this.props.value, oldIndex, newIndex));
+  onSortEnd({ oldIndex, newIndex }: { oldIndex: number; newIndex: number }) {
+    const currentValue = this.props.value ?? [];
+    this.props.onChange?.(arrayMove(currentValue, oldIndex, newIndex));
   }
 
-  removeItem(i) {
-    this.props.onChange(this.props.value.filter((o, ix) => i !== ix));
+  removeItem(i: number) {
+    const currentValue = this.props.value ?? [];
+    this.props.onChange?.(currentValue.filter((o, ix) => i !== ix));
   }
 
   renderList() {
-    if (this.props.value.length === 0) {
+    const currentValue = this.props.value ?? [];
+    if (currentValue.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
     const Control = controlMap[this.props.controlName];
+    const keyAccessor = this.props.keyAccessor ?? ((o: CollectionItem) => o.key ?? '');
     return (
       <SortableList
         useDragHandle
         lockAxis="y"
         onSortEnd={this.onSortEnd.bind(this)}
         bordered
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           borderRadius: theme.borderRadius,
         })}
       >
-        {this.props.value.map((o, i) => {
+        {currentValue.map((o: CollectionItem, i: number) => {
           // label relevant only for header, not here
-          const { label, ...commonProps } = this.props;
+          const { label, theme, ...commonProps } = this.props;
           return (
             <SortableListItem
+              selectable={false}
               className="clearfix"
-              css={theme => ({
+              css={(theme: SupersetTheme) => ({
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 display: 'flex',
                 paddingInline: theme.sizeUnit * 6,
               })}
-              key={this.props.keyAccessor(o)}
+              key={keyAccessor(o)}
               index={i}
             >
               <SortableDragger />
               <div
-                css={theme => ({
+                css={(theme: SupersetTheme) => ({
                   flex: 1,
                   marginLeft: theme.sizeUnit * 2,
                   marginRight: theme.sizeUnit * 2,
@@ -148,7 +177,7 @@ class CollectionControl extends Component {
                 tooltip={t('Remove item')}
                 mouseEnterDelay={0}
                 mouseLeaveDelay={0}
-                css={theme => ({
+                css={(theme: SupersetTheme) => ({
                   padding: 0,
                   minWidth: 'auto',
                   height: 'auto',
