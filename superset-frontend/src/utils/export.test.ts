@@ -396,3 +396,42 @@ test('handles export with empty IDs array', async () => {
     }),
   );
 });
+
+// Test to prevent double-prefix bug: SupersetClient.getUrl() already adds
+// the appRoot prefix, so handleResourceExport should NOT pre-apply it.
+// If we use ensureAppRoot() in export.ts, SupersetClient.getUrl() adds the
+// prefix again, resulting in double-prefixed URLs like /app/app/api/v1/...
+describe('double-prefix prevention', () => {
+  // Import the mocked ensureAppRoot to control its behavior per test
+  const { ensureAppRoot } = jest.requireMock('./pathUtils');
+
+  const prefixTestCases = [
+    { name: 'subdirectory prefix', appRoot: '/superset', resource: 'dashboard', ids: [1] },
+    { name: 'nested prefix', appRoot: '/my-app/superset', resource: 'dataset', ids: [1, 2] },
+  ];
+
+  test.each(prefixTestCases)(
+    'endpoint should not include app prefix: $name',
+    async ({ appRoot, resource, ids }) => {
+      // Simulate real ensureAppRoot behavior: prepend the appRoot
+      (ensureAppRoot as jest.Mock).mockImplementation(
+        (path: string) => `${appRoot}${path}`,
+      );
+
+      const doneMock = jest.fn();
+      await handleResourceExport(resource, ids, doneMock);
+
+      // The endpoint passed to SupersetClient.get should NOT have the appRoot prefix
+      // because SupersetClient.getUrl() adds it when building the full URL.
+      const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
+
+      // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
+      const callArgs = (SupersetClient.get as jest.Mock).mock.calls.slice(-1)[0][0];
+      expect(callArgs.endpoint).not.toContain(appRoot);
+      expect(callArgs.endpoint).toBe(expectedEndpoint);
+
+      // Reset mock for next test
+      (ensureAppRoot as jest.Mock).mockImplementation((path: string) => path);
+    },
+  );
+});
