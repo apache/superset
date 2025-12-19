@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { Component, ReactNode } from 'react';
 import PropTypes from 'prop-types';
 import { t, logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
-import { withTheme } from '@apache-superset/core/ui';
+import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -44,6 +44,59 @@ import adhocFilterType from 'src/explore/components/controls/FilterControl/adhoc
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import { toQueryString } from 'src/utils/urlUtils';
 import { Clauses, ExpressionTypes } from '../types';
+
+interface ColumnMeta {
+  column_name: string;
+  verbose_name?: string;
+  [key: string]: unknown;
+}
+
+interface SavedMetric {
+  metric_name: string;
+  expression: string;
+  [key: string]: unknown;
+}
+
+interface Datasource {
+  id?: number;
+  type?: string;
+  database?: { id: number };
+  datasource_name?: string;
+  catalog?: string;
+  schema?: string;
+  is_sqllab_view?: boolean;
+  [key: string]: unknown;
+}
+
+interface AdhocFilterControlProps {
+  label?: ReactNode;
+  name?: string;
+  sections?: string[];
+  operators?: string[];
+  onChange?: (values: AdhocFilter[]) => void;
+  value?: AdhocFilter[];
+  datasource?: Datasource;
+  columns?: ColumnMeta[];
+  savedMetrics?: SavedMetric[];
+  selectedMetrics?: string | AdhocMetric | (string | AdhocMetric)[];
+  isLoading?: boolean;
+  canDelete?: (filter: AdhocFilter, allFilters: AdhocFilter[]) => string | boolean | undefined;
+  theme?: SupersetTheme;
+}
+
+interface FilterOption {
+  column_name?: string;
+  saved_metric_name?: string;
+  label?: string;
+  filterOptionName?: string;
+  [key: string]: unknown;
+}
+
+interface AdhocFilterControlState {
+  values: AdhocFilter[];
+  options: FilterOption[];
+  partitionColumn: string | null;
+}
 
 const { warning } = Modal;
 
@@ -78,11 +131,11 @@ const defaultProps = {
   selectedMetrics: [],
 };
 
-function isDictionaryForAdhocFilter(value) {
-  return value && !(value instanceof AdhocFilter) && value.expressionType;
+function isDictionaryForAdhocFilter(value: unknown): boolean {
+  return !!(value && !(value instanceof AdhocFilter) && (value as Record<string, unknown>).expressionType);
 }
 
-function optionsForSelect(props) {
+function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
     ...props.columns,
     ...ensureIsArray(props.selectedMetrics).map(
@@ -121,8 +174,11 @@ function optionsForSelect(props) {
     );
 }
 
-class AdhocFilterControl extends Component {
-  constructor(props) {
+class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterControlState> {
+  optionRenderer: (option: FilterOption) => JSX.Element;
+  valueRenderer: (adhocFilter: AdhocFilter, index: number) => JSX.Element;
+
+  constructor(props: AdhocFilterControlProps) {
     super(props);
     this.onRemoveFilter = this.onRemoveFilter.bind(this);
     this.onNewFilter = this.onNewFilter.bind(this);
@@ -206,7 +262,7 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: AdhocFilterControlProps): void {
     if (this.props.columns !== prevProps.columns) {
       this.setState({ options: optionsForSelect(this.props) });
     }
@@ -219,7 +275,7 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  removeFilter(index) {
+  removeFilter(index: number): void {
     const valuesCopy = [...this.state.values];
     valuesCopy.splice(index, 1);
     this.setState(prevState => ({
@@ -229,7 +285,7 @@ class AdhocFilterControl extends Component {
     this.props.onChange(valuesCopy);
   }
 
-  onRemoveFilter(index) {
+  onRemoveFilter(index: number): void {
     const { canDelete } = this.props;
     const { values } = this.state;
     const result = canDelete?.(values[index], values);
@@ -240,7 +296,7 @@ class AdhocFilterControl extends Component {
     this.removeFilter(index);
   }
 
-  onNewFilter(newFilter) {
+  onNewFilter(newFilter: FilterOption): void {
     const mappedOption = this.mapOption(newFilter);
     if (mappedOption) {
       this.setState(
@@ -255,7 +311,7 @@ class AdhocFilterControl extends Component {
     }
   }
 
-  onFilterEdit(changedFilter) {
+  onFilterEdit(changedFilter: AdhocFilter): void {
     this.props.onChange(
       this.state.values.map(value => {
         if (value.filterOptionName === changedFilter.filterOptionName) {
@@ -266,20 +322,20 @@ class AdhocFilterControl extends Component {
     );
   }
 
-  onChange(opts) {
+  onChange(opts: FilterOption[] | null): void {
     const options = (opts || [])
       .map(option => this.mapOption(option))
       .filter(option => option);
     this.props.onChange(options);
   }
 
-  getMetricExpression(savedMetricName) {
+  getMetricExpression(savedMetricName: string): string {
     return this.props.savedMetrics.find(
       savedMetric => savedMetric.metric_name === savedMetricName,
     ).expression;
   }
 
-  moveLabel(dragIndex, hoverIndex) {
+  moveLabel(dragIndex: number, hoverIndex: number): void {
     const { values } = this.state;
 
     const newValues = [...values];
@@ -290,7 +346,7 @@ class AdhocFilterControl extends Component {
     this.setState({ values: newValues });
   }
 
-  mapOption(option) {
+  mapOption(option: FilterOption | AdhocFilter): AdhocFilter | null {
     // already a AdhocFilter, skip
     if (option instanceof AdhocFilter) {
       return option;
@@ -331,7 +387,7 @@ class AdhocFilterControl extends Component {
     return null;
   }
 
-  addNewFilterPopoverTrigger(trigger) {
+  addNewFilterPopoverTrigger(trigger: ReactNode): JSX.Element {
     return (
       <AdhocFilterPopoverTrigger
         operators={this.props.operators}

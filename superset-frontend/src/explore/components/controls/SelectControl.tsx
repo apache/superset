@@ -129,9 +129,15 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-const numberComparator = (a, b) => a.value - b.value;
+interface SelectOption {
+  value: string | number;
+  label: string;
+  [key: string]: unknown;
+}
 
-export const areAllValuesNumbers = (items, valueKey = 'value') => {
+const numberComparator = (a: SelectOption, b: SelectOption): number => a.value as number - (b.value as number);
+
+export const areAllValuesNumbers = (items: unknown[], valueKey = 'value'): boolean => {
   if (!items || items.length === 0) {
     return false;
   }
@@ -147,12 +153,14 @@ export const areAllValuesNumbers = (items, valueKey = 'value') => {
   });
 };
 
+type SortComparator = ((a: SelectOption, b: SelectOption) => number) | undefined;
+
 export const getSortComparator = (
-  choices,
-  options,
-  valueKey,
-  explicitComparator,
-) => {
+  choices: unknown[] | undefined,
+  options: unknown[] | undefined,
+  valueKey: string | undefined,
+  explicitComparator: SortComparator,
+): SortComparator => {
   if (explicitComparator) {
     return explicitComparator;
   }
@@ -167,7 +175,7 @@ export const getSortComparator = (
   return undefined;
 };
 
-export const innerGetOptions = props => {
+export const innerGetOptions = (props: SelectControlProps): SelectOption[] => {
   const { choices, optionRenderer, valueKey } = props;
   let options = [];
   if (props.options) {

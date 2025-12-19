@@ -28,7 +28,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
-import type { DatasetObject, ColumnObject } from 'src/features/datasets/types';
+import type { ColumnObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -46,16 +46,19 @@ afterEach(() => {
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
-type TestDatasource = Omit<
-  Partial<DatasetObject>,
-  'columns' | 'main_dttm_col'
-> & {
+interface TestDatasource {
+  id?: number;
   name: string;
+  datasource_name?: string;
   database: { name: string };
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-};
+  owners?: Array<{ first_name: string; last_name: string; id: number; username?: string }>;
+  sql?: string;
+  metrics?: Array<{ id: number; metric_name: string }>;
+  [key: string]: unknown;
+}
 
 const mockDatasource: TestDatasource = {
   id: 25,
@@ -69,7 +72,9 @@ const mockDatasource: TestDatasource = {
   owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
 };
-const createProps = (overrides: JsonObject = {}) => ({
+
+// Use type assertion for test props since the component is wrapped with withTheme
+const createProps = (overrides: JsonObject = {}): Record<string, unknown> => ({
   hovered: false,
   type: 'DatasourceControl',
   label: 'Datasource',
