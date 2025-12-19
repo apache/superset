@@ -138,6 +138,13 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const WhatIfSimulationList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "WhatIfSimulationList" */ 'src/pages/WhatIfSimulationList'
+    ),
+);
+
 const RolesList = lazy(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
@@ -288,6 +295,10 @@ export const routes: Routes = [
   {
     path: '/rowlevelsecurity/list',
     Component: RowLevelSecurityList,
+  },
+  {
+    path: '/whatif/simulations/',
+    Component: WhatIfSimulationList,
   },
   {
     path: '/sqllab/',

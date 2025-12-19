@@ -248,3 +248,82 @@ class WhatIfSuggestRelatedResponseSchema(Schema):
         load_default=None,
         metadata={"description": "Overall explanation of the relationship analysis"},
     )
+
+
+# =============================================================================
+# Simulation CRUD Schemas
+# =============================================================================
+
+
+class WhatIfSimulationPostSchema(Schema):
+    """Schema for creating a What-If simulation."""
+
+    name = fields.String(
+        required=True,
+        metadata={"description": "Name of the saved simulation"},
+    )
+    description = fields.String(
+        required=False,
+        allow_none=True,
+        load_default=None,
+        metadata={"description": "Optional description"},
+    )
+    dashboard_id = fields.Integer(
+        required=True,
+        metadata={"description": "ID of the dashboard this simulation belongs to"},
+    )
+    modifications = fields.List(
+        fields.Nested(ModificationSchema),
+        required=True,
+        metadata={"description": "List of column modifications"},
+    )
+    cascading_effects_enabled = fields.Boolean(
+        required=False,
+        load_default=False,
+        metadata={"description": "Whether AI cascading effects were enabled"},
+    )
+
+
+class WhatIfSimulationPutSchema(Schema):
+    """Schema for updating a What-If simulation."""
+
+    name = fields.String(
+        required=False,
+        metadata={"description": "Name of the saved simulation"},
+    )
+    description = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Optional description"},
+    )
+    modifications = fields.List(
+        fields.Nested(ModificationSchema),
+        required=False,
+        metadata={"description": "List of column modifications"},
+    )
+    cascading_effects_enabled = fields.Boolean(
+        required=False,
+        metadata={"description": "Whether AI cascading effects were enabled"},
+    )
+
+
+class WhatIfSimulationResponseSchema(Schema):
+    """Schema for simulation response."""
+
+    id = fields.Integer(metadata={"description": "Simulation ID"})
+    uuid = fields.String(metadata={"description": "Simulation UUID"})
+    name = fields.String(metadata={"description": "Simulation name"})
+    description = fields.String(
+        allow_none=True,
+        metadata={"description": "Simulation description"},
+    )
+    dashboard_id = fields.Integer(metadata={"description": "Dashboard ID"})
+    modifications = fields.List(
+        fields.Nested(ModificationSchema),
+        metadata={"description": "Saved modifications"},
+    )
+    cascading_effects_enabled = fields.Boolean(
+        metadata={"description": "Whether cascading effects were enabled"},
+    )
+    created_on = fields.DateTime(metadata={"description": "Creation timestamp"})
+    changed_on = fields.DateTime(metadata={"description": "Last modified timestamp"})

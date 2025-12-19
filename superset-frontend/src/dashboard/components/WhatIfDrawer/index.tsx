@@ -30,14 +30,18 @@ import {
 } from '@superset-ui/core/components';
 import Slider from '@superset-ui/core/components/Slider';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useNumericColumns } from 'src/dashboard/util/useNumericColumns';
 import { RootState, Datasource } from 'src/dashboard/types';
 import WhatIfAIInsights from './WhatIfAIInsights';
 import HarryPotterWandLoader from './HarryPotterWandLoader';
 import FilterButton from './FilterButton';
 import ModificationsDisplay from './ModificationsDisplay';
+import WhatIfHeaderMenu from './WhatIfHeaderMenu';
+import SaveSimulationModal from './SaveSimulationModal';
 import { useWhatIfFilters } from './useWhatIfFilters';
 import { useWhatIfApply } from './useWhatIfApply';
+import { WhatIfSimulation } from './whatIfApi';
 import {
   SLIDER_MIN,
   SLIDER_MAX,
@@ -61,6 +65,7 @@ import {
   ColumnSelectWrapper,
   FiltersSection,
   FilterTagsContainer,
+  HeaderButtonsContainer,
 } from './styles';
 
 export { WHAT_IF_PANEL_WIDTH };
@@ -72,6 +77,10 @@ interface WhatIfPanelProps {
 
 const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const theme = useTheme();
+  const { addSuccessToast, addDangerToast } = useToasts();
+
+  // Get dashboard ID from Redux
+  const dashboardId = useSelector((state: RootState) => state.dashboardInfo.id);
 
   // Local state for column selection and slider
   const [selectedColumn, setSelectedColumn] = useState<string | undefined>(
@@ -79,6 +88,12 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   );
   const [sliderValue, setSliderValue] = useState<number>(SLIDER_DEFAULT);
   const [enableCascadingEffects, setEnableCascadingEffects] = useState(false);
+
+  // Simulation state
+  const [selectedSimulation, setSelectedSimulation] =
+    useState<WhatIfSimulation | null>(null);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [simulationRefreshTrigger, setSimulationRefreshTrigger] = useState(0);
 
   // Custom hook for filter management
   const {
@@ -105,6 +120,9 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     handleApply,
     handleDismissLoader,
     aiInsightsModifications,
+    loadModificationsDirectly,
+    clearModifications,
+    interpretAbortRef,
   } = useWhatIfApply({
     selectedColumn,
     sliderValue,
@@ -167,6 +185,65 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     setEnableCascadingEffects(e.target.checked);
   }, []);
 
+  // Handle loading a saved simulation
+  const handleLoadSimulation = useCallback(
+    (simulation: WhatIfSimulation | null) => {
+      setSelectedSimulation(simulation);
+      if (simulation && simulation.modifications.length > 0) {
+        const firstMod = simulation.modifications[0];
+        setSelectedColumn(firstMod.column);
+        setSliderValue((firstMod.multiplier - 1) * 100);
+        setEnableCascadingEffects(simulation.cascadingEffectsEnabled);
+
+        // Convert to extended modifications with isAISuggested flag
+        // First modification is the user's, rest are AI-suggested
+        const extendedModifications = simulation.modifications.map(
+          (mod, index) => ({
+            column: mod.column,
+            multiplier: mod.multiplier,
+            filters: mod.filters,
+            isAISuggested: index > 0,
+          }),
+        );
+
+        // Load all modifications directly and trigger chart queries + /interpret
+        loadModificationsDirectly(extendedModifications);
+      } else if (!simulation) {
+        // Clear state when deselecting
+        setSelectedColumn(undefined);
+        setSliderValue(SLIDER_DEFAULT);
+        setEnableCascadingEffects(false);
+        clearFilters();
+        clearModifications();
+      }
+    },
+    [clearFilters, loadModificationsDirectly, clearModifications],
+  );
+
+  // Handle saving a simulation
+  const handleSaveSimulation = useCallback((simulation: WhatIfSimulation) => {
+    setSelectedSimulation(simulation);
+    setSimulationRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Track if we're saving as new (vs updating existing)
+  const [isSavingAsNew, setIsSavingAsNew] = useState(false);
+
+  const handleOpenSaveModal = useCallback(() => {
+    setIsSavingAsNew(false);
+    setSaveModalVisible(true);
+  }, []);
+
+  const handleOpenSaveAsNewModal = useCallback(() => {
+    setIsSavingAsNew(true);
+    setSaveModalVisible(true);
+  }, []);
+
+  const handleCloseSaveModal = useCallback(() => {
+    setSaveModalVisible(false);
+    setIsSavingAsNew(false);
+  }, []);
+
   const isApplyDisabled =
     !selectedColumn || sliderValue === SLIDER_DEFAULT || isLoadingSuggestions;
 
@@ -182,9 +259,21 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
           />
           {t('What-if playground')}
         </PanelTitle>
-        <CloseButton onClick={onClose} aria-label={t('Close')}>
-          <Icons.CloseOutlined iconSize="m" />
-        </CloseButton>
+        <HeaderButtonsContainer>
+          <WhatIfHeaderMenu
+            dashboardId={dashboardId}
+            selectedSimulation={selectedSimulation}
+            onSelectSimulation={handleLoadSimulation}
+            onSaveClick={handleOpenSaveModal}
+            onSaveAsNewClick={handleOpenSaveAsNewModal}
+            hasModifications={appliedModifications.length > 0}
+            refreshTrigger={simulationRefreshTrigger}
+            addDangerToast={addDangerToast}
+          />
+          <CloseButton onClick={onClose} aria-label={t('Close')}>
+            <Icons.CloseOutlined iconSize="m" />
+          </CloseButton>
+        </HeaderButtonsContainer>
       </PanelHeader>
 
       <PanelContent>
@@ -313,6 +402,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
             key={applyCounter}
             affectedChartIds={affectedChartIds}
             modifications={aiInsightsModifications}
+            abortRef={interpretAbortRef}
           />
         )}
       </PanelContent>
@@ -320,6 +410,18 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
       {isLoadingSuggestions && (
         <HarryPotterWandLoader onDismiss={handleDismissLoader} />
       )}
+
+      <SaveSimulationModal
+        show={saveModalVisible}
+        onHide={handleCloseSaveModal}
+        onSaved={handleSaveSimulation}
+        dashboardId={dashboardId}
+        modifications={appliedModifications}
+        cascadingEffectsEnabled={enableCascadingEffects}
+        existingSimulation={isSavingAsNew ? null : selectedSimulation}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
     </PanelContainer>
   );
 };

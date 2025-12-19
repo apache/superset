@@ -23,10 +23,42 @@ import {
   WhatIfInterpretResponse,
   ChartComparison,
   WhatIfFilter,
+  WhatIfModification,
   WhatIfSuggestRelatedRequest,
   WhatIfSuggestRelatedResponse,
   SuggestedModification,
 } from './types';
+
+// =============================================================================
+// Simulation CRUD Types
+// =============================================================================
+
+export interface WhatIfSimulation {
+  id: number;
+  uuid: string;
+  name: string;
+  description?: string | null;
+  dashboardId: number;
+  modifications: WhatIfModification[];
+  cascadingEffectsEnabled: boolean;
+  createdOn?: string | null;
+  changedOn?: string | null;
+}
+
+export interface CreateSimulationRequest {
+  name: string;
+  description?: string;
+  dashboardId: number;
+  modifications: WhatIfModification[];
+  cascadingEffectsEnabled: boolean;
+}
+
+export interface UpdateSimulationRequest {
+  name?: string;
+  description?: string;
+  modifications?: WhatIfModification[];
+  cascadingEffectsEnabled?: boolean;
+}
 
 interface ApiResponse {
   result: {
@@ -136,4 +168,161 @@ export async function fetchRelatedColumnSuggestions(
     ),
     explanation: result.explanation,
   };
+}
+
+// =============================================================================
+// Simulation CRUD API Functions
+// =============================================================================
+
+interface SimulationListResponse {
+  result: Array<{
+    id: number;
+    uuid: string;
+    name: string;
+    description?: string | null;
+    dashboard_id?: number;
+    modifications: Array<{
+      column: string;
+      multiplier: number;
+      filters?: Array<{
+        col: string;
+        op: string;
+        val: string | number | boolean | Array<string | number>;
+      }>;
+    }>;
+    cascading_effects_enabled: boolean;
+    created_on?: string | null;
+    changed_on?: string | null;
+  }>;
+}
+
+interface SimulationCreateResponse {
+  id: number;
+  uuid: string;
+}
+
+export async function fetchAllSimulations(): Promise<WhatIfSimulation[]> {
+  const response = await SupersetClient.get({
+    endpoint: '/api/v1/what_if/simulations',
+  });
+
+  const data = response.json as SimulationListResponse;
+  return data.result.map(sim => ({
+    id: sim.id,
+    uuid: sim.uuid,
+    name: sim.name,
+    description: sim.description,
+    dashboardId: sim.dashboard_id ?? 0,
+    modifications: sim.modifications.map(mod => ({
+      column: mod.column,
+      multiplier: mod.multiplier,
+      filters: mod.filters?.map(f => ({
+        col: f.col,
+        op: f.op as WhatIfFilter['op'],
+        val: f.val,
+      })),
+    })),
+    cascadingEffectsEnabled: sim.cascading_effects_enabled,
+    createdOn: sim.created_on,
+    changedOn: sim.changed_on,
+  }));
+}
+
+export async function fetchSimulations(
+  dashboardId: number,
+): Promise<WhatIfSimulation[]> {
+  const response = await SupersetClient.get({
+    endpoint: `/api/v1/what_if/simulations/dashboard/${dashboardId}`,
+  });
+
+  const data = response.json as SimulationListResponse;
+  return data.result.map(sim => ({
+    id: sim.id,
+    uuid: sim.uuid,
+    name: sim.name,
+    description: sim.description,
+    dashboardId,
+    modifications: sim.modifications.map(mod => ({
+      column: mod.column,
+      multiplier: mod.multiplier,
+      filters: mod.filters?.map(f => ({
+        col: f.col,
+        op: f.op as WhatIfFilter['op'],
+        val: f.val,
+      })),
+    })),
+    cascadingEffectsEnabled: sim.cascading_effects_enabled,
+    createdOn: sim.created_on,
+    changedOn: sim.changed_on,
+  }));
+}
+
+export async function createSimulation(
+  request: CreateSimulationRequest,
+): Promise<WhatIfSimulation> {
+  const response = await SupersetClient.post({
+    endpoint: '/api/v1/what_if/simulations',
+    jsonPayload: {
+      name: request.name,
+      description: request.description,
+      dashboard_id: request.dashboardId,
+      modifications: request.modifications.map(mod => ({
+        column: mod.column,
+        multiplier: mod.multiplier,
+        filters: mod.filters?.map(f => ({
+          col: f.col,
+          op: f.op,
+          val: f.val,
+        })),
+      })),
+      cascading_effects_enabled: request.cascadingEffectsEnabled,
+    },
+  });
+
+  const data = response.json as SimulationCreateResponse;
+  return {
+    id: data.id,
+    uuid: data.uuid,
+    name: request.name,
+    description: request.description,
+    dashboardId: request.dashboardId,
+    modifications: request.modifications,
+    cascadingEffectsEnabled: request.cascadingEffectsEnabled,
+  };
+}
+
+export async function updateSimulation(
+  simulationId: number,
+  request: UpdateSimulationRequest,
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+
+  if (request.name !== undefined) payload.name = request.name;
+  if (request.description !== undefined)
+    payload.description = request.description;
+  if (request.cascadingEffectsEnabled !== undefined) {
+    payload.cascading_effects_enabled = request.cascadingEffectsEnabled;
+  }
+  if (request.modifications !== undefined) {
+    payload.modifications = request.modifications.map(mod => ({
+      column: mod.column,
+      multiplier: mod.multiplier,
+      filters: mod.filters?.map(f => ({
+        col: f.col,
+        op: f.op,
+        val: f.val,
+      })),
+    }));
+  }
+
+  await SupersetClient.put({
+    endpoint: `/api/v1/what_if/simulations/${simulationId}`,
+    jsonPayload: payload,
+  });
+}
+
+export async function deleteSimulation(simulationId: number): Promise<void> {
+  await SupersetClient.delete({
+    endpoint: `/api/v1/what_if/simulations/${simulationId}`,
+  });
 }

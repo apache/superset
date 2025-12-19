@@ -45,6 +45,12 @@ export interface UseWhatIfApplyReturn {
   handleApply: () => Promise<void>;
   handleDismissLoader: () => void;
   aiInsightsModifications: WhatIfModification[];
+  loadModificationsDirectly: (
+    modifications: ExtendedWhatIfModification[],
+  ) => void;
+  clearModifications: () => void;
+  /** Ref to register an abort function from WhatIfAIInsights */
+  interpretAbortRef: React.MutableRefObject<(() => void) | null>;
 }
 
 /**
@@ -74,6 +80,9 @@ export function useWhatIfApply({
   // AbortController for cancelling in-flight /suggest_related requests
   const suggestionsAbortControllerRef = useRef<AbortController | null>(null);
 
+  // Ref to hold the abort function from WhatIfAIInsights for /interpret requests
+  const interpretAbortRef = useRef<(() => void) | null>(null);
+
   const { numericColumns, columnToChartIds } = useNumericColumns();
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 
@@ -88,8 +97,9 @@ export function useWhatIfApply({
   const handleApply = useCallback(async () => {
     if (!selectedColumn) return;
 
-    // Cancel any in-flight suggestions request
+    // Cancel any in-flight requests
     suggestionsAbortControllerRef.current?.abort();
+    interpretAbortRef.current?.();
 
     // Immediately clear previous results and increment counter to reset AI insights component
     setAppliedModifications([]);
@@ -208,6 +218,71 @@ export function useWhatIfApply({
     setIsLoadingSuggestions(false);
   }, []);
 
+  /**
+   * Load modifications directly without fetching AI suggestions.
+   * Used when loading a saved simulation.
+   */
+  const loadModificationsDirectly = useCallback(
+    (modifications: ExtendedWhatIfModification[]) => {
+      // Cancel any in-flight requests
+      suggestionsAbortControllerRef.current?.abort();
+      interpretAbortRef.current?.();
+      setIsLoadingSuggestions(false);
+
+      // Increment counter to reset AI insights component
+      setApplyCounter(c => c + 1);
+
+      setAppliedModifications(modifications);
+
+      // Collect all affected chart IDs from all modifications
+      const allAffectedChartIds = new Set<number>();
+      modifications.forEach(mod => {
+        const chartIds = columnToChartIds.get(mod.column) || [];
+        chartIds.forEach(id => allAffectedChartIds.add(id));
+      });
+      const chartIdsArray = Array.from(allAffectedChartIds);
+
+      // Save original chart data before applying what-if modifications
+      chartIdsArray.forEach(chartId => {
+        dispatch(saveOriginalChartData(chartId));
+      });
+
+      // Set the what-if modifications in Redux state
+      dispatch(
+        setWhatIfModifications(
+          modifications.map(mod => ({
+            column: mod.column,
+            multiplier: mod.multiplier,
+            filters: mod.filters,
+          })),
+        ),
+      );
+
+      // Trigger queries for all affected charts
+      chartIdsArray.forEach(chartId => {
+        dispatch(triggerQuery(true, chartId));
+      });
+
+      // Set affected chart IDs to enable AI insights
+      setAffectedChartIds(chartIdsArray);
+    },
+    [dispatch, columnToChartIds],
+  );
+
+  /**
+   * Clear all modifications and reset state.
+   */
+  const clearModifications = useCallback(() => {
+    // Cancel any in-flight requests
+    suggestionsAbortControllerRef.current?.abort();
+    interpretAbortRef.current?.();
+    setIsLoadingSuggestions(false);
+
+    setAppliedModifications([]);
+    setAffectedChartIds([]);
+    dispatch(setWhatIfModifications([]));
+  }, [dispatch]);
+
   // Memoize modifications array for WhatIfAIInsights to prevent unnecessary re-renders
   const aiInsightsModifications = useMemo(
     () =>
@@ -227,6 +302,9 @@ export function useWhatIfApply({
     handleApply,
     handleDismissLoader,
     aiInsightsModifications,
+    loadModificationsDirectly,
+    clearModifications,
+    interpretAbortRef,
   };
 }
 

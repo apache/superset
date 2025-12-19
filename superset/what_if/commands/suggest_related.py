@@ -18,7 +18,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -26,6 +25,7 @@ import httpx
 from flask import current_app
 
 from superset.commands.base import BaseCommand
+from superset.utils import json
 from superset.what_if.exceptions import OpenRouterAPIError, OpenRouterConfigError
 
 logger = logging.getLogger(__name__)

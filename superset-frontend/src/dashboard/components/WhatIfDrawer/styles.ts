@@ -205,3 +205,9 @@ export const FilterTagsContainer = styled.div`
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.sizeUnit}px;
 `;
+
+export const HeaderButtonsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;

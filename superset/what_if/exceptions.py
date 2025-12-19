@@ -16,6 +16,16 @@
 # under the License.
 """What-If Analysis exceptions."""
 
+from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
+
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    CreateFailedError,
+    DeleteFailedError,
+    ForbiddenError,
+)
 from superset.exceptions import SupersetException
 
 
@@ -35,3 +45,55 @@ class OpenRouterAPIError(WhatIfException):
 
     status = 502
     message = "Error communicating with OpenRouter API"
+
+
+# =============================================================================
+# Simulation persistence exceptions
+# =============================================================================
+
+
+class WhatIfSimulationNameUniquenessError(ValidationError):
+    """Validation error for simulation name already exists."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Name must be unique for this dashboard")],
+            field_name="name",
+        )
+
+
+class WhatIfSimulationNotFoundError(CommandException):
+    """Raised when a simulation is not found."""
+
+    status = 404
+    message = _("What-If simulation not found.")
+
+
+class WhatIfSimulationInvalidError(CommandInvalidError):
+    """Raised when simulation parameters are invalid."""
+
+    message = _("What-If simulation parameters are invalid.")
+
+
+class WhatIfSimulationCreateFailedError(CreateFailedError):
+    """Raised when simulation creation fails."""
+
+    message = _("What-If simulation could not be created.")
+
+
+class WhatIfSimulationUpdateFailedError(CreateFailedError):
+    """Raised when simulation update fails."""
+
+    message = _("What-If simulation could not be updated.")
+
+
+class WhatIfSimulationDeleteFailedError(DeleteFailedError):
+    """Raised when simulation deletion fails."""
+
+    message = _("What-If simulation could not be deleted.")
+
+
+class WhatIfSimulationForbiddenError(ForbiddenError):
+    """Raised when user doesn't have permission to access a simulation."""
+
+    message = _("You do not have permission to access this simulation.")

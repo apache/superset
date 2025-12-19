@@ -188,11 +188,14 @@ const CollapsePanelHeader = styled.div<{ insightType: WhatIfInsightType }>`
 interface WhatIfAIInsightsProps {
   affectedChartIds: number[];
   modifications: WhatIfModification[];
+  /** Ref to register the abort function for external control */
+  abortRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const WhatIfAIInsights = ({
   affectedChartIds,
   modifications,
+  abortRef,
 }: WhatIfAIInsightsProps) => {
   const [status, setStatus] = useState<WhatIfAIStatus>('idle');
   const [response, setResponse] = useState<WhatIfInterpretResponse | null>(
@@ -218,6 +221,20 @@ const WhatIfAIInsights = ({
     },
     [],
   );
+
+  // Register abort function with external ref for parent control
+  useEffect(() => {
+    if (abortRef) {
+      abortRef.current = () => {
+        abortControllerRef.current?.abort();
+      };
+    }
+    return () => {
+      if (abortRef) {
+        abortRef.current = null;
+      }
+    };
+  }, [abortRef]);
 
   // Track modification changes to reset status when user adjusts the slider
   const modificationsKey = getModificationsKey(modifications);
