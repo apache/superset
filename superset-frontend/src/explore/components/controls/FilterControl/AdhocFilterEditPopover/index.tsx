@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, Component } from 'react';
+import type React from 'react';
+import { createRef, Component, type RefObject } from 'react';
 import PropTypes from 'prop-types';
+import type { SupersetTheme } from '@apache-superset/core/ui';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { t, SupersetClient } from '@superset-ui/core';
@@ -36,6 +38,43 @@ import {
 import rison from 'rison';
 import { isObject } from 'lodash';
 import { ExpressionTypes } from '../types';
+
+interface LayerOption {
+  id: number | null;
+  value: number;
+  label: string;
+}
+
+interface FilterOption {
+  column_name?: string;
+  saved_metric_name?: string;
+  [key: string]: unknown;
+}
+
+interface AdhocFilterEditPopoverProps {
+  adhocFilter: AdhocFilter;
+  onChange: (filter: AdhocFilter) => void;
+  onClose: () => void;
+  onResize: () => void;
+  options: FilterOption[];
+  datasource?: Record<string, unknown>;
+  partitionColumn?: string;
+  theme?: SupersetTheme;
+  sections?: string[];
+  operators?: string[];
+  requireSave?: boolean;
+}
+
+interface AdhocFilterEditPopoverState {
+  adhocFilter: AdhocFilter;
+  width: number;
+  height: number;
+  activeKey: string;
+  isSimpleTabValid: boolean;
+  selectedLayers: LayerOption[];
+  layerOptions: LayerOption[];
+  hasLayerFilterScopeChanged: boolean;
+}
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -94,8 +133,21 @@ const LayerSelectContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 12}px;
 `;
 
-export default class AdhocFilterEditPopover extends Component {
-  constructor(props) {
+export default class AdhocFilterEditPopover extends Component<
+  AdhocFilterEditPopoverProps,
+  AdhocFilterEditPopoverState
+> {
+  popoverContentRef: RefObject<HTMLDivElement>;
+
+  dragStartX = 0;
+
+  dragStartY = 0;
+
+  dragStartWidth = 0;
+
+  dragStartHeight = 0;
+
+  constructor(props: AdhocFilterEditPopoverProps) {
     super(props);
     this.onSave = this.onSave.bind(this);
     this.onDragDown = this.onDragDown.bind(this);
@@ -151,11 +203,11 @@ export default class AdhocFilterEditPopover extends Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
-  onAdhocFilterChange(adhocFilter) {
+  onAdhocFilterChange(adhocFilter: AdhocFilter): void {
     this.setState({ adhocFilter });
   }
 
-  setSimpleTabIsValid(isValid) {
+  setSimpleTabIsValid(isValid: boolean): void {
     this.setState({ isSimpleTabValid: isValid });
   }
 
@@ -185,7 +237,7 @@ export default class AdhocFilterEditPopover extends Component {
     this.props.onClose();
   }
 
-  onDragDown(e) {
+  onDragDown(e: React.MouseEvent): void {
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
     this.dragStartWidth = this.state.width;
@@ -193,7 +245,7 @@ export default class AdhocFilterEditPopover extends Component {
     document.addEventListener('mousemove', this.onMouseMove);
   }
 
-  onMouseMove(e) {
+  onMouseMove(e: MouseEvent): void {
     this.props.onResize();
     this.setState({
       width: Math.max(

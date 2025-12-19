@@ -29,6 +29,8 @@ export const EXPRESSION_TYPES = {
 interface ColumnType {
   column_name: string;
   verbose_name?: string;
+  // Allow additional properties from ColumnMeta and other column types
+  [key: string]: unknown;
 }
 
 interface AdhocMetricInput {

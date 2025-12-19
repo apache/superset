@@ -89,10 +89,12 @@ const coerceMetrics = (
         col => col.column_name === metric.column.column_name,
       );
       if (column) {
-        return new AdhocMetric({ ...metric, column });
+        // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
+        return new AdhocMetric({ ...(metric as unknown as Record<string, unknown>), column });
       }
     }
-    return new AdhocMetric(metric);
+    // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
+    return new AdhocMetric(metric as unknown as Record<string, unknown>);
   });
 };
 
@@ -200,7 +202,11 @@ const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
-      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+      if (
+        oldMetric instanceof AdhocMetric &&
+        changedMetric instanceof AdhocMetric &&
+        oldMetric.equals(changedMetric)
+      ) {
         return;
       }
       const newValue = value.map(value => {
