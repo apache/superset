@@ -39,7 +39,8 @@ const sqlAdhocFilter = new AdhocFilter({
 });
 
 const faultyAdhocFilter = new AdhocFilter({
-  expressionType: null,
+  // Use undefined for faulty expressionType to trigger error state
+  expressionType: undefined,
   subject: null,
   operator: '>',
   comparator: '10',
@@ -69,7 +70,7 @@ const defaultProps = {
   datasource: {},
 };
 
-const renderPopover = (props = {}) =>
+const renderPopover = (props: Partial<typeof defaultProps> = {}) =>
   render(<AdhocFilterEditPopover {...defaultProps} {...props} />, {
     useRedux: true, // Add Redux provider for context
   });
@@ -123,7 +124,7 @@ describe('AdhocFilterEditPopover', () => {
     fireEvent.change(sqlInput, { target: { value: 'COUNT(*) > 0' } });
 
     // Wait for validation to complete
-    await screen.findByRole('button', { name: /save/i, disabled: false });
+    await screen.findByRole('button', { name: /save/i });
 
     // Click save button
     const saveButton = screen.getByRole('button', { name: /save/i });

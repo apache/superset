@@ -178,13 +178,11 @@ export default class AdhocFilterEditPopover extends Component<
     document.addEventListener('mouseup', this.onMouseUp);
 
     // Load layer options if deck_slices exist
-    if (
-      this.props.adhocFilter?.deck_slices &&
-      this.props.adhocFilter.deck_slices.length > 0
-    ) {
+    const deckSlices = this.props.adhocFilter?.deck_slices as number[] | undefined;
+    if (deckSlices && deckSlices.length > 0) {
       this.loadLayerOptions(0, 100).then(result => {
         this.setState({ layerOptions: result.data });
-        const layerFilterScope = this.props.adhocFilter?.layerFilterScope;
+        const layerFilterScope = this.props.adhocFilter?.layerFilterScope as number[] | undefined;
         if (layerFilterScope) {
           const selectedLayers = layerFilterScope.map(item => {
             const layerOption = result.data.find(
@@ -192,7 +190,7 @@ export default class AdhocFilterEditPopover extends Component<
             );
             return layerOption;
           });
-          this.setState({ selectedLayers });
+          this.setState({ selectedLayers: selectedLayers.filter(Boolean) as LayerOption[] });
         }
       });
     }

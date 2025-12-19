@@ -78,6 +78,7 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
@@ -1003,7 +1004,7 @@ const FiltersConfigForm = (
                                           }
                                           datasource={datasetDetails}
                                           onChange={(
-                                            filters: AdhocFilter[],
+                                            filters: AdhocFilterClass[],
                                           ) => {
                                             setNativeFilterFieldValues(
                                               form,
