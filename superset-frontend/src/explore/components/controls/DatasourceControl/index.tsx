@@ -55,7 +55,7 @@ import { Link } from 'react-router-dom';
 interface ExtendedDatasource extends Datasource {
   sql?: string;
   select_star?: string;
-  owners?: Array<{ id: number; first_name: string; last_name: string }>;
+  owners?: Array<{ id: number; first_name: string; last_name: string; value?: number }>;
   extra?: string;
   health_check_message?: string;
   database?: {
@@ -63,6 +63,12 @@ interface ExtendedDatasource extends Datasource {
     database_name: string;
     backend?: string;
   };
+}
+
+interface User {
+  userId?: number;
+  username?: string;
+  roles?: Record<string, unknown[]>;
 }
 
 interface DatasourceControlActions {
@@ -84,6 +90,15 @@ interface DatasourceControlProps {
   isEditable?: boolean;
   onDatasourceSave?: ((datasource: ExtendedDatasource) => void) | null;
   theme: SupersetTheme;
+  user: User;
+  // ControlHeader-related props
+  hovered?: boolean;
+  type?: string;
+  label?: string;
+  default?: unknown;
+  description?: string | null;
+  validationErrors?: string[];
+  name?: string;
 }
 
 interface DatasourceControlState {
@@ -101,6 +116,15 @@ const propTypes = {
   form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
+  user: PropTypes.object.isRequired,
+  // ControlHeader-related props
+  hovered: PropTypes.bool,
+  type: PropTypes.string,
+  label: PropTypes.string,
+  default: PropTypes.any,
+  description: PropTypes.string,
+  validationErrors: PropTypes.array,
+  name: PropTypes.string,
 };
 
 const defaultProps = {
@@ -181,7 +205,7 @@ const SAVE_AS_DATASET = 'save_as_dataset';
 const VISIBLE_TITLE_LENGTH = 25;
 
 // Assign icon for each DatasourceType.  If no icon assignment is found in the lookup, no icon will render
-export const datasourceIconLookup = {
+export const datasourceIconLookup: Record<string, React.ReactNode> = {
   query: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
   physical_dataset: <Icons.TableOutlined className="datasource-svg" />,
   virtual_dataset: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
@@ -417,6 +441,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
             modalBody={
               <ViewQuery
                 sql={datasource?.sql || datasource?.select_star || ''}
+                datasource={`${datasource.id}__${datasource.type}`}
               />
             }
             modalFooter={
@@ -510,8 +535,8 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
         {isMissingDatasource && isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
-              level="warning"
-              errorType={t('Missing URL parameters')}
+              type="warning"
+              message={t('Missing URL parameters')}
               description={t(
                 'The URL is missing the dataset_id or slice_id parameters.',
               )}
@@ -532,7 +557,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
             ) : (
               <ErrorAlert
                 type="warning"
-                errorType={t('Missing dataset')}
+                message={t('Missing dataset')}
                 descriptionPre={false}
                 descriptionDetailsCollapsed={false}
                 descriptionDetails={
@@ -544,7 +569,7 @@ class DatasourceControl extends PureComponent<DatasourceControlProps, Datasource
                     </p>
                     <p>
                       <Button
-                        buttonStyle="warning"
+                        buttonStyle="primary"
                         onClick={() =>
                           this.handleMenuItemClick({ key: CHANGE_DATASET })
                         }

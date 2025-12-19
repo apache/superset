@@ -28,8 +28,38 @@ const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
   op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
 );
 
+interface AdhocFilterInput {
+  expressionType?: string;
+  subject?: string;
+  operator?: string;
+  operatorId?: string;
+  comparator?: unknown;
+  clause?: string;
+  sqlExpression?: string | null;
+  isExtra?: boolean;
+  isNew?: boolean;
+  datasourceWarning?: boolean;
+  deck_slices?: unknown;
+  layerFilterScope?: unknown;
+  filterOptionName?: string;
+}
+
 export default class AdhocFilter {
-  constructor(adhocFilter) {
+  expressionType: string;
+  subject?: string | null;
+  operator?: string | null;
+  operatorId?: string;
+  comparator?: unknown;
+  clause?: string;
+  sqlExpression?: string | null;
+  isExtra: boolean;
+  isNew: boolean;
+  datasourceWarning: boolean;
+  deck_slices?: unknown;
+  layerFilterScope?: unknown;
+  filterOptionName: string;
+
+  constructor(adhocFilter: AdhocFilterInput) {
     this.expressionType = adhocFilter.expressionType || ExpressionTypes.Simple;
     if (this.expressionType === ExpressionTypes.Simple) {
       this.subject = adhocFilter.subject;
@@ -73,7 +103,7 @@ export default class AdhocFilter {
         .substring(2, 15)}`;
   }
 
-  duplicateWith(nextFields) {
+  duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
     return new AdhocFilter({
       ...this,
       // all duplicated fields are not new (i.e. will not open popup automatically)
@@ -82,7 +112,7 @@ export default class AdhocFilter {
     });
   }
 
-  equals(adhocFilter) {
+  equals(adhocFilter: AdhocFilter): boolean {
     return (
       adhocFilter.clause === this.clause &&
       adhocFilter.expressionType === this.expressionType &&
@@ -94,7 +124,7 @@ export default class AdhocFilter {
     );
   }
 
-  isValid() {
+  isValid(): boolean {
     if (this.expressionType === ExpressionTypes.Simple) {
       // operators where the comparator is not used
       if (
@@ -121,16 +151,16 @@ export default class AdhocFilter {
     );
   }
 
-  getDefaultLabel() {
+  getDefaultLabel(): string {
     const label = this.translateToSql();
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
-  getTooltipTitle() {
+  getTooltipTitle(): string {
     return this.translateToSql();
   }
 
-  translateToSql() {
+  translateToSql(): string {
     return translateToSql(this);
   }
 }

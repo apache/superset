@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState } from 'react';
+import { ChangeEvent, useCallback, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+
+interface DndColumnSelectPopoverTitleProps {
+  title: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  isEditDisabled: boolean;
+  hasCustomLabel: boolean;
+}
 
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
@@ -34,7 +41,7 @@ export const DndColumnSelectPopoverTitle = ({
   onChange,
   isEditDisabled,
   hasCustomLabel,
-}) => {
+}: DndColumnSelectPopoverTitleProps) => {
   const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);

@@ -28,6 +28,9 @@ interface CheckboxControlProps {
   description?: ReactNode;
   hovered?: boolean;
   onChange?: (value: boolean) => void;
+  validationErrors?: string[];
+  placeholder?: string;
+  debounceDelay?: number;
 }
 
 const CheckBoxControlWrapper = styled.div`

@@ -1,0 +1,10 @@
+[project]
+name = "sqllab_parquet"
+version = "1.0.0"
+license = "Apache-2.0"
+description = "Export SQL Lab query results to Parquet format"
+dependencies = [
+    "apache-superset-core",
+    "pyarrow>=10.0.0",
+    "pandas>=1.0.0",
+]
