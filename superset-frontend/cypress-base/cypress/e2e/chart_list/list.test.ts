@@ -206,12 +206,20 @@ describe('Charts list', () => {
 
       // edits in list-view
       setGridMode('list');
-      cy.getBySel('edit-alt').eq(1).click();
+      // Wait for list view to fully render after mode change
+      cy.get('.loading').should('not.exist');
+      cy.getBySel('table-row').should('be.visible');
+      // Target the specific row by chart title to avoid flakiness from row ordering
+      cy.getBySel('table-row')
+        .contains('1 - Sample chart | EDITED')
+        .parents('[data-test="table-row"]')
+        .find('[data-test="edit-alt"]')
+        .click();
       cy.getBySel('properties-modal-name-input').clear();
       cy.getBySel('properties-modal-name-input').type('1 - Sample chart');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
-      cy.getBySel('table-row').eq(1).contains('1 - Sample chart');
+      cy.getBySel('table-row').contains('1 - Sample chart').should('exist');
     });
   });
 });
