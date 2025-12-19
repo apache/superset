@@ -209,7 +209,7 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
           this.onRemoveFilter(index);
         }}
         onMoveLabel={this.moveLabel}
-        onDropLabel={() => this.props.onChange(this.state.values)}
+        onDropLabel={() => this.props.onChange?.(this.state.values)}
         partitionColumn={this.state.partitionColumn}
       />
     );
@@ -282,7 +282,7 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
       ...prevState,
       values: valuesCopy,
     }));
-    this.props.onChange(valuesCopy);
+    this.props.onChange?.(valuesCopy);
   }
 
   onRemoveFilter(index: number): void {
@@ -305,14 +305,14 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
           values: [...prevState.values, mappedOption],
         }),
         () => {
-          this.props.onChange(this.state.values);
+          this.props.onChange?.(this.state.values);
         },
       );
     }
   }
 
   onFilterEdit(changedFilter: AdhocFilter): void {
-    this.props.onChange(
+    this.props.onChange?.(
       this.state.values.map(value => {
         if (value.filterOptionName === changedFilter.filterOptionName) {
           return changedFilter;
@@ -325,14 +325,15 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
   onChange(opts: FilterOption[] | null): void {
     const options = (opts || [])
       .map(option => this.mapOption(option))
-      .filter(option => option);
-    this.props.onChange(options);
+      .filter((option): option is AdhocFilter => option !== null);
+    this.props.onChange?.(options);
   }
 
   getMetricExpression(savedMetricName: string): string {
-    return this.props.savedMetrics.find(
+    const metric = this.props.savedMetrics?.find(
       savedMetric => savedMetric.metric_name === savedMetricName,
-    ).expression;
+    );
+    return metric?.expression ?? '';
   }
 
   moveLabel(dragIndex: number, hoverIndex: number): void {
@@ -429,7 +430,10 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
   }
 }
 
+// Static properties are defined in the class using static keyword
+// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
 AdhocFilterControl.propTypes = propTypes;
+// @ts-expect-error - defaultProps for backward compatibility with PropTypes
 AdhocFilterControl.defaultProps = defaultProps;
 
 export default withTheme(AdhocFilterControl);

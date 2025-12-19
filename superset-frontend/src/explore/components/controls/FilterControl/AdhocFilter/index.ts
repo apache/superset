@@ -77,7 +77,8 @@ export default class AdhocFilter {
       this.sqlExpression =
         typeof adhocFilter.sqlExpression === 'string'
           ? adhocFilter.sqlExpression
-          : translateToSql(adhocFilter, { useSimple: true });
+          // Cast to unknown first to handle type mismatch between AdhocFilterInput and AdhocFilter from @superset-ui/core
+          : translateToSql(adhocFilter as unknown as Parameters<typeof translateToSql>[0], { useSimple: true });
       this.clause = adhocFilter.clause;
       if (
         adhocFilter.operator &&
@@ -106,12 +107,24 @@ export default class AdhocFilter {
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
-    return new AdhocFilter({
-      ...this,
-      // all duplicated fields are not new (i.e. will not open popup automatically)
-      isNew: false,
+    // Spread class properties as plain object for constructor input
+    const currentFields: AdhocFilterInput = {
+      expressionType: this.expressionType,
+      subject: this.subject,
+      operator: this.operator,
+      operatorId: this.operatorId,
+      comparator: this.comparator,
+      clause: this.clause,
+      sqlExpression: this.sqlExpression,
+      isExtra: this.isExtra,
+      isNew: false, // all duplicated fields are not new
+      datasourceWarning: this.datasourceWarning,
+      deck_slices: this.deck_slices,
+      layerFilterScope: this.layerFilterScope,
+      filterOptionName: this.filterOptionName,
       ...nextFields,
-    });
+    };
+    return new AdhocFilter(currentFields);
   }
 
   equals(adhocFilter: AdhocFilter): boolean {
@@ -163,6 +176,7 @@ export default class AdhocFilter {
   }
 
   translateToSql(): string {
-    return translateToSql(this);
+    // Cast to unknown first to handle type mismatch between class and @superset-ui/core AdhocFilter type
+    return translateToSql(this as unknown as Parameters<typeof translateToSql>[0]);
   }
 }

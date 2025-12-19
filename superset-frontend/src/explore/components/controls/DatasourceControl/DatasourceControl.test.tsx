@@ -73,8 +73,39 @@ const mockDatasource: TestDatasource = {
   sql: 'SELECT * FROM mock_datasource_sql',
 };
 
+interface TestProps {
+  hovered: boolean;
+  type: string;
+  label: string;
+  default: null;
+  description: null;
+  value: string;
+  form_data: JsonObject;
+  datasource: TestDatasource;
+  validationErrors: string[];
+  name: string;
+  actions: {
+    changeDatasource: jest.Mock;
+    setControlValue: jest.Mock;
+  };
+  isEditable: boolean;
+  user: {
+    createdOn: string;
+    email: string;
+    firstName: string;
+    isActive: boolean;
+    lastName: string;
+    permissions: JsonObject;
+    roles: JsonObject;
+    userId: number;
+    username: string;
+  };
+  onChange: jest.Mock;
+  onDatasourceSave: jest.Mock;
+}
+
 // Use type assertion for test props since the component is wrapped with withTheme
-const createProps = (overrides: JsonObject = {}): Record<string, unknown> => ({
+const createProps = (overrides: JsonObject = {}): TestProps => ({
   hovered: false,
   type: 'DatasourceControl',
   label: 'Datasource',

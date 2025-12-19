@@ -82,15 +82,15 @@ interface FormData {
 }
 
 interface DatasourceControlProps {
-  actions?: DatasourceControlActions;
+  actions: DatasourceControlActions;
   onChange?: () => void;
   value?: string | null;
-  datasource?: ExtendedDatasource;
+  datasource: ExtendedDatasource;
   form_data?: FormData;
   isEditable?: boolean;
   onDatasourceSave?: ((datasource: ExtendedDatasource) => void) | null;
-  theme?: SupersetTheme;
-  user?: User;
+  theme: SupersetTheme;
+  user: User;
   // ControlHeader-related props
   hovered?: boolean;
   type?: string;
@@ -99,8 +99,6 @@ interface DatasourceControlProps {
   description?: string | null;
   validationErrors?: string[];
   name?: string;
-  // Allow additional props
-  [key: string]: unknown;
 }
 
 interface DatasourceControlState {
