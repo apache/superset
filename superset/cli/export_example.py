@@ -381,8 +381,8 @@ def export_dashboard(
 @click.option(
     "--output-dir",
     "-o",
-    default="superset/examples",
-    help="Output directory (default: superset/examples)",
+    default="superset/examples/exports",
+    help="Output directory (default: superset/examples/exports)",
 )
 @click.option(
     "--export-data/--no-export-data",

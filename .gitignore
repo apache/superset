@@ -139,3 +139,5 @@ PROJECT.md
 .env.local
 oxc-custom-build/
 *.code-workspace
+superset/examples/exports/*
+!superset/examples/exports/.gitkeep
