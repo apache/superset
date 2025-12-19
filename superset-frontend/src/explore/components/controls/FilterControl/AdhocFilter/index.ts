@@ -30,11 +30,11 @@ const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
 
 interface AdhocFilterInput {
   expressionType?: string;
-  subject?: string | null;
+  subject?: string | { column_name?: string; [key: string]: unknown } | null;
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
-  clause?: string;
+  clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
   isNew?: boolean;
@@ -48,11 +48,11 @@ interface AdhocFilterInput {
 
 export default class AdhocFilter {
   expressionType: string;
-  subject?: string | null;
+  subject?: string | { column_name?: string; [key: string]: unknown } | null;
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
-  clause?: string;
+  clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
   isNew: boolean;
@@ -68,7 +68,7 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId) >= 0) {
+      if (adhocFilter.operatorId && DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId) >= 0) {
         this.comparator = undefined;
       }
       this.clause = adhocFilter.clause || Clauses.Where;
@@ -143,6 +143,7 @@ export default class AdhocFilter {
     if (this.expressionType === ExpressionTypes.Simple) {
       // operators where the comparator is not used
       if (
+        this.operator &&
         DISABLE_INPUT_OPERATORS.map(
           op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
         ).indexOf(this.operator) >= 0
