@@ -341,8 +341,8 @@ export function DatabaseSelector({
       // Only clear catalog if it's not already null
       if (currentCatalog !== null) {
         setCurrentCatalog(null);
-        if (onCatalogChange && catalogRef.current !== null) {
-          onCatalogChange(null);
+        if (onCatalogChange && catalogRef.current != null) {
+          onCatalogChange(undefined);
         }
       }
     } else if (catalogData && catalogData.length === 1) {
