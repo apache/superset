@@ -98,14 +98,15 @@ def _load_datasets_from_folder(
         return contents
 
     for dataset_item in (base / str(datasets_dir)).iterdir():
-        if Path(str(dataset_item)).suffix.lower() not in YAML_EXTENSIONS:
+        dataset_filename = dataset_item.name  # Get just the filename, not full path
+        if Path(dataset_filename).suffix.lower() not in YAML_EXTENSIONS:
             continue
-        if not load_test_data and test_re.search(str(dataset_item)):
+        if not load_test_data and test_re.search(dataset_filename):
             continue
-        dataset_file = datasets_dir / str(dataset_item)
+        dataset_file = datasets_dir / dataset_filename
         content = _read_file_if_exists(base, dataset_file)
         if content:
-            dataset_name = Path(str(dataset_item)).stem
+            dataset_name = Path(dataset_filename).stem
             contents[f"datasets/examples/{dataset_name}.yaml"] = content
     return contents
 
@@ -123,14 +124,15 @@ def _load_charts_from_folder(
         return contents
 
     for chart_item in (base / str(charts_dir)).iterdir():
-        if Path(str(chart_item)).suffix.lower() not in YAML_EXTENSIONS:
+        chart_name = chart_item.name  # Get just the filename, not full path
+        if Path(chart_name).suffix.lower() not in YAML_EXTENSIONS:
             continue
-        if not load_test_data and test_re.search(str(chart_item)):
+        if not load_test_data and test_re.search(chart_name):
             continue
-        chart_file = charts_dir / str(chart_item)
+        chart_file = charts_dir / chart_name
         content = _read_file_if_exists(base, chart_file)
         if content:
-            contents[f"charts/{example_name}/{chart_item}"] = content
+            contents[f"charts/{example_name}/{chart_name}"] = content
     return contents
 
 
@@ -220,15 +222,16 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
 
     # Traverse example directories
     for item in (base / str(examples_root)).iterdir():
-        example_dir = examples_root / str(item)
+        item_name = item.name  # Get just the directory name, not full path
+        example_dir = examples_root / item_name
 
         # Skip non-directories and special dirs
         if not (base / str(example_dir)).is_dir():
             continue
-        if _should_skip_directory(item):
+        if _should_skip_directory(item_name):
             continue
 
-        example_name = str(item)
+        example_name = item_name
 
         # When load_test_data=False, only load core examples (for test compatibility)
         if not load_test_data and example_name not in CORE_EXAMPLES:
