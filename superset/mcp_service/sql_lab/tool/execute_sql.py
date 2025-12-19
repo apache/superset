@@ -25,7 +25,7 @@ Database.execute() API with RLS, template rendering, and security validation.
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from fastmcp import Context
 from superset_core.api.types import CacheOptions, QueryOptions, QueryResult, QueryStatus
@@ -40,9 +40,6 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementInfo,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
