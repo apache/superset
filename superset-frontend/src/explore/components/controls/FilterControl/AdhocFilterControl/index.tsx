@@ -143,7 +143,8 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
         metric &&
         (typeof metric === 'string'
           ? { saved_metric_name: metric }
-          : new AdhocMetric(metric)),
+          // Cast to handle type mismatch between @superset-ui/core AdhocMetric and local class
+          : new AdhocMetric(metric as unknown as Record<string, unknown>)),
     ),
   ].filter(option => option);
 
@@ -190,7 +191,8 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
     this.removeFilter = this.removeFilter.bind(this);
 
     const filters = (this.props.value || []).map(filter =>
-      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+      // Cast filter to handle type mismatch with @superset-ui/core AdhocFilter type
+      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter as unknown as Record<string, unknown>) : filter,
     );
 
     this.optionRenderer = option => <FilterDefinitionOption option={option} />;
@@ -269,7 +271,8 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
     if (this.props.value !== prevProps.value) {
       this.setState({
         values: (this.props.value || []).map(filter =>
-          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
+          // Cast filter to handle type mismatch with @superset-ui/core AdhocFilter type
+          isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter as unknown as Record<string, unknown>) : filter,
         ),
       });
     }
