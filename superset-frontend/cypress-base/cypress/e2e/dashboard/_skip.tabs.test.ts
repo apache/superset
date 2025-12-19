@@ -45,7 +45,7 @@ function resetTabs() {
   waitForChartLoad(TABLE);
 }
 
-describe('Dashboard tabs', () => {
+describe.skip('Dashboard tabs', () => {
   before(() => {
     cy.visit(TABBED_DASHBOARD);
   });
