@@ -22,34 +22,25 @@ import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-interface Column {
-  column_name: string;
-  type: string;
-}
-
-interface Database {
-  id: number;
-}
-
-interface Datasource {
-  type: string;
-  database: Database;
-  schema: string;
-  datasource_name: string;
-}
-
-interface Props {
+interface TestProps {
   name: string;
   label: string;
   value: AdhocFilter[];
-  datasource: Datasource;
-  columns: Column[];
+  datasource: {
+    type: string;
+    database: { id: number };
+    schema: string;
+    datasource_name: string;
+    [key: string]: unknown;
+  };
+  columns: Array<{ column_name: string; type?: string; [key: string]: unknown }>;
   onChange: jest.Mock;
   sections: string[];
   operators: string[];
+  [key: string]: unknown;
 }
 
-const createProps = (): Props => ({
+const createProps = (): TestProps => ({
   name: 'filter_control',
   label: 'Filters',
   value: [],
@@ -68,8 +59,8 @@ const createProps = (): Props => ({
   operators: ['==', '>', '<'],
 });
 
-const renderComponent = (props: Partial<Props> = {}) =>
-  render(<AdhocFilterControl {...createProps()} {...props} />, {
+const renderComponent = (props: Partial<TestProps> = {}) =>
+  render(<AdhocFilterControl {...(createProps() as Record<string, unknown>)} {...props} />, {
     useDnd: true,
   });
 

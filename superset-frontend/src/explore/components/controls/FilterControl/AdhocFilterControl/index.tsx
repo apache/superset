@@ -137,7 +137,7 @@ function isDictionaryForAdhocFilter(value: unknown): boolean {
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
-    ...props.columns,
+    ...(props.columns || []),
     ...ensureIsArray(props.selectedMetrics).map(
       metric =>
         metric &&
@@ -148,28 +148,28 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   ].filter(option => option);
 
   return options
-    .reduce((results, option) => {
-      if (option.saved_metric_name) {
+    .reduce<FilterOption[]>((results, option) => {
+      if ((option as FilterOption).saved_metric_name) {
         results.push({
-          ...option,
-          filterOptionName: option.saved_metric_name,
+          ...(option as FilterOption),
+          filterOptionName: (option as FilterOption).saved_metric_name,
         });
-      } else if (option.column_name) {
+      } else if ((option as FilterOption).column_name) {
         results.push({
-          ...option,
-          filterOptionName: `_col_${option.column_name}`,
+          ...(option as FilterOption),
+          filterOptionName: `_col_${(option as FilterOption).column_name}`,
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
           ...option,
           filterOptionName: `_adhocmetric_${option.label}`,
-        });
+        } as FilterOption);
       }
       return results;
     }, [])
-    .sort((a, b) =>
-      (a.saved_metric_name || a.column_name || a.label).localeCompare(
-        b.saved_metric_name || b.column_name || b.label,
+    .sort((a: FilterOption, b: FilterOption) =>
+      (a.saved_metric_name || a.column_name || a.label || '').localeCompare(
+        b.saved_metric_name || b.column_name || b.label || '',
       ),
     );
 }
