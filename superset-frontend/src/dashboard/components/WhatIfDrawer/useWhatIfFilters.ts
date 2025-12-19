@@ -30,6 +30,7 @@ export interface UseWhatIfFiltersReturn {
   editingFilterIndex: number | null;
   currentAdhocFilter: AdhocFilter | null;
   setFilterPopoverVisible: (visible: boolean) => void;
+  setFilters: (filters: WhatIfFilter[]) => void;
   handleOpenFilterPopover: () => void;
   handleEditFilter: (index: number) => void;
   handleFilterChange: (adhocFilter: AdhocFilter) => void;
@@ -213,6 +214,7 @@ export function useWhatIfFilters(): UseWhatIfFiltersReturn {
     editingFilterIndex,
     currentAdhocFilter,
     setFilterPopoverVisible,
+    setFilters,
     handleOpenFilterPopover,
     handleEditFilter,
     handleFilterChange,

@@ -18,9 +18,9 @@
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { t, SupersetClient } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 
 import {
@@ -28,7 +28,10 @@ import {
   DeleteModal,
   Empty,
   Skeleton,
+  Tag,
+  Tooltip,
 } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   ListView,
   ListViewActionsBar,
@@ -37,12 +40,15 @@ import {
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { WhatIfFilter, WhatIfModification } from 'src/dashboard/types';
+import { formatPercentageChange } from 'src/dashboard/util/whatIf';
 
 import {
   fetchAllSimulations,
   deleteSimulation,
   WhatIfSimulation,
 } from 'src/dashboard/components/WhatIfDrawer/whatIfApi';
+import EditSimulationModal from './EditSimulationModal';
 
 const PAGE_SIZE = 25;
 
@@ -58,7 +64,7 @@ interface DashboardInfo {
 }
 
 const PageContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const EmptyContainer = styled.div`
@@ -66,19 +72,110 @@ const EmptyContainer = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 16}px;
+  padding: ${({ theme }) => theme.sizeUnit * 16}px;
 `;
+
+const ModificationsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+const ModificationTagsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+const FilterBadge = styled.span`
+  font-size: 10px;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  margin-left: ${({ theme }) => theme.sizeUnit}px;
+`;
+
+/**
+ * Format a WhatIfFilter for display
+ */
+function formatFilterLabel(filter: WhatIfFilter): string {
+  const { col, op, val } = filter;
+
+  let valStr: string;
+  if (Array.isArray(val)) {
+    valStr = val.join(', ');
+  } else if (typeof val === 'boolean') {
+    valStr = val ? 'true' : 'false';
+  } else {
+    valStr = String(val);
+  }
+  // Truncate long values
+  if (valStr.length > 15) {
+    valStr = `${valStr.substring(0, 12)}...`;
+  }
+  return `${col} ${op} ${valStr}`;
+}
+
+/**
+ * Component to render a single modification with its filters
+ */
+function ModificationTag({
+  modification,
+}: {
+  modification: WhatIfModification;
+}) {
+  const theme = useTheme();
+  const hasFilters = modification.filters && modification.filters.length > 0;
+
+  const tagContent = (
+    <Tag
+      css={css`
+        display: inline-flex;
+        align-items: center;
+        gap: ${theme.sizeUnit}px;
+        margin: 0;
+      `}
+    >
+      <span>{modification.column}</span>
+      <span
+        css={css`
+          font-weight: ${theme.fontWeightStrong};
+          color: ${modification.multiplier >= 1
+            ? theme.colorSuccess
+            : theme.colorError};
+        `}
+      >
+        {formatPercentageChange(modification.multiplier, 0)}
+      </span>
+      {hasFilters && (
+        <FilterBadge>
+          <Icons.FilterOutlined iconSize="xs" />
+        </FilterBadge>
+      )}
+    </Tag>
+  );
+
+  if (hasFilters) {
+    const filterTooltip = modification
+      .filters!.map(f => formatFilterLabel(f))
+      .join(', ');
+    return <Tooltip title={filterTooltip}>{tagContent}</Tooltip>;
+  }
+
+  return tagContent;
+}
 
 function WhatIfSimulationList({
   addDangerToast,
   addSuccessToast,
 }: WhatIfSimulationListProps) {
+  const history = useHistory();
   const [simulations, setSimulations] = useState<WhatIfSimulation[]>([]);
   const [dashboards, setDashboards] = useState<Record<number, DashboardInfo>>(
     {},
   );
   const [loading, setLoading] = useState(true);
   const [simulationCurrentlyDeleting, setSimulationCurrentlyDeleting] =
+    useState<WhatIfSimulation | null>(null);
+  const [simulationCurrentlyEditing, setSimulationCurrentlyEditing] =
     useState<WhatIfSimulation | null>(null);
 
   const loadSimulations = useCallback(async () => {
@@ -156,7 +253,7 @@ function WhatIfSimulationList({
   );
 
   const menuData: SubMenuProps = {
-    name: t('What-If Simulations'),
+    name: t('What-if simulations'),
   };
 
   const initialSort = [{ id: 'changedOn', desc: true }];
@@ -166,8 +263,22 @@ function WhatIfSimulationList({
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        size: 'lg',
         id: 'name',
+        Cell: ({
+          row: {
+            original: { id, name, dashboardId },
+          },
+        }: {
+          row: { original: WhatIfSimulation };
+        }) => {
+          const dashboard = dashboards[dashboardId];
+          const dashboardUrl = dashboard?.slug
+            ? `/superset/dashboard/${dashboard.slug}/`
+            : `/superset/dashboard/${dashboardId}/`;
+          const url = `${dashboardUrl}?simulation=${id}`;
+          return <Link to={url}>{name}</Link>;
+        },
       },
       {
         accessor: 'description',
@@ -185,7 +296,7 @@ function WhatIfSimulationList({
       {
         accessor: 'dashboardId',
         Header: t('Dashboard'),
-        size: 'lg',
+        size: 'md',
         id: 'dashboardId',
         Cell: ({
           row: {
@@ -205,7 +316,7 @@ function WhatIfSimulationList({
       {
         accessor: 'modifications',
         Header: t('Modifications'),
-        size: 'md',
+        size: 'xxl',
         id: 'modifications',
         disableSortBy: true,
         Cell: ({
@@ -214,12 +325,28 @@ function WhatIfSimulationList({
           },
         }: {
           row: { original: WhatIfSimulation };
-        }) => modifications.length,
+        }) => {
+          if (modifications.length === 0) {
+            return <span>-</span>;
+          }
+          return (
+            <ModificationsContainer>
+              <ModificationTagsRow>
+                {modifications.map((mod, idx) => (
+                  <ModificationTag
+                    key={`${mod.column}-${idx}`}
+                    modification={mod}
+                  />
+                ))}
+              </ModificationTagsRow>
+            </ModificationsContainer>
+          );
+        },
       },
       {
         accessor: 'changedOn',
         Header: t('Last modified'),
-        size: 'lg',
+        size: 'md',
         id: 'changedOn',
         Cell: ({
           row: {
@@ -239,10 +366,12 @@ function WhatIfSimulationList({
           const dashboardUrl = dashboard?.slug
             ? `/superset/dashboard/${dashboard.slug}/`
             : `/superset/dashboard/${original.dashboardId}/`;
+          const simulationUrl = `${dashboardUrl}?simulation=${original.id}`;
 
           const handleOpen = () => {
-            window.location.href = dashboardUrl;
+            history.push(simulationUrl);
           };
+          const handleEdit = () => setSimulationCurrentlyEditing(original);
           const handleDelete = () => setSimulationCurrentlyDeleting(original);
 
           const actions = [
@@ -252,6 +381,13 @@ function WhatIfSimulationList({
               placement: 'bottom',
               icon: 'ExportOutlined',
               onClick: handleOpen,
+            },
+            {
+              label: 'edit-action',
+              tooltip: t('Edit modifications'),
+              placement: 'bottom',
+              icon: 'EditOutlined',
+              onClick: handleEdit,
             },
             {
               label: 'delete-action',
@@ -268,10 +404,11 @@ function WhatIfSimulationList({
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'sm',
         disableSortBy: true,
       },
     ],
-    [dashboards],
+    [dashboards, history],
   );
 
   const emptyState = {
@@ -340,6 +477,15 @@ function WhatIfSimulationList({
           onHide={() => setSimulationCurrentlyDeleting(null)}
           open
           title={t('Delete Simulation?')}
+        />
+      )}
+      {simulationCurrentlyEditing && (
+        <EditSimulationModal
+          simulation={simulationCurrentlyEditing}
+          onHide={() => setSimulationCurrentlyEditing(null)}
+          onSaved={loadSimulations}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
         />
       )}
       <ConfirmStatusChange

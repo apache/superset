@@ -19,6 +19,7 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useHistory } from 'react-router-dom';
 import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
@@ -392,9 +393,31 @@ const DashboardBuilder = () => {
     ({ dashboardState }) => dashboardState.whatIfPanelOpen ?? false,
   );
 
+  // Read simulation ID from URL query parameter
+  const location = useLocation();
+  const history = useHistory();
+  const initialSimulationId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const simParam = params.get('simulation');
+    return simParam ? parseInt(simParam, 10) : null;
+  }, [location.search]);
+
+  // Auto-open What-If panel if simulation ID is in URL
+  useEffect(() => {
+    if (initialSimulationId && !whatIfPanelOpen) {
+      dispatch(toggleWhatIfPanel(true));
+    }
+  }, [initialSimulationId, dispatch, whatIfPanelOpen]);
+
   const handleCloseWhatIfPanel = useCallback(() => {
     dispatch(toggleWhatIfPanel(false));
-  }, [dispatch]);
+    // Clear simulation param from URL when closing
+    const params = new URLSearchParams(location.search);
+    if (params.has('simulation')) {
+      params.delete('simulation');
+      history.replace({ search: params.toString() });
+    }
+  }, [dispatch, location.search, history]);
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -722,10 +745,12 @@ const DashboardBuilder = () => {
             ) : (
               <Loading />
             )}
-            {!editMode && whatIfPanelOpen && (
+            {!editMode && (
               <WhatIfPanel
+                visible={whatIfPanelOpen}
                 onClose={handleCloseWhatIfPanel}
                 topOffset={barTopOffset}
+                initialSimulationId={initialSimulationId}
               />
             )}
             {editMode && <BuilderComponentPane topOffset={barTopOffset} />}

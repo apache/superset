@@ -21,14 +21,17 @@ import { styled } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { WHAT_IF_PANEL_WIDTH } from './constants';
 
-export const PanelContainer = styled.div<{ topOffset: number }>`
+export const PanelContainer = styled.div<{
+  topOffset: number;
+  visible: boolean;
+}>`
   grid-column: 2;
   grid-row: 1 / -1; /* Span all rows */
   width: ${WHAT_IF_PANEL_WIDTH}px;
   min-width: ${WHAT_IF_PANEL_WIDTH}px;
   background-color: ${({ theme }) => theme.colorBgContainer};
   border-left: 1px solid ${({ theme }) => theme.colorBorderSecondary};
-  display: flex;
+  display: ${({ visible }) => (visible ? 'flex' : 'none')};
   flex-direction: column;
   overflow: hidden;
   position: sticky;

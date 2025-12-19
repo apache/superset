@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useState, useEffect, useCallback, Key } from 'react';
+import { useState, useCallback, Key } from 'react';
 import { t } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
-import { fetchSimulations, WhatIfSimulation } from './whatIfApi';
+import { WhatIfSimulation } from './whatIfApi';
 
 enum MenuKeys {
   LoadSimulation = 'load-simulation',
@@ -38,14 +38,13 @@ enum MenuKeys {
 }
 
 interface WhatIfHeaderMenuProps {
-  dashboardId: number;
   selectedSimulation: WhatIfSimulation | null;
   onSelectSimulation: (simulation: WhatIfSimulation | null) => void;
   onSaveClick: () => void;
   onSaveAsNewClick: () => void;
   hasModifications: boolean;
-  refreshTrigger?: number;
-  addDangerToast: (msg: string) => void;
+  simulations: WhatIfSimulation[];
+  simulationsLoading: boolean;
 }
 
 const VerticalDotsTrigger = () => {
@@ -65,35 +64,16 @@ const VerticalDotsTrigger = () => {
 };
 
 const WhatIfHeaderMenu = ({
-  dashboardId,
   selectedSimulation,
   onSelectSimulation,
   onSaveClick,
   onSaveAsNewClick,
   hasModifications,
-  refreshTrigger,
-  addDangerToast,
+  simulations,
+  simulationsLoading,
 }: WhatIfHeaderMenuProps) => {
   const theme = useTheme();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [simulations, setSimulations] = useState<WhatIfSimulation[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const loadSimulations = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await fetchSimulations(dashboardId);
-      setSimulations(result);
-    } catch (error) {
-      addDangerToast(t('Failed to load saved simulations'));
-    } finally {
-      setLoading(false);
-    }
-  }, [dashboardId, addDangerToast]);
-
-  useEffect(() => {
-    loadSimulations();
-  }, [loadSimulations, refreshTrigger]);
 
   const handleMenuClick = useCallback(
     ({ key }: { key: Key }) => {
@@ -189,7 +169,7 @@ const WhatIfHeaderMenu = ({
     {
       type: 'submenu' as const,
       key: MenuKeys.LoadSimulation,
-      label: loading ? t('Loading...') : t('Load simulation'),
+      label: simulationsLoading ? t('Loading...') : t('Load simulation'),
       icon: <Icons.FolderOpenOutlined />,
       children: simulationMenuItems,
     },

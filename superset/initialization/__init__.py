@@ -223,6 +223,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.views.what_if import WhatIfSimulationView
         from superset.what_if.api import WhatIfRestApi
 
         set_app_error_handlers(self.superset_app)
@@ -431,6 +432,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+
+        appbuilder.add_view(
+            WhatIfSimulationView,
+            "What-If Simulations",
+            label=_("What-if simulations"),
+            href="/whatif/simulations/",
+            icon="fa-flask",
+            category="Manage",
+            category_label=_("Manage"),
+        )
 
         #
         # Add links

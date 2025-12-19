@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { css, Alert, useTheme } from '@apache-superset/core/ui';
@@ -34,6 +34,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useNumericColumns } from 'src/dashboard/util/useNumericColumns';
 import { RootState, Datasource } from 'src/dashboard/types';
 import WhatIfAIInsights from './WhatIfAIInsights';
+import { useAllChartsLoaded } from './useChartComparison';
 import HarryPotterWandLoader from './HarryPotterWandLoader';
 import FilterButton from './FilterButton';
 import ModificationsDisplay from './ModificationsDisplay';
@@ -41,7 +42,7 @@ import WhatIfHeaderMenu from './WhatIfHeaderMenu';
 import SaveSimulationModal from './SaveSimulationModal';
 import { useWhatIfFilters } from './useWhatIfFilters';
 import { useWhatIfApply } from './useWhatIfApply';
-import { WhatIfSimulation } from './whatIfApi';
+import { WhatIfSimulation, fetchSimulations } from './whatIfApi';
 import {
   SLIDER_MIN,
   SLIDER_MAX,
@@ -71,11 +72,18 @@ import {
 export { WHAT_IF_PANEL_WIDTH };
 
 interface WhatIfPanelProps {
+  visible: boolean;
   onClose: () => void;
   topOffset: number;
+  initialSimulationId?: number | null;
 }
 
-const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
+const WhatIfPanel = ({
+  visible,
+  onClose,
+  topOffset,
+  initialSimulationId,
+}: WhatIfPanelProps) => {
   const theme = useTheme();
   const { addSuccessToast, addDangerToast } = useToasts();
 
@@ -93,7 +101,11 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   const [selectedSimulation, setSelectedSimulation] =
     useState<WhatIfSimulation | null>(null);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [simulationRefreshTrigger, setSimulationRefreshTrigger] = useState(0);
+  const [simulations, setSimulations] = useState<WhatIfSimulation[]>([]);
+  const [simulationsLoading, setSimulationsLoading] = useState(false);
+
+  // Track if initial simulation from URL has been loaded
+  const initialSimulationLoadedRef = useRef(false);
 
   // Custom hook for filter management
   const {
@@ -101,6 +113,7 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     filterPopoverVisible,
     currentAdhocFilter,
     setFilterPopoverVisible,
+    setFilters,
     handleOpenFilterPopover,
     handleEditFilter,
     handleFilterChange,
@@ -131,8 +144,18 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
   });
 
   // Get numeric columns and datasources
-  const { numericColumns } = useNumericColumns();
+  const { numericColumns, columnToChartIds } = useNumericColumns();
   const datasources = useSelector((state: RootState) => state.datasources);
+
+  // Get all chart IDs that could be affected by what-if analysis
+  const allDashboardChartIds = useMemo(() => {
+    const chartIds = new Set<number>();
+    columnToChartIds.forEach(ids => ids.forEach(id => chartIds.add(id)));
+    return Array.from(chartIds);
+  }, [columnToChartIds]);
+
+  // Check if all dashboard charts have completed their initial load
+  const initialChartsLoaded = useAllChartsLoaded(allDashboardChartIds);
 
   // Column options for the select dropdown
   const columnOptions = useMemo(
@@ -195,6 +218,13 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
         setSliderValue((firstMod.multiplier - 1) * 100);
         setEnableCascadingEffects(simulation.cascadingEffectsEnabled);
 
+        // Load filters from the first modification
+        if (firstMod.filters && firstMod.filters.length > 0) {
+          setFilters(firstMod.filters);
+        } else {
+          clearFilters();
+        }
+
         // Convert to extended modifications with isAISuggested flag
         // First modification is the user's, rest are AI-suggested
         const extendedModifications = simulation.modifications.map(
@@ -217,14 +247,70 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
         clearModifications();
       }
     },
-    [clearFilters, loadModificationsDirectly, clearModifications],
+    [clearFilters, setFilters, loadModificationsDirectly, clearModifications],
   );
 
+  // Load simulations list from API
+  const loadSimulations = useCallback(async () => {
+    if (!dashboardId) return;
+    setSimulationsLoading(true);
+    try {
+      const result = await fetchSimulations(dashboardId);
+      setSimulations(result);
+    } catch (error) {
+      addDangerToast(t('Failed to load saved simulations'));
+    } finally {
+      setSimulationsLoading(false);
+    }
+  }, [dashboardId, addDangerToast]);
+
+  // Fetch simulations when dashboard is ready
+  useEffect(() => {
+    if (dashboardId) {
+      loadSimulations();
+    }
+  }, [dashboardId, loadSimulations]);
+
+  // Load initial simulation from URL parameter
+  // Wait until:
+  // 1. simulations are loaded (from the earlier useEffect)
+  // 2. columnToChartIds is populated (chart metadata is available)
+  // 3. initialChartsLoaded is true (charts have finished their initial queries)
+  // This ensures we can properly save original chart data before applying what-if modifications
+  useEffect(() => {
+    if (
+      initialSimulationId &&
+      !initialSimulationLoadedRef.current &&
+      simulations.length > 0 &&
+      columnToChartIds.size > 0 &&
+      initialChartsLoaded
+    ) {
+      initialSimulationLoadedRef.current = true;
+      const simulation = simulations.find(s => s.id === initialSimulationId);
+      if (simulation) {
+        handleLoadSimulation(simulation);
+      } else {
+        addDangerToast(t('Simulation not found'));
+      }
+    }
+  }, [
+    initialSimulationId,
+    simulations,
+    addDangerToast,
+    columnToChartIds.size,
+    initialChartsLoaded,
+    handleLoadSimulation,
+  ]);
+
   // Handle saving a simulation
-  const handleSaveSimulation = useCallback((simulation: WhatIfSimulation) => {
-    setSelectedSimulation(simulation);
-    setSimulationRefreshTrigger(prev => prev + 1);
-  }, []);
+  const handleSaveSimulation = useCallback(
+    (simulation: WhatIfSimulation) => {
+      setSelectedSimulation(simulation);
+      // Refresh the simulations list to include the newly saved simulation
+      loadSimulations();
+    },
+    [loadSimulations],
+  );
 
   // Track if we're saving as new (vs updating existing)
   const [isSavingAsNew, setIsSavingAsNew] = useState(false);
@@ -248,7 +334,11 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
     !selectedColumn || sliderValue === SLIDER_DEFAULT || isLoadingSuggestions;
 
   return (
-    <PanelContainer data-test="what-if-panel" topOffset={topOffset}>
+    <PanelContainer
+      data-test="what-if-panel"
+      topOffset={topOffset}
+      visible={visible}
+    >
       <PanelHeader>
         <PanelTitle>
           <Icons.StarFilled
@@ -261,14 +351,13 @@ const WhatIfPanel = ({ onClose, topOffset }: WhatIfPanelProps) => {
         </PanelTitle>
         <HeaderButtonsContainer>
           <WhatIfHeaderMenu
-            dashboardId={dashboardId}
             selectedSimulation={selectedSimulation}
             onSelectSimulation={handleLoadSimulation}
             onSaveClick={handleOpenSaveModal}
             onSaveAsNewClick={handleOpenSaveAsNewModal}
             hasModifications={appliedModifications.length > 0}
-            refreshTrigger={simulationRefreshTrigger}
-            addDangerToast={addDangerToast}
+            simulations={simulations}
+            simulationsLoading={simulationsLoading}
           />
           <CloseButton onClick={onClose} aria-label={t('Close')}>
             <Icons.CloseOutlined iconSize="m" />
