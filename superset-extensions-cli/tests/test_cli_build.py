@@ -236,7 +236,7 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
         "frontend": {
-            "contributions": {"commands": ["test_command"]},
+            "contributions": {"commands": [{"id": "test_command", "title": "Test"}]},
             "moduleFederation": {"exposes": ["./index"]},
         },
         "backend": {"entryPoints": ["test_extension.entrypoint"]},
@@ -255,7 +255,9 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
 
     # Verify frontend section
     assert manifest.frontend is not None
-    assert manifest.frontend.contributions.commands == ["test_command"]
+    assert manifest.frontend.contributions.commands == [
+        {"id": "test_command", "title": "Test"}
+    ]
     assert manifest.frontend.moduleFederation.exposes == ["./index"]
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
 
