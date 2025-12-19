@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getDatasetId } from './shared.helper';
+
 describe('Visualization > Bubble', () => {
   beforeEach(() => {
     cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
-  const BUBBLE_FORM_DATA = {
-    datasource: '2__table',
+  const getBubbleFormData = datasetId => ({
+    datasource: `${datasetId}__table`,
     viz_type: 'bubble',
-    slice_id: 46,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: '2011-01-01 : 2011-01-02',
@@ -48,7 +49,7 @@ describe('Visualization > Bubble', () => {
     y_axis_format: '.3s',
     y_log_scale: false,
     y_axis_showminmax: false,
-  };
+  });
 
   function verify(formData) {
     cy.visitChartByParams(formData);
@@ -56,48 +57,52 @@ describe('Visualization > Bubble', () => {
   }
 
   it('should work with filter', () => {
-    verify({
-      ...BUBBLE_FORM_DATA,
-      adhoc_filters: [
-        {
-          expressionType: 'SIMPLE',
-          subject: 'region',
-          operator: '==',
-          comparator: 'South Asia',
-          clause: 'WHERE',
-          sqlExpression: null,
-          filterOptionName: 'filter_b2tfg1rs8y_8kmrcyxvsqd',
-        },
-      ],
-    });
-    cy.get('[data-test="chart-container"]').should('be.visible');
-    cy.get('[data-test="chart-container"]').within(() => {
-      cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
-    });
-    cy.get('[data-test="chart-container"]').then(nodeList => {
-      // Check that all circles have same color.
-      const color = nodeList[0].getAttribute('fill');
-      const circles = Array.prototype.slice.call(nodeList);
-      expect(circles.every(c => c.getAttribute('fill') === color)).to.equal(
-        true,
-      );
+    getDatasetId('wb_health_population').then(datasetId => {
+      verify({
+        ...getBubbleFormData(datasetId),
+        adhoc_filters: [
+          {
+            expressionType: 'SIMPLE',
+            subject: 'region',
+            operator: '==',
+            comparator: 'South Asia',
+            clause: 'WHERE',
+            sqlExpression: null,
+            filterOptionName: 'filter_b2tfg1rs8y_8kmrcyxvsqd',
+          },
+        ],
+      });
+      cy.get('[data-test="chart-container"]').should('be.visible');
+      cy.get('[data-test="chart-container"]').within(() => {
+        cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
+      });
+      cy.get('[data-test="chart-container"]').then(nodeList => {
+        // Check that all circles have same color.
+        const color = nodeList[0].getAttribute('fill');
+        const circles = Array.prototype.slice.call(nodeList);
+        expect(circles.every(c => c.getAttribute('fill') === color)).to.equal(
+          true,
+        );
+      });
     });
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
-    cy.visitChartByParams(BUBBLE_FORM_DATA);
+    getDatasetId('wb_health_population').then(datasetId => {
+      cy.visitChartByParams(getBubbleFormData(datasetId));
 
-    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
-    cy.focused().type('supersetColors{enter}');
-    cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
-    ).should('exist');
-    cy.get('[data-test=run-query-button]').click();
-    cy.get('.bubble .nv-legend .nv-legend-symbol').should(
-      'have.css',
-      'fill',
-      'rgb(31, 168, 201)',
-    );
+      cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+      cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+      cy.focused().type('supersetColors{enter}');
+      cy.get(
+        '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+      ).should('exist');
+      cy.get('[data-test=run-query-button]').click();
+      cy.get('.bubble .nv-legend .nv-legend-symbol').should(
+        'have.css',
+        'fill',
+        'rgb(31, 168, 201)',
+      );
+    });
   });
 });

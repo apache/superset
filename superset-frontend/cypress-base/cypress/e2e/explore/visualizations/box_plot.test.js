@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getDatasetId } from './shared.helper';
+
 describe('Visualization > Box Plot', () => {
   beforeEach(() => {
     cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
-  const BOX_PLOT_FORM_DATA = {
-    datasource: '2__table',
+  const getBoxPlotFormData = datasetId => ({
+    datasource: `${datasetId}__table`,
     viz_type: 'box_plot',
-    slice_id: 49,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: '1960-01-01 : now',
@@ -34,7 +35,7 @@ describe('Visualization > Box Plot', () => {
     limit: '25',
     color_scheme: 'bnbColors',
     whisker_options: 'Min/max (no outliers)',
-  };
+  });
 
   function verify(formData) {
     cy.visitChartByParams(formData);
@@ -42,19 +43,23 @@ describe('Visualization > Box Plot', () => {
   }
 
   it('should work', () => {
-    verify(BOX_PLOT_FORM_DATA);
-    cy.get('.chart-container .box_plot canvas').should('have.length', 1);
+    getDatasetId('wb_health_population').then(datasetId => {
+      verify(getBoxPlotFormData(datasetId));
+      cy.get('.chart-container .box_plot canvas').should('have.length', 1);
+    });
   });
 
   it('should allow type to search color schemes', () => {
-    verify(BOX_PLOT_FORM_DATA);
+    getDatasetId('wb_health_population').then(datasetId => {
+      verify(getBoxPlotFormData(datasetId));
 
-    cy.get('#controlSections-tab-CUSTOMIZE').click();
-    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
-    cy.focused().type('supersetColors{enter}');
-    cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
-    ).should('exist');
+      cy.get('#controlSections-tab-CUSTOMIZE').click();
+      cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+      cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+      cy.focused().type('supersetColors{enter}');
+      cy.get(
+        '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+      ).should('exist');
+    });
   });
 });

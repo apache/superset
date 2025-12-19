@@ -68,7 +68,7 @@ describe('Native filters', () => {
 
     it.skip('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name' },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
@@ -92,8 +92,8 @@ describe('Native filters', () => {
 
     it('User can create parent filters using "Values are dependent on other filters"', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -126,8 +126,8 @@ describe('Native filters', () => {
 
     it('user can delete dependent filter', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -162,10 +162,10 @@ describe('Native filters', () => {
 
     it('user cannot create bi-directional dependencies between filters', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-        { name: 'country_code', column: 'country_code', datasetId: 2 },
-        { name: 'year', column: 'year', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
+        { name: 'country_code', column: 'country_code' },
+        { name: 'year', column: 'year' },
       ]);
       enterNativeFilterEditModal();
 
@@ -213,8 +213,8 @@ describe('Native filters', () => {
 
     it('Dependent filter selects first item based on parent filter selection', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
       ]);
 
       enterNativeFilterEditModal();
@@ -281,9 +281,9 @@ describe('Native filters', () => {
 
     it('User can create filter depend on 2 other filters', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-        { name: 'country_code', column: 'country_code', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
+        { name: 'country_code', column: 'country_code' },
       ]);
       enterNativeFilterEditModal();
       selectFilter(2);
@@ -334,8 +334,8 @@ describe('Native filters', () => {
 
     it('User can remove parent filters', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region' },
+        { name: 'country_name', column: 'country_name' },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
