@@ -142,8 +142,8 @@ const Overlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at center, rgba(26, 26, 46, 0.25) 0%, rgba(13, 13, 26, 0.28) 50%, rgba(0, 0, 5, 0.3) 100%);
-  backdrop-filter: blur(3px);
+  background: radial-gradient(ellipse at center, rgba(20, 20, 40, 0.65) 0%, rgba(10, 10, 25, 0.75) 50%, rgba(0, 0, 10, 0.85) 100%);
+  backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -283,7 +283,7 @@ const SpellText = styled.div`
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 28px;
   font-style: italic;
-  color: #87CEEB;
+  color: #B8E0F0;
   animation: ${textGlow} 2s ease-in-out infinite;
   letter-spacing: 3px;
 `;
@@ -291,16 +291,14 @@ const SpellText = styled.div`
 const SubText = styled.div`
   margin-top: 16px;
   font-size: 14px;
-  color: #6495ED;
-  opacity: 0.8;
+  color: #E0E8F0;
   letter-spacing: 1px;
 `;
 
 const DismissHint = styled.div`
   margin-top: 32px;
   font-size: 12px;
-  color: #4a4a6a;
-  opacity: 0.6;
+  color: #B0BEC5;
 `;
 /* eslint-enable theme-colors/no-literal-colors */
 
