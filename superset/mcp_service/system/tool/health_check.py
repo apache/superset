@@ -31,7 +31,7 @@ from superset.utils.version import get_version_metadata
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["core"])
 async def health_check(ctx: Context) -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.

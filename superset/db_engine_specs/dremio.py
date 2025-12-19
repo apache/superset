@@ -25,7 +25,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -104,4 +104,4 @@ class DremioEngineSpec(BaseEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return f"{label}_{hash_from_str(label)[:6]}"

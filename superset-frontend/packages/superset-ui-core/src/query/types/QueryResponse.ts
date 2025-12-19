@@ -75,8 +75,7 @@ export interface ChartDataResponseResult {
   applied_filters?: any[];
 }
 
-export interface TimeseriesChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
   label_map: Record<string, string[]>;
 }

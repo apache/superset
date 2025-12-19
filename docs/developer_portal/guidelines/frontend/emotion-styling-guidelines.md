@@ -1,6 +1,6 @@
 ---
 title: Emotion Styling Guidelines and Best Practices
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 <!--
@@ -33,314 +33,245 @@ under the License.
 - **DO** use `css` when you want to amend/merge sets of styles compositionally
 - **DO** use `css` when you're making a small, or single-use set of styles for a component
 - **DO** move your style definitions from direct usage in the `css` prop to an external variable when they get long
-- **DO** prefer tagged template literals (`css={css\`...\`}`) over style objects wherever possible for maximum style portability/consistency
-- **DO** use `useTheme` to get theme variables
+- **DO** prefer tagged template literals (`css={css`...`}`) over style objects wherever possible for maximum style portability/consistency (note: typescript support may be diminished, but IDE plugins like [this](https://marketplace.visualstudio.com/items?itemName=jpoissonnier.vscode-styled-components) make life easy)
+- **DO** use `useTheme` to get theme variables. `withTheme` should be only used for wrapping legacy Class-based components.
 
 ### DON'T do these things:
 
 - **DON'T** use `styled` for small, single-use style tweaks that would be easier to read/review if they were inline
-- **DON'T** export incomplete Ant Design components
+- **DON'T** export incomplete AntD components (make sure all their compound components are exported)
+
+## Emotion Tips and Strategies
+
+The first thing to consider when adding styles to an element is how much you think a style might be reusable in other areas of Superset. Always err on the side of reusability here. Nobody wants to chase styling inconsistencies, or try to debug little endless overrides scattered around the codebase. The more we can consolidate, the less will have to be figured out by those who follow. Reduce, reuse, recycle.
 
 ## When to use `css` or `styled`
 
-### Use `css` for:
+In short, either works for just about any use case! And you'll see them used somewhat interchangeably in the existing codebase. But we need a way to weigh it when we encounter the choice, so here's one way to think about it:
 
-1. **Small, single-use styles**
-```tsx
-import { css } from '@emotion/react';
+A good use of `styled` syntax if you want to re-use a styled component. In other words, if you wanted to export flavors of a component for use, like so:
 
-const MyComponent = () => (
-  <div
-    css={css`
-      margin: 8px;
-      padding: 16px;
-    `}
-  >
-    Content
-  </div>
-);
-```
-
-2. **Composing styles**
-```tsx
-const baseStyles = css`
-  padding: 16px;
-  border-radius: 4px;
+```jsx
+const StatusThing = styled.div`
+  padding: 10px;
+  border-radius: 10px;
 `;
 
-const primaryStyles = css`
-  ${baseStyles}
-  background-color: blue;
-  color: white;
+export const InfoThing = styled(StatusThing)`
+  background: blue;
+  &::before {
+    content: "ℹ️";
+  }
 `;
 
-const secondaryStyles = css`
-  ${baseStyles}
-  background-color: gray;
-  color: black;
+export const WarningThing = styled(StatusThing)`
+  background: orange;
+  &::before {
+    content: "⚠️";
+  }
 `;
-```
 
-3. **Conditional styling**
-```tsx
-const MyComponent = ({ isActive }: { isActive: boolean }) => (
-  <div
-    css={[
-      baseStyles,
-      isActive && activeStyles,
-    ]}
-  >
-    Content
-  </div>
-);
-```
-
-### Use `styled` for:
-
-1. **Reusable components**
-```tsx
-import styled from '@emotion/styled';
-
-const StyledButton = styled.button`
-  padding: 12px 24px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: white;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.primaryDark};
+export const TerribleThing = styled(StatusThing)`
+  background: red;
+  &::before {
+    content: "🔥";
   }
 `;
 ```
 
-2. **Components with complex nested selectors**
-```tsx
-const StyledCard = styled.div`
-  padding: 16px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+You can also use `styled` when you're building a bigger component, and just want to have some custom bits for internal use in your JSX. For example:
 
-  .card-header {
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-
-  .card-content {
-    color: ${({ theme }) => theme.colors.text};
-
-    p {
-      margin-bottom: 12px;
-    }
-  }
+```jsx
+const SeparatorOnlyUsedInThisComponent = styled.hr`
+  height: 12px;
+  border: 0;
+  box-shadow: inset 0 12px 12px -12px rgba(0, 0, 0, 0.5);
 `;
+
+function SuperComplicatedComponent(props) {
+  return (
+    <>
+      Daily standup for {user.name}!
+      <SeparatorOnlyUsedInThisComponent />
+      <h2>Yesterday:</h2>
+      // spit out a list of accomplishments
+      <SeparatorOnlyUsedInThisComponent />
+      <h2>Today:</h2>
+      // spit out a list of plans
+      <SeparatorOnlyUsedInThisComponent />
+      <h2>Tomorrow:</h2>
+      // spit out a list of goals
+    </>
+  );
+}
 ```
 
-3. **Extending Ant Design components**
-```tsx
-import { Button } from 'antd';
-import styled from '@emotion/styled';
+The `css` prop, in reality, shares all the same styling capabilities as `styled` but it does have some particular use cases that jump out as sensible. For example, if you just want to style one element in your component, you could add the styles inline like so:
 
-const CustomButton = styled(Button)`
-  border-radius: 8px;
-  font-weight: 600;
-
-  &.ant-btn-primary {
-    background: linear-gradient(45deg, #1890ff, #722ed1);
-  }
-`;
+```jsx
+function SomeFanciness(props) {
+  return (
+    <>
+      Here's an awesome report card for {user.name}!
+      <div
+        css={css`
+          box-shadow: 5px 5px 10px #ccc;
+          border-radius: 10px;
+        `}
+      >
+        <h2>Yesterday:</h2>
+        // ...some stuff
+        <h2>Today:</h2>
+        // ...some stuff
+        <h2>Tomorrow:</h2>
+        // ...some stuff
+      </div>
+    </>
+  );
+}
 ```
 
-## Using Theme Variables
+You can also define the styles as a variable, external to your JSX. This is handy if the styles get long and you just want it out of the way. This is also handy if you want to apply the same styles to disparate element types, kind of like you might use a CSS class on varied elements. Here's a trumped up example:
 
-Always use theme variables for consistent styling:
-
-```tsx
-import { useTheme } from '@emotion/react';
-
-const MyComponent = () => {
-  const theme = useTheme();
+```jsx
+function FakeGlobalNav(props) {
+  const menuItemStyles = css`
+    display: block;
+    border-bottom: 1px solid cadetblue;
+    font-family: "Comic Sans", cursive;
+  `;
 
   return (
-    <div
-      css={css`
-        background-color: ${theme.colors.grayscale.light5};
-        color: ${theme.colors.grayscale.dark2};
-        padding: ${theme.gridUnit * 4}px;
-        border-radius: ${theme.borderRadius}px;
-      `}
-    >
-      Content
+    <Nav>
+      <a css={menuItemStyles} href="#">One link</a>
+      <Link css={menuItemStyles} to={url}>Another link</Link>
+      <div css={menuItemStyles} onClick={() => alert('clicked')}>Another link</div>
+    </Nav>
+  );
+}
+```
+
+## CSS tips and tricks
+
+### `css` lets you write actual CSS
+
+By default the `css` prop uses the object syntax with JS style definitions, like so:
+
+```jsx
+<div css={{
+  borderRadius: 10,
+  marginTop: 10,
+  backgroundColor: '#00FF00'
+}}>Howdy</div>
+```
+
+But you can use the `css` interpolator as well to get away from icky JS styling syntax. Doesn't this look cleaner?
+
+```jsx
+<div css={css`
+  border-radius: 10px;
+  margin-top: 10px;
+  background-color: #00FF00;
+`}>Howdy</div>
+```
+
+You might say "whatever… I can read and write JS syntax just fine." Well, that's great. But… let's say you're migrating in some of our legacy LESS styles… now it's copy/paste! Or if you want to migrate to or from `styled` syntax… also copy/paste!
+
+### You can combine `css` definitions with array syntax
+
+You can use multiple groupings of styles with the `css` interpolator, and combine/override them in array syntax, like so:
+
+```jsx
+function AnotherSillyExample(props) {
+  const shadowedCard = css`
+    box-shadow: 2px 2px 4px #999;
+    padding: 4px;
+  `;
+  const infoCard = css`
+    background-color: #33f;
+    border-radius: 4px;
+  `;
+  const overrideInfoCard = css`
+    background-color: #f33;
+  `;
+  return (
+    <div className="App">
+      Combining two classes:
+      <div css={[shadowedCard, infoCard]}>Hello</div>
+      Combining again, but now with overrides:
+      <div css={[shadowedCard, infoCard, overrideInfoCard]}>Hello</div>
     </div>
   );
-};
-```
-
-## Common Patterns
-
-### Responsive Design
-```tsx
-const ResponsiveContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-
-  ${({ theme }) => theme.breakpoints.up('md')} {
-    flex-direction: row;
-  }
-`;
-```
-
-### Animation
-```tsx
-const FadeInComponent = styled.div`
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-
-  &.visible {
-    opacity: 1;
-  }
-`;
-```
-
-### Conditional Props
-```tsx
-interface StyledDivProps {
-  isHighlighted?: boolean;
-  size?: 'small' | 'medium' | 'large';
 }
+```
 
-const StyledDiv = styled.div<StyledDivProps>`
-  padding: 16px;
-  background-color: ${({ isHighlighted, theme }) =>
-    isHighlighted ? theme.colors.primary : theme.colors.grayscale.light5};
+### Style variations with props
 
-  ${({ size }) => {
-    switch (size) {
-      case 'small':
-        return css`font-size: 12px;`;
-      case 'large':
-        return css`font-size: 18px;`;
-      default:
-        return css`font-size: 14px;`;
-    }
-  }}
+You can give any component a custom prop, and reference that prop in your component styles, effectively using the prop to turn on a "flavor" of that component.
+
+For example, let's make a styled component that acts as a card. Of course, this could be done with any AntD component, or any component at all. But we'll do this with a humble `div` to illustrate the point:
+
+```jsx
+const SuperCard = styled.div`
+  ${({ theme, cutout }) => `
+    padding: ${theme.gridUnit * 2}px;
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: 10px 5px 10px #ccc ${cutout && 'inset'};
+    border: 1px solid ${cutout ? 'transparent' : theme.colors.secondary.light3};
+  `}
 `;
 ```
 
-## Best Practices
+Then just use the component as `<SuperCard>Some content</SuperCard>` or with the (potentially dynamic) prop: `<SuperCard cutout>Some content</SuperCard>`
 
-### 1. Use Semantic CSS Properties
-```tsx
-// ✅ Good - semantic property names
-const Header = styled.h1`
-  font-size: ${({ theme }) => theme.typography.sizes.xl};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-`;
+## Styled component tips
 
-// ❌ Avoid - magic numbers
-const Header = styled.h1`
-  font-size: 24px;
-  margin-bottom: 16px;
-`;
-```
+### No need to use `theme` the hard way
 
-### 2. Group Related Styles
-```tsx
-// ✅ Good - grouped styles
-const Card = styled.div`
-  /* Layout */
-  display: flex;
-  flex-direction: column;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+It's very tempting (and commonly done) to use the `theme` prop inline in the template literal like so:
 
-  /* Appearance */
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+```jsx
+const SomeStyledThing = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   border-radius: ${({ theme }) => theme.borderRadius}px;
-
-  /* Typography */
-  font-family: ${({ theme }) => theme.typography.families.sansSerif};
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
 `;
 ```
 
-### 3. Extract Complex Styles
-```tsx
-// ✅ Good - extract complex styles to variables
-const complexGradient = css`
-  background: linear-gradient(
-    135deg,
-    ${({ theme }) => theme.colors.primary} 0%,
-    ${({ theme }) => theme.colors.secondary} 100%
-  );
-`;
+Instead, you can make things a little easier to read/type by writing it like so:
 
-const GradientButton = styled.button`
-  ${complexGradient}
-  padding: 12px 24px;
-  border: none;
-  color: white;
+```jsx
+const SomeStyledThing = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.gridUnit * 2}px;
+    border-radius: ${theme.borderRadius}px;
+    border: 1px solid ${theme.colors.secondary.light3};
+  `}
 `;
 ```
 
-### 4. Avoid Deep Nesting
-```tsx
-// ✅ Good - shallow nesting
-const Navigation = styled.nav`
-  .nav-item {
-    padding: 8px 16px;
-  }
+## Extend an AntD component with custom styling
 
-  .nav-link {
-    color: ${({ theme }) => theme.colors.text};
-    text-decoration: none;
-  }
+As mentioned, you want to keep your styling as close to the root of your component system as possible, to minimize repetitive styling/overrides, and err on the side of reusability. In some cases, that means you'll want to globally tweak one of our core components to match our design system. In Superset, that's Ant Design (AntD).
+
+AntD uses a cool trick called compound components. For example, the `Menu` component also lets you use `Menu.Item`, `Menu.SubMenu`, `Menu.ItemGroup`, and `Menu.Divider`.
+
+### The `Object.assign` trick
+
+Let's say you want to override an AntD component called `Foo`, and have `Foo.Bar` display some custom CSS for the `Bar` compound component. You can do it effectively like so:
+
+```jsx
+import {
+  Foo as AntdFoo,
+} from 'antd';
+
+export const StyledBar = styled(AntdFoo.Bar)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
-// ❌ Avoid - deep nesting
-const Navigation = styled.nav`
-  ul {
-    li {
-      a {
-        span {
-          color: blue; /* Too nested */
-        }
-      }
-    }
-  }
-`;
-```
-
-## Performance Tips
-
-### 1. Avoid Inline Functions in CSS
-```tsx
-// ✅ Good - external function
-const getBackgroundColor = (isActive: boolean, theme: any) =>
-  isActive ? theme.colors.primary : theme.colors.secondary;
-
-const Button = styled.button<{ isActive: boolean }>`
-  background-color: ${({ isActive, theme }) => getBackgroundColor(isActive, theme)};
-`;
-
-// ❌ Avoid - inline function (creates new function on each render)
-const Button = styled.button<{ isActive: boolean }>`
-  background-color: ${({ isActive, theme }) =>
-    isActive ? theme.colors.primary : theme.colors.secondary};
-`;
-```
-
-### 2. Use CSS Objects for Dynamic Styles
-```tsx
-// For highly dynamic styles, consider CSS objects
-const dynamicStyles = (props: Props) => ({
-  backgroundColor: props.color,
-  fontSize: `${props.size}px`,
-  // ... other dynamic properties
+export const Foo = Object.assign(AntdFoo, {
+  Bar: StyledBar,
 });
-
-const DynamicComponent = (props: Props) => (
-  <div css={dynamicStyles(props)}>
-    Content
-  </div>
-);
 ```
+
+You can then import this customized `Foo` and use `Foo.Bar` as expected. You should probably save your creation in `src/components` for maximum reusability, and add a Storybook entry so future engineers can view your creation, and designers can better understand how it fits the Superset Design System.

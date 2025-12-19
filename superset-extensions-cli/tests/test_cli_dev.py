@@ -23,6 +23,7 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
+from superset_core.extensions.types import Manifest
 from superset_extensions_cli.cli import app, FrontendChangeHandler
 
 
@@ -48,7 +49,7 @@ def test_dev_command_starts_watchers(
     """Test dev command starts file watchers."""
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-    mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
+    mock_build_manifest.return_value = Manifest(id="test", name="test", version="1.0.0")
 
     mock_observer = Mock()
     mock_observer_class.return_value = mock_observer
@@ -100,7 +101,7 @@ def test_dev_command_initial_build(
     """Test dev command performs initial build setup."""
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-    mock_build_manifest.return_value = {"name": "test", "version": "1.0.0"}
+    mock_build_manifest.return_value = Manifest(id="test", name="test", version="1.0.0")
 
     extension_setup_for_dev(isolated_filesystem)
 
@@ -188,11 +189,12 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
     dist_dir = isolated_filesystem / "dist"
     dist_dir.mkdir()
 
+    mock_manifest = Manifest(id="test", name="test", version="1.0.0")
     with patch("superset_extensions_cli.cli.rebuild_frontend") as mock_rebuild:
         with patch("superset_extensions_cli.cli.build_manifest") as mock_build:
             with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
                 mock_rebuild.return_value = "remoteEntry.abc123.js"
-                mock_build.return_value = {"name": "test", "version": "1.0.0"}
+                mock_build.return_value = mock_manifest
 
                 # Simulate frontend watcher function logic
                 frontend_dir = isolated_filesystem / "frontend"
@@ -209,9 +211,7 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
                 mock_build.assert_called_once_with(
                     isolated_filesystem, "remoteEntry.abc123.js"
                 )
-                mock_write.assert_called_once_with(
-                    isolated_filesystem, {"name": "test", "version": "1.0.0"}
-                )
+                mock_write.assert_called_once_with(isolated_filesystem, mock_manifest)
 
 
 @pytest.mark.unit

@@ -65,7 +65,7 @@ SORTABLE_CHART_COLUMNS = [
 ]
 
 
-@tool
+@tool(tags=["core"])
 @parse_request(ListChartsRequest)
 async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     """List charts with filtering and search.

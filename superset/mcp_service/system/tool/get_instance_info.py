@@ -69,7 +69,7 @@ _instance_info_core = InstanceInfoCore(
 )
 
 
-@tool
+@tool(tags=["core"])
 @parse_request(GetSupersetInstanceInfoRequest)
 def get_instance_info(
     request: GetSupersetInstanceInfoRequest, ctx: Context
