@@ -327,4 +327,73 @@ describe('Dashboard', () => {
       expect(mockTriggerQuery).not.toHaveBeenCalled();
     });
   });
+
+  test('should NOT call refresh when ownDataCharts content is unchanged', () => {
+    // When only clientView changes, getRelevantDataMask strips it,
+    // so Dashboard receives identical ownDataCharts and should not refresh
+    const initialOwnDataCharts = {
+      1: { pageSize: 10, currentPage: 0 },
+    };
+
+    const { rerender } = renderDashboard({
+      ownDataCharts: initialOwnDataCharts,
+      dashboardState: {
+        ...dashboardState,
+        editMode: false,
+      },
+    });
+
+    // Rerender with same ownDataCharts (simulates clientView-only change after stripping)
+    rerender(
+      <PluginContext.Provider value={{ loading: false }}>
+        <Dashboard
+          {...props}
+          ownDataCharts={initialOwnDataCharts}
+          dashboardState={{
+            ...dashboardState,
+            editMode: false,
+          }}
+        >
+          <ChildrenComponent />
+        </Dashboard>
+      </PluginContext.Provider>,
+    );
+
+    expect(mockTriggerQuery).not.toHaveBeenCalled();
+  });
+
+  test('should call refresh when ownDataCharts pageSize changes', () => {
+    const initialOwnDataCharts = {
+      1: { pageSize: 10, currentPage: 0 },
+    };
+
+    const { rerender } = renderDashboard({
+      ownDataCharts: initialOwnDataCharts,
+      dashboardState: {
+        ...dashboardState,
+        editMode: false,
+      },
+    });
+
+    const updatedOwnDataCharts = {
+      1: { pageSize: 20, currentPage: 0 },
+    };
+
+    rerender(
+      <PluginContext.Provider value={{ loading: false }}>
+        <Dashboard
+          {...props}
+          ownDataCharts={updatedOwnDataCharts}
+          dashboardState={{
+            ...dashboardState,
+            editMode: false,
+          }}
+        >
+          <ChildrenComponent />
+        </Dashboard>
+      </PluginContext.Provider>,
+    );
+
+    expect(mockTriggerQuery).toHaveBeenCalledWith(true, '1');
+  });
 });
