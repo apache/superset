@@ -747,7 +747,6 @@ describe('ResultSet', () => {
     async ({ appRoot, expectedUrl }) => {
       // This test validates that streaming export startExport receives the correct URL
       // based on the applicationRoot configuration.
-      // Without the fix, all cases will receive '/api/v1/sqllab/export_streaming/' without prefix.
       applicationRootMock.mockReturnValue(appRoot);
 
       // Create a query with enough rows to trigger streaming export (>= threshold)
