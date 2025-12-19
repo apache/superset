@@ -36,7 +36,6 @@ YAML_EXTENSIONS = {".yaml", ".yml"}
 CORE_EXAMPLES = {
     "birth_names",
     "cleaned_sales_data",
-    "covid_vaccines",
     "fcc_2018_survey",
     "featured_charts",
     "slack_dashboard",

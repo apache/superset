@@ -46,12 +46,12 @@ describe('Charts filters', () => {
   });
 
   it('should allow filtering by "Dataset" correctly', () => {
-    setFilter('Dataset', 'energy_usage');
-    setFilter('Dataset', 'unicode_test');
+    setFilter('Dataset', 'birth_names');
+    setFilter('Dataset', 'video_game_sales');
   });
 
   it('should allow filtering by "Dashboards" correctly', () => {
-    setFilter('Dashboard', 'Unicode Test');
-    setFilter('Dashboard', 'Tabbed Dashboard');
+    setFilter('Dashboard', 'USA Births Names');
+    setFilter('Dashboard', 'Video Game Sales');
   });
 });
