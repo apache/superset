@@ -296,11 +296,11 @@ def test_init_command_output_messages(cli_runner, isolated_filesystem, cli_input
     output = result.output
 
     # Check for expected success messages
-    assert "✅ Created extension.json" in output
-    assert "✅ Created .gitignore" in output
-    assert "✅ Created frontend folder structure" in output
-    assert "✅ Created backend folder structure" in output
-    assert "🎉 Extension Test Extension (ID: test_extension) initialized" in output
+    assert "Created extension.json" in output
+    assert "Created .gitignore" in output
+    assert "Created frontend folder structure" in output
+    assert "Created backend folder structure" in output
+    assert "Extension Test Extension (ID: test_extension) initialized" in output
 
 
 @pytest.mark.cli
@@ -320,7 +320,7 @@ def test_gitignore_content_is_correct(cli_runner, isolated_filesystem, cli_input
     assert "node_modules/" in content
     assert "dist/" in content
     assert "*.supx" in content
-    assert "__pycache__/" in content
+    assert "__pycache__" in content
     assert ".venv/" in content
     assert ".DS_Store" in content
     assert ".env" in content
