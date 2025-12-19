@@ -18,7 +18,7 @@
  */
 import { interceptV1ChartData } from './utils';
 
-describe('Advanced analytics', () => {
+describe.skip('Advanced analytics', () => {
   beforeEach(() => {
     interceptV1ChartData();
     cy.intercept('PUT', '**/api/v1/explore/**').as('putExplore');
