@@ -185,7 +185,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         affected_rows=affected_rows,
         execution_time=(
             result.total_execution_time_ms / 1000
-            if result.total_execution_time_ms
+            if result.total_execution_time_ms is not None
             else None
         ),
         statements=statements,

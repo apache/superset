@@ -515,7 +515,7 @@ def parse_request(
                     hasattr(param.annotation, "__name__")
                     and param.annotation.__name__ == "Context"
                 )
-                or param.annotation == "Context"  # Forward reference string
+                or (isinstance(param.annotation, str) and (param.annotation == "Context" or param.annotation.endswith(".Context")))
                 or name == "ctx"  # Fallback: skip any param named 'ctx'
             )
             if is_context:
