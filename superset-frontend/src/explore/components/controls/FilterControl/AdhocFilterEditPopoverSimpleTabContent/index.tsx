@@ -353,14 +353,16 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     allowClear: true,
     allowNewOptions: true,
     ariaLabel: t('Comparator option'),
-    mode: MULTI_OPERATORS.has(operatorId)
-      ? ('multiple' as const)
-      : ('single' as const),
+    mode:
+      operatorId && MULTI_OPERATORS.has(operatorId)
+        ? ('multiple' as const)
+        : ('single' as const),
     loading: loadingComparatorSuggestions,
     value: comparator,
     onChange: onComparatorChange,
     notFoundContent: t('Type a value here'),
-    disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
+    disabled:
+      operatorId !== undefined && DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
   };
 
@@ -510,7 +512,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           }))}
         {...operatorSelectProps}
       />
-      {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
+      {(operatorId && MULTI_OPERATORS.has(operatorId)) ||
+      suggestions.length > 0 ? (
         <Tooltip
           title={
             advancedDataTypesState.errorMessage ||
@@ -545,7 +548,10 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             onChange={onInputComparatorChange}
             value={comparator}
             placeholder={t('Filter value (case sensitive)')}
-            disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
+            disabled={
+              operatorId !== undefined &&
+              DISABLE_INPUT_OPERATORS.includes(operatorId)
+            }
           />
         </Tooltip>
       )}

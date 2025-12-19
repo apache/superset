@@ -89,8 +89,11 @@ const coerceMetrics = (
         col => col.column_name === metric.column.column_name,
       );
       if (column) {
-        // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
-        return new AdhocMetric({ ...(metric as unknown as Record<string, unknown>), column: column as unknown as Record<string, unknown> });
+        // Cast entire config object to handle type mismatch between @superset-ui/core and local types
+        return new AdhocMetric({
+          ...(metric as unknown as Record<string, unknown>),
+          column,
+        } as Record<string, unknown>);
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric

@@ -76,39 +76,8 @@ const mockDatasource: TestDatasource = {
   sql: 'SELECT * FROM mock_datasource_sql',
 };
 
-interface TestProps {
-  hovered: boolean;
-  type: string;
-  label: string;
-  default: null;
-  description: null;
-  value: string;
-  form_data: JsonObject;
-  datasource: TestDatasource;
-  validationErrors: string[];
-  name: string;
-  actions: {
-    changeDatasource: jest.Mock;
-    setControlValue: jest.Mock;
-  };
-  isEditable: boolean;
-  user: {
-    createdOn: string;
-    email: string;
-    firstName: string;
-    isActive: boolean;
-    lastName: string;
-    permissions: JsonObject;
-    roles: JsonObject;
-    userId: number;
-    username: string;
-  };
-  onChange: jest.Mock;
-  onDatasourceSave: jest.Mock;
-}
-
 // Use type assertion for test props since the component is wrapped with withTheme
-// The withTheme HOC makes the props type complex, so we use a cast to bypass the type check
+// The withTheme HOC makes the props type complex, so we cast through unknown to bypass type check
 type DatasourceControlComponentProps = React.ComponentProps<typeof DatasourceControl>;
 const createProps = (overrides: JsonObject = {}): DatasourceControlComponentProps =>
   ({
@@ -141,9 +110,9 @@ const createProps = (overrides: JsonObject = {}): DatasourceControlComponentProp
     onChange: jest.fn(),
     onDatasourceSave: jest.fn(),
     ...overrides,
-  }) as DatasourceControlComponentProps;
+  }) as unknown as DatasourceControlComponentProps;
 
-async function openAndSaveChanges(datasource: TestDatasource) {
+async function openAndSaveChanges(datasource: TestDatasource | Record<string, unknown>) {
   fetchMock.get(
     'glob:*/api/v1/database/?q=*',
     { result: [] },

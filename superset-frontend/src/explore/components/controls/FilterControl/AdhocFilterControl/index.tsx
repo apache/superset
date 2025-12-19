@@ -399,7 +399,7 @@ class AdhocFilterControl extends Component<AdhocFilterControlProps, AdhocFilterC
         adhocFilter={new AdhocFilter({})}
         datasource={this.props.datasource as Record<string, unknown> || {}}
         options={this.state.options}
-        onFilterEdit={this.onNewFilter as (editedFilter: AdhocFilter) => void}
+        onFilterEdit={this.onNewFilter as unknown as (editedFilter: AdhocFilter) => void}
         partitionColumn={this.state.partitionColumn ?? undefined}
       >
         {trigger}

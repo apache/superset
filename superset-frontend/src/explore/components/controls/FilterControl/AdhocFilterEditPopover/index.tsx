@@ -403,10 +403,10 @@ export default class AdhocFilterEditPopover extends Component<
                     operators={operators as Operators[] | undefined}
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
-                    options={options}
-                    datasource={datasource}
+                    options={options as unknown as Record<string, unknown>[]}
+                    datasource={datasource as unknown as Record<string, unknown>}
                     onHeightChange={this.adjustHeight}
-                    partitionColumn={partitionColumn}
+                    partitionColumn={partitionColumn ?? undefined}
                     popoverRef={this.popoverContentRef.current}
                     validHandler={this.setSimpleTabIsValid}
                   />
@@ -421,10 +421,10 @@ export default class AdhocFilterEditPopover extends Component<
                   <AdhocFilterEditPopoverSqlTabContent
                     adhocFilter={this.state.adhocFilter}
                     onChange={this.onAdhocFilterChange}
-                    options={this.props.options}
+                    options={this.props.options as unknown as Record<string, unknown>[]}
                     height={this.state.height}
                     activeKey={this.state.activeKey}
-                    datasource={datasource}
+                    datasource={datasource as unknown as Record<string, unknown>}
                   />
                 </ErrorBoundary>
               ),
@@ -435,7 +435,7 @@ export default class AdhocFilterEditPopover extends Component<
           <LayerSelectContainer>
             <Select
               options={this.state.layerOptions}
-              onChange={this.onLayerChange}
+              onChange={this.onLayerChange as unknown as (value: unknown) => void}
               value={selectedLayers}
               mode="multiple"
             />

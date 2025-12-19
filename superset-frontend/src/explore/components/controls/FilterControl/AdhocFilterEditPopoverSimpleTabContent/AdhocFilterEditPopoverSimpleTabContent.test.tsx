@@ -41,6 +41,7 @@ import fetchMock from 'fetch-mock';
 import { TestDataset, Dataset } from '@superset-ui/chart-controls';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
+  Props,
 } from '.';
 import { Clauses, ExpressionTypes } from '../types';
 
@@ -93,7 +94,7 @@ const options = [
   sumValueAdhocMetric,
 ];
 
-const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
+const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const props = {
@@ -113,7 +114,7 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
   return props;
 };
 
-function setup(overrides?: Record<string, any>) {
+function setup(overrides?: Record<string, unknown>) {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const spy = jest.spyOn(redux, 'useSelector');
@@ -132,7 +133,9 @@ function setup(overrides?: Record<string, any>) {
     ...overrides,
     validHandler,
   };
-  render(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
   return props;
 }
 
@@ -409,9 +412,14 @@ test('should not call API when column has no advanced data type', async () => {
   const props = getAdvancedDataTypeTestProps();
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -443,9 +451,14 @@ test('should call API when column has advanced data type', async () => {
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -478,9 +491,14 @@ test('save button should be disabled if error message from API is returned', asy
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -515,9 +533,14 @@ test('advanced data type operator list should update after API response', async 
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -581,7 +604,9 @@ test('dropdown should remain open when clicked after filter is configured', asyn
     validHandler,
   };
 
-  render(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
 
   const operatorDropdown = screen.getByRole('combobox', {
     name: 'Select operator',
