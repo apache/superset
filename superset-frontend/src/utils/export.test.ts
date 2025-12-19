@@ -403,6 +403,7 @@ describe('double-prefix prevention', () => {
 
   const prefixTestCases = [
     { name: 'subdirectory prefix', appRoot: '/superset', resource: 'dashboard', ids: [1] },
+    { name: 'subdirectory prefix (dataset)', appRoot: '/superset', resource: 'dataset', ids: [1] },
     { name: 'nested prefix', appRoot: '/my-app/superset', resource: 'dataset', ids: [1, 2] },
   ];
 
