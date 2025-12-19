@@ -28,9 +28,9 @@ under the License.
 | can write on ReportSchedule                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can read on Chart                                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can write on Chart                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can read on Annotation                           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can write on Annotation                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can read on AnnotationLayerRestApi               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can read on Annotation                           |:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|O|
+| can write on Annotation                          |:heavy_check_mark:|:heavy_check_mark:|O|O|O|
+| can read on AnnotationLayerRestApi               |:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|O|
 | can read on Dataset                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can write on Dataset                             |:heavy_check_mark:|:heavy_check_mark:|O|O|O|
 | can read on Log                                  |:heavy_check_mark:|O|O|O|O|

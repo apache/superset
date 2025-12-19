@@ -1520,10 +1520,18 @@ class TestRolePermission(SupersetTestCase):
         # Note: Public has filter state write which Gamma also has
         public_only = public_perm_set - gamma_perm_set
 
-        # Any permissions Public has that Gamma doesn't should be intentional
-        # (there shouldn't be any in the current design)
-        assert len(public_only) == 0, (
-            f"Public has permissions Gamma doesn't: {public_only}"
+        # These permissions are intentionally granted to Public even though
+        # Gamma doesn't have them. Annotation permissions are needed for
+        # charts with annotations to render properly for public users.
+        # Gamma doesn't have these because Annotation is in ALPHA_ONLY_VIEW_MENUS.
+        allowed_public_only_perms = {
+            ("can_read", "Annotation"),
+            ("can_read", "AnnotationLayerRestApi"),
+        }
+
+        unexpected_perms = public_only - allowed_public_only_perms
+        assert len(unexpected_perms) == 0, (
+            f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
         )
 
         # Public should have significantly fewer permissions than Gamma
